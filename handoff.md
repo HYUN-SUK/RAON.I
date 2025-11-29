@@ -1,37 +1,31 @@
 # Handoff Document
 
-## 1. 현재 상태 요약 (Current Status)
-- **Phase 1: 내 공간(My Space) MVP 완성**
-    - 1인칭 텐트 뷰, 감성 모듈(불멍/별보기), 꾸미기 위젯, 기록/예약 카드 등 핵심 UI 구현 완료.
-    - 사용자 피드백(히어로 이미지 중복 제거, 카드 인터랙션 강화) 반영 완료.
-    - Git 커밋 완료: `Feat: Complete MySpace MVP with Final Polish`.
-- **Phase 2: 예약(Reservation) 모듈 준비**
-    - SSOT v9 기반으로 다음 개발 목표를 '예약 모듈'로 선정.
-    - 구현 계획(`implementation_plan.md`) 및 태스크 리스트(`task.md`) 작성 완료.
+## 1. 현재 상태 요약 (Session Summary)
+- **주말 2박 우선 규칙 (Strict Weekend Rule) 구현 완료**:
+  - 금요일 체크인 시 2박 이상 선택해야 예약 가능하도록 `DateRangePicker.tsx`와 `ReservationPage.tsx`에 로직을 적용했습니다.
+  - 1박 선택 시 "⛔ 사이트 선택 불가" 메시지와 함께 사이트 목록이 비활성화됩니다.
+- **임박 예약 예외 (D-N Exception) 구현 완료**:
+  - 예약일 기준 7일 이내(D-7)인 경우, 금요일 1박 예약도 허용되도록 예외 처리를 추가했습니다.
+  - 이 경우 "✅ 임박 예약(D-7)으로 금요일 1박 예약이 가능합니다!" 메시지가 표시됩니다.
+- **런타임 에러 수정**:
+  - 구현 과정에서 발생한 문법 오류 및 런타임 에러(Panic in async function)를 해결하기 위해 코드를 재작성하고 안전 장치를 추가했습니다.
 
 ## 2. 기술적 결정 사항 (Technical Decisions)
-- **UI/UX**:
-    - `Tailwind CSS` + `Glassmorphism`을 적극 활용하여 감성적이고 프리미엄한 느낌 구현.
-    - 모바일 퍼스트(390px 기준) 레이아웃 준수.
-    - 모든 인터랙티브 요소(카드, 버튼)에 `active:scale` 효과를 적용하여 터치감 강화.
-- **상태 관리**:
-    - `Zustand`를 사용하여 감성 모듈(불멍, 별보기 등)의 전역 상태 관리.
-    - 예약 데이터도 `useReservationStore`를 통해 로컬 상태로 우선 구현 예정 (Mocking).
-- **구조**:
-    - `components/myspace` 폴더에 내 공간 관련 컴포넌트 모듈화.
-    - `components/reservation` 폴더에 예약 관련 컴포넌트 생성 예정.
+- **로직 분산 처리**:
+  - `DateRangePicker.tsx`: 사용자에게 시각적인 피드백(Footer 메시지)을 제공하고 날짜 선택을 제어합니다.
+  - `ReservationPage.tsx`: 선택된 날짜가 규칙을 위반할 경우 `SiteList` 컴포넌트 자체를 비활성화(Opacity, Pointer-events)하여 예약을 원천 차단합니다.
+- **박수 계산 로직 강화**:
+  - 기존의 `!selected.to` 방식은 불완전하여, `Math.ceil`을 이용한 정확한 박수(`nights`) 계산 로직으로 변경했습니다. (`nights < 2`)
 
 ## 3. 다음 작업 가이드 (Next Steps)
-다음 세션에서는 **Phase 2: 예약 모듈 구현**을 바로 시작하면 됩니다.
+1.  **최종 브라우저 검증 (Priority High)**:
+    - 세션 종료 직전 코드 수정 후 최종 검증을 수행하지 못했습니다. 다음 세션 시작 시 바로 브라우저를 열어 아래 시나리오를 검증해주세요.
+        - [ ] 12월 12일(금) ~ 13일(토) 선택 -> 차단 확인
+        - [ ] 12월 5일(금) ~ 6일(토) 선택 -> 허용 확인
+2.  **예약 폼 실시간 가격 연동**:
+    - `ReservationForm.tsx`에 선택된 날짜와 사이트 가격을 연동하여 총 결제 금액을 실시간으로 계산하는 로직이 필요합니다.
+3.  **사이트 이미지 적용**:
+    - 현재 쿼터 제한으로 보류된 사이트 이미지 생성을 재시도하거나 대체 이미지를 적용해야 합니다.
 
-1.  **Step 1: 데이터 모델링**
-    - `types/reservation.ts`, `constants/sites.ts`, `store/useReservationStore.ts` 작성.
-2.  **Step 2: 예약 메인 화면**
-    - 달력(`DateRangePicker`) 및 사이트 리스트(`SiteList`) 구현.
-3.  **Step 3: 상세 및 폼**
-    - 사이트 상세 페이지 및 예약 정보 입력 폼 구현.
-
-## 4. 주의 사항 (Notes)
-- **Git**: 현재 `master` 브랜치에 Phase 1 코드가 커밋되어 있습니다. 작업 시작 전 `git pull` 또는 상태 확인을 권장합니다.
-- **이미지**: 히어로 섹션 배경 이미지는 `tent_view_wide_scenic.png` 하나만 사용 중입니다 (다리 실루엣 레이어 제거됨).
-- **데이터**: 백엔드 없이 로컬 스토어(`Zustand`)와 상수 데이터(`constants`)로 동작하므로, 브라우저 새로고침 시 데이터가 초기화될 수 있습니다 (추후 `persist` 미들웨어 적용 고려).
+## 4. 주의 사항 (Caveats)
+- **개발 서버 재시작 권장**: 런타임 에러 수정 후 개발 서버가 불안정할 수 있으므로, 다음 작업 시작 전 `npm run dev`를 재시작하는 것을 권장합니다.

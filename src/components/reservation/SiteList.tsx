@@ -27,7 +27,7 @@ export default function SiteList() {
     };
 
     return (
-        <div className="space-y-4 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
             {sortedSites.map((site) => {
                 const available = isSiteAvailable(site.id);
                 return (
@@ -36,13 +36,13 @@ export default function SiteList() {
                         onClick={() => handleSiteClick(site)}
                         className={`
             relative overflow-hidden rounded-2xl border transition-all duration-300 group
-            ${available ? 'cursor-pointer hover:bg-white/10' : 'cursor-not-allowed opacity-60 grayscale'}
+            ${available ? 'cursor-pointer hover:bg-white/10' : 'cursor-not-allowed'}
             ${selectedSite?.id === site.id
                                 ? 'border-[#2F5233] ring-2 ring-[#2F5233]/50 bg-white/10'
                                 : 'border-white/10 bg-white/5'}
           `}
                     >
-                        <div className="relative h-48 w-full">
+                        <div className={`relative h-48 w-full ${!available ? 'grayscale brightness-50' : ''}`}>
                             <Image
                                 src={site.imageUrl}
                                 alt={site.name}
@@ -66,7 +66,7 @@ export default function SiteList() {
                             </div>
                         </div>
 
-                        <div className="p-4">
+                        <div className={`p-4 ${!available ? 'opacity-50' : ''}`}>
                             <p className="text-sm text-white/70 mb-3 line-clamp-2">{site.description}</p>
                             <div className="flex flex-wrap gap-2">
                                 {site.features.map((feature, idx) => (

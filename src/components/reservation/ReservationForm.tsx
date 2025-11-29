@@ -11,7 +11,8 @@ interface ReservationFormProps {
 
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
-    const { selectedDateRange, addReservation, setSelectedSite, calculateTotalPrice } = useReservationStore();
+    // Use calculatePrice instead of calculateTotalPrice
+    const { selectedDateRange, addReservation, setSelectedSite, calculatePrice } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -26,14 +27,21 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         setSelectedSite(site);
     }, [site, setSelectedSite]);
 
-    // Calculate total price
+    // Calculate dates
     const fromDate = selectedDateRange.from ? new Date(selectedDateRange.from) : undefined;
     const toDate = selectedDateRange.to ? new Date(selectedDateRange.to) : undefined;
+
+    // Calculate nights
     const nights = fromDate && toDate
         ? Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
         : 0;
 
-    const totalPrice = calculateTotalPrice(site, nights, familyCount, visitorCount);
+    // Calculate price breakdown
+    const priceBreakdown = fromDate && toDate
+        ? calculatePrice(site, fromDate, toDate, familyCount, visitorCount)
+        : null;
+
+    const totalPrice = priceBreakdown ? priceBreakdown.totalPrice : 0;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,21 +56,21 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
         addReservation({
             id: Math.random().toString(36).substr(2, 9),
-            userId: 'guest', // Mock user
+            userId: 'guest',
             siteId: site.id,
             checkInDate: fromDate,
             checkOutDate: toDate,
             familyCount,
             visitorCount,
             vehicleCount,
-            guests: (familyCount * 4) + visitorCount, // Approx 4 per family
+            guests: (familyCount * 4) + visitorCount,
             totalPrice,
-            status: 'PENDING', // SSOT: Start as PENDING
+            status: 'PENDING',
             requests,
             createdAt: new Date(),
         });
 
-        router.push('/reservation/complete'); // Redirect to Completion Page
+        router.push('/reservation/complete');
     };
 
     if (!isMounted) return null;
@@ -72,7 +80,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             <h3 className="text-xl font-bold text-white mb-4">예약 정보 입력</h3>
 
             {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
                 <div>
                     <label className="block text-sm text-white/70 mb-1">예약자 성함</label>
                     <input
@@ -80,7 +88,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#2F5233]"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
                         placeholder="홍길동"
                     />
                 </div>
@@ -91,20 +99,20 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         required
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#2F5233]"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
                         placeholder="010-1234-5678"
                     />
                 </div>
             </div>
 
             {/* Counts */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-4">
                 <div>
                     <label className="block text-sm text-white/70 mb-1">가족 수 (기본 1)</label>
                     <select
                         value={familyCount}
                         onChange={(e) => setFamilyCount(parseInt(e.target.value))}
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#2F5233]"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
                     >
                         {[1, 2, 3].map(n => <option key={n} value={n} className="text-black">{n}가족</option>)}
                     </select>
@@ -117,7 +125,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         min={0}
                         value={visitorCount}
                         onChange={(e) => setVisitorCount(parseInt(e.target.value) || 0)}
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#2F5233]"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
                     />
                     {visitorCount > 0 && <p className="text-xs text-yellow-400 mt-1">+10,000원/인</p>}
                 </div>
@@ -126,7 +134,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     <select
                         value={vehicleCount}
                         onChange={(e) => setVehicleCount(parseInt(e.target.value))}
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#2F5233]"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
                     >
                         {[1, 2, 3, 4].map(n => <option key={n} value={n} className="text-black">{n}대</option>)}
                     </select>
@@ -158,19 +166,48 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 </label>
             </div>
 
-            {/* Total Price & Submit */}
-            <div className="pt-4 border-t border-white/10 mt-4">
-                <div className="flex justify-between text-white mb-4">
-                    <span className="text-lg">총 결제 금액</span>
-                    <div className="text-right">
-                        <span className="font-bold text-2xl text-[#C3A675]">
-                            {totalPrice.toLocaleString()}원
-                        </span>
-                        <p className="text-xs text-white/50">
-                            {nights}박 기준 (가족 {familyCount}, 방문객 {visitorCount})
-                        </p>
+            {/* Price Breakdown & Submit */}
+            <div className="pt-4 border-t border-white/10 mt-4 space-y-3">
+                {priceBreakdown && (
+                    <div className="text-sm text-white/70 space-y-1">
+                        <div className="flex justify-between">
+                            <span>기본 요금 ({nights}박)</span>
+                            <span>{priceBreakdown.basePrice.toLocaleString()}원</span>
+                        </div>
+                        {priceBreakdown.options.extraFamily > 0 && (
+                            <div className="flex justify-between text-yellow-400">
+                                <span>추가 가족</span>
+                                <span>+{priceBreakdown.options.extraFamily.toLocaleString()}원</span>
+                            </div>
+                        )}
+                        {priceBreakdown.options.visitor > 0 && (
+                            <div className="flex justify-between text-yellow-400">
+                                <span>방문객</span>
+                                <span>+{priceBreakdown.options.visitor.toLocaleString()}원</span>
+                            </div>
+                        )}
+                        {priceBreakdown.discount.package > 0 && (
+                            <div className="flex justify-between text-green-400">
+                                <span>2박 패키지 할인</span>
+                                <span>-{priceBreakdown.discount.package.toLocaleString()}원</span>
+                            </div>
+                        )}
+                        {priceBreakdown.discount.consecutive > 0 && (
+                            <div className="flex justify-between text-green-400">
+                                <span>연박 할인</span>
+                                <span>-{priceBreakdown.discount.consecutive.toLocaleString()}원</span>
+                            </div>
+                        )}
                     </div>
+                )}
+
+                <div className="flex justify-between text-white pt-2 border-t border-white/5">
+                    <span className="text-lg font-bold">총 결제 금액</span>
+                    <span className="font-bold text-2xl text-[#C3A675]">
+                        {totalPrice.toLocaleString()}원
+                    </span>
                 </div>
+
                 <button
                     type="submit"
                     disabled={!fromDate || !toDate || !agreed}

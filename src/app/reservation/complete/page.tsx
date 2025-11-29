@@ -26,9 +26,13 @@ export default function ReservationCompletePage() {
 
     if (!latestReservation) return null;
 
-    const { status, totalPrice, checkInDate, checkOutDate, siteId } = latestReservation;
+    const { status, totalPrice, checkInDate, checkOutDate, siteId, createdAt } = latestReservation;
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
+
+    // Calculate deposit deadline (6 hours from creation)
+    const created = createdAt ? new Date(createdAt) : new Date();
+    const depositDeadline = new Date(created.getTime() + (6 * 60 * 60 * 1000));
 
     const handleCopyAccount = () => {
         navigator.clipboard.writeText('3333-00-0000000');
@@ -38,16 +42,16 @@ export default function ReservationCompletePage() {
 
     return (
         <div className="min-h-screen bg-[#121212] text-white pb-24">
-            {/* Header Image Area */}
+            {/* ... Header ... */}
             <div className="relative h-64 w-full">
                 <Image
-                    src="/images/site-1.jpg" // Fallback or dynamic based on siteId
+                    src="/images/site-1.jpg"
                     alt="Reservation Complete"
                     fill
                     className="object-cover opacity-50"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/50 to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6">
+                <div className="absolute bottom-6 left-6 right-6 text-center">
                     <h1 className="text-3xl font-bold mb-2">
                         {status === 'PENDING' && '예약 신청 완료'}
                         {status === 'CONFIRMED' && '예약 확정'}
@@ -96,9 +100,16 @@ export default function ReservationCompletePage() {
                                 <span className="text-white/60 text-sm">입금 금액</span>
                                 <span className="font-bold text-xl">{totalPrice.toLocaleString()}원</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-white/60 text-sm">입금 기한</span>
-                                <span className="text-red-400 text-sm">내일 23:59까지</span>
+                            <div className="flex justify-between items-start pt-2 border-t border-white/10 mt-2">
+                                <span className="text-white/60 text-sm shrink-0 mr-2">입금 기한</span>
+                                <div className="text-right">
+                                    <span className="text-red-400 font-bold block">
+                                        {format(depositDeadline, 'MM.dd HH:mm', { locale: ko })} 까지
+                                    </span>
+                                    <span className="text-[10px] text-white/40 block mt-1">
+                                        * 기한 내 미입금 시 자동 취소됩니다.
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
