@@ -5,6 +5,7 @@ export const D_N_DAYS = 7;
 export interface ReservationRuleResult {
     isFridayOneNight: boolean;
     isWithinDN: boolean;
+    isEndCap: boolean;
     isBlocked: boolean;
 }
 
@@ -12,19 +13,22 @@ export interface ReservationRuleResult {
  * Validates reservation rules:
  * 1. Strict Weekend Rule: Friday check-in requires 2+ nights.
  * 2. D-N Exception: If within D-7, Friday 1-night is allowed.
+ * 3. End-cap Exception: If Saturday is full OR next day is blocked, Friday 1-night is allowed.
  * 
  * @param from Check-in date
  * @param to Check-out date
  * @param now Current date (default: new Date())
+ * @param options Additional conditions (isSaturdayFull, isNextDayBlocked)
  * @returns Object containing rule evaluation results
  */
 export function checkReservationRules(
     from: Date | undefined,
     to: Date | undefined,
-    now: Date = new Date()
+    now: Date = new Date(),
+    options: { isSaturdayFull?: boolean; isNextDayBlocked?: boolean } = {}
 ): ReservationRuleResult {
     if (!from) {
-        return { isFridayOneNight: false, isWithinDN: false, isBlocked: false };
+        return { isFridayOneNight: false, isWithinDN: false, isEndCap: false, isBlocked: false };
     }
 
     // Calculate nights
@@ -45,12 +49,16 @@ export function checkReservationRules(
 
     const isWithinDN = diffDays <= D_N_DAYS;
 
-    // Blocked if: Weekend 1-night attempt AND NOT within D-N exception
-    const isBlocked = isWeekendOneNight && !isWithinDN;
+    // End-cap Calculation (Friday only)
+    const isEndCap = isFri && (options.isSaturdayFull || options.isNextDayBlocked || false);
+
+    // Blocked if: Weekend 1-night attempt AND NOT within D-N exception AND NOT End-cap exception
+    const isBlocked = isWeekendOneNight && !isWithinDN && !isEndCap;
 
     return {
         isFridayOneNight: isWeekendOneNight, // Mapped for compatibility
         isWithinDN,
+        isEndCap,
         isBlocked
     };
 }

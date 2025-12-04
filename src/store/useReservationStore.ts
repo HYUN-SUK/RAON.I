@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Reservation, Site } from '@/types/reservation';
+import { Reservation, Site, ReservationStatus } from '@/types/reservation';
 import { calculatePrice } from '@/utils/pricing';
 
 interface ReservationState {
@@ -15,6 +15,7 @@ interface ReservationState {
     setDateRange: (range: { from: Date | undefined; to: Date | undefined }) => void;
     setSelectedSite: (site: Site | null) => void;
     addReservation: (reservation: Reservation) => void;
+    updateReservationStatus: (id: string, status: ReservationStatus) => void;
     reset: () => void;
 
     // Helper to calculate price
@@ -45,6 +46,12 @@ export const useReservationStore = create<ReservationState>()(
             setSelectedSite: (site) => set({ selectedSite: site }),
             addReservation: (reservation) =>
                 set((state) => ({ reservations: [...state.reservations, reservation] })),
+            updateReservationStatus: (id, status) =>
+                set((state) => ({
+                    reservations: state.reservations.map((res) =>
+                        res.id === id ? { ...res, status } : res
+                    ),
+                })),
             reset: () => set({ selectedDateRange: { from: undefined, to: undefined }, selectedSite: null }),
 
             calculatePrice: (site, checkIn, checkOut, familyCount, visitorCount) => {
@@ -53,6 +60,22 @@ export const useReservationStore = create<ReservationState>()(
         }),
         {
             name: 'reservation-storage',
+            storage: {
+                getItem: (name) => {
+                    const str = localStorage.getItem(name);
+                    if (!str) return null;
+                    return JSON.parse(str, (key, value) => {
+                        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                            return new Date(value);
+                        }
+                        return value;
+                    });
+                },
+                setItem: (name, value) => {
+                    localStorage.setItem(name, JSON.stringify(value));
+                },
+                removeItem: (name) => localStorage.removeItem(name),
+            },
         }
     )
 );

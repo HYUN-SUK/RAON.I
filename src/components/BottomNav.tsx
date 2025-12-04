@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Calendar, Users, Tent } from "lucide-react";
+import { Home, Calendar, Users, Tent, Shield } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function BottomNav() {
@@ -12,6 +12,7 @@ export default function BottomNav() {
         { name: "예약", href: "/reservation", icon: Calendar },
         { name: "커뮤니티", href: "/community", icon: Users },
         { name: "내공간", href: "/myspace", icon: Tent },
+        { name: "Admin", href: "/admin", icon: Shield },
     ];
 
     return (

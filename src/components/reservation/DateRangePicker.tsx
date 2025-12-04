@@ -7,10 +7,11 @@ import { format } from 'date-fns';
 import { useReservationStore } from '@/store/useReservationStore';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { checkReservationRules, D_N_DAYS } from '@/utils/reservationRules';
+import { SITES } from '@/constants/sites';
 import 'react-day-picker/style.css';
 
 export default function DateRangePicker() {
-    const { selectedDateRange, setDateRange } = useReservationStore();
+    const { selectedDateRange, setDateRange, reservations } = useReservationStore();
 
     // Ensure dates are Date objects (handle hydration from string)
     const selected = {
@@ -32,9 +33,60 @@ export default function DateRangePicker() {
     const now = new Date();
     const isOpen = now >= OPEN_DAY_RULE.openAt;
 
+    // Calculate End-cap conditions
+    let isSaturdayFull = false;
+    let isNextDayBlocked = false;
+
+    if (selected.from) {
+        const checkIn = new Date(selected.from);
+        const nextDay = new Date(checkIn);
+        nextDay.setDate(checkIn.getDate() + 1);
+
+        // Check if next day is blocked (Season Close)
+        if (nextDay > OPEN_DAY_RULE.closeAt) {
+            isNextDayBlocked = true;
+        }
+
+        // Check if Saturday is full (if check-in is Friday)
+        if (checkIn.getDay() === 5) { // Friday
+            const saturdayStr = nextDay.toISOString().split('T')[0];
+
+            // Find sites booked on Saturday
+            const saturdayBookedSiteIds = reservations
+                .filter(r => {
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    // Simple overlap check for the specific night
+                    return rCheckIn <= nextDay && rCheckOut > nextDay && r.status !== 'CANCELLED';
+                })
+                .map(r => r.siteId);
+
+            // Find sites booked on Friday
+            const fridayBookedSiteIds = reservations
+                .filter(r => {
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED';
+                })
+                .map(r => r.siteId);
+
+            // Check for End-cap candidate:
+            // A site that is Free on Friday AND Booked on Saturday
+            // If such a site exists, we allow the 1-night reservation (End-cap rule)
+            const hasEndCapCandidate = SITES.some(site =>
+                !fridayBookedSiteIds.includes(site.id) && // Free on Friday
+                saturdayBookedSiteIds.includes(site.id)   // Booked on Saturday
+            );
+
+            if (hasEndCapCandidate) {
+                isSaturdayFull = true; // Trigger exception
+            }
+        }
+    }
+
     // Strict Weekend Rule & D-N Exception (SSOT 6.2.1)
     // Use centralized utility
-    const { isFridayOneNight, isWithinDN } = checkReservationRules(selected.from, selected.to, now);
+    const { isFridayOneNight, isWithinDN, isEndCap } = checkReservationRules(selected.from, selected.to, now, { isSaturdayFull, isNextDayBlocked });
 
     return (
         <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl relative overflow-hidden">
@@ -82,6 +134,10 @@ export default function DateRangePicker() {
                             isWithinDN ? (
                                 <p className="text-xs text-green-400 font-bold animate-pulse">
                                     ✅ 임박 예약(D-{D_N_DAYS})으로 주말 1박 예약이 가능합니다!
+                                </p>
+                            ) : isEndCap ? (
+                                <p className="text-xs text-blue-400 font-bold animate-pulse">
+                                    ✅ 잔여석(End-Cap) 규칙으로 금요일 1박 예약이 가능합니다!
                                 </p>
                             ) : (
                                 <div className="p-2 bg-red-500/20 border border-red-500/50 rounded-lg">
