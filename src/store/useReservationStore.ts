@@ -22,7 +22,9 @@ interface ReservationState {
     calculatePrice: (site: Site, checkIn: Date, checkOut: Date, familyCount: number, visitorCount: number) => PriceBreakdown;
 
     // Deposit Deadline Management
-    getOverdueReservations: () => Reservation[];
+    deadlineHours: number; // 3, 6, 9, 12
+    setDeadlineHours: (hours: number) => void;
+    getOverdueReservations: () => { overdue: Reservation[], warning: Reservation[] };
     cancelOverdueReservations: () => void;
 }
 
@@ -46,8 +48,10 @@ export const useReservationStore = create<ReservationState>()(
             selectedDateRange: { from: undefined, to: undefined },
             selectedSite: null,
             reservations: [],
+            deadlineHours: 6, // Default 6h
             setDateRange: (range) => set({ selectedDateRange: range }),
             setSelectedSite: (site) => set({ selectedSite: site }),
+            setDeadlineHours: (hours) => set({ deadlineHours: hours }),
             addReservation: (reservation) => {
                 const { reservations } = get();
                 const newCheckIn = new Date(reservation.checkInDate);
@@ -79,20 +83,50 @@ export const useReservationStore = create<ReservationState>()(
             },
 
             getOverdueReservations: () => {
-                const { reservations } = get();
+                const { reservations, deadlineHours } = get();
                 const now = new Date();
-                const DEADLINE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-                return reservations.filter((r) => {
-                    if (r.status !== 'PENDING') return false;
+                const overdue: Reservation[] = [];
+                const warning: Reservation[] = [];
+
+                reservations.forEach((r) => {
+                    if (r.status !== 'PENDING') return;
+                    if (!r.createdAt) return;
+
                     const createdAt = new Date(r.createdAt);
-                    return now.getTime() - createdAt.getTime() > DEADLINE_MS;
+                    const deadline = new Date(createdAt.getTime() + deadlineHours * 60 * 60 * 1000);
+
+                    // If deadline hasn't passed, it's fine
+                    if (now < deadline) return;
+
+                    // Deadline passed. Check Grace Period.
+                    // Grace Period: Until next 9 AM or 6 PM
+                    const graceTime = new Date(deadline);
+                    const hour = graceTime.getHours();
+
+                    if (hour < 9) {
+                        graceTime.setHours(9, 0, 0, 0);
+                    } else if (hour < 18) {
+                        graceTime.setHours(18, 0, 0, 0);
+                    } else {
+                        // Next day 9 AM
+                        graceTime.setDate(graceTime.getDate() + 1);
+                        graceTime.setHours(9, 0, 0, 0);
+                    }
+
+                    if (now > graceTime) {
+                        overdue.push(r);
+                    } else {
+                        warning.push(r);
+                    }
                 });
+
+                return { overdue, warning };
             },
 
             cancelOverdueReservations: () => {
                 const { getOverdueReservations } = get();
-                const overdue = getOverdueReservations();
+                const { overdue } = getOverdueReservations();
                 if (overdue.length === 0) return;
 
                 set((state) => ({
