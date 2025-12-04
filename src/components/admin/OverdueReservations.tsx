@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { useReservationStore } from '@/store/useReservationStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +12,15 @@ export default function OverdueReservations() {
 
     // Use store logic for consistency
     const { overdue, warning } = getOverdueReservations();
+
+    // Auto-cancel on mount (SSOT 6.3: Automatic Cancellation)
+    useEffect(() => {
+        if (overdue.length > 0) {
+            cancelOverdueReservations();
+            // In a real app, use a Toast component here
+            alert(`${overdue.length}건의 기한 만료 예약이 자동 취소되었습니다.`);
+        }
+    }, [overdue.length, cancelOverdueReservations]);
 
     const handleCancelAll = () => {
         if (confirm(`기한 만료된 ${overdue.length}건의 예약을 취소하시겠습니까?`)) {
@@ -29,8 +40,8 @@ export default function OverdueReservations() {
                         key={h}
                         onClick={() => setDeadlineHours(h)}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${deadlineHours === h
-                                ? 'bg-[#2F5233] text-white'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            ? 'bg-[#2F5233] text-white'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                             }`}
                     >
                         {h}시간
