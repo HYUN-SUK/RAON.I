@@ -20,6 +20,10 @@ interface ReservationState {
 
     // Helper to calculate price
     calculatePrice: (site: Site, checkIn: Date, checkOut: Date, familyCount: number, visitorCount: number) => PriceBreakdown;
+
+    // Deposit Deadline Management
+    getOverdueReservations: () => Reservation[];
+    cancelOverdueReservations: () => void;
 }
 
 export interface PriceBreakdown {
@@ -72,6 +76,30 @@ export const useReservationStore = create<ReservationState>()(
 
             calculatePrice: (site, checkIn, checkOut, familyCount, visitorCount) => {
                 return calculatePrice(site, checkIn, checkOut, familyCount, visitorCount);
+            },
+
+            getOverdueReservations: () => {
+                const { reservations } = get();
+                const now = new Date();
+                const DEADLINE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+                return reservations.filter((r) => {
+                    if (r.status !== 'PENDING') return false;
+                    const createdAt = new Date(r.createdAt);
+                    return now.getTime() - createdAt.getTime() > DEADLINE_MS;
+                });
+            },
+
+            cancelOverdueReservations: () => {
+                const { getOverdueReservations } = get();
+                const overdue = getOverdueReservations();
+                if (overdue.length === 0) return;
+
+                set((state) => ({
+                    reservations: state.reservations.map((res) =>
+                        overdue.some((o) => o.id === res.id) ? { ...res, status: 'CANCELLED' } : res
+                    ),
+                }));
             },
         }),
         {

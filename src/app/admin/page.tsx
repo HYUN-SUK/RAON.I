@@ -6,6 +6,8 @@ import { CalendarCheck, AlertCircle, ShoppingCart, Server } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import OverdueReservations from '@/components/admin/OverdueReservations';
+
 export default function AdminDashboard() {
     const { reservations } = useReservationStore();
     const [mounted, setMounted] = useState(false);
@@ -59,6 +61,8 @@ export default function AdminDashboard() {
                     description="DB 연결 정상"
                 />
             </div>
+
+            <OverdueReservations />
 
             <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <h3 className="text-lg font-semibold mb-4">최근 활동 로그</h3>
