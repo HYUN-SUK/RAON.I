@@ -54,23 +54,27 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             return;
         }
 
-        addReservation({
-            id: Math.random().toString(36).substr(2, 9),
-            userId: 'guest',
-            siteId: site.id,
-            checkInDate: fromDate,
-            checkOutDate: toDate,
-            familyCount,
-            visitorCount,
-            vehicleCount,
-            guests: (familyCount * 4) + visitorCount,
-            totalPrice,
-            status: 'PENDING',
-            requests,
-            createdAt: new Date(),
-        });
+        try {
+            addReservation({
+                id: Math.random().toString(36).substr(2, 9),
+                userId: 'guest',
+                siteId: site.id,
+                checkInDate: fromDate,
+                checkOutDate: toDate,
+                familyCount,
+                visitorCount,
+                vehicleCount,
+                guests: (familyCount * 4) + visitorCount,
+                totalPrice,
+                status: 'PENDING',
+                requests,
+                createdAt: new Date(),
+            });
 
-        router.push('/reservation/complete');
+            router.push('/reservation/complete');
+        } catch (error: any) {
+            alert(error.message);
+        }
     };
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -10,16 +10,63 @@ import { calculatePrice } from '@/utils/pricing';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange } = useReservationStore();
+    const { selectedSite, setSelectedSite, selectedDateRange, reservations } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    // Mock availability (In real app, this would come from backend based on selected dates)
-    // For now, let's assume 'site-3' (Glamping) is sold out for demonstration
-    const isSiteAvailable = (siteId: string) => siteId !== 'site-3';
+    // Check availability based on reservations and rules
+    const isSiteAvailable = (siteId: string) => {
+        if (!selectedDateRange.from || !selectedDateRange.to) return true;
+
+        const checkIn = new Date(selectedDateRange.from);
+        const checkOut = new Date(selectedDateRange.to);
+        const now = new Date();
+
+        // 1. Check for overlapping reservations
+        const hasOverlap = reservations.some(r => {
+            if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
+            const rCheckIn = new Date(r.checkInDate);
+            const rCheckOut = new Date(r.checkOutDate);
+            return rCheckIn < checkOut && rCheckOut > checkIn;
+        });
+
+        if (hasOverlap) return false;
+
+        // 2. Check End-cap Rule (Friday 1-night)
+        // If selecting Fri-Sat (1 night), only allow sites that are:
+        // - Booked on Saturday (End-cap)
+        // - OR within D-N days (Imminent)
+        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+        const isFri = checkIn.getDay() === 5;
+
+        if (isFri && nights < 2) {
+            // Check D-N
+            const D_N_DAYS = 7; // Should import this, but hardcoding for now to match rule
+            const diffDays = Math.ceil((checkIn.getTime() - new Date().setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
+            const isWithinDN = diffDays <= D_N_DAYS;
+
+            if (isWithinDN) return true; // Allowed by D-N
+
+            // Check End-cap (Is Saturday booked?)
+            const nextDay = new Date(checkIn);
+            nextDay.setDate(checkIn.getDate() + 1);
+
+            const isSaturdayBooked = reservations.some(r => {
+                if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
+                const rCheckIn = new Date(r.checkInDate);
+                const rCheckOut = new Date(r.checkOutDate);
+                return rCheckIn <= nextDay && rCheckOut > nextDay;
+            });
+
+            // If Saturday is NOT booked, then this 1-night reservation is blocked by the 2-night rule
+            if (!isSaturdayBooked) return false;
+        }
+
+        return true;
+    };
 
     const sortedSites = [...SITES].sort((a, b) => {
         const aAvailable = isSiteAvailable(a.id);
@@ -29,7 +76,10 @@ export default function SiteList() {
     });
 
     const handleSiteClick = (site: any) => {
-        if (!isSiteAvailable(site.id)) return;
+        if (!isSiteAvailable(site.id)) {
+            alert('선택하신 날짜에 예약할 수 없는 사이트입니다.');
+            return;
+        }
         setSelectedSite(site);
         router.push(`/reservation/${site.id}`);
     };

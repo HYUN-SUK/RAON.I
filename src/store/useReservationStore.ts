@@ -44,8 +44,24 @@ export const useReservationStore = create<ReservationState>()(
             reservations: [],
             setDateRange: (range) => set({ selectedDateRange: range }),
             setSelectedSite: (site) => set({ selectedSite: site }),
-            addReservation: (reservation) =>
-                set((state) => ({ reservations: [...state.reservations, reservation] })),
+            addReservation: (reservation) => {
+                const { reservations } = get();
+                const newCheckIn = new Date(reservation.checkInDate);
+                const newCheckOut = new Date(reservation.checkOutDate);
+
+                const hasOverlap = reservations.some(r => {
+                    if (r.siteId !== reservation.siteId || r.status === 'CANCELLED') return false;
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn < newCheckOut && rCheckOut > newCheckIn;
+                });
+
+                if (hasOverlap) {
+                    throw new Error('이미 예약이 완료된 날짜입니다');
+                }
+
+                set((state) => ({ reservations: [...state.reservations, reservation] }));
+            },
             updateReservationStatus: (id, status) =>
                 set((state) => ({
                     reservations: state.reservations.map((res) =>

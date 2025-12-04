@@ -4,14 +4,66 @@ import DateRangePicker from '@/components/reservation/DateRangePicker';
 import SiteList from '@/components/reservation/SiteList';
 import { useReservationStore } from '@/store/useReservationStore';
 import { checkReservationRules, D_N_DAYS } from '@/utils/reservationRules';
+import { SITES } from '@/constants/sites';
 
 export default function ReservationPage() {
-    const { selectedDateRange } = useReservationStore();
+    const { selectedDateRange, reservations } = useReservationStore();
 
     // Strict Weekend Rule Logic (SSOT 6.2.1)
-    // Use centralized utility
     const now = new Date();
-    const { isBlocked } = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now);
+
+    // Calculate End-cap conditions
+    let isSaturdayFull = false;
+    let isNextDayBlocked = false;
+
+    if (selectedDateRange.from) {
+        const checkIn = new Date(selectedDateRange.from);
+        const nextDay = new Date(checkIn);
+        nextDay.setDate(checkIn.getDate() + 1);
+
+        // Mock Open Day Rule (should match DateRangePicker)
+        const OPEN_DAY_RULE = {
+            closeAt: new Date('2025-12-31T23:59:59'),
+        };
+
+        if (nextDay > OPEN_DAY_RULE.closeAt) {
+            isNextDayBlocked = true;
+        }
+
+        if (checkIn.getDay() === 5) { // Friday
+            const saturdayBookedSiteIds = reservations
+                .filter(r => {
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn <= nextDay && rCheckOut > nextDay && r.status !== 'CANCELLED';
+                })
+                .map(r => r.siteId);
+
+            const fridayBookedSiteIds = reservations
+                .filter(r => {
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED';
+                })
+                .map(r => r.siteId);
+
+            // Check if ANY site is an End-cap candidate
+            // (Free on Fri AND Booked on Sat)
+            // We need SITES list here. Since we can't easily import SITES in this file without adding import,
+            // let's assume we can import it.
+            // Actually, we need to import SITES.
+            const hasEndCapCandidate = SITES.some(site =>
+                !fridayBookedSiteIds.includes(site.id) &&
+                saturdayBookedSiteIds.includes(site.id)
+            );
+
+            if (hasEndCapCandidate) {
+                isSaturdayFull = true;
+            }
+        }
+    }
+
+    const { isBlocked } = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now, { isSaturdayFull, isNextDayBlocked });
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] text-white pb-24 px-4 pt-20">
