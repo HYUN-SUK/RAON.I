@@ -73,6 +73,22 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         router.push('/reservation/complete');
     };
 
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/[^0-9]/g, '');
+        if (value.length <= 11) {
+            // Simpler approach for auto-hyphen
+            let result = '';
+            if (value.length < 4) {
+                result = value;
+            } else if (value.length < 8) {
+                result = `${value.slice(0, 3)}-${value.slice(3)}`;
+            } else {
+                result = `${value.slice(0, 3)}-${value.slice(3, 7)}-${value.slice(7)}`;
+            }
+            setPhone(result);
+        }
+    };
+
     if (!isMounted) return null;
 
     return (
@@ -97,10 +113,11 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     <input
                         type="tel"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={handlePhoneChange}
                         required
                         className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
                         placeholder="010-1234-5678"
+                        maxLength={13}
                     />
                 </div>
             </div>
@@ -108,13 +125,13 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             {/* Counts */}
             <div className="space-y-4">
                 <div>
-                    <label className="block text-sm text-white/70 mb-1">가족 수 (기본 1)</label>
+                    <label className="block text-sm text-white/70 mb-1">가족 수 (기본 1, 최대 2)</label>
                     <select
                         value={familyCount}
                         onChange={(e) => setFamilyCount(parseInt(e.target.value))}
                         className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
                     >
-                        {[1, 2, 3].map(n => <option key={n} value={n} className="text-black">{n}가족</option>)}
+                        {[1, 2].map(n => <option key={n} value={n} className="text-black">{n}가족</option>)}
                     </select>
                     {familyCount > 1 && <p className="text-xs text-yellow-400 mt-1">+35,000원/박 (추가 가족)</p>}
                 </div>

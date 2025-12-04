@@ -32,9 +32,10 @@ export function checkReservationRules(
     const nights = (from && to) ? differenceInCalendarDays(to, from) : 0;
 
     const isFri = isFriday(from);
+    const isSat = from.getDay() === 6; // 6 is Saturday
 
-    // Condition: Friday Check-in AND (Selection is incomplete OR Selection is less than 2 nights)
-    const isFridayOneNight = isFri && nights < 2;
+    // Condition: (Friday OR Saturday) Check-in AND (Selection is incomplete OR Selection is less than 2 nights)
+    const isWeekendOneNight = (isFri || isSat) && nights < 2;
 
     // D-N Calculation
     // We compare start of days to avoid time issues
@@ -44,11 +45,11 @@ export function checkReservationRules(
 
     const isWithinDN = diffDays <= D_N_DAYS;
 
-    // Blocked if: Friday 1-night attempt AND NOT within D-N exception
-    const isBlocked = isFridayOneNight && !isWithinDN;
+    // Blocked if: Weekend 1-night attempt AND NOT within D-N exception
+    const isBlocked = isWeekendOneNight && !isWithinDN;
 
     return {
-        isFridayOneNight,
+        isFridayOneNight: isWeekendOneNight, // Mapped for compatibility
         isWithinDN,
         isBlocked
     };

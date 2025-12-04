@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import SitePriceDisplay from '@/components/reservation/SitePriceDisplay';
 
 // Correctly typing params for Next.js 15+ (if applicable, but safe for 14 too usually, though 15 requires awaiting params in some cases or just props)
 // Assuming Next.js 14/15 standard
@@ -39,9 +40,10 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                             </span>
                             <h1 className="text-3xl font-bold mt-2">{site.name}</h1>
                         </div>
+
                         <div className="text-right">
-                            <p className="text-xl font-bold">{site.price.toLocaleString()}</p>
-                            <p className="text-sm text-white/50">원 / 1박</p>
+                            <SitePriceDisplay site={site} />
+                            <p className="text-sm text-white/50">/ 1박</p>
                         </div>
                     </div>
 

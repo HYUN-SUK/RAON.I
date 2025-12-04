@@ -29,3 +29,17 @@ export interface Reservation {
     requests: string; // SSOT: 요청사항
     createdAt: Date;
 }
+
+export interface PriceBreakdown {
+    basePrice: number;
+    options: {
+        extraFamily: number;
+        visitor: number;
+    };
+    discount: {
+        consecutive: number;
+        package: number;
+    };
+    totalPrice: number;
+    nights: number;
+}

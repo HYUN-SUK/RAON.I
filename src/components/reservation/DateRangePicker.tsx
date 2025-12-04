@@ -81,12 +81,12 @@ export default function DateRangePicker() {
                         {isFridayOneNight && (
                             isWithinDN ? (
                                 <p className="text-xs text-green-400 font-bold animate-pulse">
-                                    ✅ 임박 예약(D-{D_N_DAYS})으로 금요일 1박 예약이 가능합니다!
+                                    ✅ 임박 예약(D-{D_N_DAYS})으로 주말 1박 예약이 가능합니다!
                                 </p>
                             ) : (
                                 <div className="p-2 bg-red-500/20 border border-red-500/50 rounded-lg">
                                     <p className="text-xs text-red-400 font-bold mb-1">
-                                        ⛔ 주말(금요일)은 2박 이상만 예약 가능합니다.
+                                        ⛔ 주말(금/토)은 2박 이상만 예약 가능합니다.
                                     </p>
                                     <p className="text-[10px] text-white/60">
                                         * 2박 이상 선택 시 사이트 목록이 활성화됩니다.

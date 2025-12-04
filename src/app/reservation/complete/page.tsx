@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CheckCircle2, Clock, AlertCircle, Copy, Home } from 'lucide-react';
 import Image from 'next/image';
+import { SITES } from '@/constants/sites';
 
 export default function ReservationCompletePage() {
     const router = useRouter();
@@ -30,6 +31,10 @@ export default function ReservationCompletePage() {
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
 
+    const site = SITES.find(s => s.id === siteId);
+    const siteName = site ? site.name : siteId;
+    const siteImage = site ? site.imageUrl : '/images/site-1.jpg';
+
     // Calculate deposit deadline (6 hours from creation)
     const created = createdAt ? new Date(createdAt) : new Date();
     const depositDeadline = new Date(created.getTime() + (6 * 60 * 60 * 1000));
@@ -45,7 +50,7 @@ export default function ReservationCompletePage() {
             {/* ... Header ... */}
             <div className="relative h-64 w-full">
                 <Image
-                    src="/images/site-1.jpg"
+                    src={siteImage}
                     alt="Reservation Complete"
                     fill
                     className="object-cover opacity-50"
@@ -134,7 +139,7 @@ export default function ReservationCompletePage() {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-white/60">사이트</span>
-                            <span>{siteId}</span>
+                            <span>{siteName}</span>
                         </div>
                     </div>
                 </div>
