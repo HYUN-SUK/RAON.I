@@ -1,29 +1,38 @@
-# Handoff Document - SSOT 6.3 & Auto-Cancellation Implementation
+# Session Handoff - Master Roadmap & Workflow Setup
 
-## 1. Session Summary
-This session focused on implementing the **SSOT 6.3 Payment Rules**, specifically the deposit deadline, grace period logic, and automatic cancellation of overdue reservations.
+**Date**: 2025-12-05
+**Last Task**: Create Master Roadmap & Workflow Templates
 
-**Key Accomplishments:**
--   **SSOT 6.3 Payment Rules Implementation:**
-    -   **Configurable Deadlines:** Added ability to set deposit deadlines (3h, 6h, 9h, 12h) in the Admin Dashboard.
-    -   **Grace Period Logic:** Implemented logic where cancellation is deferred until the next 9 AM or 6 PM even after the deadline passes.
-    -   **Visual Warnings:** Added "Grace Period" (Orange Blinking) and "Overdue" (Red) cards to the Admin Dashboard.
--   **Auto-Cancellation:**
-    -   Implemented **"Auto-cancel on Admin Load"**: Overdue reservations are automatically cancelled when the Admin Dashboard is accessed, with an alert notification.
--   **Fixed Reservation Persistence:** Resolved a crash caused by `Date` objects becoming strings in `localStorage`. Implemented a custom `PersistStorage` adapter.
--   **My Space Integration:** Connected TopBar, SummaryGrid, and UpcomingReservation to real data.
+## 1. Summary of Completed Work
+In this session, we established the project's long-term direction and standardized the development workflow.
+
+-   **Master Roadmap Created**:
+    -   Analyzed the current codebase and SSOT v9.
+    -   Integrated an external roadmap to create **`RAON_MASTER_ROADMAP_v2.md`**.
+    -   Defined 8 Phases (0-7), prioritizing **Phase 1 (User Home)** and **Phase 2 (My Space)**.
+-   **Workflow Standardization**:
+    -   Created `.agent/workflows/session_start.md` (Boot Protocol).
+    -   Created `.agent/workflows/session_wrapup.md` (Wrap-up Protocol).
+    -   Both workflows now explicitly include roadmap checks.
+-   **My Map Fix**:
+    -   Fixed a Z-Index issue where the "Save" button was obscured by the BottomNav.
+    -   Verified persistence using a browser subagent.
+    -   Translated `task.md` and `walkthrough.md` to Korean.
 
 ## 2. Technical Decisions
--   **Grace Period Calculation:** Implemented in `useReservationStore`'s `getOverdueReservations`. It calculates the deadline and then extends it to the next 9 AM or 6 PM.
--   **Auto-Cancellation Trigger:** Due to the lack of a backend server, auto-cancellation is triggered **client-side** when the Admin Dashboard (`OverdueReservations` component) mounts. This ensures the data stays consistent whenever an admin checks the system.
--   **Custom Date Persistence:** Used `JSON.parse` with a reviver function in `useReservationStore` to ensure dates are always hydrated as `Date` objects.
+-   **Roadmap Integration**: Decided to merge the external roadmap's detailed specs (e.g., Open Day logic, Emotional features) into our master roadmap to create a single, comprehensive SSOT (`RAON_MASTER_ROADMAP_v2.md`).
+-   **Phase Re-prioritization**: Identified that the Home Screen (`page.tsx`) was still a default template. Elevated "User Home" to **Phase 1** (High Priority) to ensure a proper entry point for users.
 
-## 3. Next Steps
--   **My Space Features:** Implement the "Album" and "My Map" features (currently placeholders).
--   **Responsive UI:** Optimize `ReservationForm` and Calendar for smaller mobile screens.
--   **Admin Expansion:** Build out remaining admin pages (Payments, Rate/Season management).
+## 3. Next Steps (Prioritized)
+1.  **Phase 1: User Home Implementation**:
+    -   Refactor `src/app/(mobile)/page.tsx`.
+    -   Implement the "Beginner/Returning User" state branching logic.
+2.  **Phase 2: My Space Completion**:
+    -   Implement `MyTimeline.tsx` with real data binding.
+    -   Implement `AlbumModal.tsx` for photo uploads.
+3.  **Phase 3: Reservation Logic**:
+    -   Implement "Open Day" logic and reservation state management.
 
-## 4. Known Issues / Caveats
--   **Auto-Cancellation Timing:** Cancellation only happens when an admin visits the dashboard. If no admin visits, the status remains "PENDING" (though effectively treated as overdue).
--   **Data Persistence:** Data is stored in `localStorage`. Clearing browser cache will reset all data.
-
+## 4. Known Issues / Notes
+-   **Home Screen**: Currently displays the default Next.js template. Needs immediate attention.
+-   **Roadmap**: `RAON_MASTER_ROADMAP_v2.md` is now the single source of truth for development progress. Always check this file first.

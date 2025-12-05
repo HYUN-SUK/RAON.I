@@ -30,7 +30,7 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreen 
 
     if (fullScreen) {
         return (
-            <div className="fixed inset-0 z-50 flex justify-center bg-gray-100/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[100] flex justify-center bg-gray-100/50 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="w-full max-w-md h-full bg-white shadow-2xl overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-10 duration-200">
                     {/* Full Screen Header */}
                     <div className="flex items-center p-4 border-b border-gray-100 shrink-0 bg-white">
@@ -54,7 +54,7 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreen 
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             {/* 배경 클릭 시 닫기 */}
             <div className="absolute inset-0" onClick={onClose} />
 

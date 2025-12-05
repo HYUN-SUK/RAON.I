@@ -88,15 +88,19 @@ export const useMySpaceStore = create<MySpaceState>()(
             // 지도 초기값 및 액션
             mapItems: [],
             addMapItem: (item) => set((state) => {
-                const exists = state.mapItems.some(i => i.siteName === item.siteName && i.visitedDate === item.visitedDate);
+                const exists = state.mapItems.some(i => i.id === item.id || (i.siteName === item.siteName && i.visitedDate === item.visitedDate));
+                console.log('addMapItem', item.siteName, 'exists:', exists, 'id:', item.id);
                 if (exists) return state;
                 return { mapItems: [...state.mapItems, item] };
             }),
-            updateMapItem: (id, updates) => set((state) => ({
-                mapItems: state.mapItems.map(item =>
-                    item.id === id ? { ...item, ...updates } : item
-                )
-            })),
+            updateMapItem: (id, updates) => set((state) => {
+                console.log('updateMapItem', id, updates);
+                return {
+                    mapItems: state.mapItems.map(item =>
+                        item.id === id ? { ...item, ...updates } : item
+                    )
+                };
+            }),
             toggleMapFavorite: (id) => set((state) => ({
                 mapItems: state.mapItems.map(item =>
                     item.id === id ? { ...item, isFavorite: !item.isFavorite } : item

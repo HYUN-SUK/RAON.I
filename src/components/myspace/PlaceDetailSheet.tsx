@@ -22,6 +22,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
     const [name, setName] = useState('');
     const [address, setAddress] = useState('');
     const [visitedDate, setVisitedDate] = useState('');
+    const [photos, setPhotos] = useState<string[]>([]);
 
     // Reset state when item changes
     useEffect(() => {
@@ -30,6 +31,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
             setRating(item.rating || 0);
             setName(item.siteName);
             setAddress(item.address || '');
+            setPhotos(item.photos || []);
 
             // Safer Date Initialization
             try {
@@ -60,17 +62,20 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                 visitedDate: new Date(visitedDate).toISOString(),
                 memo,
                 rating,
+                photos,
                 isFavorite: false,
             };
             if (onSaveNew) onSaveNew(newItem);
         } else {
+            console.log('PlaceDetailSheet saving:', item.id, { memo });
             // Update existing
             updateMapItem(item.id, {
                 siteName: name, // Allow name update
                 address: address, // Allow address update
                 visitedDate: new Date(visitedDate).toISOString(), // Allow date update
                 memo,
-                rating
+                rating,
+                photos
             });
             setIsEditing(false); // Switch back to view mode
         }
@@ -214,29 +219,57 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                 </div>
 
                 {/* Photos Section */}
-                {!isEditing && (
-                    <div className="mb-8">
-                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <Camera size={16} className="text-brand-1" /> 갤러리
-                        </h3>
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                            {/* Mock Photos for View Mode */}
-                            <div className="flex-shrink-0 w-32 h-32 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs shadow-sm border border-gray-100">사진 1</div>
-                            <div className="flex-shrink-0 w-32 h-32 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs shadow-sm border border-gray-100">사진 2</div>
-                        </div>
-                    </div>
-                )}
+                <div className="mb-8">
+                    <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <Camera size={16} className="text-brand-1" /> 갤러리
+                    </h3>
 
-                {isEditing && (
-                    <div className="mb-8">
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">사진 추가</label>
-                        <div className="flex gap-2 overflow-x-auto pb-2">
-                            <button className="flex-shrink-0 w-20 h-20 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50">
-                                <Camera size={20} />
-                            </button>
-                        </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {/* Add Photo Button (Edit Mode Only) */}
+                        {isEditing && (
+                            <label className="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-brand-1/50 hover:text-brand-1 transition-all cursor-pointer active:scale-95">
+                                <Camera size={24} className="mb-1" />
+                                <span className="text-[10px] font-medium">사진 추가</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    multiple
+                                    onChange={(e) => {
+                                        if (e.target.files) {
+                                            Array.from(e.target.files).forEach(file => {
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => {
+                                                    setPhotos(prev => [...prev, reader.result as string]);
+                                                };
+                                                reader.readAsDataURL(file);
+                                            });
+                                        }
+                                    }}
+                                />
+                            </label>
+                        )}
+
+                        {/* Photo List */}
+                        {photos.length > 0 ? (
+                            photos.map((photo, index) => (
+                                <div key={index} className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
+                                    <img src={photo} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
+                                    {isEditing && (
+                                        <button
+                                            onClick={() => setPhotos(prev => prev.filter((_, i) => i !== index))}
+                                            className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            !isEditing && <span className="text-gray-400 text-xs italic p-2">등록된 사진이 없습니다.</span>
+                        )}
                     </div>
-                )}
+                </div>
 
             </div>
 
@@ -254,6 +287,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                         </button>
                     )}
                     <button
+                        id="save-map-item-button"
                         onClick={handleSave}
                         className="flex-1 py-3.5 rounded-xl font-bold bg-brand-1 text-white shadow-lg shadow-brand-1/30 active:scale-95 transition-transform"
                     >
