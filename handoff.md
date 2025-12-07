@@ -1,38 +1,24 @@
-# Session Handoff - Master Roadmap & Workflow Setup
+# Handoff Document
 
-**Date**: 2025-12-05
-**Last Task**: Create Master Roadmap & Workflow Templates
+**Date**: 2025-12-07
+**Last Task**: Phase 1 Home Refinement (Roadmap v3)
 
-## 1. Summary of Completed Work
-In this session, we established the project's long-term direction and standardized the development workflow.
+## 📌 Current Status
+- **User Home**:
+    - **Beginner Home**: Refactored with 3x2 Grid, "Price Guide" Sheet, and new Hero ("처음이신가요?").
+    - **Returning Home**: Refactored with "Smart Re-book" card (Zero-click UI) and Personalized Hero ("반가워요...").
+    - **Global**: Added `TopBar` and `SlimNotice`.
+    - **Components**: `PriceGuideSheet.tsx`, `SlimNotice.tsx`, `sheet.tsx` (Shadcn) added.
+- **Roadmap v3**: "Price Decoding" and "Zero-click" UI requirements met.
 
--   **Master Roadmap Created**:
-    -   Analyzed the current codebase and SSOT v9.
-    -   Integrated an external roadmap to create **`RAON_MASTER_ROADMAP_v2.md`**.
-    -   Defined 8 Phases (0-7), prioritizing **Phase 1 (User Home)** and **Phase 2 (My Space)**.
--   **Workflow Standardization**:
-    -   Created `.agent/workflows/session_start.md` (Boot Protocol).
-    -   Created `.agent/workflows/session_wrapup.md` (Wrap-up Protocol).
-    -   Both workflows now explicitly include roadmap checks.
--   **My Map Fix**:
-    -   Fixed a Z-Index issue where the "Save" button was obscured by the BottomNav.
-    -   Verified persistence using a browser subagent.
-    -   Translated `task.md` and `walkthrough.md` to Korean.
+## 📝 Pending Tasks (Next Session)
+1.  **L0 Recommendation Logic**:
+    - Implement actual logic for "Today's Recommendations" (Weather/Time based).
+2.  **Smart Re-book Integration**:
+    - Connect the "1-click Re-book" button to `DateRangePicker` with pre-filled data.
+3.  **My Space**:
+    - Continue Timeline & Album implementation.
 
-## 2. Technical Decisions
--   **Roadmap Integration**: Decided to merge the external roadmap's detailed specs (e.g., Open Day logic, Emotional features) into our master roadmap to create a single, comprehensive SSOT (`RAON_MASTER_ROADMAP_v2.md`).
--   **Phase Re-prioritization**: Identified that the Home Screen (`page.tsx`) was still a default template. Elevated "User Home" to **Phase 1** (High Priority) to ensure a proper entry point for users.
-
-## 3. Next Steps (Prioritized)
-1.  **Phase 1: User Home Implementation**:
-    -   Refactor `src/app/(mobile)/page.tsx`.
-    -   Implement the "Beginner/Returning User" state branching logic.
-2.  **Phase 2: My Space Completion**:
-    -   Implement `MyTimeline.tsx` with real data binding.
-    -   Implement `AlbumModal.tsx` for photo uploads.
-3.  **Phase 3: Reservation Logic**:
-    -   Implement "Open Day" logic and reservation state management.
-
-## 4. Known Issues / Notes
--   **Home Screen**: Currently displays the default Next.js template. Needs immediate attention.
--   **Roadmap**: `RAON_MASTER_ROADMAP_v2.md` is now the single source of truth for development progress. Always check this file first.
+## ⚠️ Notes
+- `src/components/ui/sheet.tsx` was manually created to resolve a missing dependency build error.
+- `@radix-ui/react-dialog` was installed.

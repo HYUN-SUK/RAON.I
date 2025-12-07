@@ -1,65 +1,51 @@
-import Image from "next/image";
+'use client';
 
+import React, { useState, useEffect } from 'react';
+import BeginnerHome from '@/components/home/BeginnerHome';
+import ReturningHome from '@/components/home/ReturningHome';
+import { Button } from '@/components/ui/button';
+
+/**
+ * Home State Engine
+ * 
+ * 사용자 상태(신규/기존)에 따라 홈 화면을 분기합니다.
+ * 현재는 백엔드 연동 전이므로 로컬 상태로 Mocking 합니다.
+ */
 export default function Home() {
+  // 초기 상태: true (초보자 모드), false (기존 사용자 모드)
+  // 실제 구현 시에는 User Store 또는 API에서 상태를 가져와야 합니다.
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null; // Hydration 이슈 방지
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="relative w-full min-h-screen bg-[#F7F5EF] dark:bg-black">
+      {/* 
+        [DEV ONLY] 상태 전환 토글 버튼 
+        개발 및 데모 시연을 위해 우측 상단에 임시로 배치합니다.
+      */}
+      <div className="fixed top-20 right-4 z-50 opacity-50 hover:opacity-100 transition-opacity">
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-white/80 backdrop-blur text-xs h-7"
+          onClick={() => setIsFirstTimeUser(!isFirstTimeUser)}
+        >
+          {isFirstTimeUser ? '모드: 초보자' : '모드: 기존 유저'}
+        </Button>
+      </div>
+
+      {/* 상태에 따른 화면 렌더링 */}
+      {isFirstTimeUser ? (
+        <BeginnerHome />
+      ) : (
+        <ReturningHome />
+      )}
+    </main>
   );
 }

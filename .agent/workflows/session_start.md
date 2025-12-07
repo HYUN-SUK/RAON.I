@@ -13,7 +13,7 @@ description: 새로운 세션을 시작하고 이전 작업을 이어받을 때 
 프로젝트 루트에 있는 다음 파일들을 최우선으로 분석해라.
 1.  **`handoff.md`**: 이전 세션의 마지막 상태, 기술적 결정, 남은 이슈 확인.
 2.  **`task.md`**: 전체 로드맵 중 현재 위치와 우선순위 작업 확인.
-3.  **`RAON_MASTER_ROADMAP_v2.md`**: 전체 개발 진행률과 다음 Phase 확인.
+3.  **`RAON_MASTER_ROADMAP_v3.md`**: 전체 개발 진행률과 다음 Phase 확인.
 4.  **`RAONAI_SSOT_MASTER_v9.md`** (또는 최신 SSOT 파일): 프로젝트 헌법 재확인.
 
 ## 2. Prime Directives (SSOT v9 절대 원칙)
