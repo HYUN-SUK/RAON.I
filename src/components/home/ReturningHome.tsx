@@ -61,7 +61,7 @@ export default function ReturningHome() {
                                         <p className="text-[10px] text-stone-500">성인 2, 아이 2 · 차량 1대</p>
                                     </div>
                                 </div>
-                                <Button className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.98]">
+                                <Button className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200">
                                     1초만에 재예약하기 (날짜 선택)
                                 </Button>
                             </div>

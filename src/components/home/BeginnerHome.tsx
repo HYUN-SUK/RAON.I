@@ -25,7 +25,7 @@ export default function BeginnerHome() {
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
                 {/* 1. Hero Section */}
-                <section className="relative w-full h-[460px] flex flex-col justify-end p-6">
+                <section className="relative w-full h-[50vh] min-h-[460px] flex flex-col justify-end p-6">
                     {/* Background Image (Placeholder) */}
                     <div className="absolute inset-0 z-0 bg-stone-300">
                         {/* Placeholder for Hero Image */}
@@ -52,7 +52,7 @@ export default function BeginnerHome() {
 
                 {/* 2. Info Chips (3x2 Grid) */}
                 <section className="px-4 -mt-8 relative z-30 mb-8">
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-3">
                         {CHIP_GRID.map((chip, idx) => {
                             const ChipContent = (
                                 <div className="flex flex-col items-center justify-center aspect-square bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 hover:bg-stone-50 dark:hover:bg-zinc-800 transition-colors p-2 cursor-pointer">
