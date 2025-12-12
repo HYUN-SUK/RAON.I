@@ -30,7 +30,7 @@ export default function SummaryGrid() {
         },
         {
             icon: History,
-            label: "히스토리",
+            label: "내 히스토리",
             color: "text-purple-600",
             bg: "bg-purple-50",
             value: `${historyCount}회`,

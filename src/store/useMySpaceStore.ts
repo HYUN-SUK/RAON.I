@@ -31,6 +31,21 @@ export interface MapItem {
     tags: string[];
 }
 
+// 타임라인 아이템 인터페이스 (Timeline Item Interface)
+export interface TimelineItem {
+    id: string;
+    type: 'reservation' | 'photo' | 'mission';
+    date: string; // ISO String (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+    title: string;
+    content?: string;
+    images?: string[];
+
+    // Additional Metadata
+    siteId?: string;       // For reservation
+    missionId?: string;    // For mission
+    missionPoints?: number;
+}
+
 interface MySpaceState {
     isNightMode: boolean;
     isFireOn: boolean;
@@ -57,6 +72,10 @@ interface MySpaceState {
     addMapItem: (item: MapItem) => void;
     updateMapItem: (id: string, updates: Partial<MapItem>) => void;
     toggleMapFavorite: (id: string) => void;
+
+    // 타임라인 (Timeline)
+    timelineItems: TimelineItem[];
+    fetchTimeline: () => void;
 }
 
 export const useMySpaceStore = create<MySpaceState>()(
@@ -106,6 +125,45 @@ export const useMySpaceStore = create<MySpaceState>()(
                     item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
                 )
             })),
+
+            // 타임라인 초기값 및 액션 (Mock Data)
+            timelineItems: [],
+            fetchTimeline: () => set({
+                timelineItems: [
+                    {
+                        id: 't-1',
+                        type: 'reservation',
+                        date: '2025-11-20',
+                        title: '가을 끝자락 캠핑',
+                        content: 'A-7 구역 (파쇄석) | 성인 2, 아이 2',
+                        siteId: 'site-7'
+                    },
+                    {
+                        id: 't-2',
+                        type: 'photo',
+                        date: '2025-11-20T19:30:00',
+                        title: '불멍 타임 🔥',
+                        content: '오랜만에 불멍하니 잡생각이 사라진다.',
+                        images: ['https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&w=1000&auto=format&fit=crop']
+                    },
+                    {
+                        id: 't-3',
+                        type: 'mission',
+                        date: '2025-11-21T09:00:00',
+                        title: '아침 산책 미션 달성',
+                        content: '상쾌한 숲 공기 마시기 완료!',
+                        missionPoints: 150
+                    },
+                    {
+                        id: 't-4',
+                        type: 'reservation',
+                        date: '2025-10-05',
+                        title: '첫 가족 캠핑',
+                        content: 'B-2 구역 (데크) | 성인 2, 아이 1',
+                        siteId: 'site-2'
+                    }
+                ]
+            }),
         }),
         {
             name: 'myspace-storage',

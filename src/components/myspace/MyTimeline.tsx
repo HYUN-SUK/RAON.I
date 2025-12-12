@@ -1,31 +1,51 @@
 "use client";
 
+import { useEffect } from 'react';
+import { useMySpaceStore } from '@/store/useMySpaceStore';
+import TimelineCard from './TimelineCard';
+import { Calendar } from 'lucide-react';
+
 export default function MyTimeline() {
-    const activities = [
-        { id: 1, type: "후기", title: "가을 캠핑의 추억", date: "2시간 전", image: true },
-        { id: 2, type: "활동", title: "불멍 30분 달성!", date: "어제", image: false },
-        { id: 3, type: "예약", title: "철수네 캠핑장 예약 완료", date: "3일 전", image: false },
-    ];
+    const { timelineItems, fetchTimeline } = useMySpaceStore();
+
+    useEffect(() => {
+        // Fetch data on mount (Mock)
+        if (timelineItems.length === 0) {
+            fetchTimeline();
+        }
+    }, [fetchTimeline, timelineItems.length]);
 
     return (
-        <div className="px-6 pb-6">
-            <h3 className="text-lg font-bold text-text-1 mb-4">최근 활동</h3>
-            <div className="flex flex-col gap-4">
-                {activities.map((item) => (
-                    <button
-                        key={item.id}
-                        className="w-full text-left flex gap-4 items-start bg-white p-4 rounded-2xl shadow-soft border border-surface-2 hover:bg-surface-1 active:scale-95 transition-all duration-200"
-                    >
-                        <div className="w-12 h-12 rounded-xl bg-surface-2 flex-shrink-0 flex items-center justify-center text-xs text-text-2 font-medium">
-                            {item.image ? "IMG" : item.type}
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm font-semibold text-text-1">{item.title}</p>
-                            <p className="text-xs text-text-2 mt-1">{item.date}</p>
-                        </div>
-                    </button>
-                ))}
+        <section className="px-6 pb-20">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#C3A675]" />
+                    나의 캠핑 로그
+                </h3>
             </div>
-        </div>
+
+            {/* AI Summary Placeholder for Phase 4 */}
+            <div className="mb-8 p-4 bg-gradient-to-r from-[#F7F5EF] to-white dark:from-zinc-900 dark:to-zinc-800 rounded-2xl border border-stone-200 dark:border-zinc-700 shadow-sm">
+                <p className="text-sm text-stone-600 dark:text-stone-300 italic">
+                    "최근 <span className="font-bold text-[#1C4526] dark:text-green-400">3번의 캠핑</span>에서 불멍을 가장 즐기셨네요!
+                    다음엔 별보기 좋은 <span className="font-bold text-[#1C4526] dark:text-green-400">명당 사이트</span>를 추천해드릴까요?"
+                </p>
+                <p className="text-xs text-stone-400 mt-2 text-right">- RAON AI Analysis</p>
+            </div>
+
+            <div className="flex flex-col">
+                {timelineItems.length > 0 ? (
+                    <>
+                        {timelineItems.slice(0, 3).map((item) => (
+                            <TimelineCard key={item.id} item={item} />
+                        ))}
+                    </>
+                ) : (
+                    <div className="text-center py-10 text-stone-400">
+                        <p>아직 기록된 활동이 없어요.</p>
+                    </div>
+                )}
+            </div>
+        </section>
     );
 }
