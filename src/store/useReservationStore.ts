@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Reservation, Site, ReservationStatus } from '@/types/reservation';
 import { calculatePrice } from '@/utils/pricing';
+import { SITES } from '@/constants/sites';
 
 interface ReservationState {
     selectedDateRange: {
@@ -26,6 +27,7 @@ interface ReservationState {
     setDeadlineHours: (hours: number) => void;
     getOverdueReservations: () => { overdue: Reservation[], warning: Reservation[] };
     cancelOverdueReservations: () => void;
+    prefillBooking: (siteId: string) => void;
 }
 
 export interface PriceBreakdown {
@@ -134,6 +136,12 @@ export const useReservationStore = create<ReservationState>()(
                         overdue.some((o) => o.id === res.id) ? { ...res, status: 'CANCELLED' } : res
                     ),
                 }));
+            },
+            prefillBooking: (siteId) => {
+                const site = SITES.find(s => s.id === siteId);
+                if (site) {
+                    set({ selectedSite: site });
+                }
             },
         }),
         {

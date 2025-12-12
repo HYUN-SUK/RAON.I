@@ -1,10 +1,12 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Phone, Map, Mountain, Tag } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import SlimNotice from '@/components/home/SlimNotice';
 import { PriceGuideSheet } from '@/components/home/PriceGuideSheet';
+import RecommendationGrid from '@/components/home/RecommendationGrid';
 
 // InfoChip Data (3x2 Grid)
 // [Address, Wayfinding, Contact, Map, Nearby, Price Guide]
@@ -18,6 +20,7 @@ const CHIP_GRID = [
 ];
 
 export default function BeginnerHome() {
+    const router = useRouter();
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
             {/* Global TopBar */}
@@ -41,11 +44,10 @@ export default function BeginnerHome() {
                         </Badge>
                         <h1 className="text-3xl font-bold leading-tight">
                             처음이신가요?<br />
-                            <span className="text-white/90 font-medium text-2xl">가장 쉬운 캠핑을 준비했어요.</span>
                         </h1>
-                        <p className="text-sm text-gray-200 opacity-90 leading-relaxed">
-                            두 가족도 넉넉한 2배 사이트,<br />
-                            몸만 와도 충분한 편의시설을 경험하세요.
+                        <p className="text-lg font-semibold text-white/95 leading-snug drop-shadow-md">
+                            두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
+                            라온아이에서 불편은 덜고, 추억은 쌓으세요.
                         </p>
                     </div>
                 </section>
@@ -55,10 +57,10 @@ export default function BeginnerHome() {
                     <div className="grid grid-cols-3 gap-3">
                         {CHIP_GRID.map((chip, idx) => {
                             const ChipContent = (
-                                <div className="flex flex-col items-center justify-center aspect-square bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 hover:bg-stone-50 dark:hover:bg-zinc-800 transition-colors p-2 cursor-pointer">
-                                    <chip.icon className="w-5 h-5 text-[#3C6E47] mb-2" />
-                                    <p className="text-xs font-bold text-stone-800 dark:text-stone-200 text-center leading-tight">{chip.label}</p>
-                                    <p className="text-[10px] text-stone-500 mt-1">{chip.sub}</p>
+                                <div className="flex flex-col items-center justify-center aspect-square bg-[#FAF9F6]/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] border border-stone-200/50 dark:border-zinc-700/50 hover:bg-[#F5F2EA] dark:hover:bg-zinc-700 hover:scale-[1.02] transition-all duration-300 p-2 cursor-pointer group">
+                                    <chip.icon className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />
+                                    <p className="text-xs font-bold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 text-center leading-tight transition-colors">{chip.label}</p>
+                                    <p className="text-[10px] text-stone-400 group-hover:text-[#C3A675] mt-1 transition-colors">{chip.sub}</p>
                                 </div>
                             );
 
@@ -93,60 +95,24 @@ export default function BeginnerHome() {
                                 <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">2</div>
                                 <div>
                                     <h4 className="font-semibold text-stone-900 dark:text-stone-100">입,퇴실 안내</h4>
-                                    <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
+                                    <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed break-keep">
                                         오후 2시 입실, 낮 12시 퇴실입니다.<br />
-                                        여유롭게 오셔서 자연을 즐기세요.
+                                        앞,뒤 예약자가 없으면 여유로운 입,퇴실이 가능합니다.
                                     </p>
                                 </div>
                             </div>
                         </div>
-                        <Button className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12">
+                        <Button
+                            className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                            onClick={() => router.push('/reservation')}
+                        >
                             예약 가능 날짜 보기
                         </Button>
                     </div>
                 </section>
 
-                {/* 4. Recommendations Grid (Play, Cook, Event, Mission) */}
-                <section className="px-4 mb-8">
-                    <div className="flex justify-between items-end mb-4 px-1">
-                        <h3 className="text-xl font-bold text-[#1C4526]">오늘의 추천</h3>
-                        <span className="text-xs text-stone-500">더보기</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* Play */}
-                        <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-2xl flex flex-col justify-between h-32">
-                            <span className="text-2xl">🔥</span>
-                            <div>
-                                <p className="text-xs text-orange-600 font-bold mb-1">놀이</p>
-                                <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">불멍하기 좋은 날</p>
-                            </div>
-                        </div>
-                        {/* Cook */}
-                        <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-2xl flex flex-col justify-between h-32">
-                            <span className="text-2xl">🍳</span>
-                            <div>
-                                <p className="text-xs text-blue-600 font-bold mb-1">요리</p>
-                                <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">따뜻한 어묵탕</p>
-                            </div>
-                        </div>
-                        {/* Event */}
-                        <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-2xl flex flex-col justify-between h-32">
-                            <span className="text-2xl">🎉</span>
-                            <div>
-                                <p className="text-xs text-purple-600 font-bold mb-1">행사</p>
-                                <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">별보기 투어</p>
-                            </div>
-                        </div>
-                        {/* Mission */}
-                        <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-2xl flex flex-col justify-between h-32">
-                            <span className="text-2xl">🌱</span>
-                            <div>
-                                <p className="text-xs text-green-600 font-bold mb-1">미션</p>
-                                <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">쓰레기 줍기</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                {/* 4. Recommendations Grid (Dynamic) */}
+                <RecommendationGrid />
             </main>
 
             {/* Slim Notice Layout Position */}
