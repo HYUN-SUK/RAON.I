@@ -7,6 +7,7 @@ export interface AlbumItem {
     imageUrl: string;
     description: string;
     date: string;
+    tags?: string[];
 }
 
 // 지도 아이템 인터페이스 (Map Item Interface)
@@ -76,6 +77,7 @@ interface MySpaceState {
     // 타임라인 (Timeline)
     timelineItems: TimelineItem[];
     fetchTimeline: () => void;
+    fetchAlbum: () => void;
 }
 
 export const useMySpaceStore = create<MySpaceState>()(
@@ -161,8 +163,71 @@ export const useMySpaceStore = create<MySpaceState>()(
                         title: '첫 가족 캠핑',
                         content: 'B-2 구역 (데크) | 성인 2, 아이 1',
                         siteId: 'site-2'
+                    },
+                    {
+                        id: 't-5',
+                        type: 'photo',
+                        date: '2025-10-05T14:20:00',
+                        title: '텐트 설치 완료!',
+                        content: '처음이라 오래 걸렸지만 뿌듯하다.',
+                        images: ['https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?q=80&w=1000&auto=format&fit=crop']
+                    },
+                    {
+                        id: 't-6',
+                        type: 'mission',
+                        date: '2025-10-06T11:00:00',
+                        title: '뒷정리 깔끔왕',
+                        content: 'LNT(Leave No Trace) 실천하기',
+                        missionPoints: 100
+                    },
+                    {
+                        id: 't-7',
+                        type: 'reservation',
+                        date: '2025-09-15',
+                        title: '친구들과 글램핑',
+                        content: 'G-1 구역 (글램핑) | 성인 4',
+                        siteId: 'site-glamp-1'
                     }
                 ]
+            }),
+            fetchAlbum: () => set({
+                album: [
+                    {
+                        id: 'a-1',
+                        imageUrl: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d',
+                        description: '불멍 타임 🔥',
+                        date: '2025-11-20',
+                        tags: ['#불멍', '#밤', '#힐링']
+                    },
+                    {
+                        id: 'a-2',
+                        imageUrl: 'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7',
+                        description: '텐트 설치 완료!',
+                        date: '2025-10-05',
+                        tags: ['#텐트', '#가을', '#첫캠핑']
+                    },
+                    {
+                        id: 'a-3',
+                        imageUrl: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4',
+                        description: '아침 숲 산책',
+                        date: '2025-11-21',
+                        tags: ['#숲', '#아침', '#산책']
+                    },
+                    {
+                        id: 'a-4',
+                        imageUrl: 'https://images.unsplash.com/photo-1537905569824-f89f14cceb68',
+                        description: '맛있는 바베큐',
+                        date: '2025-10-05',
+                        tags: ['#요리', '#바베큐', '#먹방']
+                    },
+                    {
+                        id: 'a-5',
+                        imageUrl: 'https://images.unsplash.com/photo-1517824806704-9040b037703b',
+                        description: '별이 쏟아지는 밤',
+                        date: '2025-09-15',
+                        tags: ['#별', '#밤하늘', '#감성']
+                    }
+                ] as any[] // Temporarily casting to any to bypass strict interface check if AlbumItem tag definition is missing
             }),
         }),
         {

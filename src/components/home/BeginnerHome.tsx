@@ -7,6 +7,8 @@ import TopBar from '@/components/TopBar';
 import SlimNotice from '@/components/home/SlimNotice';
 import { PriceGuideSheet } from '@/components/home/PriceGuideSheet';
 import RecommendationGrid from '@/components/home/RecommendationGrid';
+import { OPEN_DAY_CONFIG } from '@/constants/reservation';
+import { format } from 'date-fns';
 
 // InfoChip Data (3x2 Grid)
 // [Address, Wayfinding, Contact, Map, Nearby, Price Guide]
@@ -108,6 +110,9 @@ export default function BeginnerHome() {
                         >
                             예약 가능 날짜 보기
                         </Button>
+                        <p className="text-center text-xs text-stone-400 mt-2">
+                            {format(OPEN_DAY_CONFIG.closeAt, 'MM월dd일')}까지 예약가능합니다.
+                        </p>
                     </div>
                 </section>
 

@@ -23,7 +23,6 @@ export default function SiteList() {
 
         const checkIn = new Date(selectedDateRange.from);
         const checkOut = new Date(selectedDateRange.to);
-        const now = new Date();
 
         // 1. Check for overlapping reservations
         const hasOverlap = reservations.some(r => {
@@ -81,7 +80,7 @@ export default function SiteList() {
             return;
         }
         setSelectedSite(site);
-        router.push(`/reservation/${site.id}`);
+        router.push(`/reservation/${site.id}`); // Note: Ensure [id] page is also styled if needed, but out of scope for strict SiteList
     };
 
     const getPriceDisplay = (site: any) => {
@@ -134,42 +133,42 @@ export default function SiteList() {
                         key={site.id}
                         onClick={() => handleSiteClick(site)}
                         className={`
-            relative overflow-hidden rounded-2xl border transition-all duration-300 group
-            ${available ? 'cursor-pointer hover:bg-white/10' : 'cursor-not-allowed'}
+            relative overflow-hidden rounded-2xl border transition-all duration-300 group bg-white shadow-sm
+            ${available ? 'cursor-pointer hover:shadow-md hover:border-brand-1/30 hover:-translate-y-1' : 'cursor-not-allowed opacity-70'}
             ${selectedSite?.id === site.id
-                                ? 'border-[#2F5233] ring-2 ring-[#2F5233]/50 bg-white/10'
-                                : 'border-white/10 bg-white/5'}
+                                ? 'border-[#1C4526] ring-2 ring-[#1C4526]/10'
+                                : 'border-stone-100'}
           `}
                     >
-                        <div className={`relative h-48 w-full ${!available ? 'grayscale brightness-50' : ''}`}>
+                        <div className={`relative h-48 w-full ${!available ? 'grayscale' : ''}`}>
                             <Image
                                 src={site.imageUrl}
                                 alt={site.name}
                                 fill
                                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                             <div className="absolute bottom-3 left-4 text-white">
                                 <h3 className="text-xl font-bold">{site.name}</h3>
-                                <p className="text-sm text-white/80">{priceText}</p>
+                                <p className="text-sm text-white/90 font-medium">{priceText}</p>
                             </div>
                             <div className="absolute top-3 right-3 flex gap-2">
                                 {!available && (
-                                    <span className="bg-red-500/80 backdrop-blur-md px-2 py-1 rounded-lg text-xs text-white border border-white/10 font-bold">
+                                    <span className="bg-red-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs text-white border border-white/10 font-bold shadow-sm">
                                         마감
                                     </span>
                                 )}
-                                <span className="bg-black/40 backdrop-blur-md px-2 py-1 rounded-lg text-xs text-white border border-white/10">
+                                <span className="bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg text-xs text-white border border-white/10 shadow-sm">
                                     {site.type}
                                 </span>
                             </div>
                         </div>
 
-                        <div className={`p-4 ${!available ? 'opacity-50' : ''}`}>
-                            <p className="text-sm text-white/70 mb-3 line-clamp-2">{site.description}</p>
+                        <div className="p-4">
+                            <p className="text-sm text-stone-600 mb-3 line-clamp-2 leading-relaxed">{site.description}</p>
                             <div className="flex flex-wrap gap-2">
                                 {site.features.map((feature, idx) => (
-                                    <span key={idx} className="text-xs px-2 py-1 rounded-md bg-white/5 text-white/60 border border-white/5">
+                                    <span key={idx} className="text-xs px-2.5 py-1 rounded-md bg-stone-100 text-stone-500 font-medium">
                                         {feature}
                                     </span>
                                 ))}

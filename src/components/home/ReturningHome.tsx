@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { useReservationStore } from '@/store/useReservationStore';
 import RecommendationGrid from '@/components/home/RecommendationGrid';
 import SlimNotice from '@/components/home/SlimNotice';
+import { OPEN_DAY_CONFIG } from '@/constants/reservation';
+import { format } from 'date-fns';
 
 export default function ReturningHome() {
     const router = useRouter();
@@ -75,6 +77,9 @@ export default function ReturningHome() {
                                 >
                                     빠르게 재예약하기 (날짜 선택)
                                 </Button>
+                                <p className="text-center text-xs text-stone-400 mt-2">
+                                    {format(OPEN_DAY_CONFIG.closeAt, 'MM월dd일')}까지 예약가능합니다.
+                                </p>
                             </div>
                         </div>
 

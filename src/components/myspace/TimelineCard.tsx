@@ -1,5 +1,6 @@
 import React from 'react';
 import { TimelineItem } from '@/store/useMySpaceStore';
+import { useRouter } from 'next/navigation';
 import { Badge } from "@/components/ui/badge";
 import { Tent, Camera, Flag, Clock } from 'lucide-react';
 
@@ -48,17 +49,18 @@ export default function TimelineCard({ item }: TimelineCardProps) {
     const styles = getTypeStyles(item.type);
     const Icon = styles.icon;
 
+    const router = useRouter();
+
     const handleCardClick = () => {
         if (item.type === 'reservation') {
             // Navigate to Reservation Detail (Placeholder ID)
-            // In real app: router.push(`/reservation/${item.siteId}`)
-            alert("예약 상세 화면으로 이동합니다.\n(예약 번호: " + item.id + ")");
+            // Navigate to Reservation Detail (Placeholder ID)
+            // router.push(`/reservation/${item.siteId}`)
+            router.push('/myspace/history');
         } else if (item.type === 'photo') {
-            // Navigate to Album/Gallery
-            alert("사진 갤러리 화면으로 이동합니다.");
+            router.push('/myspace/album');
         } else if (item.type === 'mission') {
-            // Navigate to Mission Detail
-            alert("미션 달성 현황 화면으로 이동합니다.\n(获得 포인트: " + item.missionPoints + ")");
+            // alert("미션 달성 현황 화면으로 이동합니다.\n(获得 포인트: " + item.missionPoints + ")");
         }
     };
 

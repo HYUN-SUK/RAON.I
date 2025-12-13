@@ -1,19 +1,19 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Image as ImageIcon, History, Map, Award } from "lucide-react";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";
-import AlbumModal from './AlbumModal';
 import MyMapModal from './MyMapModal';
 
 export default function SummaryGrid() {
+    const router = useRouter();
     const { points } = useMySpaceStore();
     const { reservations } = useReservationStore();
 
     // 모달 상태 관리
-    const [isAlbumOpen, setIsAlbumOpen] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
 
     // Calculate history (completed or confirmed reservations in the past)
@@ -26,7 +26,7 @@ export default function SummaryGrid() {
             color: "text-blue-600",
             bg: "bg-blue-50",
             value: null,
-            onClick: () => setIsAlbumOpen(true)
+            onClick: () => router.push('/myspace/album')
         },
         {
             icon: History,
@@ -34,7 +34,7 @@ export default function SummaryGrid() {
             color: "text-purple-600",
             bg: "bg-purple-50",
             value: `${historyCount}회`,
-            onClick: () => alert(`총 ${historyCount}회의 캠핑 기록이 있습니다.`) // 히스토리는 아직 별도 모달 없음
+            onClick: () => router.push('/myspace/history')
         },
         {
             icon: Award,
@@ -75,7 +75,6 @@ export default function SummaryGrid() {
             </div>
 
             {/* Modals */}
-            <AlbumModal isOpen={isAlbumOpen} onClose={() => setIsAlbumOpen(false)} />
             <MyMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
         </>
     );
