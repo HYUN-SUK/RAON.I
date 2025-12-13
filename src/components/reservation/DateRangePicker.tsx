@@ -131,11 +131,8 @@ export default function DateRangePicker() {
                                 </p>
                             ) : (
                                 <div className="p-2 bg-red-50 border border-red-100 rounded-lg">
-                                    <p className="text-xs text-red-500 font-bold mb-1">
-                                        ⛔ 금요일 체크인은 2박부터 가능합니다
-                                    </p>
-                                    <p className="text-[10px] text-stone-500">
-                                        * 2박 이상 선택 시 사이트가 보입니다
+                                    <p className="text-xs text-red-500 font-bold leading-relaxed break-keep">
+                                        주말예약(금,토,일)은 2박부터 가능합니다. 다만 토요일이 예약된 사이트는 금요일 1박도 가능합니다.
                                     </p>
                                 </div>
                             )

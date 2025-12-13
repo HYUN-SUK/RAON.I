@@ -31,8 +31,8 @@ export default function ReservationPage() {
     }
 
     // Strict Weekend Rule Logic (SSOT 6.2.1)
-    const { isBlocked, isSaturdayFull, isNextDayBlocked } = useMemo(() => {
-        let isSaturdayFull = false;
+    const { isBlocked, hasEndCapAvailability, isNextDayBlocked } = useMemo(() => {
+        let hasEndCapAvailability = false;
         let isNextDayBlocked = false;
 
         if (selectedDateRange.from) {
@@ -67,13 +67,13 @@ export default function ReservationPage() {
                 );
 
                 if (hasEndCapCandidate) {
-                    isSaturdayFull = true;
+                    hasEndCapAvailability = true;
                 }
             }
         }
 
-        const ruleResult = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now, { isSaturdayFull, isNextDayBlocked });
-        return { ...ruleResult, isSaturdayFull, isNextDayBlocked };
+        const ruleResult = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now, { hasEndCapAvailability, isNextDayBlocked });
+        return { ...ruleResult, hasEndCapAvailability, isNextDayBlocked };
     }, [selectedDateRange.from, selectedDateRange.to, reservations, now]);
 
     return (
@@ -136,14 +136,9 @@ export default function ReservationPage() {
                     </div>
 
                     {isBlocked ? (
-                        <div className="p-6 text-center bg-white rounded-2xl border border-red-100 shadow-sm">
-                            <p className="text-red-500 font-bold mb-2 flex items-center justify-center gap-2">
-                                <Lock className="w-4 h-4" />
-                                예약 조건 미충족
-                            </p>
-                            <p className="text-sm text-stone-600 leading-relaxed">
-                                주말(금요일) 체크인은 <b>2박 이상</b> 예약하거나,<br />
-                                <b>잔여석(End-Cap)</b> 또는 <b>임박({D_N_DAYS}일)</b> 예약만 가능합니다.
+                        <div className="p-6 text-center bg-white rounded-2xl border border-stone-200 shadow-sm">
+                            <p className="text-sm text-stone-600 leading-relaxed break-keep leading-relaxed pb-2 pt-2">
+                                현재 지정한 기간에는 예약 가능한 사이트가 없습니다.<br />기간을 다시 지정해보세요.
                             </p>
                         </div>
                     ) : !isOpen ? (

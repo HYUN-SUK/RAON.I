@@ -12,7 +12,7 @@ interface ReservationFormProps {
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, addReservation, setSelectedSite, calculatePrice } = useReservationStore();
+    const { selectedDateRange, addReservation, setSelectedSite, calculatePrice, validateReservation } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -51,6 +51,12 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         }
         if (!agreed) {
             alert('이용 규정에 동의해주세요.');
+            return;
+        }
+
+        const validationError = validateReservation(site.id, fromDate, toDate);
+        if (validationError) {
+            alert(validationError);
             return;
         }
 
@@ -236,6 +242,11 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 >
                     예약 신청하기 (입금 대기)
                 </button>
+
+                <div className="text-center text-xs text-white/50 mt-4">
+                    <p className="mb-1">입금 계좌: <span className="text-[#C3A675] font-bold">카카오뱅크 3333-00-0000000</span> (예금주: 라온아이)</p>
+                    <p>예약 신청 후 <span className="text-white/80">6시간 내</span> 미입금 시 자동 취소됩니다.</p>
+                </div>
             </div>
         </form>
     );

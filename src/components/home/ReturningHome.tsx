@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 
 export default function ReturningHome() {
     const router = useRouter();
-    const { prefillBooking } = useReservationStore();
+    const { initRebook } = useReservationStore();
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
             {/* Global TopBar */}
@@ -71,7 +71,7 @@ export default function ReturningHome() {
                                 <Button
                                     className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
                                     onClick={() => {
-                                        prefillBooking('site-7');
+                                        initRebook('site-7');
                                         router.push('/reservation');
                                     }}
                                 >

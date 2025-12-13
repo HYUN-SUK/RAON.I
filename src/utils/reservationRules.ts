@@ -18,14 +18,14 @@ export interface ReservationRuleResult {
  * @param from Check-in date
  * @param to Check-out date
  * @param now Current date (default: new Date())
- * @param options Additional conditions (isSaturdayFull, isNextDayBlocked)
+ * @param options Additional conditions (hasEndCapAvailability, isNextDayBlocked)
  * @returns Object containing rule evaluation results
  */
 export function checkReservationRules(
     from: Date | undefined,
     to: Date | undefined,
     now: Date = new Date(),
-    options: { isSaturdayFull?: boolean; isNextDayBlocked?: boolean } = {}
+    options: { hasEndCapAvailability?: boolean; isSaturdayFull?: boolean; isNextDayBlocked?: boolean } = {}
 ): ReservationRuleResult {
     if (!from) {
         return { isFridayOneNight: false, isWithinDN: false, isEndCap: false, isBlocked: false };
@@ -50,7 +50,9 @@ export function checkReservationRules(
     const isWithinDN = diffDays <= D_N_DAYS;
 
     // End-cap Calculation (Friday only)
-    const isEndCap = isFri && (options.isSaturdayFull || options.isNextDayBlocked || false);
+    // "End-cap" at this high level mainly determines if we should unblock the SITE LIST.
+    // Individual sites are checked in SiteList component.
+    const isEndCap = isFri && (options.hasEndCapAvailability || options.isSaturdayFull || options.isNextDayBlocked || false);
 
     // Blocked if: Weekend 1-night attempt AND NOT within D-N exception AND NOT End-cap exception
     const isBlocked = isWeekendOneNight && !isWithinDN && !isEndCap;

@@ -59,10 +59,22 @@ export const calculatePrice = (
     }
 
     // 2. Discounts
-    // SSOT 5.12: 2-night package (Fri-Sun) -> 130,000 (10k discount)
-    // Normal: 70+70=140. Package=130.
-    if (checkIn.getDay() === 5 && nights === 2) {
-        packageDiscount = 10000;
+    // SSOT 6.2.3: Consecutive Stay Discount
+    // Applied if ALL nights are weekend nights (Fri, Sat, Sun).
+    // Discount: 10,000 won per extra night (i.e., nights - 1) * 10,000
+    let isAllWeekend = true;
+    for (let i = 0; i < nights; i++) {
+        const currentDate = new Date(checkIn.getTime() + (i * oneDay));
+        if (!isWeekend(currentDate)) {
+            isAllWeekend = false;
+            break;
+        }
+    }
+
+    if (isAllWeekend && nights >= 2) {
+        // Example: 2 nights -> 1 * 10000 discount
+        // Example: 3 nights -> 2 * 10000 discount
+        consecutiveDiscount = (nights - 1) * DISCOUNT_LONG_STAY;
     }
 
     // SSOT 6.2.3: Consecutive Stay Discount
