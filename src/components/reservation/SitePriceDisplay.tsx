@@ -1,7 +1,6 @@
 'use client';
 
 import { useReservationStore } from '@/store/useReservationStore';
-import { calculatePrice } from '@/utils/pricing';
 import { Site } from '@/types/reservation';
 import { useEffect, useState } from 'react';
 
@@ -10,7 +9,7 @@ interface SitePriceDisplayProps {
 }
 
 export default function SitePriceDisplay({ site }: SitePriceDisplayProps) {
-    const { selectedDateRange } = useReservationStore();
+    const { selectedDateRange, calculatePrice } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {

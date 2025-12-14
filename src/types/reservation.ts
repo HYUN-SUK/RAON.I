@@ -43,3 +43,29 @@ export interface PriceBreakdown {
     totalPrice: number;
     nights: number;
 }
+
+export interface Season {
+    name: string;
+    startMonth: number; // 0-11
+    startDay: number; // 1-31
+    endMonth: number;
+    endDay: number;
+}
+
+export interface PricingConfig {
+    weekday: number;
+    weekend: number;
+    peakWeekday: number;
+    peakWeekend: number;
+    extraFamily: number;
+    visitor: number;
+    longStayDiscount: number;
+    seasons: Season[];
+}
+
+export interface BlockedDate {
+    id: string; // uuid
+    siteId: string | 'ALL';
+    date: Date; // stored as Date object in store (handled by storage)
+    memo?: string;
+}

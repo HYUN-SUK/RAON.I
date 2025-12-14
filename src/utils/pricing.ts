@@ -1,19 +1,23 @@
-import { Site, PriceBreakdown } from '@/types/reservation';
+import { Site, PriceBreakdown, PricingConfig } from '@/types/reservation';
 
-// Pricing Constants (SSOT 6.1)
-const PRICE_WEEKDAY = 40000;
-const PRICE_WEEKEND = 70000; // Fri, Sat, Sun, Holiday
-const PRICE_PEAK_WEEKDAY = 50000;
-const PRICE_PEAK_WEEKEND = 70000;
+// Helper to check if date is in any peak season
+const isPeakSeason = (date: Date, config: PricingConfig): boolean => {
+    const month = date.getMonth() + 1; // 1-12
+    const day = date.getDate(); // 1-31
 
-const PRICE_EXTRA_GUEST = 35000; // Per family (not person) per night, excluding first family
-const PRICE_VISITOR = 10000; // Per person (one-time)
-const DISCOUNT_LONG_STAY = 10000; // Per night for long stay (Fri-Sun)
-
-// Mock Season Data (SSOT 6.1 - Seasonality)
-const isPeakSeason = (date: Date): boolean => {
-    const month = date.getMonth(); // 0-indexed
-    return month === 6 || month === 7; // July, August
+    return config.seasons.some(season => {
+        // Simple case: start and end in same year
+        // e.g. 7.1 ~ 8.31
+        if (season.startMonth < season.endMonth) {
+            return (month > season.startMonth || (month === season.startMonth && day >= season.startDay)) &&
+                (month < season.endMonth || (month === season.endMonth && day <= season.endDay));
+        }
+        // Cross-year case (if needed, though simple seasons usually fit in year)
+        // e.g. 12.20 ~ 2.10
+        // ... simplistic implementation for now assuming same-year seasons as per current requirements
+        return (month > season.startMonth || (month === season.startMonth && day >= season.startDay)) &&
+            (month < season.endMonth || (month === season.endMonth && day <= season.endDay));
+    });
 };
 
 const isWeekend = (date: Date): boolean => {
@@ -26,7 +30,8 @@ export const calculatePrice = (
     checkIn: Date,
     checkOut: Date,
     familyCount: number,
-    visitorCount: number
+    visitorCount: number,
+    config: PricingConfig
 ): PriceBreakdown => {
     const oneDay = 24 * 60 * 60 * 1000;
     const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / oneDay);
@@ -48,20 +53,19 @@ export const calculatePrice = (
     // 1. Base Price Calculation per Night
     for (let i = 0; i < nights; i++) {
         const currentDate = new Date(checkIn.getTime() + (i * oneDay));
-        const isPeak = isPeakSeason(currentDate);
+        const isPeak = isPeakSeason(currentDate, config);
         const isWknd = isWeekend(currentDate);
 
         if (isWknd) {
-            basePrice += isPeak ? PRICE_PEAK_WEEKEND : PRICE_WEEKEND;
+            basePrice += isPeak ? config.peakWeekend : config.weekend;
         } else {
-            basePrice += isPeak ? PRICE_PEAK_WEEKDAY : PRICE_WEEKDAY;
+            basePrice += isPeak ? config.peakWeekday : config.weekday;
         }
     }
 
     // 2. Discounts
     // SSOT 6.2.3: Consecutive Stay Discount
     // Applied if ALL nights are weekend nights (Fri, Sat, Sun).
-    // Discount: 10,000 won per extra night (i.e., nights - 1) * 10,000
     let isAllWeekend = true;
     for (let i = 0; i < nights; i++) {
         const currentDate = new Date(checkIn.getTime() + (i * oneDay));
@@ -72,24 +76,15 @@ export const calculatePrice = (
     }
 
     if (isAllWeekend && nights >= 2) {
-        // Example: 2 nights -> 1 * 10000 discount
-        // Example: 3 nights -> 2 * 10000 discount
-        consecutiveDiscount = (nights - 1) * DISCOUNT_LONG_STAY;
+        consecutiveDiscount = (nights - 1) * config.longStayDiscount;
     }
 
-    // SSOT 6.2.3: Consecutive Stay Discount
-    // "10,000 won / per extra night"
-    // Applied if not the package?
-    // Let's assume package discount takes precedence for Fri-Sun.
-    // For other consecutive stays (e.g. Sat-Mon), if applicable.
-    // For now, we only implement the explicit package discount to avoid double counting.
-
     // 3. Extra Costs
-    // Extra Family: 35,000 per family per night (excluding the first family)
-    const extraFamilyCost = Math.max(0, (familyCount - 1) * PRICE_EXTRA_GUEST * nights);
+    // Extra Family: per family per night (excluding the first family)
+    const extraFamilyCost = Math.max(0, (familyCount - 1) * config.extraFamily * nights);
 
-    // Visitor: 10,000 per person (one-time)
-    const visitorCost = visitorCount * PRICE_VISITOR;
+    // Visitor: per person (one-time)
+    const visitorCost = visitorCount * config.visitor;
 
     const totalDiscount = packageDiscount + consecutiveDiscount;
     const totalPrice = basePrice + extraFamilyCost + visitorCost - totalDiscount;

@@ -6,11 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { useEffect, useState } from 'react';
-import { calculatePrice } from '@/utils/pricing';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange, reservations } = useReservationStore();
+    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {

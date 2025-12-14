@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Reservation, Site, ReservationStatus } from '@/types/reservation';
+import { Reservation, Site, ReservationStatus, PricingConfig, BlockedDate } from '@/types/reservation';
 import { calculatePrice } from '@/utils/pricing';
 import { SITES } from '@/constants/sites';
 
@@ -29,7 +29,18 @@ interface ReservationState {
     cancelOverdueReservations: () => void;
     validateReservation: (siteId: string, checkIn: Date, checkOut: Date) => string | null;
     initRebook: (siteId: string) => void;
+
+    // Admin Config
+    priceConfig: PricingConfig;
+    blockedDates: BlockedDate[];
+
+    // Config Actions
+    setPriceConfig: (config: PricingConfig) => void;
+    addBlockDate: (block: BlockedDate) => void;
+    removeBlockDate: (id: string) => void;
 }
+
+
 
 export interface PriceBreakdown {
     basePrice: number;
@@ -45,6 +56,19 @@ export interface PriceBreakdown {
     nights: number;
 }
 
+const DEFAULT_PRICE_CONFIG: PricingConfig = {
+    weekday: 40000,
+    weekend: 70000,
+    peakWeekday: 50000,
+    peakWeekend: 70000,
+    extraFamily: 35000,
+    visitor: 10000,
+    longStayDiscount: 10000,
+    seasons: [
+        { name: 'Summer Peak', startMonth: 6, startDay: 1, endMonth: 7, endDay: 31 } // July 1 - Aug 31
+    ]
+};
+
 export const useReservationStore = create<ReservationState>()(
     persist(
         (set, get) => ({
@@ -52,9 +76,19 @@ export const useReservationStore = create<ReservationState>()(
             selectedSite: null,
             reservations: [],
             deadlineHours: 6, // Default 6h
+
+            // Initial Admin State
+            priceConfig: DEFAULT_PRICE_CONFIG,
+            blockedDates: [],
+
             setDateRange: (range) => set({ selectedDateRange: range }),
             setSelectedSite: (site) => set({ selectedSite: site }),
             setDeadlineHours: (hours) => set({ deadlineHours: hours }),
+
+            setPriceConfig: (config) => set({ priceConfig: config }),
+            addBlockDate: (block) => set((state) => ({ blockedDates: [...state.blockedDates, block] })),
+            removeBlockDate: (id) => set((state) => ({ blockedDates: state.blockedDates.filter(b => b.id !== id) })),
+
             addReservation: (reservation) => {
                 const { reservations } = get();
                 const newCheckIn = new Date(reservation.checkInDate);
@@ -82,7 +116,8 @@ export const useReservationStore = create<ReservationState>()(
             reset: () => set({ selectedDateRange: { from: undefined, to: undefined }, selectedSite: null }),
 
             calculatePrice: (site, checkIn, checkOut, familyCount, visitorCount) => {
-                return calculatePrice(site, checkIn, checkOut, familyCount, visitorCount);
+                const { priceConfig } = get();
+                return calculatePrice(site, checkIn, checkOut, familyCount, visitorCount, priceConfig);
             },
 
             getOverdueReservations: () => {
