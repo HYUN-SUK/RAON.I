@@ -11,7 +11,11 @@ import CommunityBoardContainer from '@/components/community/CommunityBoardContai
 import { useCommunityStore } from '@/store/useCommunityStore';
 
 export default function CommunityPage() {
-    const { activeTab, setActiveTab } = useCommunityStore();
+    const { activeTab, setActiveTab, loadPosts } = useCommunityStore();
+
+    React.useEffect(() => {
+        loadPosts(activeTab);
+    }, [activeTab, loadPosts]);
 
     return (
         <div className="min-h-screen bg-[#F7F5EF] pb-24">

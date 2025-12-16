@@ -8,39 +8,38 @@
 
 ## 📌 현재 상태 요약 (Current Status)
 
-**Phase 4 커뮤니티(Community)**의 사용자 화면 구현을 완료했습니다.
-SSOT v9 및 User-First 전략에 따라 **Mock Data 기반**으로 개발하여 UI/UX를 완벽하게 검증했습니다.
+**Phase 4 Community Backend Integration (4.1)**을 완료하고 실 운영 모드 전환 준비를 마쳤습니다.
+기존 Mock Data를 모두 제거하고 **Supabase API**와 연동하여 실제 데이터 글쓰기/읽기가 가능합니다.
 
 ### ✅ 완료된 작업
-1.  **Community UI Structure**
-    *   `/community` 메인 페이지 및 `BottomNav` 연결.
-    *   'CampWarm Forest Green' 테마가 적용된 헤더 및 탭 네비게이션.
-2.  **6 Core Boards (Tabs)**
-    *   **공지, 후기, 이야기, 질문**: 기본 게시판 UI 구현.
-    *   **소모임(Group)**: '함께하기' 버튼이 포함된 카드 뷰.
-    *   **콘텐츠(Content)**: 인플루언서 영상 썸네일 및 재생 아이콘 뷰.
-3.  **Mock Data Store**
-    *   `useCommunityStore`를 통해 모든 탭의 데이터 흐름과 3-State UX(Empty/List)를 시뮬레이션 가능.
+1.  **Backend Integration (Supabase)**
+    *   `posts` DB 테이블 생성 및 RLS(Row Level Security) 설정.
+    *   `src/lib/supabase.ts`, `communityService.ts` 구현.
+    *   `useCommunityStore` API 연동 완료.
+2.  **Write Feature**
+    *   `/community/write` 페이지 구현.
+    *   헤더의 '+' 버튼 및 글쓰기 폼 연동 (제목, 내용, 카테고리).
+3.  **Detail Feature**
+    *   `/community/[id]` 상세 페이지 구현.
+    *   Dynamic Route 및 데이터 Fetching 구현.
 
 ### 📝 2. Git Backup
-*   Commit: "feat(community): implement community ui with 6 boards and mock data"
+*   Commit 대상: "feat(community): backend integration, write & detail page"
 
 ---
 
 ## 🚧 다음 세션 가이드 (Next Steps)
 
-1.  **Phase 4. Community Backend Integration**
-    *   현재 Mock Data로 동작하는 `useCommunityStore`를 실제 API와 연동.
-    *   Supabase 또는 백엔드 DB 스키마 설계 (`Post`, `Comment`, `Group` 등).
-2.  **Phase 4.1 Post Detail & Write**
-    *   게시글 클릭 시 상세 보기 페이지 (`/community/[id]`) 구현.
-    *   글쓰기(+ 버튼) 및 작성 폼 구현.
-3.  **Phase 4.2 Interactions**
-    *   좋아요(공감), 댓글 기능 구현.
+1.  **Phase 4.2 Interactions**
+    *   **공감(Like)**: Optimistic Update 적용하여 구현.
+    *   **댓글(Comment)**: 리스트, 작성, 삭제 기능.
+2.  **Refinement**
+    *   **이미지 업로드**: 현재는 텍스트만 가능 -> Storage 연동 필요.
+    *   **Infinite Scroll**: 현재는 페이지네이션 기본 로직만 존재 -> UI 연동.
 
 ---
 
 ## ⚠️ 주의 사항 / 특이 사항 (Caveats)
 
-*   **Mock Data**: 현재 커뮤니티의 모든 데이터는 `src/store/useCommunityStore.ts`에 하드코딩되어 있습니다. 서버 연동 전까지는 이 데이터를 사용하여 UI를 테스트하세요.
-*   **Embed Strategy**: 인플루언서 콘텐츠는 실제 영상 호스팅이 아닌, 유튜브/인스타 Embed 방식으로 구현될 예정입니다.
+*   **RLS Policy**: 현재 개발 편의를 위해 `allow_testing.sql`을 통해 **누구나 글쓰기 가능**하도록 열려있습니다. 추후 Auth 연동 시 수정해야 합니다.
+*   **Image**: 글 작성 시 이미지는 아직 업로드할 수 없습니다. (추후 구현)
