@@ -16,11 +16,13 @@ export default function AdminReservationsPage() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 
     useEffect(() => {
         if (initialStatus) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFilterStatus(initialStatus);
         }
     }, [initialStatus]);

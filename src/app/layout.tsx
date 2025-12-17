@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: "Forest-based Human-Centric Playground",
 };
 
+export const dynamic = 'force-dynamic';
+
 export const viewport = {
   width: "device-width",
   initialScale: 1,

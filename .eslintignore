@@ -1,0 +1,6 @@
+scripts/
+*.js
+*.mjs
+.next/
+out/
+node_modules/

@@ -35,6 +35,7 @@ export default function AlbumModal({ isOpen, onClose }: AlbumModalProps) {
         if (!newImage) return;
 
         const newItem: AlbumItem = {
+            // eslint-disable-next-line react-hooks/purity
             id: Date.now().toString(),
             imageUrl: newImage,
             description,

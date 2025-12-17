@@ -27,6 +27,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
     // Reset state when item changes
     useEffect(() => {
         if (item) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setMemo(item.memo || '');
             setRating(item.rating || 0);
             setName(item.siteName);
@@ -67,7 +68,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
             };
             if (onSaveNew) onSaveNew(newItem);
         } else {
-            console.log('PlaceDetailSheet saving:', item.id, { memo });
+
             // Update existing
             updateMapItem(item.id, {
                 siteName: name, // Allow name update

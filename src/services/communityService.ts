@@ -23,7 +23,7 @@ export const communityService = {
         const from = page * limit;
         const to = from + limit - 1;
 
-        console.log(`Fetching posts type: ${type}, range: ${from}-${to}`);
+
 
         const { data, error, count } = await supabase
             .from('posts')
@@ -70,7 +70,6 @@ export const communityService = {
 
     // 3.5 Update Post (Edit / Status Change)
     async updatePost(id: string, updates: Partial<Post>) {
-        const dbUpdates = mapPostToDb(updates);
         // We only want to update fields that are present in 'updates'
         // But mapPostToDb returns a full object structure. 
         // We need to be careful not to overwrite metadata if we only want to update part of it.
@@ -89,7 +88,7 @@ export const communityService = {
             ...(updates.visibility ? { visibility: updates.visibility } : {}),
         };
 
-        const payload: any = {};
+        const payload: Partial<Database['public']['Tables']['posts']['Update']> = {};
         if (updates.title) payload.title = updates.title;
         if (updates.content) payload.content = updates.content;
         if (updates.images) payload.images = updates.images;
@@ -200,7 +199,7 @@ export const communityService = {
         return null;
     },
     // 9. Upload Image
-    async uploadImage(file: File) {
+    async uploadImage(file: File): Promise<string> {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${fileName}`;
@@ -230,11 +229,10 @@ function mapDbToComment(db: CommentRow): Comment {
     };
 }
 
-// Helper: Map DB shape to App shape
+// Helper to map DB Post to UI Post
 function mapDbToPost(db: any): Post {
+    if (!db) throw new Error('DB Record is null');
     try {
-        if (!db) throw new Error('DB Record is null');
-
         return {
             id: db.id,
             type: db.type,
@@ -248,7 +246,7 @@ function mapDbToPost(db: any): Post {
             images: (Array.isArray(db.images)) ? db.images : [], // Robust check
             isHot: db.is_hot,
             // Flatten metadata
-            status: db.meta_data?.status,
+            status: db.meta_data?.status || 'OPEN',
             groupName: db.meta_data?.group_name,
             thumbnailUrl: db.meta_data?.thumbnail_url,
             videoUrl: db.meta_data?.video_url,
@@ -267,11 +265,11 @@ function mapDbToPost(db: any): Post {
             commentCount: 0,
             readCount: 0,
             images: [],
-            isHot: false
-        };
+            status: 'OPEN',
+            visibility: 'PUBLIC'
+        } as unknown as Post;
     }
 }
-
 // Helper: Map App shape to DB shape
 function mapPostToDb(post: Partial<Post>): any {
     return {

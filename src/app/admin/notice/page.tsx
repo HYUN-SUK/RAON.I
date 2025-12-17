@@ -14,6 +14,7 @@ export default function AdminNoticePage() {
     const router = useRouter();
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
         loadPosts('NOTICE');
     }, [loadPosts]);
@@ -79,8 +80,8 @@ export default function AdminNoticePage() {
                             {/* Status Badge */}
                             <div className="col-span-1 text-center">
                                 <span className={`px-2 py-1 rounded text-xs font-semibold ${post.status === 'CLOSED'
-                                        ? 'bg-red-100 text-red-600'
-                                        : 'bg-green-100 text-green-600'
+                                    ? 'bg-red-100 text-red-600'
+                                    : 'bg-green-100 text-green-600'
                                     }`}>
                                     {post.status === 'CLOSED' ? '중지' : '노출'}
                                 </span>

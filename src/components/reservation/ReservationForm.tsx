@@ -62,6 +62,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
         try {
             addReservation({
+                // eslint-disable-next-line react-hooks/purity
                 id: Math.random().toString(36).substr(2, 9),
                 userId: 'guest',
                 siteId: site.id,

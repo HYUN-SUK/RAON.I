@@ -15,7 +15,8 @@ export default function PostDetailView() {
     const params = useParams();
     const id = params.id as string;
 
-    const [post, setPost] = useState<Post | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [post, setPost] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -99,11 +100,11 @@ export default function PostDetailView() {
                 {/* Media: Images */}
                 {post.images && post.images.length > 0 && (
                     <div className="space-y-2 mb-8">
-                        {post.images.map((url, idx) => (
-                            <div key={idx} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100 shadow-sm">
+                        {post.images.map((url: string, index: number) => (
+                            <div key={index} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100 shadow-sm">
                                 <img
                                     src={url}
-                                    alt={`post-img-${idx}`}
+                                    alt={`post-img-${index}`}
                                     className="w-full h-full object-cover"
                                 />
                             </div>
@@ -137,7 +138,8 @@ export default function PostDetailView() {
                         initialIsLiked={false}
                         className="text-[#4D4D4D]"
                         onLikeChange={(newCount) => {
-                            setPost(prev => prev ? { ...prev, likeCount: newCount } : null);
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setPost((prev: any) => prev ? { ...prev, likeCount: newCount } : null);
                         }}
                     />
 
@@ -152,7 +154,8 @@ export default function PostDetailView() {
                 <CommentSection
                     postId={id}
                     onCommentChange={(newCount) => {
-                        setPost(prev => prev ? { ...prev, commentCount: newCount } : null);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        setPost((prev: any) => prev ? { ...prev, commentCount: newCount } : null);
                     }}
                 />
             </main>

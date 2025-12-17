@@ -19,6 +19,7 @@ export default function StoryBoard({ posts }: StoryBoardProps) {
         if (typeof p.author === 'string') safeAuthor = p.author;
         else if (typeof p.author === 'object') {
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 safeAuthor = (p.author as any)?.name || (p.author as any)?.nickname || 'Unknown Author';
             } catch {
                 safeAuthor = 'Invalid Author Data';

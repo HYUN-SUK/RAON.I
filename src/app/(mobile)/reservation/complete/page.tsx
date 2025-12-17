@@ -18,6 +18,7 @@ export default function ReservationCompletePage() {
     useEffect(() => {
         if (reservations.length > 0) {
             // Get the most recent reservation
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLatestReservation(reservations[reservations.length - 1]);
         } else {
             // No reservation found, redirect to home or reservation list

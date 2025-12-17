@@ -39,6 +39,7 @@ export default function MyTimeline() {
                         {timelineItems.slice(0, 3).map((item) => (
                             <TimelineCard key={item.id} item={item} />
                         ))}
+                        <p className="text-center py-4 text-stone-400 text-sm">"이곳에는 당신의 캠핑 이야기가 차곡차곡 쌓이게 됩니다."</p>
                     </>
                 ) : (
                     <div className="text-center py-10 text-stone-400">
