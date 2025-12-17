@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from 'next/navigation';
 import { useEmotionalStore } from "@/store/useEmotionalStore";
 import { Flame, Star, Coffee, Book, Lamp, Palette, Flag } from "lucide-react";
 
 export default function HeroSection() {
+    const router = useRouter();
     const { isFireActive, isStarActive, toggleFire, toggleStar } = useEmotionalStore();
 
     return (
@@ -87,7 +89,10 @@ export default function HeroSection() {
 
                 {/* Bottom Interactive Objects (Note, Coffee, Lantern) */}
                 <div className="flex justify-center gap-10 mb-10">
-                    <button className="group flex flex-col items-center gap-2 text-white/90 hover:text-white transition-all active:scale-95">
+                    <button
+                        onClick={() => router.push('/myspace/records')}
+                        className="group flex flex-col items-center gap-2 text-white/90 hover:text-white transition-all active:scale-95"
+                    >
                         <div className="p-3.5 glass-dark rounded-full group-hover:bg-white/20 group-active:bg-white/30 transition-all shadow-lg">
                             <Book size={26} strokeWidth={1.5} />
                         </div>

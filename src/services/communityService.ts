@@ -68,6 +68,44 @@ export const communityService = {
         return mapDbToPost(data);
     },
 
+    // 3.5 Update Post (Edit / Status Change)
+    async updatePost(id: string, updates: Partial<Post>) {
+        const dbUpdates = mapPostToDb(updates);
+        // We only want to update fields that are present in 'updates'
+        // But mapPostToDb returns a full object structure. 
+        // We need to be careful not to overwrite metadata if we only want to update part of it.
+        // For simplicity in this session, we will fetch, merge, and update.
+
+        const { data: current } = await supabase.from('posts').select('*').eq('id', id).single();
+        if (!current) throw new Error('Post not found');
+
+        const currentMeta = current.meta_data || {};
+        const newMeta = {
+            ...currentMeta,
+            ...(updates.status ? { status: updates.status } : {}),
+            ...(updates.groupName ? { group_name: updates.groupName } : {}),
+            ...(updates.thumbnailUrl ? { thumbnail_url: updates.thumbnailUrl } : {}),
+            ...(updates.videoUrl ? { video_url: updates.videoUrl } : {}),
+            ...(updates.visibility ? { visibility: updates.visibility } : {}),
+        };
+
+        const payload: any = {};
+        if (updates.title) payload.title = updates.title;
+        if (updates.content) payload.content = updates.content;
+        if (updates.images) payload.images = updates.images;
+        payload.meta_data = newMeta;
+
+        const { data, error } = await supabase
+            .from('posts')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return mapDbToPost(data);
+    },
+
     // 4. Toggle Like (Optimistic at component level, this syncs with DB)
     async toggleLike(postId: string, userId: string = ANON_USER_ID): Promise<boolean> {
         // Check if already liked
@@ -214,6 +252,7 @@ function mapDbToPost(db: any): Post {
             groupName: db.meta_data?.group_name,
             thumbnailUrl: db.meta_data?.thumbnail_url,
             videoUrl: db.meta_data?.video_url,
+            visibility: db.meta_data?.visibility || 'PUBLIC',
         };
     } catch (e) {
         console.error('Error mapping post:', e, db);
@@ -246,6 +285,7 @@ function mapPostToDb(post: Partial<Post>): any {
             group_name: post.groupName,
             thumbnail_url: post.thumbnailUrl,
             video_url: post.videoUrl,
+            visibility: post.visibility,
         },
     };
 }

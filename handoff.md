@@ -1,44 +1,41 @@
-# 🏁 Session Handoff: Community Stabilization & Config Fix
+# RAON.I Handoff Document
 **Date**: 2025-12-17
-**Session Goal**: Stabilize Community Service & Fix Persistent Crashes
+**Session Goal**: Refine Community Features (Mobile UX, My Space Integration, Search, Pagination)
 
----
+## 1. Summary of Completed Work
+This session focused on **stabilizing and refining the Community features** based on iterative user feedback (Rounds 1-5).
+-   **Mobile UX Fixes**:
+    -   **Write Form**: Secured sufficient bottom padding (`pb-48`) and raised the Action Bar (`bottom-[80px]`) to sit *above* the Bottom Navigation.
+    -   **Action Bar**: Constrained width (`max-w-[430px]`) for desktop to prevent stretching.
+-   **My Space Integration**:
+    -   **Record Page**: Created `/myspace/records` to view user's own posts in a grid layout.
+    -   **Link**: Connected "Book" icon in Hero Section to the new Record Page.
+    -   **Write Link**: Connected "이야기 올리기" button to `/community/write?type=STORY`.
+-   **Community Core Features**:
+    -   **Search**: Implemented client-side search (Title/Content) in Community Header.
+    -   **Hybrid Pagination**:
+        -   Story/Review: Infinite Scroll.
+        -   Notice/QnA/Group: Numbered Pagination (1, 2, 3).
+-   **Board Logic**:
+    -   **Visibility**: Set defaults (Story=Private, Review=Public) and auto-switching logic.
+    -   **Private Filtering**: Implemented client-side filtering for Private posts.
 
-## 📅 Session Summary
-This session successfully resolved critical instability issues in the Community section. We recovered from persistent crashes on the 'Story' and 'Notice' boards by identifying two root causes: malformed backend data and a hidden configuration conflict. We also refactored the board architecture to be robust against future errors.
+## 2. Technical Decisions & Context
+-   **Hybrid Pagination**: Chosen to optimize UX. "Consumption" boards (Story) benefit from infinite scroll, while "Information" boards (Notice) need easy retrieval via page numbers.
+-   **Bottom Action Bar**: Instead of `z-index` wars covering the nav, we raised the bar (`bottom-[80px]`) to coexist with the navigation, providing a safer and cleaner mobile experience.
+-   **Client-Side Filtering**: Currently, privacy logic (Private posts) is filtered on the client in `useCommunityStore`. **This must be migrated to Supabase RLS policies** for true security before production.
 
-### ✅ Key Achievements
-1.  **Resolved "Ghost" Config Conflict**:
-    - Identified and **deleted** a rogue `next.config.js` file that was overriding `next.config.ts`.
-    - This fixed the "Invalid src" error on the 'Notice' board and allowed images to load correctly.
-2.  **Global Stabilization (Component-per-Board)**:
-    - Refactored `CommunityBoardContainer` to use specialized components (`NoticeBoard`, `ReviewBoard`, etc.) instead of generic logic.
-    - Implemented **Defensive Programming** in `PostCard` to survive missing/malformed data.
-    - Added `sanitizePost` utility to scrub data at the network layer.
-3.  **Crash Prevention System**:
-    - Implemented a global **`ErrorBoundary`** to catch UI crashes gracefully and display helpful error messages.
-4.  **Feature Completion**:
-    - Verified 'Like' and 'Comment' interactions.
+## 3. Next Steps (Priority)
+1.  **Group (Small Meeting) Logic**:
+    -   Discussion needed on "Private Feed" model vs "Bulletin Board".
+    -   Implement "Group ID" based filtering and "Join" logic.
+2.  **Admin Console**:
+    -   Implement Notice writing capability (Server-side check).
+    -   Implement Report/Moderation view.
+3.  **Backend Security**:
+    -   Migrate "Private Post" filtering to Supabase RLS.
+    -   Implement "Friend-only" visibility logic.
 
----
-
-## 🛠️ Technical Decisions
-- **Single Source of Truth (Config)**: Enforced usage of `next.config.ts` by removing conflicting JS files.
-- **Defensive UI**: Adopted a "Trust No Data" approach. Even if the DB sends garbage, the UI will render a fallback state instead of crashing.
-- **Isolation**: Each Community Tab is now an independent component. A bug in 'QnA' will no longer crash 'Notice'.
-
----
-
-## 🚀 Next Steps (Priority)
-1.  **Write Form Debugging**:
-    - The `CommunityWriteForm` submit button is unresponsive. Needs investigation (likely event handler or Zod validation issue).
-2.  **Infinite Scroll**:
-    - Implement pagination for the new board components.
-3.  **Admin Console**:
-    - Build Community Management (Hide/Delete posts) in `/admin`.
-
----
-
-## ⚠️ Known Issues / Notes
-- **Server Restart Required**: If you see image errors again, ensure the dev server was fully restarted after the `next.config.js` deletion.
-- **Data Hygiene**: We have some test data with `author` as an object (instead of string). The new `sanitizePost` handles this, but a DB migration/cleanup is recommended long-term.
+## 4. Known Issues / Notes
+-   **Mock Data**: Pagination relies on mocked `hasMore: false` and `posts` slicing. Real backend pagination params need to be connected.
+-   **Image Upload**: Validated `max(5)` images, but ensure Storage buckets have proper RLS (Authenticated users only).

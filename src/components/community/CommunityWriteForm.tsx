@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BoardType, useCommunityStore } from '@/store/useCommunityStore';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Loader2, Camera, X } from 'lucide-react';
 import { communityService } from '@/services/communityService';
+import { z } from 'zod';
 
 const CATEGORIES: { id: BoardType; label: string }[] = [
-    { id: 'NOTICE', label: '공지 (관리자)' },
+    // NOTICE removed (Admin only)
     { id: 'REVIEW', label: '후기' },
     { id: 'STORY', label: '이야기' },
     { id: 'QNA', label: '질문' },
@@ -19,13 +20,41 @@ const CATEGORIES: { id: BoardType; label: string }[] = [
     { id: 'CONTENT', label: '콘텐츠' },
 ];
 
+const VISIBILITY_OPTIONS = [
+    { value: 'PUBLIC', label: '전체 공개' },
+    { value: 'FRIENDS', label: '친구만 공개' },
+    { value: 'PRIVATE', label: '비공개' },
+];
+
+// Zod Schema
+const postSchema = z.object({
+    title: z.string().min(1, '제목을 입력해주세요.'),
+    content: z.string().min(1, '내용을 입력해주세요.'),
+    type: z.enum(['NOTICE', 'REVIEW', 'STORY', 'QNA', 'GROUP', 'CONTENT']),
+    images: z.array(z.any()).max(5, '사진은 최대 5장까지 업로드 가능합니다.'),
+});
+
 export default function CommunityWriteForm() {
     const router = useRouter();
-    const { createPost, isLoading } = useCommunityStore();
+    const searchParams = useSearchParams();
+    const initialType = (searchParams.get('type') as BoardType) || 'STORY';
 
-    const [type, setType] = useState<BoardType>('STORY');
+    const { createPost, isLoading: storeLoading } = useCommunityStore();
+    const [localLoading, setLocalLoading] = useState(false);
+
+    const [type, setType] = useState<BoardType>(initialType);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [visibility, setVisibility] = useState('PUBLIC');
+
+    // Auto-set visibility based on Board Type
+    React.useEffect(() => {
+        if (type === 'STORY') {
+            setVisibility('PRIVATE');
+        } else {
+            setVisibility('PUBLIC');
+        }
+    }, [type]);
 
     // Extra fields
     const [groupName, setGroupName] = useState('');
@@ -35,9 +64,18 @@ export default function CommunityWriteForm() {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
+    const isLoading = storeLoading || localLoading;
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const newFiles = Array.from(e.target.files);
+
+            // Validation: Max 5 images total
+            if (selectedFiles.length + newFiles.length > 5) {
+                alert('사진은 최대 5장까지 추가할 수 있습니다.');
+                return;
+            }
+
             setSelectedFiles(prev => [...prev, ...newFiles]);
 
             const newUrls = newFiles.map(file => URL.createObjectURL(file));
@@ -51,14 +89,21 @@ export default function CommunityWriteForm() {
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!title.trim() || !content.trim()) return;
+        e.preventDefault(); // Crucial
+
+        // Zod Validation
+        const validation = postSchema.safeParse({ type, title, content, images: selectedFiles });
+        if (!validation.success) {
+            alert(validation.error.issues[0].message);
+            return;
+        }
 
         try {
+            setLocalLoading(true);
+
             // 1. Upload Images
             const uploadedImageUrls: string[] = [];
             if (selectedFiles.length > 0) {
-                // Upload sequentially or parallel? Parallel is faster.
                 const uploadPromises = selectedFiles.map(file => communityService.uploadImage(file));
                 const results = await Promise.all(uploadPromises);
                 uploadedImageUrls.push(...results);
@@ -69,54 +114,63 @@ export default function CommunityWriteForm() {
                 type,
                 title,
                 content,
-                // Mock author for now
-                author: 'Current User',
+                author: '홍길동', // TODO: Actual User Name from Auth Store
                 images: uploadedImageUrls,
                 groupName: type === 'GROUP' ? groupName : undefined,
                 videoUrl: type === 'CONTENT' ? videoUrl : undefined,
+                visibility: visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
             });
 
             // Go back to list
             router.back();
         } catch (error: any) {
             console.error('Submit Error:', error);
-            alert(`Error: ${error.message || JSON.stringify(error)}\n\nDetails: ${JSON.stringify(error, null, 2)}`);
+            alert(`글 작성 중 오류가 발생했습니다.\n${error.message}`);
+        } finally {
+            setLocalLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white pb-48">
             {/* Header */}
             <div className="flex items-center h-[56px] px-4 border-b">
                 <button onClick={() => router.back()} className="mr-4">
                     <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
                 </button>
                 <h1 className="text-lg font-bold text-[#1A1A1A]">글쓰기</h1>
-                <Button
-                    onClick={handleSubmit}
-                    disabled={isLoading || !title || !content}
-                    variant="ghost"
-                    className="ml-auto text-[#1C4526] font-bold"
-                >
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : '완료'}
-                </Button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-5 space-y-6">
-                {/* Category Select */}
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#4D4D4D]">게시판 선택</label>
-                    <Select value={type} onValueChange={(val) => setType(val as BoardType)}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="게시판을 선택하세요" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {CATEGORIES.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+            <div className="p-5 space-y-5">
+                {/* Board & Visibility Row */}
+                <div className="flex gap-3">
+                    <div className="flex-1 space-y-1">
+                        <label className="text-xs font-medium text-[#999]">게시판</label>
+                        <Select value={type} onValueChange={(val) => setType(val as BoardType)}>
+                            <SelectTrigger className="h-10">
+                                <SelectValue placeholder="게시판" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {CATEGORIES.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                        <label className="text-xs font-medium text-[#999]">공개 범위</label>
+                        <Select value={visibility} onValueChange={setVisibility}>
+                            <SelectTrigger className="h-10">
+                                <SelectValue placeholder="공개 범위" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {VISIBILITY_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {/* Dynamic Fields */}
@@ -143,10 +197,10 @@ export default function CommunityWriteForm() {
                     onChange={(e) => setTitle(e.target.value)}
                 />
 
-                {/* Content */}
+                {/* Content - Reduced Height */}
                 <Textarea
                     placeholder="캠퍼들과 나누고 싶은 이야기를 적어주세요."
-                    className="min-h-[300px] resize-none border-none px-0 shadow-none focus-visible:ring-0 text-base placeholder:text-[#999]"
+                    className="min-h-[200px] resize-none border-none px-0 shadow-none focus-visible:ring-0 text-base placeholder:text-[#999] leading-relaxed"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                 />
@@ -169,21 +223,32 @@ export default function CommunityWriteForm() {
                     </div>
                 )}
 
-                {/* Footer Toolbar */}
-                <div className="border-t pt-4 flex gap-4">
-                    <label className="cursor-pointer flex items-center gap-2 text-gray-500 hover:text-[#1C4526]">
-                        <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleFileSelect}
-                        />
-                        <Camera className="w-6 h-6" />
-                        <span className="text-sm">사진 추가</span>
-                    </label>
-                </div>
-            </form>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="fixed bottom-[80px] left-0 right-0 max-w-[430px] mx-auto p-4 border-t bg-white flex justify-between items-center z-50">
+                <label className="cursor-pointer flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                    />
+                    <div className="w-8 h-8 rounded-full bg-[#F7F5EF] flex items-center justify-center text-[#1C4526]">
+                        <Camera className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-medium text-[#4D4D4D]">{selectedFiles.length}/5</span>
+                </label>
+
+                <Button
+                    onClick={handleSubmit}
+                    disabled={isLoading || !title.trim() || !content.trim()}
+                    className="bg-[#1C4526] hover:bg-[#1C4526]/90 text-white rounded-full px-6 text-md font-bold shadow-lg"
+                >
+                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '올리기'}
+                </Button>
+            </div>
         </div>
     );
 }

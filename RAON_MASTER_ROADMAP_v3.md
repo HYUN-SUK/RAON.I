@@ -17,7 +17,7 @@
 | **Phase 1** | **사용자 홈 (User Home)** | ✅ **완료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic 완료 |
 | **Phase 2** | **내공간 (My Space)** | 🔄 **진행 중** | 70% | 대시보드/지도/타임라인(기초) 완료. 앨범/히스토리 남음 |
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 90% | Logic/Validation/Admin Core 완료. PG/오픈일 남음. |
-| **Phase 4** | **커뮤니티 (Community)** | 🔄 **진행 중** | 70% | Backend 연동, 글쓰기/상세 완료. 상호작용 남음 |
+| **Phase 4** | **커뮤니티 (Community)** | ✅ **완료 (Refining)** | 95% | Mobile UX, Search, Hybrid Pagination, My Space Integration 완료 |
 | **Phase 5** | **마켓 & 결제 (Market)** | ⬜ **대기** | 0% | 굿즈샵, 장바구니, PG 연동 |
 | **Phase 6** | **확장 모듈 (Expansion)** | ⬜ **대기** | 0% | 미션(AI 난이도), 크리에이터, 확장 지도 |
 | **Phase 7** | **운영 & DevOps** | ⬜ **대기** | 0% | 관리자 콘솔 확장, 배포 파이프라인 |
@@ -61,14 +61,16 @@
 ### Phase 4: 커뮤니티 (Community) - 🔄 Ongoing (90%)
 **"캠퍼들의 소통 공간 (User-First + Backend)"**
 *   **4.1 메인/게시판** ✅: 6개 탭(공지/후기/이야기 등) 구현, Supabase 연동 완료
-*   **4.2 글쓰기/상세** ✅: 에디터 및 상세 뷰 구현, RLS 정책 설정 (Dev)
-*   **4.3 상호작용** ✅: 좋아요(공감), 댓글 구현 완료. (소모임 가입은 추후)
-*   *Note: 관리자 기능(신고/삭제)은 사용자 화면 완료 후 구현*
+*   **4.2 기능 고도화 (Rounds 1-5)** ✅ (New): 
+    *   [x] 모바일 최적화 (하단 바/키보드), 검색(Search), 하이브리드 페이지네이션
+    *   [x] 내 공간 연동 (기록 페이지), 비공개 로직(Private)
+*   **4.3 상호작용** ✅: 좋아요(공감), 댓글 구현 완료.
+*   *Note: 소모임(Group) 로직 및 관리자 콘솔은 다음 단계*
 
 ---
 
 ## 📝 다음 세션 가이드 (Next Session Guide)
-1.  **Priority**: **Phase 4.2 커뮤니티 상호작용** 구축.
-2.  **Strategy**: "User-First" 전략에 따라, 공감(Like)과 댓글(Comment) 기능을 구현하여 커뮤니티의 생동감을 불어넣습니다.
-3.  **Refinement**: 이미지 업로드 및 무한 스크롤 등 디테일을 챙기세요.
+1.  **Priority**: **소모임(Group) 디테일** 및 **관리자 콘솔** 확장.
+2.  **Strategy**: 소모임의 "폐쇄형 피드" 로직 구체화 및 관리자 기능(공지 작성, 신고 관리) 구현.
+3.  **Security**: 프론트엔드 필터링 로직을 Supabase RLS로 이관하여 보안 강화.
 
