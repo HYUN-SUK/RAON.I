@@ -5,8 +5,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { communityService } from '@/services/communityService';
 import { Post } from '@/store/useCommunityStore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Heart, MessageCircle, Share2, MoreVertical, Loader2 } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Share2, MoreVertical, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import LikeButton from './LikeButton';
+import CommentSection from './CommentSection';
 
 export default function PostDetailView() {
     const router = useRouter();
@@ -22,6 +24,10 @@ export default function PostDetailView() {
             if (!id) return;
             try {
                 setLoading(true);
+                // Increment view count
+                const rpcError = await communityService.incrementReadCount(id);
+                if (rpcError) alert(`Read Count Error: ${rpcError.message}`);
+                // Fetch updated post
                 const data = await communityService.getPostById(id);
                 setPost(data);
             } catch (err: any) {
@@ -86,36 +92,79 @@ export default function PostDetailView() {
                 </div>
 
                 {/* Content */}
-                <div className="whitespace-pre-wrap text-[#333] leading-7 mb-8 min-h-[100px]">
+                <div className="whitespace-pre-wrap text-[#333] leading-7 mb-6 min-h-[60px]">
                     {post.content}
                 </div>
 
-                {/* Images would go here */}
+                {/* Media: Images */}
+                {post.images && post.images.length > 0 && (
+                    <div className="space-y-2 mb-8">
+                        {post.images.map((url, idx) => (
+                            <div key={idx} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100 shadow-sm">
+                                <img
+                                    src={url}
+                                    alt={`post-img-${idx}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                {/* Stats */}
-                <div className="flex items-center gap-4 text-xs text-[#808080] mb-8">
-                    <span>좋아요 {post.likeCount}</span>
-                    <span>댓글 {post.commentCount}</span>
-                    <span>조회 {post.readCount || 0}</span>
+                {/* Media: Video */}
+                {post.type === 'CONTENT' && post.videoUrl && (
+                    <div className="mb-8">
+                        <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black shadow-sm">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src={`https://www.youtube.com/embed/${getYouTubeId(post.videoUrl)}`}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    </div>
+                )}
+
+                {/* Interaction Bar (Left Aligned) */}
+                <div className="flex items-center gap-4 py-4 border-b border-gray-100 mb-8">
+                    {/* Like Button */}
+                    <LikeButton
+                        postId={id}
+                        likeCount={post.likeCount}
+                        initialIsLiked={false}
+                        className="text-[#4D4D4D]"
+                        onLikeChange={(newCount) => {
+                            setPost(prev => prev ? { ...prev, likeCount: newCount } : null);
+                        }}
+                    />
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-3 text-xs text-[#808080]">
+                        <span>댓글 {post.commentCount}</span>
+                        <span>조회 {post.readCount || 0}</span>
+                    </div>
                 </div>
+
+                {/* Comment Section */}
+                <CommentSection
+                    postId={id}
+                    onCommentChange={(newCount) => {
+                        setPost(prev => prev ? { ...prev, commentCount: newCount } : null);
+                    }}
+                />
             </main>
 
-            {/* Footer Action Bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-5 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-1 text-[#4D4D4D]">
-                        <Heart className="w-6 h-6" />
-                        <span className="text-xs font-medium">공감</span>
-                    </button>
-                    <button className="flex items-center gap-1 text-[#4D4D4D]">
-                        <MessageCircle className="w-6 h-6" />
-                        <span className="text-xs font-medium">댓글</span>
-                    </button>
-                </div>
-                <Button className="bg-[#1C4526] text-white rounded-full px-6">
-                    예약하러 가기
-                </Button>
-            </div>
+
         </div>
     );
+}
+
+// Helper to extract YouTube ID
+function getYouTubeId(url: string) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
 }

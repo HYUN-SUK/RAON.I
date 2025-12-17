@@ -1,9 +1,12 @@
-'use client';
-
 import React from 'react';
 import { BoardType, useCommunityStore } from '@/store/useCommunityStore';
-import PostCard from './PostCard';
-import { motion, AnimatePresence } from 'framer-motion';
+import StoryBoard from './StoryBoard';
+import NoticeBoard from './NoticeBoard';
+import ReviewBoard from './ReviewBoard';
+import QnaBoard from './QnaBoard';
+import GroupBoard from './GroupBoard';
+import ContentBoard from './ContentBoard';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface CommunityBoardContainerProps {
     activeTab: BoardType;
@@ -11,29 +14,25 @@ interface CommunityBoardContainerProps {
 
 export default function CommunityBoardContainer({ activeTab }: CommunityBoardContainerProps) {
     const { getPostsByType } = useCommunityStore();
-    const posts = getPostsByType(activeTab);
+    // Force re-fetch/reset logic could be here, but store handles it.
+    // However, to prevent stale data flash, we can use a key.
+    const posts = getPostsByType(activeTab) || [];
+
+    const renderBoard = () => {
+        switch (activeTab) {
+            case 'STORY': return <StoryBoard posts={posts} />;
+            case 'NOTICE': return <NoticeBoard posts={posts} />;
+            case 'REVIEW': return <ReviewBoard posts={posts} />;
+            case 'QNA': return <QnaBoard posts={posts} />;
+            case 'GROUP': return <GroupBoard posts={posts} />;
+            case 'CONTENT': return <ContentBoard posts={posts} />;
+            default: return <StoryBoard posts={posts} />;
+        }
+    };
 
     return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="pb-20"
-            >
-                {posts.length > 0 ? (
-                    posts.map((post) => (
-                        <PostCard key={post.id} post={post} />
-                    ))
-                ) : (
-                    <div className="py-20 text-center text-[#999]">
-                        <p>아직 게시글이 없습니다. 🍂</p>
-                        <p className="text-sm mt-1">첫 번째 이야기를 남겨보세요.</p>
-                    </div>
-                )}
-            </motion.div>
-        </AnimatePresence>
+        <ErrorBoundary name={`${activeTab} Board`}>
+            {renderBoard()}
+        </ErrorBoundary>
     );
 }

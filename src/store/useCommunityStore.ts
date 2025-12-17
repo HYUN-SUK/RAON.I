@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { communityService } from '@/services/communityService';
+import { communityService, Comment } from '@/services/communityService';
 
 export type BoardType = 'NOTICE' | 'REVIEW' | 'STORY' | 'QNA' | 'GROUP' | 'CONTENT';
 
@@ -33,7 +33,13 @@ interface CommunityState {
     loadPosts: (type: BoardType) => Promise<void>;
     createPost: (post: Partial<Post>) => Promise<void>;
 
-    // Computed (Helper for backward compatibility/easy access, but mainly we rely on 'posts' which is current tab data)
+    // Interaction Actions
+    // toggleLike: (postId: string) => Promise<void>; // Can be local only
+    loadComments: (postId: string) => Promise<Comment[]>;
+    addComment: (postId: string, content: string, author: string) => Promise<Comment>;
+    removeComment: (postId: string, commentId: string) => Promise<void>;
+
+    // Computed
     getPostsByType: (type: BoardType) => Post[];
 }
 
@@ -78,11 +84,45 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         }
     },
 
-    getPostsByType: (type) => {
-        // Since we now load only the active tab's posts into 'posts',
-        // if the requested type matches activeTab, return posts.
-        // Otherwise return empty (or we could cache, but Keep It Simple for now).
-        const { activeTab, posts } = get();
-        return activeTab === type ? posts : [];
+    loadComments: async (postId) => {
+        return await communityService.getComments(postId);
+    },
+
+    addComment: async (postId, content, author) => {
+        // Optimistic update could happen here, but since it returns the real ID, we wait slightly
+        // or we return the real comment
+        const newComment = await communityService.createComment(postId, content, author);
+
+        // Update local post comment count if exists
+        set((state) => ({
+            posts: state.posts.map(p =>
+                p.id === postId
+                    ? { ...p, commentCount: (p.commentCount || 0) + 1 }
+                    : p
+            )
+        }));
+
+        return newComment;
+    },
+
+    removeComment: async (postId, commentId) => {
+        await communityService.deleteComment(commentId, postId);
+        // Update local post comment count
+        set((state) => ({
+            posts: state.posts.map(p =>
+                p.id === postId
+                    ? { ...p, commentCount: Math.max(0, (p.commentCount || 0) - 1) }
+                    : p
+            )
+        }));
+    },
+
+    getPostsByType: (type: BoardType) => {
+        const { posts } = get();
+        // Robust check: Ensure posts exists and filter by type if needed
+        // Since we currently reload all posts on tab switch, filtering might be redundant 
+        // if 'posts' only contains current tab's data. But for safety:
+        if (!posts) return [];
+        return posts;
     }
 }));

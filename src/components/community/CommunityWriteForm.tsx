@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, X } from 'lucide-react';
+import { communityService } from '@/services/communityService';
 
 const CATEGORIES: { id: BoardType; label: string }[] = [
     { id: 'NOTICE', label: '공지 (관리자)' },
@@ -30,26 +31,56 @@ export default function CommunityWriteForm() {
     const [groupName, setGroupName] = useState('');
     const [videoUrl, setVideoUrl] = useState('');
 
+    // Image Upload State
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const newFiles = Array.from(e.target.files);
+            setSelectedFiles(prev => [...prev, ...newFiles]);
+
+            const newUrls = newFiles.map(file => URL.createObjectURL(file));
+            setPreviewUrls(prev => [...prev, ...newUrls]);
+        }
+    };
+
+    const removeImage = (index: number) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() || !content.trim()) return;
 
         try {
+            // 1. Upload Images
+            const uploadedImageUrls: string[] = [];
+            if (selectedFiles.length > 0) {
+                // Upload sequentially or parallel? Parallel is faster.
+                const uploadPromises = selectedFiles.map(file => communityService.uploadImage(file));
+                const results = await Promise.all(uploadPromises);
+                uploadedImageUrls.push(...results);
+            }
+
+            // 2. Create Post
             await createPost({
                 type,
                 title,
                 content,
                 // Mock author for now
                 author: 'Current User',
-                images: [], // TODO: Image upload
+                images: uploadedImageUrls,
                 groupName: type === 'GROUP' ? groupName : undefined,
                 videoUrl: type === 'CONTENT' ? videoUrl : undefined,
             });
 
             // Go back to list
             router.back();
-        } catch (error) {
-            alert('Failed to post');
+        } catch (error: any) {
+            console.error('Submit Error:', error);
+            alert(`Error: ${error.message || JSON.stringify(error)}\n\nDetails: ${JSON.stringify(error, null, 2)}`);
         }
     };
 
@@ -119,6 +150,39 @@ export default function CommunityWriteForm() {
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                 />
+
+                {/* Image Previews */}
+                {previewUrls.length > 0 && (
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                        {previewUrls.map((url, index) => (
+                            <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-gray-100">
+                                <img src={url} alt="preview" className="w-full h-full object-cover" />
+                                <button
+                                    type="button"
+                                    onClick={() => removeImage(index)}
+                                    className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Footer Toolbar */}
+                <div className="border-t pt-4 flex gap-4">
+                    <label className="cursor-pointer flex items-center gap-2 text-gray-500 hover:text-[#1C4526]">
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileSelect}
+                        />
+                        <Camera className="w-6 h-6" />
+                        <span className="text-sm">사진 추가</span>
+                    </label>
+                </div>
             </form>
         </div>
     );
