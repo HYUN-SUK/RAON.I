@@ -1,41 +1,33 @@
-# RAON.I Handoff Document
-**Date**: 2025-12-17
-**Session Goal**: Refine Community Features (Mobile UX, My Space Integration, Search, Pagination)
+# Handoff Document - Session Wrap-up (Admin Notice, RLS, Code Cleanup)
 
-## 1. Summary of Completed Work
-This session focused on **stabilizing and refining the Community features** based on iterative user feedback (Rounds 1-5).
--   **Mobile UX Fixes**:
-    -   **Write Form**: Secured sufficient bottom padding (`pb-48`) and raised the Action Bar (`bottom-[80px]`) to sit *above* the Bottom Navigation.
-    -   **Action Bar**: Constrained width (`max-w-[430px]`) for desktop to prevent stretching.
--   **My Space Integration**:
-    -   **Record Page**: Created `/myspace/records` to view user's own posts in a grid layout.
-    -   **Link**: Connected "Book" icon in Hero Section to the new Record Page.
-    -   **Write Link**: Connected "이야기 올리기" button to `/community/write?type=STORY`.
--   **Community Core Features**:
-    -   **Search**: Implemented client-side search (Title/Content) in Community Header.
-    -   **Hybrid Pagination**:
-        -   Story/Review: Infinite Scroll.
-        -   Notice/QnA/Group: Numbered Pagination (1, 2, 3).
--   **Board Logic**:
-    -   **Visibility**: Set defaults (Story=Private, Review=Public) and auto-switching logic.
-    -   **Private Filtering**: Implemented client-side filtering for Private posts.
+## 1. Session Summary
+- **Admin Console (Notice)**: Refactored 'Notice Create/Edit' pages. Extracted `AdminNoticeForm` for reusability. Verified creation and list view.
+- **Security (RLS)**: Implemented Row Level Security (RLS) policies on Supabase `posts` table.
+    - `SELECT`: Allowed for everyone (PUBLIC) or specific roles (PRIVATE/GROUP).
+    - `INSERT`: Authenticated users only.
+    - `UPDATE/DELETE`: Authors only (or Admins).
+    - **Verification**: Confirmed that `UPDATE` operations without proper authentication are blocked by the DB.
+- **Project-wide Cleanup**:
+    - **Linting**: Fixed ~30 critical lint errors (Improper `useEffect` deps, `setState` in render, `any` types).
+    - **Console Logs**: Removed all debugging `console.log` statements.
+    - **Build Fix**: Resolved `npm run build` failure by setting `dynamic = 'force-dynamic'` in `RootLayout` and improving `Supabase` client robustness.
 
-## 2. Technical Decisions & Context
--   **Hybrid Pagination**: Chosen to optimize UX. "Consumption" boards (Story) benefit from infinite scroll, while "Information" boards (Notice) need easy retrieval via page numbers.
--   **Bottom Action Bar**: Instead of `z-index` wars covering the nav, we raised the bar (`bottom-[80px]`) to coexist with the navigation, providing a safer and cleaner mobile experience.
--   **Client-Side Filtering**: Currently, privacy logic (Private posts) is filtered on the client in `useCommunityStore`. **This must be migrated to Supabase RLS policies** for true security before production.
+## 2. Technical Decisions
+- **`AdminNoticeForm`**: Decided to share logic between Create/Edit to reduce duplication. Props: `initialData` (optional) and `onSubmit` handler.
+- **RLS Policy**: Strict "Deny by Default". `visibility` column (PUBLIC, PRIVATE, GROUP) drives the `SELECT` policy.
+- **Force Dynamic**: Due to the nature of the app (Community/Reservations requiring fresh data) and current lack of build-time mock data, we disabled Static Site Generation (SSG) for the root layout. This ensures build stability and data freshness.
+- **Supabase Fallback**: `src/lib/supabase.ts` now uses fallback strings if ENV vars are missing, preventing build-time crashes (the build process tries to import the client).
 
-## 3. Next Steps (Priority)
-1.  **Group (Small Meeting) Logic**:
-    -   Discussion needed on "Private Feed" model vs "Bulletin Board".
-    -   Implement "Group ID" based filtering and "Join" logic.
-2.  **Admin Console**:
-    -   Implement Notice writing capability (Server-side check).
-    -   Implement Report/Moderation view.
-3.  **Backend Security**:
-    -   Migrate "Private Post" filtering to Supabase RLS.
-    -   Implement "Friend-only" visibility logic.
+## 3. Next Steps (Priorities)
+1.  **Admin Authentication (CRITICAL)**:
+    - Currently, we cannot fully verify "Admin Edit" or "Delete" because we lack a real Admin Login flow.
+    - **Action**: Implement Admin Login (using Supabase Auth or mock for MVP) and ensure `auth.uid()` matches the RLS policies for Admin actions.
+2.  **Group Feature (소모임)**:
+    - Design is complete (`docs/design/group_logic_v1.md`).
+    - **Action**: Implement `groups` table (or usage of `posts` with type `GROUP`), Group Join/Leave logic, and "My Groups" UI.
+3.  **RLS Fine-tuning**:
+    - Once Auth is ready, re-verify complex RLS cases (e.g., "Group Members only" visibility).
 
 ## 4. Known Issues / Notes
--   **Mock Data**: Pagination relies on mocked `hasMore: false` and `posts` slicing. Real backend pagination params need to be connected.
--   **Image Upload**: Validated `max(5)` images, but ensure Storage buckets have proper RLS (Authenticated users only).
+- **Build**: `npm run build` passes with Exit Code 0, but relies on `force-dynamic`. Do not revert this unless you have a strategy for Static Data Mocking.
+- **Lint**: `no-explicit-any` was suppressed in a few complex Community components (`PostDetailView`) with `TODO` comments to refactor later.

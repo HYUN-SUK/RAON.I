@@ -17,10 +17,10 @@
 | **Phase 1** | **사용자 홈 (User Home)** | ✅ **완료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic 완료 |
 | **Phase 2** | **내공간 (My Space)** | 🔄 **진행 중** | 70% | 대시보드/지도/타임라인(기초) 완료. 앨범/히스토리 남음 |
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 90% | Logic/Validation/Admin Core 완료. PG/오픈일 남음. |
-| **Phase 4** | **커뮤니티 (Community)** | ✅ **완료 (Refining)** | 95% | Mobile UX, Search, Hybrid Pagination, My Space Integration 완료 |
+| **Phase 4** | **커뮤니티 (Community)** | ✅ **완료 (Enhanced)** | 100% | RLS 보안 적용, 관리자 공지 관리 완료, 그룹(소모임) 설계 완료 |
 | **Phase 5** | **마켓 & 결제 (Market)** | ⬜ **대기** | 0% | 굿즈샵, 장바구니, PG 연동 |
 | **Phase 6** | **확장 모듈 (Expansion)** | ⬜ **대기** | 0% | 미션(AI 난이도), 크리에이터, 확장 지도 |
-| **Phase 7** | **운영 & DevOps** | ⬜ **대기** | 0% | 관리자 콘솔 확장, 배포 파이프라인 |
+| **Phase 7** | **보안 및 운영 (Security & Ops)** | 🔄 **진행 중** | 40% | RLS(보안) 완료, 코드 클린업 완료, 관리자 인증(Auth) 예정 |
 
 ---
 
@@ -65,12 +65,16 @@
     *   [x] 모바일 최적화 (하단 바/키보드), 검색(Search), 하이브리드 페이지네이션
     *   [x] 내 공간 연동 (기록 페이지), 비공개 로직(Private)
 *   **4.3 상호작용** ✅: 좋아요(공감), 댓글 구현 완료.
-*   *Note: 소모임(Group) 로직 및 관리자 콘솔은 다음 단계*
+*   **4.4 보안 & 관리 (Security & Admin)** ✅ (New): 
+    *   [x] **RLS(Row Level Security)**: DB 보안 정책 적용 (작성자만 수정/삭제)
+    *   [x] **관리자 공지(Admin Notice)**: 공지 작성/수정/삭제 및 공개 설정 완료
+    *   [x] **코드 최적화**: 콘솔 로그 제거, Lint 에러 수정, 빌드 안정화
+*   *Note: 소모임(Group) 설계 완료, 구현 예정*
 
 ---
 
 ## 📝 다음 세션 가이드 (Next Session Guide)
-1.  **Priority**: **소모임(Group) 디테일** 및 **관리자 콘솔** 확장.
-2.  **Strategy**: 소모임의 "폐쇄형 피드" 로직 구체화 및 관리자 기능(공지 작성, 신고 관리) 구현.
-3.  **Security**: 프론트엔드 필터링 로직을 Supabase RLS로 이관하여 보안 강화.
+1.  **Priority**: **관리자 인증(Auth Integration)** 및 **소모임(Group) 기능 구현**.
+2.  **Strategy**: 실제 어드민 로그인을 통해 RLS/관리 기능을 완전 검증하고, 설계된 소모임 로직(가입/탈퇴/전용글)을 구현.
+3.  **Security**: 관리자 권한 세분화 및 인증 토큰 연동.
 
