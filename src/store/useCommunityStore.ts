@@ -45,6 +45,7 @@ interface CommunityState {
     loadPosts: (type: BoardType, page?: number) => Promise<void>;
     createPost: (post: Partial<Post>) => Promise<void>;
     updatePost: (id: string, updates: Partial<Post>) => Promise<void>;
+    deletePost: (id: string) => Promise<void>;
 
     // Interaction Actions
     // toggleLike: (postId: string) => Promise<void>; // Can be local only
@@ -154,6 +155,27 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             const { activeTab } = get();
             await get().loadPosts(activeTab, 1);
 
+        } catch (err: any) {
+            console.error(err);
+            set({ error: err.message, isLoading: false });
+            throw err;
+        }
+    },
+
+    deletePost: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            await communityService.deletePost(id);
+
+            // Optimistic update
+            set((state) => ({
+                posts: state.posts.filter(p => p.id !== id),
+                isLoading: false
+            }));
+
+            // Sync
+            const { activeTab } = get();
+            await get().loadPosts(activeTab, 1);
         } catch (err: any) {
             console.error(err);
             set({ error: err.message, isLoading: false });

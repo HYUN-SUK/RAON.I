@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useCommunityStore, Post } from '@/store/useCommunityStore';
 import { communityService } from '@/services/communityService';
+import { deleteNoticeAction } from '@/app/admin/notice/actions';
 import AdminNoticeForm from '@/components/admin/AdminNoticeForm';
 import { Loader2 } from 'lucide-react';
 
@@ -52,11 +53,25 @@ export default function AdminNoticeDetailPage() {
         return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
     }
 
+    const handleDelete = async () => {
+        try {
+            await deleteNoticeAction(id);
+            alert('공지가 삭제되었습니다.');
+            router.push('/admin/notice');
+        } catch (error: any) {
+            console.error('Delete failed:', error);
+            alert('삭제에 실패했습니다: ' + error.message);
+        }
+    };
+
+    // Server Action Binding
+
     return (
         <AdminNoticeForm
             mode="EDIT"
             initialData={post || undefined}
             onSubmit={handleUpdate}
+            onDelete={handleDelete}
             isLoading={isLoading}
         />
     );

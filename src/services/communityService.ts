@@ -1,6 +1,9 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase-client';
 import { Post, BoardType } from '@/store/useCommunityStore';
 import { Database } from '@/types/supabase';
+
+// Instantiate the browser client which has access to cookies
+const supabase = createClient();
 
 type CommentRow = Database['public']['Tables']['comments']['Row'];
 type CommentInsert = Database['public']['Tables']['comments']['Insert'];
@@ -103,6 +106,18 @@ export const communityService = {
 
         if (error) throw error;
         return mapDbToPost(data);
+    },
+
+    // 3.8 Delete Post
+    // 3.8 Delete Post
+    async deletePost(id: string) {
+        const { error, count } = await supabase
+            .from('posts')
+            .delete({ count: 'exact' })
+            .eq('id', id);
+
+        if (error) throw error;
+        if (count === 0) throw new Error('게시물을 삭제할 수 없습니다. 권한이 없거나 이미 삭제되었습니다.');
     },
 
     // 4. Toggle Like (Optimistic at component level, this syncs with DB)

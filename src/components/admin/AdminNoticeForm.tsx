@@ -21,10 +21,11 @@ interface AdminNoticeFormProps {
     initialData?: Post;
     mode: 'CREATE' | 'EDIT';
     onSubmit: (data: { title: string; content: string; images: string[]; status: 'OPEN' | 'CLOSED' }) => Promise<void>;
+    onDelete?: () => Promise<void>;
     isLoading?: boolean;
 }
 
-export default function AdminNoticeForm({ initialData, mode, onSubmit, isLoading = false }: AdminNoticeFormProps) {
+export default function AdminNoticeForm({ initialData, mode, onSubmit, onDelete, isLoading = false }: AdminNoticeFormProps) {
     const router = useRouter();
     const [title, setTitle] = useState(initialData?.title || '');
     const [content, setContent] = useState(initialData?.content || '');
@@ -122,6 +123,21 @@ export default function AdminNoticeForm({ initialData, mode, onSubmit, isLoading
 
                 {mode === 'EDIT' && (
                     <div className="flex items-center space-x-2">
+                        {onDelete && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                                        await onDelete();
+                                    }
+                                }}
+                            >
+                                삭제하기
+                            </Button>
+                        )}
                         <span className={`px-2 py-1 rounded text-xs font-bold ${status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {status === 'OPEN' ? '노출 중' : '노출 중지'}
                         </span>
@@ -209,8 +225,9 @@ export default function AdminNoticeForm({ initialData, mode, onSubmit, isLoading
                     </div>
                 </div>
 
-                {/* Submit */}
-                <div className="flex justify-end pt-4 border-t">
+                <div className="flex justify-between pt-4 border-t">
+                    <div></div>{/* Footer Delete Removed - Moved to Header */}
+
                     <Button
                         onClick={handleSubmit}
                         disabled={isLoading || !title.trim() || !content.trim()}
