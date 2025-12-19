@@ -17,10 +17,10 @@
 | **Phase 1** | **사용자 홈 (User Home)** | ✅ **완료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic 완료 |
 | **Phase 2** | **내공간 (My Space)** | 🔄 **진행 중** | 70% | 대시보드/지도/타임라인(기초) 완료. 앨범/히스토리 남음 |
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 90% | Logic/Validation/Admin Core 완료. PG/오픈일 남음. |
-| **Phase 4** | **커뮤니티 (Community)** | ✅ **완료 (Enhanced)** | 100% | RLS 보안 적용, 관리자 공지 관리 완료, 그룹(소모임) 설계 완료 |
+| **Phase 4** | **커뮤니티 (Community)** | ✅ **완료** | 100% | RLS 보안, 관리자 공지/소모임 관리, 소모임 기능(생성/가입/조회) 완료 |
 | **Phase 5** | **마켓 & 결제 (Market)** | ⬜ **대기** | 0% | 굿즈샵, 장바구니, PG 연동 |
 | **Phase 6** | **확장 모듈 (Expansion)** | ⬜ **대기** | 0% | 미션(AI 난이도), 크리에이터, 확장 지도 |
-| **Phase 7** | **보안 및 운영 (Security & Ops)** | 🔄 **진행 중** | 50% | RLS(보안) 완료, 코드 클린업 완료, 관리자 삭제(ServerAction) 완료 |
+| **Phase 7** | **보안 및 운영 (Security & Ops)** | 🔄 **진행 중** | 70% | RLS(보안), 코드 클린업, 관리자 그룹/공지 관리 완료 |
 
 ---
 
@@ -58,23 +58,26 @@
     *   [ ] 실제 PG 연동 (현재 무통장 입금만 구현)
 
 
-### Phase 4: 커뮤니티 (Community) - 🔄 Ongoing (90%)
-**"캠퍼들의 소통 공간 (User-First + Backend)"**
+### Phase 4: 커뮤니티 (Community) - ✅ 100% Completed
+**"캠퍼들의 소통 공간 (User-First + Admin + Groups)"**
 *   **4.1 메인/게시판** ✅: 6개 탭(공지/후기/이야기 등) 구현, Supabase 연동 완료
-*   **4.2 기능 고도화 (Rounds 1-5)** ✅ (New): 
+*   **4.2 기능 고도화 (Rx 1-5)** ✅: 
     *   [x] 모바일 최적화 (하단 바/키보드), 검색(Search), 하이브리드 페이지네이션
     *   [x] 내 공간 연동 (기록 페이지), 비공개 로직(Private)
 *   **4.3 상호작용** ✅: 좋아요(공감), 댓글 구현 완료.
-*   **4.4 보안 & 관리 (Security & Admin)** ✅ (New): 
+*   **4.4 보안 & 관리 (Security & Admin)** ✅: 
     *   [x] **RLS(Row Level Security)**: DB 보안 정책 적용 (작성자만 수정/삭제)
-    *   [x] **관리자 공지(Admin Notice)**: 공지 작성/수정/삭제 및 공개 설정 완료
-    *   [x] **코드 최적화**: 콘솔 로그 제거, Lint 에러 수정, 빌드 안정화
-*   *Note: 소모임(Group) 설계 완료, 구현 예정*
+    *   [x] **관리자 공지/소모임**: 공지 작성/수정/삭제, 소모임 강제 삭제 기능 구현
+*   **4.5 소모임 (Groups)** ✅:
+    *   [x] **구조**: DB 스키마 (`groups`, `group_members`, `posts`) 및 RLS 정의
+    *   [x] **기능**: 생성, 목록, 상세, 가입(Join/Leave), 게시글(Feed)
+    *   [x] **좋아요/댓글 상호작용 (Likes/Comments)**
+    *   [x] **안정화-v1**: Next.js 15 호환성, UI 오버랩 수정, 멤버십 로직 개선 완료
 
 ---
 
 ## 📝 다음 세션 가이드 (Next Session Guide)
-1.  **Priority**: **관리자 인증(Auth Integration)** 및 **소모임(Group) 기능 구현**.
-2.  **Strategy**: 실제 어드민 로그인을 통해 RLS/관리 기능을 완전 검증하고, 설계된 소모임 로직(가입/탈퇴/전용글)을 구현.
-3.  **Security**: 관리자 권한 세분화 및 인증 토큰 연동.
+1.  **Priority**: **소모임 멤버 관리 & 게시글**.
+2.  **Strategy**: 소모임 내 글쓰기(전용 피드), 멤버 탈퇴/강퇴, 멤버 리스트 UI 구현.
+3.  **Expansion**: My Space와의 연동 (내가 가입한 소모임 보기) 및 마켓(Market) 단계 준비.
 

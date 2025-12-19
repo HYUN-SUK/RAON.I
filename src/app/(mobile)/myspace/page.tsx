@@ -7,6 +7,7 @@ import SummaryGrid from "@/components/myspace/SummaryGrid";
 import MyTimeline from "@/components/myspace/MyTimeline";
 import UpcomingReservation from "@/components/myspace/UpcomingReservation";
 import SlimNotice from "@/components/myspace/SlimNotice";
+import MyGroupsWidget from "@/components/myspace/MyGroupsWidget";
 
 export default function MySpacePage() {
     return (
@@ -19,6 +20,9 @@ export default function MySpacePage() {
 
             {/* 3. Action Buttons */}
             <ActionButtons />
+
+            {/* 3.5 My Groups Widget */}
+            <MyGroupsWidget />
 
             {/* 4. Summary Grid */}
             <SummaryGrid />

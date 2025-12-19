@@ -15,8 +15,7 @@ export default function PostDetailView() {
     const params = useParams();
     const id = params.id as string;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [post, setPost] = useState<any>(null);
+    const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +56,13 @@ export default function PostDetailView() {
         <div className="min-h-screen bg-white pb-20">
             {/* Header */}
             <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b px-4 h-14 flex items-center justify-between">
-                <button onClick={() => router.back()}>
+                <button onClick={() => {
+                    if (post?.groupId) {
+                        router.push(`/community/groups/${post.groupId}`);
+                    } else {
+                        router.back();
+                    }
+                }}>
                     <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
                 </button>
                 <div className="flex gap-2">
@@ -71,9 +76,10 @@ export default function PostDetailView() {
                 <div className="flex items-center gap-2 mb-3">
                     <Badge className={
                         post.type === 'NOTICE' ? 'bg-[#E35935] hover:bg-[#E35935]' :
-                            'bg-[#F7F5EF] text-[#5C4033] hover:bg-[#F0EFE9]'
+                            post.groupId ? 'bg-[#1C4526] text-white hover:bg-[#15341d]' :
+                                'bg-[#F7F5EF] text-[#5C4033] hover:bg-[#F0EFE9]'
                     }>
-                        {post.type}
+                        {post.groupId ? '소모임' : post.type}
                     </Badge>
                     <span className="text-xs text-[#808080]">{post.date}</span>
                 </div>
@@ -138,8 +144,7 @@ export default function PostDetailView() {
                         initialIsLiked={false}
                         className="text-[#4D4D4D]"
                         onLikeChange={(newCount) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setPost((prev: any) => prev ? { ...prev, likeCount: newCount } : null);
+                            setPost((prev) => prev ? { ...prev, likeCount: newCount } : null);
                         }}
                     />
 
@@ -154,8 +159,7 @@ export default function PostDetailView() {
                 <CommentSection
                     postId={id}
                     onCommentChange={(newCount) => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        setPost((prev: any) => prev ? { ...prev, commentCount: newCount } : null);
+                        setPost((prev) => prev ? { ...prev, commentCount: newCount } : null);
                     }}
                 />
             </main>

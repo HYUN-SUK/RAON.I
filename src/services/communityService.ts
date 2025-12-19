@@ -263,6 +263,7 @@ function mapDbToPost(db: any): Post {
             // Flatten metadata
             status: db.meta_data?.status || 'OPEN',
             groupName: db.meta_data?.group_name,
+            groupId: db.group_id,
             thumbnailUrl: db.meta_data?.thumbnail_url,
             videoUrl: db.meta_data?.video_url,
             visibility: db.meta_data?.visibility || 'PUBLIC',

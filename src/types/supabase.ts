@@ -22,6 +22,7 @@ export interface Database {
                     images: string[]
                     is_hot: boolean
                     meta_data: Json
+                    group_id?: string // Added manually to match migration
                 }
                 Insert: {
                     id?: string
@@ -35,6 +36,7 @@ export interface Database {
                     images?: string[]
                     is_hot?: boolean
                     meta_data?: Json
+                    group_id?: string
                 }
                 Update: {
                     id?: string
@@ -48,6 +50,7 @@ export interface Database {
                     images?: string[]
                     is_hot?: boolean
                     meta_data?: Json
+                    group_id?: string
                 }
             }
             likes: {

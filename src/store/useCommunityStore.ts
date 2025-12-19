@@ -18,6 +18,7 @@ export interface Post {
     // For specialized types
     status?: 'OPEN' | 'CLOSED';
     groupName?: string;
+    groupId?: string;
     thumbnailUrl?: string;
     videoUrl?: string;
     visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
