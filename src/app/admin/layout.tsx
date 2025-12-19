@@ -22,6 +22,7 @@ export default function AdminLayout({
                     <NavLink href="/admin/block" icon={<Shield size={18} />} label="차단일" />
                     <NavLink href="/admin/mission" icon={<Users size={18} />} label="미션" />
                     <NavLink href="/admin/community" icon={<Users size={18} />} label="커뮤니티" />
+                    <NavLink href="/admin/groups" icon={<Users size={18} />} label="소모임" />
                     <NavLink href="/admin/market" icon={<ShoppingBag size={18} />} label="마켓" />
                     <NavLink href="/admin/notice" icon={<Bell size={18} />} label="공지" />
                 </nav>

@@ -64,24 +64,27 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (error || !user) {
         // If no user, redirect to login page
         const url = request.nextUrl.clone()
         url.pathname = '/admin/login'
         return NextResponse.redirect(url)
     }
 
-    // TODO: Add strict Admin Role check here using metadata or a dedicated table
-    // For now, any authenticated user can access /admin (MVP)
-    // But we should verify 'role' metadata if possible.
-    /*
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user.user_metadata.role !== 'admin') {
-       return NextResponse.redirect(new URL('/', request.url))
+    // Strict Admin Check
+    // We allow access if:
+    // 1. user_metadata.role is 'admin'
+    // 2. OR email is 'admin@raon.ai' (Recovery/Master Admin)
+    const isAdmin =
+        user.user_metadata?.role === 'admin' ||
+        user.email === 'admin@raon.ai'
+
+    if (!isAdmin) {
+        // Logged in but not admin -> Redirect to home
+        return NextResponse.redirect(new URL('/', request.url))
     }
-    */
 
     return response
 }

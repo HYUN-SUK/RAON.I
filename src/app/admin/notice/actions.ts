@@ -13,6 +13,15 @@ export async function deleteNoticeAction(id: string, _formData?: FormData) {
             throw new Error('Unauthorized: No user session found')
         }
 
+        // 2. Authorization Check (Defense in Depth)
+        const isAdmin =
+            user.user_metadata?.role === 'admin' ||
+            user.email === 'admin@raon.ai'
+
+        if (!isAdmin) {
+            throw new Error('Unauthorized: Admin access required')
+        }
+
         // 2. Perform Delete
         const { error, count } = await supabase
             .from('posts')
