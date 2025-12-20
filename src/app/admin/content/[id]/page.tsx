@@ -42,40 +42,7 @@ export default function AdminContentReviewPage() {
         }
     };
 
-    const handleUpdateStatus = async (status: 'PUBLISHED' | 'REJECTED') => {
-        if (!confirm(status === 'PUBLISHED' ? '승인하시겠습니까? 즉시 공개됩니다.' : '반려하시겠습니까?')) return;
 
-        try {
-            setActionLoading(true);
-            // 1. Update Content Status
-            await creatorService.updateContent(id, {
-                status,
-                published_at: status === 'PUBLISHED' ? new Date().toISOString() : null
-            });
-
-            // 2. Update All Episodes Status (Simplification for MVP)
-            // Ideally we need an API to bulk update, but we iterate for now or backend trigger.
-            // As creatorService doesn't have bulk update, we assume 1st episode is enough or iterate.
-            // Let's iterate.
-            for (const ep of episodes) {
-                await creatorService.createEpisode({
-                    ...ep, // This is WRONG, createEpisode makes NEW one. We need updateEpisode.
-                    // creatorService missing updateEpisode? Let's check.
-                } as any);
-                // Wait, I didn't implement updateEpisode in creatorService.
-                // I should check creatorService.
-            }
-
-            // Re-fetch to confirm or just back
-            alert('처리되었습니다.');
-            router.push('/admin/content');
-        } catch (error) {
-            console.error(error);
-            alert('오류 발생');
-        } finally {
-            setActionLoading(false);
-        }
-    };
 
     const handleUpdateStatusSimple = async (status: 'PUBLISHED' | 'REJECTED') => {
         // console.log('Button clicked:', status);
