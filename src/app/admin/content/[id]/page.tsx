@@ -78,9 +78,9 @@ export default function AdminContentReviewPage() {
             router.push('/admin/community');
             router.refresh();
 
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            alert(`처리 실패: ${e.message}`);
+            alert(`처리 실패: ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setActionLoading(false);
         }
@@ -144,7 +144,7 @@ export default function AdminContentReviewPage() {
                         </div>
 
                         <div className="aspect-video relative bg-gray-100 rounded-lg overflow-hidden">
-                            {content.cover_image_url && <img src={content.cover_image_url} className="w-full h-full object-cover" />}
+                            {content.cover_image_url && <img src={content.cover_image_url} alt={content.title} className="w-full h-full object-cover" />}
                         </div>
 
                         <div className="prose max-w-none">
@@ -194,7 +194,7 @@ export default function AdminContentReviewPage() {
                         <div className="mt-6 text-xs text-gray-500">
                             <p className="flex items-start gap-1">
                                 <AlertTriangle className="w-3 h-3 mt-0.5" />
-                                승인 시 즉시 사용자 앱('콘텐츠' 탭)에 노출됩니다.
+                                승인 시 즉시 사용자 앱(&apos;콘텐츠&apos; 탭)에 노출됩니다.
                             </p>
                         </div>
                     </div>

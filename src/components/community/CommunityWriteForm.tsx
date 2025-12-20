@@ -122,10 +122,11 @@ export default function CommunityWriteForm() {
             });
 
             // Go back to list
+            // Go back to list
             router.back();
-        } catch (error: any) {
+        } catch (error) {
             console.error('Submit Error:', error);
-            alert(`글 작성 중 오류가 발생했습니다.\n${error.message}`);
+            alert(`글 작성 중 오류가 발생했습니다.\n${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setLocalLoading(false);
         }

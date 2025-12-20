@@ -14,7 +14,6 @@ export default function AdminNoticePage() {
     const router = useRouter();
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
         loadPosts('NOTICE');
     }, [loadPosts]);
@@ -33,8 +32,8 @@ export default function AdminNoticePage() {
                 // If CLOSED, set visibility PRIVATE? Maybe. But let's stick to status.
             });
             alert('상태가 변경되었습니다.');
-        } catch (error: any) {
-            alert(error.message);
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Unknown error');
         }
     };
 

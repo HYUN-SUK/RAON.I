@@ -4,8 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { fetchGroupsAdminAction, deleteGroupAdminAction } from '@/actions/admin-group';
 import { Loader2, Trash2, Users } from 'lucide-react';
 
+interface Group {
+    id: string;
+    name: string;
+    description: string;
+    image_url: string;
+    max_members: number;
+    created_at: string;
+    group_members: { count: number }[];
+}
+
 export default function AdminGroupsPage() {
-    const [groups, setGroups] = useState<any[]>([]);
+    const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -33,6 +43,7 @@ export default function AdminGroupsPage() {
             await deleteGroupAdminAction(id);
             setGroups(prev => prev.filter(g => g.id !== id));
         } catch (error) {
+            console.error(error);
             alert('삭제 실패');
         } finally {
             setDeletingId(null);

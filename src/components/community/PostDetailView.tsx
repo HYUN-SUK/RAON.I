@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { communityService } from '@/services/communityService';
 import { Post } from '@/store/useCommunityStore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MessageCircle, Share2, MoreVertical, Loader2 } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import LikeButton from './LikeButton';
 import CommentSection from './CommentSection';
@@ -30,8 +30,8 @@ export default function PostDetailView() {
                 // Fetch updated post
                 const data = await communityService.getPostById(id);
                 setPost(data);
-            } catch (err: any) {
-                setError(err.message || 'Failed to load post');
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load post');
             } finally {
                 setLoading(false);
             }
