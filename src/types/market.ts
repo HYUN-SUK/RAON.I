@@ -52,3 +52,22 @@ export interface CreateOrderDTO {
     payment_info: any;
     delivery_info: any;
 }
+
+export interface Review {
+    id: string;
+    product_id: string;
+    user_id: string;
+    rating: number;
+    content: string;
+    images: string[];
+    created_at: string;
+    updated_at: string;
+    user_email?: string; // Optional join field
+}
+
+export interface CreateReviewDTO {
+    product_id: string;
+    rating: number;
+    content: string;
+    images?: string[];
+}

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase-client';
-import { Product, CartItem, Order, CreateOrderDTO } from '@/types/market';
+import { Product, CartItem, Order, CreateOrderDTO, Review, CreateReviewDTO } from '@/types/market';
 
 const supabase = createClient();
 
@@ -148,5 +148,41 @@ export const marketService = {
 
         if (error) throw error;
         return data as Order[];
+    },
+
+    // --- Reviews ---
+    async getReviews(productId: string) {
+        const { data, error } = await supabase
+            .from('reviews')
+            .select('*') // If we need user info, we might need a join or separate fetch. For now, assuming email in auth? No, RLS returns user. 
+            // Wait, to show "Who wrote this", we need a profile link or email. 
+            // Supabase auth users are not directly joinable in simple queries provided we don't have a public users table or view.
+            // Assuming for MVP we display "Anonymous" or Fetch user metadata if possible.
+            // Actually, let's keep it simple. If we can't easily join, just show content & rating.
+            // If we have a 'profiles' table, we join that. 
+            // Checking: We have 'creators', 'group_members'... usually there's a 'users' or 'profiles' table?
+            // Let's assume just review content for now to be safe.
+            .eq('product_id', productId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data as Review[];
+    },
+
+    async createReview(dto: CreateReviewDTO) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Login required');
+
+        const { data, error } = await supabase
+            .from('reviews')
+            .insert({
+                user_id: user.id,
+                ...dto
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data as Review;
     }
 };

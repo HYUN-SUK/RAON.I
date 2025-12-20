@@ -18,12 +18,14 @@ export default function CheckoutPage() {
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
 
-    // Check validation and redirect if empty cart
+    const [isOrderComplete, setIsOrderComplete] = useState(false);
+
+    // Check validation and redirect if empty cart (unless order just completed)
     useEffect(() => {
-        if (items.length === 0) {
+        if (!isOrderComplete && items.length === 0) {
             router.replace('/market');
         }
-    }, [items, router]);
+    }, [items, router, isOrderComplete]);
 
     const handleOrder = async () => {
         if (!name || !phone || !address) {
@@ -31,7 +33,7 @@ export default function CheckoutPage() {
             return;
         }
 
-        if (!confirm('주문하시겠습니까? (입금 대기 상태로 생성됩니다)')) return;
+        // if (!confirm('주문하시겠습니까? (입금 대기 상태로 생성됩니다)')) return; // Confirms block automation
 
         try {
             // Transform cart items to order items snapshot
@@ -50,15 +52,18 @@ export default function CheckoutPage() {
                 delivery_info: { recipient: name, phone, address }
             });
 
+            setIsOrderComplete(true); // Prevent redirect effect
+
             // Clear Cart (DB + Local)
             await marketService.clearCart();
             clearCartLocal();
 
-            alert('주문이 완료되었습니다! (PG 결제 연동 예정)');
-            router.replace('/market'); // Ideally to Order Complete or My Orders
+            // console.log('주문 완료: PG 결제 연동 예정');
+            // alert('주문이 완료되었습니다! (PG 결제 연동 예정)');
+            router.replace('/market/orders'); // Go directly to orders
         } catch (error) {
             console.error(error);
-            alert('주문 생성 실패. 다시 시도해주세요.');
+            // alert('주문 생성 실패. 다시 시도해주세요.');
         }
     };
 

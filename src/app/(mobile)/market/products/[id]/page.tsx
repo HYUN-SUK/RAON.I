@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { marketService } from '@/services/marketService';
 import { Product } from '@/types/market';
@@ -8,8 +8,9 @@ import { useCartStore } from '@/store/useCartStore';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet"; // Use Shadcn Sheet
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShoppingCart, Share2, Plus, Minus, Star, ChevronRight, Home, Heart } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Share2, Plus, Minus, ChevronRight, Heart } from 'lucide-react';
 import Image from 'next/image';
+import { ReviewList } from '@/components/market/ReviewList';
 
 export default function ProductDetailPage() {
     const router = useRouter();
@@ -58,6 +59,17 @@ export default function ProductDetailPage() {
             if (confirm('장바구니에 담았습니다. 바로 확인하시겠습니까?')) {
                 router.push('/market/cart');
             }
+        } catch (e) {
+            alert('로그인이 필요하거나 오류가 발생했습니다.');
+        }
+    };
+
+    const handleBuyNow = async () => {
+        if (!product) return;
+        try {
+            await addToCart(product.id, quantity);
+            setIsSheetOpen(false);
+            router.push('/market/checkout');
         } catch (e) {
             alert('로그인이 필요하거나 오류가 발생했습니다.');
         }
@@ -204,10 +216,7 @@ export default function ProductDetailPage() {
                 <div className="h-2 bg-gray-50" />
 
                 <section id="reviews" className="p-5 py-10 scroll-mt-28">
-                    <h3 className="font-bold text-lg mb-4">구매 후기 <span className="text-[#1C4526]">0</span></h3>
-                    <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 text-sm">
-                        아직 작성된 후기가 없습니다.<br />첫 번째 후기를 남겨보세요!
-                    </div>
+                    <ReviewList productId={product.id} />
                 </section>
 
                 <div className="h-2 bg-gray-50" />
@@ -265,7 +274,7 @@ export default function ProductDetailPage() {
                                 <Button variant="outline" className="flex-1 h-12 rounded-xl border-[#1C4526] text-[#1C4526] font-bold" onClick={handleAddToCart}>
                                     장바구니
                                 </Button>
-                                <Button className="flex-1 h-12 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl font-bold" onClick={() => { handleAddToCart(); router.push('/market/checkout'); }}>
+                                <Button className="flex-1 h-12 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl font-bold" onClick={handleBuyNow}>
                                     바로구매
                                 </Button>
                             </div>
