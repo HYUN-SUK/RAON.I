@@ -8,6 +8,12 @@ import { Loader2, ArrowLeft, Heart, Share2, PlayCircle, BookOpen, Clock } from '
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { CreatorCommentSection } from './CreatorCommentSection';
+import { HeartIcon } from 'lucide-react'; // Original Heart is generic, we might want fillable svg but lucide Heart is fine.
+import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase-client';
+
+const supabase = createClient();
 
 interface ContentDetailViewProps {
     contentId: string;
@@ -20,6 +26,13 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
     const [loading, setLoading] = useState(true);
     const [viewingEpisode, setViewingEpisode] = useState<CreatorEpisode | null>(null);
 
+    // Interactions
+    const [isLiked, setIsLiked] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
+    const [commentCount, setCommentCount] = useState(0);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
     useEffect(() => {
         fetchData();
     }, [contentId]);
@@ -27,12 +40,20 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [c, e] = await Promise.all([
+            const [c, e, liked, following] = await Promise.all([
                 creatorService.getContentById(contentId),
-                creatorService.getEpisodes(contentId)
+                creatorService.getEpisodes(contentId),
+                creatorService.getLikeStatus(contentId),
+                creatorService.getContentById(contentId).then(res => creatorService.getFollowStatus(res.creator_id)) // Chained cause we need creator_id
             ]);
+
             setContent(c);
             setEpisodes(e);
+            setIsLiked(liked);
+            setIsFollowing(following);
+            setLikeCount(c.like_count || 0); // Assuming DB column or manually fetch
+            setCommentCount(c.comment_count || 0);
+            setFollowerCount(c.creators.follower_count || 0);
 
             // If LIVE, auto-open the first episode
             if (c.type === 'LIVE' && e.length > 0) {
@@ -48,6 +69,14 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
         }
     };
 
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setCurrentUserId(user?.id || null);
+        };
+        getUser();
+    }, []);
+
     const handleEpisodeClick = (ep: CreatorEpisode) => {
         setViewingEpisode(ep);
     };
@@ -59,6 +88,56 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
             setViewingEpisode(null);
         }
     };
+
+    const handleToggleLike = async () => {
+        if (!content) return;
+        const prev = isLiked;
+        const prevCount = likeCount;
+
+        // Optimistic
+        setIsLiked(!prev);
+        setLikeCount(prev ? prevCount - 1 : prevCount + 1);
+
+        try {
+            await creatorService.toggleLike(content.id);
+        } catch (e) {
+            // Revert
+            setIsLiked(prev);
+            setLikeCount(prevCount);
+            alert('로그인이 필요하거나 오류가 발생했습니다.');
+        }
+    };
+
+    // Local state for follower count
+    const [followerCount, setFollowerCount] = useState(0);
+
+
+
+    // ... handleToggleFollow ...
+    const handleToggleFollow = async () => {
+        if (!content) return;
+        if (currentUserId === content.creator_id) {
+            alert('본인의 콘텐츠는 구독할 수 없습니다.');
+            return;
+        }
+
+        const prev = isFollowing;
+        const prevCount = followerCount;
+
+        // Optimistic
+        setIsFollowing(!prev);
+        setFollowerCount(prev ? prevCount - 1 : prevCount + 1);
+
+        try {
+            await creatorService.toggleFollow(content.creator_id);
+        } catch (e: any) {
+            setIsFollowing(prev);
+            setFollowerCount(prevCount); // Revert
+            alert(e.message || '오류가 발생했습니다.');
+        }
+    };
+
+
 
     if (loading) {
         return <div className="min-h-screen flex items-center justify-center bg-[#F7F5EF]"><Loader2 className="animate-spin text-[#1C4526]" /></div>;
@@ -136,7 +215,7 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
 
             {/* Hero Cover */}
             <div className="relative aspect-square md:aspect-[21/9] w-full bg-gray-200">
-                <img src={content.cover_image_url || ''} alt={content.title} className="w-full h-full object-cover" />
+                <img src={content.cover_image_url || undefined} alt={content.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#F7F5EF] via-transparent to-transparent" />
 
                 <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -144,11 +223,13 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
                     <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2 shadow-sm">{content.title}</h1>
                     <div className="flex items-center gap-2">
                         <Avatar className="w-6 h-6 border bg-white">
-                            <AvatarImage />
+                            <AvatarImage src={content.creators?.profile_image_url || undefined} />
                             <AvatarFallback className="text-[10px]">CR</AvatarFallback>
                         </Avatar>
-                        <span className="text-sm font-medium text-gray-700">{content.creators.bio || 'Creator'}</span>
-                        <span className="text-xs text-gray-500">• {content.creators.region || 'Unknown'}</span>
+                        <span className="text-sm font-medium text-gray-700">
+                            {content.creators?.nickname || content.creators?.bio || 'Unknown'}
+                        </span>
+                        <span className="text-xs text-gray-500">• 구독자 {followerCount}명</span>
                     </div>
                 </div>
             </div>
@@ -157,8 +238,27 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
             <div className="px-6 py-4">
                 <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{content.description}</p>
                 <div className="flex gap-2 mt-4 text-[#1C4526]">
-                    <Button size="sm" variant="outline" className="rounded-full border-[#1C4526] text-[#1C4526]">
-                        <Heart className="w-4 h-4 mr-2" /> 구독하기
+                    <Button
+                        size="sm"
+                        variant={currentUserId === content.creator_id ? "outline" : (isFollowing ? "secondary" : "outline")}
+                        className={cn("rounded-full transition-all",
+                            currentUserId === content.creator_id ? "opacity-50 cursor-not-allowed border-gray-200 text-gray-400" :
+                                (isFollowing ? "bg-gray-100 text-gray-600" : "border-[#1C4526] text-[#1C4526]")
+                        )}
+                        onClick={handleToggleFollow}
+                        disabled={currentUserId === content.creator_id}
+                    >
+                        {currentUserId === content.creator_id ? '본인' : (isFollowing ? '구독중' : '구독하기')}
+                    </Button>
+
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className={cn("rounded-full flex items-center gap-1", isLiked ? "text-red-500 hover:text-red-600" : "text-gray-500 hover:text-gray-600")}
+                        onClick={handleToggleLike}
+                    >
+                        <Heart className={cn("w-5 h-5", isLiked ? "fill-current" : "")} />
+                        <span className="text-sm font-medium">{likeCount}</span>
                     </Button>
                 </div>
             </div>
@@ -179,8 +279,8 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
                             className="flex gap-4 p-3 rounded-xl bg-white active:bg-gray-50 border border-transparent active:border-[#1C4526]/50 transition-all cursor-pointer shadow-sm"
                         >
                             <div className="relative w-24 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                                {ep.thumbnail_url || content.cover_image_url ? (
-                                    <img src={ep.thumbnail_url || content.cover_image_url || ''} className="w-full h-full object-cover" alt="" />
+                                {(ep.thumbnail_url || content.cover_image_url) ? (
+                                    <img src={ep.thumbnail_url || content.cover_image_url || undefined} className="w-full h-full object-cover" alt="" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400">
                                         {content.type === 'LIVE' ? <PlayCircle /> : <BookOpen />}
@@ -202,6 +302,10 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
                         </div>
                     )}
                 </div>
+            </div>
+            {/* Comment Section (Interaction) */}
+            <div className="px-4 pb-10">
+                <CreatorCommentSection contentId={contentId} onCommentChange={setCommentCount} />
             </div>
 
         </div>

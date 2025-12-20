@@ -63,9 +63,9 @@ export function ContentCard({ content }: ContentCardProps) {
                 {/* Info */}
                 <div className="absolute bottom-3 left-3 right-3 text-white">
                     <h3 className="text-sm font-bold line-clamp-2 leading-tight mb-1">{content.title}</h3>
-                    <div className="flex items-center text-[10px] text-gray-300">
-                        <span className="truncate max-w-[80px]">{content.creators?.bio || 'Creator'}</span>
-                    </div>
+                    <span className="truncate max-w-[80px]">
+                        {content.creators?.nickname || content.creators?.bio || 'Unknown'}
+                    </span>
                 </div>
             </div>
         </Link>

@@ -1,37 +1,42 @@
-# Handoff: Creator Content Board (Phase 1 Completed)
-**Last Updated:** 2025-12-20
+# Handoff Document - Creator Interactions & Admin Polish
+**Date**: 2025-12-20
+**Session Goal**: Verify Creator Follows Data, Fix Admin UI, Implement Testing Environment
 
-## 1. 완료된 작업 (Accomplished)
-**Creator Content Board (Phase 1)**의 MVP 구현을 완료했습니다.
-이 기능은 커뮤니티의 확장 모듈로, 사용자가 작가가 되어 콘텐츠(라이브, 소설, 웹툰 등)를 올리고 관리자가 승인하는 시스템입니다.
-
-### ✨ 주요 기능
-*   **Database**: `creators`, `creator_contents`, `creator_episodes` 테이블 및 RLS 적용 완료.
-*   **User UI**:
-    *   **List**: `/community` (콘텐츠 탭) - `ContentBoardList`
-    *   **Detail**: `/community/content/[id]` - `ContentDetailView` (Viewer 포함)
-    *   **Write**: `/community/content/create` - `ContentWriteForm` (승인 요청)
-*   **Admin UI**:
-    *   **Approval**: `/admin/community` -> '콘텐츠 승인' 탭에서 승인/반려 처리.
-    *   **Logic**: `creatorService`를 통한 상태 변경 (`PENDING_REVIEW` -> `PUBLISHED` / `REJECTED`).
+## 1. 현재 상태 요약 (Current Status)
+이번 세션에서 **크리에이터 콘텐츠 보드(Creator Content Board)**의 핵심 상호작용 기능과 관리자 편의 기능을 완성했습니다.
+*   **크리에이터 구독(Follow)**: DB 연동 및 카운트 트리거 검증 완료.
+    *   Optimistic UI 적용으로 즉각적인 반응성 확보.
+    *   본인 콘텐츠 구독 방지 로직 (버튼 비활성화 및 "본인" 표시) 추가.
+*   **관리자 페이지 개선**:
+    *   사이드바에 **로그아웃** 버튼 추가 (`AdminLayout`).
+    *   콘텐츠 승인(Approval) 프로세스 개선 (상세 진입 후 승인/반려 모달).
+*   **테스트 환경 구축**:
+    *   `/login` 페이지 신설: 일반 유저(Tester) 계정을 쉽게 생성하여 구독/좋아요 기능을 테스트할 수 있도록 지원.
 
 ## 2. 기술적 결정 사항 (Technical Decisions)
-*   **Admin 통합**: 별도의 `/admin/content` 메뉴 대신 `/admin/community` 탭 내부로 기능을 통합하여 메뉴 복잡도를 낮췄습니다. (Tabs UI 사용)
-*   **RLS 임시 정책**: 개발 편의를 위해 모든 인증 사용자가 콘텐츠를 볼 수 있는 정책(`fix_admin_rls.sql`)을 적용했습니다. 배포 전 반드시 제거해야 합니다.
-*   **Confirm Bypass**: `confirm()` 창이 브라우저에서 차단되는 이슈로 인해, 관리자 승인 시 확인 창 없이 즉시 수행되도록 처리했습니다.
+*   **구독 상태 관리**: `creator_follows` 테이블과 `creators.follower_count` 컬럼을 트리거로 동기화하여 읽기 성능 최적화.
+*   **안전한 인터랙션**: `maybeSingle()`을 사용하여 데이터가 없을 때 406 에러가 발생하는 문제 해결.
+*   **자기 자신 구독 방지**: 프론트엔드(`ContentDetailView`)와 백엔드(`creatorService`) 양쪽에서 Double Check 수행.
+*   **임시 로그인**: 별도의 Auth UI 라이브러리 없이 Supabase Auth 기능을 직접 호출하는 심플한 `/login` 페이지 구현으로 빠른 테스트 지원.
 
 ## 3. 다음 작업 가이드 (Next Steps)
-**우선순위: Creator Content Phase 2 (Interaction & Polish)**
+다음 세션에서는 **사용자 피드백**을 반영하여 크리에이터 브랜딩 강화 작업을 최우선으로 진행해야 합니다.
 
-1.  **상호작용 (Interaction)**:
-    *   콘텐츠 상세 페이지에 **좋아요(Like)** 및 **댓글(Comment)** 기능 추가.
-    *   작성자 **팔로우(Follow)** 기능 구현.
-2.  **작가 홈 (Creator Home)**:
-    *   `ContentCard` 또는 상세 페이지에서 작가명 클릭 시 볼 수 있는 **작가 프로필 페이지** 구현.
-3.  **관리자 UI 개선**:
-    *   `confirm` 대신 Shadcn `AlertDialog`를 사용하여 승인 확인 절차 복구.
+*   **0순위: 크리에이터 자아 분리 (Creator Identity)** (🚨 User Request)
+    *   **DB 변경**: `creators` 테이블에 `nickname` (활동명) 및 `profile_image` 컬럼 추가.
+    *   **UX 개선**: 최초 콘텐츠 발행 시 "활동명 설정 모달" 노출 및 안내 문구("이후 모든 콘텐츠는 활동명으로 표시됩니다") 구현.
+    *   **정책**: 캠퍼(실명/예약용) 정보와 크리에이터(활동명) 정보의 완벽한 분리.
 
-## 4. 실행 및 테스트
-*   **실행**: `npm run dev`
-*   **테스트 계정**: `db_user` (일반 사용자), `adminy` (관리자 권한 가정)
-*   **데이터**: 초기 데이터가 없을 수 있으므로 직접 `/community/content/create`에서 글을 쓰고 테스트하세요.
+*   **1순위: 마켓 & 결제 (Market)**
+    *   PG 사 연동 전 단계인 "상품 등록", "장바구니", "주문서 작성" 로직 구현.
+*   **2순위: 마이 스페이스 고도화**
+    *   `Creator`와 연동된 "내가 구독한 작가", "좋아요한 콘텐츠"를 마이 스페이스에 노출.
+    *   타임라인 AI 요약 기능 검토.
+
+## 4. 주의 사항 (Caveats)
+*   **로그인 페이지**: `/login`은 개발 및 테스트 목적의 임시 페이지입니다. 추후 정식 디자인(`In-App Login Modal` 등)으로 고도화가 필요합니다.
+*   **이미지 처리**: 로컬 환경에서 이미지가 깨져 보이거나 `src` 에러가 날 경우 `creator_contents` 테이블의 이미지 URL이 유효한지 확인하세요.
+*   **Supabase Trigger**: `update_creator_follower_count` 등의 트리거가 정상 작동하는지 확인되었으나, 마이그레이션 파일이 여러 개로 나뉘어 있으므로 DB 초기화 시 순서에 주의하세요.
+
+---
+**Verified by Antigravity**

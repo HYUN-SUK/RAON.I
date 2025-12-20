@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { creatorService } from '@/services/creatorService';
-import { CreatorContent, Creator, CreatorEpisode } from '@/types/creator';
+import { CreatorContent, Creator, CreatorEpisode, CreatorContentStatus } from '@/types/creator';
 import { useRouter } from 'next/navigation'; // import useParams is not available in next 15 client comp directly? Use props or use useParams
 // In Next.js App Router, page receives params prop. But for Client Component we can use useParams also if imported from next/navigation? 
 // Actually 'useParams' is available.
@@ -44,10 +44,19 @@ export default function AdminContentReviewPage() {
 
 
 
-    const handleUpdateStatusSimple = async (status: 'PUBLISHED' | 'REJECTED') => {
-        // console.log('Button clicked:', status);
-        // Browser blocking native confirm? Skipping for now.
-        // if (!confirm(status === 'PUBLISHED' ? '승인하시겠습니까? 즉시 공개됩니다.' : '반려하시겠습니까?')) return;
+    const [reviewDialog, setReviewDialog] = useState<{ isOpen: boolean, status: CreatorContentStatus } | null>(null);
+
+    const openReviewDialog = (status: CreatorContentStatus) => {
+        setReviewDialog({ isOpen: true, status });
+    };
+
+    const closeReviewDialog = () => {
+        setReviewDialog(null);
+    };
+
+    const handleProcessReview = async () => {
+        if (!reviewDialog) return;
+        const { status } = reviewDialog;
 
         try {
             setActionLoading(true);
@@ -61,6 +70,10 @@ export default function AdminContentReviewPage() {
             await creatorService.updateEpisodeStatus(id, status);
 
             alert(status === 'PUBLISHED' ? '콘텐츠가 성공적으로 발행되었습니다.' : '반려 처리되었습니다.');
+
+            // Close dialog first
+            closeReviewDialog();
+
             // Redirect to the new Community Management page
             router.push('/admin/community');
             router.refresh();
@@ -77,7 +90,42 @@ export default function AdminContentReviewPage() {
     if (!content) return <div>Not found</div>;
 
     return (
-        <div className="p-6 max-w-5xl mx-auto">
+        <div className="p-6 max-w-5xl mx-auto relative">
+            {/* Review Dialog */}
+            {reviewDialog && reviewDialog.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                            {reviewDialog.status === 'PUBLISHED' ? '콘텐츠 승인' : '콘텐츠 반려'}
+                        </h3>
+                        <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                            <span className="font-semibold text-gray-900">{content.title}</span><br />
+                            {reviewDialog.status === 'PUBLISHED'
+                                ? '이 콘텐츠를 승인하시겠습니까? 승인 즉시 사용자 앱에 공개됩니다.'
+                                : '이 콘텐츠를 반려하시겠습니까? 반려 사유는 별도로 전달해주세요.'}
+                        </p>
+
+                        <div className="flex gap-3 justify-end">
+                            <Button
+                                variant="outline"
+                                onClick={closeReviewDialog}
+                                className="flex-1"
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                variant={reviewDialog.status === 'REJECTED' ? "destructive" : "default"}
+                                onClick={handleProcessReview}
+                                disabled={actionLoading}
+                                className={reviewDialog.status === 'PUBLISHED' ? "flex-1 bg-[#1C4526] hover:bg-[#15341d] text-white" : "flex-1 bg-red-50 text-red-600 hover:bg-red-100 border-none shadow-none"}
+                            >
+                                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (reviewDialog.status === 'PUBLISHED' ? '승인 (발행)' : '반려')}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <button onClick={() => router.back()} className="flex items-center text-gray-500 mb-6 hover:text-gray-900">
                 <ArrowLeft className="w-4 h-4 mr-1" /> 목록으로 돌아가기
             </button>
@@ -127,7 +175,7 @@ export default function AdminContentReviewPage() {
                         <div className="space-y-3">
                             <Button
                                 className="w-full bg-[#1C4526] hover:bg-[#15331d]"
-                                onClick={() => handleUpdateStatusSimple('PUBLISHED')}
+                                onClick={() => openReviewDialog('PUBLISHED')}
                                 disabled={actionLoading}
                             >
                                 <CheckCircle className="w-4 h-4 mr-2" />
@@ -136,7 +184,7 @@ export default function AdminContentReviewPage() {
                             <Button
                                 className="w-full"
                                 variant="destructive"
-                                onClick={() => handleUpdateStatusSimple('REJECTED')}
+                                onClick={() => openReviewDialog('REJECTED')}
                                 disabled={actionLoading}
                             >
                                 <XCircle className="w-4 h-4 mr-2" />

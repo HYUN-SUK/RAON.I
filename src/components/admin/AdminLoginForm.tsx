@@ -60,7 +60,6 @@ export function AdminLoginForm() {
             // Check for Admin metadata logic implementation
             // For now, we allow login if Auth succeeds, Middleware/RLS will handle permissions
 
-            console.log("Admin login success:", data)
             router.push("/admin")
             router.refresh()
 
@@ -137,7 +136,6 @@ export function AdminLoginForm() {
                                 if (error) alert(error.message)
                                 else {
                                     alert("Signup Success: " + (data.session ? "LoggedIn" : "Check Email"))
-                                    console.log(data)
                                 }
                             }}
                         >

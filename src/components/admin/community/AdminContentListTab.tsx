@@ -41,8 +41,31 @@ export function AdminContentListTab() {
         }
     };
 
+    const [selectedContent, setSelectedContent] = useState<CreatorContent | null>(null);
+
+    // ... (existing code for getStatusBadge)
+
+    const handleReviewClick = (content: CreatorContent) => {
+        setSelectedContent(content);
+    };
+
+    const handleProcessReview = async (status: CreatorContentStatus) => {
+        if (!selectedContent) return;
+        try {
+            // Using updateContent to change status
+            await creatorService.updateContent(selectedContent.id, { status });
+
+            // Optimistic update: remove from list since filter is 'PENDING' usually
+            setContents(prev => prev.filter(c => c.id !== selectedContent.id));
+            setSelectedContent(null);
+        } catch (error) {
+            console.error(error);
+            alert('처리 중 오류가 발생했습니다.');
+        }
+    };
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 relative">
             <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
                 <span className="text-sm font-medium text-gray-700">심사 상태 필터</span>
                 <div className="flex gap-2">
@@ -93,12 +116,11 @@ export function AdminContentListTab() {
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-gray-900 line-clamp-1">{item.title}</div>
                                         <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                                            <span className="inline-block px-1.5 py-0.5 rounded-sm bg-gray-100 font-medium">{item.type}</span>
+                                            <Badge variant="outline" className="text-[10px] px-1 py-0">{item.type}</Badge>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-gray-900 font-medium">{item.creators.bio || '익명'}</div>
-                                        <div className="text-xs text-gray-400 max-w-[100px] truncate">{item.creators.region || '-'}</div>
                                     </td>
                                     <td className="px-6 py-4 text-gray-500 text-xs">
                                         {format(new Date(item.created_at), 'yyyy.MM.dd HH:mm')}
