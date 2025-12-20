@@ -1,32 +1,21 @@
-'use client';
+"use client";
 
 import React from 'react';
 import { Post } from '@/store/useCommunityStore';
-import PostCard from './PostCard';
-import { sanitizePost } from '@/utils/communityUtils';
+import { ContentBoardList } from './content/ContentBoardList';
 
-interface BoardProps {
-    posts: Post[];
+interface ContentBoardProps {
+    posts: Post[]; // Not used, as ContentBoardList fetches its own data from creator_contents table
 }
 
-export default function ContentBoard({ posts }: BoardProps) {
-    const rawPosts = Array.isArray(posts) ? posts : [];
-    const safePosts = rawPosts.map(sanitizePost);
-
-    if (safePosts.length === 0) {
-        return (
-            <div className="py-20 text-center text-[#999]">
-                <p>추천 콘텐츠가 준비 중입니다. 🎬</p>
-                <p className="text-sm mt-1">조금만 기다려주세요!</p>
-            </div>
-        );
-    }
+export default function ContentBoard({ posts }: ContentBoardProps) {
+    // We ignore the passed posts because Creator Content system uses a separate table (creator_contents)
+    // and a separate service (creatorService).
+    // The CommunityBoardContainer structure expects a component that takes posts, so we adapt here.
 
     return (
-        <div className="space-y-4 pb-20">
-            {safePosts.map((post) => (
-                <PostCard key={post.id} post={post} />
-            ))}
+        <div className="pb-20">
+            <ContentBoardList />
         </div>
     );
 }

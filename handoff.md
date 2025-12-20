@@ -1,37 +1,33 @@
-# Handoff: Group Post & My Space Integration
-**Last Updated:** 2025-12-19
+# Handoff: Creator Content Board (Phase 1 Completed)
+**Last Updated:** 2025-12-20
 
-## 1. 현재 상태 요약 (Completed)
-이번 세션에서는 **소모임(Group)의 게시글 작성** 기능을 복구하고, **커뮤니티-내 공간** 간의 연동을 완료했습니다.
+## 1. 완료된 작업 (Accomplished)
+**Creator Content Board**의 **전체 MVP 기능(DB, Backend, UI, Admin)** 구현을 완료했습니다.
 
-### ✅ 주요 완료 사항
-1.  **소모임 게시글 작성 복구**
-    *   **문제**: `createGroupPostAction`이 `posts_type_check` 제약 조건 위반으로 실패.
-    *   **해결**: `createGroupPostAction`에서 게시글 타입을 소문자 'story'가 아닌 **대문자 'STORY'**로 전송하도록 수정. (DB 제약 및 Zod 스키마 일치)
-2.  **커뮤니티 소모임 피드 상호작용**
-    *   `GroupFeed`에 `LikeButton` 연동 완료 (좋아요 기능).
-    *   게시글 클릭 시 `/community/[id]` 상세 페이지로 이동하며, 상세 페이지에서 '뒤로 가기' 시 소모임 홈으로 복귀하도록 개선.
-3.  **마이 스페이스 연동**
-    *   `MyGroupsWidget` 컴포넌트 신규 개발.
-    *   마이 스페이스(`myspace/page.tsx`)에 위젯을 추가하여 가입한 소모임 목록을 가로 스크롤로 표시.
+*   **Database**: `creators`, `creator_contents`, `creator_episodes` 테이블 및 RLS 적용 완료.
+*   **Service**: `creatorService.ts` (Core Logic).
+*   **User UI**:
+    *   **List**: `/community` (콘텐츠 탭) - `ContentBoardList`
+    *   **Detail**: `/community/content/[id]` - `ContentDetailView` (Viewer 포함)
+    *   **Write**: `/community/content/create` - `ContentWriteForm`
+*   **Admin UI**:
+    *   **List**: `/admin/content` (상태별 필터)
+    *   **Review**: `/admin/content/[id]` (승인/반려 로직)
 
-## 2. 기술적 결정 사항 (Technical Decisions)
-*   **Post Type Enum**: DB의 `type` 컬럼은 `'STORY'`, `'NOTICE'` 등 대문자 Enum을 사용합니다. 코드 전반(Zod, UI Form, Server Action)에서 대문자를 엄격히 사용해야 합니다.
-*   **Navigation Logic**: `PostDetailView`는 `groupId` 속성의 유무에 따라, 소모임 글이면 소모임 페이지로, 일반 글이면 이전 페이지로 돌아가는 분기 처리를 포함했습니다.
-*   **MyGroupsWidget**: 성능을 위해 `group_members` 테이블에서 `groups` 테이블을 조인하여 필요한 정보(`id`, `name`, `image_url`)만 가져오도록 최적화했습니다.
+## 2. 다음 단계 (Next Steps)
+**"통합 테스트 및 엣지 케이스 처리"**
+핵심 기능은 구현되었으나, 실제 데이터 흐름을 통한 통합 테스트 및 디테일 보완이 필요합니다.
 
-## 3. 다음 작업 가이드 (Next Steps)
-다음 세션에서는 **마이 스페이스의 예약 및 기록 기능** 완성에 집중해야 합니다.
+1.  **통합 테스트**: 실제 계정으로 로그인 -> 글 작성 -> 관리자 승인 -> 리스트 노출 확인.
+2.  **프로필 페이지**: 사용자가 크리에이터 프로필을 클릭했을 때의 프로필 상세 페이지(`Author Profile`) 구현 필요. (현재는 이름만 노출)
+3.  **에피소드 구매/잠금**: 추후 유료화 모델 도입 시 `is_paid` 및 결제 연동 필요.
 
-1.  **예약 내역 연동 (UpcomingReservation)**
-    *   현재 `UpcomingReservation.tsx`는 더미 데이터입니다.
-    *   `reservations` 테이블에서 로그인한 유저의 **가장 빠른 다가오는 예약**을 가져와 표시해야 합니다.
-2.  **나의 기록 (My Records)**
-    *   마이 스페이스 하단 '나의 기록' 섹션 구현.
-    *   내가 쓴 글(Posts)이나 지난 캠핑 이력을 보여주는 페이지/모달 구현 필요.
-3.  **이미지 업로드 (Real)**
-    *   현재 이미지는 Mock URL이거나 로컬 미리보기만 작동. Supabase Storage 연동 필요.
+## 3. 핵심 파일 (Key Files)
+*   `src/services/creatorService.ts`: 비즈니스 로직.
+*   `src/components/community/content/ContentBoardList.tsx`: 사용자 리스트 UI.
+*   `src/components/community/content/ContentDetailView.tsx`: 통합 뷰어(유튜브/텍스트/이미지).
+*   `src/app/admin/content/page.tsx`: 관리자 승인 페이지.
 
-## 4. 주의 사항 (Known Issues)
-*   **브라우저 도구 429 에러**: Cursor 브라우저 도구가 간헐적으로 429(Too Many Requests) 에러를 뱉습니다. 검증 시 로컬 URL(`http://localhost:3000`)을 사용자에게 직접 전달하여 확인받는 것이 빠릅니다.
-*   **서버 액션 핫 리로드 이슈**: 서버 액션(`*.ts` 파일)을 수정하면 가끔 `Internal Server Error`가 발생합니다. 이 경우 터미널에서 서버를 재시작(`npm run dev`)하면 해결됩니다.
+## 4. 실행 주의사항
+*   **DB 마이그레이션**: `supabase/migrations/20251220_create_content_board.sql`이 적용되어 있어야 합니다.
+*   **관리자 접근**: `/admin/content` 페이지는 현재 별도 권한 체크가 없으므로(클라이언트 사이드), 실제 배포 시에는 미들웨어/RLS로 관리자 권한을 엄격히 통제해야 합니다.
