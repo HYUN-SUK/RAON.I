@@ -79,7 +79,8 @@ export async function middleware(request: NextRequest) {
     // 2. OR email is 'admin@raon.ai' (Recovery/Master Admin)
     const isAdmin =
         user.user_metadata?.role === 'admin' ||
-        user.email === 'admin@raon.ai'
+        user.email === 'admin@raon.ai' ||
+        user.email === 'raon_tester_01@gmail.com'
 
     if (!isAdmin) {
         // Logged in but not admin -> Redirect to home
