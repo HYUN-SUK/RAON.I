@@ -6,8 +6,10 @@ import { useState, useEffect } from 'react';
 import { Product } from '@/types/market';
 import { marketService } from '@/services/marketService';
 import { ProductCard } from '@/components/market/ProductCard';
-import { Loader2, Search, SlidersHorizontal } from 'lucide-react';
+import { Loader2, Search, SlidersHorizontal, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCartUIStore } from '@/store/useCartUIStore';
+import { useCartStore } from '@/store/useCartStore';
 
 const CATEGORIES = [
     { id: 'all', label: '전체' },
@@ -21,6 +23,11 @@ export default function MarketPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('all');
+
+    // Cart Stores
+    const { openCart } = useCartUIStore();
+    const { getTotalCount } = useCartStore();
+    const totalCount = getTotalCount();
 
     useEffect(() => {
         fetchProducts();
@@ -45,7 +52,13 @@ export default function MarketPage() {
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-gray-100">
                 <h1 className="text-xl font-bold text-[#1C4526] font-serif">Market</h1>
                 <div className="flex gap-2">
-                    <button className="p-2"><Search className="w-5 h-5 text-gray-600" /></button>
+                    <button className="flex items-center gap-1 p-2 relative" onClick={openCart}>
+                        <span className="text-sm font-medium text-gray-600">장바구니</span>
+                        <ShoppingBag className="w-5 h-5 text-gray-600" />
+                        {totalCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+                        )}
+                    </button>
                 </div>
             </header>
 

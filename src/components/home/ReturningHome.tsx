@@ -10,6 +10,7 @@ import RecommendationGrid from '@/components/home/RecommendationGrid';
 import SlimNotice from '@/components/home/SlimNotice';
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { format } from 'date-fns';
+import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 
 export default function ReturningHome() {
     const router = useRouter();
@@ -100,7 +101,12 @@ export default function ReturningHome() {
                     </Card>
                 </div>
 
-                {/* 3. Recommendations Grid (Dynamic) */}
+                {/* 3. Mission Widget (Weekly) */}
+                <div className="px-4 mb-4">
+                    <MissionHomeWidget />
+                </div>
+
+                {/* 4. Recommendations Grid (Dynamic) */}
                 <RecommendationGrid />
             </main>
 

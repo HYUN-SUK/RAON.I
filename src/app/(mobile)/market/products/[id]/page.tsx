@@ -6,6 +6,7 @@ import { marketService } from '@/services/marketService';
 import { Product } from '@/types/market';
 import { useCartStore } from '@/store/useCartStore';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet"; // Use Shadcn Sheet
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ShoppingCart, Share2, Plus, Minus, ChevronRight, Heart } from 'lucide-react';
@@ -223,8 +224,15 @@ export default function ProductDetailPage() {
 
                 <section id="qna" className="p-5 py-10 scroll-mt-28">
                     <h3 className="font-bold text-lg mb-4">상품 문의</h3>
-                    <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 text-sm">
-                        궁금한 점이 있으신가요?<br />문의하기 버튼을 눌러주세요.
+                    <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 text-sm flex flex-col items-center gap-3">
+                        <p>궁금한 점이 있으신가요?<br />문의하기 버튼을 눌러주세요.</p>
+                        <Button
+                            variant="outline"
+                            className="bg-white border-gray-200 text-gray-700"
+                            onClick={() => toast.info('준비 중인 기능입니다.')}
+                        >
+                            문의하기
+                        </Button>
                     </div>
                 </section>
             </div>

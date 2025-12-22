@@ -16,6 +16,7 @@ export interface Comment {
     author: string;
     content: string;
     date: string;
+    imageUrl?: string;
     isMine?: boolean; // Mock logic for now
 }
 
@@ -162,12 +163,13 @@ export const communityService = {
     },
 
     // 6. Create Comment
-    async createComment(postId: string, content: string, authorName: string, userId: string = ANON_USER_ID) {
-        const payload: CommentInsert = {
+    async createComment(postId: string, content: string, authorName: string, userId: string = ANON_USER_ID, imageUrl?: string) {
+        const payload: CommentInsert & { image_url?: string } = {
             post_id: postId,
             content,
             author_name: authorName,
             user_id: userId,
+            image_url: imageUrl
         };
 
         const { data, error } = await supabase
@@ -230,16 +232,36 @@ export const communityService = {
             .getPublicUrl(filePath);
 
         return data.publicUrl;
+    },
+
+    // 10. Upload Comment Image
+    async uploadCommentImage(file: File): Promise<string> {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('comment-images')
+            .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+            .from('comment-images')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
     }
 };
 
-function mapDbToComment(db: CommentRow): Comment {
+function mapDbToComment(db: CommentRow & { image_url?: string }): Comment {
     return {
         id: db.id,
         postId: db.post_id,
         author: db.author_name,
         content: db.content,
         date: new Date(db.created_at).toISOString(), // Full ISO for sorting if needed
+        imageUrl: db.image_url,
         isMine: true // For now, allow deleting anything in dev mode
     };
 }

@@ -7,8 +7,12 @@ import TopBar from '@/components/TopBar';
 import SlimNotice from '@/components/home/SlimNotice';
 import { PriceGuideSheet } from '@/components/home/PriceGuideSheet';
 import RecommendationGrid from '@/components/home/RecommendationGrid';
+import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { format } from 'date-fns';
+
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase-client";
 
 // InfoChip Data (3x2 Grid)
 // [Address, Wayfinding, Contact, Map, Nearby, Price Guide]
@@ -23,6 +27,24 @@ const CHIP_GRID = [
 
 export default function BeginnerHome() {
     const router = useRouter();
+    const supabase = createClient();
+
+    const handleProtectedAction = async (action: () => void) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            toast.info("로그인 후 서비스 이용이 가능합니다", {
+                description: "라온아이의 모든 혜택을 누려보세요!",
+                action: {
+                    label: "로그인",
+                    onClick: () => router.push('/login')
+                }
+            });
+            // Optional: Auto redirect after toast or just let user click
+            return;
+        }
+        action();
+    };
+
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
             {/* Global TopBar */}
@@ -78,6 +100,8 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
+
+
                 {/* 3. Guide Card */}
                 <section className="px-4 mb-8">
                     <div className="w-full bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-sm border border-stone-100 dark:border-zinc-800">
@@ -106,7 +130,7 @@ export default function BeginnerHome() {
                         </div>
                         <Button
                             className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-                            onClick={() => router.push('/reservation')}
+                            onClick={() => handleProtectedAction(() => router.push('/reservation'))}
                         >
                             예약 가능 날짜 보기
                         </Button>
@@ -116,8 +140,16 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
+                {/* 3.5 Weekly Mission (Moved) */}
+                <section className="px-4 mb-8">
+                    <MissionHomeWidget />
+                </section>
+
                 {/* 4. Recommendations Grid (Dynamic) */}
-                <RecommendationGrid />
+                <RecommendationGrid onItemClick={(item) => handleProtectedAction(() => {
+                    // Logic to navigate or show details based on item
+                    toast.success(`${item.title} 확인하기`);
+                })} />
             </main>
 
             {/* Slim Notice Layout Position */}

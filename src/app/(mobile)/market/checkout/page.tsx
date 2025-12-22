@@ -7,7 +7,7 @@ import { marketService } from '@/services/marketService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CreditCard, Receipt } from 'lucide-react';
 import { OrderItem } from '@/types/market';
 
 export default function CheckoutPage() {
@@ -20,7 +20,7 @@ export default function CheckoutPage() {
 
     const [isOrderComplete, setIsOrderComplete] = useState(false);
 
-    // Check validation and redirect if empty cart (unless order just completed)
+    // 유효성 검사 및 리다이렉트
     useEffect(() => {
         if (!isOrderComplete && items.length === 0) {
             router.replace('/market');
@@ -33,10 +33,7 @@ export default function CheckoutPage() {
             return;
         }
 
-        // if (!confirm('주문하시겠습니까? (입금 대기 상태로 생성됩니다)')) return; // Confirms block automation
-
         try {
-            // Transform cart items to order items snapshot
             const orderItems: OrderItem[] = items.map(item => ({
                 product_id: item.product_id,
                 name: item.product?.name || 'Unknown',
@@ -48,22 +45,16 @@ export default function CheckoutPage() {
             await marketService.createOrder({
                 items: orderItems,
                 total_price: getTotalPrice(),
-                payment_info: { method: 'card', pg: 'toss' }, // Updated to Card
+                payment_info: { method: 'card', pg: 'toss' },
                 delivery_info: { recipient: name, phone, address }
             });
 
-            setIsOrderComplete(true); // Prevent redirect effect
-
-            // Clear Cart (DB + Local)
+            setIsOrderComplete(true);
             await marketService.clearCart();
             clearCartLocal();
-
-            // console.log('주문 완료: PG 결제 연동 예정');
-            // alert('주문이 완료되었습니다! (PG 결제 연동 예정)');
-            router.replace('/market/orders'); // Go directly to orders
+            router.replace('/market/orders');
         } catch (error) {
             console.error(error);
-            // alert('주문 생성 실패. 다시 시도해주세요.');
         }
     };
 
@@ -72,65 +63,102 @@ export default function CheckoutPage() {
     if (items.length === 0) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-32">
-            <header className="sticky top-0 z-40 bg-white border-b border-gray-200 px-4 h-14 flex items-center">
-                <button onClick={() => router.back()} className="p-2 -ml-2">
-                    <ArrowLeft className="w-6 h-6 text-gray-800" />
+        <div className="min-h-screen bg-gray-50/50 pb-32">
+            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 h-14 flex items-center">
+                <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <ArrowLeft className="w-5 h-5 text-gray-800" />
                 </button>
                 <h1 className="text-lg font-bold text-gray-900 ml-2">주문서 작성</h1>
             </header>
 
-            <main className="p-4 space-y-6">
-                {/* Order Summary */}
-                <section className="bg-white p-4 rounded-xl shadow-sm">
-                    <h2 className="font-bold text-gray-900 mb-3">주문 상품 ({items.length}개)</h2>
-                    <div className="space-y-2">
+            <main className="p-5 space-y-6 max-w-[430px] mx-auto">
+                {/* 주문 상품 요약 */}
+                <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-2 mb-4 text-[#1C4526]">
+                        <Receipt className="w-5 h-5" />
+                        <h2 className="font-bold text-gray-900">주문 내역</h2>
+                    </div>
+
+                    <div className="space-y-3">
                         {items.map(item => (
-                            <div key={item.id} className="flex justify-between text-sm">
-                                <span className="text-gray-600 truncate flex-1 pr-4">{item.product?.name} x {item.quantity}</span>
-                                <span className="font-medium">{formatPrice((item.product?.price || 0) * item.quantity)}</span>
+                            <div key={item.id} className="flex justify-between items-start text-sm group">
+                                <span className="text-gray-600 truncate flex-1 pr-4 group-hover:text-gray-900 transition-colors">
+                                    {item.product?.name} <span className="text-xs text-gray-400">x {item.quantity}</span>
+                                </span>
+                                <span className="font-medium whitespace-nowrap">{formatPrice((item.product?.price || 0) * item.quantity)}</span>
                             </div>
                         ))}
                     </div>
-                    <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between font-bold text-lg">
-                        <span>합계</span>
-                        <span className="text-[#1C4526]">{formatPrice(getTotalPrice())}</span>
+
+                    <div className="my-4 border-t border-dashed border-gray-200" />
+
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-500 font-medium">총 결제 금액</span>
+                        <span className="text-xl font-bold text-[#1C4526]">{formatPrice(getTotalPrice())}</span>
                     </div>
                 </section>
 
-                {/* Delivery Info Form */}
-                <section className="bg-white p-4 rounded-xl shadow-sm space-y-4">
-                    <h2 className="font-bold text-gray-900">배송지 정보</h2>
-
-                    <div className="space-y-2">
-                        <Label>받는 분</Label>
-                        <Input value={name} onChange={e => setName(e.target.value)} placeholder="이름" />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>연락처</Label>
-                        <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="010-0000-0000" />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>주소</Label>
-                        <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="상세 주소 입력" />
+                {/* 배송지 정보 입력 */}
+                <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 className="font-bold text-gray-900 mb-4">배송 정보</h2>
+                    <div className="space-y-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-500 ml-1">받는 분</Label>
+                            <Input
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                placeholder="이름을 입력하세요"
+                                className="bg-gray-50 border-gray-200 focus:bg-white transition-all h-11"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-500 ml-1">연락처</Label>
+                            <Input
+                                value={phone}
+                                onChange={e => {
+                                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                                    let formatted = raw;
+                                    if (raw.length > 3 && raw.length <= 7) {
+                                        formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`;
+                                    } else if (raw.length > 7) {
+                                        formatted = `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
+                                    }
+                                    setPhone(formatted);
+                                }}
+                                placeholder="010-0000-0000"
+                                maxLength={13}
+                                className="bg-gray-50 border-gray-200 focus:bg-white transition-all h-11"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-500 ml-1">주소</Label>
+                            <Input
+                                value={address}
+                                onChange={e => setAddress(e.target.value)}
+                                placeholder="상세 주소를 입력하세요"
+                                className="bg-gray-50 border-gray-200 focus:bg-white transition-all h-11"
+                            />
+                        </div>
                     </div>
                 </section>
 
-                {/* Payment Info (Card Only) */}
-                <section className="bg-white p-4 rounded-xl shadow-sm space-y-2">
-                    <h2 className="font-bold text-gray-900">결제 수단</h2>
-                    <div className="p-3 border border-[#1C4526] bg-[#1C4526]/5 rounded-lg text-[#1C4526] text-sm font-medium text-center">
-                        신용/체크카드 (PG)
+                {/* 결제 수단 */}
+                <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 className="font-bold text-gray-900 mb-4">결제 수단</h2>
+                    <div className="p-4 border border-[#1C4526]/20 bg-[#1C4526]/5 rounded-xl flex flex-col items-center justify-center gap-2 text-[#1C4526] transition-all hover:bg-[#1C4526]/10 cursor-pointer">
+                        <CreditCard className="w-6 h-6 mb-1" />
+                        <span className="text-sm font-bold">신용/체크카드</span>
                     </div>
-                    <p className="text-xs text-gray-500 text-center">라온아이 상점은 카드 결제만 지원합니다. (예약과 별도 정산)</p>
+                    <p className="text-xs text-gray-400 text-center mt-3">
+                        안전한 결제를 위해 PG사 결제창으로 이동합니다.
+                    </p>
                 </section>
             </main>
 
-            <div className="fixed bottom-[80px] left-0 right-0 max-w-[430px] mx-auto bg-white border-t border-gray-100 p-4 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            {/* 하단 결제 버튼 */}
+            <div className="fixed bottom-[80px] left-0 right-0 max-w-[430px] mx-auto bg-white/90 backdrop-blur-md border-t border-gray-100 p-4 safe-area-bottom z-30">
                 <Button
-                    className="w-full h-12 text-base bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl"
+                    className="w-full h-12 text-base bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl shadow-lg shadow-[#1C4526]/20 transition-all active:scale-[0.98]"
                     onClick={handleOrder}
                 >
                     {formatPrice(getTotalPrice())} 결제하기

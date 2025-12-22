@@ -51,7 +51,7 @@ interface CommunityState {
     // Interaction Actions
     // toggleLike: (postId: string) => Promise<void>; // Can be local only
     loadComments: (postId: string) => Promise<Comment[]>;
-    addComment: (postId: string, content: string, author: string) => Promise<Comment>;
+    addComment: (postId: string, content: string, author: string, imageUrl?: string) => Promise<Comment>;
     removeComment: (postId: string, commentId: string) => Promise<void>;
 
     // Search
@@ -188,8 +188,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         return await communityService.getComments(postId);
     },
 
-    addComment: async (postId, content, author) => {
-        const newComment = await communityService.createComment(postId, content, author);
+    addComment: async (postId, content, author, imageUrl) => {
+        const newComment = await communityService.createComment(postId, content, author, undefined, imageUrl);
 
         set((state) => ({
             posts: state.posts.map(p =>

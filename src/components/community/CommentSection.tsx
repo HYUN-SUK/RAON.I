@@ -1,14 +1,13 @@
-"use client";
-
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, MoreHorizontal } from 'lucide-react';
+import { Send, Trash2, MoreHorizontal, Image as ImageIcon, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCommunityStore } from '@/store/useCommunityStore';
-import { Comment } from '@/services/communityService';
+import { Comment, communityService } from '@/services/communityService';
+import { compressImage } from '@/utils/imageUtils';
 
 interface CommentSectionProps {
     postId: string;
@@ -22,22 +21,57 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    // Image State
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     // Initial Load
     useEffect(() => {
         loadComments(postId).then(setComments).catch(console.error);
     }, [postId, loadComments]);
 
+    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const compressed = await compressImage(file);
+            setSelectedImage(compressed);
+
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewUrl(reader.result as string);
+            };
+            reader.readAsDataURL(compressed);
+        } catch (error) {
+            console.error('Image compression failed', error);
+            setErrorMsg('이미지 처리 중 오류가 발생했습니다.');
+        }
+    };
+
+    const clearImage = () => {
+        setSelectedImage(null);
+        setPreviewUrl(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleSubmit = async () => {
-        if (!newComment.trim() || isLoading) return;
+        if ((!newComment.trim() && !selectedImage) || isLoading) return;
 
         setIsLoading(true);
         try {
-            // Optimistically update list? Or wait for response which is fast?
-            // Let's wait for response to have real ID, but UI should feel fast.
-            const created = await addComment(postId, newComment, 'My User'); // 'My User' is temporary author logic
+            let imageUrl = undefined;
+            if (selectedImage) {
+                imageUrl = await communityService.uploadCommentImage(selectedImage);
+            }
+
+            const created = await addComment(postId, newComment, 'My User', imageUrl); // 'My User' is temporary author logic
             setComments(prev => [...prev, created]);
             onCommentChange?.(comments.length + 1);
             setNewComment('');
+            clearImage();
             setErrorMsg(null);
         } catch (error: any) {
             console.error(error);
@@ -69,24 +103,60 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                 <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">ME</AvatarFallback>
                 </Avatar>
-                <div className="flex-1 relative">
-                    <Textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="따뜻한 댓글을 남겨주세요..."
-                        className="min-h-[80px] bg-gray-50 border-gray-200 resize-none pr-12 text-sm"
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute bottom-1 right-1 h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                        onClick={handleSubmit}
-                        disabled={!newComment.trim() || isLoading}
-                    >
-                        <Send className="w-4 h-4" />
-                    </Button>
+                <div className="flex-1 space-y-2">
+                    <div className="relative">
+                        <Textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="따뜻한 댓글을 남겨주세요..."
+                            className="min-h-[80px] bg-gray-50 border-gray-200 resize-none pr-12 text-sm pb-10" // Extra padding bottom for buttons
+                        />
+
+                        {/* Toolbar */}
+                        <div className="absolute bottom-2 left-2 flex gap-2">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                            />
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <ImageIcon className="w-4 h-4" />
+                            </Button>
+                        </div>
+
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="absolute bottom-2 right-2 h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                            onClick={handleSubmit}
+                            disabled={(!newComment.trim() && !selectedImage) || isLoading}
+                        >
+                            <Send className="w-4 h-4" />
+                        </Button>
+                    </div>
+
+                    {/* Image Preview */}
+                    {previewUrl && (
+                        <div className="relative inline-block">
+                            <img src={previewUrl} alt="Preview" className="h-20 w-auto rounded-lg border border-gray-200 object-cover" />
+                            <button
+                                onClick={clearImage}
+                                className="absolute -top-1 -right-1 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        </div>
+                    )}
+
+                    {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}
                 </div>
-                {errorMsg && <p className="text-red-500 text-sm mb-4 px-10">{errorMsg}</p>}
             </div>
 
             {/* List */}
@@ -120,9 +190,17 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                                         </button>
                                     )}
                                 </div>
-                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                    {comment.content}
-                                </p>
+                                <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap space-y-2">
+                                    {comment.imageUrl && (
+                                        <img
+                                            src={comment.imageUrl}
+                                            alt="Comment attachment"
+                                            className="max-w-[200px] max-h-[200px] rounded-lg border border-gray-100 object-cover"
+                                            loading="lazy"
+                                        />
+                                    )}
+                                    <p>{comment.content}</p>
+                                </div>
                             </div>
                         </div>
                     ))
