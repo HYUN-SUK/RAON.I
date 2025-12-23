@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { communityService, Comment } from '@/services/communityService';
+import { communityService, Comment, supabase } from '@/services/communityService';
 
 export type BoardType = 'NOTICE' | 'REVIEW' | 'STORY' | 'QNA' | 'GROUP' | 'CONTENT';
 
@@ -53,6 +53,7 @@ interface CommunityState {
     loadComments: (postId: string) => Promise<Comment[]>;
     addComment: (postId: string, content: string, author: string, imageUrl?: string) => Promise<Comment>;
     removeComment: (postId: string, commentId: string) => Promise<void>;
+    toggleCommentLike: (commentId: string) => Promise<void>;
 
     // Search
     searchQuery: string;
@@ -189,7 +190,14 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     },
 
     addComment: async (postId, content, author, imageUrl) => {
-        const newComment = await communityService.createComment(postId, content, author, undefined, imageUrl);
+        // Get real authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id; // Use real ID or let it fallback to default if desired (but auth required usually)
+
+        // Note: author name passed here might still come from Mock store 'currentUser.name'. 
+        // Ideally we fetch profile. For now, we trust the name but ensure ID is correct.
+
+        const newComment = await communityService.createComment(postId, content, author, userId, imageUrl);
 
         set((state) => ({
             posts: state.posts.map(p =>
@@ -211,6 +219,16 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                     : p
             )
         }));
+    },
+
+    toggleCommentLike: async (commentId: string) => {
+        // Optimistic UI update could be tricky if we don't have local *comments* state in store.
+        // But comments are returned by loadComments and usually managed by component state.
+        // Store only manages Posts usually.
+        // Wait, CommentSection uses local state `comments`. 
+        // So the store action should just call service, and the component updates local state.
+        // However, for consistency, let's expose the service call via store.
+        await communityService.toggleCommentLike(commentId);
     },
 
     searchQuery: '',

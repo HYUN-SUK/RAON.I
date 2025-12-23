@@ -24,6 +24,13 @@ export interface UserMission {
     status: MissionStatus;
     completed_at?: string;
     created_at: string;
+    // Ranking & Feed
+    likes_count?: number;
+    is_liked_by_me?: boolean;
+    user_info?: {
+        nickname: string;
+        profile_image_url?: string;
+    };
 }
 
 export interface MissionWithStatus extends Mission {

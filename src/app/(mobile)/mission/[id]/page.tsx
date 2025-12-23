@@ -6,7 +6,7 @@ import { useMissionStore } from '@/store/useMissionStore';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TopBar from '@/components/TopBar';
-import { ArrowLeft, Camera, CheckCircle, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, UploadCloud, Heart, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -15,8 +15,10 @@ import { toast } from "sonner";
 export default function MissionDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { currentMission, userMission, fetchCurrentMission, joinMission, completeMission, isLoading, error } = useMissionStore();
+    const { currentMission, userMission, participants, fetchCurrentMission, joinMission, completeMission, toggleLike, deleteParticipation, isLoading, error } = useMissionStore();
     const [preview, setPreview] = useState<string | null>(null);
+
+    // console.log('Render Detail:', { currentMission, participants });
 
     // Initial Load
     useEffect(() => {
@@ -178,6 +180,86 @@ export default function MissionDetailPage() {
                         </Button>
                     </div>
                 )}
+
+                {/* Participants Feed */}
+                <div className="mt-10 mb-6">
+                    <h3 className="font-bold text-lg text-stone-800 dark:text-stone-100 mb-4 flex items-center justify-between">
+                        참여 인증 <span className="text-[#1C4526] text-sm font-normal">{participants.length}명 참여중</span>
+                    </h3>
+
+                    <div className="space-y-4">
+                        {!participants || participants.length === 0 ? (
+                            <div className="text-center py-8 text-stone-400 bg-stone-50 rounded-xl">
+                                <UploadCloud className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                <p className="text-sm">가장 먼저 미션을 달성해보세요!</p>
+                            </div>
+                        ) : (
+                            participants.map((p) => (
+                                <div key={p.id} className="bg-white dark:bg-zinc-900 rounded-xl overflow-hidden border border-stone-100 dark:border-zinc-800 shadow-sm">
+                                    <div className="p-3 flex items-center gap-2 border-b border-stone-50 dark:border-zinc-800">
+                                        <div className="w-8 h-8 rounded-full bg-stone-200 overflow-hidden">
+                                            {p.user_info?.profile_image_url ? (
+                                                <img src={p.user_info.profile_image_url} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-stone-400">
+                                                    {p.user_info?.nickname?.substring(0, 1) || '?'}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-bold text-stone-700 dark:text-stone-200">
+                                                {p.user_info?.nickname || '알 수 없음'}
+                                            </p>
+                                            <p className="text-[10px] text-stone-400">
+                                                {format(new Date(p.created_at), 'M월 d일 HH:mm', { locale: ko })}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {p.image_url && (
+                                        <div className="aspect-square bg-stone-100">
+                                            <img src={p.image_url} alt="Mission Proof" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+
+                                    {p.content && (
+                                        <div className="p-3 pb-0">
+                                            <p className="text-sm text-stone-600 dark:text-stone-300">{p.content}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="p-3 flex items-center justify-end gap-2">
+                                        {userMission?.user_id === p.user_id && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-stone-400 hover:text-red-500 hover:bg-red-50"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteParticipation();
+                                                }}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            className={`gap-1.5 ${p.is_liked_by_me ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-stone-50 text-stone-500 hover:bg-stone-100'}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleLike(p.id);
+                                            }}
+                                        >
+                                            <Heart className={`w-4 h-4 ${p.is_liked_by_me ? 'fill-current' : ''}`} />
+                                            <span className="font-semibold">{p.likes_count || 0}</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </main>
         </div>
     );

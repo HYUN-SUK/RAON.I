@@ -101,5 +101,37 @@ export const missionService = {
 
         if (error) throw error;
         return data as UserMission;
+    },
+
+    // Ranking & Feed
+    async getMissionParticipants(missionId: string): Promise<UserMission[]> {
+        const { data, error } = await supabase.rpc('get_mission_feed', {
+            p_mission_id: missionId
+        });
+
+        if (error) {
+            console.error('Error fetching mission feed:', error);
+            return [];
+        }
+        return (data || []) as UserMission[];
+    },
+
+    async toggleMissionLike(userMissionId: string): Promise<boolean> {
+        const { data, error } = await supabase.rpc('toggle_mission_like', {
+            p_user_mission_id: userMissionId
+        });
+
+        if (error) throw error;
+        return data as boolean;
+    },
+
+    async deleteMissionParticipation(missionId: string, userId: string): Promise<void> {
+        const { error } = await supabase
+            .from('user_missions')
+            .delete()
+            .eq('mission_id', missionId)
+            .eq('user_id', userId);
+
+        if (error) throw error;
     }
 };

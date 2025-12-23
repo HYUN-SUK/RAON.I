@@ -3,7 +3,7 @@ import { Post, BoardType } from '@/store/useCommunityStore';
 import { Database } from '@/types/supabase';
 
 // Instantiate the browser client which has access to cookies
-const supabase = createClient();
+export const supabase = createClient();
 
 type CommentRow = Database['public']['Tables']['comments']['Row'];
 type CommentInsert = Database['public']['Tables']['comments']['Insert'];
@@ -17,7 +17,10 @@ export interface Comment {
     content: string;
     date: string;
     imageUrl?: string;
-    isMine?: boolean; // Mock logic for now
+    isMine?: boolean;
+    likesCount?: number;
+    isLiked?: boolean;
+    authorId?: string;
 }
 
 
@@ -150,16 +153,33 @@ export const communityService = {
         return isLiked;
     },
 
-    // 5. Get Comments
+    // 5. Get Comments (Updated to use RPC)
     async getComments(postId: string): Promise<Comment[]> {
-        const { data, error } = await supabase
-            .from('comments')
-            .select('*')
-            .eq('post_id', postId)
-            .order('created_at', { ascending: true });
+        const { data, error } = await supabase.rpc('get_post_comments', {
+            p_post_id: postId
+        });
 
-        if (error) throw error;
-        return data.map(mapDbToComment);
+        if (error) {
+            console.error(error);
+            return [];
+        }
+
+        // Fetch User Info ONCE before mapping
+        const { data: { user } } = await supabase.auth.getUser();
+        const currentUserId = user?.id;
+
+        return (data || []).map((db: any) => ({
+            id: db.id,
+            postId: db.post_id,
+            author: db.user_info?.nickname || 'Unknown',
+            content: db.content,
+            date: new Date(db.created_at).toISOString(),
+            imageUrl: db.image_url,
+            isMine: currentUserId ? db.user_id === currentUserId : false,
+            likesCount: db.likes_count || 0,
+            isLiked: db.is_liked_by_me || false,
+            authorId: db.user_id
+        }));
     },
 
     // 6. Create Comment
@@ -251,6 +271,16 @@ export const communityService = {
             .getPublicUrl(filePath);
 
         return data.publicUrl;
+    },
+
+    // 11. Toggle Comment Like
+    async toggleCommentLike(commentId: string): Promise<boolean> {
+        const { data, error } = await supabase.rpc('toggle_comment_like', {
+            p_comment_id: commentId
+        });
+
+        if (error) throw error;
+        return data as boolean;
     }
 };
 

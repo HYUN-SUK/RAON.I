@@ -17,7 +17,7 @@ const CATEGORIES: { id: BoardType; label: string }[] = [
     { id: 'STORY', label: '이야기' },
     { id: 'QNA', label: '질문' },
     { id: 'GROUP', label: '소모임' },
-    { id: 'CONTENT', label: '콘텐츠' },
+    // { id: 'CONTENT', label: '콘텐츠' }, // Use dedicated Creator Page
 ];
 
 const VISIBILITY_OPTIONS = [

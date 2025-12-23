@@ -1,35 +1,24 @@
-# Handoff Document: Mission Photo Comment & Automation
+# Handoff Document - Session 2025-12-23
 
-## 📅 Session Summary
-**Completed Mission System MVP** by implementing User Photo Comments and automating the "Weekly Mission" post creation.
-The entire flow from "Checking Mission" -> "Auto Post Creation" -> "User Photo Upload" is now seamless.
+## 📝 Summary
+Successfully resolved critical user interactions in Mission Feed and Community Comments.
+- **Mission Feed**: Users can now "Like" posts (visual fix) and "Delete" their own participation (RLS fix).
+- **Community Comments**: Implemented full "Like" functionality (formerly missing) and fixed Deletion permissions.
 
-## ✅ Accomplished Features
-1.  **Mission Photo Comments**:
-    *   **Frontend**: Added `ImageIcon` to `CommentSection`, implemented local preview and `clear` function.
-    *   **Logic**: Created `imageUtils.ts` for strictly client-side compression (WebP, max 1920px, <500KB) to save storage/bandwidth.
-    *   **Backend**: Updated `communityService` and `useCommunityStore` to handle `imageUrl`.
-2.  **Automated Weekly Post**:
-    *   **Logic**: Implemented "Lazy Creation" logic in `missionService`. (If post is missing when fetching mission, create it via RPC).
-    *   **Database**: Added `community_post_id` to `missions` and created `ensure_mission_post` RPC function.
-    *   **Permission**: Fixed RPC execution permissions for browser clients.
-3.  **UI/UX Polish**:
-    *   Added `MissionHomeWidget` to **Beginner Home** for better visibility.
-    *   Verified "Mission Check -> Post Creation" flow via Browser Subagent.
+## 🛠 Technical Decisions
+1. **Comment Likes**: Created a dedicated `comment_likes` table and RPCs (`toggle_comment_like`, `get_post_comments`) rather than relying on a complex single query.
+2. **RLS Policies**: Explicitly enabled `DELETE` policies for `user_missions` and `comments` tables to allow owner-deletion.
+3. **Async Auth**: Fixed a critical bug in `communityService.ts` where `supabase.auth.getUser()` was called synchronously in a map, leading to invisible comments.
 
-## 📂 Key Files Created/Modified
-- `src/components/community/CommentSection.tsx`: Added photo upload UI.
-- `src/utils/imageUtils.ts`: Image compression utility.
-- `src/services/missionService.ts`: Added auto-post logic.
-- `supabase/migrations/20251222_mission_automation_FINAL.sql`: Core automation logic (RPC).
-- `src/components/home/BeginnerHome.tsx`: Added Mission Widget.
+## 🚀 Next Steps (Priority)
+1. **Fix Community Delete Icon**: The trash icon in `CommentSection.tsx` disappeared in the final UI update. Needs restoration.
+2. **Global UI Polish**: Proceed with Phase 7.2 (TopBar, Settings).
+3. **Admin Console**: Continue integration of Admin features if needed.
 
-## ⚠️ Known Caveats / Next Steps
-1.  **Admin Console**: Mission management (Update/Delete) is currently DB-only. Need Admin UI in Phase 7.
-2.  **Notification**: User doesn't get a notification when their mission post is created (it's silent).
-3.  **Next Session**: Recommended to focus on **Admin Console** or **My Space Content (Album)**.
+## ⚠️ Known Issues
+- **Mission Feed**: Verify if `is_liked_by_me` persists correctly across sessions (seems fine now).
+- **Community**: Ensure `get_post_comments` RPC is deployed on all environments (Production).
 
-## 📖 How to Verify
-1.  **Fresh Start**: Reload the app.
-2.  **Auto Post**: Check `Community > Story`. A post "[금주의 미션]..." should exist.
-3.  **Photo Comment**: Open that post -> Upload a photo comment -> Verify it appears instantly properly compressed.
+## 📅 Roadmap Status
+- **Mission System**: 95% Complete (Polish remaining).
+- **Community System**: 90% Complete (Comment polish remaining).

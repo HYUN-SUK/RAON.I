@@ -31,7 +31,7 @@ export default function CommunityHeader() {
                     </p>
                 </div>
 
-                <Link href="/community/write">
+                <Link href={activeTab === 'CONTENT' ? '/community/content/create' : `/community/write?type=${activeTab}`}>
                     <Button
                         size="sm"
                         className="bg-[#1C4526] hover:bg-[#1C4526]/90 text-white rounded-full shadow-md px-4"

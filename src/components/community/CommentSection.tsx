@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, MoreHorizontal, Image as ImageIcon, X } from 'lucide-react';
+import { Send, Trash2, MoreHorizontal, Image as ImageIcon, X, Heart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ interface CommentSectionProps {
 }
 
 export default function CommentSection({ postId, onCommentChange }: CommentSectionProps) {
-    const { loadComments, addComment, removeComment } = useCommunityStore();
+    const { loadComments, addComment, removeComment, toggleCommentLike } = useCommunityStore();
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -89,6 +89,30 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
             onCommentChange?.(Math.max(0, comments.length - 1));
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const handleLike = async (commentId: string) => {
+        // Optimistic Update
+        setComments(prev => prev.map(c => {
+            if (c.id === commentId) {
+                const isLiked = !!c.isLiked;
+                return {
+                    ...c,
+                    isLiked: !isLiked,
+                    likesCount: (c.likesCount || 0) + (isLiked ? -1 : 1)
+                };
+            }
+            return c;
+        }));
+
+        try {
+            await toggleCommentLike(commentId);
+        } catch (error) {
+            // Revert on error
+            console.error(error);
+            // Reload comments to restore state
+            loadComments(postId).then(setComments);
         }
     };
 
@@ -181,14 +205,26 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                                             {formatDistanceToNow(new Date(comment.date), { addSuffix: true, locale: ko })}
                                         </span>
                                     </div>
-                                    {comment.isMine && (
+                                    <div className="flex items-center gap-3">
                                         <button
-                                            onClick={() => handleDelete(comment.id)}
-                                            className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => handleLike(comment.id)}
+                                            className={`flex items-center gap-1 text-xs font-medium transition-colors ${comment.isLiked
+                                                ? 'text-red-500'
+                                                : 'text-gray-400 hover:text-red-500'
+                                                }`}
                                         >
-                                            <Trash2 className="w-3.5 h-3.5" />
+                                            <Heart className={`w-3.5 h-3.5 ${comment.isLiked ? 'fill-current' : ''}`} />
+                                            <span>{comment.likesCount || 0}</span>
                                         </button>
-                                    )}
+                                        {comment.isMine && (
+                                            <button
+                                                onClick={() => handleDelete(comment.id)}
+                                                className="text-gray-300 hover:text-red-400 transition-colors"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap space-y-2">
                                     {comment.imageUrl && (
