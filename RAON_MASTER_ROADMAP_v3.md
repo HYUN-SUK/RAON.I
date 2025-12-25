@@ -18,7 +18,7 @@
 | **Phase 2** | **내공간 (My Space)** | 🔄 **진행 중** | 70% | 대시보드/지도/타임라인(기초) 완료. 앨범/히스토리 남음 |
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 90% | Logic/Validation/Admin Core 완료. PG/오픈일 남음. |
 | **Phase 4** | **커뮤니티 (Community)** | ✅ **완료** | 100% | RLS 보안, 관리자 공지/소모임 관리, 소모임 기능(생성/가입/조회) 완료 |
-| **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 95% | MVP 완료. 리뷰 저장 DB 연동(SQL 제공) 대기. 상세/Checkout UX 개선 완료. |
+| **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 6** | **확장 모듈 (Expansion)** | 🔄 **진행 중** | 60% | 크리에이터 보드, 미션 MVP (List/Detail/Auth) 완료. 미션 Admin 대기 |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | 🔄 **진행 중** | 95% | 미션 Admin, UI/UX 디테일 보완(Gap Filling), 설정/알림/마켓 피벗 진행. |
 
@@ -74,6 +74,24 @@
     *   [x] **좋아요/댓글 상호작용 (Likes/Comments)**
     *   [x] **안정화-v1**: Next.js 15 호환성, UI 오버랩 수정, 멤버십 로직 개선 완료
 
+### Phase 5: 마켓 & 결제 (Market) - ✅ MVP 100% Completed
+**"캠핑의 감성을 집으로 - Commerce"**
+*   **5.1 상품 전시 (Product Display)** ✅:
+    *   [x] 상품 목록/상세 페이지 구현 (Swiper 갤러리/옵션 선택).
+    *   [x] 감성 UX 적용: 장바구니/구매하기 인터랙션, 품절 처리.
+*   **5.2 장바구니 (Cart)** ✅:
+    *   [x] 로컬 스토리지 기반 장바구니(Zustand).
+    *   [x] 수량 조절, 삭제, 가격 합계 실시간 계산.
+*   **5.3 주문/결제 (Checkout)** ✅:
+    *   [x] 배송지 입력 폼 (Daum 주소 API 연동).
+    *   [x] 결제 수단 선택 UI (무통장/카드).
+    *   [x] 주문 완료 페이지 (Order Success).
+*   **5.4 리뷰 시스템 (Reviews)** ✅ (Completed):
+    *   [x] **구조**: `market_reviews` 테이블 스키마 검증 및 `UNIQUE(user_id, product_id)` 제약 확인.
+    *   [x] **기능**: 리뷰 작성/삭제 (별점, 텍스트) 및 중복 방지 로직.
+    *   [x] **검증**: 등록/삭제 버그(Disabled/Event) 해결 및 Toast 기반 삭제 확인 UI 적용.
+    *   [x] **전시**: 상품 상세 하단 리뷰 리스트 감성 UI (3-State).
+
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (40%)
 **"더 깊은 연결과 재미"**
 *   **6.1 크리에이터 콘텐츠 보드 (MVP)** ✅:
@@ -92,7 +110,7 @@
 **"사용자 피드백 기반 디테일 완성"**
 *   **7.0 이슈 긴급 대응 (Hotfixes)** ✅:
     *   [x] **미션 피드**: 좋아요, 본인 삭제 기능 완비 (RLS/RPC).
-    *   [x] **커뮤니티**: 댓글 좋아요(New), 삭제 오류 해결, 비동기 로직 수정.
+    - [x] **커뮤니티**: 댓글 좋아요(New), 삭제 오류 해결 및 삭제 확인 모달 추가 (Optimistic UI Fix).
 *   **7.1 글로벌 UI/UX** ⬜:
     *   [ ] **TopBar**: 명확한 로그인 아이콘, 설정 메뉴(프로필/알림/약관) 추가.
 *   **7.2 홈 디테일 (Home Details)** ⬜:

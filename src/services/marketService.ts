@@ -152,16 +152,12 @@ export const marketService = {
 
     // --- Reviews ---
     async getReviews(productId: string) {
+        // Basic fetch for MVP. 
+        // In a real expanded version, we would join with a public user profile view.
+        // For now, relies on the client to handle anonymous/masked display or minimal info.
         const { data, error } = await supabase
             .from('reviews')
-            .select('*') // If we need user info, we might need a join or separate fetch. For now, assuming email in auth? No, RLS returns user. 
-            // Wait, to show "Who wrote this", we need a profile link or email. 
-            // Supabase auth users are not directly joinable in simple queries provided we don't have a public users table or view.
-            // Assuming for MVP we display "Anonymous" or Fetch user metadata if possible.
-            // Actually, let's keep it simple. If we can't easily join, just show content & rating.
-            // If we have a 'profiles' table, we join that. 
-            // Checking: We have 'creators', 'group_members'... usually there's a 'users' or 'profiles' table?
-            // Let's assume just review content for now to be safe.
+            .select('*')
             .eq('product_id', productId)
             .order('created_at', { ascending: false });
 
@@ -184,5 +180,18 @@ export const marketService = {
 
         if (error) throw error;
         return data as Review;
+    },
+
+    async deleteReview(reviewId: string) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Login required');
+
+        const { error } = await supabase
+            .from('reviews')
+            .delete()
+            .eq('id', reviewId)
+            .eq('user_id', user.id); // RLS handles this, but double check acts as a safeguard
+
+        if (error) throw error;
     }
 };

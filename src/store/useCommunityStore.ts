@@ -192,12 +192,14 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     addComment: async (postId, content, author, imageUrl) => {
         // Get real authenticated user
         const { data: { user } } = await supabase.auth.getUser();
-        const userId = user?.id; // Use real ID or let it fallback to default if desired (but auth required usually)
-
-        // Note: author name passed here might still come from Mock store 'currentUser.name'. 
-        // Ideally we fetch profile. For now, we trust the name but ensure ID is correct.
+        const userId = user?.id;
 
         const newComment = await communityService.createComment(postId, content, author, userId, imageUrl);
+
+        // Fix Optimistic isMine logic
+        if (userId && newComment.authorId === userId) {
+            newComment.isMine = true;
+        }
 
         set((state) => ({
             posts: state.posts.map(p =>

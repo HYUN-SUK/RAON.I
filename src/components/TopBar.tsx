@@ -3,8 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
-import { LogOut, LogIn } from "lucide-react";
+import { LogOut, LogIn, Settings, User, Bell, FileText } from "lucide-react";
 import { toast } from "sonner";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 
@@ -26,20 +34,18 @@ export default function TopBar() {
         setIsLoggedIn(!!session);
     };
 
-    const handleAuthAction = async () => {
-        if (isLoggedIn) {
-            // Logout Action
-            try {
-                await supabase.auth.signOut();
-                toast.success('로그아웃 되었습니다.');
-                setIsLoggedIn(false);
-                // Stay on current page, just update state
-            } catch (error) {
-                console.error('Logout error:', error);
-            }
-        } else {
-            // Login Action
-            router.push('/login');
+    const handleLogin = () => {
+        router.push('/login');
+    };
+
+    const handleLogout = async () => {
+        try {
+            await supabase.auth.signOut();
+            toast.success('로그아웃 되었습니다.');
+            setIsLoggedIn(false);
+            router.push('/'); // Redirect to home
+        } catch (error) {
+            console.error('Logout error:', error);
         }
     };
 
@@ -64,13 +70,47 @@ export default function TopBar() {
             </h1>
 
             {/* Auth Action Icon */}
-            <button
-                onClick={handleAuthAction}
-                className="relative z-[101] p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer"
-                aria-label={isLoggedIn ? "Logout" : "Login"}
-            >
-                {isLoggedIn ? <LogOut size={22} strokeWidth={1.5} /> : <LogIn size={22} strokeWidth={1.5} />}
-            </button>
+            {isLoggedIn ? (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            className="relative z-[101] p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer outline-none"
+                            aria-label="Settings"
+                        >
+                            <Settings size={22} strokeWidth={1.5} />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 bg-white">
+                        <DropdownMenuLabel>내 계정</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => router.push('/myspace')} className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>프로필</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                            <Bell className="mr-2 h-4 w-4" />
+                            <span>알림 설정</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                            <FileText className="mr-2 h-4 w-4" />
+                            <span>이용 약관</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>로그아웃</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+                <button
+                    onClick={handleLogin}
+                    className="relative z-[101] p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer"
+                    aria-label="Login"
+                >
+                    <LogIn size={22} strokeWidth={1.5} />
+                </button>
+            )}
         </header>
     );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect } from 'react';
 import { Send, Trash2, MoreHorizontal, Image as ImageIcon, X, Heart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -6,8 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCommunityStore } from '@/store/useCommunityStore';
-import { Comment, communityService } from '@/services/communityService';
+import { Comment, communityService, supabase } from '@/services/communityService';
 import { compressImage } from '@/utils/imageUtils';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CommentSectionProps {
     postId: string;
@@ -25,6 +35,31 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleLike = async (commentId: string) => {
+        // Optimistic Update
+        setComments(prev => prev.map(c => {
+            if (c.id === commentId) {
+                const isLiked = !!c.isLiked;
+                return {
+                    ...c,
+                    isLiked: !isLiked,
+                    likesCount: (c.likesCount || 0) + (isLiked ? -1 : 1)
+                };
+            }
+            return c;
+        }));
+
+        try {
+            await toggleCommentLike(commentId);
+        } catch (error) {
+            // Revert on error
+            console.error(error);
+            // Reload comments to restore state
+            loadComments(postId).then(setComments);
+        }
+    };
+
 
     // Initial Load
     useEffect(() => {
@@ -67,7 +102,7 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                 imageUrl = await communityService.uploadCommentImage(selectedImage);
             }
 
-            const created = await addComment(postId, newComment, 'My User', imageUrl); // 'My User' is temporary author logic
+            const created = await addComment(postId, newComment, 'My User', imageUrl);
             setComments(prev => [...prev, created]);
             onCommentChange?.(comments.length + 1);
             setNewComment('');
@@ -81,38 +116,26 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
         }
     };
 
+    const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+
     const handleDelete = async (commentId: string) => {
-        if (!confirm('댓글을 삭제하시겠습니까?')) return;
+        setCommentToDelete(commentId);
+    };
+
+    const confirmDelete = async () => {
+        if (!commentToDelete) return;
+
+        const commentId = commentToDelete;
         try {
             await removeComment(postId, commentId);
             setComments(prev => prev.filter(c => c.id !== commentId));
             onCommentChange?.(Math.max(0, comments.length - 1));
-        } catch (error) {
+            // Toast removed, consistent with user request for modal only
+        } catch (error: any) {
             console.error(error);
-        }
-    };
-
-    const handleLike = async (commentId: string) => {
-        // Optimistic Update
-        setComments(prev => prev.map(c => {
-            if (c.id === commentId) {
-                const isLiked = !!c.isLiked;
-                return {
-                    ...c,
-                    isLiked: !isLiked,
-                    likesCount: (c.likesCount || 0) + (isLiked ? -1 : 1)
-                };
-            }
-            return c;
-        }));
-
-        try {
-            await toggleCommentLike(commentId);
-        } catch (error) {
-            // Revert on error
-            console.error(error);
-            // Reload comments to restore state
-            loadComments(postId).then(setComments);
+            alert(`삭제 실패: ${error.message || '알 수 없는 오류'}`);
+        } finally {
+            setCommentToDelete(null);
         }
     };
 
@@ -201,7 +224,7 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                                 <div className="flex items-center justify-between mb-1">
                                     <div className="flex items-center gap-2">
                                         <span className="font-medium text-sm text-gray-900">{comment.author}</span>
-                                        <span className="text-xs text-gray-400">
+                                        <span className="text-xs text-gray-400" suppressHydrationWarning>
                                             {formatDistanceToNow(new Date(comment.date), { addSuffix: true, locale: ko })}
                                         </span>
                                     </div>
@@ -216,10 +239,11 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                                             <Heart className={`w-3.5 h-3.5 ${comment.isLiked ? 'fill-current' : ''}`} />
                                             <span>{comment.likesCount || 0}</span>
                                         </button>
-                                        {comment.isMine && (
+                                        {(comment.isMine || comment.isAdmin) && (
                                             <button
                                                 onClick={() => handleDelete(comment.id)}
-                                                className="text-gray-300 hover:text-red-400 transition-colors"
+                                                className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-gray-100"
+                                                title="댓글 삭제"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </button>
@@ -242,6 +266,25 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                     ))
                 )}
             </div>
+
+            <Dialog open={!!commentToDelete} onOpenChange={(open) => !open && setCommentToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>댓글 삭제</DialogTitle>
+                        <DialogDescription>
+                            정말로 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2">
+                        <Button variant="outline" onClick={() => setCommentToDelete(null)}>
+                            취소
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDelete}>
+                            삭제
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

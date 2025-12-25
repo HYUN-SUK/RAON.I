@@ -21,6 +21,7 @@ export interface Comment {
     likesCount?: number;
     isLiked?: boolean;
     authorId?: string;
+    isAdmin?: boolean;
 }
 
 
@@ -166,9 +167,11 @@ export const communityService = {
 
         // Fetch User Info ONCE before mapping
         const { data: { user } } = await supabase.auth.getUser();
-        const currentUserId = user?.id;
 
-        return (data || []).map((db: any) => ({
+        const currentUserId = user?.id;
+        const isAdmin = user?.email === 'admin@raon.ai' || user?.app_metadata?.role === 'admin';
+
+        const comments = (data || []).map((db: any) => ({
             id: db.id,
             postId: db.post_id,
             author: db.user_info?.nickname || 'Unknown',
@@ -178,8 +181,11 @@ export const communityService = {
             isMine: currentUserId ? db.user_id === currentUserId : false,
             likesCount: db.likes_count || 0,
             isLiked: db.is_liked_by_me || false,
-            authorId: db.user_id
+            authorId: db.user_id,
+            isAdmin: isAdmin
         }));
+
+        return comments;
     },
 
     // 6. Create Comment
@@ -202,7 +208,7 @@ export const communityService = {
         // Increment comment count
         await supabase.rpc('increment_comment_count', { row_id: postId });
 
-        return mapDbToComment(data);
+        return mapDbToComment(data, userId);
     },
 
     // 7. Delete Comment
@@ -284,15 +290,16 @@ export const communityService = {
     }
 };
 
-function mapDbToComment(db: CommentRow & { image_url?: string }): Comment {
+function mapDbToComment(db: CommentRow & { image_url?: string }, currentUserId?: string): Comment {
     return {
         id: db.id,
         postId: db.post_id,
         author: db.author_name,
         content: db.content,
-        date: new Date(db.created_at).toISOString(), // Full ISO for sorting if needed
+        date: new Date(db.created_at).toISOString(),
         imageUrl: db.image_url,
-        isMine: true // For now, allow deleting anything in dev mode
+        authorId: db.user_id,
+        isMine: currentUserId ? db.user_id === currentUserId : false
     };
 }
 

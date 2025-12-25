@@ -9,6 +9,165 @@ export type Json =
 export interface Database {
     public: {
         Tables: {
+            site_config: {
+                Row: {
+                    id: number
+                    camp_name: string
+                    address_main: string
+                    address_detail?: string
+                    phone_number: string
+                    layout_image_url?: string
+                    guide_map_url?: string
+                    pricing_guide_text: string | null
+                    rules_guide_text: string | null
+                    beginner_chips: Json
+                    nearby_places: Json
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: number
+                    camp_name?: string | null
+                    address_main?: string | null
+                    address_detail?: string | null
+                    phone_number?: string | null
+                    layout_image_url?: string | null
+                    guide_map_url?: string | null
+                    nearby_places?: Json
+                    pricing_guide_text?: string | null
+                    rules_guide_text?: string | null
+                    beginner_chips?: Json
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: number
+                    camp_name?: string | null
+                    address_main?: string | null
+                    address_detail?: string | null
+                    phone_number?: string | null
+                    layout_image_url?: string | null
+                    guide_map_url?: string | null
+                    nearby_places?: Json
+                    pricing_guide_text?: string | null
+                    rules_guide_text?: string | null
+                    beginner_chips?: Json
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            recommendation_pool: {
+                Row: {
+                    id: number
+                    category: string
+                    title: string
+                    description: string | null
+                    image_url: string | null
+                    tags: Json
+                    content_url: string | null
+                    metadata: Json
+                    is_active: boolean
+                    created_at: string
+                    updated_at: string
+                    // V2 Fields
+                    difficulty: number | null
+                    time_required: number | null
+                    min_participants: number | null
+                    max_participants: number | null
+                    materials: Json
+                    ingredients: Json
+                    process_steps: Json
+                    tips: string | null
+                }
+                Insert: {
+                    id?: number
+                    category: string
+                    title: string
+                    description?: string | null
+                    image_url?: string | null
+                    tags?: Json
+                    content_url?: string | null
+                    metadata?: Json
+                    is_active?: boolean
+                    created_at?: string
+                    updated_at?: string
+                    // V2 Fields
+                    difficulty?: number | null
+                    time_required?: number | null
+                    min_participants?: number | null
+                    max_participants?: number | null
+                    materials?: Json
+                    ingredients?: Json
+                    process_steps?: Json
+                    tips?: string | null
+                }
+                Update: {
+                    id?: number
+                    category?: string
+                    title?: string
+                    description?: string | null
+                    image_url?: string | null
+                    tags?: Json
+                    content_url?: string | null
+                    metadata?: Json
+                    is_active?: boolean
+                    created_at?: string
+                    updated_at?: string
+                    // V2 Fields
+                    difficulty?: number | null
+                    time_required?: number | null
+                    min_participants?: number | null
+                    max_participants?: number | null
+                    materials?: Json
+                    ingredients?: Json
+                    process_steps?: Json
+                    tips?: string | null
+                }
+            }
+            nearby_events: {
+                Row: {
+                    id: number
+                    title: string
+                    description: string | null
+                    location: string | null
+                    latitude: number | null
+                    longitude: number | null
+                    start_date: string | null
+                    end_date: string | null
+                    image_url: string | null
+                    is_active: boolean
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: number
+                    title: string
+                    description?: string | null
+                    location?: string | null
+                    latitude?: number | null
+                    longitude?: number | null
+                    start_date?: string | null
+                    end_date?: string | null
+                    image_url?: string | null
+                    is_active?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: number
+                    title?: string
+                    description?: string | null
+                    location?: string | null
+                    latitude?: number | null
+                    longitude?: number | null
+                    start_date?: string | null
+                    end_date?: string | null
+                    image_url?: string | null
+                    is_active?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
             posts: {
                 Row: {
                     id: string

@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescri
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ShoppingCart, Share2, Plus, Minus, ChevronRight, Heart } from 'lucide-react';
 import Image from 'next/image';
-import { ReviewList } from '@/components/market/ReviewList';
+import { ProductReviews } from '@/app/(mobile)/market/components/ProductReviews';
 
 export default function ProductDetailPage() {
     const router = useRouter();
@@ -217,7 +217,7 @@ export default function ProductDetailPage() {
                 <div className="h-2 bg-gray-50" />
 
                 <section id="reviews" className="p-5 py-10 scroll-mt-28">
-                    <ReviewList productId={product.id} />
+                    <ProductReviews productId={product.id} />
                 </section>
 
                 <div className="h-2 bg-gray-50" />

@@ -1,21 +1,103 @@
-import React, { useEffect } from 'react';
-import { useRecommendationStore } from '@/store/useRecommendationStore';
+import React from 'react';
+import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ChefHat, Tent, MapPin } from 'lucide-react';
 
 interface RecommendationGridProps {
     onItemClick?: (item: any) => void;
 }
 
 export default function RecommendationGrid({ onItemClick }: RecommendationGridProps) {
-    const { currentRecommendations, updateContext } = useRecommendationStore();
+    const { data, loading } = usePersonalizedRecommendation();
 
-    // Initial Load - Set Context based on real time (Default sunny for now)
-    useEffect(() => {
-        updateContext(new Date().getHours(), 'sunny');
-        // In a real app, we would fetch weather here.
-    }, [updateContext]);
+    if (loading) {
+        return (
+            <div className="px-4 mb-8 grid grid-cols-2 gap-3">
+                <Skeleton className="h-32 rounded-2xl" />
+                <Skeleton className="h-32 rounded-2xl" />
+                <Skeleton className="h-32 rounded-2xl col-span-2" />
+            </div>
+        );
+    }
 
-    // Fallback if empty (should haven't happen with defaults, but safe guard)
-    if (!currentRecommendations || currentRecommendations.length === 0) return null;
+    const { cooking, play, event } = data;
+
+    // Construct valid items for display
+    const items = [];
+
+    // 1. Cooking
+    if (cooking) {
+        items.push({
+            id: `cook-${cooking.id}`,
+            icon: <ChefHat className="text-orange-600" size={28} />,
+            categoryLabel: '오늘의 셰프',
+            title: cooking.title,
+            bgColorClass: 'bg-orange-50',
+            textColorClass: 'text-orange-600',
+            data: cooking
+        });
+    } else {
+        // Fallback Mock
+        items.push({
+            id: 'cook-mock',
+            icon: <ChefHat className="text-stone-400" size={28} />,
+            categoryLabel: '오늘의 요리',
+            title: '준비 중입니다',
+            bgColorClass: 'bg-stone-100',
+            textColorClass: 'text-stone-500',
+            data: null
+        });
+    }
+
+    // 2. Play
+    if (play) {
+        items.push({
+            id: `play-${play.id}`,
+            icon: <Tent className="text-green-600" size={28} />,
+            categoryLabel: '오늘의 놀이',
+            title: play.title,
+            bgColorClass: 'bg-green-50',
+            textColorClass: 'text-green-600',
+            data: play
+        });
+    } else {
+        items.push({
+            id: 'play-mock',
+            icon: <Tent className="text-stone-400" size={28} />,
+            categoryLabel: '오늘의 놀이',
+            title: '준비 중입니다',
+            bgColorClass: 'bg-stone-100',
+            textColorClass: 'text-stone-500',
+            data: null
+        });
+    }
+
+    // 3. Event (Wide)
+    if (event) {
+        items.push({
+            id: `event-${event.id}`,
+            icon: <MapPin className="text-blue-600" size={28} />,
+            categoryLabel: '주변 즐길거리',
+            title: event.title,
+            bgColorClass: 'bg-blue-50',
+            textColorClass: 'text-blue-600',
+            isWide: true,
+            description: event.location || '가까운 곳에서 즐겨보세요',
+            data: event
+        });
+    } else {
+        items.push({
+            id: 'event-mock',
+            icon: <MapPin className="text-stone-400" size={28} />,
+            categoryLabel: '주변 즐길거리',
+            title: '진행 중인 행사가 없어요',
+            bgColorClass: 'bg-stone-100',
+            textColorClass: 'text-stone-500',
+            isWide: true,
+            description: '새로운 행사를 기다려주세요',
+            data: null
+        });
+    }
 
     return (
         <section className="px-4 mb-8">
@@ -25,13 +107,14 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
             </div>
             {/* Bento Grid: 2 Top + 1 Bottom Wide */}
             <div className="grid grid-cols-2 gap-3">
-                {currentRecommendations.map((item, index) => {
-                    // Index 2 is the 'Wide' bottom item
-                    const isWide = index === 2;
+                {items.map((item, index) => {
+                    // Force the 3rd item to be wide if it is designed that way, 
+                    // dependent on standard 3 item array
+                    const isWide = index === 2 || item.isWide;
                     return (
                         <div
                             key={item.id}
-                            onClick={() => onItemClick && onItemClick(item)}
+                            onClick={() => item.data && onItemClick && onItemClick(item.data)}
                             className={`
                                 ${item.bgColorClass} 
                                 ${isWide ? 'col-span-2 flex-row items-center px-6' : 'col-span-1 flex-col items-start p-4'} 
@@ -53,7 +136,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
                                     <h4 className={`${isWide ? 'text-lg' : 'text-sm'} font-bold text-stone-800 dark:text-stone-100 leading-tight`}>
                                         {item.title}
                                     </h4>
-                                    {isWide && <p className="text-xs text-stone-500 mt-1 line-clamp-1">가족과 함께 즐기는 특별한 시간</p>}
+                                    {isWide && item.description && <p className="text-xs text-stone-500 mt-1 line-clamp-1">{item.description}</p>}
                                 </div>
                             </div>
 

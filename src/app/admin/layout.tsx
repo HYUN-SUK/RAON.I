@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield, LogOut } from 'lucide-react';
+import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield, LogOut, Star, Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 
@@ -36,6 +36,8 @@ export default function AdminLayout({
                     <NavLink href="/admin/groups" icon={<Users size={18} />} label="소모임" />
                     <NavLink href="/admin/market" icon={<ShoppingBag size={18} />} label="마켓" />
                     <NavLink href="/admin/notice" icon={<Bell size={18} />} label="공지" />
+                    <NavLink href="/admin/recommendations" icon={<Star size={18} />} label="추천/행사" />
+                    <NavLink href="/admin/settings" icon={<Wrench size={18} />} label="기본정보" />
                 </nav>
                 <div className="p-4 border-t border-gray-800">
                     <button
