@@ -1,27 +1,24 @@
-# Handoff Document (Session: Personalization V2 & Admin Polish)
-**Date**: 2025-12-25
+# Handoff Document (Session: Personalization V2 Frontend & Verification)
+**Date**: 2025-12-26
 
 ## 📝 Summary
-Successfully implemented the **Personalization Engine V2** upgrade and refined the **Beginner Home** experience.
-- **Engine V2**: Expanded DB schema with detailed fields (difficulty, time, ingredients, etc.) and updated Admin Recommendation page to support deep editing and **Bulk Upload**.
-- **Admin Settings**: Simplified navigation (renamed to '기본정보') and settings form. Reverted complex dynamic chip builder to a sturdy **6-Fixed Chip Editor** (Address, Phone, Rules, Map, Nearby, Price).
-- **Home UI**: 'BeginnerHome' now renders 6 fixed chips utilizing dynamic data from `site_config`. Renamed 'Today's Play' to '오늘의 추천'.
+Successfully implemented the **Frontend Rendering** for Personalization V2 and verified the **Rules Chip** functionality.
+- **Recommendation V2**: `RecommendationGrid` and `HomeDetailSheet` now fully support rich data (Calories, Ingredients, Steps, Difficulty, Time).
+- **Rules Chip**: Verified the '이용수칙' chip correctly pulls and displays text from `site_config`.
+- **Badge System**: Added visual badges for Calories, Servings, and Age groups.
 
 ## 🛠 Technical Decisions
-- **Fixed Chips vs Dynamic Array**: Reverted the fully dynamic chip builder to a 6-slot fixed layout. This reduces admin complexity and ensures vital information (Check-in, Manners, Map) is always present and visually consistent, while still allowing content updates via Admin.
-- **Data Binding**: Chips now bind directly to specific `site_config` columns (e.g., `phone_number` -> Contact Chip, `rules_guide_text` -> Rules Chip) rather than a generic JSON array.
-- **Migration**: Added `rules_guide_text` to `site_config` to support the "Rules" chip content.
+- **Material Fallback**: In `BeginnerHome`, mapped `materials` (Play schema) to `ingredients` (UI prop) to ensure Play items display their required items in the detail sheet without a separate UI component.
+- **Calories Badge**: Added a distinct orange badge for Calories in the grid view to emphasize health/energy info.
+- **3-State Verification**: Confirmed that empty or loading states do not crash the V2 rendering logic.
 
 ## 🚀 Next Steps
-1. **Frontend Rendering V2**:
-   - The DB and Admin are ready with new fields (Ingredients, Steps, Difficulty).
-   - *Action*: Update `RecommendationGrid` and `HomeDetailSheet` to display these rich details on the user side.
-2. **Verification**:
-   - Test the "AI Bulk Upload" feature with real data sets.
-   - Verify the "Rules" chip popup displays the admin-entered text correctly.
-3. **User Feedback**:
-   - Gather feedback on the new "Today's Recommendation" section and the simplified Admin interface.
+1.  **Phase 6.3 Extension Map (Locale/LBS)**:
+    *   Implement **Location-Based Services (LBS)** to show nearby events dynamically.
+    *   Connect with cultural/tourism APIs (as requested/discussed).
+2.  **Phase 7 Final Polish**:
+    *   Global UI/UX refinements (TopBar icons, settings menu).
+    *   Market Pivot preparation.
 
 ## ⚠️ Caveats & Setup
-- **Migration Required**: Ensure `supabase/migrations/20251225_site_config_rules.sql` is applied to add the `rules_guide_text` column.
-- **Lint Warnings**: Some non-critical lint warnings (e.g., `package-lock.json` LF) remain but do not affect build/runtime.
+- **Data Dependency**: The "Calories" and "Steps" only show if the DB `recommendation_pool` has valid JSON data in V2 columns. Ensure `populate_sample_*.sql` scripts are run if data is missing.

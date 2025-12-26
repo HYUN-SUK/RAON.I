@@ -114,7 +114,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
 
                     // Safe access to potential V2 properties
                     const dataAny = item.data as any;
-                    const hasV2Info = dataAny && (dataAny.difficulty || dataAny.time_required);
+                    const hasV2Info = dataAny && (dataAny.difficulty || dataAny.time_required || dataAny.calories);
 
                     return (
                         <div
@@ -144,7 +144,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
 
                                     {/* V2 Badges: Difficulty & Time */}
                                     {hasV2Info && (
-                                        <div className="flex gap-2 mt-2">
+                                        <div className="flex gap-2 mt-2 flex-wrap">
                                             {dataAny.difficulty && (
                                                 <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
                                                     {'⭐'.repeat(dataAny.difficulty)}
@@ -154,6 +154,11 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
                                                 <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
                                                     <Clock size={10} className="mr-1" />
                                                     {dataAny.time_required}분
+                                                </span>
+                                            )}
+                                            {dataAny.calories && (
+                                                <span className="inline-flex items-center text-[10px] text-orange-600 bg-orange-50/80 px-1.5 py-0.5 rounded-md">
+                                                    {dataAny.calories}kcal
                                                 </span>
                                             )}
                                         </div>

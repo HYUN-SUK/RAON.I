@@ -212,7 +212,7 @@ export default function BeginnerHome() {
             bgColorClass: item.bgColorClass,
             // V2 Fields Copy
             categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
-            ingredients: item.ingredients,
+            ingredients: item.ingredients || item.materials,
             steps: item.process_steps, // DB field is process_steps, UI prop is steps
             tips: item.tips,
             time_required: item.time_required,
