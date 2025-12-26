@@ -12,17 +12,31 @@ import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { format } from 'date-fns';
 import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailSheet';
+import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useState } from 'react';
 
 export default function ReturningHome() {
     const router = useRouter();
     const { initRebook } = useReservationStore();
+    const { config } = useSiteConfig();
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
     const [detailData, setDetailData] = useState<HomeDetailData | null>(null);
 
+    // Nearby LBS Sheet State
+    const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
+    const [nearbyEvents, setNearbyEvents] = useState<any[]>([]);
+
     const handleRecommendationClick = (item: any) => {
+        // Special Handling for LBS Card
+        if (item.type === 'nearby_lbs') {
+            setNearbyEvents(item.events || []);
+            setNearbySheetOpen(true);
+            return;
+        }
+
         setDetailData({
             title: item.title,
             description: item.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
@@ -148,11 +162,18 @@ export default function ReturningHome() {
                 <SlimNotice />
             </div>
 
-            {/* Global Detail Sheet */}
             <HomeDetailSheet
                 isOpen={detailSheetOpen}
                 onClose={() => setDetailSheetOpen(false)}
                 data={detailData}
+            />
+
+            {/* Nearby LBS Sheet */}
+            <NearbyDetailSheet
+                isOpen={nearbySheetOpen}
+                onClose={() => setNearbySheetOpen(false)}
+                events={nearbyEvents}
+                facilities={config?.nearby_places as any[] || []}
             />
         </div>
     );

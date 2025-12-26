@@ -8,11 +8,11 @@ type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
 interface PersonalizedData {
     cooking: RecommendationItem | null;
     play: RecommendationItem | null;
-    event: NearbyEvent | null;
+    events: NearbyEvent[];
 }
 
 export function usePersonalizedRecommendation() {
-    const [data, setData] = useState<PersonalizedData>({ cooking: null, play: null, event: null });
+    const [data, setData] = useState<PersonalizedData>({ cooking: null, play: null, events: [] });
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
 
@@ -105,7 +105,7 @@ export function usePersonalizedRecommendation() {
 
                 const eventItem = events && events.length > 0 ? events[0] : null;
 
-                setData({ cooking: cookingItem, play: playItem, event: eventItem });
+                setData({ cooking: cookingItem, play: playItem, events: events || [] });
 
             } catch (error) {
                 console.error("Failed to fetch recommendations:", error);

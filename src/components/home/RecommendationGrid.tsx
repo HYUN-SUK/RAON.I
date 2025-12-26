@@ -20,7 +20,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
         );
     }
 
-    const { cooking, play, event } = data;
+    const { cooking, play, events } = data;
 
     // Construct valid items for display
     const items = [];
@@ -72,30 +72,35 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
         });
     }
 
-    // 3. Event (Wide)
-    if (event) {
+    // 3. Events (Nearby LBS)
+    const eventCount = events ? events.length : 0;
+    const firstEvent = events && events.length > 0 ? events[0] : null;
+
+    if (eventCount > 0 && firstEvent) {
         items.push({
-            id: `event-${event.id}`,
+            id: `event-lbs`,
             icon: <MapPin className="text-blue-600" size={28} />,
-            categoryLabel: '주변 즐길거리',
-            title: event.title,
+            categoryLabel: '주변 행사 및 편의시설',
+            title: firstEvent.title,
             bgColorClass: 'bg-blue-50',
             textColorClass: 'text-blue-600',
             isWide: true,
-            description: event.location || '가까운 곳에서 즐겨보세요',
-            data: event
+            description: eventCount > 1
+                ? `외 ${eventCount - 1}개의 행사와 편의시설이 있어요`
+                : firstEvent.location || '가까운 곳에서 즐겨보세요',
+            data: { type: 'nearby_lbs', events: events } // Special type for LBS handler
         });
     } else {
         items.push({
             id: 'event-mock',
             icon: <MapPin className="text-stone-400" size={28} />,
-            categoryLabel: '주변 즐길거리',
+            categoryLabel: '주변 행사 및 편의시설',
             title: '진행 중인 행사가 없어요',
             bgColorClass: 'bg-stone-100',
             textColorClass: 'text-stone-500',
             isWide: true,
-            description: '새로운 행사를 기다려주세요',
-            data: null
+            description: '주변 편의시설을 확인해보세요',
+            data: { type: 'nearby_lbs', events: [] }
         });
     }
 
