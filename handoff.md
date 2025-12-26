@@ -27,9 +27,12 @@ The current UI is designed to be **100% compatible** with real external APIs.
 - **Automation**: We can create a Server Action that fetches this data once per week (or on admin request) and updates the `site_config` JSON automatically, removing the need for manual entry.
 
 ## 🚀 Next Steps
-1.  **Integration**: Replace the current SQL mock data with real API calls using **Next.js API Routes** or **Supabase Edge Functions**.
+1.  **Integration (Critical Change)**: 
+    - **Requirement**: Use **User's Real-time Device Location (GPS)**, NOT the fixed Campsite location.
+    - **Action**: In the hook, replace the current DB fetch with `navigator.geolocation.getCurrentPosition()`, then pass those coordinates to the TourAPI/Kakao API.
+    - **Data Strategy**: The `nearby_events` table may become an "Event Cache" rather than a hardcoded list.
 2.  **Map Deep Linking**: Ensure "Navigation" buttons correctly open the user's installed map app (Naver/Kakao) using URL schemes.
 
 ## ⚠️ Caveats
-- **Data Persistence**: Currently, `nearby_events` data is static in the DB. For dynamic updates, a scheduler or admin trigger is needed.
-- **Environment Variables**: Future API keys (TourAPI, Kakao) need to be managed in `.env`.
+- **Data Source**: Currently, the SQL script populates static data representing the *Campsite's* vicinity for MVP demo purposes.
+- **Privacy**: Future implementation must handle "Permission Denied" states for GPS gracefully (e.g., fallback to Campsite location).
