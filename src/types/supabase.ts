@@ -77,7 +77,13 @@ export interface Database {
                     materials: Json
                     ingredients: Json
                     process_steps: Json
+
                     tips: string | null
+                    // V2.1 Fields
+                    servings: string | null
+                    calories: number | null
+                    age_group: string | null
+                    location_type: string | null
                 }
                 Insert: {
                     id?: number
@@ -96,10 +102,17 @@ export interface Database {
                     time_required?: number | null
                     min_participants?: number | null
                     max_participants?: number | null
+
                     materials?: Json
                     ingredients?: Json
                     process_steps?: Json
+
                     tips?: string | null
+                    // V2.1 Fields
+                    servings?: string | null
+                    calories?: number | null
+                    age_group?: string | null
+                    location_type?: string | null
                 }
                 Update: {
                     id?: number
@@ -121,7 +134,13 @@ export interface Database {
                     materials?: Json
                     ingredients?: Json
                     process_steps?: Json
+
                     tips?: string | null
+                    // V2.1 Fields
+                    servings?: string | null
+                    calories?: number | null
+                    age_group?: string | null
+                    location_type?: string | null
                 }
             }
             nearby_events: {

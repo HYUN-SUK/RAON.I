@@ -11,10 +11,42 @@ import SlimNotice from '@/components/home/SlimNotice';
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { format } from 'date-fns';
 import MissionHomeWidget from '@/components/home/MissionHomeWidget';
+import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailSheet';
+import { useState } from 'react';
 
 export default function ReturningHome() {
     const router = useRouter();
     const { initRebook } = useReservationStore();
+
+    // Bottom Sheet State
+    const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+    const [detailData, setDetailData] = useState<HomeDetailData | null>(null);
+
+    const handleRecommendationClick = (item: any) => {
+        setDetailData({
+            title: item.title,
+            description: item.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
+            icon: <span className="text-4xl">{item.icon}</span>,
+            actionLabel: item.actionLabel,
+            actionLink: item.actionLink,
+            bgColorClass: item.bgColorClass,
+            // V2 Fields Copy
+            categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
+            ingredients: item.ingredients,
+            steps: item.process_steps, // DB field is process_steps, UI prop is steps
+            tips: item.tips,
+            time_required: item.time_required,
+            difficulty: item.difficulty,
+
+            // V2.1 Premium Fields
+            image_url: item.image_url,
+            servings: item.servings,
+            calories: item.calories,
+            age_group: item.age_group,
+            location_type: item.location_type
+        });
+        setDetailSheetOpen(true);
+    };
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
             {/* Global TopBar */}
@@ -107,13 +139,21 @@ export default function ReturningHome() {
                 </div>
 
                 {/* 4. Recommendations Grid (Dynamic) */}
-                <RecommendationGrid />
+                {/* 4. Recommendations Grid (Dynamic) */}
+                <RecommendationGrid onItemClick={handleRecommendationClick} />
             </main>
 
             {/* Slim Notice Layout Position */}
             <div className="absolute bottom-0 left-0 right-0 z-40">
                 <SlimNotice />
             </div>
+
+            {/* Global Detail Sheet */}
+            <HomeDetailSheet
+                isOpen={detailSheetOpen}
+                onClose={() => setDetailSheetOpen(false)}
+                data={detailData}
+            />
         </div>
     );
 }

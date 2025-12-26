@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Upload, Download } from 'lucide-react';
+import { Plus, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Upload, Copy } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { Database } from '@/types/supabase';
@@ -25,6 +25,50 @@ import {
 
 type RecItem = Database['public']['Tables']['recommendation_pool']['Row'];
 type EventItem = Database['public']['Tables']['nearby_events']['Row'];
+
+interface IngredientItem {
+    name: string;
+    amount: string;
+}
+
+const AI_IMPORT_TEMPLATE = `
+[AI 요청 프롬프트 예시]
+
+"다음 JSON 형식에 맞춰 '요리(cooking)' 또는 '놀이(play)' 추천 아이템 3개를 생성해줘. 한국어로 작성해."
+
+[
+  {
+    "category": "cooking",
+    "title": "요리 제목",
+    "description": "요리 설명",
+    "image_url": "https://example.com/image.jpg",
+    "difficulty": 1,
+    "time_required": 30,
+    "ingredients": [
+      { "name": "재료명", "amount": "100g" }
+    ],
+    "process_steps": ["1단계 설명", "2단계 설명"],
+    "tips": "요리 팁",
+    "servings": "2인분",
+    "calories": 500
+  },
+  {
+    "category": "play",
+    "title": "놀이 제목",
+    "description": "놀이 설명",
+    "image_url": "https://example.com/image.jpg",
+    "difficulty": 1,
+    "time_required": 60,
+    "min_participants": 2,
+    "max_participants": 4,
+    "materials": ["준비물1", "준비물2"],
+    "process_steps": ["놀이 방법 1", "놀이 방법 2"],
+    "tips": "안전 팁",
+    "age_group": "5세 이상",
+    "location_type": "실외"
+  }
+]
+`;
 
 export default function RecommendationAdminPage() {
     const supabase = createClient();
@@ -55,9 +99,14 @@ export default function RecommendationAdminPage() {
         min_participants: 1,
         max_participants: 10,
         materials: [] as string[],
-        ingredients: [] as string[],
+        ingredients: [] as IngredientItem[], // V2: Structured Ingredients
         process_steps: [] as string[],
         tips: '',
+        // V2.1 Fields
+        servings: '',
+        calories: 0,
+        age_group: '',
+        location_type: '',
     });
 
     const [eventFormData, setEventFormData] = useState({
@@ -70,6 +119,10 @@ export default function RecommendationAdminPage() {
 
     // Helper for List Inputs
     const [tempInput, setTempInput] = useState('');
+    // Helper for Ingredient Inputs
+    const [tempIngName, setTempIngName] = useState('');
+    const [tempIngAmount, setTempIngAmount] = useState('');
+
 
     // Fetch Data
     const fetchData = async () => {
@@ -110,6 +163,11 @@ export default function RecommendationAdminPage() {
                 ingredients: recFormData.ingredients,
                 process_steps: recFormData.process_steps,
                 tips: recFormData.tips,
+                // V2.1 Fields
+                servings: recFormData.servings,
+                calories: recFormData.calories,
+                age_group: recFormData.age_group,
+                location_type: recFormData.location_type,
             };
 
             if (editingItem) {
@@ -190,6 +248,11 @@ export default function RecommendationAdminPage() {
                 ingredients: item.ingredients || [],
                 process_steps: item.process_steps || [],
                 tips: item.tips || '',
+                // V2.1 Fields
+                servings: item.servings || null,
+                calories: item.calories || null,
+                age_group: item.age_group || null,
+                location_type: item.location_type || null,
                 tags: item.tags || {},
                 image_url: item.image_url || null,
                 is_active: true
@@ -208,6 +271,13 @@ export default function RecommendationAdminPage() {
         } finally {
             setBulkLoading(false);
         }
+        setBulkLoading(false);
+    }
+
+
+    const handleCopyTemplate = () => {
+        navigator.clipboard.writeText(AI_IMPORT_TEMPLATE);
+        toast.success("AI 요청 양식이 클립보드에 복사되었습니다!");
     };
 
 
@@ -215,6 +285,16 @@ export default function RecommendationAdminPage() {
         if (item) {
             setEditingItem(item);
             const tags = item.tags as any;
+
+            // Handle ingredients normalization (string[] vs object[])
+            let ingredientsNormalized: IngredientItem[] = [];
+            if (Array.isArray(item.ingredients)) {
+                ingredientsNormalized = item.ingredients.map((ing: any) => {
+                    if (typeof ing === 'string') return { name: ing, amount: '' };
+                    return ing; // assume object
+                });
+            }
+
             setRecFormData({
                 category: item.category,
                 title: item.title,
@@ -226,9 +306,14 @@ export default function RecommendationAdminPage() {
                 min_participants: item.min_participants || 1,
                 max_participants: item.max_participants || 10,
                 materials: (item.materials as string[]) || [],
-                ingredients: (item.ingredients as string[]) || [],
+                ingredients: ingredientsNormalized,
                 process_steps: (item.process_steps as string[]) || [],
                 tips: item.tips || '',
+                // V2.1 Fields
+                servings: item.servings || '',
+                calories: item.calories || 0,
+                age_group: item.age_group || '',
+                location_type: item.location_type || '',
             });
         } else {
             setEditingItem(null);
@@ -246,6 +331,11 @@ export default function RecommendationAdminPage() {
                 ingredients: [],
                 process_steps: [],
                 tips: '',
+                // V2.1 Fields
+                servings: '',
+                calories: 0,
+                age_group: '',
+                location_type: '',
             });
         }
         setIsRecSheetOpen(true);
@@ -277,13 +367,23 @@ export default function RecommendationAdminPage() {
     };
 
     // List Handlers
-    const addListItem = (field: 'materials' | 'ingredients' | 'process_steps') => {
+    const addMaterial = () => {
         if (!tempInput.trim()) return;
         setRecFormData(prev => ({
             ...prev,
-            [field]: [...prev[field], tempInput.trim()]
+            materials: [...prev.materials, tempInput.trim()]
         }));
         setTempInput('');
+    };
+
+    const addIngredient = () => {
+        if (!tempIngName.trim()) return;
+        setRecFormData(prev => ({
+            ...prev,
+            ingredients: [...prev.ingredients, { name: tempIngName.trim(), amount: tempIngAmount.trim() }]
+        }));
+        setTempIngName('');
+        setTempIngAmount('');
     };
 
     const removeListItem = (field: 'materials' | 'ingredients' | 'process_steps', idx: number) => {
@@ -323,7 +423,12 @@ export default function RecommendationAdminPage() {
                                             JSON 형식으로 데이터를 붙여넣으세요. (category: 'cooking' | 'play')
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <div className="flex-1 py-4">
+                                    <div className="flex justify-end px-1 pt-2">
+                                        <Button variant="ghost" size="sm" onClick={handleCopyTemplate} className="text-xs text-blue-600 gap-1">
+                                            <Copy size={12} /> AI 요청용 양식 복사
+                                        </Button>
+                                    </div>
+                                    <div className="flex-1 py-2">
                                         <Textarea
                                             placeholder='[{"category": "cooking", "title": "...", "ingredients": [...]}, ...]'
                                             className="h-full font-mono text-xs"
@@ -463,6 +568,39 @@ export default function RecommendationAdminPage() {
                             </div>
                         </div>
 
+                        {/* V2.1 Premium Fields */}
+                        {recFormData.category === 'cooking' && (
+                            <div className="grid grid-cols-2 gap-4 bg-orange-50/50 p-2 rounded-lg border border-orange-100">
+                                <div className="space-y-2">
+                                    <Label className="text-orange-900">인분 (Servings)</Label>
+                                    <Input placeholder="예: 2-3인분" value={recFormData.servings} onChange={e => setRecFormData({ ...recFormData, servings: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-orange-900">칼로리 (kcal)</Label>
+                                    <Input type="number" value={recFormData.calories} onChange={e => setRecFormData({ ...recFormData, calories: parseInt(e.target.value) })} />
+                                </div>
+                            </div>
+                        )}
+
+                        {recFormData.category === 'play' && (
+                            <div className="grid grid-cols-2 gap-4 bg-green-50/50 p-2 rounded-lg border border-green-100">
+                                <div className="space-y-2">
+                                    <Label className="text-green-900">권장 연령</Label>
+                                    <Input placeholder="예: 5세 이상" value={recFormData.age_group} onChange={e => setRecFormData({ ...recFormData, age_group: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-green-900">장소 유형</Label>
+                                    <Select value={recFormData.location_type} onValueChange={v => setRecFormData({ ...recFormData, location_type: v })}>
+                                        <SelectTrigger><SelectValue placeholder="선택하세요" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="실내">실내</SelectItem>
+                                            <SelectItem value="실외">실외 (야외)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        )}
+
                         {recFormData.category === 'play' && (
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -476,36 +614,73 @@ export default function RecommendationAdminPage() {
                             </div>
                         )}
 
+                        {recFormData.category === 'play' && (
+                            <div className="space-y-2">
+                                <Label>준비물 (Materials)</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={tempInput}
+                                        onChange={e => setTempInput(e.target.value)}
+                                        placeholder="항목 입력 후 추가"
+                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMaterial(); } }}
+                                    />
+                                    <Button type="button" onClick={addMaterial} variant="outline"><Plus size={16} /></Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {recFormData.materials.map((item, idx) => (
+                                        <div key={idx} className="bg-gray-100 px-2 py-1 rounded text-xs flex items-center gap-1">
+                                            {item}
+                                            <button onClick={() => removeListItem('materials', idx)}><Trash2 size={12} className="text-gray-400 hover:text-red-500" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Ingredients: Structured Input */}
+                        {recFormData.category === 'cooking' && (
+                            <div className="space-y-2 p-3 bg-stone-50 rounded-lg border">
+                                <Label className="text-stone-700">🛒 재료 (Ingredients)</Label>
+                                <div className="flex gap-2 mb-2">
+                                    <Input
+                                        value={tempIngName}
+                                        onChange={e => setTempIngName(e.target.value)}
+                                        placeholder="재료명 (예: 삼겹살)"
+                                        className="flex-1"
+                                    />
+                                    <Input
+                                        value={tempIngAmount}
+                                        onChange={e => setTempIngAmount(e.target.value)}
+                                        placeholder="용량 (예: 300g)"
+                                        className="w-24"
+                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addIngredient(); } }}
+                                    />
+                                    <Button type="button" onClick={addIngredient} variant="default" size="icon" className="shrink-0">
+                                        <Plus size={16} />
+                                    </Button>
+                                </div>
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                    {recFormData.ingredients.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white px-3 py-2 rounded border text-sm shadow-sm">
+                                            <span>{item.name}</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-stone-500 text-xs">{item.amount}</span>
+                                                <button onClick={() => removeListItem('ingredients', idx)}>
+                                                    <Trash2 size={14} className="text-stone-400 hover:text-red-500" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {recFormData.ingredients.length === 0 && (
+                                        <p className="text-xs text-stone-400 text-center py-2">등록된 재료가 없습니다.</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <Label>이미지</Label>
                             <Input type="file" onChange={e => handleImageUpload(e, 'rec')} />
-                        </div>
-
-                        {/* Dynamic Lists */}
-                        <div className="space-y-2">
-                            <Label>{recFormData.category === 'cooking' ? '재료 (Ingredients)' : '준비물 (Materials)'}</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    value={tempInput}
-                                    onChange={e => setTempInput(e.target.value)}
-                                    placeholder="항목 입력 후 추가"
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            addListItem(recFormData.category === 'cooking' ? 'ingredients' : 'materials');
-                                        }
-                                    }}
-                                />
-                                <Button type="button" onClick={() => addListItem(recFormData.category === 'cooking' ? 'ingredients' : 'materials')} variant="outline"><Plus size={16} /></Button>
-                            </div>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {(recFormData.category === 'cooking' ? recFormData.ingredients : recFormData.materials).map((item, idx) => (
-                                    <div key={idx} className="bg-gray-100 px-2 py-1 rounded text-xs flex items-center gap-1">
-                                        {item}
-                                        <button onClick={() => removeListItem(recFormData.category === 'cooking' ? 'ingredients' : 'materials', idx)}><Trash2 size={12} className="text-gray-400 hover:text-red-500" /></button>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
 
                         {/* Process Steps (Reuse logic for now, simpler) */}
@@ -518,6 +693,17 @@ export default function RecommendationAdminPage() {
                                 onChange={e => setRecFormData({ ...recFormData, process_steps: e.target.value.split('\n') })}
                             />
                             <p className="text-xs text-gray-400">각 단계는 줄바꿈으로 구분됩니다.</p>
+                        </div>
+
+                        {/* V2: Tips Field */}
+                        <div className="space-y-2">
+                            <Label>💡 꿀팁 (Tip)</Label>
+                            <Textarea
+                                rows={2}
+                                placeholder="요리/놀이를 더 즐겁게 즐기는 팁을 작성하세요."
+                                value={recFormData.tips}
+                                onChange={e => setRecFormData({ ...recFormData, tips: e.target.value })}
+                            />
                         </div>
 
                     </div>

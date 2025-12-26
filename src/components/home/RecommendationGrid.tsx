@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChefHat, Tent, MapPin } from 'lucide-react';
+import { ChefHat, Tent, MapPin, Clock } from 'lucide-react';
 
 interface RecommendationGridProps {
     onItemClick?: (item: any) => void;
@@ -111,6 +111,11 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
                     // Force the 3rd item to be wide if it is designed that way, 
                     // dependent on standard 3 item array
                     const isWide = index === 2 || item.isWide;
+
+                    // Safe access to potential V2 properties
+                    const dataAny = item.data as any;
+                    const hasV2Info = dataAny && (dataAny.difficulty || dataAny.time_required);
+
                     return (
                         <div
                             key={item.id}
@@ -136,6 +141,24 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
                                     <h4 className={`${isWide ? 'text-lg' : 'text-sm'} font-bold text-stone-800 dark:text-stone-100 leading-tight`}>
                                         {item.title}
                                     </h4>
+
+                                    {/* V2 Badges: Difficulty & Time */}
+                                    {hasV2Info && (
+                                        <div className="flex gap-2 mt-2">
+                                            {dataAny.difficulty && (
+                                                <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
+                                                    {'⭐'.repeat(dataAny.difficulty)}
+                                                </span>
+                                            )}
+                                            {dataAny.time_required && (
+                                                <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
+                                                    <Clock size={10} className="mr-1" />
+                                                    {dataAny.time_required}분
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {isWide && item.description && <p className="text-xs text-stone-500 mt-1 line-clamp-1">{item.description}</p>}
                                 </div>
                             </div>

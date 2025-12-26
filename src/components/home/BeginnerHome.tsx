@@ -209,7 +209,21 @@ export default function BeginnerHome() {
             icon: <span className="text-4xl">{item.icon}</span>,
             actionLabel: item.actionLabel,
             actionLink: item.actionLink,
-            bgColorClass: item.bgColorClass
+            bgColorClass: item.bgColorClass,
+            // V2 Fields Copy
+            categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
+            ingredients: item.ingredients,
+            steps: item.process_steps, // DB field is process_steps, UI prop is steps
+            tips: item.tips,
+            time_required: item.time_required,
+            difficulty: item.difficulty,
+
+            // V2.1 Premium Fields
+            image_url: item.image_url,
+            servings: item.servings,
+            calories: item.calories,
+            age_group: item.age_group,
+            location_type: item.location_type
         });
         setDetailSheetOpen(true);
     };
