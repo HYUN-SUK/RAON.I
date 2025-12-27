@@ -16,11 +16,17 @@ import { format } from 'date-fns';
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase-client";
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useLBS } from '@/hooks/useLBS';
+import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 
 export default function BeginnerHome() {
     const router = useRouter();
     const supabase = createClient();
     const { config } = useSiteConfig(); // Dynamic Config
+    const lbs = useLBS(); // Real-time Location
+
+    // Contextual Data
+    const { data: recData, loading: recLoading } = usePersonalizedRecommendation();
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -259,10 +265,15 @@ export default function BeginnerHome() {
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
                         <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1">
-                            Welcome to RAON.I
+                            {recData.context?.weather
+                                ? `${recData.context.temp !== null ? recData.context.temp + '°C ' : ''}${recData.context.greeting}`
+                                : 'Welcome to RAON.I'
+                            }
                         </Badge>
                         <h1 className="text-3xl font-bold leading-tight">
-                            처음이신가요?<br />
+                            {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
+                                recData.context?.time === 'night' ? '고요한 밤,\n' :
+                                    '처음이신가요?\n'}
                         </h1>
                         <p className="text-lg font-semibold text-white/95 leading-snug drop-shadow-md">
                             두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
@@ -370,6 +381,8 @@ export default function BeginnerHome() {
                 onClose={() => setNearbySheetOpen(false)}
                 events={nearbyEvents}
                 facilities={config?.nearby_places as any[] || []}
+                userLocation={lbs.location}
+                getDistance={lbs.getDistanceKm}
             />
         </div>
     );

@@ -14,12 +14,16 @@ import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useLBS } from '@/hooks/useLBS';
 import { useState } from 'react';
+import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 
 export default function ReturningHome() {
     const router = useRouter();
     const { initRebook } = useReservationStore();
     const { config } = useSiteConfig();
+    const lbs = useLBS();
+    const { data: recData } = usePersonalizedRecommendation();
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -76,7 +80,11 @@ export default function ReturningHome() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
                     <div className="relative z-10 mt-4">
-                        <p className="text-white/80 text-sm mb-1">반가워요, 김캠퍼님</p>
+                        <Badge variant="outline" className="text-white/80 border-white/20 mb-2">
+                            {recData.context?.weather && recData.context.temp !== null ? `${recData.context.temp}°C ` : ''}
+                            {recData.context?.weather === 'sunny' ? '☀️ 맑음' : recData.context?.weather === 'rainy' ? '☔ 비' : ''}
+                        </Badge>
+                        <p className="text-white/80 text-sm mb-1">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
                         <h1 className="text-2xl font-bold leading-relaxed">
                             라온아이에서,<br />
                             나의 캠핑 이야기를 이어가세요.
@@ -174,6 +182,8 @@ export default function ReturningHome() {
                 onClose={() => setNearbySheetOpen(false)}
                 events={nearbyEvents}
                 facilities={config?.nearby_places as any[] || []}
+                userLocation={lbs.location}
+                getDistance={lbs.getDistanceKm}
             />
         </div>
     );
