@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren } from 'lucide-react';
@@ -264,21 +265,37 @@ export default function BeginnerHome() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
-                        <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1">
-                            {recData.context?.weather
-                                ? `${recData.context.temp !== null ? recData.context.temp + '°C ' : ''}${recData.context.greeting}`
-                                : 'Welcome to RAON.I'
-                            }
-                        </Badge>
-                        <h1 className="text-3xl font-bold leading-tight">
-                            {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
-                                recData.context?.time === 'night' ? '고요한 밤,\n' :
-                                    '처음이신가요?\n'}
-                        </h1>
-                        <p className="text-lg font-semibold text-white/95 leading-snug drop-shadow-md">
-                            두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
-                            라온아이에서 불편은 덜고, 추억은 쌓으세요.
-                        </p>
+                        {recLoading ? (
+                            <div className="space-y-4 animate-pulse">
+                                <Skeleton className="h-7 w-32 bg-white/20 rounded-full" />
+                                <div className="space-y-2">
+                                    <Skeleton className="h-10 w-48 bg-white/20 rounded-lg" />
+                                    <Skeleton className="h-10 w-36 bg-white/20 rounded-lg" />
+                                </div>
+                                <div className="space-y-1 pt-2">
+                                    <Skeleton className="h-5 w-full max-w-[280px] bg-white/20 rounded-md" />
+                                    <Skeleton className="h-5 w-full max-w-[240px] bg-white/20 rounded-md" />
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1">
+                                    {recData.context?.weather
+                                        ? `${recData.context.temp !== null ? recData.context.temp + '°C ' : ''}${recData.context.greeting}`
+                                        : 'Welcome to RAON.I'
+                                    }
+                                </Badge>
+                                <h1 className="text-3xl font-bold leading-tight">
+                                    {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
+                                        recData.context?.time === 'night' ? '고요한 밤,\n' :
+                                            '처음이신가요?\n'}
+                                </h1>
+                                <p className="text-lg font-semibold text-white/95 leading-snug drop-shadow-md">
+                                    두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
+                                    라온아이에서 불편은 덜고, 추억은 쌓으세요.
+                                </p>
+                            </>
+                        )}
                     </div>
                 </section>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Tent, RefreshCcw } from 'lucide-react';
@@ -80,15 +81,28 @@ export default function ReturningHome() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
                     <div className="relative z-10 mt-4">
-                        <Badge variant="outline" className="text-white/80 border-white/20 mb-2">
-                            {recData.context?.weather && recData.context.temp !== null ? `${recData.context.temp}°C ` : ''}
-                            {recData.context?.weather === 'sunny' ? '☀️ 맑음' : recData.context?.weather === 'rainy' ? '☔ 비' : ''}
-                        </Badge>
-                        <p className="text-white/80 text-sm mb-1">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
-                        <h1 className="text-2xl font-bold leading-relaxed">
-                            라온아이에서,<br />
-                            나의 캠핑 이야기를 이어가세요.
-                        </h1>
+                        {recData ? (
+                            <>
+                                <Badge variant="outline" className="text-white/80 border-white/20 mb-2">
+                                    {recData.context?.weather && recData.context.temp !== null ? `${recData.context.temp}°C ` : ''}
+                                    {recData.context?.weather === 'sunny' ? '☀️ 맑음' : recData.context?.weather === 'rainy' ? '☔ 비' : ''}
+                                </Badge>
+                                <p className="text-white/80 text-sm mb-1">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
+                                <h1 className="text-2xl font-bold leading-relaxed">
+                                    라온아이에서,<br />
+                                    나의 캠핑 이야기를 이어가세요.
+                                </h1>
+                            </>
+                        ) : (
+                            <div className="space-y-3 animate-pulse">
+                                <Skeleton className="h-6 w-20 bg-white/20 rounded-full" />
+                                <Skeleton className="h-4 w-32 bg-white/20 rounded-md" />
+                                <div className="space-y-2 pt-1">
+                                    <Skeleton className="h-8 w-48 bg-white/20 rounded-lg" />
+                                    <Skeleton className="h-8 w-40 bg-white/20 rounded-lg" />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </section>
 

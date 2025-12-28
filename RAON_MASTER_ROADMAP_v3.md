@@ -19,7 +19,7 @@
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 90% | Logic/Validation/Admin Core 완료. PG/오픈일 남음. |
 | **Phase 4** | **커뮤니티 (Community)** | ✅ **완료** | 100% | RLS 보안, 관리자 공지/소모임 관리, 소모임 기능(생성/가입/조회) 완료 |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
-| **Phase 6** | **확장 모듈 (Expansion)** | 🔄 **진행 중** | 60% | 크리에이터 보드, 미션 MVP (List/Detail/Auth) 완료. 미션 Admin 대기 |
+| **Phase 6** | **확장 모듈 (Expansion)** | 🔄 **진행 중** | 80% | 크리에이터 보드, 미션(MVP/Admin/Skeleton) 완료. 확장 지도 대기 |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | 🔄 **진행 중** | 95% | 미션 Admin, UI/UX 디테일 보완(Gap Filling), 설정/알림/마켓 피벗 진행. |
 
 ---
@@ -37,12 +37,13 @@
 *   **1.2 초보자 홈 (Beginner)**: 히어로, 가이드, 프라이스 디코딩 완료
 *   **1.3 기존 사용자 홈 (Returning)**: 스마트 리북, 예약 패널, 감성 배경 완료
 
-### Phase 2: 내공간 (My Space) - 🔄 Ongoing
-**"픽셀라이프 - 기록과 힐링의 아카이브"**
+### Phase 2: 내공간 (My Space) - 🔄 Ongoing (Strategic Pivot)
+**"Digital Archive - 나만의 기록과 사진"**
+> **Product Pivot (2025-12-28)**: 기존의 '꾸미기/불멍(Digital Toy)' 컨셉을 폐기하고, **"사진과 기록(Digital Archive)"**에 집중합니다. 어설픈 애니메이션 대신 사용자의 고퀄리티 사진이 주는 감동을 극대화합니다.
 *   **2.1 대시보드**: POV 뷰, 위젯 완료
 *   **2.2 나만의 지도**: 핀 저장, 상세 시트 완료
-*   **2.3 타임라인**: 통합 피드 완료. (AI 요약 남음)
-*   **2.4 앨범/감성**: 아직 구현 전
+*   **2.3 타임라인**: 통합 피드 완료.
+*   **2.4 아카이브 리뉴얼**: (Next) 히어로 사진 UX 강화, 기록 중심 UI 개편.
 
 ### Phase 3: 예약 시스템 (Reservation) - ✅ Core Logic Done
 **"레디코어 - 투명하고 쉬운 예약 & 강력한 관리"**
@@ -106,8 +107,8 @@
     *   [x] **초보자 모드 홈**: 히어로 섹션, 3-Step 추천 가이드(요리/놀이/이벤트) 카드 뷰 구현.
     *   [x] **재방문자 모드 홈**: 예약/미션 중심 대시보드 UI, 퀵 액션(체크인/매너타임) 구현.
     *   [x] **날씨/시간 개인화**: `useWeather` & `usePersonalizedRecommendation` 기반 상황별 인사말 및 날씨 배지(Open-Meteo) 적용.
-    *   [ ] **Skeleton UI**: 3-State UX(Loading/Empty/Error) 적용.
-    *   [ ] **관리**: 미션 관리자 페이지(Admin)는 Phase 7 예정.
+    *   [x] **Skeleton UI**: 3-State UX(Loading/Empty/Error) 적용 완료.
+    *   [x] **관리**: 미션 관리자 페이지(Admin) 확인(Verified).
 *   **6.3 확장 지도** ⬜: (대기)
 
 ### Phase 7: 운영 & 갭 필링 (Ops & Gap Filling) - 🔄 Ongoing (95%)
@@ -115,18 +116,18 @@
 *   **7.0 이슈 긴급 대응 (Hotfixes)** ✅:
     *   [x] **미션 피드**: 좋아요, 본인 삭제 기능 완비 (RLS/RPC).
     - [x] **커뮤니티**: 댓글 좋아요(New), 삭제 오류 해결 및 삭제 확인 모달 추가 (Optimistic UI Fix).
-*   **7.1 글로벌 UI/UX** ⬜:
-    *   [ ] **TopBar**: 명확한 로그인 아이콘, 설정 메뉴(프로필/알림/약관) 추가.
+*   **7.1 글로벌 UI/UX** ✅:
+    *   [x] **TopBar**: 설정 메뉴(프로필/알림/약관) 및 로그아웃 구현 완료.
 *   **7.2 홈 디테일 (Home Details)** ✅:
     *   [x] **초보자 칩**: 6개 고정 칩 디자인 적용 및 관리자 연동 완료.
     *   [x] **오늘의 콘텐츠**: '오늘의 추천'으로 명칭 변경 및 개인화 엔진 V2 (`recommendation_pool`) 프론트엔드/백엔드 고도화 완료.
     *   [x] **링크 수정**: 관리자 설정(기본정보)에서 주요 링크 및 텍스트 제어 가능.
     *   [x] **관리자 고도화 V2.1**: AI Bulk Import, 구조화된 재료/단계 입력 폼, 개인화 필드(인분/칼로리/연령/장소) 관리.
-*   **7.3 내공간 고도화 (My Space Polish)** ⬜:
-    *   [x] **위치 기반 편의시설**: `site_config.nearby_places`와 연동된 주변 편의시설 탭 구현 (Beginner/Returning).
-    *   [x] **주변 즐길거리**: `nearby_events` DB 테이블 연동, 실시간 GPS 거리 계산(LBS) 및 네비게이션 딥링크 적용 완료.
-    *   [ ] **히어로 위젯**: 불멍/별보기/꾸미기 동작 구현 및 미션 위젯 싱크.
-    *   [ ] **카드 정리**: 사진 카드 제거(검토), 포인트 카드 상세 추가.
+*   **7.3 내공간 고도화 (My Space Pivot)** ⬜:
+    *   [x] **위치 기반 편의시설**: `site_config.nearby_places`와 연동된 주변 편의시설 탭 구현.
+    *   [x] **주변 즐길거리**: `nearby_events` DB 연동 및 LBS.
+    *   [ ] **Archive UX (New)**: 불멍/별보기/꾸미기 버튼 삭제. 사진 업로드 및 뷰어 품질 강화.
+    *   [ ] **Action**: '기록하기(Log)' 버튼 강조 및 접근성 개선.
 *   **7.4 마켓 피벗 (Market Pivot)** ⬜:
     *   [ ] **제휴 중심**: 자체 상품 대신 외부 링크(쿠팡 파트너스 등) 지원 구조로 변경.
 *   **7.5 예약 자동화** ⬜:
@@ -137,8 +138,7 @@
 
 ---
 
-1.  **Priority**: **데이터 채우기 (Data Population)**.
-2.  **Strategy**: AI Template을 활용하여 1주일치 추천 콘텐츠 확보.
-3.  **Expansion**: 유저 맞춤화(User Personalization) 화면 구현.
-3.  **Expansion**: 타임라인 AI 요약, 앨범 등 감성 기능(Pixels) 완성.
+1.  **Priority**: **내공간 리뉴얼 (My Space Pivot)**.
+2.  **Strategy**: "어설픈 기능보다 확실한 감성(사진)"으로 전환.
+3.  **Next**: 제휴 마켓 및 자동화.
 
