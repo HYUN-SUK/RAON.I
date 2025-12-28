@@ -63,14 +63,14 @@ export default function MyGroupsWidget() {
         <div className="mt-6 mb-2">
             <div className="flex justify-between items-center px-7 mb-3">
                 <h2 className="text-lg font-bold text-[#1A1A1A]">내 소모임</h2>
-                <Link href="/community" className="text-xs text-gray-400 hover:text-[#1C4526] flex items-center">
+                <Link href="/community?tab=GROUP" className="text-xs text-gray-400 hover:text-[#1C4526] flex items-center">
                     더보기 <ChevronRight className="w-3 h-3" />
                 </Link>
             </div>
 
             <div className="flex gap-4 overflow-x-auto px-7 pb-4 scrollbar-hide">
                 {/* Create New / Search Entry Point */}
-                <Link href="/community" className="flex flex-col items-center gap-2 min-w-[70px]">
+                <Link href="/community?tab=GROUP" className="flex flex-col items-center gap-2 min-w-[70px]">
                     <div className="w-[60px] h-[60px] rounded-full bg-[#1C4526]/5 flex items-center justify-center border border-[#1C4526]/10">
                         <PlusCircle className="w-6 h-6 text-[#1C4526]" />
                     </div>

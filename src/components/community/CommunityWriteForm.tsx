@@ -174,6 +174,17 @@ export default function CommunityWriteForm() {
                     </div>
                 </div>
 
+                {/* Privacy Guide for Story (Top) */}
+                {type === 'STORY' && (
+                    <div className="p-3 bg-[#FDFBF7] border border-[#ECE8DF] rounded-lg text-xs text-stone-600 leading-relaxed flex items-center gap-2">
+                        <span className="text-lg">🔒</span>
+                        <div>
+                            <span className="font-bold text-[#1C4526]">기본 비공개</span>로 설정되며 작성자만 볼 수 있습니다.<br />
+                            전체 공개 시 이야기 게시판에 게시됩니다.
+                        </div>
+                    </div>
+                )}
+
                 {/* Dynamic Fields */}
                 {type === 'GROUP' && (
                     <Input

@@ -10,8 +10,19 @@ import CommunityTabs from '@/components/community/CommunityTabs';
 import CommunityBoardContainer from '@/components/community/CommunityBoardContainer';
 import { useCommunityStore } from '@/store/useCommunityStore';
 
+import { useSearchParams } from 'next/navigation';
+
 export default function CommunityPage() {
     const { activeTab, setActiveTab, loadPosts } = useCommunityStore();
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get('tab');
+
+    React.useEffect(() => {
+        if (tabParam) {
+            // Simplify: Just cast to any/BoardType for now as validation is low risk here
+            setActiveTab(tabParam as any);
+        }
+    }, [tabParam, setActiveTab]);
 
     React.useEffect(() => {
         loadPosts(activeTab);
