@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCommunityStore } from '@/store/useCommunityStore';
-import { ArrowLeft, Grid, LayoutList, Heart, MessageCircle, Search } from 'lucide-react';
+import { ArrowLeft, Search } from 'lucide-react';
 import Image from 'next/image';
 
 export default function MyRecordPage() {
