@@ -7,6 +7,7 @@ import PhotoGrid from '@/components/myspace/PhotoGrid';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import UnlockableFeatureSection from '@/components/myspace/UnlockableFeatureSection';
 import { cn } from '@/lib/utils';
 
 const FILTERS = ["전체", "텐트", "불멍", "요리", "풍경"];
@@ -69,7 +70,7 @@ export default function MySpaceAlbumPage() {
                 </div>
 
                 {/* Grid */}
-                <div className="mt-2">
+                <div className="mt-2 text-stone-300">
                     <PhotoGrid photos={filteredPhotos} />
                 </div>
 
@@ -78,6 +79,11 @@ export default function MySpaceAlbumPage() {
                         <p>해당하는 사진이 없어요.</p>
                     </div>
                 )}
+
+                {/* Unlockable Features */}
+                <div className="px-4 pb-8 border-t border-stone-200 mt-8 pt-4">
+                    <UnlockableFeatureSection />
+                </div>
             </main>
         </div>
     );

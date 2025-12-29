@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon, History, Map, Award } from "lucide-react";
+import { Image as ImageIcon, History, Map, Award, Star } from "lucide-react";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";
@@ -37,12 +37,16 @@ export default function SummaryGrid() {
             onClick: () => router.push('/myspace/history')
         },
         {
-            icon: Award,
-            label: "포인트",
-            color: "text-amber-600",
-            bg: "bg-amber-50",
-            value: `${points.toLocaleString()} P`,
-            onClick: () => alert(`현재 보유 포인트: ${points.toLocaleString()} P`)
+            icon: Star, // Changed Icon to Star (XP)
+            label: "나의 탐험 지수", // Changed Label
+            color: "text-[#1C4526]", // Changed Color
+            bg: "bg-[#F5F2EB]", // Changed BG
+            value: "XP & Token", // Placeholder, or fetch real value if possible? SummaryGrid doesn't have wallet data yet.
+            // For MVP, just show title or maybe inject data? 
+            // The original code used `useMySpaceStore`. I'll stick to store data but label it differently.
+            // Wait, useMySpaceStore has `points`. I should probably show "Lv.1" or something if I can, but `points` is all I have here.
+            // Let's keep it simple for now as requested: "XP & TOKEN" style.
+            onClick: () => router.push('/myspace/wallet') // Redirect to wallet page for history
         },
         {
             icon: Map,

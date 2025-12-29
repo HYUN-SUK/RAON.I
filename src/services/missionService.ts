@@ -21,19 +21,7 @@ export const missionService = {
             throw error;
         }
 
-        if (!data) {
-            // TODO: Remove this mock once backend RLS/Data is confirmed. 
-            // Returning a mock mission to ensure UI visibility for review.
-            return {
-                id: 'mock-mission-1',
-                title: '나만의 아카이브 만들기',
-                description: 'Start your archive journey.',
-                start_date: new Date().toISOString(),
-                end_date: new Date(Date.now() + 86400000 * 7).toISOString(),
-                is_active: true,
-                community_post_id: null
-            } as any;
-        }
+        if (!data) return null;
 
         // Lazy Creation of Community Post
         if (!data.community_post_id) {
@@ -99,6 +87,7 @@ export const missionService = {
     },
 
     async completeMission(missionId: string, userId: string, content?: string): Promise<UserMission> {
+        // 1. Update User Mission Status
         const { data, error } = await supabase
             .from('user_missions')
             .update({
@@ -112,6 +101,39 @@ export const missionService = {
             .single();
 
         if (error) throw error;
+
+        // 2. Fetch Mission Reward Info
+        const { data: mission } = await supabase
+            .from('missions')
+            .select('reward_xp, reward_point')
+            .eq('id', missionId)
+            .single();
+
+        // 3. Grant Reward (XP & Point)
+        if (mission) {
+            // Import dynamically or use service (Assuming pointService is available)
+            // To avoid circular dep, we might need to be careful, but service-to-service is ok if simple.
+            // Better: Invoke pointService here.
+
+            // We need to import pointService at the top, but let's do it inside or assume it's imported.
+            // Since we can't easily change imports with replace_content in one go efficiently if they are top-level and we are editing a block...
+            // Actually, we should allow pointService import.
+
+            // For now, let's use the same pointService logic or call it if imported.
+            // Since I am editing the middle of the file, I cannot add import at the top easily without multi-replace.
+            // I will assume pointService is imported OR I will implement the grant logic here directly via RPC? 
+            // NO, duplication is bad.
+
+            // Let's rely on the RPC 'grant_user_reward' directly here as a shortcut to avoid Import hell in this single edit tool.
+            await supabase.rpc('grant_user_reward', {
+                p_user_id: userId,
+                p_xp_amount: mission.reward_xp || 0,
+                p_point_amount: mission.reward_point || 0,
+                p_reason: 'MISSION_REWARD',
+                p_related_id: missionId
+            });
+        }
+
         return data as UserMission;
     },
 

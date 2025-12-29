@@ -3,13 +3,19 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCommunityStore } from '@/store/useCommunityStore';
-import { ArrowLeft, Search } from 'lucide-react';
+import { usePoint } from '@/hooks/usePoint';
+import UnlockableFeatureSection from '@/components/myspace/UnlockableFeatureSection';
+import { ArrowLeft, Search, Lock } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 export default function MyRecordPage() {
     const router = useRouter();
     const { getMyPosts, currentUser } = useCommunityStore();
     const myPosts = getMyPosts();
+
+    // Point & Level
+    const { wallet, loading: walletLoading } = usePoint(currentUser?.id);
 
     // State for Search
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -50,26 +56,29 @@ export default function MyRecordPage() {
                 </div>
             </div>
 
-            {/* Profile Summary */}
-            <div className="bg-[#FDFBF7] px-6 pt-6 pb-8 text-center border-b border-[#ECE8DF] mb-0">
-                <div className="w-24 h-24 rounded-full bg-white mx-auto mb-4 overflow-hidden relative shadow-sm border-4 border-white">
-                    {(currentUser as any)?.image ? (
-                        <img src={(currentUser as any).image} alt={currentUser.name} className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold text-[#1C4526]/40 bg-[#F5F2EB]">
-                            {currentUser.name?.[0]}
+            {/* Profile Summary & Wallet */}
+            <div className="bg-[#FDFBF7] px-6 pt-6 pb-8 border-b border-[#ECE8DF] mb-0">
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="w-20 h-20 rounded-full bg-white overflow-hidden relative shadow-sm border-2 border-white shrink-0">
+                        {(currentUser as any)?.image ? (
+                            <img src={(currentUser as any).image} alt={currentUser.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-[#1C4526]/40 bg-[#F5F2EB]">
+                                {currentUser.name?.[0]}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <h2 className="text-xl font-bold text-[#2C2C2C] mb-1">{currentUser.name}</h2>
+                        <div className="text-sm text-stone-500">
+                            총 <span className="font-medium text-[#1C4526]">{myPosts.length}</span>개의 기록
                         </div>
-                    )}
+                        <p className="text-xs text-stone-400 mt-1 font-serif italic">"나만의 숲을 기록하다"</p>
+                    </div>
                 </div>
 
-                <h2 className="text-xl font-bold text-[#2C2C2C] mb-2">{currentUser.name}</h2>
-                <div className="text-sm text-stone-500 mb-6">
-                    <span className="font-medium text-[#1C4526]">{myPosts.length}</span>개의 기록이 보관되어 있습니다.
-                </div>
-
-                <p className="text-sm text-stone-600 leading-relaxed font-serif italic text-opacity-80">
-                    "내가 작성했던 모든 기록들이<br />모여있는 공간입니다."
-                </p>
+                {/* Visual Option Buttons (View & Edit) */}
+                <UnlockableFeatureSection />
             </div>
 
             {/* Full Width Content Grid */}

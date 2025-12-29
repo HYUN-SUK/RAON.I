@@ -6,6 +6,7 @@ import { useMySpaceStore, TimelineItem } from '@/store/useMySpaceStore';
 import TimelineCard from '@/components/myspace/TimelineCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, Search, ChevronDown } from 'lucide-react';
+import UnlockableFeatureSection from '@/components/myspace/UnlockableFeatureSection';
 import { cn } from '@/lib/utils';
 
 export default function MySpaceHistoryPage() {
@@ -85,6 +86,12 @@ export default function MySpaceHistoryPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#1C4526]/20 transition-all placeholder:text-stone-400"
                     />
+                </div>
+
+                {/* Unlockable Features */}
+                <div className="mb-8 bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-sm border border-stone-100">
+                    <p className="text-xs font-bold text-stone-400 mb-2">나만의 히스토리 확장</p>
+                    <UnlockableFeatureSection />
                 </div>
 
                 {Object.keys(groupedItems).length === 0 ? (

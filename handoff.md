@@ -1,41 +1,34 @@
-# Handoff Document - My Space UI Refinement & Cleanup
+# Handoff Document - XP & Token System Implementation
 
-**Date:** 2025-12-28
-**Session Focus:** My Space UI Polish, UX Flow Improvements, Code Cleanup
+## ✅ 이번 세션 요약 (Activities Completed)
+- **XP/Token/Gold 3단계 화폐 시스템 구축**:
+  - `raon_token` (구 point) 및 `gold_point` 컬럼 추가 및 마이그레이션 (`profiles` 테이블).
+  - `pointService` 확장: 지갑 조회(`getWallet`), 보상 지급(`grantReward`), 사용(`usePoint`), 내역 조회(`getHistory`).
+- **'나의 탐험 지수' (My Exploration Index) 구현**:
+  - `/myspace/wallet` 페이지 신설.
+  - 레벨, 경험치(XP), 라온토큰을 동등하게 보여주는 **균형 잡힌 상태 카드** 디자인 적용.
+  - 획득/사용 내역(History) 탭 기능 구현.
+- **Premium Forest UI 디자인**:
+  - 내 기록, 앨범, 히스토리 페이지에 **보기/편집 도구(Unlockable Options)** 섹션 추가.
+  - Lucide 아이콘, 유리 질감, 금색 잠금 배지를 활용한 프리미엄 디자인 적용.
+  - **접기/펼치기(Collapsible)** 기능으로 페이지 깔끔함 유지.
 
-## 📝 Summary (이번 세션 완료 사항)
-1.  **"My Records" Page Redesign (`/myspace/records`)**:
-    *   **Archive Layout**: Full-width design with paper-textured background.
-    *   **Feature**: Real-time Search Bar implemented.
-    *   **Bug Fix**: Fixed infinite loop caused by `useEffect` state dependency.
-    *   **Cleanup**: Removed unused imports (`Grid`, `Heart` etc.) and polished type logic.
+## 🏗️ 기술적 결정 사항 (Technical Decisions)
+- **화폐 분리 전략**:
+  - **XP (Experience)**: 오직 레벨업 및 칭호 획득용 (누적형).
+  - **Raon Token**: 실질적인 서비스 내 재화 (소모형). 기록 꾸미기, 옵션 해금 등에 사용.
+  - **Gold Point**: 향후 유료/현금성 재화를 위해 구조만 선점 (현재 미사용).
+- **재사용 컴포넌트 (`UnlockableFeatureSection`)**:
+  - 기록, 앨범, 히스토리 등 여러 페이지에서 동일한 '잠금 해제' 경험을 제공하기 위해 단일 컴포넌트로 모듈화했습니다.
+  - 중앙에서 디자인을 수정하면 모든 페이지에 반영됩니다.
 
-2.  **Navigation & UX Improvements**:
-    *   **Hero Section**: Moved Mission Badge higher (adjusted padding) for better visibility.
-    *   **Widget Links**:
-        *   "My Groups" More button -> Links to **Community Group Board** (`?tab=GROUP`).
-        *   "Slim Notice" -> Links to **Community Notice Board** (`?tab=NOTICE`).
-    *   **Community Page**: Added `useSearchParams` support to handle `?tab=` deep linking.
-    *   **Write Form**: Relocated "Privacy Notice" to a prominent position (below Board, above Title) for Story posts.
+## 🚀 다음 작업 가이드 (Next Steps)
+1.  **미션 포인트 → 라온토큰 대체**:
+    - 기존 `missionService`나 관련 로직에 남아있는 '포인트' 개념을 모두 `raon_token`으로 명확히 교체하고, 보상 지급 로직을 연결해야 합니다.
+2.  **획득/차감 로직 검증**:
+    - 글쓰기, 좋아요 받기 등 구체적인 토큰 획득 시나리오 구현.
+    - 실제 옵션 해금 시 토큰 차감(`usePoint`) 및 DB 반영 확인.
 
-3.  **Mission Visibility**:
-    *   **Fix**: Adjusted z-index for Mission Badge.
-    *   **Robustness**: Added reliable fallback (mock data) in `missionService` to ensure badge visibility during prototype review even if backend data is missing.
-
-## 🛠 Technical Decisions & Changes
-*   **Deep Linking**: Modified `CommunityPage` to read `tab` query parameter, enabling direct navigation from Home/MySpace widgets to specific community tabs.
-*   **Mock Data**: Intentionally kept the "Mock Mission" in `missionService.ts` (`TODO` marked) to ensure the UI review flow is not blocked by intermittent Supabase RLS policies or empty data states.
-*   **Code Cleanup**: Removed unused icon imports in `records/page.tsx` to reduce bundle size and warnings.
-
-## ⚠️ Caveats & Known Issues
-*   **Mock Mission Data**: `src/services/missionService.ts` currently returns a hardcoded mock mission if no active mission is found. **This must be removed/refactored** when connecting to the live Mission production DB.
-*   **Type Assertions**: Some `as any` casts remain in `missionService` for the mock return. These should be strictly typed in the next phase.
-
-## 📋 Next Steps (다음 세션 가이드)
-1.  **Experience & Point System Design**:
-    *   Discuss and implement the logic for **XP (Leveling)** vs **Points (Spending)**.
-    *   Define earning rules (Mission, Community, Reservation).
-2.  **Data Connection**:
-    *   Replace mock mission data with real DB queries once the admin establishes a consistent "Active Mission".
-3.  **Final Polish**:
-    *   Verify mobile responsiveness for the new "My Records" grid on various device sizes.
+## ⚠️ 주의 사항 (Caveats)
+- **마이그레이션**: `20251228_create_profiles_xp.sql` 파일이 최신 상태입니다. 로컬 DB 리셋 시 반드시 이 파일을 실행해야 `raon_token` 컬럼이 생성됩니다.
+- **임시 데이터**: 현재 UI에 표시되는 획득/사용 내역은 DB에 데이터가 없으면 "내역이 없습니다"로 뜹니다. 테스트 시 `pointService.grantReward`를 통해 데이터를 임의로 넣어 확인하세요.
