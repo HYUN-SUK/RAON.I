@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase-client';
+import { POINT_POLICY, PointActionType, getLevelInfo } from '@/config/pointPolicy';
 
-export type PointTransactionType = 'MISSION_REWARD' | 'EVENT' | 'PURCHASE' | 'USAGE' | 'ADMIN_ADJUST';
+export type PointTransactionType = PointActionType | 'EVENT' | 'PURCHASE' | 'USAGE' | 'ADMIN_ADJUST';
 
 export interface UserWallet {
     xp: number;
@@ -65,6 +66,51 @@ export const pointService = {
         }
 
         return { success: true };
+    },
+
+
+    /**
+     * Grant Reward by Action Type (High Level)
+     * Handles Daily Limit check for LOGIN automatically.
+     */
+    grantAction: async (userId: string, action: PointActionType, relatedId?: string) => {
+        const supabase = createClient();
+
+        // 1. Get Policy Values
+        let xp = 0;
+        let token = 0;
+
+        if (action === 'MISSION_COMPLETE') {
+            // For mission, values should be passed via grantReward direct call or we need to fetch mission. 
+            // This method is for static policy actions.
+            console.warn("Use grantReward for MISSION_COMPLETE to specify exact amounts.");
+            return { success: false, reason: 'Use grantReward for dynamic mission rewards' };
+        } else {
+            const policy = POINT_POLICY.ACTIONS[action as keyof typeof POINT_POLICY.ACTIONS];
+            if (!policy) return { success: false, reason: 'Invalid Action' };
+            xp = policy.xp;
+            token = policy.token;
+        }
+
+        // 2. Check Daily Limit for Login
+        if (action === 'LOGIN') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const { count } = await supabase
+                .from('point_history')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('reason', 'LOGIN')
+                .gte('created_at', today.toISOString());
+
+            if (count && count > 0) {
+                return { success: false, reason: 'Already rewarded today' };
+            }
+        }
+
+        // 3. Grant
+        return await pointService.grantReward(userId, xp, token, 0, action, relatedId);
     },
 
     /**

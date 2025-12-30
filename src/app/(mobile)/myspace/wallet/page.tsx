@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCommunityStore } from '@/store/useCommunityStore';
-import { usePoint } from '@/hooks/usePoint';
+import { useMySpaceStore } from '@/store/useMySpaceStore';
+import { getLevelInfo } from '@/config/pointPolicy'; // Helper if needed
+import { pointService } from '@/services/pointService';
+import { createClient } from '@/lib/supabase-client';
 import { PointStatusCard } from '@/components/profile/PointStatusCard';
 import { ArrowLeft, History, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,11 +14,40 @@ import { ko } from 'date-fns/locale';
 
 type FilterType = 'ALL' | 'EARNED' | 'USED';
 
+const supabase = createClient();
+
 export default function WalletPage() {
     const router = useRouter();
-    const { currentUser } = useCommunityStore();
-    const { wallet, history, loading } = usePoint(currentUser?.id);
+    // Correct store usage
+    const { xp, level, raonToken, setWallet } = useMySpaceStore();
+
+    // Construct local wallet object for Card
+    const wallet = { xp, level, raonToken, goldPoint: 0, point: raonToken };
+
     const [filter, setFilter] = useState<FilterType>('ALL');
+
+    const [history, setHistory] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadWalletAndHistory = async () => {
+            setIsLoading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // 1. Sync Wallet
+                const fetchedWallet = await pointService.getWallet(user.id);
+                if (fetchedWallet) {
+                    setWallet(fetchedWallet.xp, fetchedWallet.level, fetchedWallet.raonToken);
+                }
+
+                // 2. Load History
+                const hist = await pointService.getHistory(user.id);
+                setHistory(hist);
+            }
+            setIsLoading(false);
+        };
+        loadWalletAndHistory();
+    }, [setWallet]);
 
     const filteredHistory = React.useMemo(() => {
         if (!history) return [];
@@ -44,7 +75,7 @@ export default function WalletPage() {
             <main className="px-5 pt-2">
                 {/* 1. Status Card (Detail View) */}
                 <div className="mb-8">
-                    <PointStatusCard wallet={wallet} loading={loading} variant="detail" />
+                    <PointStatusCard wallet={wallet} loading={isLoading} variant="detail" />
                 </div>
 
                 {/* 2. History Section */}
@@ -75,7 +106,7 @@ export default function WalletPage() {
                     </div>
 
                     {/* List */}
-                    {loading ? (
+                    {isLoading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (
                                 <div key={i} className="h-16 bg-white dark:bg-zinc-900 rounded-2xl animate-pulse" />

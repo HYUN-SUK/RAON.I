@@ -20,7 +20,6 @@ export default function CreateMissionPage() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsSubmitting(true);
-        console.log('Submitting form...');
 
         try {
             const formData = new FormData(e.currentTarget);
@@ -60,10 +59,7 @@ export default function CreateMissionPage() {
                 is_active: isActive
             };
 
-            console.log('Payload:', payload);
-
             await adminMissionService.createMission(payload);
-            console.log('Mission created successfully');
             alert('미션이 생성되었습니다.');
             router.push('/admin/mission');
         } catch (error: any) {

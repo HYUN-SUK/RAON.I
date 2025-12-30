@@ -6,7 +6,7 @@ import { useMySpaceStore, TimelineItem } from '@/store/useMySpaceStore';
 import TimelineCard from '@/components/myspace/TimelineCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, Search, ChevronDown } from 'lucide-react';
-import UnlockableFeatureSection from '@/components/myspace/UnlockableFeatureSection';
+import RecordTools from '@/components/myspace/RecordTools';
 import { cn } from '@/lib/utils';
 
 export default function MySpaceHistoryPage() {
@@ -89,9 +89,8 @@ export default function MySpaceHistoryPage() {
                 </div>
 
                 {/* Unlockable Features */}
-                <div className="mb-8 bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-sm border border-stone-100">
-                    <p className="text-xs font-bold text-stone-400 mb-2">나만의 히스토리 확장</p>
-                    <UnlockableFeatureSection />
+                <div className="mb-8">
+                    <RecordTools />
                 </div>
 
                 {Object.keys(groupedItems).length === 0 ? (

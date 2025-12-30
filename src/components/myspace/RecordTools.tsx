@@ -1,13 +1,13 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Lock, Palette, Map, Calendar, Clock, Image as ImageIcon, Sparkles, Moon, CloudFog, Camera, Sticker, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface OptionItem {
     name: string;
-    icon: React.ElementType; // Lucide Icon Component
+    icon: React.ElementType;
     color: string;
     cost: number;
 }
@@ -28,50 +28,50 @@ const EDIT_OPTIONS: OptionItem[] = [
     { name: '로그 스티커', icon: Sticker, color: 'text-pink-500', cost: 5 },
 ];
 
-export default function UnlockableFeatureSection() {
-    const [isOpen, setIsOpen] = React.useState(false);
+export default function RecordTools() {
+    const [isOpen, setIsOpen] = useState(false);
 
-    const handlelockedFeatureClick = (featureName: string, cost: number) => {
+    const handleFeatureClick = (featureName: string, cost: number) => {
         toast('준비 중인 기능입니다', {
-            description: `'${featureName}' 기능을 사용하려면 ${cost} 토큰이 필요합니다. 곧 업데이트 될 예정이에요!`
+            description: `'${featureName}' 기능을 사용하려면 ${cost} 토큰이 필요합니다.곧 업데이트 될 예정이에요!`
         });
     };
 
     const renderOptionList = (title: string, options: OptionItem[]) => (
-        <div className="mb-10 last:mb-0">
+        <div className="mb-8 last:mb-0">
             <h4 className="text-[10px] font-bold text-[#1C4526]/70 uppercase tracking-widest mb-4 px-1 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[#1C4526] rounded-full inline-block"></span>
                 {title}
             </h4>
-            <div className="flex gap-4 overflow-x-auto pb-6 w-full px-1 scrollbar-hide snap-x">
+            <div className="flex gap-4 overflow-x-auto pb-4 w-full px-1 scrollbar-hide snap-x">
                 {options.map((opt) => (
                     <button
                         key={opt.name}
-                        onClick={() => handlelockedFeatureClick(opt.name, opt.cost)}
-                        className="flex flex-col items-center gap-2.5 min-w-[76px] group snap-start relative shrink-0"
+                        onClick={() => handleFeatureClick(opt.name, opt.cost)}
+                        className="flex flex-col items-center gap-2.5 min-w-[70px] group snap-start relative shrink-0"
                     >
                         <div className="relative transition-transform duration-300 group-hover:-translate-y-1">
                             {/* Icon Container */}
-                            <div className="w-16 h-16 rounded-3xl bg-white dark:bg-zinc-900 border border-[#ECE8DF] dark:border-zinc-700 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] group-hover:shadow-[0_4px_12px_-2px_rgba(28,69,38,0.1)] flex items-center justify-center relative overflow-hidden transition-all duration-300">
+                            <div className="w-14 h-14 rounded-2xl bg-white dark:bg-zinc-900 border border-[#ECE8DF] dark:border-zinc-700 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] group-hover:shadow-[0_4px_12px_-2px_rgba(28,69,38,0.1)] flex items-center justify-center relative overflow-hidden transition-all duration-300">
                                 <div className="absolute inset-0 bg-gradient-to-br from-[#F5F2EB]/50 to-transparent dark:from-zinc-800/50 opacity-100 group-hover:opacity-0 transition-opacity" />
                                 <opt.icon
-                                    size={24}
+                                    size={20}
                                     className={cn("transition-all duration-300 group-hover:scale-110", opt.color)}
                                     strokeWidth={1.5}
                                 />
-                                {/* Cost Badge (Inside) */}
-                                <div className="absolute bottom-0 inset-x-0 h-5 bg-[#F7F5EF] dark:bg-zinc-800 flex items-center justify-center border-t border-[#ECE8DF] dark:border-zinc-700">
-                                    <span className="text-[9px] font-bold text-stone-500 dark:text-stone-400">{opt.cost} T</span>
+                                {/* Cost Badge */}
+                                <div className="absolute bottom-0 inset-x-0 h-4 bg-[#F7F5EF] dark:bg-zinc-800 flex items-center justify-center border-t border-[#ECE8DF] dark:border-zinc-700">
+                                    <span className="text-[8px] font-bold text-stone-500 dark:text-stone-400">{opt.cost} T</span>
                                 </div>
                             </div>
 
-                            {/* Lock Badge (Floating) */}
-                            <div className="absolute -top-1 -right-1 bg-[#1C4526] text-white p-1 rounded-full shadow-lg border-[1.5px] border-white dark:border-black z-10">
+                            {/* Lock Badge */}
+                            <div className="absolute -top-1 -right-1 bg-[#1C4526] text-white p-0.5 rounded-full shadow-lg border-[1.5px] border-white dark:border-black z-10">
                                 <Lock className="w-2 h-2" strokeWidth={2.5} />
                             </div>
                         </div>
 
-                        <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300 text-center leading-tight break-keep px-1 group-hover:text-[#1C4526] dark:group-hover:text-green-400 transition-colors">
+                        <span className="text-[10px] font-semibold text-stone-600 dark:text-stone-300 text-center leading-tight break-keep px-1 group-hover:text-[#1C4526] transition-colors">
                             {opt.name}
                         </span>
                     </button>
@@ -81,22 +81,22 @@ export default function UnlockableFeatureSection() {
     );
 
     return (
-        <div className="mt-8 border-t border-dashed border-[#ECE8DF] dark:border-zinc-800 pt-6">
+        <div className="bg-white/40 dark:bg-zinc-800/20 rounded-xl overflow-hidden border border-stone-200/50 dark:border-zinc-700/50 backdrop-blur-sm">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-center gap-2 py-2 text-stone-500 hover:text-[#1C4526] dark:text-stone-400 dark:hover:text-green-400 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 text-stone-600 bg-white/50 hover:bg-white/80 transition-colors"
             >
-                <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 px-4 py-2 rounded-full border border-[#ECE8DF] dark:border-zinc-700 shadow-sm">
-                    <span className="text-xs font-bold">보기, 편집 도구</span>
-                    <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", isOpen && "rotate-180")} />
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold tracking-tight">보기, 편집 도구</span>
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-300", isOpen && "rotate-180")} />
                 </div>
             </button>
 
             <div className={cn(
-                "grid transition-all duration-500 ease-in-out overflow-hidden",
-                isOpen ? "grid-rows-[1fr] opacity-100 mt-6" : "grid-rows-[0fr] opacity-0 mt-0"
+                "transition-all duration-500 ease-in-out overflow-hidden bg-stone-50/50 dark:bg-zinc-900/50",
+                isOpen ? "max-h-[500px] opacity-100 p-6" : "max-h-0 opacity-0 p-0"
             )}>
-                <div className="min-h-0 min-w-0">
+                <div className="min-w-0">
                     {renderOptionList('VIEW OPTIONS', VIEW_OPTIONS)}
                     {renderOptionList('EDIT TOOLS', EDIT_OPTIONS)}
                 </div>
@@ -104,3 +104,4 @@ export default function UnlockableFeatureSection() {
         </div>
     );
 }
+

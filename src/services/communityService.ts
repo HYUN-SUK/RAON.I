@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-client';
 import { Post, BoardType } from '@/store/useCommunityStore';
+import { pointService } from '@/services/pointService';
 import { Database } from '@/types/supabase';
 
 // Instantiate the browser client which has access to cookies
@@ -37,6 +38,11 @@ export const communityService = {
             .from('posts')
             .select('*', { count: 'exact' })
             .eq('type', type)
+            // Filter out PRIVATE posts for public feed. 
+            // Note: If we want to show OWN private posts in feed, we need OR logic (visibility != PRIVATE OR author_id == me), 
+            // but for simplicity and typical design, private posts only appear in My Space.
+            // Also need to handle legacy data where visibility might be missing (default PUBLIC).
+            .not('meta_data->>visibility', 'eq', 'PRIVATE')
             .order('created_at', { ascending: false })
             .range(from, to);
 
@@ -47,6 +53,32 @@ export const communityService = {
 
         return {
             data: data ? data.map(mapDbToPost) : [],
+            count
+        };
+    },
+
+    // 1.5 Get My Posts (All Visibility)
+    // 1.5 Get My Posts (All Visibility, with Search & Pagination)
+    async getMyPosts(userId: string, page: number = 0, limit: number = 10, searchKeyword?: string) {
+        const from = page * limit;
+        const to = from + limit - 1;
+
+        let query = supabase
+            .from('posts')
+            .select('*', { count: 'exact' })
+            .eq('author_id', userId)
+            .order('created_at', { ascending: false })
+            .range(from, to);
+
+        if (searchKeyword) {
+            query = query.or(`title.ilike.%${searchKeyword}%,content.ilike.%${searchKeyword}%`);
+        }
+
+        const { data, error, count } = await query;
+
+        if (error) throw error;
+        return {
+            data: (data || []).map(mapDbToPost),
             count
         };
     },
@@ -65,7 +97,13 @@ export const communityService = {
 
     // 3. Create Post
     async createPost(post: Partial<Post>) {
-        const dbPost = mapPostToDb(post);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        const dbPost = {
+            ...mapPostToDb(post),
+            author_id: user?.id // Explicitly set author_id
+        };
+
         const { data, error } = await supabase
             .from('posts')
             .insert(dbPost)
@@ -73,6 +111,16 @@ export const communityService = {
             .single();
 
         if (error) throw error;
+
+        // Grant Reward
+        if (user) {
+            try {
+                await pointService.grantAction(user.id, 'WRITE_POST', data.id);
+            } catch (e) {
+                console.error("Reward Failed", e);
+            }
+        }
+
         return mapDbToPost(data);
     },
 
@@ -256,6 +304,17 @@ export const communityService = {
         const { data } = supabase.storage
             .from('community-images')
             .getPublicUrl(filePath);
+
+        // Grant Reward for Photo Upload
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            try {
+                // Note: We don't have a related ID for photo yet (it's orphaned before post).
+                await pointService.grantAction(user.id, 'UPLOAD_PHOTO');
+            } catch (e) {
+                console.error("Photo Reward Failed", e);
+            }
+        }
 
         return data.publicUrl;
     },

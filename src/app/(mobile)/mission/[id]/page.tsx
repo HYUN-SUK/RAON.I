@@ -119,10 +119,10 @@ export default function MissionDetailPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2 bg-[#F7F5EF] dark:bg-zinc-800 px-3 py-2 rounded-lg">
-                            <span className="text-lg">💰</span>
+                            <span className="text-lg">🪙</span>
                             <div>
-                                <p className="text-[10px] text-stone-500">포인트</p>
-                                <p className="font-bold text-sm">{currentMission.reward_point} P</p>
+                                <p className="text-[10px] text-stone-500">라온토큰</p>
+                                <p className="font-bold text-sm text-orange-600">{currentMission.reward_point} 개</p>
                             </div>
                         </div>
                     </div>

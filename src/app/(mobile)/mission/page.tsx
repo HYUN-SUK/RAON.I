@@ -85,8 +85,8 @@ export default function MissionListPage() {
                                                 <span className="text-xs font-semibold text-[#C3A675] bg-[#C3A675]/10 px-2 py-1 rounded-md">
                                                     {mission.reward_xp} XP
                                                 </span>
-                                                <span className="text-xs font-semibold text-stone-500 bg-stone-100 dark:bg-zinc-800 px-2 py-1 rounded-md">
-                                                    {mission.reward_point} P
+                                                <span className="text-xs font-semibold text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-md">
+                                                    {mission.reward_point} 토큰
                                                 </span>
                                             </div>
                                             <Button variant="ghost" size="sm" className="h-8 pr-0 hover:bg-transparent hover:text-[#1C4526]">

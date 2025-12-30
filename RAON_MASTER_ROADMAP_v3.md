@@ -37,7 +37,7 @@
 *   **1.2 초보자 홈 (Beginner)**: 히어로, 가이드, 프라이스 디코딩 완료
 *   **1.3 기존 사용자 홈 (Returning)**: 스마트 리북, 예약 패널, 감성 배경 완료
 
-### Phase 2: 내공간 (My Space) - 🔄 Ongoing (Strategic Pivot)
+### Phase 2: 내공간 (My Space) - ✅ Completed (Detailed Polish)
 **"Digital Archive - 나만의 기록과 사진"**
 > **Product Pivot (2025-12-28)**: 기존의 '꾸미기/불멍(Digital Toy)' 컨셉을 폐기하고, **"사진과 기록(Digital Archive)"**에 집중합니다. 어설픈 애니메이션 대신 사용자의 고퀄리티 사진이 주는 감동을 극대화합니다.
 *   **2.1 대시보드**: POV 뷰, 위젯 완료
@@ -47,6 +47,12 @@
     *   [x] **기록 페이지**: 풀사이즈 뷰, 종이 질감, 검색, 비공개 로직 구현.
     *   [x] **히어로 섹션**: 미션 배지 가시성 확보 및 UX 개선.
     *   [x] **연동**: 소모임/공지 위젯과 커뮤니티 게시판 딥링크 연결.
+    *   [x] **도구 표준화**: 앨범/기록/히스토리 3종 뷰/편집 도구 디자인 통일 및 가로 스크롤 이슈 해결.
+*   **2.5 XP & Token System (New)** ✅:
+    *   [x] **3-Tier Currency**: XP(Level), RaonToken(Utility), GoldPoint.
+    *   [x] **My Exploration Index**: `/myspace/wallet` (지갑) 페이지 및 내역 조회 구현.
+    *   [x] **Premium UI**: View/Edit 옵션 잠금 해제 UI (Glassmorphism + Collapsible) 적용.
+
 
 ### Phase 3: 예약 시스템 (Reservation) - ✅ Core Logic Done
 **"레디코어 - 투명하고 쉬운 예약 & 강력한 관리"**
@@ -126,11 +132,12 @@
     *   [x] **오늘의 콘텐츠**: '오늘의 추천'으로 명칭 변경 및 개인화 엔진 V2 (`recommendation_pool`) 프론트엔드/백엔드 고도화 완료.
     *   [x] **링크 수정**: 관리자 설정(기본정보)에서 주요 링크 및 텍스트 제어 가능.
     *   [x] **관리자 고도화 V2.1**: AI Bulk Import, 구조화된 재료/단계 입력 폼, 개인화 필드(인분/칼로리/연령/장소) 관리.
-*   **7.3 내공간 고도화 (My Space Pivot)** ⬜:
+*   **7.3 내공간 고도화 (My Space Pivot)** ✅:
     *   [x] **위치 기반 편의시설**: `site_config.nearby_places`와 연동된 주변 편의시설 탭 구현.
     *   [x] **주변 즐길거리**: `nearby_events` DB 연동 및 LBS.
     *   [x] **Archive UX (New)**: 불멍/별보기/꾸미기 버튼 삭제. 사진 업로드 및 뷰어 품질 강화.
     *   [x] **Action**: '기록하기(Log)' 버튼 강조 및 접근성 개선.
+    *   [x] **일관성**: 내공간 전반(Records, Album, History)의 도구 UI 경험 통일.
 *   **7.4 마켓 피벗 (Market Pivot)** ⬜:
     *   [ ] **제휴 중심**: 자체 상품 대신 외부 링크(쿠팡 파트너스 등) 지원 구조로 변경.
 *   **7.5 예약 자동화** ⬜:

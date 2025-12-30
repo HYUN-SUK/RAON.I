@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { LogOut, LogIn, Settings, User, Bell, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { pointService } from "@/services/pointService";
+import { getLevelInfo } from "@/config/pointPolicy";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -17,13 +19,13 @@ import {
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 
 export default function TopBar() {
-    const { level, xp } = useMySpaceStore();
+    const { level, xp, raonToken, setWallet } = useMySpaceStore();
     const router = useRouter();
     const supabase = createClient();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // Simple XP logic: 100 XP per level. Current progress is xp % 100.
-    const progress = (xp % 100);
+    // Dynamic Level Progress
+    const { progress } = getLevelInfo(xp);
 
     useEffect(() => {
         checkUser();
@@ -31,7 +33,26 @@ export default function TopBar() {
 
     const checkUser = async () => {
         const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         setIsLoggedIn(!!session);
+
+        if (user) {
+            // 1. Try Grant Login Reward
+            try {
+                const reward = await pointService.grantAction(user.id, 'LOGIN');
+                if (reward.success) {
+                    toast.success("매일 로그인 보상! 경험치 +10xp, 라온토큰 +1개 획득 🎁");
+                }
+
+                // 2. Refresh Wallet
+                const wallet = await pointService.getWallet(user.id);
+                if (wallet) {
+                    setWallet(wallet.xp, wallet.level, wallet.raonToken);
+                }
+            } catch (error) {
+                console.error("Login reward/sync failed:", error);
+            }
+        }
     };
 
     const handleLogin = () => {
@@ -52,16 +73,17 @@ export default function TopBar() {
     return (
         <header className="sticky top-0 z-[100] flex justify-between items-center px-6 h-[60px] bg-white shadow-sm">
             {/* Level & XP */}
-            <div className="flex items-center gap-3">
-                <div className="bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    Lv.{level}
-                </div>
-                <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="flex flex-col ml-1">
+                <span className="text-[10px] text-stone-500 font-bold mb-0.5">Level {level}</span>
+                <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
                     <div
                         className="h-full bg-green-600 transition-all duration-500 rounded-full"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
+                <span className="text-[10px] text-stone-400 font-medium leading-none">
+                    Raon Token <span className="text-orange-600 font-bold ml-0.5">{raonToken}개</span>
+                </span>
             </div>
 
             {/* Logo - Centered */}

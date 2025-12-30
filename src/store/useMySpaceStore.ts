@@ -59,9 +59,15 @@ interface MySpaceState {
     // 경험치 및 포인트 시스템
     xp: number;
     level: number;
-    points: number;
+    raonToken: number; // Renamed from points
+    title: string;     // New
+
+    // Actions to sync with server
+    setWallet: (xp: number, level: number, token: number) => void;
+
+    // Optimistic updates
     addXp: (amount: number) => void;
-    addPoints: (amount: number) => void;
+    addToken: (amount: number) => void;
 
     // 앨범 (Album)
     album: AlbumItem[];
@@ -76,13 +82,16 @@ interface MySpaceState {
 
     // 타임라인 (Timeline)
     timelineItems: TimelineItem[];
-    fetchTimeline: () => void;
+    fetchTimeline: (userId?: string) => void;
     fetchAlbum: () => void;
 }
 
+import { getLevelInfo } from '@/config/pointPolicy';
+import { createClient } from '@/lib/supabase-client';
+
 export const useMySpaceStore = create<MySpaceState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             isNightMode: false,
             isFireOn: false,
             isStarOn: false,
@@ -93,13 +102,20 @@ export const useMySpaceStore = create<MySpaceState>()(
 
             xp: 0,
             level: 1,
-            points: 0,
+            raonToken: 0,
+            title: '초보 캠퍼',
+
+            setWallet: (xp, level, token) => {
+                const info = getLevelInfo(xp);
+                set({ xp, level, raonToken: token, title: info.currentTitle });
+            },
+
             addXp: (amount) => set((state) => {
                 const newXp = state.xp + amount;
-                const newLevel = Math.floor(newXp / 100) + 1;
-                return { xp: newXp, level: newLevel };
+                const info = getLevelInfo(newXp);
+                return { xp: newXp, level: info.currentLevel, title: info.currentTitle };
             }),
-            addPoints: (amount) => set((state) => ({ points: state.points + amount })),
+            addToken: (amount) => set((state) => ({ raonToken: state.raonToken + amount })),
 
             // 앨범 초기값 및 액션
             album: [],
@@ -130,66 +146,53 @@ export const useMySpaceStore = create<MySpaceState>()(
 
             // 타임라인 초기값 및 액션 (Mock Data)
             timelineItems: [],
-            fetchTimeline: () => set({
-                timelineItems: [
-                    {
-                        id: 't-1',
-                        type: 'reservation',
-                        date: '2025-11-20',
-                        title: '가을 끝자락 캠핑',
-                        content: 'A-7 구역 (파쇄석) | 성인 2, 아이 2',
-                        siteId: 'site-7'
-                    },
-                    {
-                        id: 't-2',
-                        type: 'photo',
-                        date: '2025-11-20T19:30:00',
-                        title: '불멍 타임 🔥',
-                        content: '오랜만에 불멍하니 잡생각이 사라진다.',
-                        images: ['https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&w=1000&auto=format&fit=crop']
-                    },
-                    {
-                        id: 't-3',
-                        type: 'mission',
-                        date: '2025-11-21T09:00:00',
-                        title: '아침 산책 미션 달성',
-                        content: '상쾌한 숲 공기 마시기 완료!',
-                        missionPoints: 150
-                    },
-                    {
-                        id: 't-4',
-                        type: 'reservation',
-                        date: '2025-10-05',
-                        title: '첫 가족 캠핑',
-                        content: 'B-2 구역 (데크) | 성인 2, 아이 1',
-                        siteId: 'site-2'
-                    },
-                    {
-                        id: 't-5',
-                        type: 'photo',
-                        date: '2025-10-05T14:20:00',
-                        title: '텐트 설치 완료!',
-                        content: '처음이라 오래 걸렸지만 뿌듯하다.',
-                        images: ['https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?q=80&w=1000&auto=format&fit=crop']
-                    },
-                    {
-                        id: 't-6',
-                        type: 'mission',
-                        date: '2025-10-06T11:00:00',
-                        title: '뒷정리 깔끔왕',
-                        content: 'LNT(Leave No Trace) 실천하기',
-                        missionPoints: 100
-                    },
-                    {
-                        id: 't-7',
-                        type: 'reservation',
-                        date: '2025-09-15',
-                        title: '친구들과 글램핑',
-                        content: 'G-1 구역 (글램핑) | 성인 4',
-                        siteId: 'site-glamp-1'
-                    }
-                ]
-            }),
+            fetchTimeline: async (userId) => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                const targetUserId = userId || user?.id;
+
+                if (!targetUserId) return;
+
+                // 1. Fetch Posts (My Story) - Both Public and Private
+                const { data: posts } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('author_id', targetUserId)
+                    .order('created_at', { ascending: false });
+
+                // 2. Fetch Completed Missions
+                const { data: missions } = await supabase
+                    .from('user_missions')
+                    .select('*, mission:missions(*)') // Join with mission details
+                    .eq('user_id', targetUserId)
+                    .eq('status', 'COMPLETED');
+
+                // 3. Map to TimelineItems
+                const postItems: TimelineItem[] = (posts || []).map(p => ({
+                    id: `post-${p.id}`,
+                    type: 'photo', // Treating posts as photo/story records
+                    date: p.created_at,
+                    title: p.title,
+                    content: p.content,
+                    images: p.images || (p.meta_data?.thumbnail_url ? [p.meta_data.thumbnail_url] : [])
+                }));
+
+                const missionItems: TimelineItem[] = (missions || []).map(m => ({
+                    id: `mission-${m.id}`,
+                    type: 'mission',
+                    date: m.completed_at || m.created_at,
+                    title: `미션 성공: ${m.mission?.title}`,
+                    content: m.content || m.mission?.description,
+                    missionPoints: m.mission?.reward_xp, // Display XP as points or Token? XP is better for timeline achievement
+                    images: m.image_url ? [m.image_url] : []
+                }));
+
+                const allItems = [...postItems, ...missionItems].sort((a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+
+                set({ timelineItems: allItems });
+            },
             fetchAlbum: () => set({
                 album: [
                     {

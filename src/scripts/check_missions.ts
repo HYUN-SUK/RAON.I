@@ -7,9 +7,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkMissions() {
-    const now = new Date().toISOString();
-    console.log("Current Time:", now);
+async function checkMissions()    // check time
+{
+    const now = new Date();
 
     const { data, error } = await supabase
         .from('missions')
@@ -20,8 +20,9 @@ async function checkMissions() {
         return;
     }
 
-    console.log("Current Time:", now);
-    console.log(JSON.stringify(data, null, 2));
+    if (!data || data.length === 0) {
+        return;
+    };
 }
 
 checkMissions();
