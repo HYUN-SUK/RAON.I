@@ -17,11 +17,12 @@
 - [x] XP/Token Integration & Logic
   - [x] Replace 'P' with 'Raon Token' in UI
   - [x] Implement Grant/Deduct Logic
-  - [x] **Browser Verification**: Verify token grant flow
+  - [x] **Browser Verification**: Verify token consumption & unlock flow
 
 - [x] My Space Write Fixes
   - [x] Visibility Fix (Private vs Public)
   - [x] **Write Default**: Default to Private for 'Write Record'
+  - [x] **Verification**: Verify writing flow
 
 - [x] TopBar UI
   - [x] Display 'Raon Token' below Level Bar (Left Aligned)

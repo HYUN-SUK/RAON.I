@@ -11,14 +11,20 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 import { toast } from "sonner";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function MissionDetailPage() {
     const params = useParams();
     const router = useRouter();
     const { currentMission, userMission, participants, fetchCurrentMission, joinMission, completeMission, toggleLike, deleteParticipation, isLoading, error } = useMissionStore();
     const [preview, setPreview] = useState<string | null>(null);
-
-    // console.log('Render Detail:', { currentMission, participants });
 
     // Initial Load
     useEffect(() => {
@@ -32,10 +38,28 @@ export default function MissionDetailPage() {
         }
     }, [error]);
 
-    // Handle Image Selection (Mock)
+    // State for file
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    // State for Deletion Dialog
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [selectedParticipationIdForDelete, setSelectedParticipationIdForDelete] = useState<string | null>(null);
+
+    const handleDeleteClick = (participationId?: string) => {
+        // If specific ID logic is needed later, we can use it. 
+        // For now, deleteParticipation deletes the CURRENT user's participation.
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        setIsDeleteDialogOpen(false);
+        await deleteParticipation();
+    };
+
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreview(reader.result as string);
@@ -49,8 +73,22 @@ export default function MissionDetailPage() {
     };
 
     const handleComplete = async () => {
-        // In real world, we would upload the image to storage here
-        await completeMission("Photo Verification URL");
+        if (!selectedFile) {
+            toast.error("인증 사진을 선택해주세요.");
+            return;
+        }
+
+        try {
+            // Upload Image first
+            // We use communityService as it has the upload helper
+            const imageUrl = await import('@/services/communityService').then(m => m.communityService.uploadImage(selectedFile));
+
+            await completeMission("미션 인증 완료! 📸", imageUrl);
+            toast.success("미션 인증 성공! 보상이 지급되었습니다.");
+        } catch (e: any) {
+            console.error(e);
+            toast.error("업로드 실패: " + e.message);
+        }
     };
 
     if (isLoading && !currentMission) {
@@ -236,7 +274,7 @@ export default function MissionDetailPage() {
                                                 className="text-stone-400 hover:text-red-500 hover:bg-red-50"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    deleteParticipation();
+                                                    handleDeleteClick();
                                                 }}
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -261,6 +299,21 @@ export default function MissionDetailPage() {
                     </div>
                 </div>
             </main>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>미션 참여 기록 삭제</DialogTitle>
+                        <DialogDescription>
+                            정말 삭제하시겠습니까? 인증 사진과 작성된 댓글, 받은 보상이 모두 회수됩니다.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>취소</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>삭제하기</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

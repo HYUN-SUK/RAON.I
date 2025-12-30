@@ -16,7 +16,7 @@ interface MissionStore {
     fetchCurrentMission: () => Promise<void>;
     fetchMissions: () => Promise<void>;
     joinMission: () => Promise<void>;
-    completeMission: (content?: string) => Promise<void>;
+    completeMission: (content?: string, imageUrl?: string) => Promise<void>;
 
     participants: UserMission[];
     fetchParticipants: () => Promise<void>;
@@ -100,7 +100,7 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         }
     },
 
-    completeMission: async (content?: string) => {
+    completeMission: async (content?: string, imageUrl?: string) => {
         const { currentMission, userMission } = get();
         if (!currentMission || !userMission) return;
 
@@ -109,7 +109,7 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
-            const updated = await missionService.completeMission(currentMission.id, user.id, content);
+            const updated = await missionService.completeMission(currentMission.id, user.id, content, imageUrl);
             set({ userMission: updated });
 
             // Refresh participants to show my new post
@@ -147,27 +147,36 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
     },
 
     deleteParticipation: async () => {
-        const { currentMission } = get();
+        const { currentMission, participants } = get();
         if (!currentMission) {
             return;
         }
 
-        if (!window.confirm('정말 미션 참여 기록을 삭제하시겠습니까?')) return;
+        // Confirmation moved to UI component
 
         set({ isLoading: true });
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
+            // Optimistic Update: Remove from list and reset status immediately
+            const updatedParticipants = participants.filter(p => p.user_id !== user.id);
+            set({
+                userMission: null,
+                participants: updatedParticipants
+            });
+
             await missionService.deleteMissionParticipation(currentMission.id, user.id);
 
-            // Reset state
-            set({ userMission: null });
-            await get().fetchParticipants(); // Refresh feed
             toast.success('참여 기록이 삭제되었습니다.');
+
+            // Background refresh to ensure consistency
+            get().fetchParticipants();
         } catch (error: any) {
             set({ error: error.message });
             toast.error('삭제 실패: ' + error.message);
+            // Revert/Reload on error
+            get().fetchParticipants();
         } finally {
             set({ isLoading: false });
         }

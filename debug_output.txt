@@ -1,0 +1,6 @@
+--- Verifying point_history columns via information_schema ---
+Select related_id success (column exists).
+Attempt to select related_mission_id failed: column point_history.related_mission_id does not exist
+
+--- Verifying RLS Policies on user_missions ---
+Skipping active RLS test in script. Please verify manually in Supabase Dashboard or by re-applying migration.
