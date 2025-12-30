@@ -118,6 +118,10 @@
     *   [x] **날씨/시간 개인화**: `useWeather` & `usePersonalizedRecommendation` 기반 상황별 인사말 및 날씨 배지(Open-Meteo) 적용.
     *   [x] **Skeleton UI**: 3-State UX(Loading/Empty/Error) 적용 완료.
     *   [x] **관리**: 미션 관리자 페이지(Admin) 확인(Verified).
+    *   [x] **Critical Fixes (2025-12-30)**: 
+        *   Deletion Persistence (RPC Cascade + Self-Healing).
+        *   Reverse Cascade (Comment Delete -> Mission Withdraw).
+        *   Comment Visibility (Sync Fix).
 *   **6.3 확장 지도** ⬜: (대기)
 
 ### Phase 7: 운영 & 갭 필링 (Ops & Gap Filling) - 🔄 Ongoing (95%)
