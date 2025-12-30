@@ -37,7 +37,7 @@
 *   **1.2 초보자 홈 (Beginner)**: 히어로, 가이드, 프라이스 디코딩 완료
 *   **1.3 기존 사용자 홈 (Returning)**: 스마트 리북, 예약 패널, 감성 배경 완료
 
-### Phase 2: 내공간 (My Space) - ✅ Completed (Detailed Polish)
+### Phase 2: 내공간 (My Space) - 🔄 Ongoing (Logic & Polish)
 **"Digital Archive - 나만의 기록과 사진"**
 > **Product Pivot (2025-12-28)**: 기존의 '꾸미기/불멍(Digital Toy)' 컨셉을 폐기하고, **"사진과 기록(Digital Archive)"**에 집중합니다. 어설픈 애니메이션 대신 사용자의 고퀄리티 사진이 주는 감동을 극대화합니다.
 *   **2.1 대시보드**: POV 뷰, 위젯 완료
