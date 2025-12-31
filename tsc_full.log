@@ -1,2 +1,0 @@
-src/components/admin/ReservationCard.tsx(19,20): error TS2339: Property 'addPoints' does not exist on type 'MySpaceState'.
-src/components/myspace/SummaryGrid.tsx(13,13): error TS2339: Property 'points' does not exist on type 'MySpaceState'.
