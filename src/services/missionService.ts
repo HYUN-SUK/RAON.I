@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase-client';
 import { Mission, MissionStatus, UserMission } from '@/types/mission';
 import { communityService } from './communityService';
+import { pointService } from '@/services/pointService';
 
 const supabase = createClient();
 
@@ -58,6 +59,17 @@ export const missionService = {
         return data as Mission[];
     },
 
+    async getTrendingMissions(): Promise<Mission[]> {
+        // RPC calls get_trending_missions which returns missions sorted by score
+        const { data, error } = await supabase.rpc('get_trending_missions');
+
+        if (error) {
+            console.error('Error fetching trending missions:', error);
+            throw error;
+        }
+        return (data || []) as Mission[];
+    },
+
     async getUserMissionStatus(missionId: string, userId: string): Promise<UserMission | null> {
         const { data, error } = await supabase
             .from('user_missions')
@@ -111,15 +123,26 @@ export const missionService = {
             .eq('id', missionId)
             .single();
 
-        // 3. Grant Reward (XP & Point)
+        // 3. Grant Reward
         if (mission) {
-            await supabase.rpc('grant_user_reward', {
-                p_user_id: userId,
-                p_xp_amount: mission.reward_xp || 0,
-                p_token_amount: mission.reward_point || 0,
-                p_reason: 'MISSION_REWARD',
-                p_related_id: missionId
-            });
+            try {
+                // 3.1 Mission Completion Reward
+                await pointService.grantReward(
+                    userId,
+                    mission.reward_xp || 0,
+                    mission.reward_point || 0,
+                    0, // gold
+                    'MISSION_COMPLETE',
+                    missionId // related_id
+                );
+
+                // 3.2 Photo Upload Reward (if image exists)
+                if (imageUrl) {
+                    await pointService.grantAction(userId, 'UPLOAD_PHOTO', missionId);
+                }
+            } catch (e) {
+                console.error("Reward grant failed", e);
+            }
 
             // 4. Auto-Comment on Community Post (Integration)
             if (mission.community_post_id) {
@@ -166,8 +189,6 @@ export const missionService = {
     },
 
     async deleteMissionParticipation(missionId: string, userId: string): Promise<void> {
-        console.log(`[Delete] Attempting to delete for user ${userId} mission ${missionId}`);
-
         // Use RPC to bypass RLS issues and ensure clean deletion
         const { error, data } = await supabase.rpc('withdraw_mission', {
             p_mission_id: missionId
@@ -177,8 +198,5 @@ export const missionService = {
             console.error('[Delete] Supabase Error:', error);
             throw error;
         }
-
-        // RPC returns boolean (true if deleted, false if not found)
-        console.log(`[Delete] Success. Result: ${data}`);
     }
 };

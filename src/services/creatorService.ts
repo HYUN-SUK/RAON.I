@@ -290,6 +290,14 @@ export const creatorService = {
         if (error) throw error;
     },
 
+    async adminDeleteComment(commentId: string) {
+        const { error } = await supabase.rpc('admin_delete_creator_comment', {
+            p_comment_id: commentId
+        });
+
+        if (error) throw error;
+    },
+
     // 3. Follow
     async toggleFollow(creatorId: string): Promise<boolean> {
         const { data: { user } } = await supabase.auth.getUser();

@@ -5,10 +5,28 @@ import { useRouter, useParams } from 'next/navigation';
 import { communityService } from '@/services/communityService';
 import { Post } from '@/store/useCommunityStore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Share2, MoreVertical, Loader2 } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Loader2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import LikeButton from './LikeButton';
 import CommentSection from './CommentSection';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { createClient } from '@/lib/supabase-client';
 
 export default function PostDetailView() {
     const router = useRouter();
@@ -18,8 +36,11 @@ export default function PostDetailView() {
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     useEffect(() => {
+        checkAdmin();
         async function fetchPost() {
             if (!id) return;
             try {
@@ -39,6 +60,29 @@ export default function PostDetailView() {
         fetchPost();
     }, [id]);
 
+    const checkAdmin = async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            setCurrentUserId(user.id);
+            // Simple Admin Check (Matches Middleware Logic approximately)
+            if (user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin') {
+                setIsAdmin(true);
+            }
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            await communityService.deletePost(id);
+            // alert('게시물이 삭제되었습니다.'); // UX Polish
+            router.back();
+        } catch (e: any) {
+            console.error(e);
+            alert('삭제 실패: ' + e.message);
+        }
+    };
+
     if (loading) return (
         <div className="flex justify-center items-center min-h-screen">
             <Loader2 className="w-8 h-8 animate-spin text-[#1C4526]" />
@@ -51,6 +95,14 @@ export default function PostDetailView() {
             <Button onClick={() => router.back()}>Back</Button>
         </div>
     );
+
+    // Check ownership
+    // Note: Post type from store might not have authorId? 
+    // communityService mapDbToPost doesn't map author_id. We need to check mapDbToPost or just rely on isAdmin.
+    // Ideally we should add authorId to Post interface.
+    // For now, let's rely on isAdmin for global delete. 
+    // If we want owner delete, we need authorId.
+    // Let's assume isAdmin is the key requirement now.
 
     return (
         <div className="min-h-screen bg-white pb-20">
@@ -67,7 +119,38 @@ export default function PostDetailView() {
                 </button>
                 <div className="flex gap-2">
                     <button><Share2 className="w-5 h-5 text-[#1A1A1A]" /></button>
-                    <button><MoreVertical className="w-5 h-5 text-[#1A1A1A]" /></button>
+                    {(isAdmin) && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="p-1 hover:bg-gray-100 rounded-full"><MoreVertical className="w-5 h-5 text-[#1A1A1A]" /></button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer">
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            삭제하기 (Admin)
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>게시물 삭제</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                정말 이 게시물을 삭제하시겠습니까?<br />
+                                                관리자 권한으로 삭제 시 복구할 수 없습니다.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>취소</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                                                삭제
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                 </div>
             </header>
 

@@ -13,11 +13,12 @@ import { ko } from 'date-fns/locale';
 
 export default function MissionListPage() {
     const router = useRouter();
-    const { missions, fetchMissions, isLoading } = useMissionStore();
+    const { missions, fetchMissions, isLoading, sortBy, setSortBy } = useMissionStore();
 
     useEffect(() => {
         fetchMissions();
-    }, [fetchMissions]);
+    }, [fetchMissions]); // fetchMissions inside store depends on sortBy, but here we just trigger initial load or relies on store state change if we subscribed correctly. 
+    // Actually, setSortBy in store already calls fetchMissions. So we just need initial load.
 
     if (isLoading && missions.length === 0) {
         return (
@@ -35,13 +36,37 @@ export default function MissionListPage() {
             <TopBar />
 
             <main className="px-4 py-6">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-2">
-                        이번 주 미션에<br />도전해보세요! 🚀
-                    </h1>
-                    <p className="text-stone-500 text-sm">
-                        미션을 달성하고 경험치와 포인트를 획득하세요.
-                    </p>
+                <div className="mb-6 flex items-end justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-2">
+                            이번 주 미션에<br />도전해보세요! 🚀
+                        </h1>
+                        <p className="text-stone-500 text-sm">
+                            미션을 달성하고 경험치와 포인트를 획득하세요.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Sort Toggle */}
+                <div className="flex gap-2 mb-6">
+                    <button
+                        onClick={() => setSortBy('newest')}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${sortBy === 'newest'
+                                ? 'bg-[#1C4526] text-white'
+                                : 'bg-white text-stone-500 border border-stone-200 dark:bg-zinc-900 dark:border-zinc-800'
+                            }`}
+                    >
+                        최신순
+                    </button>
+                    <button
+                        onClick={() => setSortBy('trending')}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${sortBy === 'trending'
+                                ? 'bg-[#1C4526] text-white'
+                                : 'bg-white text-stone-500 border border-stone-200 dark:bg-zinc-900 dark:border-zinc-800'
+                            }`}
+                    >
+                        🔥 인기순
+                    </button>
                 </div>
 
                 {missions.length === 0 ? (
@@ -56,7 +81,7 @@ export default function MissionListPage() {
                             return (
                                 <Card
                                     key={mission.id}
-                                    className="border-none shadow-md overflow-hidden relative"
+                                    className="border-none shadow-md overflow-hidden relative active:scale-[0.98] transition-transform"
                                     onClick={() => router.push(`/mission/${mission.id}`)}
                                 >
                                     {/* Card Content Bg */}
@@ -66,10 +91,15 @@ export default function MissionListPage() {
                                                 <Badge variant={isExpired ? "secondary" : "default"} className={isExpired ? "" : "bg-[#1C4526]"}>
                                                     {isExpired ? '마감됨' : '진행중'}
                                                 </Badge>
-                                                <span className="text-xs text-stone-400 flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" />
-                                                    ~ {format(new Date(mission.end_date), 'M월 d일', { locale: ko })}
-                                                </span>
+                                                {sortBy === 'trending' && mission.participant_count !== undefined && (
+                                                    <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center">
+                                                        🔥 {mission.participant_count}명 참여
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center text-xs text-stone-400 gap-1">
+                                                <Calendar className="w-3 h-3" />
+                                                ~ {format(new Date(mission.end_date), 'M월 d일', { locale: ko })}
                                             </div>
                                         </div>
 

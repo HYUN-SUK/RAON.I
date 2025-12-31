@@ -2,12 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { creatorService } from '@/services/creatorService';
-import { CreatorContent, Creator, CreatorEpisode, CreatorContentStatus } from '@/types/creator';
-import { useRouter } from 'next/navigation'; // import useParams is not available in next 15 client comp directly? Use props or use useParams
-// In Next.js App Router, page receives params prop. But for Client Component we can use useParams also if imported from next/navigation? 
-// Actually 'useParams' is available.
+import { CreatorContent, Creator, CreatorEpisode, CreatorContentStatus, CreatorComment } from '@/types/creator'; // Added CreatorComment
+import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
-import { Loader2, ArrowLeft, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Trash2 } from 'lucide-react'; // Added Trash2
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -166,6 +164,8 @@ export default function AdminContentReviewPage() {
                             ))}
                         </div>
                     </div>
+
+                    <AdminCommentList contentId={id} />
                 </div>
 
                 {/* Right: Actions */}
@@ -200,6 +200,74 @@ export default function AdminContentReviewPage() {
                     </div>
                 </div>
 
+            </div>
+        </div>
+    );
+}
+
+function AdminCommentList({ contentId }: { contentId: string }) {
+    const [comments, setComments] = useState<CreatorComment[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadComments();
+    }, [contentId]);
+
+    const loadComments = async () => {
+        try {
+            setLoading(true);
+            const data = await creatorService.getComments(contentId);
+            setComments(data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (commentId: string) => {
+        if (!confirm('정말 이 댓글을 삭제하시겠습니까? (복구 불가)')) return;
+        try {
+            await creatorService.adminDeleteComment(commentId);
+            alert('삭제되었습니다.');
+            loadComments(); // Refresh
+        } catch (e) {
+            console.error(e);
+            alert('삭제 실패');
+        }
+    };
+
+    if (loading) return <div className="p-4 text-center text-gray-500">댓글 로딩 중...</div>;
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+            <h3 className="text-lg font-bold mb-4">댓글 목록 ({comments.length})</h3>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+                {comments.length === 0 ? (
+                    <p className="text-gray-500 text-sm">댓글이 없습니다.</p>
+                ) : (
+                    comments.map((comment) => (
+                        <div key={comment.id} className="flex justify-between items-start border-b pb-3 last:border-0 last:pb-0">
+                            <div>
+                                <div className="text-sm font-semibold text-gray-800 mb-1">
+                                    {comment.user_email || '익명 사용자'}
+                                    <span className="text-xs text-gray-400 font-normal ml-2">
+                                        {new Date(comment.created_at).toLocaleString()}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-gray-700">{comment.content}</p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(comment.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );

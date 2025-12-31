@@ -115,11 +115,20 @@ export const communityService = {
         // Grant Reward
         if (user) {
             try {
+                // 1. Grant Write Post Reward
                 await pointService.grantAction(user.id, 'WRITE_POST', data.id);
-            } catch (e) {
+
+                // 2. Grant Photo Upload Reward (if images exist)
+                if (post.images && post.images.length > 0) {
+                    await pointService.grantAction(user.id, 'UPLOAD_PHOTO', data.id);
+                }
+            } catch (e: any) {
                 console.error("Reward Failed", e);
+                // Temporary Debugging: Alert the user so they know WHY it failed
+                alert(`보상 지급 실패: ${e.message || JSON.stringify(e)}`);
             }
         }
+
 
         return mapDbToPost(data);
     },
@@ -162,15 +171,24 @@ export const communityService = {
     },
 
     // 3.8 Delete Post
-    // 3.8 Delete Post
     async deletePost(id: string) {
-        const { error, count } = await supabase
-            .from('posts')
-            .delete({ count: 'exact' })
-            .eq('id', id);
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAdmin = user?.email === 'admin@raon.ai' || user?.app_metadata?.role === 'admin';
 
-        if (error) throw error;
-        if (count === 0) throw new Error('게시물을 삭제할 수 없습니다. 권한이 없거나 이미 삭제되었습니다.');
+        if (isAdmin) {
+            // Admin Deletion (Force RPC)
+            const { error } = await supabase.rpc('admin_force_delete_post', { p_post_id: id });
+            if (error) throw error;
+        } else {
+            // Normal Deletion (RLS)
+            const { error, count } = await supabase
+                .from('posts')
+                .delete({ count: 'exact' })
+                .eq('id', id);
+
+            if (error) throw error;
+            if (count === 0) throw new Error('게시물을 삭제할 수 없습니다. 권한이 없거나 이미 삭제되었습니다.');
+        }
     },
 
     // 4. Toggle Like (Optimistic at component level, this syncs with DB)
@@ -256,20 +274,42 @@ export const communityService = {
         // Increment comment count
         await supabase.rpc('increment_comment_count', { row_id: postId });
 
-        return mapDbToComment(data, userId);
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAdmin = user?.email === 'admin@raon.ai' || user?.app_metadata?.role === 'admin';
+
+        // Fix mapDbToComment to include isAdmin correctly or rely on component reload?
+        // Let's just pass simplistic view first.
+        return {
+            ...mapDbToComment(data, userId),
+            isAdmin: isAdmin
+        };
     },
 
     // 7. Delete Comment
     async deleteComment(commentId: string, postId: string) {
-        const { error } = await supabase
-            .from('comments')
-            .delete()
-            .eq('id', commentId);
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAdmin = user?.email === 'admin@raon.ai' || user?.app_metadata?.role === 'admin';
 
-        if (error) throw error;
+        if (isAdmin) {
+            // Admin Deletion (RPC)
+            // Note: We use the generic admin_delete_comment which updates post counter too.
+            const { error } = await supabase.rpc('admin_delete_comment', { p_comment_id: commentId });
+            if (error) throw error;
+        } else {
+            // Normal Deletion (RLS)
+            const { error } = await supabase
+                .from('comments')
+                .delete()
+                .eq('id', commentId);
 
-        // Decrement comment count
-        await supabase.rpc('decrement_comment_count', { row_id: postId });
+            if (error) throw error;
+
+            // Decrement comment count - Only needed for normal deletion if database trigger doesn't exist.
+            // But wait, our admin RPC handles it. Does normal delete handle it?
+            // Usually yes, via our standard practice or explicit call.
+            // Previous code had explicit call.
+            await supabase.rpc('decrement_comment_count', { row_id: postId });
+        }
     },
     // 8. Increment Read Count
     async incrementReadCount(postId: string) {
@@ -305,16 +345,8 @@ export const communityService = {
             .from('community-images')
             .getPublicUrl(filePath);
 
-        // Grant Reward for Photo Upload
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            try {
-                // Note: We don't have a related ID for photo yet (it's orphaned before post).
-                await pointService.grantAction(user.id, 'UPLOAD_PHOTO');
-            } catch (e) {
-                console.error("Photo Reward Failed", e);
-            }
-        }
+        // Optimistic reward removed. Reward will be granted upon Post Creation or Mission Completion to link with related_id.
+        // if (user) { ... }
 
         return data.publicUrl;
     },

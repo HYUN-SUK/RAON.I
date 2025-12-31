@@ -144,6 +144,31 @@ export const adminMissionService = {
 
         if (error) throw error;
         return data;
+    },
+
+    // Get Participants
+    async getParticipants(missionId: string) {
+        // Ideally join with profiles, but for now getting raw user_missions. 
+        // Admin might need to see user IDs or join manually.
+        // Let's try to join with profiles if it exists, otherwise just return ID.
+        const { data, error } = await supabase
+            .from('user_missions')
+            .select('*')
+            .eq('mission_id', missionId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+    },
+
+    // Admin Withdraw Participation
+    async withdrawParticipation(userId: string, missionId: string) {
+        const { error } = await supabase.rpc('admin_withdraw_mission_participation', {
+            p_target_user_id: userId,
+            p_mission_id: missionId
+        });
+
+        if (error) throw error;
     }
 };
 

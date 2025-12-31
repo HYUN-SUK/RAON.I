@@ -1,28 +1,31 @@
-# Task Checklist
+# Task Checklist: Operation "Sparkling Forest" (Code Cleanup)
 
-## 🛠 Active Tasks
+## 🧹 Phase 1: Sanitization (비우기)
+- [ ] **Linting & Formatting**
+  - [ ] Run `npm run lint` and fix all warnings/errors.
+  - [ ] Remove all `console.log`, `console.error` (except actionable catch blocks).
+  - [ ] Remove commented-out code (Ghost code).
+- [ ] **Dead Code Elimination**
+  - [ ] Identify and delete unused components/pages.
+  - [ ] Check for unused UI components in `src/components/ui`.
+  - [ ] Review `public` folder for unused assets.
 
-### My Space Logic & UI Refinement
-- [x] **My Records Page Redesign**
-  - [x] **Theme**: Analog/Paper Texture Background
-  - [x] **Header**: Search Bar Implementation
-  - [x] **Tools**: Replaced with "Album Detail" style Unlockable Tools (Identical Design)
-  - [x] **Pagination**: "Load More" Button (10 items/page)
-  - [x] **Notice**: Add "Archive" guidance text
+## 🗂️ Phase 2: Organization (정리하기)
+- [ ] **Import Cleanups**
+  - [ ] Optimize imports (remove unused named imports).
+  - [ ] Fix absolute path aliases (`@/`) consistency.
+- [ ] **Type Safety**
+  - [ ] Replace `any` with specific types or interfaces where possible.
+  - [ ] Centralize shared types in `src/types/`.
 
-- [x] **Cross-Page Tool Standardization**
-  - [x] **My History**: Apply standardized "Record Tools" component
-  - [x] **Scroll Fix**: Fixed horizontal scroll layout bug (Added `min-w-0`)
+## 🎨 Phase 3: Standardization (통일하기)
+- [ ] **Design Tokens (SSOT v9)**
+  - [ ] Scan for hardcoded hex colors and replace with CSS variables (e.g., `bg-[#224732]` -> `bg-brand-1`).
+  - [ ] Ensure `typography` classes usage instead of arbitrary pixel values.
+- [ ] **Component Structure**
+  - [ ] Verify "One Component Per File" rule.
+  - [ ] Check Function naming conventions (PascalCase components).
 
-- [x] XP/Token Integration & Logic
-  - [x] Replace 'P' with 'Raon Token' in UI
-  - [x] Implement Grant/Deduct Logic
-  - [x] **Browser Verification**: Verify token consumption & unlock flow
-
-- [x] My Space Write Fixes
-  - [x] Visibility Fix (Private vs Public)
-  - [x] **Write Default**: Default to Private for 'Write Record'
-  - [x] **Verification**: Verify writing flow
-
-- [x] TopBar UI
-  - [x] Display 'Raon Token' below Level Bar (Left Aligned)
+## 🚀 Phase 4: Final Verification
+- [ ] **Build Test**: Ensure `npm run build` passes.
+- [ ] **Smoke Test**: Verify Home, Reservation, Community, My Space flows still work perfectly.

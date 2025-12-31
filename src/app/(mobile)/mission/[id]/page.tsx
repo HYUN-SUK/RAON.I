@@ -280,18 +280,7 @@ export default function MissionDetailPage() {
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
                                         )}
-                                        <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            className={`gap-1.5 ${p.is_liked_by_me ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-stone-50 text-stone-500 hover:bg-stone-100'}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleLike(p.id);
-                                            }}
-                                        >
-                                            <Heart className={`w-4 h-4 ${p.is_liked_by_me ? 'fill-current' : ''}`} />
-                                            <span className="font-semibold">{p.likes_count || 0}</span>
-                                        </Button>
+                                        {/* Like Button Removed as per request (SSOT: Comment Likes) */}
                                     </div>
                                 </div>
                             ))

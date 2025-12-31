@@ -1,8 +1,8 @@
 # RAON.I 마스터 개발 로드맵 v3 (Final Integrated Version)
 
-**버전**: v4.0 (Gap Analysis & Final Polish)
+**버전**: v4.1 (XP Lifecycle & Deletion Complete)
 **기반**: RAONAI SSOT MASTER v9 + User Feedback (Gap Filling)
-**작성일**: 2025-12-06
+**작성일**: 2025-12-31
 
 이 문서는 라온아이 프로젝트의 **최종 확정형 개발 가이드**입니다.
 기존의 견고한 프레임워크 위에 **트렌드(감성·초개인화)**와 **현실적인 AI 전략(L0/L1)**을 결합하여, 사용자에게 가장 가치 있는 경험을 우선적으로 전달합니다.
@@ -15,12 +15,12 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Phase 0** | **코어 플랫폼 기반 (Foundation)** | ✅ **완료** | 100% | 필코노미 감성 톤, UI 프레임, 데이터 레이어 |
 | **Phase 1** | **사용자 홈 (User Home)** | ✅ **완료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic 완료 |
-| **Phase 2** | **내공간 (My Space)** | 🔄 **진행 중** | 90% | 대시보드/지도/타임라인 완료. 아카이브(기록) 리뉴얼 및 미션 배지 완료. |
+| **Phase 2** | **내공간 (My Space)** | ✅ **완료** | 100% | 대시보드/지도/타임라인 완료. 아카이브(기록) 리뉴얼 및 XP/Token 완료. |
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 90% | Logic/Validation/Admin Core 완료. PG/오픈일 남음. |
 | **Phase 4** | **커뮤니티 (Community)** | ✅ **완료** | 100% | RLS 보안, 관리자 공지/소모임 관리, 소모임 기능(생성/가입/조회) 완료 |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
-| **Phase 6** | **확장 모듈 (Expansion)** | 🔄 **진행 중** | 80% | 크리에이터 보드, 미션(MVP/Admin/Skeleton) 완료. 확장 지도 대기 |
-| **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | 🔄 **진행 중** | 98% | 미션 Admin, UI/UX 디테일 보완(Gap Filling), 설정/알림/마켓 피벗 진행. |
+| **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
+| **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | 🔄 **진행 중** | 99% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완(Gap Filling) 완료. 마켓 피벗 대기. |
 
 ---
 
@@ -37,7 +37,7 @@
 *   **1.2 초보자 홈 (Beginner)**: 히어로, 가이드, 프라이스 디코딩 완료
 *   **1.3 기존 사용자 홈 (Returning)**: 스마트 리북, 예약 패널, 감성 배경 완료
 
-### Phase 2: 내공간 (My Space) - 🔄 Ongoing (Logic & Polish)
+### Phase 2: 내공간 (My Space) - ✅ Completed
 **"Digital Archive - 나만의 기록과 사진"**
 > **Product Pivot (2025-12-28)**: 기존의 '꾸미기/불멍(Digital Toy)' 컨셉을 폐기하고, **"사진과 기록(Digital Archive)"**에 집중합니다. 어설픈 애니메이션 대신 사용자의 고퀄리티 사진이 주는 감동을 극대화합니다.
 *   **2.1 대시보드**: POV 뷰, 위젯 완료
@@ -102,13 +102,13 @@
     *   [x] **검증**: 등록/삭제 버그(Disabled/Event) 해결 및 Toast 기반 삭제 확인 UI 적용.
     *   [x] **전시**: 상품 상세 하단 리뷰 리스트 감성 UI (3-State).
 
-### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (40%)
+### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
 **"더 깊은 연결과 재미"**
 *   **6.1 크리에이터 콘텐츠 보드 (MVP)** ✅:
     *   [x] **구조**: `creators`, `creator_contents` DB 및 서비스 로직.
     *   [x] **기능**: 작성, 리스트, 상세, **상호작용(좋아요/댓글/구독)** 구현 완료.
     *   [x] **관리**: 관리자 승인 시스템 및 테스트 계정 지원 포함.
-*   **6.2 미션 & 보상 (Mission System)** ✅ (New):
+*   **6.2 미션 & 보상 (Mission System)** ✅ (100% Completed):
     *   [x] **구조**: `missions`, `user_missions`, `point_history` 스키마 및 RLS.
     *   [x] **기능**: 리스트, 상세, 참여(Join), 인증(Photo), 보상(Point/XP).
     *   [x] **커뮤니티 연동**: 주간 미션 게시물 자동 생성(RPC), 댓글 사진 인증(Compression).
@@ -117,22 +117,34 @@
     *   [x] **재방문자 모드 홈**: 예약/미션 중심 대시보드 UI, 퀵 액션(체크인/매너타임) 구현.
     *   [x] **날씨/시간 개인화**: `useWeather` & `usePersonalizedRecommendation` 기반 상황별 인사말 및 날씨 배지(Open-Meteo) 적용.
     *   [x] **Skeleton UI**: 3-State UX(Loading/Empty/Error) 적용 완료.
-    *   [x] **관리**: 미션 관리자 페이지(Admin) 확인(Verified).
+    *   [x] **관리**: 미션 관리자 페이지(Admin) 확인(Verified) + **참여 철회 기능 추가**.
+    *   [x] **Ranking**: 인기순(Trending) 정렬 및 배지 로직 추가.
     *   [x] **Critical Fixes (2025-12-30)**: 
         *   Deletion Persistence (RPC Cascade + Self-Healing).
         *   Reverse Cascade (Comment Delete -> Mission Withdraw).
         *   Comment Visibility (Sync Fix).
+    *   [x] **XP/Token Lifecycle (2025-12-31)**:
+        *   **Clawback**: 미션/게시물 삭제 시 획득했던 XP/Token 자동 회수 (Trigger).
+        *   **Photo Rewards**: 사진 업로드 보상도 콘텐츠 ID(`related_id`)와 연동하여 자동 회수 구현.
+        *   **Admin Deletion**: 관리자 강제 삭제 기능 (RPC `admin_force_delete_post`) 복구 및 UI 적용.
 *   **6.3 확장 지도** ⬜: (대기)
 
-### Phase 7: 운영 & 갭 필링 (Ops & Gap Filling) - 🔄 Ongoing (95%)
+### Phase 7: 운영 & 갭 필링 (Ops & Gap Filling) - 🔄 Ongoing (99%)
 **"사용자 피드백 기반 디테일 완성"**
 *   **7.0 이슈 긴급 대응 (Hotfixes)** ✅:
     *   [x] **미션 피드**: 좋아요, 본인 삭제 기능 완비 (RLS/RPC).
     - [x] **커뮤니티**: 댓글 좋아요(New), 삭제 오류 해결 및 삭제 확인 모달 추가 (Optimistic UI Fix).
+    - [x] **Admin Ops**: 콘텐츠 댓글 삭제, 미션 참여 강제 철회, **글로벌 게시물 삭제(Global Delete)** 구현 완료.
+    - [x] **Policy Enforcement**: **XP/Token 회수(Clawback)** 로직 및 **좋아요 동기화(Sync)** 구현 완료.
+    - [x] **Navigation Fix (2025-12-31)**: 탭 이동 시 페이지 새로고침 되어도 상태 유지(URL Sync) 및 깜빡임 제거.
 *   **7.1 글로벌 UI/UX** ✅:
     *   [x] **TopBar**: 설정 메뉴(프로필/알림/약관) 및 로그아웃 구현 완료.
 *   **7.2 홈 디테일 (Home Details)** ✅:
     *   [x] **초보자 칩**: 6개 고정 칩 디자인 적용 및 관리자 연동 완료.
+    *   [x] **오늘의 콘텐츠**: '오늘의 추천'으로 명칭 변경 및 개인화 엔진 V2 (`recommendation_pool`) 프론트엔드/백엔드 고도화 완료.
+    *   [x] **링크 수정**: 관리자 설정(기본정보)에서 주요 링크 및 텍스트 제어 가능.
+    *   [x] **관리자 고도화 V2.1**: AI Bulk Import, 구조화된 재료/단계 입력 폼, 개인화 필드(인분/칼로리/연령/장소) 관리.
+*   **7.3 내공간 고도화 (My Space Pivot)** ✅:
     *   [x] **오늘의 콘텐츠**: '오늘의 추천'으로 명칭 변경 및 개인화 엔진 V2 (`recommendation_pool`) 프론트엔드/백엔드 고도화 완료.
     *   [x] **링크 수정**: 관리자 설정(기본정보)에서 주요 링크 및 텍스트 제어 가능.
     *   [x] **관리자 고도화 V2.1**: AI Bulk Import, 구조화된 재료/단계 입력 폼, 개인화 필드(인분/칼로리/연령/장소) 관리.

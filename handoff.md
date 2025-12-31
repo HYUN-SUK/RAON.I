@@ -1,33 +1,50 @@
-# Handoff Document
-**Date**: 2025-12-30
-**Session Goal**: Mission Deletion Debugging & Visibility Fixes (Completed)
+# Handoff: Mission Ranking & Admin Deletion
 
-## 🚀 Accomplishments
-1.  **Mission Deletion Persistence (Resolved)**
-    - **Issue**: `point_history` constraint prevented `user_missions` deletion.
-    - **Fix**: Updated `withdraw_mission` RPC to explicitly cascade delete `point_history`, `mission_likes`, and `comments` before deleting the mission record.
-2.  **Comment Visibility (Resolved)**
-    - **Issue**: "Zombie Counts" (Post showed 9 comments, but actual rows were fewer) caused confusion.
-    - **Fix**: Implemented `Self-Healing` count update and added count decrement logic to deletion RPCs.
-    - **Result**: Users can now see all valid comments (because the count matches reality).
-3.  **Reverse Cascade (New Feature)**
-    - **Feature**: Deleting a mission certification comment from the Community board now **automatically withdraws** the mission participation via a DB Trigger.
-4.  **UI UX Improvement**
-    - Replaced unstable `window.confirm` with a custom `Dialog` component for deletion confirmation.
-    - Implemented Optimistic UI for instant deletion feedback.
-5.  **Documentation**
-    - Created `DELETION_GUIDE.md`: A standard template for handling deletion logic in the future.
+**Date**: 2025-12-31
+**Role**: Lead Developer
+**Session Goal**: Implement Mission Trending System and Admin Moderation Tools.
 
-## 📂 Key Files Created/Modified
-- `DELETION_GUIDE.md`: **[NEW]** Reference this for future deletion features.
-- `supabase/migrations/20251230_fix_final_v2.sql`: Key deletion logic & RLS reset.
-- `supabase/migrations/20251230_fix_reverse_cascade.sql`: Trigger for reverse deletion.
-- `src/app/(mobile)/mission/[id]/page.tsx`: UI with Dialog.
-- `src/store/useMissionStore.ts`: Simplified store logic.
+## 📌 Summary
+This session successfully implemented the **Mission Ranking System** ("Trending" sort based on participation/likes) and **Admin Deletion Capabilities** (removing specific comments and withdrawing users from missions). These features enhance user discovery and provide necessary moderation tools for operations.
 
-## ⚠️ Notes for Next Session
-- **Mission Ranking**: We touched on `mission_likes` but didn't verify the full Ranking System logic. That might be a good next step.
-- **Admin Console**: Ensure the Admin Console can also delete missions/comments using these new RPCs without RLS issues.
+## ✅ Completed Features
+### 1. Mission Ranking System
+*   **Backend**: Added `get_trending_missions` RPC.
+    *   Score formula: `(participants * 1.0) + (likes * 0.5)`.
+*   **Frontend**: 
+    *   Updated `useMissionStore` to support `sortBy` ('newest' | 'trending').
+    *   Added Sort Toggle UI to `/mission` page.
+    *   Added "🔥 N명 참여" badge for trending missions.
 
----
-**Status**: All critical deletion bugs are squashed. System is stable.
+### 2. Admin Moderation (Deletion)
+*   **Global Deletion (Community)**:
+    *   **Posts**: Admins can delete ANY post via the "More" menu in Post Detail.
+    *   **Comments**: Admins can delete ANY comment via the "Trash" icon in Comment List.
+    *   **RPC**: Added `admin_delete_post` and genericized `admin_delete_comment`.
+*   **Mission Participation**:
+    *   Updated `/admin/mission/[id]` to list all participants.
+    *   Implemented `admin_withdraw_mission_participation` RPC to force-withdraw users (cascading delete of points, likes, comments).
+
+### 3. Policy & Data Integrity
+*   **XP/Token Clawback**:
+    *   Implemented `on_point_history_delete` trigger to reverse XP/Token grants when history is deleted.
+    *   Updated `grant_user_reward` RPC to track `xp_amount`.
+*   **Like Synchronization**:
+    *   Implemented bi-directional triggers (`sync_mission_like_to_comment`, `sync_comment_like_to_mission`) to sync likes between Mission Proofs and Comments.
+*   **UI Updates**:
+    *   Added Admin Delete icon to `PostCard`.
+    *   Added Non-cash currency disclaimer to Wallet Page.
+
+## 🛠 Technical Notes
+*   **RPCs**: New RPCs added to `20251231_mission_ranking_and_admin.sql` and `20251231_xp_clawback_and_sync.sql`.
+*   **Services**: `missionService`, `creatorService`, `adminMissionService`, `communityService` enhanced.
+*   **Types**: Updated `Mission` type to optional `participant_count` and `total_likes`.
+
+## ⚠️ Known Issues / Caveats
+*   **Admin Auth**: Implementation assumes the user has access to Admin Pages. RLS policies for `admin_*` RPCs are set to `authenticated`, relying on the app's Admin Guard for access control.
+*   **Performance**: `get_trending_missions` performs a sort on the DB side. For very large datasets, indexing strategies on `user_missions` might be reviewed later.
+
+## ⏭ Next Steps
+*   **Verification**: Manually verify the Trending Sort order and Admin Deletion flow.
+*   **Search System**: Implement global search (mentioned in roadmap but not started).
+*   **My Space**: Continue polishing the "Digital Archive" pivot (Phase 2).

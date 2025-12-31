@@ -13,6 +13,10 @@ export interface Mission {
     is_active: boolean;
     community_post_id?: string;
     created_at: string;
+    // Ranking Stats (Optional)
+    participant_count?: number;
+    total_likes?: number;
+    score?: number;
 }
 
 export interface UserMission {

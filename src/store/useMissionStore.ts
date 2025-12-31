@@ -10,16 +10,18 @@ interface MissionStore {
     currentMission: Mission | null;
     missions: Mission[];
     userMission: UserMission | null;
+    participants: UserMission[];
     isLoading: boolean;
     error: string | null;
 
+    sortBy: 'newest' | 'trending';
+    setSortBy: (sort: 'newest' | 'trending') => void;
+
     fetchCurrentMission: () => Promise<void>;
     fetchMissions: () => Promise<void>;
+    fetchParticipants: () => Promise<void>;
     joinMission: () => Promise<void>;
     completeMission: (content?: string, imageUrl?: string) => Promise<void>;
-
-    participants: UserMission[];
-    fetchParticipants: () => Promise<void>;
     toggleLike: (userMissionId: string) => Promise<void>;
     deleteParticipation: () => Promise<void>;
 }
@@ -31,6 +33,12 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
     participants: [],
     isLoading: false,
     error: null,
+    sortBy: 'newest',
+
+    setSortBy: (sort) => {
+        set({ sortBy: sort });
+        get().fetchMissions();
+    },
 
     fetchCurrentMission: async () => {
         set({ isLoading: true, error: null });
@@ -61,7 +69,15 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
     fetchMissions: async () => {
         set({ isLoading: true, error: null });
         try {
-            const missions = await missionService.getMissions();
+            const { sortBy } = get();
+            let missions;
+
+            if (sortBy === 'trending') {
+                missions = await missionService.getTrendingMissions();
+            } else {
+                missions = await missionService.getMissions();
+            }
+
             set({ missions });
         } catch (error: any) {
             set({ error: error.message });
@@ -151,8 +167,6 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         if (!currentMission) {
             return;
         }
-
-        // Confirmation moved to UI component
 
         set({ isLoading: true });
         try {

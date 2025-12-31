@@ -72,6 +72,12 @@ export default function WalletPage() {
                 <h1 className="font-bold text-lg text-[#1C4526] dark:text-green-400">나의 탐험 지수</h1>
             </header>
 
+            <div className="bg-[#F0FDF4] border-b border-[#DCFCE7] px-5 py-3">
+                <p className="text-xs text-[#166534] leading-relaxed">
+                    💡 탐험지수인 경험치, 라온토큰은 현금성이 아닌 라온아이 어플안에서 재미, 경험 확장을 위한 수단입니다.
+                </p>
+            </div>
+
             <main className="px-5 pt-2">
                 {/* 1. Status Card (Detail View) */}
                 <div className="mb-8">
