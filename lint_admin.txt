@@ -1,0 +1,94 @@
+﻿
+> raon-app@0.1.0 lint
+> eslint src/app/admin
+
+npm : (node:19768) E
+SLintIgnoreWarning: 
+The ".eslintignore" 
+file is no longer su
+pported. Switch to u
+sing the "ignores" p
+roperty in "eslint.c
+onfig.js": https://e
+slint.org/docs/lates
+t/use/configure/migr
+ation-guide#ignoring
+-files
+위치 줄:1 문자:1
++ npm run lint -- sr
+c/app/admin 2>&1 | O
+ut-File -Encoding UT
+F8 lint_adm ...
++ ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
+    + CategoryInfo  
+            : NotS  
+  pecified: ((nod   
+ e:19768) ES...#    
+ignoring-files:    S
+tring) [], Rem    ot
+eException
+    + FullyQualifie 
+   dErrorId : Nati  
+  veCommandError
+ 
+(Use `node --trace-w
+arnings ...` to show
+ where the warning w
+as created)
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\content\[id]\page.tsx
+   24:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                             react-hooks/exhaustive-deps
+  145:57  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  214:8   warning  React Hook useEffect has a missing dependency: 'loadComments'. Either include it or remove the dependency array                                                                                                                                                                          react-hooks/exhaustive-deps
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\content\page.tsx
+   7:19  warning  'CheckCircle' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+   7:32  warning  'XCircle' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   7:41  warning  'Eye' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+  20:8   warning  React Hook useEffect has a missing dependency: 'fetchContents'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\groups\page.tsx
+  75:61  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\mission\[id]\page.tsx
+   72:64  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:18  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\mission\create\page.tsx
+   65:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:80  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\mission\page.tsx
+    8:32  warning  'Calendar' is defined but never used                             @typescript-eslint/no-unused-vars
+   26:11  warning  'router' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+   29:12  warning  'error' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   79:22  warning  'e' is defined but never used                                    @typescript-eslint/no-unused-vars
+  158:37  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  158:66  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\notice\[id]\page.tsx
+  24:8   warning  React Hook useEffect has a missing dependency: 'loadNoticeData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  61:25  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\notice\actions.ts
+  6:54  warning  '_formData' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\recommendations\page.tsx
+   89:52  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  227:25  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  231:22  warning  'e' is defined but never used                                    @typescript-eslint/no-unused-vars
+  287:39  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  423:79  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  423:87  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  423:91  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  423:96  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\USER\Desktop\RAON.I\src\app\admin\settings\page.tsx
+    8:33  warning  'Phone' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  109:25  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  179:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  277:37  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+??33 problems (14 errors, 19 warnings)
+

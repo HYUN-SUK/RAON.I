@@ -47,7 +47,7 @@ export interface TimelineItem {
     missionPoints?: number;
 }
 
-interface MySpaceState {
+export interface MySpaceState {
     isNightMode: boolean;
     isFireOn: boolean;
     isStarOn: boolean;

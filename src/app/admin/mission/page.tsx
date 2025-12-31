@@ -5,7 +5,7 @@ import { Mission } from '@/types/mission';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Plus, Pencil, Trash2, Calendar, Upload, Target, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Target, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
@@ -23,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 export default function AdminMissionList() {
-    const router = useRouter();
+    // const router = useRouter(); // unused
     const [missions, setMissions] = useState<Mission[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -155,7 +155,7 @@ export default function AdminMissionList() {
                             <DialogHeader>
                                 <DialogTitle>AI 미션 데이터 일괄 등록</DialogTitle>
                                 <DialogDescription>
-                                    'MISSION_GENERATION_PROMPT.md' 양식을 통해 생성된 JSON 코드를 아래에 붙여넣으세요.
+                                    &apos;MISSION_GENERATION_PROMPT.md&apos; 양식을 통해 생성된 JSON 코드를 아래에 붙여넣으세요.
                                     입력된 주차(week_offset)에 따라 날짜가 자동 계산되어 등록됩니다.
                                 </DialogDescription>
                             </DialogHeader>

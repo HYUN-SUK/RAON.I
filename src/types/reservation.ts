@@ -38,7 +38,7 @@ export interface PriceBreakdown {
     };
     discount: {
         consecutive: number;
-        package: number;
+        pkg: number;
     };
     totalPrice: number;
     nights: number;

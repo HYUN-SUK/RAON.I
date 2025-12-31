@@ -51,7 +51,7 @@ export default function MyRecordsPage() {
             console.error(err);
         } finally {
             setIsLoading(false);
-            setIsLoadMore(false);
+            setIsLoadingMore(false);
         }
     }, []);
 

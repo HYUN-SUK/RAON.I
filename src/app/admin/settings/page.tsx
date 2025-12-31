@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, MapPin, Phone, Upload, X } from 'lucide-react';
+import { Loader2, Save, MapPin, Upload, X } from 'lucide-react';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase-client';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
@@ -106,9 +107,10 @@ export default function AdminSettingsPage() {
 
             toast.success('설정이 저장되었습니다.');
             refetch();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(`저장 실패: ${error.message}`);
+            const message = error instanceof Error ? error.message : '알 수 없는 오류';
+            toast.error(`저장 실패: ${message}`);
         } finally {
             setLoading(false);
         }
@@ -176,10 +178,12 @@ export default function AdminSettingsPage() {
                         <Label>시설 배치도 이미지</Label>
                         <div className="flex gap-4 items-start">
                             {formData.layout_image_url && (
-                                <img
+                                <Image
                                     src={formData.layout_image_url}
                                     alt="Layout"
-                                    className="w-24 h-24 object-cover rounded-lg border"
+                                    width={96}
+                                    height={96}
+                                    className="object-cover rounded-lg border w-24 h-24"
                                 />
                             )}
                             <div className="flex-1">
@@ -274,7 +278,7 @@ export default function AdminSettingsPage() {
                             <Label className="text-xs">배치도 이미지 업로드</Label>
                             <div className="flex gap-4 items-start">
                                 {formData.layout_image_url && (
-                                    <img src={formData.layout_image_url} alt="Layout" className="w-24 h-24 object-cover rounded border bg-white" />
+                                    <Image src={formData.layout_image_url} alt="Layout" width={96} height={96} className="w-24 h-24 object-cover rounded border bg-white" />
                                 )}
                                 <Input type="file" onChange={handleImageUpload} className="bg-white flex-1" />
                             </div>

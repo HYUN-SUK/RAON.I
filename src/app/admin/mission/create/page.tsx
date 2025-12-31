@@ -62,9 +62,10 @@ export default function CreateMissionPage() {
             await adminMissionService.createMission(payload);
             alert('미션이 생성되었습니다.');
             router.push('/admin/mission');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Submission error:', error);
-            alert(`미션 생성 실패: ${error.message || '알 수 없는 오류'}`);
+            const message = error instanceof Error ? error.message : '알 수 없는 오류';
+            alert(`미션 생성 실패: ${message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -110,7 +111,7 @@ export default function CreateMissionPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>미션 타입</Label>
-                                <Select value={missionType} onValueChange={(v: any) => setMissionType(v)}>
+                                <Select value={missionType} onValueChange={(v: 'PHOTO' | 'CHECKIN' | 'COMMUNITY') => setMissionType(v)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="타입 선택" />
                                     </SelectTrigger>

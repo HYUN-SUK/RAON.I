@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { creatorService } from '@/services/creatorService';
 import { CreatorContent, Creator, CreatorContentStatus } from '@/types/creator';
 import { useRouter } from 'next/navigation';
-import { Loader2, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -15,17 +15,9 @@ export default function AdminContentListPage() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<CreatorContentStatus>('PENDING_REVIEW');
 
-    useEffect(() => {
-        fetchContents();
-    }, [statusFilter]);
-
-    const fetchContents = async () => {
+    const fetchContents = React.useCallback(async () => {
         try {
             setLoading(true);
-            // We need a method to fetch by status in creatorService. 
-            // Existing getContents defaults to PUBLISHED but accepts status arg.
-            // Wait, creatorService.getContents signature is: getContents(status: CreatorContentStatus = 'PUBLISHED')
-            // So checking logic...
             const data = await creatorService.getContents(statusFilter);
             setContents(data);
         } catch (error) {
@@ -33,7 +25,11 @@ export default function AdminContentListPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [statusFilter]);
+
+    useEffect(() => {
+        fetchContents();
+    }, [fetchContents]);
 
     const getStatusBadge = (s: string) => {
         switch (s) {

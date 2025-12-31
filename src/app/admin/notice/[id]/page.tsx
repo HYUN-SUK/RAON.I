@@ -17,13 +17,7 @@ export default function AdminNoticeDetailPage() {
     const [post, setPost] = useState<Post | null>(null);
     const [fetchLoading, setFetchLoading] = useState(true);
 
-    useEffect(() => {
-        if (id) {
-            loadNoticeData();
-        }
-    }, [id]);
-
-    const loadNoticeData = async () => {
+    const loadNoticeData = React.useCallback(async () => {
         try {
             setFetchLoading(true);
             const data = await communityService.getPostById(id);
@@ -35,7 +29,13 @@ export default function AdminNoticeDetailPage() {
         } finally {
             setFetchLoading(false);
         }
-    };
+    }, [id, router]);
+
+    useEffect(() => {
+        if (id) {
+            loadNoticeData();
+        }
+    }, [id, loadNoticeData]);
 
     const handleUpdate = async (data: { title: string; content: string; images: string[]; status: 'OPEN' | 'CLOSED' }) => {
         await updatePost(id, {
@@ -58,9 +58,10 @@ export default function AdminNoticeDetailPage() {
             await deleteNoticeAction(id);
             alert('공지가 삭제되었습니다.');
             router.push('/admin/notice');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Delete failed:', error);
-            alert('삭제에 실패했습니다: ' + error.message);
+            const message = error instanceof Error ? error.message : '알 수 없는 오류';
+            alert('삭제에 실패했습니다: ' + message);
         }
     };
 

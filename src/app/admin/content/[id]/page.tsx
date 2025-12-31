@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation';
 import { Loader2, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Trash2 } from 'lucide-react'; // Added Trash2
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 
 export default function AdminContentReviewPage() {
     const router = useRouter();
@@ -19,11 +20,7 @@ export default function AdminContentReviewPage() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
-    useEffect(() => {
-        if (id) fetchData();
-    }, [id]);
-
-    const fetchData = async () => {
+    const fetchData = React.useCallback(async () => {
         try {
             setLoading(true);
             const [c, e] = await Promise.all([
@@ -38,7 +35,11 @@ export default function AdminContentReviewPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        if (id) fetchData();
+    }, [id, fetchData]);
 
 
 
@@ -142,7 +143,7 @@ export default function AdminContentReviewPage() {
                         </div>
 
                         <div className="aspect-video relative bg-gray-100 rounded-lg overflow-hidden">
-                            {content.cover_image_url && <img src={content.cover_image_url} alt={content.title} className="w-full h-full object-cover" />}
+                            {content.cover_image_url && <Image src={content.cover_image_url} alt={content.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 800px" />}
                         </div>
 
                         <div className="prose max-w-none">
@@ -209,11 +210,7 @@ function AdminCommentList({ contentId }: { contentId: string }) {
     const [comments, setComments] = useState<CreatorComment[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadComments();
-    }, [contentId]);
-
-    const loadComments = async () => {
+    const loadComments = React.useCallback(async () => {
         try {
             setLoading(true);
             const data = await creatorService.getComments(contentId);
@@ -223,7 +220,11 @@ function AdminCommentList({ contentId }: { contentId: string }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [contentId]);
+
+    useEffect(() => {
+        loadComments();
+    }, [loadComments]);
 
     const handleDelete = async (commentId: string) => {
         if (!confirm('정말 이 댓글을 삭제하시겠습니까? (복구 불가)')) return;

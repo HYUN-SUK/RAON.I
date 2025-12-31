@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchGroupsAdminAction, deleteGroupAdminAction } from '@/actions/admin-group';
 import { Loader2, Trash2, Users } from 'lucide-react';
+import Image from 'next/image';
 
 interface Group {
     id: string;
@@ -72,7 +73,7 @@ export default function AdminGroupsPage() {
                             <tr key={group.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="h-10 w-10 relative rounded overflow-hidden bg-gray-200">
-                                        {group.image_url && <img src={group.image_url} alt="" className="object-cover w-full h-full" />}
+                                        {group.image_url && <Image src={group.image_url} alt="" fill className="object-cover" sizes="40px" />}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">

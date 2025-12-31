@@ -86,7 +86,7 @@ export default function RecommendationAdminPage() {
     // Form States
     const [isRecSheetOpen, setIsRecSheetOpen] = useState(false);
     const [isEventSheetOpen, setIsEventSheetOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<any>(null);
+    const [editingItem, setEditingItem] = useState<RecItem | EventItem | null>(null);
 
     const [recFormData, setRecFormData] = useState({
         category: 'cooking',
@@ -229,6 +229,7 @@ export default function RecommendationAdminPage() {
                 parsed = JSON.parse(bulkJson);
                 if (!Array.isArray(parsed)) throw new Error('데이터 형식이 배열이 아닙니다.');
             } catch (e) {
+                console.error(e);
                 toast.error('JSON 형식이 올바르지 않습니다.');
                 return;
             }
@@ -420,7 +421,7 @@ export default function RecommendationAdminPage() {
                                     <DialogHeader>
                                         <DialogTitle>AI 추천 데이터 일괄 등록</DialogTitle>
                                         <DialogDescription>
-                                            JSON 형식으로 데이터를 붙여넣으세요. (category: 'cooking' | 'play')
+                                            JSON 형식으로 데이터를 붙여넣으세요. (category: &apos;cooking&apos; | &apos;play&apos;)
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="flex justify-end px-1 pt-2">

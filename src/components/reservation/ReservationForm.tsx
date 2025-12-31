@@ -214,10 +214,10 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                                 <span>+{priceBreakdown.options.visitor.toLocaleString()}원</span>
                             </div>
                         )}
-                        {priceBreakdown.discount.package > 0 && (
+                        {priceBreakdown.discount.pkg > 0 && (
                             <div className="flex justify-between text-green-400">
                                 <span>2박 패키지 할인</span>
-                                <span>-{priceBreakdown.discount.package.toLocaleString()}원</span>
+                                <span>-{priceBreakdown.discount.pkg.toLocaleString()}원</span>
                             </div>
                         )}
                         {priceBreakdown.discount.consecutive > 0 && (

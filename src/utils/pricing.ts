@@ -40,7 +40,7 @@ export const calculatePrice = (
         return {
             basePrice: 0,
             options: { extraFamily: 0, visitor: 0 },
-            discount: { consecutive: 0, package: 0 },
+            discount: { consecutive: 0, pkg: 0 },
             totalPrice: 0,
             nights: 0
         };
@@ -48,7 +48,7 @@ export const calculatePrice = (
 
     let basePrice = 0;
     let consecutiveDiscount = 0;
-    let packageDiscount = 0;
+    let pkgDiscount = 0;
 
     // 1. Base Price Calculation per Night
     for (let i = 0; i < nights; i++) {
@@ -86,7 +86,7 @@ export const calculatePrice = (
     // Visitor: per person (one-time)
     const visitorCost = visitorCount * config.visitor;
 
-    const totalDiscount = packageDiscount + consecutiveDiscount;
+    const totalDiscount = pkgDiscount + consecutiveDiscount;
     const totalPrice = basePrice + extraFamilyCost + visitorCost - totalDiscount;
 
     return {
@@ -97,7 +97,7 @@ export const calculatePrice = (
         },
         discount: {
             consecutive: consecutiveDiscount,
-            package: packageDiscount
+            pkg: pkgDiscount
         },
         totalPrice,
         nights

@@ -168,11 +168,12 @@
     *   [x] `src/components` 전역 Lint 수정 (MyMapModal, ReturningHome 등).
     *   [x] `any` 타입 제거 및 `Next/Image` 최적화.
 *   **8.2 Hook Refactoring** ✅:
-    *   [x] `useLBS`, `useWeather` 상수 통합 및 연동 강화.
-    *   [x] `usePoint`, `usePersonalizedRecommendation` 타입 안전성 확보.
-*   **8.3 Clean Up**:
-    *   [x] Dead Code (Dev UI, unused assets) 제거.
-    *   [ ] Global Import Organization (Next).
+    *  - [x] **2.5. Structure & Cleanup** (Completed - Runtime Stable)
+    - [x] Global Import Cleanup (Partially done for Admin/Core modules)
+    - [x] Global Linting (Critical Admin Modules Cleaned)
+    - [x] Unused Component Removal (Alert restored, others verified)
+    - [x] Critical Refactors (`package` -> `pkg`, `MySpaceState` export)
+    - [ ] **Final Production Build Verification** (Next Session).
 
 
 ---

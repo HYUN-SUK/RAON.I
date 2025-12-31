@@ -69,7 +69,7 @@ export default function EditMissionPage() {
     };
 
     const handleSelectChange = (value: string) => {
-        setFormData(prev => ({ ...prev, mission_type: value as any }));
+        setFormData(prev => ({ ...prev, mission_type: value as 'PHOTO' | 'CHECKIN' | 'COMMUNITY' }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

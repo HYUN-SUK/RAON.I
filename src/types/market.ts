@@ -40,8 +40,8 @@ export interface Order {
     items: OrderItem[];
     total_price: number;
     status: OrderStatus;
-    payment_info: any; // JSONB
-    delivery_info: any; // JSONB
+    payment_info: Record<string, any>; // JSONB
+    delivery_info: Record<string, any>; // JSONB
     created_at: string;
     updated_at: string;
 }
@@ -49,8 +49,8 @@ export interface Order {
 export interface CreateOrderDTO {
     items: OrderItem[];
     total_price: number;
-    payment_info: any;
-    delivery_info: any;
+    payment_info: Record<string, any>;
+    delivery_info: Record<string, any>;
 }
 
 export interface Review {

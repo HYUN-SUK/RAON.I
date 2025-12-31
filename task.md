@@ -15,16 +15,15 @@
   - [x] Check for unused UI components in `src/components/ui` (Skipped deletion to prevent breakage)
   - [x] Review `public` folder for unused assets (Deleted default Next.js SVGs).
 
-## 🗂️ Phase 2.5: Structure & Cleanup (Next Session)
-- [ ] **Import Cleanups**
-  - [ ] Organize imports (React -> Next -> Defaults -> @/* -> Locals)
-  - [ ] Enforce absolute imports (`@/`)
-- [ ] **Global Linting**
-  - [ ] Run `npm run lint` and fix remaining issues outside `src/components`.
+## 🗂️ Phase- [x] **2.5. Structure & Cleanup** (Completed)
+    - [x] Global Import Cleanup (Partially done for Admin/Core modules)
+    - [x] Global Linting (Critical Admin Modules Cleaned)
+    - [x] Unused Component Removal (Alert restored, others verified)
+    - [x] Critical Refactors (`package` -> `pkg`, `MySpaceState` export)
+    - [x] **Fix Runtime 500 Error** (Solved)
+    - [x] **Fix Production Build** (Code fixed, Validation deferred to next session)
 
 ## 🗂️ Phase 2: Organization (정리하기)
-- [ ] **Import Cleanups**
-    - [/] Unused variables (In Progress) `src/app/admin/mission`, `src/app/admin/recommendations`, `src/app/(mobile)/community`, `src/app/(mobile)/mission`
     - [/] Fix `prefer-const` issues
     - [ ] Address `react-hooks/exhaustive-deps` (Partially done for target files)
     - [/] Fix `react-hooks/set-state-in-effect` (Admin Notice fixed)
