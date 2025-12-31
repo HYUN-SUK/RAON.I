@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -38,27 +38,8 @@ export default function BeginnerHome() {
     const [nearbyEvents, setNearbyEvents] = useState<any[]>([]);
 
     // Dynamic Chip Data
-    const [chips, setChips] = useState<(HomeDetailData & { label: string; sub: string; isPriceGuide?: boolean; type?: string })[]>([]);
-
-    // Generic Icon Mapping
-    const getIconComponent = (iconName: string) => {
-        switch (iconName) {
-            case 'Tent': return <Tent className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Clock': return <Clock className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Map': return <Map className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Wifi': return <Wifi className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'ShoppingBag': return <ShoppingBag className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Siren': return <Siren className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'MapPin': return <MapPin className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Navigation': return <Navigation className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Phone': return <Phone className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Mountain': return <Mountain className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            default: return <Tag className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-        }
-    };
-
-    useEffect(() => {
-        if (!config) return;
+    const chips = useMemo(() => {
+        if (!config) return [];
 
         // Fixed 6 Chips per User Request:
         // 1. Wayfinding (Address)
@@ -68,7 +49,7 @@ export default function BeginnerHome() {
         // 5. Nearby Places
         // 6. Price Guide
 
-        setChips([
+        return [
             {
                 type: 'wayfinding',
                 icon: <Navigation className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
@@ -130,8 +111,27 @@ export default function BeginnerHome() {
                 description: config.pricing_guide_text || "가격 정보가 등록되지 않았습니다.",
                 isPriceGuide: true
             },
-        ]);
+        ];
     }, [config]);
+
+    // Generic Icon Mapping
+    const getIconComponent = (iconName: string) => {
+        switch (iconName) {
+            case 'Tent': return <Tent className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'Clock': return <Clock className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'Map': return <Map className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'Wifi': return <Wifi className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'ShoppingBag': return <ShoppingBag className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'Siren': return <Siren className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'MapPin': return <MapPin className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'Navigation': return <Navigation className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'Phone': return <Phone className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            case 'Mountain': return <Mountain className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+            default: return <Tag className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
+        }
+    };
+
+    // useEffect removed converted to useMemo
 
     const handleProtectedAction = async (action: () => void) => {
         const { data: { session } } = await supabase.auth.getSession();

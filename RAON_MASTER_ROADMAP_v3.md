@@ -20,7 +20,8 @@
 | **Phase 4** | **커뮤니티 (Community)** | ✅ **완료** | 100% | RLS 보안, 관리자 공지/소모임 관리, 소모임 기능(생성/가입/조회) 완료 |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
-| **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | 🔄 **진행 중** | 99% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완(Gap Filling) 완료. 마켓 피벗 대기. |
+| **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
+| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | 🔄 **진행 중** | 30% | `src/components` & `src/hooks` Sanitization 완료. 대청소(Code Cleanup) 진행 중. |
 
 ---
 
@@ -160,6 +161,18 @@
     *   [ ] **오픈 로직**: 매월 1일 09시 -> 익익월 말일까지 자동 오픈 로직 구현.
 *   **7.6 외부 API 연동 (Final Polish)** ⬜:
     *   [ ] **TourAPI/Kakao**: `nearby_events` 및 `site_config` 데이터를 실제 외부 API와 실시간 동기화 (안정화 단계에서 진행).
+
+### Phase 8: 안정화 및 리팩토링 (Stabilization) - 🔄 In Progress
+**"Codebase Health Improving - Operation Sparkling Forest"**
+*   **8.1 Component Sanitization** ✅ (2025-12-31):
+    *   [x] `src/components` 전역 Lint 수정 (MyMapModal, ReturningHome 등).
+    *   [x] `any` 타입 제거 및 `Next/Image` 최적화.
+*   **8.2 Hook Refactoring** ✅:
+    *   [x] `useLBS`, `useWeather` 상수 통합 및 연동 강화.
+    *   [x] `usePoint`, `usePersonalizedRecommendation` 타입 안전성 확보.
+*   **8.3 Clean Up**:
+    *   [x] Dead Code (Dev UI, unused assets) 제거.
+    *   [ ] Global Import Organization (Next).
 
 
 ---

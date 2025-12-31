@@ -14,6 +14,25 @@ interface MyMapModalProps {
     onClose: () => void;
 }
 
+interface Cluster {
+    type: 'cluster';
+    id: string;
+    items: MapItem[];
+    x: number;
+    y: number;
+    count: number;
+}
+
+interface RenderableItem {
+    type: 'item';
+    data: MapItem;
+    id: string;
+    x: number;
+    y: number;
+}
+
+type RenderablePin = Cluster | RenderableItem;
+
 export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
     const { reservations } = useReservationStore();
     const { mapItems, addMapItem } = useMySpaceStore();
@@ -225,8 +244,8 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
     // --- Clustering Logic (Simple Distance Based) ---
     // Returns list of Renderable Pins (either Single Item or Cluster)
     // We render this INSTEAD of mapItems directly
-    const getRenderablePins = () => {
-        if (!mapRef.current) return mapItems.map(i => ({ type: 'item', data: i, x: i.x, y: i.y }));
+    const getRenderablePins = (): RenderablePin[] => {
+        if (!mapRef.current) return mapItems.map(i => ({ type: 'item', data: i, id: i.id, x: i.x, y: i.y }));
 
         const thresholdPx = 40; // Pixel distance to group
         const mapWidth = mapRef.current.getBoundingClientRect().width;
@@ -234,8 +253,8 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
         // Convert % to current pixels for distance Calc
         const pxPerPct = mapWidth / 100;
 
-        const clusters: any[] = [];
-        const processed = new Set();
+        const clusters: RenderablePin[] = [];
+        const processed = new Set<string>();
 
         const sortedItems = [...mapItems].sort((a, b) => b.y - a.y); // Sort by Y for simple rendering order
 
@@ -302,7 +321,7 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
         setIsDetailOpen(true);
     };
 
-    const centerOnCluster = (cluster: any) => {
+    const centerOnCluster = (cluster: Cluster) => {
         if (!containerRef.current) return;
         const newScale = Math.min(scale + 1, 3);
 

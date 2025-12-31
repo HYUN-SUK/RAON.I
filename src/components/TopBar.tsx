@@ -27,10 +27,6 @@ export default function TopBar() {
     // Dynamic Level Progress
     const { progress } = getLevelInfo(xp);
 
-    useEffect(() => {
-        checkUser();
-    }, []);
-
     const checkUser = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         const user = session?.user;
@@ -54,6 +50,11 @@ export default function TopBar() {
             }
         }
     };
+
+    useEffect(() => {
+        checkUser();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleLogin = () => {
         router.push('/login');

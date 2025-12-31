@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Sheet,
     SheetContent,
@@ -27,7 +27,7 @@ interface NearbyEvent {
 interface Facility {
     category: string;
     name: string;
-    distance: string; // Static distance string from DB
+    distance?: string; // Distance is optional as it may be calculated dynamically
     phone: string;
     lat: number;
     lng: number;
@@ -58,9 +58,7 @@ export default function NearbyDetailSheet({
     const [activeTab, setActiveTab] = useState("events");
 
     // Dynamic Facilities with Real-time Distance
-    const [dynamicFacilities, setDynamicFacilities] = useState<Facility[]>(facilities);
-
-    useEffect(() => {
+    const dynamicFacilities = useMemo(() => {
         if (isOpen && userLocation && getDistance && facilities.length > 0) {
             // Recalculate distances
             const updated = facilities.map(f => {
@@ -71,13 +69,15 @@ export default function NearbyDetailSheet({
                 return f;
             }).sort((a, b) => {
                 // Sort by distance if numeric
-                const distA = parseFloat(a.distance.replace('km', ''));
-                const distB = parseFloat(b.distance.replace('km', ''));
+                const distStrA = a.distance || '999km';
+                const distStrB = b.distance || '999km';
+                const distA = parseFloat(distStrA.replace('km', ''));
+                const distB = parseFloat(distStrB.replace('km', ''));
                 return distA - distB;
             });
-            setDynamicFacilities(updated);
+            return updated;
         } else {
-            setDynamicFacilities(facilities);
+            return facilities;
         }
     }, [isOpen, userLocation, facilities, getDistance]);
 

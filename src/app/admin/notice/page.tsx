@@ -14,6 +14,7 @@ export default function AdminNoticePage() {
     const router = useRouter();
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
         loadPosts('NOTICE');
     }, [loadPosts]);

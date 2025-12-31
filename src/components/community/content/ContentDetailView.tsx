@@ -7,6 +7,7 @@ import { CreatorContent, Creator, CreatorEpisode } from '@/types/creator';
 import { Loader2, ArrowLeft, Heart, Share2, PlayCircle, BookOpen, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { CreatorCommentSection } from './CreatorCommentSection';
 import { HeartIcon } from 'lucide-react'; // Original Heart is generic, we might want fillable svg but lucide Heart is fine.
@@ -130,10 +131,11 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
 
         try {
             await creatorService.toggleFollow(content.creator_id);
-        } catch (e: any) {
+        } catch (e: unknown) {
+            const err = e as Error;
             setIsFollowing(prev);
             setFollowerCount(prevCount); // Revert
-            alert(e.message || '오류가 발생했습니다.');
+            alert(err.message || '오류가 발생했습니다.');
         }
     };
 
@@ -189,7 +191,15 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
                     {content.type === 'WEBTOON' && viewingEpisode.body_ref?.images && (
                         <div className="bg-black w-full min-h-full max-w-xl mx-auto flex flex-col pt-16">
                             {Array.isArray(viewingEpisode.body_ref.images) && viewingEpisode.body_ref.images.map((img: string, idx: number) => (
-                                <img key={idx} src={img} alt={`Scene ${idx}`} className="w-full h-auto block" />
+                                <div key={idx} className="relative w-full h-auto min-h-[500px]">
+                                    <Image
+                                        src={img}
+                                        alt={`Scene ${idx}`}
+                                        fill
+                                        className="object-contain"
+                                        unoptimized // Webtoon often external
+                                    />
+                                </div>
                             ))}
                         </div>
                     )}
@@ -215,7 +225,13 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
 
             {/* Hero Cover */}
             <div className="relative aspect-square md:aspect-[21/9] w-full bg-gray-200">
-                <img src={content.cover_image_url || undefined} alt={content.title} className="w-full h-full object-cover" />
+                <Image
+                    src={content.cover_image_url || ''}
+                    alt={content.title}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#F7F5EF] via-transparent to-transparent" />
 
                 <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -280,7 +296,13 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
                         >
                             <div className="relative w-24 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                                 {(ep.thumbnail_url || content.cover_image_url) ? (
-                                    <img src={ep.thumbnail_url || content.cover_image_url || undefined} className="w-full h-full object-cover" alt="" />
+                                    <Image
+                                        src={ep.thumbnail_url || content.cover_image_url || ''}
+                                        className="object-cover"
+                                        alt=""
+                                        fill
+                                        unoptimized
+                                    />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400">
                                         {content.type === 'LIVE' ? <PlayCircle /> : <BookOpen />}

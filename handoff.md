@@ -1,50 +1,40 @@
-# Handoff: Mission Ranking & Admin Deletion
-
+# Handoff Document - Operation "Sparkling Forest" (Part 1)
 **Date**: 2025-12-31
-**Role**: Lead Developer
-**Session Goal**: Implement Mission Trending System and Admin Moderation Tools.
+**Session Goal**: Codebase Sanitization & Cleanup (`src/components`, `src/hooks`)
 
-## 📌 Summary
-This session successfully implemented the **Mission Ranking System** ("Trending" sort based on participation/likes) and **Admin Deletion Capabilities** (removing specific comments and withdrawing users from missions). These features enhance user discovery and provide necessary moderation tools for operations.
+## 📝 1. Session Summary (완료된 작업)
+이번 세션에서는 `src/components`와 `src/hooks`의 코드 품질을 개선하는 데 집중했습니다.
+*   **컴포넌트 안정화**: 
+    *   `PostCard`, `RecommendationGrid` 등의 치명적인 `any` 타입 제거.
+    *   `MyMapModal`의 클러스터링 로직을 `Cluster`, `RenderablePin` 타입으로 리팩토링.
+    *   `ReturningHome` & `NearbyDetailSheet` 간의 `Facility` 타입 불일치 해결 (`distance` optional).
+    *   레거시 `<img>` 태그를 `Next/Image`로 전면 교체하여 최적화 및 경고 제거.
+*   **훅(Hook) 구조 개선**:
+    *   `src/constants/location.ts` 도입: `useLBS`와 `useWeather`가 동일한 좌표 상수를 바라보도록 통일.
+    *   `usePersonalizedRecommendation`: `useLBS`와 연동하여 실제 위치 기반 날씨 정보를 가져오도록 수정.
+*   **Dead Code 정리**:
+    *   `AdminLoginForm`의 보안 취약점(Dev Sign Up 버튼) 제거.
+    *   `CommunityWriteForm`의 하드코딩된 데이터 제거.
+    *   `public` 폴더의 미사용 Next.js 기본 에셋 삭제.
 
-## ✅ Completed Features
-### 1. Mission Ranking System
-*   **Backend**: Added `get_trending_missions` RPC.
-    *   Score formula: `(participants * 1.0) + (likes * 0.5)`.
-*   **Frontend**: 
-    *   Updated `useMissionStore` to support `sortBy` ('newest' | 'trending').
-    *   Added Sort Toggle UI to `/mission` page.
-    *   Added "🔥 N명 참여" badge for trending missions.
+## 🏗️ 2. Technical Decisions (기술적 결정)
+*   **LBS & Weather 연동**: 위치 정보가 로딩 중일 때 `useWeather`가 멈추지 않도록, `useLBS`의 상태에 따라 `undefined` 또는 실제 좌표를 넘기는 패턴을 확립함.
+*   **Type Safety**: `any` 사용을 지양하고, Supabase의 `Database` 타입 정의와 로컬 인터페이스(`Cluster` 등)를 적극 활용함.
+*   **Image Optimization**: 외부 URL 이미지를 사용하는 경우 `unoptimized` 속성을 사용하여 Next.js 이미지 최적화 비용을 절약하고 호환성을 확보함.
 
-### 2. Admin Moderation (Deletion)
-*   **Global Deletion (Community)**:
-    *   **Posts**: Admins can delete ANY post via the "More" menu in Post Detail.
-    *   **Comments**: Admins can delete ANY comment via the "Trash" icon in Comment List.
-    *   **RPC**: Added `admin_delete_post` and genericized `admin_delete_comment`.
-*   **Mission Participation**:
-    *   Updated `/admin/mission/[id]` to list all participants.
-    *   Implemented `admin_withdraw_mission_participation` RPC to force-withdraw users (cascading delete of points, likes, comments).
+## 🚀 3. Next Steps (다음 세션 가이드)
+**작전명: "Sparkling Forest" - Part 2 (Structure & Import)**
+다음 세션에서는 코드의 **구조적 정리**에 집중해야 합니다.
 
-### 3. Policy & Data Integrity
-*   **XP/Token Clawback**:
-    *   Implemented `on_point_history_delete` trigger to reverse XP/Token grants when history is deleted.
-    *   Updated `grant_user_reward` RPC to track `xp_amount`.
-*   **Like Synchronization**:
-    *   Implemented bi-directional triggers (`sync_mission_like_to_comment`, `sync_comment_like_to_mission`) to sync likes between Mission Proofs and Comments.
-*   **UI Updates**:
-    *   Added Admin Delete icon to `PostCard`.
-    *   Added Non-cash currency disclaimer to Wallet Page.
+1.  **전역 임포트 정리 (Global Import Cleanups)**
+    *   모든 파일의 import 순서를 `React -> Next -> 3rd Party -> @/components -> @/hooks -> Styles` 순으로 통일.
+    *   상대 경로(`../../`)를 절대 경로(`@/`)로 변환.
+2.  **잔여 Lint 해결**
+    *   `src/app` 및 `src/utils` 등 아직 건드리지 않은 폴더의 Lint 오류 해결.
+3.  **UI 컴포넌트 정리**
+    *   `src/components/ui` 중 사용되지 않는 컴포넌트(ex: `context-menu` 등) 식별 및 제거 (조심스럽게 접근).
 
-## 🛠 Technical Notes
-*   **RPCs**: New RPCs added to `20251231_mission_ranking_and_admin.sql` and `20251231_xp_clawback_and_sync.sql`.
-*   **Services**: `missionService`, `creatorService`, `adminMissionService`, `communityService` enhanced.
-*   **Types**: Updated `Mission` type to optional `participant_count` and `total_likes`.
-
-## ⚠️ Known Issues / Caveats
-*   **Admin Auth**: Implementation assumes the user has access to Admin Pages. RLS policies for `admin_*` RPCs are set to `authenticated`, relying on the app's Admin Guard for access control.
-*   **Performance**: `get_trending_missions` performs a sort on the DB side. For very large datasets, indexing strategies on `user_missions` might be reviewed later.
-
-## ⏭ Next Steps
-*   **Verification**: Manually verify the Trending Sort order and Admin Deletion flow.
-*   **Search System**: Implement global search (mentioned in roadmap but not started).
-*   **My Space**: Continue polishing the "Digital Archive" pivot (Phase 2).
+## ⚠️ 4. Known Issues & Caveats (주의 사항)
+*   **Hydration Warning**: `TopBar` 등에서 일부 Hydration Mismatch 경고가 발생할 수 있으나, 기능에는 지장이 없음.
+*   **Supabase 406**: 로컬 환경에서 일부 데이터가 없을 때 발생하는 406 에러는 정상 동작임.
+*   **Type Mismatch**: `Facility` 타입의 `distance` 속성은 LBS 계산 전에는 없을 수 있으므로 반드시 `optional (?)` 처리를 유지해야 함.

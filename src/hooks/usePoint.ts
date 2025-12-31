@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-client';
-import { pointService, UserWallet } from '@/services/pointService';
+import { pointService, UserWallet, PointHistory } from '@/services/pointService';
 
 export const usePoint = (userId?: string) => {
     const [wallet, setWallet] = useState<UserWallet | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
-    const [history, setHistory] = useState<any[]>([]); // Use PointHistory type if available, using any to avoid import cycles for now
+    const [history, setHistory] = useState<PointHistory[]>([]);
 
     const fetchWallet = async () => {
         if (!userId) return;

@@ -31,7 +31,8 @@ const postSchema = z.object({
     title: z.string().min(1, '제목을 입력해주세요.'),
     content: z.string().min(1, '내용을 입력해주세요.'),
     type: z.enum(['NOTICE', 'REVIEW', 'STORY', 'QNA', 'GROUP', 'CONTENT']),
-    images: z.array(z.any()).max(5, '사진은 최대 5장까지 업로드 가능합니다.'),
+    images: z.array(z.custom<File>((val) => val instanceof File, "파일 형식이 올바르지 않습니다."))
+        .max(5, '사진은 최대 5장까지 업로드 가능합니다.'),
 });
 
 export default function CommunityWriteForm() {
@@ -39,7 +40,7 @@ export default function CommunityWriteForm() {
     const searchParams = useSearchParams();
     const initialType = (searchParams.get('type') as BoardType) || 'STORY';
 
-    const { createPost, isLoading: storeLoading } = useCommunityStore();
+    const { createPost, isLoading: storeLoading, currentUser } = useCommunityStore();
     const [localLoading, setLocalLoading] = useState(false);
 
     const [type, setType] = useState<BoardType>(initialType);
@@ -114,7 +115,7 @@ export default function CommunityWriteForm() {
                 type,
                 title,
                 content,
-                author: '홍길동', // TODO: Actual User Name from Auth Store
+                author: currentUser.name, // Use name from store
                 images: uploadedImageUrls,
                 groupName: type === 'GROUP' ? groupName : undefined,
                 videoUrl: type === 'CONTENT' ? videoUrl : undefined,

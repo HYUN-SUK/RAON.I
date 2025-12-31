@@ -36,13 +36,14 @@ export default function CommunityBoardContainer({ activeTab }: CommunityBoardCon
             { threshold: 1.0 }
         );
 
-        if (observerTarget.current) {
-            observer.observe(observerTarget.current);
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
         }
 
         return () => {
-            if (observerTarget.current) {
-                observer.unobserve(observerTarget.current);
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
             }
         };
     }, [hasMore, isLoading, activeTab, page, loadPosts]);
@@ -86,8 +87,8 @@ export default function CommunityBoardContainer({ activeTab }: CommunityBoardCon
                             key={p}
                             onClick={() => loadPosts(activeTab, p)}
                             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${page === p
-                                    ? 'bg-[#1C4526] text-white'
-                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                ? 'bg-[#1C4526] text-white'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             {p}

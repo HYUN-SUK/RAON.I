@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
-
-// Default Location: RAON Camping (Dummy Coordinates for Demo)
-// Using Gapyeong-gun coordinates as a generic "Campsite" location
-const DEFAULT_LOCATION = {
-    latitude: 37.8315,
-    longitude: 127.5097,
-};
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 
 interface Coordinates {
     latitude: number;
@@ -19,9 +13,13 @@ interface LBSState {
     usingDefault: boolean;
 }
 
+const deg2rad = (deg: number) => {
+    return deg * (Math.PI / 180);
+};
+
 export const useLBS = () => {
     const [state, setState] = useState<LBSState>({
-        location: DEFAULT_LOCATION,
+        location: DEFAULT_CAMPING_LOCATION,
         isLoading: true,
         error: null,
         usingDefault: true,
@@ -54,7 +52,7 @@ export const useLBS = () => {
             console.warn("LBS Access Denied/Error:", error.message);
             // Fallback to default without blocking the UI
             setState({
-                location: DEFAULT_LOCATION,
+                location: DEFAULT_CAMPING_LOCATION,
                 isLoading: false,
                 error: error.message,
                 usingDefault: true, // Mark as using default so UI can show "Campsite Base" vs "My Location"
@@ -83,10 +81,6 @@ export const useLBS = () => {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const d = R * c; // Distance in km
         return parseFloat(d.toFixed(1)); // Return 1 decimal place
-    };
-
-    const deg2rad = (deg: number) => {
-        return deg * (Math.PI / 180);
     };
 
     return { ...state, getDistanceKm };

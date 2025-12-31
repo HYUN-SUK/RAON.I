@@ -39,8 +39,9 @@ export async function deleteNoticeAction(id: string, _formData?: FormData) {
 
         // 3. Revalidate
         revalidatePath('/admin/notice')
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Delete Action Fatal Error:', err)
-        throw new Error(`DELETE_ERROR: ${err.message}`);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        throw new Error(`DELETE_ERROR: ${message}`);
     }
 }

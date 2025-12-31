@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Upload, Copy } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
@@ -72,7 +73,6 @@ const AI_IMPORT_TEMPLATE = `
 
 export default function RecommendationAdminPage() {
     const supabase = createClient();
-    const [isLoading, setIsLoading] = useState(false);
 
     // Data
     const [recItems, setRecItems] = useState<RecItem[]>([]);
@@ -125,8 +125,7 @@ export default function RecommendationAdminPage() {
 
 
     // Fetch Data
-    const fetchData = async () => {
-        setIsLoading(true);
+    const fetchData = React.useCallback(async () => {
         try {
             const { data: recs } = await supabase.from('recommendation_pool').select('*').order('created_at', { ascending: false });
             if (recs) setRecItems(recs);
@@ -135,21 +134,19 @@ export default function RecommendationAdminPage() {
             if (evts) setEvents(evts);
         } catch (e) {
             console.error(e);
-        } finally {
-            setIsLoading(false);
         }
-    };
+    }, [supabase]);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     // Handlers
     const handleRecSubmit = async () => {
         try {
             const tags = { season: recFormData.season === 'all' ? [] : [recFormData.season] };
 
-            const payload: any = {
+            const payload = {
                 category: recFormData.category,
                 title: recFormData.title,
                 description: recFormData.description,
@@ -182,8 +179,9 @@ export default function RecommendationAdminPage() {
             setIsRecSheetOpen(false);
             setEditingItem(null);
             fetchData();
-        } catch (e: any) {
-            toast.error(e.message);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "오류가 발생했습니다.";
+            toast.error(message);
         }
     };
 
@@ -205,8 +203,9 @@ export default function RecommendationAdminPage() {
             setIsEventSheetOpen(false);
             setEditingItem(null);
             fetchData();
-        } catch (e: any) {
-            toast.error(e.message);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "오류가 발생했습니다.";
+            toast.error(message);
         }
     };
 
@@ -265,9 +264,10 @@ export default function RecommendationAdminPage() {
             setIsBulkOpen(false);
             setBulkJson('');
             fetchData();
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
-            toast.error(`일괄 등록 중 오류 발생: ${error.message}`);
+            const message = error instanceof Error ? error.message : "알 수 없는 오류";
+            toast.error(`일괄 등록 중 오류 발생: ${message}`);
         } finally {
             setBulkLoading(false);
         }
@@ -289,9 +289,9 @@ export default function RecommendationAdminPage() {
             // Handle ingredients normalization (string[] vs object[])
             let ingredientsNormalized: IngredientItem[] = [];
             if (Array.isArray(item.ingredients)) {
-                ingredientsNormalized = item.ingredients.map((ing: any) => {
+                ingredientsNormalized = item.ingredients.map((ing: unknown) => {
                     if (typeof ing === 'string') return { name: ing, amount: '' };
-                    return ing; // assume object
+                    return ing as IngredientItem; // assume object
                 });
             }
 
@@ -454,7 +454,7 @@ export default function RecommendationAdminPage() {
                         {recItems.map(item => (
                             <div key={item.id} className="border rounded-lg p-4 bg-white shadow-sm flex gap-4">
                                 {item.image_url ? (
-                                    <img src={item.image_url} className="w-20 h-20 rounded-md object-cover bg-gray-100" />
+                                    <Image unoptimized src={item.image_url} width={80} height={80} className="w-20 h-20 rounded-md object-cover bg-gray-100" alt={item.title} />
                                 ) : (
                                     <div className="w-20 h-20 rounded-md bg-gray-100 flex items-center justify-center">
                                         {item.category === 'cooking' ? <ChefHat size={24} className="text-gray-400" /> : <Tent size={24} className="text-gray-400" />}
@@ -496,7 +496,7 @@ export default function RecommendationAdminPage() {
                         {events.map(evt => (
                             <div key={evt.id} className="flex items-center gap-4 bg-white p-4 rounded-lg border">
                                 <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                                    {evt.image_url ? <img src={evt.image_url} className="w-full h-full object-cover" /> : <Calendar className="text-gray-400" />}
+                                    {evt.image_url ? <Image unoptimized src={evt.image_url} width={64} height={64} className="w-full h-full object-cover" alt={evt.title} /> : <Calendar className="text-gray-400" />}
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="font-bold">{evt.title}</h3>

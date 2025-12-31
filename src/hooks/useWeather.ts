@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 
 // Open-Meteo Weather Codes (WMO)
 // 0: Clear sky
@@ -19,10 +20,6 @@ interface WeatherState {
     error: string | null;
 }
 
-// Default Location (Gapyeong Campsite) for fallback
-const DEFAULT_LAT = 37.8315;
-const DEFAULT_LNG = 127.5097;
-
 export const useWeather = (userLat?: number, userLng?: number) => {
     const [weather, setWeather] = useState<WeatherState>({
         type: 'unknown',
@@ -34,8 +31,8 @@ export const useWeather = (userLat?: number, userLng?: number) => {
     useEffect(() => {
         const fetchWeather = async () => {
             // Use user location if available, else default
-            const lat = userLat || DEFAULT_LAT;
-            const lng = userLng || DEFAULT_LNG;
+            const lat = userLat || DEFAULT_CAMPING_LOCATION.latitude;
+            const lng = userLng || DEFAULT_CAMPING_LOCATION.longitude;
 
             const cacheKey = `weather_${lat.toFixed(2)}_${lng.toFixed(2)}`;
             const cached = sessionStorage.getItem(cacheKey);

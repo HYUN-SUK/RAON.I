@@ -31,33 +31,33 @@ export default function EditMissionPage() {
     });
 
     useEffect(() => {
+        const loadMission = async (missionId: string) => {
+            try {
+                const data = await adminMissionService.getMissionById(missionId);
+                setFormData({
+                    title: data.title,
+                    description: data.description || '',
+                    mission_type: data.mission_type,
+                    // Convert DB timestamp to input datetime-local format (YYYY-MM-DDTHH:mm)
+                    start_date: data.start_date ? new Date(data.start_date).toISOString().slice(0, 16) : '',
+                    end_date: data.end_date ? new Date(data.end_date).toISOString().slice(0, 16) : '',
+                    reward_xp: data.reward_xp,
+                    reward_point: data.reward_point,
+                    is_active: data.is_active
+                });
+            } catch (error) {
+                console.error(error);
+                alert('미션 정보를 불러오지 못했습니다.');
+                router.push('/admin/mission');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         if (id) {
             loadMission(id);
         }
-    }, [id]);
-
-    const loadMission = async (missionId: string) => {
-        try {
-            const data = await adminMissionService.getMissionById(missionId);
-            setFormData({
-                title: data.title,
-                description: data.description || '',
-                mission_type: data.mission_type,
-                // Convert DB timestamp to input datetime-local format (YYYY-MM-DDTHH:mm)
-                start_date: data.start_date ? new Date(data.start_date).toISOString().slice(0, 16) : '',
-                end_date: data.end_date ? new Date(data.end_date).toISOString().slice(0, 16) : '',
-                reward_xp: data.reward_xp,
-                reward_point: data.reward_point,
-                is_active: data.is_active
-            });
-        } catch (error) {
-            console.error(error);
-            alert('미션 정보를 불러오지 못했습니다.');
-            router.push('/admin/mission');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    }, [id, router]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -129,8 +129,8 @@ export default function EditMissionPage() {
                     <Button variant="secondary" size="sm" onClick={async () => {
                         if (!confirm('현재 미션의 랭킹을 정산하시겠습니까? (상위 3명 선정)')) return;
                         try {
-                            const result = await adminMissionService.processRanking(id);
-                            console.log(result);
+                            await adminMissionService.processRanking(id);
+
                             alert('랭킹 정산이 완료되었습니다!\n상위 3명에게 보상이 지급되었습니다.');
                         } catch (e) {
                             console.error(e);
@@ -266,78 +266,4 @@ export default function EditMissionPage() {
     );
 }
 
-function AdminParticipantList({ missionId }: { missionId: string }) {
-    // We treat 'any' for now as we don't have full UserMission type with joined profile in admin service type yet.
-    // But we can use the UserMission interface from types/mission
-    const [participants, setParticipants] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadData();
-    }, [missionId]);
-
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const data = await adminMissionService.getParticipants(missionId);
-            setParticipants(data);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleWithdraw = async (userId: string) => {
-        if (!confirm('정말 이 사용자의 참여를 철회하시겠습니까? 관련 포인트/경험치/좋아요/댓글이 모두 삭제됩니다.')) return;
-        try {
-            await adminMissionService.withdrawParticipation(userId, missionId);
-            alert('철회 처리되었습니다.');
-            loadData();
-        } catch (e) {
-            console.error(e);
-            alert('처리 실패');
-        }
-    };
-
-    if (loading) return <div className="p-4 text-center text-gray-500">참여자 로딩 중...</div>;
-
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border mt-6">
-            <h3 className="text-lg font-bold mb-4">참여자 목록 ({participants.length})</h3>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-                {participants.length === 0 ? (
-                    <p className="text-gray-500 text-sm">참여자가 없습니다.</p>
-                ) : (
-                    participants.map((p) => (
-                        <div key={p.id} className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0">
-                            <div>
-                                <div className="text-sm font-semibold text-gray-800">
-                                    USER: {p.user_id.substring(0, 8)}...
-                                </div>
-                                <div className="text-xs text-stone-500">
-                                    Status: {p.status} | Likes: {p.likes_count}
-                                </div>
-                                {p.image_url && (
-                                    <a href={p.image_url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">
-                                        [인증사진 보기]
-                                    </a>
-                                )}
-                                {p.content && (
-                                    <p className="text-sm text-gray-600 mt-1 line-clamp-1">{p.content}</p>
-                                )}
-                            </div>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleWithdraw(p.user_id)}
-                            >
-                                철회 (삭제)
-                            </Button>
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
-    );
-}

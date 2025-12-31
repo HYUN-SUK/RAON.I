@@ -18,11 +18,15 @@ interface PersonalizedData {
     };
 }
 
-export function usePersonalizedRecommendation() {
-    // 1. Weather Hook
-    const weather = useWeather();
+import { useLBS } from '@/hooks/useLBS';
 
-    // 2. Initial State
+interface TagData {
+    season?: string[];
+    [key: string]: any;
+}
+
+export function usePersonalizedRecommendation() {
+    // 1. Initial State
     const [data, setData] = useState<PersonalizedData>({
         cooking: null,
         play: null,
@@ -34,6 +38,17 @@ export function usePersonalizedRecommendation() {
             greeting: '반가워요, 캠퍼님'
         }
     });
+
+    // 2. LBS & Weather Hooks
+    // Use LBS explicitly to pass location to Weather
+    const lbs = useLBS();
+    // Pass user location if available (not using default/loading state)
+    // If LBS is loading or using default, pass undefined to let useWeather use its default/cache logic 
+    // BUT since we normalized defaults, we can just pass specific coords if not default
+    const weather = useWeather(
+        !lbs.usingDefault ? lbs.location.latitude : undefined,
+        !lbs.usingDefault ? lbs.location.longitude : undefined
+    );
 
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
@@ -84,7 +99,7 @@ export function usePersonalizedRecommendation() {
 
                 if (poolData) {
                     const seasonFiltered = poolData.filter(item => {
-                        const tags = item.tags as any;
+                        const tags = item.tags as unknown as TagData; // Safe cast to interface
                         if (!tags?.season || tags.season.length === 0) return true;
                         return tags.season.includes(currentSeason);
                     });

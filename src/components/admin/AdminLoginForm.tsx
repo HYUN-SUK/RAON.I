@@ -122,25 +122,7 @@ export function AdminLoginForm() {
                             {isLoading ? "로그인 중..." : "로그인"}
                         </Button>
 
-                        {/* TODO: Remove this in production */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full mt-2"
-                            onClick={async () => {
-                                const email = form.getValues("email")
-                                const password = form.getValues("password")
-                                if (!email || !password) return alert("Email/PW required")
 
-                                const { data, error } = await supabase.auth.signUp({ email, password })
-                                if (error) alert(error.message)
-                                else {
-                                    alert("Signup Success: " + (data.session ? "LoggedIn" : "Check Email"))
-                                }
-                            }}
-                        >
-                            Dev: Sign Up
-                        </Button>
                     </form>
                 </Form>
             </CardContent>

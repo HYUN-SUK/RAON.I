@@ -1,14 +1,11 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { useCommunityStore, BoardType } from '@/store/useCommunityStore';
 import BottomNav from '@/components/BottomNav';
 import CommunityHeader from '@/components/community/CommunityHeader';
 import CommunityTabs from '@/components/community/CommunityTabs';
 import CommunityBoardContainer from '@/components/community/CommunityBoardContainer';
-import { useCommunityStore } from '@/store/useCommunityStore';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
@@ -23,7 +20,7 @@ export default function CommunityPage() {
     // 1. Init from URL (Priority)
     React.useEffect(() => {
         if (tabParam) {
-            setActiveTab(tabParam as any);
+            setActiveTab(tabParam as BoardType);
         }
         setIsInitialized(true);
     }, [tabParam, setActiveTab]);
@@ -36,7 +33,7 @@ export default function CommunityPage() {
     }, [activeTab, loadPosts, isInitialized]);
 
     // 3. Handle Tab Selection (User Interaction)
-    const handleTabChange = (newTab: any) => {
+    const handleTabChange = (newTab: BoardType) => {
         setActiveTab(newTab);
         // Explicitly update URL to persist state across reloads
         const params = new URLSearchParams(searchParams.toString());

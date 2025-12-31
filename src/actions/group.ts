@@ -38,7 +38,7 @@ export async function createGroupAction(formData: FormData) {
         throw new Error('Failed to create group: ' + groupError.message);
     }
 
-    // console.log('Group created:', group.id);
+
 
     // 2. Add Owner as Member (Admin)
     const { error: memberError } = await supabase

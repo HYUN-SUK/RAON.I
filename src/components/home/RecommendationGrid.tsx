@@ -3,8 +3,25 @@ import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommenda
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChefHat, Tent, MapPin, Clock } from 'lucide-react';
 
+import { Database } from '@/types/supabase';
+
+type RecommendationItem = Database['public']['Tables']['recommendation_pool']['Row'];
+type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
+
+interface DetailedRecommendationItem {
+    id: string;
+    icon: React.ReactNode;
+    categoryLabel: string;
+    title: string;
+    bgColorClass: string;
+    textColorClass: string;
+    isWide?: boolean;
+    description?: string | null;
+    data: RecommendationItem | { type: 'nearby_lbs', events: NearbyEvent[] } | null;
+}
+
 interface RecommendationGridProps {
-    onItemClick?: (item: any) => void;
+    onItemClick?: (item: RecommendationItem | { type: 'nearby_lbs', events: NearbyEvent[] }) => void;
 }
 
 export default function RecommendationGrid({ onItemClick }: RecommendationGridProps) {
@@ -88,7 +105,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
             description: eventCount > 1
                 ? `외 ${eventCount - 1}개의 행사와 편의시설이 있어요`
                 : firstEvent.location || '가까운 곳에서 즐겨보세요',
-            data: { type: 'nearby_lbs', events: events } // Special type for LBS handler
+            data: { type: 'nearby_lbs' as const, events: events } // Special type for LBS handler
         });
     } else {
         items.push({
@@ -100,7 +117,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
             textColorClass: 'text-stone-500',
             isWide: true,
             description: '주변 편의시설을 확인해보세요',
-            data: { type: 'nearby_lbs', events: [] }
+            data: { type: 'nearby_lbs' as const, events: [] }
         });
     }
 
@@ -118,7 +135,8 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
                     const isWide = index === 2 || item.isWide;
 
                     // Safe access to potential V2 properties
-                    const dataAny = item.data as any;
+                    // We know the structure based on DB schema now but for now we cast to specific known interface or use optional chaining safely without any
+                    const dataAny = item.data as (RecommendationItem & { difficulty?: number, time_required?: number, calories?: number });
                     const hasV2Info = dataAny && (dataAny.difficulty || dataAny.time_required || dataAny.calories);
 
                     return (

@@ -21,12 +21,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface PostCardProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    post: any; // Type 'any' allowed pending refactor
+    post: Post;
 }
 
 export default function PostCard({ post }: PostCardProps) {
-    const router = useRouter();
     const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
@@ -40,10 +38,6 @@ export default function PostCard({ post }: PostCardProps) {
         checkAdmin();
     }, []);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        // No longer used directly, handled by AlertDialogAction
-    };
-
     const executeDelete = async () => {
         try {
             await communityService.deletePost(post.id);
@@ -51,39 +45,37 @@ export default function PostCard({ post }: PostCardProps) {
             window.location.reload();
         } catch (error: any) {
             console.error(error);
-            alert('삭제 실패: ' + error.message);
+            alert('삭제 실패: ' + (error.message || '알 수 없는 오류'));
         }
     };
 
     // Defensive Data Extraction
     const type = post.type || 'STORY';
-    const status = (post as any).status || 'OPEN'; // Safe fallback
-    const groupName = (post as any).groupName || 'Unknown Group';
-    const videoUrl = (post as any).videoUrl;
+    const status = post.status || 'OPEN';
+    const groupName = post.groupName || 'Unknown Group'; // defined in Post interface
+    const videoUrl = post.videoUrl;
 
     // Author safety
-    let safeAuthor = '익명';
-    if (typeof post.author === 'string') safeAuthor = post.author;
-    else if (typeof post.author === 'object') safeAuthor = (post.author as any)?.name || 'Unknown';
+    const safeAuthor = post.author || '익명';
 
     // Image safety
     const safeImages = Array.isArray(post.images)
-        ? post.images.slice(0, 3).filter((img: string) => typeof img === 'string')
+        ? post.images.slice(0, 3).filter((img) => typeof img === 'string')
         : [];
     const firstImage = safeImages[0];
-    const thumbnailUrl = typeof post.thumbnailUrl === 'string' ? post.thumbnailUrl : undefined;
+    const thumbnailUrl = post.thumbnailUrl;
 
     const isVideo = type === 'CONTENT' && typeof videoUrl === 'string';
     const isGroup = type === 'GROUP';
     const hasMedia = Boolean(thumbnailUrl || firstImage);
 
     // Helpers for safe rendering
-    const safeTitle = typeof post.title === 'string' ? post.title : '제목 없음';
-    const safeContent = typeof post.content === 'string' ? post.content : '';
-    const safeDate = typeof post.date === 'string' ? post.date : '';
-    const safeLikeCount = typeof post.likeCount === 'number' ? post.likeCount : 0;
-    const safeCommentCount = typeof post.commentCount === 'number' ? post.commentCount : 0;
-    const safeReadCount = typeof post.readCount === 'number' ? post.readCount : 0;
+    const safeTitle = post.title || '제목 없음';
+    const safeContent = post.content || '';
+    const safeDate = post.date || '';
+    const safeLikeCount = post.likeCount || 0;
+    const safeCommentCount = post.commentCount || 0;
+    const safeReadCount = post.readCount || 0;
 
     return (
         <>
@@ -166,6 +158,7 @@ export default function PostCard({ post }: PostCardProps) {
                                         alt="thumbnail"
                                         fill
                                         className="object-cover"
+                                        unoptimized
                                     />
                                     {isVideo && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20">

@@ -18,6 +18,18 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useLBS } from '@/hooks/useLBS';
 import { useState } from 'react';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
+import { Database } from '@/types/supabase';
+
+type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
+// Simplified facility interface based on usage
+interface Facility {
+    category: string;
+    name: string;
+    distance?: string;
+    phone: string;
+    lat: number;
+    lng: number;
+}
 
 export default function ReturningHome() {
     const router = useRouter();
@@ -32,9 +44,10 @@ export default function ReturningHome() {
 
     // Nearby LBS Sheet State
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
-    const [nearbyEvents, setNearbyEvents] = useState<any[]>([]);
+    const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
 
     const handleRecommendationClick = (item: any) => {
+        // Safe casting pending full type unification across Grid and Home
         // Special Handling for LBS Card
         if (item.type === 'nearby_lbs') {
             setNearbyEvents(item.events || []);
@@ -42,27 +55,29 @@ export default function ReturningHome() {
             return;
         }
 
+        const dataAny = item as any; // Temporary safe cast for mixed Item types
+
         setDetailData({
-            title: item.title,
-            description: item.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
-            icon: <span className="text-4xl">{item.icon}</span>,
-            actionLabel: item.actionLabel,
-            actionLink: item.actionLink,
-            bgColorClass: item.bgColorClass,
+            title: dataAny.title,
+            description: dataAny.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
+            icon: <span className="text-4xl">{dataAny.icon}</span>,
+            actionLabel: dataAny.actionLabel,
+            actionLink: dataAny.actionLink,
+            bgColorClass: dataAny.bgColorClass,
             // V2 Fields Copy
-            categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
-            ingredients: item.ingredients,
-            steps: item.process_steps, // DB field is process_steps, UI prop is steps
-            tips: item.tips,
-            time_required: item.time_required,
-            difficulty: item.difficulty,
+            categoryLabel: dataAny.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
+            ingredients: dataAny.ingredients,
+            steps: dataAny.process_steps, // DB field is process_steps, UI prop is steps
+            tips: dataAny.tips,
+            time_required: dataAny.time_required,
+            difficulty: dataAny.difficulty,
 
             // V2.1 Premium Fields
-            image_url: item.image_url,
-            servings: item.servings,
-            calories: item.calories,
-            age_group: item.age_group,
-            location_type: item.location_type
+            image_url: dataAny.image_url,
+            servings: dataAny.servings,
+            calories: dataAny.calories,
+            age_group: dataAny.age_group,
+            location_type: dataAny.location_type
         });
         setDetailSheetOpen(true);
     };
@@ -195,7 +210,7 @@ export default function ReturningHome() {
                 isOpen={nearbySheetOpen}
                 onClose={() => setNearbySheetOpen(false)}
                 events={nearbyEvents}
-                facilities={config?.nearby_places as any[] || []}
+                facilities={config?.nearby_places as unknown as Facility[] || []}
                 userLocation={lbs.location}
                 getDistance={lbs.getDistanceKm}
             />

@@ -40,6 +40,7 @@ export default function AdminNoticeForm({ initialData, mode, onSubmit, onDelete,
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (initialData) {
             setTitle(initialData.title);
             setContent(initialData.content);

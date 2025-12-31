@@ -6,7 +6,7 @@ import { useMissionStore } from '@/store/useMissionStore';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TopBar from '@/components/TopBar';
-import { ArrowLeft, Camera, CheckCircle, UploadCloud, Heart, Trash2 } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, UploadCloud, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -85,9 +85,10 @@ export default function MissionDetailPage() {
 
             await completeMission("미션 인증 완료! 📸", imageUrl);
             toast.success("미션 인증 성공! 보상이 지급되었습니다.");
-        } catch (e: any) {
+        } catch (e) {
             console.error(e);
-            toast.error("업로드 실패: " + e.message);
+            const message = e instanceof Error ? e.message : "알 수 없는 오류";
+            toast.error("업로드 실패: " + message);
         }
     };
 
