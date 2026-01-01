@@ -37,6 +37,10 @@ export default function ReturningHome() {
     const { config } = useSiteConfig();
     const lbs = useLBS();
     const { data: recData } = usePersonalizedRecommendation();
+    const { openDayRule, fetchOpenDayRule } = useReservationStore();
+    React.useEffect(() => {
+        fetchOpenDayRule();
+    }, [fetchOpenDayRule]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -152,6 +156,9 @@ export default function ReturningHome() {
                                         <p className="text-[10px] text-stone-500">성인 2, 아이 2 · 차량 1대</p>
                                     </div>
                                 </div>
+
+
+
                                 <Button
                                     className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
                                     onClick={() => {
@@ -162,7 +169,7 @@ export default function ReturningHome() {
                                     빠르게 재예약하기 (날짜 선택)
                                 </Button>
                                 <p className="text-center text-xs text-stone-400 mt-2">
-                                    {format(OPEN_DAY_CONFIG.closeAt, 'MM월dd일')}까지 예약가능합니다.
+                                    {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
                                 </p>
                             </div>
                         </div>

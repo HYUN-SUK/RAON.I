@@ -1,0 +1,33 @@
+
+> raon-app@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\USER\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\USER\Desktop\RAON.I\package-lock.json
+
+   ▲ Next.js 16.0.5 (Turbopack)
+   - Environments: .env.local
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 16.1s
+   Running TypeScript ...
+Failed to compile.
+
+./src/components/myspace/SummaryGrid.tsx:13:13
+Type error: Property 'points' does not exist on type 'MySpaceState'.
+
+[0m [90m 11 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mSummaryGrid[39m() {
+ [90m 12 |[39m     [36mconst[39m router [33m=[39m useRouter()[33m;[39m
+[31m[1m>[22m[39m[90m 13 |[39m     [36mconst[39m { points } [33m=[39m useMySpaceStore()[33m;[39m
+ [90m    |[39m             [31m[1m^[22m[39m
+ [90m 14 |[39m     [36mconst[39m { reservations } [33m=[39m useReservationStore()[33m;[39m
+ [90m 15 |[39m
+ [90m 16 |[39m     [90m// 모달 상태 관리[39m[0m
+Next.js build worker exited with code: 1 and signal: null

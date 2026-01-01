@@ -16,7 +16,7 @@ import { useMySpaceStore } from '@/store/useMySpaceStore';
 
 export default function ReservationCard({ reservation }: ReservationCardProps) {
     const { updateReservationStatus } = useReservationStore();
-    const { addXp, addPoints } = useMySpaceStore();
+    const { addXp, addToken } = useMySpaceStore();
     const site = SITES.find(s => s.id === reservation.siteId);
     const [confirmStep, setConfirmStep] = useState<'IDLE' | 'CONFIRMING' | 'CANCELLING'>('IDLE');
 
@@ -25,7 +25,7 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
             updateReservationStatus(reservation.id, 'CONFIRMED');
             // Award XP and Points
             addXp(100);
-            addPoints(100);
+            addToken(100);
             setConfirmStep('IDLE');
         } else {
             setConfirmStep('CONFIRMING');

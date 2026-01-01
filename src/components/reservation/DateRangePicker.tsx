@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import React, { useMemo } from 'react';
 import { DayPicker, DateRange } from 'react-day-picker';
 import { ko } from 'date-fns/locale';
 import { format } from 'date-fns';
@@ -13,7 +13,18 @@ import 'react-day-picker/style.css';
 import { cn } from '@/lib/utils';
 
 export default function DateRangePicker() {
-    const { selectedDateRange, setDateRange, reservations } = useReservationStore();
+    const { selectedDateRange, setDateRange, reservations, openDayRule } = useReservationStore();
+
+    const activeConfig = useMemo(() => {
+        if (openDayRule) {
+            return {
+                seasonName: openDayRule.seasonName || 'New Season',
+                openAt: openDayRule.openAt,
+                closeAt: openDayRule.closeAt,
+            };
+        }
+        return OPEN_DAY_CONFIG;
+    }, [openDayRule]);
 
     // Ensure dates are Date objects
     const selected = {
@@ -36,7 +47,7 @@ export default function DateRangePicker() {
         const nextDay = new Date(checkIn);
         nextDay.setDate(checkIn.getDate() + 1);
 
-        if (nextDay > OPEN_DAY_CONFIG.closeAt) {
+        if (nextDay > activeConfig.closeAt) {
             isNextDayBlocked = true;
         }
 
@@ -115,8 +126,8 @@ export default function DateRangePicker() {
                 showOutsideDays
                 disabled={[
                     { before: now },
-                    { before: OPEN_DAY_CONFIG.openAt },
-                    { after: OPEN_DAY_CONFIG.closeAt }
+                    { before: activeConfig.openAt },
+                    { after: activeConfig.closeAt }
                 ]}
                 footer={
                     <div className="mt-4 space-y-2 text-center">
@@ -139,7 +150,7 @@ export default function DateRangePicker() {
                         )}
                         {!isFridayOneNight && (
                             <p className="text-[10px] text-stone-400">
-                                * {OPEN_DAY_CONFIG.seasonName} (~{format(OPEN_DAY_CONFIG.closeAt, 'MM.dd')})
+                                * {activeConfig.seasonName} (~{format(activeConfig.closeAt, 'MM.dd')})
                             </p>
                         )}
                     </div>

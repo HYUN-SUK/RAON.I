@@ -1,0 +1,33 @@
+
+> raon-app@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\USER\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\USER\Desktop\RAON.I\package-lock.json
+
+   ▲ Next.js 16.0.5 (Turbopack)
+   - Environments: .env.local
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 13.4s
+   Running TypeScript ...
+Failed to compile.
+
+./src/components/admin/ReservationCard.tsx:19:20
+Type error: Property 'addPoints' does not exist on type 'MySpaceState'.
+
+[0m [90m 17 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mReservationCard[39m({ reservation }[33m:[39m [33mReservationCardProps[39m) {
+ [90m 18 |[39m     [36mconst[39m { updateReservationStatus } [33m=[39m useReservationStore()[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m     [36mconst[39m { addXp[33m,[39m addPoints } [33m=[39m useMySpaceStore()[33m;[39m
+ [90m    |[39m                    [31m[1m^[22m[39m
+ [90m 20 |[39m     [36mconst[39m site [33m=[39m [33mSITES[39m[33m.[39mfind(s [33m=>[39m s[33m.[39mid [33m===[39m reservation[33m.[39msiteId)[33m;[39m
+ [90m 21 |[39m     [36mconst[39m [confirmStep[33m,[39m setConfirmStep] [33m=[39m useState[33m<[39m[32m'IDLE'[39m [33m|[39m [32m'CONFIRMING'[39m [33m|[39m [32m'CANCELLING'[39m[33m>[39m([32m'IDLE'[39m)[33m;[39m
+ [90m 22 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null

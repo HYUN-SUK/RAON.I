@@ -38,6 +38,17 @@ interface ReservationState {
     setPriceConfig: (config: PricingConfig) => void;
     addBlockDate: (block: BlockedDate) => void;
     removeBlockDate: (id: string) => void;
+
+    // Open Day Rule (Dynamic)
+    openDayRule: {
+        id: string;
+        seasonName: string | null;
+        openAt: Date;
+        closeAt: Date;
+        isActive: boolean;
+        repeat_rule?: 'NONE' | 'MONTHLY'; // Added
+    } | null;
+    fetchOpenDayRule: () => Promise<void>;
 }
 
 
@@ -221,6 +232,74 @@ export const useReservationStore = create<ReservationState>()(
                 const site = SITES.find(s => s.id === siteId);
                 if (site) {
                     set({ selectedSite: site });
+                }
+            },
+
+            // Open Day Rule
+            openDayRule: null,
+            fetchOpenDayRule: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const { addMonths, endOfMonth, setDate, setHours, setMinutes, isBefore } = await import('date-fns');
+                const supabase = createClient();
+                const { data } = await supabase
+                    .from('open_day_rules')
+                    .select('*')
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                if (data) {
+                    let calculatedCloseAt = new Date(data.close_at);
+                    const now = new Date();
+
+                    // Logic for Monthly Automation
+                    if (data.repeat_rule === 'MONTHLY' && data.automation_config) {
+                        const config = data.automation_config; // { triggerDay, monthsToAdd, targetDay }
+
+                        // 1. Determine the "Trigger Moment" for THIS month
+                        // Trigger is usually 1st day of month at 09:00
+                        const currentTrigger = new Date();
+                        currentTrigger.setDate(config.triggerDay || 1);
+                        currentTrigger.setHours(9, 0, 0, 0);
+
+                        // 2. Base Date Calculation
+                        // If Now < Trigger (e.g. 1st 08:59), we use "Last Month" as base (Pre-open state)
+                        // If Now >= Trigger (e.g. 1st 09:01), we use "This Month" as base (Open state)
+                        const baseDate = new Date();
+                        if (isBefore(now, currentTrigger)) {
+                            // Before trigger: Effectively we are still in "Previous Month's cycle"
+                            // But actually, we want to know "What is the max open date?"
+                            // If I set "2 months ahead", and today is Jan 1st 08:00 (Before trigger).
+                            // The window should be until Feb End (calculated from Dec).
+                            // If Jan 1st 09:00 passes, window extends to Mar End.
+                            baseDate.setMonth(baseDate.getMonth() - 1);
+                        }
+
+                        // 3. Calculate Target Month
+                        const targetMonthDate = addMonths(baseDate, config.monthsToAdd);
+
+                        // 4. Calculate Target Date
+                        if (config.targetDay === 'END') {
+                            calculatedCloseAt = endOfMonth(targetMonthDate);
+                            calculatedCloseAt.setHours(23, 59, 59, 999);
+                        } else {
+                            calculatedCloseAt = new Date(targetMonthDate);
+                            calculatedCloseAt.setDate(config.targetDay);
+                            calculatedCloseAt.setHours(23, 59, 59, 999);
+                        }
+                    }
+
+                    set({
+                        openDayRule: {
+                            id: data.id,
+                            seasonName: data.season_name,
+                            openAt: new Date(data.open_at),
+                            closeAt: calculatedCloseAt,
+                            isActive: data.is_active,
+                            repeat_rule: data.repeat_rule // Added mapping
+                        }
+                    });
+                } else {
+                    set({ openDayRule: null });
                 }
             },
         }),

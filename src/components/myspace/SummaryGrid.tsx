@@ -10,7 +10,7 @@ import MyMapModal from './MyMapModal';
 
 export default function SummaryGrid() {
     const router = useRouter();
-    const { points } = useMySpaceStore();
+    const { raonToken } = useMySpaceStore();
     const { reservations } = useReservationStore();
 
     // 모달 상태 관리
