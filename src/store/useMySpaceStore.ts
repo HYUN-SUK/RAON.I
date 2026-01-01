@@ -84,6 +84,7 @@ export interface MySpaceState {
     timelineItems: TimelineItem[];
     fetchTimeline: (userId?: string) => void;
     fetchAlbum: () => void;
+    reset: () => void;
 }
 
 import { getLevelInfo } from '@/config/pointPolicy';
@@ -231,6 +232,18 @@ export const useMySpaceStore = create<MySpaceState>()(
                         tags: ['#별', '#밤하늘', '#감성']
                     }
                 ] as any[] // Temporarily casting to any to bypass strict interface check if AlbumItem tag definition is missing
+            }),
+            reset: () => set({
+                isNightMode: false,
+                isFireOn: false,
+                isStarOn: false,
+                xp: 0,
+                level: 1,
+                raonToken: 0,
+                title: '초보 캠퍼',
+                album: [],
+                mapItems: [],
+                timelineItems: [],
             }),
         }),
         {

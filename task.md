@@ -15,7 +15,15 @@
   - [x] Check for unused UI components in `src/components/ui` (Skipped deletion to prevent breakage)
   - [x] Review `public` folder for unused assets (Deleted default Next.js SVGs).
 
-## 🗂️ Phase- [x] **2.5. Structure & Cleanup** (Completed)
+## 🔐 Phase 0.5: Post-Auth Security (Completed)
+- [x] **Middleware Protection**: `middleware.ts` updated to secure `/myspace`, `/reservation`.
+- [x] **Profile Sync**: `auth/callback/route.ts` implements auto-profile creation logic.
+- [x] **Session UI**: `TopBar.tsx` displays user avatar and handles logout.
+- [x] **Kakao Scope Fix**: Removed `account_email` requirement.
+- [x] **Google Login Fix**: Added image domains to `next.config.ts` & fixed hydration error.
+- [x] **Auth Verification**: Confirmed login flow for Kakao & Google without crashes.
+
+## 🗂️ Phase 2.5. Structure & Cleanup (Completed)
     - [x] Global Import Cleanup (Partially done for Admin/Core modules)
     - [x] Global Linting (Critical Admin Modules Cleaned)
     - [x] Unused Component Removal (Alert restored, others verified)

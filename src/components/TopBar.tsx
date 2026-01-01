@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase-client";
 import { LogOut, LogIn, Settings, User, Bell, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -18,11 +19,17 @@ import {
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 
+interface UserInfo {
+    nickname: string;
+    avatarUrl?: string;
+}
+
 export default function TopBar() {
-    const { level, xp, raonToken, setWallet } = useMySpaceStore();
+    const { level, xp, raonToken, setWallet, reset } = useMySpaceStore();
     const router = useRouter();
     const supabase = createClient();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
     // Dynamic Level Progress
     const { progress } = getLevelInfo(xp);
@@ -33,6 +40,12 @@ export default function TopBar() {
         setIsLoggedIn(!!session);
 
         if (user) {
+            // Set User Info
+            setUserInfo({
+                nickname: user.user_metadata.full_name || user.user_metadata.name || user.email?.split('@')[0] || 'Camper',
+                avatarUrl: user.user_metadata.avatar_url || user.user_metadata.picture
+            });
+
             // 1. Try Grant Login Reward
             try {
                 const reward = await pointService.grantAction(user.id, 'LOGIN');
@@ -48,6 +61,9 @@ export default function TopBar() {
             } catch (error) {
                 console.error("Login reward/sync failed:", error);
             }
+        } else {
+            setUserInfo(null);
+            // reset(); // Optional: Reset on initial load if no session? Maybe risky if persisting layout prefs.
         }
     };
 
@@ -65,6 +81,8 @@ export default function TopBar() {
             await supabase.auth.signOut();
             toast.success('로그아웃 되었습니다.');
             setIsLoggedIn(false);
+            setUserInfo(null);
+            reset(); // Reset global store state
             router.push('/'); // Redirect to home
         } catch (error) {
             console.error('Logout error:', error);
@@ -97,18 +115,34 @@ export default function TopBar() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <button
-                            className="relative z-[101] p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer outline-none"
+                            className="relative z-[101] -mr-2 rounded-full overflow-hidden hover:opacity-80 transition-opacity outline-none"
                             aria-label="Settings"
                         >
-                            <Settings size={22} strokeWidth={1.5} />
+                            {userInfo?.avatarUrl ? (
+                                <div className="relative w-9 h-9 border border-gray-200 rounded-full overflow-hidden">
+                                    <Image
+                                        src={userInfo.avatarUrl}
+                                        alt="Profile"
+                                        fill
+                                        className="object-cover"
+                                        sizes="36px"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="p-2 text-text-1 hover:bg-gray-100 rounded-full">
+                                    <Settings size={22} strokeWidth={1.5} />
+                                </div>
+                            )}
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 bg-white">
-                        <DropdownMenuLabel>내 계정</DropdownMenuLabel>
+                        <DropdownMenuLabel>
+                            {userInfo?.nickname || '내 계정'}
+                        </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => router.push('/myspace')} className="cursor-pointer">
                             <User className="mr-2 h-4 w-4" />
-                            <span>프로필</span>
+                            <span>프로필 / 내 공간</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer">
                             <Bell className="mr-2 h-4 w-4" />

@@ -10,14 +10,24 @@ export default function SocialLoginButtons() {
     const supabase = createClient();
     const [loading, setLoading] = useState<string | null>(null);
 
-    const handleSocialLogin = async (provider: 'kakao' | 'google' | 'naver') => {
+    const handleSocialLogin = async (provider: 'kakao' | 'google') => {
         setLoading(provider);
         try {
+            const options: any = {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            };
+
+            // Fix for Kakao: Do not request 'account_email' if permission is not set in Kakao Console
+            // Fix for Kakao: Do not request 'account_email' if permission is not set in Kakao Console
+            // if (provider === 'kakao') {
+            //    options.queryParams = {
+            //        scope: 'profile_nickname profile_image', // Explicitly exclude account_email
+            //    };
+            // }
+
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: provider as any,
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                },
+                options,
             });
             if (error) throw error;
         } catch (error: any) {

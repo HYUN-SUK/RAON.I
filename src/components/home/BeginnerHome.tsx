@@ -20,10 +20,11 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useLBS } from '@/hooks/useLBS';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { useReservationStore } from '@/store/useReservationStore';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function BeginnerHome() {
     const router = useRouter();
-    const supabase = createClient();
+    // const supabase = createClient(); // Removed unused
     const { config } = useSiteConfig(); // Dynamic Config
     const lbs = useLBS(); // Real-time Location
 
@@ -136,19 +137,16 @@ export default function BeginnerHome() {
 
     // useEffect removed converted to useMemo
 
-    const handleProtectedAction = async (action: () => void) => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            toast.info("로그인 후 서비스 이용이 가능합니다", {
-                description: "라온아이의 모든 혜택을 누려보세요!",
-                action: {
-                    label: "로그인",
-                    onClick: () => router.push('/login')
-                }
-            });
-            return;
-        }
-        action();
+
+    // Auth Protection Hook
+    const { withAuth } = useRequireAuth();
+
+    // Legacy function replaced by hook, but matching signature for compatibility with existing JSX calls if needed, 
+    // or better yet, update the call sites.
+    // The existing call site is: onClick={() => handleProtectedAction(() => router.push('/reservation'))}
+    // We can just keep a wrapper or update the usage. Let's keep wrapper for minimal code churn in JSX.
+    const handleProtectedAction = (action: () => void) => {
+        withAuth(action);
     };
 
     const handleChipClick = (chip: any) => {
@@ -218,36 +216,38 @@ export default function BeginnerHome() {
     };
 
     const handleRecommendationClick = (item: any) => {
-        // Special Handling for LBS Card
-        if (item.type === 'nearby_lbs') {
-            setNearbyEvents(item.events || []);
-            setNearbySheetOpen(true);
-            return;
-        }
+        withAuth(() => {
+            // Special Handling for LBS Card
+            if (item.type === 'nearby_lbs') {
+                setNearbyEvents(item.events || []);
+                setNearbySheetOpen(true);
+                return;
+            }
 
-        setDetailData({
-            title: item.title,
-            description: item.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
-            icon: <span className="text-4xl">{item.icon}</span>,
-            actionLabel: item.actionLabel,
-            actionLink: item.actionLink,
-            bgColorClass: item.bgColorClass,
-            // V2 Fields Copy
-            categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
-            ingredients: item.ingredients || item.materials,
-            steps: item.process_steps, // DB field is process_steps, UI prop is steps
-            tips: item.tips,
-            time_required: item.time_required,
-            difficulty: item.difficulty,
+            setDetailData({
+                title: item.title,
+                description: item.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
+                icon: <span className="text-4xl">{item.icon}</span>,
+                actionLabel: item.actionLabel,
+                actionLink: item.actionLink,
+                bgColorClass: item.bgColorClass,
+                // V2 Fields Copy
+                categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
+                ingredients: item.ingredients || item.materials,
+                steps: item.process_steps, // DB field is process_steps, UI prop is steps
+                tips: item.tips,
+                time_required: item.time_required,
+                difficulty: item.difficulty,
 
-            // V2.1 Premium Fields
-            image_url: item.image_url,
-            servings: item.servings,
-            calories: item.calories,
-            age_group: item.age_group,
-            location_type: item.location_type
+                // V2.1 Premium Fields
+                image_url: item.image_url,
+                servings: item.servings,
+                calories: item.calories,
+                age_group: item.age_group,
+                location_type: item.location_type
+            });
+            setDetailSheetOpen(true);
         });
-        setDetailSheetOpen(true);
     };
 
     return (

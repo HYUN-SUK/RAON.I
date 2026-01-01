@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Flag, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useMissionStore } from '@/store/useMissionStore';
 import { useRouter } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function MissionHomeWidget() {
     const router = useRouter();
     const { currentMission, userMission, fetchCurrentMission, isLoading } = useMissionStore();
+    const { withAuth } = useRequireAuth();
 
     useEffect(() => {
         fetchCurrentMission();
@@ -58,7 +60,7 @@ export default function MissionHomeWidget() {
             <Button
                 variant="ghost"
                 className="w-full mt-4 bg-white/10 hover:bg-white/20 text-white text-xs h-9 justify-between px-3"
-                onClick={() => router.push(`/mission/${currentMission.id}`)}
+                onClick={() => withAuth(() => router.push(`/mission/${currentMission.id}`))}
             >
                 <span>미션 참여하기</span>
                 <ChevronRight className="w-4 h-4 ml-1 opacity-70" />

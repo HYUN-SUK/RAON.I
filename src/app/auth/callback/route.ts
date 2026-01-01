@@ -8,7 +8,42 @@ export async function GET(request: NextRequest) {
 
     if (code) {
         const supabase = await createClient();
-        await supabase.auth.exchangeCodeForSession(code);
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (!error) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // Check if profile exists
+                const { data: existingProfile } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!existingProfile) {
+                    // Create new profile
+                    // Handle missing email gracefully (Kakao might not return it)
+                    const email = user.email || null;
+                    const nickname =
+                        user.user_metadata.full_name ||
+                        user.user_metadata.name ||
+                        user.user_metadata.nickname ||
+                        (email ? email.split('@')[0] : 'Camper');
+
+                    const avatarUrl = user.user_metadata.avatar_url || user.user_metadata.picture;
+
+                    // Insert with safe defaults
+                    await supabase.from('profiles').insert({
+                        id: user.id,
+                        email: email,
+                        nickname: nickname,
+                        avatar_url: avatarUrl,
+                        role: 'user',
+                        created_at: new Date().toISOString(),
+                    });
+                }
+            }
+        }
     }
 
     // URL to redirect to after sign in process completes

@@ -2,16 +2,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-    // Only run middleware for admin routes
-    if (!request.nextUrl.pathname.startsWith('/admin')) {
-        return NextResponse.next()
-    }
-
-    // Exclude login page from protection to avoid redirect loop
-    if (request.nextUrl.pathname === '/admin/login') {
-        return NextResponse.next()
-    }
-
     let response = NextResponse.next({
         request: {
             headers: request.headers,
@@ -65,36 +55,59 @@ export async function middleware(request: NextRequest) {
     )
 
     const { data: { user }, error } = await supabase.auth.getUser()
+    const path = request.nextUrl.pathname
 
-    if (error || !user) {
-        // If no user, redirect to login page
-        const url = request.nextUrl.clone()
-        url.pathname = '/admin/login'
-        return NextResponse.redirect(url)
+    // 1. Admin Route Protection
+    if (path.startsWith('/admin')) {
+        if (path === '/admin/login') {
+            // If already logged in as admin, redirect to admin dashboard
+            if (user && (user.user_metadata?.role === 'admin' || user.email === 'admin@raon.ai')) {
+                return NextResponse.redirect(new URL('/admin', request.url))
+            }
+            return NextResponse.next()
+        }
+
+        if (error || !user) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/admin/login'
+            return NextResponse.redirect(url)
+        }
+
+        const isAdmin =
+            user.user_metadata?.role === 'admin' ||
+            user.email === 'admin@raon.ai' ||
+            user.email === 'raon_tester_01@gmail.com'
+
+        if (!isAdmin) {
+            return NextResponse.redirect(new URL('/', request.url))
+        }
     }
 
-    // Strict Admin Check
-    // We allow access if:
-    // 1. user_metadata.role is 'admin'
-    // 2. OR email is 'admin@raon.ai' (Recovery/Master Admin)
-    const isAdmin =
-        user.user_metadata?.role === 'admin' ||
-        user.email === 'admin@raon.ai' ||
-        user.email === 'raon_tester_01@gmail.com'
-
-    if (!isAdmin) {
-        // Logged in but not admin -> Redirect to home
-        return NextResponse.redirect(new URL('/', request.url))
+    // 2. User Protected Routes (/myspace, /reservation)
+    // Note: /reservation main page might be public, but let's assumes booking flow needs auth. 
+    // Handing over based on roadmap: Reservation 3.1 logic implies user context needed for smart re-book etc.
+    // However, if we want public access to view dates, we should refine.
+    // For now, based on "Protected Routes: myspace, reservation" instruction.
+    else if (path.startsWith('/myspace') || path.startsWith('/reservation')) {
+        if (error || !user) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            url.searchParams.set('next', path)
+            return NextResponse.redirect(url)
+        }
     }
 
     return response
 }
 
+
 export const config = {
     matcher: [
         /*
-         * Match all request paths starting with /admin
+         * Match all request paths starting with /admin, /myspace, /reservation
          */
         '/admin/:path*',
+        '/myspace/:path*',
+        '/reservation/:path*',
     ],
 }

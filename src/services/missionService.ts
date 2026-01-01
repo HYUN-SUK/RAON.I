@@ -76,9 +76,9 @@ export const missionService = {
             .select('*')
             .eq('mission_id', missionId)
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
             console.error('Error fetching user mission:', error);
         }
         return data as UserMission;
