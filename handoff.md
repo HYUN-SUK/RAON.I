@@ -1,40 +1,32 @@
-# Handoff Document
-**Date:** 2026-01-01
-**Session Goal:** Improve Login/Logout UX and Guest Access Control.
+# Session Handoff: Weather System Wrap-up
 
-## Current State Summary
-- **Social Login Fixes**: Resolved issues with Google (hydration mismatch, image domains) and Kakao (account_email scope, http/https images) logins.
-- **Login/Logout UX**:
-  - Implemented **User Data Reset on Logout**: `useMySpaceStore` now has a `reset()` action called on logout to clear XP, Level, and Tokens.
-  - created `useAuthModalStore` and `LoginRequestDialog` (globally mounted in `layout.tsx`) to show a "Login Required" popup instead of redirecting immediately.
-  - **Guest Access Control**: 
-    - `BottomNav`: Clicking Reservation, Community, MySpace, Market triggers the popup. Home and Admin are accessible.
-    - `BeginnerHome`: "Reservation Date View", "Mission Join", and "Recommendations" trigger the popup.
-    - **Exception**: The 6 core chips (Wayfinding, Contact, etc.) are **accessible to guests** as requested.
+## 1. Summary of Work
+This session focused on replacing the mocked weather system with a **Zero-Cost, Real-Time KMA (Korea Meteorological Administration) Integration**.
 
-## Technical Decisions
-- **Global Auth Modal**: Moved away from immediate redirects to a modal approach to improve conversion (less friction).
-- **`useRequireAuth` Hook**: Created a reusable hook to wrap any action with an auth check. This simplifies protecting new features in the future.
-- **Next.js Image Config**: Expanded `remotePatterns` to include `lh3.googleusercontent.com`, `k.kakaocdn.net` and `*.pstatic.net` to prevent crashes when rendering avatars.
+- **Backend Integration**:
+    - Created `/api/weather` route (Next.js App Router).
+    - Integrated **Short-term Forecast** (`VilageFcstInfoService`) for Days 0-2.
+    - Integrated **Mid-term Forecast** (`MidFcstInfoService`) for Days 3-10.
+    - Implemented **Data Merging logic** to provide a seamless 10-day timeline.
+    - Added **Dynamic Region Mapping** (`lat/lng` -> `RegId`) to support user locations (e.g., Gangwon).
 
-## Next Steps (Priorities)
-1. **Mission System Refinement**: Now that login flow is solid, focus on the Mission UI details and logic implementation.
-2. **Community Polish**: Ensure the community board interaction (comments, likes) works smoothly with the new login modal flow.
-3. **Naver Login**: Currently deferred. Requires Supabase + Naver Developer setup if decided to implement.
+- **Frontend & UI/UX**:
+    - Built `WeatherDetailSheet.tsx` mirroring **Naver Mobile Weather** aesthetics.
+    - Implemented visual indicators regarding **Wind Direction** (Arrow + Text e.g., "북서풍") and **Wind Speed**.
+    - Added **"Feels Like" Temperature** using Wind Chill formula.
+    - Ensured **Scrollable Layout** for 10-day forecast visibility.
 
-## Caveats / Known Issues
-- **Naver Login**: Not implemented yet (Button exists but might need hiding or wiring up if prioritized).
-- **Local Dev**: Remember to restart the Next.js server if you change `next.config.ts` again.
+## 2. Technical Decisions
+- **API Proxy**: Used a server-side proxy to hide the KMA Service Key and handle XML/JSON parsing away from the client.
+- **Iconography**: Created a `WeatherIcon` component mapping KMA codes to Lucide icons with custom colors (Orange for Sun, Blue for Rain) for better visibility.
+- **Wind Logic**: Standardized Wind Direction arrows to point "Where the wind is blowing TO" (Flow direction), matching standard map conventions.
+- **LBS Handling**: Connected `useLBS` to dynamic region selection. If LBS fails, it gracefully falls back to the default campsite location.
 
-## Changed Files
-- `src/components/auth/SocialLoginButtons.tsx`
-- `src/app/layout.tsx`
-- `next.config.ts`
-- `src/store/useMySpaceStore.ts`
-- `src/components/TopBar.tsx`
-- `src/store/useAuthModalStore.ts` (New)
-- `src/components/auth/LoginRequestDialog.tsx` (New)
-- `src/hooks/useRequireAuth.ts` (New)
-- `src/components/BottomNav.tsx`
-- `src/components/home/BeginnerHome.tsx`
-- `src/components/home/MissionHomeWidget.tsx`
+## 3. Known Issues & Caveats
+- **KMA Rate Limit**: The Public Data Portal API has a daily call limit. During development, we encountered `500 API rate limit` errors. This resolves automatically when the quota resets (usually daily or hourly depending on the specific key tier).
+- **Metric Accuracy**: "Feels Like" is an approximation (Wind Chill) for winter. Summer index (Heat Index) logic can be added later if needed.
+
+## 4. Next Steps
+1.  **Notification System**: Implement push notifications or alerts for severe weather (using the `config.nearby_places` or new system).
+2.  **Performance Optimization**: Consider Redis or ISR cache for `/api/weather` if traffic increases, as `node-cache` (in-memory) resets on serverless cold starts.
+3.  **Admin Settings**: Allow admin to override default location via Admin Console (currently hardcoded or LBS-based).

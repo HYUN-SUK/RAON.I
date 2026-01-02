@@ -1,4 +1,4 @@
 export const DEFAULT_CAMPING_LOCATION = {
-    latitude: 37.8315,
-    longitude: 127.5097, // Gapyeong-gun generic coordinates
+    latitude: 36.626909,
+    longitude: 126.7647868, // Raon I Auto Camping Site (Yesan-gun)
 };

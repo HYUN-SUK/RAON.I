@@ -50,4 +50,6 @@
 
 ## 🚀 Phase 4: Final Verification
 - [ ] **Build Test**: Ensure `npm run build` passes.
-- [ ] **Smoke Test**: Verify Home, Reservation, Community, My Space flows still work perfectly.
+- [x] **Smoke Test**: Verify Home, Reservation, Community, My Space flows still work perfectly.
+  - [x] **Security Fix**: Fixed bypass in `PostDetailView` (Like/Comment).
+  - [x] **Live Verification**: Guest restrictions confirmed via Browser.

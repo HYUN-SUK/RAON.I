@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { communityService } from '@/services/communityService';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 interface LikeButtonProps {
     postId: string;
@@ -25,33 +26,37 @@ export default function LikeButton({
     const [count, setCount] = useState(likeCount);
     const [isAnimating, setIsAnimating] = useState(false);
 
+    const { withAuth } = useRequireAuth();
+
     const handleLike = async (e: React.MouseEvent) => {
         e.preventDefault(); // Prevent navigation if inside a link
         e.stopPropagation();
 
-        if (isAnimating) return;
+        await withAuth(async () => {
 
-        setIsAnimating(true);
 
-        // Optimistic update
-        const newIsLiked = !isLiked;
-        const newCount = newIsLiked ? count + 1 : Math.max(0, count - 1);
+            if (isAnimating) return;
 
-        setIsLiked(newIsLiked);
-        setCount(newCount);
-        onLikeChange?.(newCount, newIsLiked);
+            setIsAnimating(true);
 
-        // Call API
-        try {
-            await communityService.toggleLike(postId);
-        } catch (error) {
-            console.error('Like toggle failed', error);
-            // Revert on error? For now, we keep optimistic
-        }
+            // Optimistic update
+            const newIsLiked = !isLiked;
+            const newCount = newIsLiked ? count + 1 : Math.max(0, count - 1);
 
-        setTimeout(() => setIsAnimating(false), 500);
+            setIsLiked(newIsLiked);
+            setCount(newCount);
+            onLikeChange?.(newCount, newIsLiked);
+
+            // Call API
+            try {
+                await communityService.toggleLike(postId);
+            } catch (error) {
+                console.error('Like toggle failed', error);
+                // Revert on error? For now, we keep optimistic
+            }
+            setTimeout(() => setIsAnimating(false), 500);
+        });
     };
-
     return (
         <button
             onClick={handleLike}
@@ -77,6 +82,6 @@ export default function LikeButton({
             <span className="text-sm font-medium min-w-[1ch]">
                 {count}
             </span>
-        </button>
+        </button >
     );
 }

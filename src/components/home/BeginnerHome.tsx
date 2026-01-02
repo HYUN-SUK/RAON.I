@@ -10,6 +10,7 @@ import { PriceGuideSheet } from '@/components/home/PriceGuideSheet';
 import RecommendationGrid from '@/components/home/RecommendationGrid';
 import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailSheet';
+import WeatherDetailSheet from '@/components/home/WeatherDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { format } from 'date-fns';
@@ -29,12 +30,13 @@ export default function BeginnerHome() {
     const lbs = useLBS(); // Real-time Location
 
     // Contextual Data
-    const { data: recData, loading: recLoading } = usePersonalizedRecommendation();
+    const { data: recData, loading: recLoading, weather } = usePersonalizedRecommendation();
     const { openDayRule, fetchOpenDayRule } = useReservationStore();
     React.useEffect(() => { fetchOpenDayRule(); }, [fetchOpenDayRule]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+    const [weatherSheetOpen, setWeatherSheetOpen] = useState(false); // New State
     const [detailData, setDetailData] = useState<HomeDetailData | null>(null);
 
     // Nearby LBS Sheet State
@@ -282,12 +284,17 @@ export default function BeginnerHome() {
                             </div>
                         ) : (
                             <>
-                                <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1">
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1 cursor-pointer transition-colors"
+                                    onClick={() => weather && setWeatherSheetOpen(true)}
+                                >
                                     {recData.context?.weather
-                                        ? `${recData.context.temp !== null ? recData.context.temp + '°C ' : ''}${recData.context.greeting}`
+                                        ? `${recData.context.temp !== null ? Math.round(recData.context.temp) + '°C ' : ''}${recData.context.greeting}`
                                         : 'Welcome to RAON.I'
                                     }
                                 </Badge>
+                                <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
                                 <h1 className="text-3xl font-bold leading-tight">
                                     {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
                                         recData.context?.time === 'night' ? '고요한 밤,\n' :
@@ -397,6 +404,15 @@ export default function BeginnerHome() {
                 onClose={() => setDetailSheetOpen(false)}
                 data={detailData}
             />
+
+            {/* Weather Detail Sheet */}
+            {weather && (
+                <WeatherDetailSheet
+                    isOpen={weatherSheetOpen}
+                    onClose={() => setWeatherSheetOpen(false)}
+                    weather={weather}
+                />
+            )}
 
             {/* Nearby LBS Sheet */}
             <NearbyDetailSheet

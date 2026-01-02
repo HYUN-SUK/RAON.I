@@ -147,5 +147,5 @@ export function usePersonalizedRecommendation() {
         fetchRecommendations();
     }, [weather.type]); // Re-run when weather type changes (after hook fetch)
 
-    return { data, loading };
+    return { data, loading, weather };
 }

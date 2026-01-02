@@ -59,11 +59,22 @@ export default function MissionHomeWidget() {
 
             <Button
                 variant="ghost"
-                className="w-full mt-4 bg-white/10 hover:bg-white/20 text-white text-xs h-9 justify-between px-3"
+                className={`w-full mt-4 text-xs h-9 justify-between px-3 transition-colors ${isCompleted
+                        ? 'bg-white/10 text-white/50 hover:bg-white/20'
+                        : userMission
+                            ? 'bg-blue-500/20 text-blue-100 hover:bg-blue-500/30 ring-1 ring-blue-400/30'
+                            : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
                 onClick={() => withAuth(() => router.push(`/mission/${currentMission.id}`))}
             >
-                <span>미션 참여하기</span>
-                <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
+                <span className="font-semibold">
+                    {isCompleted
+                        ? '참여 완료'
+                        : userMission
+                            ? '미션 인증하기'
+                            : '미션 참여하기'}
+                </span>
+                <ChevronRight className={`w-4 h-4 ml-1 ${userMission && !isCompleted ? 'text-blue-200' : 'opacity-70'}`} />
             </Button>
         </Card>
     );

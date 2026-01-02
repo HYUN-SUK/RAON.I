@@ -10,7 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCommunityStore } from '@/store/useCommunityStore';
 import { Comment, communityService, supabase } from '@/services/communityService';
 import { compressImage } from '@/utils/imageUtils';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import {
+
     Dialog,
     DialogContent,
     DialogDescription,
@@ -26,6 +28,7 @@ interface CommentSectionProps {
 
 export default function CommentSection({ postId, onCommentChange }: CommentSectionProps) {
     const { loadComments, addComment, removeComment, toggleCommentLike } = useCommunityStore();
+    const { withAuth } = useRequireAuth();
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -37,27 +40,29 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleLike = async (commentId: string) => {
-        // Optimistic Update
-        setComments(prev => prev.map(c => {
-            if (c.id === commentId) {
-                const isLiked = !!c.isLiked;
-                return {
-                    ...c,
-                    isLiked: !isLiked,
-                    likesCount: (c.likesCount || 0) + (isLiked ? -1 : 1)
-                };
-            }
-            return c;
-        }));
+        await withAuth(async () => {
+            // Optimistic Update
+            setComments(prev => prev.map(c => {
+                if (c.id === commentId) {
+                    const isLiked = !!c.isLiked;
+                    return {
+                        ...c,
+                        isLiked: !isLiked,
+                        likesCount: (c.likesCount || 0) + (isLiked ? -1 : 1)
+                    };
+                }
+                return c;
+            }));
 
-        try {
-            await toggleCommentLike(commentId);
-        } catch (error) {
-            // Revert on error
-            console.error(error);
-            // Reload comments to restore state
-            loadComments(postId).then(setComments);
-        }
+            try {
+                await toggleCommentLike(commentId);
+            } catch (error) {
+                // Revert on error
+                console.error(error);
+                // Reload comments to restore state
+                loadComments(postId).then(setComments);
+            }
+        }); // End withAuth
     };
 
 
@@ -67,23 +72,25 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
     }, [postId, loadComments]);
 
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        await withAuth(async () => {
+            const file = e.target.files?.[0];
+            if (!file) return;
 
-        try {
-            const compressed = await compressImage(file);
-            setSelectedImage(compressed);
+            try {
+                const compressed = await compressImage(file);
+                setSelectedImage(compressed);
 
-            // Create preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewUrl(reader.result as string);
-            };
-            reader.readAsDataURL(compressed);
-        } catch (error) {
-            console.error('Image compression failed', error);
-            setErrorMsg('이미지 처리 중 오류가 발생했습니다.');
-        }
+                // Create preview
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPreviewUrl(reader.result as string);
+                };
+                reader.readAsDataURL(compressed);
+            } catch (error) {
+                console.error('Image compression failed', error);
+                setErrorMsg('이미지 처리 중 오류가 발생했습니다.');
+            }
+        });
     };
 
     const clearImage = () => {
@@ -93,27 +100,29 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
     };
 
     const handleSubmit = async () => {
-        if ((!newComment.trim() && !selectedImage) || isLoading) return;
+        await withAuth(async () => {
+            if ((!newComment.trim() && !selectedImage) || isLoading) return;
 
-        setIsLoading(true);
-        try {
-            let imageUrl = undefined;
-            if (selectedImage) {
-                imageUrl = await communityService.uploadCommentImage(selectedImage);
+            setIsLoading(true);
+            try {
+                let imageUrl = undefined;
+                if (selectedImage) {
+                    imageUrl = await communityService.uploadCommentImage(selectedImage);
+                }
+
+                const created = await addComment(postId, newComment, 'My User', imageUrl);
+                setComments(prev => [...prev, created]);
+                onCommentChange?.(comments.length + 1);
+                setNewComment('');
+                clearImage();
+                setErrorMsg(null);
+            } catch (error: any) {
+                console.error(error);
+                setErrorMsg(error.message || '댓글 작성 실패');
+            } finally {
+                setIsLoading(false);
             }
-
-            const created = await addComment(postId, newComment, 'My User', imageUrl);
-            setComments(prev => [...prev, created]);
-            onCommentChange?.(comments.length + 1);
-            setNewComment('');
-            clearImage();
-            setErrorMsg(null);
-        } catch (error: any) {
-            console.error(error);
-            setErrorMsg(error.message || '댓글 작성 실패');
-        } finally {
-            setIsLoading(false);
-        }
+        }); // End withAuth
     };
 
     const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
@@ -151,7 +160,7 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                     <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">ME</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-2">
-                    <div className="relative">
+                    <div className="relative" onClick={() => withAuth(() => { })}>
                         <Textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}

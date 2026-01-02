@@ -169,34 +169,61 @@ export default function MissionDetailPage() {
 
                 {/* Participation Status */}
                 {isCompleted ? (
-                    <div className="bg-[#1C4526]/10 rounded-xl p-6 text-center border border-[#1C4526]/20">
-                        <div className="w-16 h-16 bg-[#1C4526] rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#1C4526]/20">
-                            <CheckCircle className="w-8 h-8 text-white" />
+                    <div className="bg-stone-100 dark:bg-zinc-800 rounded-xl p-6 text-center border border-stone-200 dark:border-zinc-700">
+                        <div className="w-16 h-16 bg-stone-200 dark:bg-zinc-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <CheckCircle className="w-8 h-8 text-stone-400 dark:text-stone-500" />
                         </div>
-                        <h3 className="font-bold text-[#1C4526] text-lg mb-1">미션 성공!</h3>
-                        <p className="text-sm text-stone-600">보상이 지급되었습니다.</p>
+                        <h3 className="font-bold text-stone-500 dark:text-stone-400 text-lg mb-1">미션 완료</h3>
+                        <p className="text-sm text-stone-400 dark:text-stone-500">이미 보상을 받았습니다.</p>
+                        <Button
+                            variant="ghost"
+                            className="mt-4 text-xs text-stone-400 hover:text-red-500"
+                            onClick={() => handleDeleteClick()}
+                        >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            참여 기록 삭제
+                        </Button>
                     </div>
                 ) : !isJoined ? (
                     <Button
-                        className="w-full h-14 text-lg font-bold bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl shadow-lg shadow-[#1C4526]/20"
+                        className="w-full h-14 text-lg font-bold bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl shadow-lg shadow-[#1C4526]/20 transition-all hover:scale-[1.02]"
                         onClick={handleJoin}
                     >
                         미션 도전하기
                     </Button>
                 ) : (
                     <div className="space-y-4">
-                        <div className="border-2 border-dashed border-stone-300 dark:border-zinc-700 rounded-xl min-h-[200px] flex flex-col items-center justify-center relative overflow-hidden bg-stone-50 dark:bg-zinc-900">
+                        <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl flex items-start gap-3 border border-blue-100 dark:border-blue-900/30">
+                            <span className="text-2xl">🔥</span>
+                            <div>
+                                <h4 className="font-bold text-blue-900 dark:text-blue-100 text-sm">미션 진행 중!</h4>
+                                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                                    인증샷을 업로드하고 보상을 받아가세요.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="border-2 border-dashed border-stone-300 dark:border-zinc-700 rounded-xl min-h-[240px] flex flex-col items-center justify-center relative overflow-hidden bg-white dark:bg-zinc-900 transition-colors hover:bg-stone-50 dark:hover:bg-zinc-800/50">
                             {preview ? (
-                                <img src={preview} alt="Mission Proof" className="absolute inset-0 w-full h-full object-cover" />
-                            ) : (
-                                <div className="text-center p-6">
-                                    <div className="w-12 h-12 bg-stone-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <Camera className="w-6 h-6 text-stone-500" />
+                                <>
+                                    <img src={preview} alt="Mission Proof" className="absolute inset-0 w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                        <label htmlFor="mission-upload" className="cursor-pointer px-4 py-2 bg-white/90 rounded-lg text-sm font-bold shadow-sm hover:bg-white">
+                                            사진 변경하기
+                                        </label>
                                     </div>
-                                    <p className="text-sm text-stone-500 mb-4">인증샷을 올려주세요</p>
-                                    <label htmlFor="mission-upload" className="cursor-pointer">
-                                        <div className="px-4 py-2 bg-white border border-stone-300 rounded-lg text-sm font-semibold shadow-sm hover:bg-stone-50">
-                                            사진 선택하기
+                                </>
+                            ) : (
+                                <div className="text-center p-6 w-full h-full flex flex-col items-center justify-center">
+                                    <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Camera className="w-8 h-8 text-blue-500" />
+                                    </div>
+                                    <p className="text-stone-800 dark:text-stone-200 font-semibold mb-1">인증 사진 올리기</p>
+                                    <p className="text-xs text-stone-500 mb-6">미션 수행을 증명할 수 있는 사진을 찍어주세요</p>
+
+                                    <label htmlFor="mission-upload" className="cursor-pointer w-full max-w-xs">
+                                        <div className="w-full py-3 bg-white border border-stone-200 dark:border-zinc-700 rounded-xl text-sm font-semibold shadow-sm hover:bg-stone-50 transition-colors text-center">
+                                            갤러리에서 선택
                                         </div>
                                         <input
                                             id="mission-upload"
@@ -211,11 +238,11 @@ export default function MissionDetailPage() {
                         </div>
 
                         <Button
-                            className="w-full h-14 text-lg font-bold bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl shadow-lg shadow-[#1C4526]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             disabled={!preview || isLoading}
                             onClick={handleComplete}
                         >
-                            {isLoading ? '업로드 중...' : '인증하고 보상받기'}
+                            {isLoading ? '업로드 중...' : '인증 제출하고 완료하기'}
                         </Button>
                     </div>
                 )}
