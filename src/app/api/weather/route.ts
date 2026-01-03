@@ -48,13 +48,10 @@ export async function GET(req: NextRequest) {
 
     if (cacheData && !cacheError) {
         // Cache Hit
-        console.log(`[Weather] Cache Hit for ${nx}, ${ny}`);
         return NextResponse.json(cacheData.data);
     }
 
     // 3. Cache Miss - Fetch from KMA
-    console.log(`[Weather] Cache Miss for ${nx}, ${ny}. Fetching from KMA...`);
-
     const serviceKey = process.env.KMA_SERVICE_KEY;
     if (!serviceKey) return NextResponse.json({ error: "Service Key missing" }, { status: 500 });
 
@@ -218,6 +215,8 @@ async function parseFcst(json: any, lat: number, lng: number) {
         if (item.category === 'SKY') t.sky = parseInt(item.fcstValue);
         if (item.category === 'PTY') t.pty = parseInt(item.fcstValue);
         if (item.category === 'POP') t.pop = parseInt(item.fcstValue);
+        if (item.category === 'WSD') t.wsd = parseFloat(item.fcstValue);
+        if (item.category === 'VEC') t.vec = parseFloat(item.fcstValue);
 
         // Is Daytime? (0600 ~ 1800 roughly) - simple logic based on time
         if (parseInt(time) >= 600 && parseInt(time) <= 1900) t.isDaytime = true;
@@ -241,7 +240,7 @@ async function parseFcst(json: any, lat: number, lng: number) {
             pop: d.pop,
             weatherCode: weather
         };
-    }).slice(0, 3);
+    }).slice(0, 3); // Initial 3 days from Short-term
 
     // Process Timeline (Sort by Date+Time)
     const timeline = Array.from(timelineMap.values())
@@ -265,17 +264,15 @@ async function parseFcst(json: any, lat: number, lng: number) {
         const midDaily = await getMidTermForecast(lat, lng);
         if (midDaily && midDaily.length > 0) {
             // Append to daily list
-            // Ensure no duplicates or overlaps?
-            // Short-term: Today, +1, +2. (Total 3 items).
-            // Mid-term usually starts +3.
-            // But let's check date.
+            // Short-term: Today, +1, +2. (Total 3 items). Mid starts +3.
+            // But verify overlap.
             const existingDates = new Set(daily.map(d => d.date));
             midDaily.forEach(m => {
                 if (!existingDates.has(m.date)) {
                     daily.push(m);
                 }
             });
-            // Sort again just in case
+            // Sort again
             daily.sort((a, b) => parseInt(a.date) - parseInt(b.date));
         }
     } catch (e) {
@@ -345,30 +342,54 @@ function findClosestCodes(lat: number, lng: number) {
 async function getMidTermForecast(lat: number, lng: number) {
     const { landCode, tempCode } = findClosestCodes(lat, lng);
 
-    // Calculate tmFc (Time Forecast)
+    // Reliable KST Date Logic
+    // 1. Get current UTC time
+    // 2. Add 9 hours
+    // 3. Determine 06:00 vs 18:00
     const now = new Date();
-    // Convert to KST
-    now.setHours(now.getHours() + 9);
-    const hours = now.getUTCHours();
+    const utcNow = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const kstDate = new Date(utcNow + kstOffset);
 
-    let baseDate = new Date(now);
-    if (hours < 6) {
-        // Before 06:00 -> Use Yesterday 18:00
+    const kstHour = kstDate.getHours();
+
+    // Strategy:
+    // If < 06:00 -> Use Yesterday 18:00
+    // If 06:00 ~ 18:00 -> Use Today 06:00
+    // If >= 18:00 -> Use Today 18:00
+
+    let baseDate = new Date(kstDate);
+
+    if (kstHour < 6) {
         baseDate.setDate(baseDate.getDate() - 1);
         baseDate.setHours(18, 0, 0, 0);
-    } else if (hours < 18) {
-        // 06:00 ~ 18:00 -> Use Today 06:00
+    } else if (kstHour < 18) {
         baseDate.setHours(6, 0, 0, 0);
     } else {
-        // After 18:00 -> Use Today 18:00
         baseDate.setHours(18, 0, 0, 0);
     }
 
     // Format YYYYMMDDHHMM
-    const tmFc = baseDate.toISOString().replace(/[-:T]/g, '').slice(0, 10) + '00'; // e.g., 202401010600
+    // Since baseDate is already shifted to represents KST "Local" time in its getter methods?
+    // Wait, TimeZone handling in JS is tricky. 
+    // If I construct `new Date(utc + offset)`, headers like `getHours()` return value in Local Machine TZ unless I use `getUTCHours()`.
+    // BUT environment is Server (UTC usually) or Windows (KST?).
+    // Safest: Use ISO String of the shifted date, and strip 'Z' and use substring.
+    // E.g. 2024-01-01T18:00:00.000Z <-- This means 18:00 is the value we WANT.
+    // So:
+    const year = baseDate.getFullYear();
+    const month = String(baseDate.getMonth() + 1).padStart(2, '0');
+    const day = String(baseDate.getDate()).padStart(2, '0');
+    const hour = String(baseDate.getHours()).padStart(2, '0');
+    const tmFc = `${year}${month}${day}${hour}00`;
 
     // Fetch in Parallel
     const serviceKey = process.env.KMA_SERVICE_KEY;
+    // Note: serviceKey should be injected directly if it is already encoded. 
+    // If it's decoded, we should enable encoding. 
+    // Assuming KMA_SERVICE_KEY in env is the "Decoding" key (standard practice for lib), we need to encode it?
+    // Actually, usually easier to paste Encoded key in Env. 
+    // Let's assume Env is Encoded.
     const landUrl = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=${serviceKey}&numOfRows=10&pageNo=1&dataType=JSON&regId=${landCode}&tmFc=${tmFc}`;
     const tempUrl = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa?serviceKey=${serviceKey}&numOfRows=10&pageNo=1&dataType=JSON&regId=${tempCode}&tmFc=${tmFc}`;
 

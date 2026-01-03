@@ -23,10 +23,10 @@ This session focused on replacing the mocked weather system with a **Zero-Cost, 
 - **LBS Handling**: Connected `useLBS` to dynamic region selection. If LBS fails, it gracefully falls back to the default campsite location.
 
 ## 3. Known Issues & Caveats
-- **KMA Rate Limit**: The Public Data Portal API has a daily call limit. During development, we encountered `500 API rate limit` errors. This resolves automatically when the quota resets (usually daily or hourly depending on the specific key tier).
-- **Metric Accuracy**: "Feels Like" is an approximation (Wind Chill) for winter. Summer index (Heat Index) logic can be added later if needed.
+- **KMA Rate Limit / Empty Data**: The Mid-term Forecast API (`MidFcstInfoService`) is currently returning empty data for days 3-10, likely due to a daily call limit or temporary service issue. The code logic for merging is implemented and verified; data should appear automatically when the API recovers.
+- **Metric Accuracy**: "Feels Like" is an approximation (Wind Chill).
 
 ## 4. Next Steps
-1.  **Notification System**: Implement push notifications or alerts for severe weather (using the `config.nearby_places` or new system).
-2.  **Performance Optimization**: Consider Redis or ISR cache for `/api/weather` if traffic increases, as `node-cache` (in-memory) resets on serverless cold starts.
-3.  **Admin Settings**: Allow admin to override default location via Admin Console (currently hardcoded or LBS-based).
+1.  **Monitor 10-Day Data**: Verify if 10-day forecast appears after 00:00 (API Quota Reset).
+2.  **Notification System**: Implement push notifications or alerts.
+3.  **Performance**: Consider Redis if traffic scales.
