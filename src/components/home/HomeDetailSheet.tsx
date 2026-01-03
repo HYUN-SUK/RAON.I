@@ -108,29 +108,31 @@ export default function HomeDetailSheet({ isOpen, onClose, data }: HomeDetailShe
                             </SheetDescription>
                         </SheetHeader>
 
-                        {/* 3. Info Bar (Metadata) */}
-                        <div className="flex items-center justify-between bg-stone-50 dark:bg-zinc-800/50 rounded-2xl p-4 mb-8 border border-stone-100 dark:border-zinc-800">
-                            {/* Time */}
-                            <div className="flex flex-col items-center flex-1 border-r border-stone-200 dark:border-zinc-700 last:border-0">
-                                <Clock className="w-5 h-5 text-stone-400 mb-1" />
-                                <span className="text-xs font-bold text-stone-700 dark:text-stone-300">{data.time_required ? `${data.time_required}분` : '-'}</span>
-                                <span className="text-[10px] text-stone-400">소요시간</span>
+                        {/* 3. Info Bar (Metadata) - Only show if data exists */}
+                        {(data.time_required || data.difficulty || data.servings || data.age_group) && (
+                            <div className="flex items-center justify-between bg-stone-50 dark:bg-zinc-800/50 rounded-2xl p-4 mb-8 border border-stone-100 dark:border-zinc-800">
+                                {/* Time */}
+                                <div className="flex flex-col items-center flex-1 border-r border-stone-200 dark:border-zinc-700 last:border-0">
+                                    <Clock className="w-5 h-5 text-stone-400 mb-1" />
+                                    <span className="text-xs font-bold text-stone-700 dark:text-stone-300">{data.time_required ? `${data.time_required}분` : '-'}</span>
+                                    <span className="text-[10px] text-stone-400">소요시간</span>
+                                </div>
+                                {/* Difficulty */}
+                                <div className="flex flex-col items-center flex-1 border-r border-stone-200 dark:border-zinc-700 last:border-0">
+                                    <Flame className="w-5 h-5 text-stone-400 mb-1" />
+                                    <span className="text-xs font-bold text-stone-700 dark:text-stone-300">{data.difficulty ? '⭐'.repeat(data.difficulty) : '-'}</span>
+                                    <span className="text-[10px] text-stone-400">난이도</span>
+                                </div>
+                                {/* Servings OR Age */}
+                                <div className="flex flex-col items-center flex-1 last:border-0">
+                                    <Users className="w-5 h-5 text-stone-400 mb-1" />
+                                    <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
+                                        {data.servings || data.age_group || '-'}
+                                    </span>
+                                    <span className="text-[10px] text-stone-400">{data.servings ? '인분' : '권장연령'}</span>
+                                </div>
                             </div>
-                            {/* Difficulty */}
-                            <div className="flex flex-col items-center flex-1 border-r border-stone-200 dark:border-zinc-700 last:border-0">
-                                <Flame className="w-5 h-5 text-stone-400 mb-1" />
-                                <span className="text-xs font-bold text-stone-700 dark:text-stone-300">{data.difficulty ? '⭐'.repeat(data.difficulty) : '-'}</span>
-                                <span className="text-[10px] text-stone-400">난이도</span>
-                            </div>
-                            {/* Servings OR Age */}
-                            <div className="flex flex-col items-center flex-1 last:border-0">
-                                <Users className="w-5 h-5 text-stone-400 mb-1" />
-                                <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                                    {data.servings || data.age_group || '-'}
-                                </span>
-                                <span className="text-[10px] text-stone-400">{data.servings ? '인분' : '권장연령'}</span>
-                            </div>
-                        </div>
+                        )}
 
                         {/* 4. Calories / Location Badge (Optional) */}
                         <div className="flex flex-wrap gap-2 mb-8">

@@ -16,7 +16,7 @@
 | **Phase 0** | **코어 플랫폼 기반 (Foundation)** | ✅ **완료** | 100% | 필코노미 감성 톤, UI 프레임, 데이터 레이어 |
 | **Phase 1** | **사용자 홈 (User Home)** | ✅ **완료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic 완료 |
 | **Phase 2** | **내공간 (My Space)** | ✅ **완료** | 100% | 대시보드/지도/타임라인 완료. 아카이브(기록) 리뉴얼 및 XP/Token 완료. |
-| **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 90% | Logic/Validation/Admin Core 완료. PG/오픈일 남음. |
+| **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
 | **Phase 4** | **커뮤니티 (Community)** | ✅ **완료** | 100% | RLS 보안, 관리자 공지/소모임 관리, 소모임 기능(생성/가입/조회) 완료 |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
@@ -65,6 +65,7 @@
 *   **3.1 예약 UI (Refinement)** ✅
     *   [x] 스마트 리북, Validation(주말 2박/엔드캡), 가격 로직
     *   [x] 임박 예약(D-N), 연박 할인 로직 적용
+    *   [x] **공휴일/대체공휴일**: 2025-2026 데이터 연동 및 가격/UI 반영 (Substitute Holidays) ✅
 *   **3.2 관리자 콘솔 (Admin Core)** ✅ (New)
     *   [x] **차단일 관리 (`BlockDateScheduler`)**: 달력 기반 제어
     *   [x] **가격/시즌 관리 (`PricingConfigEditor`)**: 실시간 가격 정책 수정

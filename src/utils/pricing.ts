@@ -1,28 +1,42 @@
 import { Site, PriceBreakdown, PricingConfig } from '@/types/reservation';
 
+
+
+import { Site, PriceBreakdown, PricingConfig } from '@/types/reservation';
+import { addDays, format } from 'date-fns';
+
 // Helper to check if date is in any peak season
 const isPeakSeason = (date: Date, config: PricingConfig): boolean => {
     const month = date.getMonth() + 1; // 1-12
     const day = date.getDate(); // 1-31
 
     return config.seasons.some(season => {
-        // Simple case: start and end in same year
-        // e.g. 7.1 ~ 8.31
         if (season.startMonth < season.endMonth) {
             return (month > season.startMonth || (month === season.startMonth && day >= season.startDay)) &&
                 (month < season.endMonth || (month === season.endMonth && day <= season.endDay));
         }
-        // Cross-year case (if needed, though simple seasons usually fit in year)
-        // e.g. 12.20 ~ 2.10
-        // ... simplistic implementation for now assuming same-year seasons as per current requirements
         return (month > season.startMonth || (month === season.startMonth && day >= season.startDay)) &&
             (month < season.endMonth || (month === season.endMonth && day <= season.endDay));
     });
 };
 
-const isWeekend = (date: Date): boolean => {
+const checkIsHoliday = (date: Date, holidays: Set<string>): boolean => {
+    if (!holidays || !(holidays instanceof Set)) return false;
+    return holidays.has(format(date, 'yyyy-MM-dd'));
+};
+
+const checkIsPreHoliday = (date: Date, holidays: Set<string>): boolean => {
+    if (!holidays || !(holidays instanceof Set)) return false;
+    const nextDay = addDays(date, 1);
+    return holidays.has(format(nextDay, 'yyyy-MM-dd'));
+};
+
+const isHighDemandDay = (date: Date, holidays: Set<string>): boolean => {
     const day = date.getDay();
-    return day === 5 || day === 6 || day === 0; // Fri, Sat, Sun
+    const isFriSatSun = day === 5 || day === 6 || day === 0;
+
+    // User Rule: Weekend / Holiday / Pre-Holiday -> 70,000 (Weekend Price)
+    return isFriSatSun || checkIsHoliday(date, holidays) || checkIsPreHoliday(date, holidays);
 };
 
 export const calculatePrice = (
@@ -31,7 +45,8 @@ export const calculatePrice = (
     checkOut: Date,
     familyCount: number,
     visitorCount: number,
-    config: PricingConfig
+    config: PricingConfig,
+    holidays: Set<string> = new Set()
 ): PriceBreakdown => {
     const oneDay = 24 * 60 * 60 * 1000;
     const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / oneDay);
@@ -54,9 +69,9 @@ export const calculatePrice = (
     for (let i = 0; i < nights; i++) {
         const currentDate = new Date(checkIn.getTime() + (i * oneDay));
         const isPeak = isPeakSeason(currentDate, config);
-        const isWknd = isWeekend(currentDate);
+        const isHigh = isHighDemandDay(currentDate, holidays);
 
-        if (isWknd) {
+        if (isHigh) {
             basePrice += isPeak ? config.peakWeekend : config.weekend;
         } else {
             basePrice += isPeak ? config.peakWeekday : config.weekday;
@@ -65,17 +80,18 @@ export const calculatePrice = (
 
     // 2. Discounts
     // SSOT 6.2.3: Consecutive Stay Discount
-    // Applied if ALL nights are weekend nights (Fri, Sat, Sun).
-    let isAllWeekend = true;
+    // Applied if ALL nights are High Demand nights (Weekend/Holiday/Pre-Holiday).
+    // User Clarification: Holidays count for discount.
+    let isAllHighDemand = true;
     for (let i = 0; i < nights; i++) {
         const currentDate = new Date(checkIn.getTime() + (i * oneDay));
-        if (!isWeekend(currentDate)) {
-            isAllWeekend = false;
+        if (!isHighDemandDay(currentDate, holidays)) {
+            isAllHighDemand = false;
             break;
         }
     }
 
-    if (isAllWeekend && nights >= 2) {
+    if (isAllHighDemand && nights >= 2) {
         consecutiveDiscount = (nights - 1) * config.longStayDiscount;
     }
 

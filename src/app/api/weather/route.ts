@@ -395,9 +395,28 @@ async function getMidTermForecast(lat: number, lng: number) {
 
     try {
         const [landRes, tempRes] = await Promise.all([
-            fetch(landUrl).then(r => r.json()),
-            fetch(tempUrl).then(r => r.json())
+            fetch(landUrl).then(async r => {
+                if (!r.ok) {
+                    console.error(`Mid Land Fetch Failed: ${r.status} ${await r.text()}`);
+                    return null;
+                }
+                const text = await r.text();
+                // console.log("Mid Land Res:", text.substring(0, 100));
+                try { return JSON.parse(text); } catch (e) { console.error("Mid Land Parse Error", e); return null; }
+            }),
+            fetch(tempUrl).then(async r => {
+                if (!r.ok) {
+                    console.error(`Mid Temp Fetch Failed: ${r.status} ${await r.text()}`);
+                    return null;
+                }
+                const text = await r.text();
+                try { return JSON.parse(text); } catch (e) { console.error("Mid Temp Parse Error", e); return null; }
+            })
         ]);
+
+        if (!landRes?.response?.body?.items?.item) {
+            console.warn("Mid Land Body Empty", JSON.stringify(landRes).substring(0, 200));
+        }
 
         const landItem = landRes?.response?.body?.items?.item?.[0];
         const tempItem = tempRes?.response?.body?.items?.item?.[0];

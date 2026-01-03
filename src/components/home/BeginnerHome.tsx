@@ -103,7 +103,7 @@ export default function BeginnerHome() {
                 sub: "관광지 안내",
                 title: "주변 즐길거리",
                 description: Array.isArray(config.nearby_places) && config.nearby_places.length > 0
-                    ? (config.nearby_places as any[]).map(p => `• ${p.title}\n  ${p.desc}`).join('\n\n')
+                    ? (config.nearby_places as any[]).map(p => `• ${p.title || '장소명 없음'}\n  ${p.desc || '설명 없음'}`).join('\n\n')
                     : "등록된 인근 명소가 없습니다.",
                 actionLabel: "명소 리스트 확인",
                 actionLink: "/guide/scenery" // Or Keep as sheet logic if preferable

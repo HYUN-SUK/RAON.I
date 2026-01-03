@@ -167,7 +167,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
 
                                     {/* V2 Badges: Difficulty & Time */}
                                     {hasV2Info && (
-                                        <div className="flex gap-2 mt-2 flex-wrap">
+                                        <div className="flex gap-1 mt-2 flex-nowrap overflow-hidden">
                                             {dataAny.difficulty && (
                                                 <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
                                                     {'⭐'.repeat(dataAny.difficulty)}
@@ -180,7 +180,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
                                                 </span>
                                             )}
                                             {dataAny.calories && (
-                                                <span className="inline-flex items-center text-[10px] text-orange-600 bg-orange-50/80 px-1.5 py-0.5 rounded-md">
+                                                <span className="inline-flex items-center text-[10px] text-orange-600 bg-orange-50/80 px-1.5 py-0.5 rounded-md whitespace-nowrap">
                                                     {dataAny.calories}kcal
                                                 </span>
                                             )}

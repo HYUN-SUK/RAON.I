@@ -1,0 +1,5 @@
+Checking .env.local at: C:\Users\USER\Desktop\RAON.I\.env.local
+❌ MISSING: NEXT_PUBLIC_SUPABASE_URL
+❌ MISSING: NEXT_PUBLIC_SUPABASE_ANON_KEY
+❌ MISSING: SUPABASE_SERVICE_ROLE_KEY
+⚠️ Environment variables are incomplete.

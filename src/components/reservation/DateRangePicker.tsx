@@ -13,7 +13,7 @@ import 'react-day-picker/style.css';
 import { cn } from '@/lib/utils';
 
 export default function DateRangePicker() {
-    const { selectedDateRange, setDateRange, reservations, openDayRule } = useReservationStore();
+    const { selectedDateRange, setDateRange, reservations, openDayRule, fetchHolidays, holidays } = useReservationStore();
 
     const activeConfig = useMemo(() => {
         if (openDayRule) {
@@ -34,6 +34,18 @@ export default function DateRangePicker() {
 
     const handleSelect = (range: DateRange | undefined) => {
         setDateRange({ from: range?.from, to: range?.to });
+    };
+
+    React.useEffect(() => {
+        fetchHolidays();
+    }, [fetchHolidays]);
+
+    const isDateHoliday = (date: Date) => {
+        const isSunday = date.getDay() === 0;
+        if (isSunday) return true;
+
+        if (!holidays || !(holidays instanceof Set)) return false;
+        return holidays.has(format(date, 'yyyy-MM-dd'));
     };
 
     const now = new Date();
@@ -83,6 +95,8 @@ export default function DateRangePicker() {
 
     const { isFridayOneNight, isWithinDN, isEndCap } = checkReservationRules(selected.from, selected.to, now, { isSaturdayFull, isNextDayBlocked });
 
+
+
     return (
         <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4">
             <div className="flex items-center justify-between mb-2 pb-2 border-b border-stone-100">
@@ -114,8 +128,15 @@ export default function DateRangePicker() {
                         background-color: #F7F5EF !important;
                         color: #1C4526 !important;
                     }
+                    .rdp-day_holiday {
+                        color: #ef4444 !important;
+                        font-weight: bold;
+                    }
                 `}
             </style>
+
+
+
 
             <DayPicker
                 mode="range"
@@ -129,6 +150,8 @@ export default function DateRangePicker() {
                     { before: activeConfig.openAt },
                     { after: activeConfig.closeAt }
                 ]}
+                modifiers={{ holiday: isDateHoliday }}
+                modifiersClassNames={{ holiday: "!text-red-500 !font-bold" }}
                 footer={
                     <div className="mt-4 space-y-2 text-center">
                         {isFridayOneNight && (

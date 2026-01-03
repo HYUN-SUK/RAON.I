@@ -49,6 +49,10 @@ interface ReservationState {
         repeat_rule?: 'NONE' | 'MONTHLY'; // Added
     } | null;
     fetchOpenDayRule: () => Promise<void>;
+
+    // Dynamic Holidays
+    holidays: Set<string>;
+    fetchHolidays: () => Promise<void>;
 }
 
 
@@ -126,9 +130,38 @@ export const useReservationStore = create<ReservationState>()(
                 })),
             reset: () => set({ selectedDateRange: { from: undefined, to: undefined }, selectedSite: null }),
 
+
+            // Dynamic Holidays
+            holidays: new Set(),
+            fetchHolidays: async () => {
+                try {
+                    console.log('Fetching holidays...');
+                    const res = await fetch('/api/holidays');
+                    console.log('Fetch response status:', res.status);
+
+                    if (!res.ok) {
+                        console.error('Fetch holidays failed:', res.statusText);
+                        return;
+                    }
+
+                    const data = await res.json();
+                    console.log('Holidays fetched data:', data);
+
+                    if (data.holidays && Array.isArray(data.holidays)) {
+                        set({ holidays: new Set(data.holidays) });
+                        console.log('Holidays saved to store:', data.holidays.length);
+                    } else {
+                        console.warn('Invalid holiday data structure:', data);
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch holidays', e);
+                }
+            },
+
             calculatePrice: (site, checkIn, checkOut, familyCount, visitorCount) => {
-                const { priceConfig } = get();
-                return calculatePrice(site, checkIn, checkOut, familyCount, visitorCount, priceConfig);
+                const { priceConfig, holidays } = get();
+                // We pass the holidays Set to the utility
+                return calculatePrice(site, checkIn, checkOut, familyCount, visitorCount, priceConfig, holidays);
             },
 
             getOverdueReservations: () => {
@@ -304,12 +337,15 @@ export const useReservationStore = create<ReservationState>()(
             },
         }),
         {
-            name: 'reservation-storage',
+            name: 'reservation-storage-v2',
             storage: {
                 getItem: (name) => {
                     const str = localStorage.getItem(name);
                     if (!str) return null;
                     return JSON.parse(str, (key, value) => {
+                        if (key === 'holidays' && Array.isArray(value)) {
+                            return new Set(value);
+                        }
                         if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
                             return new Date(value);
                         }
@@ -317,7 +353,13 @@ export const useReservationStore = create<ReservationState>()(
                     });
                 },
                 setItem: (name, value) => {
-                    localStorage.setItem(name, JSON.stringify(value));
+                    const str = JSON.stringify(value, (key, val) => {
+                        if (val instanceof Set) {
+                            return Array.from(val);
+                        }
+                        return val;
+                    });
+                    localStorage.setItem(name, str);
                 },
                 removeItem: (name) => localStorage.removeItem(name),
             },
