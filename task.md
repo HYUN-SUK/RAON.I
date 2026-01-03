@@ -53,3 +53,7 @@
 - [x] **Smoke Test**: Verify Home, Reservation, Community, My Space flows still work perfectly.
   - [x] **Security Fix**: Fixed bypass in `PostDetailView` (Like/Comment).
   - [x] **Live Verification**: Guest restrictions confirmed via Browser.
+
+## 🩹 Phase 7.0: Hotfixes (2025-01-03)
+- [x] **Reservation Pricing**: Fixed consecutive stay discount logic (Mixed Weekend/Weekday support).
+- [x] **TopBar UI**: Added text label "로그인" next to the icon for better accessibility.

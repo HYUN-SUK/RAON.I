@@ -162,10 +162,11 @@ export default function TopBar() {
             ) : (
                 <button
                     onClick={handleLogin}
-                    className="relative z-[101] p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer"
+                    className="relative z-[101] py-2 px-3 -mr-2 flex items-center gap-1.5 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer"
                     aria-label="Login"
                 >
-                    <LogIn size={22} strokeWidth={1.5} />
+                    <LogIn size={18} strokeWidth={1.5} />
+                    <span className="text-sm font-semibold text-stone-600">로그인</span>
                 </button>
             )}
         </header>

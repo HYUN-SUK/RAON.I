@@ -2,7 +2,6 @@ import { Site, PriceBreakdown, PricingConfig } from '@/types/reservation';
 
 
 
-import { Site, PriceBreakdown, PricingConfig } from '@/types/reservation';
 import { addDays, format } from 'date-fns';
 
 // Helper to check if date is in any peak season
@@ -82,18 +81,24 @@ export const calculatePrice = (
     // SSOT 6.2.3: Consecutive Stay Discount
     // Applied if ALL nights are High Demand nights (Weekend/Holiday/Pre-Holiday).
     // User Clarification: Holidays count for discount.
-    let isAllHighDemand = true;
-    for (let i = 0; i < nights; i++) {
-        const currentDate = new Date(checkIn.getTime() + (i * oneDay));
-        if (!isHighDemandDay(currentDate, holidays)) {
-            isAllHighDemand = false;
-            break;
+    // 2. Discounts
+    // SSOT 6.2.3: Consecutive Stay Discount (Modified by User Feedback)
+    // Rule: Apply 10,000 KRW discount for EACH pair of consecutive "High Demand" nights.
+    // Example: Sat(H)-Sun(H)-Mon(L) -> Sat-Sun is a pair (10k off). Sun-Mon is not. Total 10k discount.
+
+    // We iterate through nights and check i and i+1
+    for (let i = 0; i < nights - 1; i++) {
+        const currentNightDate = new Date(checkIn.getTime() + (i * oneDay));
+        const nextNightDate = new Date(checkIn.getTime() + ((i + 1) * oneDay));
+
+        const isCurrentHigh = isHighDemandDay(currentNightDate, holidays);
+        const isNextHigh = isHighDemandDay(nextNightDate, holidays);
+
+        if (isCurrentHigh && isNextHigh) {
+            consecutiveDiscount += config.longStayDiscount;
         }
     }
 
-    if (isAllHighDemand && nights >= 2) {
-        consecutiveDiscount = (nights - 1) * config.longStayDiscount;
-    }
 
     // 3. Extra Costs
     // Extra Family: per family per night (excluding the first family)
