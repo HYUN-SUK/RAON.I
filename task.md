@@ -57,3 +57,22 @@
 ## 🩹 Phase 7.0: Hotfixes (2025-01-03)
 - [x] **Reservation Pricing**: Fixed consecutive stay discount logic (Mixed Weekend/Weekday support).
 - [x] **TopBar UI**: Added text label "로그인" next to the icon for better accessibility.
+
+## 🛠️ Phase 5: Admin Console Overhaul (Master Control)
+### Phase 1: Core Configuration (Immediate)
+- [x] **Hero & Bank**: `admin_settings` table, Settings UI.
+- [x] **Site Management**: `sites` table update, Edit UI.
+
+### Phase 2: Reservation & Calendar (Complex)
+- [x] **Calendar UI**: Monthly View implementation.
+- [x] **Booking Logic**: Color Coding, Daily Detail View.
+- [x] **Blocking**: Drag/Click interaction for date blocking.
+
+### Phase 3: Market & Analytics
+- [ ] **Market**: Product Management (CRUD).
+- [ ] **Analytics**: Dashboard Key Metrics.
+
+### Phase 4: Advanced
+- [ ] **Push**: Web Push Schema.
+- [ ] **Security**: Encryption Review.
+- [ ] **Recovery**: Snapshot Policy (SSOT 26).

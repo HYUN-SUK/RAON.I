@@ -5,7 +5,6 @@ import DateRangePicker from '@/components/reservation/DateRangePicker';
 import SiteList from '@/components/reservation/SiteList';
 import { useReservationStore } from '@/store/useReservationStore';
 import { checkReservationRules, D_N_DAYS } from '@/utils/reservationRules';
-import { SITES } from '@/constants/sites';
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Lock, CalendarClock, Megaphone } from 'lucide-react';
@@ -14,11 +13,12 @@ import { differenceInDays, startOfDay, format } from 'date-fns';
 
 export default function ReservationPage() {
     const router = useRouter();
-    const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule } = useReservationStore();
+    const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites } = useReservationStore();
 
     useEffect(() => {
         fetchOpenDayRule();
-    }, [fetchOpenDayRule]);
+        fetchSites();
+    }, [fetchOpenDayRule, fetchSites]);
 
     const activeConfig = useMemo(() => {
         if (openDayRule) {
@@ -89,7 +89,7 @@ export default function ReservationPage() {
                     })
                     .map(r => r.siteId);
 
-                const hasEndCapCandidate = SITES.some(site =>
+                const hasEndCapCandidate = sites.some(site =>
                     !fridayBookedSiteIds.includes(site.id) &&
                     saturdayBookedSiteIds.includes(site.id)
                 );
@@ -102,7 +102,7 @@ export default function ReservationPage() {
 
         const ruleResult = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now, { hasEndCapAvailability, isNextDayBlocked });
         return { ...ruleResult, hasEndCapAvailability, isNextDayBlocked };
-    }, [selectedDateRange.from, activeConfig, selectedDateRange.to, reservations, now]);
+    }, [selectedDateRange.from, activeConfig, selectedDateRange.to, reservations, now, sites]);
 
     return (
         <main className="min-h-screen bg-[#F7F5EF] pb-32">

@@ -24,6 +24,10 @@ export interface Database {
                     nearby_places: Json
                     created_at: string
                     updated_at: string
+                    hero_image_url?: string | null
+                    bank_name?: string | null
+                    bank_account?: string | null
+                    bank_holder?: string | null
                 }
                 Insert: {
                     id?: number
@@ -39,6 +43,10 @@ export interface Database {
                     beginner_chips?: Json
                     created_at?: string
                     updated_at?: string
+                    hero_image_url?: string | null
+                    bank_name?: string | null
+                    bank_account?: string | null
+                    bank_holder?: string | null
                 }
                 Update: {
                     id?: number
@@ -52,6 +60,90 @@ export interface Database {
                     pricing_guide_text?: string | null
                     rules_guide_text?: string | null
                     beginner_chips?: Json
+                    created_at?: string
+                    updated_at?: string
+                    hero_image_url?: string | null
+                    bank_name?: string | null
+                    bank_account?: string | null
+                    bank_holder?: string | null
+                }
+            }
+            blocked_dates: {
+                Row: {
+                    id: string
+                    site_id: string
+                    start_date: string
+                    end_date: string
+                    memo: string | null
+                    is_paid: boolean
+                    guest_name: string | null
+                    contact: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    site_id: string
+                    start_date: string
+                    end_date: string
+                    memo?: string | null
+                    is_paid?: boolean
+                    guest_name?: string | null
+                    contact?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    site_id?: string
+                    start_date?: string
+                    end_date?: string
+                    memo?: string | null
+                    is_paid?: boolean
+                    guest_name?: string | null
+                    contact?: string | null
+                    created_at?: string
+                }
+                Relationships: []
+            }
+            sites: {
+                Row: {
+                    id: string
+                    name: string
+                    type: string | null
+                    description: string | null
+                    price: number
+                    base_price: number
+                    max_occupancy: number
+                    image_url: string | null
+                    features: string[] | null
+                    is_active: boolean
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id: string
+                    name: string
+                    type?: string | null
+                    description?: string | null
+                    price?: number
+                    base_price?: number
+                    max_occupancy?: number
+                    image_url?: string | null
+                    features?: string[] | null
+                    is_active?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    name?: string
+                    type?: string | null
+                    description?: string | null
+                    price?: number
+                    base_price?: number
+                    max_occupancy?: number
+                    image_url?: string | null
+                    features?: string[] | null
+                    is_active?: boolean
                     created_at?: string
                     updated_at?: string
                 }

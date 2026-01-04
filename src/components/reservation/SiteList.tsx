@@ -1,6 +1,5 @@
 'use client';
 
-import { SITES } from '@/constants/sites';
 import { useReservationStore } from '@/store/useReservationStore';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -9,7 +8,7 @@ import { useEffect, useState } from 'react';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice } = useReservationStore();
+    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -67,7 +66,7 @@ export default function SiteList() {
         return true;
     };
 
-    const sortedSites = [...SITES].sort((a, b) => {
+    const sortedSites = [...sites].sort((a, b) => {
         const aAvailable = isSiteAvailable(a.id);
         const bAvailable = isSiteAvailable(b.id);
         if (aAvailable === bAvailable) return 0;

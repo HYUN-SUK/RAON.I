@@ -65,7 +65,20 @@ export interface PricingConfig {
 
 export interface BlockedDate {
     id: string; // uuid
-    siteId: string | 'ALL';
-    date: Date; // stored as Date object in store (handled by storage)
+    siteId: string;
+    startDate: Date;
+    endDate: Date; // Exclusive? Actually let's store standard start/end. 
     memo?: string;
+    isPaid: boolean;
+    guestName?: string;
+    contact?: string;
+}
+
+export interface SiteConfig {
+    campName: string;
+    bankName: string;
+    bankAccount: string;
+    bankHolder: string;
+    heroImageUrl?: string;
+    layoutImageUrl?: string;
 }

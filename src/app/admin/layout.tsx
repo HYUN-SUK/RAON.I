@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield, LogOut, Star, Wrench } from 'lucide-react';
+import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield, LogOut, Star, Wrench, Tent } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 
@@ -27,10 +27,11 @@ export default function AdminLayout({
                 </div>
                 <nav className="p-2 space-y-1 overflow-x-auto md:overflow-visible flex md:block whitespace-nowrap md:whitespace-normal flex-1">
                     <NavLink href="/admin" icon={<Home size={18} />} label="대시보드" />
+                    <NavLink href="/admin/sites" icon={<Tent size={18} />} label="사이트 관리" />
                     <NavLink href="/admin/reservations" icon={<Calendar size={18} />} label="예약 관리" />
                     <NavLink href="/admin/payments" icon={<CreditCard size={18} />} label="입금 확인" />
                     <NavLink href="/admin/rate" icon={<Settings size={18} />} label="가격/시즌" />
-                    <NavLink href="/admin/block" icon={<Shield size={18} />} label="차단일" />
+                    <NavLink href="/admin/block" icon={<Shield size={18} />} label="통합 예약칼렌더" />
                     <NavLink href="/admin/mission" icon={<Users size={18} />} label="미션" />
                     <NavLink href="/admin/community" icon={<Users size={18} />} label="커뮤니티" />
                     <NavLink href="/admin/groups" icon={<Users size={18} />} label="소모임" />

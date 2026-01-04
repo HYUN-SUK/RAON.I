@@ -59,19 +59,21 @@
     *   [x] **Premium UI**: View/Edit 옵션 잠금 해제 UI (Glassmorphism + Collapsible) 적용.
 
 
-### Phase 3: 예약 시스템 (Reservation) - ✅ Core Logic Done
+### Phase 3: 예약 시스템 (Reservation) - ✅ 100% Completed
 **"레디코어 - 투명하고 쉬운 예약 & 강력한 관리"**
 
 *   **3.1 예약 UI (Refinement)** ✅
     *   [x] 스마트 리북, Validation(주말 2박/엔드캡), 가격 로직
     *   [x] 임박 예약(D-N), 연박 할인 로직 적용
     *   [x] **공휴일/대체공휴일**: 2025-2026 데이터 연동 및 가격/UI 반영 (Substitute Holidays) ✅
+    *   [x] **동적 설정 연동**: 관리자 설정(입금계좌, 사이트정보) 실시간 반영 (Frontend Sync) ✅
 *   **3.2 관리자 콘솔 (Admin Core)** ✅ (New)
-    *   [x] **차단일 관리 (`BlockDateScheduler`)**: 달력 기반 제어
+    *   [x] **차단일 관리 (`BlockDateScheduler`)**: 통합 예약 캘린더로 격상
     *   [x] **가격/시즌 관리 (`PricingConfigEditor`)**: 실시간 가격 정책 수정
     *   [x] **입금 확인 (`ReservationList`)**: 대기 목록 및 확정 처리
-*   **3.3 오픈일/PG** ⬜
-    *   [ ] 실제 PG 연동 (현재 무통장 입금만 구현)
+    *   [x] **고객 관리**: 예약 이력(History) 조회 및 통합 차단 관리
+*   **3.3 오픈일/PG** 🔄 (Next)
+    *   [ ] 실제 PG 연동 (현재 무통장 입금만 구현) - 추후 연동 예정
 
 
 ### Phase 4: 커뮤니티 (Community) - ✅ 100% Completed

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Reservation, Site, ReservationStatus, PricingConfig, BlockedDate } from '@/types/reservation';
+import { Reservation, Site, ReservationStatus, PricingConfig, BlockedDate, SiteConfig } from '@/types/reservation';
 import { calculatePrice } from '@/utils/pricing';
-import { SITES } from '@/constants/sites';
+import { SITES as DEFAULT_SITES } from '@/constants/sites';
 
 interface ReservationState {
     selectedDateRange: {
@@ -11,6 +11,10 @@ interface ReservationState {
     };
     selectedSite: Site | null;
     reservations: Reservation[];
+
+    // Dynamic Data
+    sites: Site[];
+    siteConfig: SiteConfig | null;
 
     // Actions
     setDateRange: (range: { from: Date | undefined; to: Date | undefined }) => void;
@@ -36,8 +40,14 @@ interface ReservationState {
 
     // Config Actions
     setPriceConfig: (config: PricingConfig) => void;
-    addBlockDate: (block: BlockedDate) => void;
-    removeBlockDate: (id: string) => void;
+    // Async Actions
+    fetchSites: () => Promise<void>;
+    fetchSiteConfig: () => Promise<void>;
+    fetchBlockedDates: () => Promise<void>;
+    addBlockDate: (block: BlockedDate) => Promise<void>;
+    removeBlockDate: (id: string) => Promise<void>;
+    toggleBlockPaid: (id: string) => Promise<void>;
+    getUserHistory: (query: string) => Promise<Reservation[]>;
 
     // Open Day Rule (Dynamic)
     openDayRule: {
@@ -46,7 +56,7 @@ interface ReservationState {
         openAt: Date;
         closeAt: Date;
         isActive: boolean;
-        repeat_rule?: 'NONE' | 'MONTHLY'; // Added
+        repeat_rule?: 'NONE' | 'MONTHLY';
     } | null;
     fetchOpenDayRule: () => Promise<void>;
 
@@ -92,6 +102,9 @@ export const useReservationStore = create<ReservationState>()(
             reservations: [],
             deadlineHours: 6, // Default 6h
 
+            sites: DEFAULT_SITES, // Initialize with default constant for immediate render
+            siteConfig: null,
+
             // Initial Admin State
             priceConfig: DEFAULT_PRICE_CONFIG,
             blockedDates: [],
@@ -101,8 +114,174 @@ export const useReservationStore = create<ReservationState>()(
             setDeadlineHours: (hours) => set({ deadlineHours: hours }),
 
             setPriceConfig: (config) => set({ priceConfig: config }),
-            addBlockDate: (block) => set((state) => ({ blockedDates: [...state.blockedDates, block] })),
-            removeBlockDate: (id) => set((state) => ({ blockedDates: state.blockedDates.filter(b => b.id !== id) })),
+
+            // --- New Async: Fetch Sites & Config ---
+            fetchSites: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+                const { data, error } = await supabase.from('sites').select('*').order('id');
+
+                if (data) {
+                    const mappedSites: Site[] = data.map((s: any) => ({
+                        id: s.id,
+                        name: s.name,
+                        type: s.type, // Assumes DB matches 'TENT' | 'GLAMPING' etc.
+                        description: s.description || '',
+                        price: s.price,
+                        basePrice: s.base_price,
+                        maxOccupancy: s.max_occupancy,
+                        imageUrl: s.image_url,
+                        features: s.features || []
+                    }));
+                    set({ sites: mappedSites });
+                }
+            },
+
+            fetchSiteConfig: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+                const { data } = await supabase.from('site_config').select('*').eq('id', 1).single();
+
+                if (data) {
+                    set({
+                        siteConfig: {
+                            campName: data.camp_name,
+                            bankName: data.bank_name,
+                            bankAccount: data.bank_account,
+                            bankHolder: data.bank_holder,
+                            heroImageUrl: data.hero_image_url,
+                            layoutImageUrl: data.layout_image_url
+                        }
+                    });
+                }
+            },
+
+
+            // Async Block Actions
+            fetchBlockedDates: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+                const { data, error } = await supabase.from('blocked_dates').select('*');
+                if (data) {
+                    const mapped: BlockedDate[] = data.map(d => ({
+                        id: d.id,
+                        siteId: d.site_id,
+                        startDate: new Date(d.start_date),
+                        endDate: new Date(d.end_date),
+                        memo: d.memo || undefined,
+                        isPaid: d.is_paid,
+                        guestName: d.guest_name || undefined,
+                        contact: d.contact || undefined
+                    }));
+                    set({ blockedDates: mapped });
+                }
+            },
+
+            addBlockDate: async (block) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                const { data, error } = await supabase.from('blocked_dates').insert({
+                    site_id: block.siteId,
+                    start_date: block.startDate.toISOString(),
+                    end_date: block.endDate.toISOString(),
+                    memo: block.memo,
+                    is_paid: block.isPaid,
+                    guest_name: block.guestName,
+                    contact: block.contact
+                }).select().single();
+
+                if (data) {
+                    const newBlock: BlockedDate = {
+                        id: data.id,
+                        siteId: data.site_id,
+                        startDate: new Date(data.start_date),
+                        endDate: new Date(data.end_date),
+                        memo: data.memo || undefined,
+                        isPaid: data.is_paid,
+                        guestName: data.guest_name || undefined,
+                        contact: data.contact || undefined
+                    };
+                    set((state) => ({ blockedDates: [...state.blockedDates, newBlock] }));
+                }
+            },
+
+            removeBlockDate: async (id: string) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+                await supabase.from('blocked_dates').delete().eq('id', id);
+                set((state) => ({ blockedDates: state.blockedDates.filter(b => b.id !== id) }));
+            },
+
+            toggleBlockPaid: async (id: string) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+                const { blockedDates } = get();
+                const target = blockedDates.find(b => b.id === id);
+                if (!target) return;
+
+                const newStatus = !target.isPaid;
+                await supabase.from('blocked_dates').update({ is_paid: newStatus }).eq('id', id);
+
+                set((state) => ({
+                    blockedDates: state.blockedDates.map(b => b.id === id ? { ...b, isPaid: newStatus } : b)
+                }));
+            },
+
+            getUserHistory: async (query: string) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                // 1. Fetch Reservations (Web)
+                const { data: resData } = await supabase
+                    .from('reservations')
+                    .select('*')
+                    .or(`user_id.eq.${query}`);
+
+                // 2. Fetch Blocked Dates (Manual)
+                const { data: blockData } = await supabase
+                    .from('blocked_dates')
+                    .select('*')
+                    .eq('guest_name', query);
+
+                const history: Reservation[] = [];
+
+                if (resData) {
+                    resData.forEach((r: any) => {
+                        history.push({
+                            id: r.id,
+                            userId: r.user_id,
+                            siteId: r.site_id,
+                            checkInDate: new Date(r.check_in_date),
+                            checkOutDate: new Date(r.check_out_date),
+                            guests: r.guests,
+                            price: r.total_price,
+                            status: r.status,
+                            created_at: new Date(r.created_at)
+                        } as any);
+                    });
+                }
+
+                if (blockData) {
+                    blockData.forEach((b: any) => {
+                        history.push({
+                            id: b.id,
+                            userId: b.guest_name || 'Manual',
+                            siteId: b.site_id,
+                            checkInDate: new Date(b.start_date),
+                            checkOutDate: new Date(b.end_date),
+                            guests: 0,
+                            price: 0,
+                            status: b.is_paid ? 'CONFIRMED' : 'PENDING',
+                            created_at: new Date(b.created_at),
+                            requests: b.memo
+                        } as any);
+                    });
+                }
+
+                // Sort by date desc
+                return history.sort((a, b) => b.checkInDate.getTime() - a.checkInDate.getTime());
+            },
 
             addReservation: (reservation) => {
                 const { reservations } = get();
@@ -135,9 +314,7 @@ export const useReservationStore = create<ReservationState>()(
             holidays: new Set(),
             fetchHolidays: async () => {
                 try {
-                    console.log('Fetching holidays...');
                     const res = await fetch('/api/holidays');
-                    console.log('Fetch response status:', res.status);
 
                     if (!res.ok) {
                         console.error('Fetch holidays failed:', res.statusText);
@@ -145,13 +322,9 @@ export const useReservationStore = create<ReservationState>()(
                     }
 
                     const data = await res.json();
-                    console.log('Holidays fetched data:', data);
 
                     if (data.holidays && Array.isArray(data.holidays)) {
                         set({ holidays: new Set(data.holidays) });
-                        console.log('Holidays saved to store:', data.holidays.length);
-                    } else {
-                        console.warn('Invalid holiday data structure:', data);
                     }
                 } catch (e) {
                     console.error('Failed to fetch holidays', e);
@@ -160,7 +333,6 @@ export const useReservationStore = create<ReservationState>()(
 
             calculatePrice: (site, checkIn, checkOut, familyCount, visitorCount) => {
                 const { priceConfig, holidays } = get();
-                // We pass the holidays Set to the utility
                 return calculatePrice(site, checkIn, checkOut, familyCount, visitorCount, priceConfig, holidays);
             },
 
@@ -182,7 +354,6 @@ export const useReservationStore = create<ReservationState>()(
                     if (now < deadline) return;
 
                     // Deadline passed. Check Grace Period.
-                    // Grace Period: Until next 9 AM or 6 PM
                     const graceTime = new Date(deadline);
                     const hour = graceTime.getHours();
 
@@ -219,11 +390,11 @@ export const useReservationStore = create<ReservationState>()(
             },
             validateReservation: (siteId, checkIn, checkOut) => {
                 const { reservations } = get();
-                const startDay = checkIn.getDay(); // 0=Sun, 5=Fri, 6=Sat
+                const startDay = checkIn.getDay();
                 const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
 
                 // Rule 1: Weekend 2-night Rule (Fri, Sat Check-in)
-                if (startDay === 5 || startDay === 6) { // Friday or Saturday
+                if (startDay === 5 || startDay === 6) {
                     if (nights < 2) {
                         // Exception: Friday 1-night End-cap
                         if (startDay === 5) {
@@ -258,11 +429,13 @@ export const useReservationStore = create<ReservationState>()(
                         return '주말(토요일) 입실 시 2박 이상 예약해야 합니다.';
                     }
                 }
-                return null; // Valid
+                return null;
             },
 
             initRebook: (siteId) => {
-                const site = SITES.find(s => s.id === siteId);
+                // Now using dynamic sites if available, but for rebook standard we can look up from store
+                const { sites } = get();
+                const site = sites.find(s => s.id === siteId);
                 if (site) {
                     set({ selectedSite: site });
                 }
@@ -286,24 +459,16 @@ export const useReservationStore = create<ReservationState>()(
 
                     // Logic for Monthly Automation
                     if (data.repeat_rule === 'MONTHLY' && data.automation_config) {
-                        const config = data.automation_config; // { triggerDay, monthsToAdd, targetDay }
+                        const config = data.automation_config;
 
                         // 1. Determine the "Trigger Moment" for THIS month
-                        // Trigger is usually 1st day of month at 09:00
                         const currentTrigger = new Date();
                         currentTrigger.setDate(config.triggerDay || 1);
                         currentTrigger.setHours(9, 0, 0, 0);
 
                         // 2. Base Date Calculation
-                        // If Now < Trigger (e.g. 1st 08:59), we use "Last Month" as base (Pre-open state)
-                        // If Now >= Trigger (e.g. 1st 09:01), we use "This Month" as base (Open state)
                         const baseDate = new Date();
                         if (isBefore(now, currentTrigger)) {
-                            // Before trigger: Effectively we are still in "Previous Month's cycle"
-                            // But actually, we want to know "What is the max open date?"
-                            // If I set "2 months ahead", and today is Jan 1st 08:00 (Before trigger).
-                            // The window should be until Feb End (calculated from Dec).
-                            // If Jan 1st 09:00 passes, window extends to Mar End.
                             baseDate.setMonth(baseDate.getMonth() - 1);
                         }
 
@@ -328,7 +493,7 @@ export const useReservationStore = create<ReservationState>()(
                             openAt: new Date(data.open_at),
                             closeAt: calculatedCloseAt,
                             isActive: data.is_active,
-                            repeat_rule: data.repeat_rule // Added mapping
+                            repeat_rule: data.repeat_rule
                         }
                     });
                 } else {

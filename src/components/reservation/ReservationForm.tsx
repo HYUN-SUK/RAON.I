@@ -12,7 +12,7 @@ interface ReservationFormProps {
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, addReservation, setSelectedSite, calculatePrice, validateReservation } = useReservationStore();
+    const { selectedDateRange, addReservation, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -25,7 +25,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     useEffect(() => {
         setIsMounted(true);
         setSelectedSite(site);
-    }, [site, setSelectedSite]);
+        fetchSiteConfig();
+    }, [site, setSelectedSite, fetchSiteConfig]);
 
     // Calculate dates
     const fromDate = selectedDateRange.from ? new Date(selectedDateRange.from) : undefined;
@@ -245,7 +246,9 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 </button>
 
                 <div className="text-center text-xs text-white/50 mt-4">
-                    <p className="mb-1">입금 계좌: <span className="text-[#C3A675] font-bold">카카오뱅크 3333-00-0000000</span> (예금주: 라온아이)</p>
+                    <p className="mb-1">입금 계좌: <span className="text-[#C3A675] font-bold">
+                        {siteConfig ? `${siteConfig.bankName} ${siteConfig.bankAccount}` : '로딩중...'}
+                    </span> (예금주: {siteConfig?.bankHolder || '라온아이'})</p>
                     <p>예약 신청 후 <span className="text-white/80">6시간 내</span> 미입금 시 자동 취소됩니다.</p>
                 </div>
             </div>

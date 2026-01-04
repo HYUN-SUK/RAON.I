@@ -28,6 +28,10 @@ export default function AdminSettingsPage() {
         guide_map_url: '',
         pricing_guide_text: '',
         rules_guide_text: '',
+        hero_image_url: '',
+        bank_name: '',
+        bank_account: '',
+        bank_holder: '',
     });
 
     // Nearby Places (JSON Editor simple version)
@@ -44,6 +48,10 @@ export default function AdminSettingsPage() {
                 guide_map_url: config.guide_map_url || '',
                 pricing_guide_text: config.pricing_guide_text || '',
                 rules_guide_text: config.rules_guide_text || '',
+                hero_image_url: config.hero_image_url || '',
+                bank_name: config.bank_name || '',
+                bank_account: config.bank_account || '',
+                bank_holder: config.bank_holder || '',
             });
 
             // Safe parse JSON
@@ -58,14 +66,17 @@ export default function AdminSettingsPage() {
         }
     }, [config]);
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'layout' | 'hero') => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         try {
             setLoading(true);
             const url = await communityService.uploadImage(file);
-            setFormData(prev => ({ ...prev, layout_image_url: url }));
+            setFormData(prev => ({
+                ...prev,
+                [type === 'layout' ? 'layout_image_url' : 'hero_image_url']: url
+            }));
             toast.success('이미지가 업로드되었습니다.');
         } catch (error) {
             console.error(error);
@@ -168,6 +179,67 @@ export default function AdminSettingsPage() {
                     </div>
                 </div>
 
+                {/* Bank Info & Hero */}
+                <div className="space-y-6 bg-white p-6 rounded-xl border shadow-sm">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <Upload className="w-5 h-5 text-gray-500" /> 기타 설정
+                    </h2>
+
+                    <div className="space-y-2">
+                        <Label>메인 배경 (Hero Image)</Label>
+                        <div className="flex gap-4 items-start">
+                            {formData.hero_image_url && (
+                                <Image
+                                    src={formData.hero_image_url}
+                                    alt="Hero"
+                                    width={160}
+                                    height={90}
+                                    className="object-cover rounded-lg border w-40 h-24"
+                                />
+                            )}
+                            <div className="flex-1">
+                                <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'hero')} />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    홈 화면 최상단 배경 이미지입니다. (1920x1080 권장)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="border-t pt-4 space-y-4">
+                        <Label className="font-bold text-gray-700">입금 계좌 정보</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs">은행명</Label>
+                                <Input
+                                    value={formData.bank_name}
+                                    onChange={e => setFormData({ ...formData, bank_name: e.target.value })}
+                                    placeholder="예: 카카오뱅크"
+                                    className="bg-white"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs">예금주</Label>
+                                <Input
+                                    value={formData.bank_holder}
+                                    onChange={e => setFormData({ ...formData, bank_holder: e.target.value })}
+                                    placeholder="예: 홍길동"
+                                    className="bg-white"
+                                />
+                            </div>
+                            <div className="space-y-2 col-span-2">
+                                <Label className="text-xs">계좌번호</Label>
+                                <Input
+                                    value={formData.bank_account}
+                                    onChange={e => setFormData({ ...formData, bank_account: e.target.value })}
+                                    placeholder="예: 3333-00-0000000"
+                                    className="bg-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Facilities & Guide */}
                 <div className="space-y-6 bg-white p-6 rounded-xl border shadow-sm">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -187,21 +259,21 @@ export default function AdminSettingsPage() {
                                 />
                             )}
                             <div className="flex-1">
-                                <Input type="file" accept="image/*" onChange={handleImageUpload} />
+                                <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'layout')} />
                                 <p className="text-xs text-gray-500 mt-1">
                                     배치도 칩 클릭 시 보여질 이미지입니다.
                                 </p>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="space-y-2">
-                            <Label>오시는 길 안내도 (URL/외부링크)</Label>
-                            <Input
-                                value={formData.guide_map_url}
-                                onChange={e => setFormData({ ...formData, guide_map_url: e.target.value })}
-                                placeholder="https://..."
-                            />
-                        </div>
+                    <div className="space-y-2">
+                        <Label>오시는 길 안내도 (URL/외부링크)</Label>
+                        <Input
+                            value={formData.guide_map_url}
+                            onChange={e => setFormData({ ...formData, guide_map_url: e.target.value })}
+                            placeholder="https://..."
+                        />
                     </div>
 
                     <div className="space-y-2">
@@ -280,7 +352,7 @@ export default function AdminSettingsPage() {
                                 {formData.layout_image_url && (
                                     <Image src={formData.layout_image_url} alt="Layout" width={96} height={96} className="w-24 h-24 object-cover rounded border bg-white" />
                                 )}
-                                <Input type="file" onChange={handleImageUpload} className="bg-white flex-1" />
+                                <Input type="file" onChange={(e) => handleImageUpload(e, 'layout')} className="bg-white flex-1" />
                             </div>
                         </div>
                     </div>

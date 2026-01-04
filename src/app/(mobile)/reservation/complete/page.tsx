@@ -7,13 +7,17 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CheckCircle2, Clock, AlertCircle, Copy, Home } from 'lucide-react';
 import Image from 'next/image';
-import { SITES } from '@/constants/sites';
 
 export default function ReservationCompletePage() {
     const router = useRouter();
-    const { reservations } = useReservationStore();
+    const { reservations, sites, siteConfig, fetchSites, fetchSiteConfig } = useReservationStore();
     const [latestReservation, setLatestReservation] = useState<any>(null);
     const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        fetchSites();
+        fetchSiteConfig();
+    }, [fetchSites, fetchSiteConfig]);
 
     useEffect(() => {
         if (reservations.length > 0) {
@@ -32,7 +36,7 @@ export default function ReservationCompletePage() {
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
 
-    const site = SITES.find(s => s.id === siteId);
+    const site = sites.find(s => s.id === siteId);
     const siteName = site ? site.name : siteId;
     const siteImage = site ? site.imageUrl : '/images/site-1.jpg';
 
@@ -41,7 +45,8 @@ export default function ReservationCompletePage() {
     const depositDeadline = new Date(created.getTime() + (6 * 60 * 60 * 1000));
 
     const handleCopyAccount = () => {
-        navigator.clipboard.writeText('3333-00-0000000');
+        const account = siteConfig?.bankAccount || '3333-00-0000000';
+        navigator.clipboard.writeText(account);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -91,7 +96,9 @@ export default function ReservationCompletePage() {
                             <div className="flex justify-between items-center">
                                 <span className="text-white/60 text-sm">입금 계좌</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-mono font-bold text-[#C3A675]">카카오뱅크 3333-00-0000000</span>
+                                    <span className="font-mono font-bold text-[#C3A675]">
+                                        {siteConfig ? `${siteConfig.bankName} ${siteConfig.bankAccount}` : '계좌정보 로딩중...'}
+                                    </span>
                                     <button onClick={handleCopyAccount} className="p-1 hover:bg-white/10 rounded">
                                         <Copy className="w-4 h-4 text-white/50" />
                                     </button>
@@ -100,7 +107,7 @@ export default function ReservationCompletePage() {
                             {copied && <p className="text-xs text-green-500 text-right">복사되었습니다!</p>}
                             <div className="flex justify-between items-center">
                                 <span className="text-white/60 text-sm">예금주</span>
-                                <span>라온아이</span>
+                                <span>{siteConfig?.bankHolder || '라온아이'}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-white/60 text-sm">입금 금액</span>
