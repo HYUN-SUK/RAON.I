@@ -1,0 +1,26 @@
+﻿next.config.ts(44,3): error TS2353: Object literal may only specify known properties, and 'eslint' does not exist in type 'NextConfig'.
+src/app/admin/recommendations/page.tsx(15,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/app/admin/sites/[id]/page.tsx(6,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/app/admin/sites/page.tsx(5,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/components/admin/BlockDateScheduler.tsx(49,21): error TS2353: Object literal may only specify known properties, and 'date' does not exist in type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(70,51): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(150,64): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(150,93): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(157,72): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/home/BeginnerHome.tsx(24,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/components/home/BeginnerHome.tsx(289,17): error TS2322: Type 'unknown' is not assignable to type 'string[] | { name: string; amount: string; }[] | undefined'.
+src/components/home/BeginnerHome.tsx(290,17): error TS2322: Type 'unknown' is not assignable to type 'string[] | undefined'.
+src/components/home/BeginnerHome.tsx(473,17): error TS2719: Type 'Facility[]' is not assignable to type 'Facility[]'. Two different types with this name exist, but they are unrelated.
+  Type 'Facility' is not assignable to type 'Facility'. Two different types with this name exist, but they are unrelated.
+    Types of property 'category' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/home/RecommendationGrid.tsx(6,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/components/home/ReturningHome.tsx(22,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/components/home/ReturningHome.tsx(96,13): error TS2322: Type 'unknown' is not assignable to type 'string[] | { name: string; amount: string; }[] | undefined'.
+src/components/home/ReturningHome.tsx(97,13): error TS2322: Type 'unknown' is not assignable to type 'string[] | undefined'.
+src/hooks/usePersonalizedRecommendation.ts(3,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/hooks/useSiteConfig.ts(2,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/services/communityService.ts(4,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/services/creatorService.ts(7,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.
+src/store/useReservationStore.ts(6,26): error TS2306: File 'C:/Users/USER/Desktop/RAON.I/src/types/supabase.ts' is not a module.

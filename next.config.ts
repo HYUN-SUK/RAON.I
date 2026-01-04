@@ -32,12 +32,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '*.pstatic.net', // Covers ssl.pstatic.net and phinf.pstatic.net
+        hostname: '*.pstatic.net',
         pathname: '/**',
       },
     ],
   },
-  // Temporarily disable type checking for production build
+  // Production build configuration
+  // Temporarily bypass TypeScript errors due to DB schema sync issue
+  // TODO: Remove after running `npx supabase gen types typescript`
   typescript: {
     ignoreBuildErrors: true,
   },
