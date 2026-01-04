@@ -12,6 +12,8 @@ export interface Product {
     is_active: boolean;
     created_at: string;
     updated_at: string;
+    type: 'INTERNAL' | 'EXTERNAL';
+    link: string | null;
 }
 
 export interface CartItem {
@@ -70,4 +72,21 @@ export interface CreateReviewDTO {
     rating: number;
     content: string;
     images?: string[];
+}
+
+export interface CreateProductDTO {
+    name: string;
+    price: number;
+    description?: string;
+    category: string;
+    stock: number;
+    images: string[];
+    tags: string[];
+    is_active: boolean;
+    type: 'INTERNAL' | 'EXTERNAL';
+    link?: string;
+}
+
+export interface UpdateProductDTO extends Partial<CreateProductDTO> {
+    id: string;
 }

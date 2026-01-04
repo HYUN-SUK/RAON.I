@@ -5,7 +5,7 @@ import { Product } from '@/types/market';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Loader2 } from 'lucide-react';
+import { ShoppingBag, Loader2, ExternalLink } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useCartUIStore } from '@/store/useCartUIStore';
 
@@ -57,12 +57,18 @@ export function ProductCard({ product }: ProductCardProps) {
                     </div>
                 ) : (
                     <button
-                        onClick={handleAddToCart}
+                        onClick={product.type === 'EXTERNAL' ? (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (product.link) window.open(product.link, '_blank');
+                        } : handleAddToCart}
                         disabled={isAdding}
-                        className="absolute bottom-3 right-3 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[#1C4526] shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 hover:bg-[#1C4526] hover:text-white"
+                        className={`absolute bottom-3 right-3 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[#1C4526] shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 hover:bg-[#1C4526] hover:text-white ${product.type === 'EXTERNAL' ? 'bg-purple-100/90 text-purple-900 hover:bg-purple-700' : ''}`}
                     >
                         {isAdding ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : product.type === 'EXTERNAL' ? (
+                            <ExternalLink className="w-5 h-5" />
                         ) : (
                             <ShoppingBag className="w-5 h-5" />
                         )}
@@ -78,6 +84,9 @@ export function ProductCard({ product }: ProductCardProps) {
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="font-bold text-[#1C4526]">{formatPrice(product.price)}</span>
+                    {product.type === 'EXTERNAL' && (
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">EXTERNAL</Badge>
+                    )}
                     {product.tags && product.tags.length > 0 && product.tags.includes('best') && (
                         <Badge variant="outline" className="text-[10px] px-1 py-0 border-r-200 text-red-500">BEST</Badge>
                     )}

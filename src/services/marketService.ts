@@ -1,16 +1,49 @@
 import { createClient } from '@/lib/supabase-client';
-import { Product, CartItem, Order, CreateOrderDTO, Review, CreateReviewDTO } from '@/types/market';
+import { Product, CartItem, Order, CreateOrderDTO, Review, CreateReviewDTO, CreateProductDTO, UpdateProductDTO } from '@/types/market';
 
 const supabase = createClient();
 
 export const marketService = {
+    async createProduct(dto: CreateProductDTO) {
+        const { data, error } = await supabase
+            .from('products')
+            .insert(dto)
+            .select()
+            .single();
+        if (error) throw error;
+        return data as Product;
+    },
+
+    async updateProduct(dto: UpdateProductDTO) {
+        const { id, ...updates } = dto;
+        const { data, error } = await supabase
+            .from('products')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data as Product;
+    },
+
+    async deleteProduct(id: string) {
+        const { error } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+    },
+
     // --- Products ---
-    async getProducts(category?: string) {
+    async getProducts(category?: string, isAdmin: boolean = false) {
         let query = supabase
             .from('products')
             .select('*')
-            .eq('is_active', true)
             .order('created_at', { ascending: false });
+
+        if (!isAdmin) {
+            query = query.eq('is_active', true);
+        }
 
         if (category) {
             query = query.eq('category', category);

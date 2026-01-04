@@ -1,57 +1,102 @@
 'use client';
 
-import { useReservationStore } from '@/store/useReservationStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarCheck, AlertCircle, ShoppingCart, Server } from 'lucide-react';
+import { CalendarCheck, AlertCircle, ShoppingCart, Server, Users, Activity } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-
+import { createClient } from '@/lib/supabase-client';
 import OverdueReservations from '@/components/admin/OverdueReservations';
 
 export default function AdminDashboard() {
-    const { reservations } = useReservationStore();
-    const [mounted, setMounted] = useState(false);
+    const supabase = createClient();
+    const [stats, setStats] = useState({
+        todayCheckIns: 0,
+        pendingCount: 0,
+        marketOrders: 0,
+        totalUsers: 0,
+        activeUsers: 0
+    });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setMounted(true);
+        fetchDashboardData();
     }, []);
 
-    if (!mounted) return <div className="p-4">Loading...</div>;
+    const fetchDashboardData = async () => {
+        try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+            // 1. Today Check-ins
+            const { count: todayCheckIns } = await supabase
+                .from('reservations')
+                .select('*', { count: 'exact', head: true })
+                .eq('check_in_date', todayStr);
 
-    const pendingCount = reservations.filter(r => r.status === 'PENDING').length;
-    const todayCheckIns = reservations.filter(r => new Date(r.checkInDate).toISOString().split('T')[0] === todayStr).length;
+            // 2. Pending Reservations
+            const { count: pendingCount } = await supabase
+                .from('reservations')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'PENDING');
 
-    // Mock data for now
-    const marketOrders = 0;
+            // 3. Market Pending Orders
+            const { count: marketOrders } = await supabase
+                .from('orders')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'PENDING');
+
+            // 4. Total Users
+            const { count: totalUsers } = await supabase
+                .from('profiles')
+                .select('*', { count: 'exact', head: true });
+
+            // 5. Active Users (Last 30 days)
+            const { count: activeUsers } = await supabase
+                .from('profiles')
+                .select('*', { count: 'exact', head: true })
+                .gt('updated_at', thirtyDaysAgo.toISOString());
+
+            setStats({
+                todayCheckIns: todayCheckIns || 0,
+                pendingCount: pendingCount || 0,
+                marketOrders: marketOrders || 0,
+                totalUsers: totalUsers || 0,
+                activeUsers: activeUsers || 0
+            });
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const serverStatus = 'Normal';
 
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-800">대시보드</h2>
 
+            {/* Operational Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <DashboardCard
                     title="오늘 입실"
-                    value={todayCheckIns.toString()}
+                    value={loading ? '-' : stats.todayCheckIns.toString()}
                     icon={<CalendarCheck className="text-blue-500" />}
                     description="오늘 체크인 예정"
                 />
                 <Link href="/admin/reservations?status=PENDING" className="block transition-transform hover:scale-105">
                     <DashboardCard
                         title="입금 대기"
-                        value={pendingCount.toString()}
+                        value={loading ? '-' : stats.pendingCount.toString()}
                         icon={<AlertCircle className="text-yellow-500" />}
                         description="확인 필요 건수"
-                        highlight={pendingCount > 0}
+                        highlight={stats.pendingCount > 0}
                     />
                 </Link>
                 <DashboardCard
                     title="마켓 주문"
-                    value={marketOrders.toString()}
+                    value={loading ? '-' : stats.marketOrders.toString()}
                     icon={<ShoppingCart className="text-green-500" />}
                     description="배송 준비 중"
                 />
@@ -60,6 +105,22 @@ export default function AdminDashboard() {
                     value={serverStatus}
                     icon={<Server className="text-gray-500" />}
                     description="DB 연결 정상"
+                />
+            </div>
+
+            {/* User Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DashboardCard
+                    title="전체 회원"
+                    value={loading ? '-' : stats.totalUsers.toString() + '명'}
+                    icon={<Users className="text-indigo-500" />}
+                    description="가입된 총 회원 수"
+                />
+                <DashboardCard
+                    title="활동 회원 (30일)"
+                    value={loading ? '-' : stats.activeUsers.toString() + '명'}
+                    icon={<Activity className="text-rose-500" />}
+                    description="최근 30일 내 활동 기록이 있는 회원"
                 />
             </div>
 
