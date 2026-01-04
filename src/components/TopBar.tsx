@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
+import { usePushNotification } from "@/hooks/usePushNotification";
 
 interface UserInfo {
     nickname: string;
@@ -27,6 +28,7 @@ interface UserInfo {
 export default function TopBar() {
     const { level, xp, raonToken, setWallet, reset } = useMySpaceStore();
     const router = useRouter();
+    const { requestPermission } = usePushNotification();
     const supabase = createClient();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -144,9 +146,9 @@ export default function TopBar() {
                             <User className="mr-2 h-4 w-4" />
                             <span>프로필 / 내 공간</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem onClick={() => requestPermission()} className="cursor-pointer">
                             <Bell className="mr-2 h-4 w-4" />
-                            <span>알림 설정</span>
+                            <span>알림 설정 / 권한 허용</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer">
                             <FileText className="mr-2 h-4 w-4" />

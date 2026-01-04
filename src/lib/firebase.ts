@@ -28,9 +28,7 @@ export const firebaseRequestPermission = async (): Promise<string | null> => {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            const token = await getToken(messaging, {
-                vapidKey: 'YOUR_VAPID_KEY_IF_NEEDED_OR_USE_SENDER_ID' // Usually not needed if config is correct for legacy HTTP/1
-            });
+            const token = await getToken(messaging);
             return token;
         }
     } catch (error) {

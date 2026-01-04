@@ -5,12 +5,12 @@
 // TODO: [중요] 아래 firebaseConfig 값을 선생님이 발급받은 실제 값으로 직접 수정해주셔야 합니다.
 // (이 파일은 빌드 과정 밖에 있어서 process.env를 쓸 수 없습니다)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA90jRL_O7EKQi3dZ4nC3of5dPGwADMni4",
+  authDomain: "raon-i-push.firebaseapp.com",
+  projectId: "raon-i-push",
+  storageBucket: "raon-i-push.firebasestorage.app",
+  messagingSenderId: "202794116394",
+  appId: "1:202794116394:web:b76f61e403cd35d0332a53"
 };
 
 // Initialize Firebase (Example code, commented out until config is provided)
