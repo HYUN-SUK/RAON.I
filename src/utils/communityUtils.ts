@@ -23,42 +23,45 @@ export function sanitizePost(rawPost: unknown): Post {
         };
     }
 
+    // Type assertion after validation
+    const post = rawPost as Record<string, any>;
     // 1. Author Sanitization
     let safeAuthor = '익명';
-    if (typeof rawPost.author === 'string') {
-        safeAuthor = rawPost.author;
-    } else if (typeof rawPost.author === 'object' && rawPost.author !== null) {
+    if (typeof post.author === 'string') {
+        safeAuthor = post.author;
+    } else if (typeof post.author === 'object' && post.author !== null) {
         // Try to extract useful name from object
-        safeAuthor = rawPost.author.name || rawPost.author.nickname || rawPost.author.username || '알 수 없음';
+        const authorObj = post.author as Record<string, any>;
+        safeAuthor = authorObj.name || authorObj.nickname || authorObj.username || '알 수 없음';
     }
 
     // 2. Images Sanitization
     let safeImages: string[] = [];
-    if (Array.isArray(rawPost.images)) {
-        safeImages = rawPost.images.filter((img: unknown) => typeof img === 'string' && img.length > 0);
+    if (Array.isArray(post.images)) {
+        safeImages = post.images.filter((img: unknown) => typeof img === 'string' && img.length > 0);
     }
 
     // 3. Date Sanitization
     let safeDate = new Date().toISOString().split('T')[0];
-    if (typeof rawPost.date === 'string') {
-        safeDate = rawPost.date;
+    if (typeof post.date === 'string') {
+        safeDate = post.date;
     }
 
     // 4. Return Safe Object
     return {
-        ...rawPost,
-        id: rawPost.id || `temp-${Math.random()}`,
-        type: rawPost.type || 'STORY',
-        title: typeof rawPost.title === 'string' ? rawPost.title : '제목 없음',
-        content: typeof rawPost.content === 'string' ? rawPost.content : '',
+        ...post,
+        id: post.id || `temp-${Math.random()}`,
+        type: post.type || 'STORY',
+        title: typeof post.title === 'string' ? post.title : '제목 없음',
+        content: typeof post.content === 'string' ? post.content : '',
         author: safeAuthor,
         date: safeDate,
-        likeCount: typeof rawPost.likeCount === 'number' ? rawPost.likeCount : 0,
-        commentCount: typeof rawPost.commentCount === 'number' ? rawPost.commentCount : 0,
-        readCount: typeof rawPost.readCount === 'number' ? rawPost.readCount : 0,
+        likeCount: typeof post.likeCount === 'number' ? post.likeCount : 0,
+        commentCount: typeof post.commentCount === 'number' ? post.commentCount : 0,
+        readCount: typeof post.readCount === 'number' ? post.readCount : 0,
         images: safeImages,
-        thumbnailUrl: typeof rawPost.thumbnailUrl === 'string' ? rawPost.thumbnailUrl : undefined,
+        thumbnailUrl: typeof post.thumbnailUrl === 'string' ? post.thumbnailUrl : undefined,
         // Preserve other fields but ensure they exist if optional fields are critical
-        isHot: !!rawPost.isHot,
+        isHot: !!post.isHot,
     };
 }
