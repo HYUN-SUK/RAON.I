@@ -41,11 +41,10 @@ export default function PostCard({ post }: PostCardProps) {
     const executeDelete = async () => {
         try {
             await communityService.deletePost(post.id);
-            // alert('게시물이 삭제되었습니다.'); // Removed for smoother UX
-            window.location.reload();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            alert('삭제 실패: ' + (error.message || '알 수 없는 오류'));
+            const message = error instanceof Error ? error.message : '알 수 없는 오류';
+            alert('삭제 실패: ' + message);
         }
     };
 

@@ -16,7 +16,6 @@ import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { format } from 'date-fns';
 
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase-client";
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useLBS } from '@/hooks/useLBS';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
@@ -25,7 +24,6 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function BeginnerHome() {
     const router = useRouter();
-    // const supabase = createClient(); // Removed unused
     const { config } = useSiteConfig(); // Dynamic Config
     const lbs = useLBS(); // Real-time Location
 

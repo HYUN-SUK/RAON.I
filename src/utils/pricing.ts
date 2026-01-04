@@ -62,7 +62,7 @@ export const calculatePrice = (
 
     let basePrice = 0;
     let consecutiveDiscount = 0;
-    let pkgDiscount = 0;
+    const pkgDiscount = 0;
 
     // 1. Base Price Calculation per Night
     for (let i = 0; i < nights; i++) {

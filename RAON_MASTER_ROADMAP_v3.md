@@ -21,7 +21,7 @@
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
-| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | 🔄 **진행 중** | 40% | `src/components` & `src/hooks` Sanitization 완료. 대청소(Code Cleanup) 진행 중. |
+| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | 🔄 **진행 중** | 60% | `src` Cleanup (Stage 1-3 Completed). Lint failures fixed. Build still flaky. |
 
 ---
 
@@ -184,7 +184,11 @@
     - [x] Global Linting (Critical Admin Modules Cleaned)
     - [x] Unused Component Removal (Alert restored, others verified)
     - [x] Critical Refactors (`package` -> `pkg`, `MySpaceState` export)
-    - [ ] **Final Production Build Verification** (Next Session).
+    *   [x] **8.3 Logic Polish** ✅ (2026-01-04):
+        *   [x] `any` type fixes (`PostCard`).
+        *   [x] `pricing.ts` Const Correctness.
+        *   [x] Console Cleanup verified.
+    *   [ ] **Build System Upgrade**: Investigate persistent Exit Code 1 (Memory/Worker).
 
 
 ---

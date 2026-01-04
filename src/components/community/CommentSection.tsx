@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, MoreHorizontal, Image as ImageIcon, X, Heart } from 'lucide-react';
+import { Send, Trash2, Image as ImageIcon, X, Heart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';

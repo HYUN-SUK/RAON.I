@@ -37,7 +37,7 @@
     - [/] Fix `react-hooks/set-state-in-effect` (Admin Notice fixed)
     - [/] Replace `<img>` tags with `<Image />` (Admin Recs fixed)
 - [ ] **Type Safety**
-  - [ ] Replace `any` with specific types or interfaces where possible.
+  - [/] Replace `any` with specific types or interfaces where possible.
   - [ ] Centralize shared types in `src/types/`.
 
 ## 🎨 Phase 3: Standardization (통일하기)
@@ -49,7 +49,7 @@
   - [ ] Check Function naming conventions (PascalCase components).
 
 ## 🚀 Phase 4: Final Verification
-- [ ] **Build Test**: Ensure `npm run build` passes.
+- [/] **Build Test**: Ensure `npm run build` passes.
 - [x] **Smoke Test**: Verify Home, Reservation, Community, My Space flows still work perfectly.
   - [x] **Security Fix**: Fixed bypass in `PostDetailView` (Like/Comment).
   - [x] **Live Verification**: Guest restrictions confirmed via Browser.
@@ -69,10 +69,19 @@
 - [x] **Blocking**: Drag/Click interaction for date blocking.
 
 ### Phase 3: Market & Analytics
-- [ ] **Market**: Product Management (CRUD).
+- [x] **Market**: Product Management (CRUD).
 - [ ] **Analytics**: Dashboard Key Metrics.
 
 ### Phase 4: Advanced
 - [ ] **Push**: Web Push Schema.
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
+
+## 8.3 Safe Refactoring (2026-01-04) 🔄
+- [x] **Stage 1 (Surface)**: Removed console logs & unused keys (Verified via Browser).
+- [x] **Stage 2 (Components)**: Unused variables cleanup (Verified `CommentSection`).
+- [x] **Stage 3 (Logic Polish)**: 
+  - [x] Fixed `prefer-const` in `pricing.ts`.
+  - [x] Fixed `any` type in `PostCard.tsx`.
+  - [x] Verified `console.log` cleanliness in `src`.
+  - [x] **Live Verification**: Validated Beginner Home & Recommendation Grid.

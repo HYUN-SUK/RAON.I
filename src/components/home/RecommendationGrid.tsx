@@ -136,8 +136,8 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
 
                     // Safe access to potential V2 properties
                     // We know the structure based on DB schema now but for now we cast to specific known interface or use optional chaining safely without any
-                    const dataAny = item.data as (RecommendationItem & { difficulty?: number, time_required?: number, calories?: number });
-                    const hasV2Info = dataAny && (dataAny.difficulty || dataAny.time_required || dataAny.calories);
+                    const dataV2 = item.data as (RecommendationItem & { difficulty?: number, time_required?: number, calories?: number });
+                    const hasV2Info = dataV2 && (dataV2.difficulty || dataV2.time_required || dataV2.calories);
 
                     return (
                         <div
@@ -168,20 +168,20 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
                                     {/* V2 Badges: Difficulty & Time */}
                                     {hasV2Info && (
                                         <div className="flex gap-1 mt-2 flex-nowrap overflow-hidden">
-                                            {dataAny.difficulty && (
+                                            {dataV2.difficulty && (
                                                 <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
-                                                    {'⭐'.repeat(dataAny.difficulty)}
+                                                    {'⭐'.repeat(dataV2.difficulty)}
                                                 </span>
                                             )}
-                                            {dataAny.time_required && (
+                                            {dataV2.time_required && (
                                                 <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
                                                     <Clock size={10} className="mr-1" />
-                                                    {dataAny.time_required}분
+                                                    {dataV2.time_required}분
                                                 </span>
                                             )}
-                                            {dataAny.calories && (
+                                            {dataV2.calories && (
                                                 <span className="inline-flex items-center text-[10px] text-orange-600 bg-orange-50/80 px-1.5 py-0.5 rounded-md whitespace-nowrap">
-                                                    {dataAny.calories}kcal
+                                                    {dataV2.calories}kcal
                                                 </span>
                                             )}
                                         </div>

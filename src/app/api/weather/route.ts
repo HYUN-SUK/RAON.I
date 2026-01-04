@@ -401,7 +401,7 @@ async function getMidTermForecast(lat: number, lng: number) {
                     return null;
                 }
                 const text = await r.text();
-                // console.log("Mid Land Res:", text.substring(0, 100));
+                // Mid Land Res log removed
                 try { return JSON.parse(text); } catch (e) { console.error("Mid Land Parse Error", e); return null; }
             }),
             fetch(tempUrl).then(async r => {
