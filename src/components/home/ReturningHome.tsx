@@ -32,6 +32,30 @@ interface Facility {
     lng: number;
 }
 
+// UI recommendation item interface
+interface RecommendationItem {
+    type?: string;
+    title: string;
+    description?: string | null;
+    icon?: string;
+    actionLabel?: string;
+    actionLink?: string;
+    bgColorClass?: string;
+    category?: string;
+    ingredients?: unknown;
+    materials?: unknown;
+    process_steps?: unknown;
+    tips?: string | null;
+    time_required?: number | null;
+    difficulty?: number | null;
+    image_url?: string | null;
+    servings?: string | null;
+    calories?: number | null;
+    age_group?: string | null;
+    location_type?: string | null;
+    events?: NearbyEvent[];
+}
+
 export default function ReturningHome() {
     const router = useRouter();
     const { initRebook } = useReservationStore();
@@ -52,8 +76,7 @@ export default function ReturningHome() {
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
     const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
 
-    const handleRecommendationClick = (item: any) => {
-        // Safe casting pending full type unification across Grid and Home
+    const handleRecommendationClick = (item: RecommendationItem) => {
         // Special Handling for LBS Card
         if (item.type === 'nearby_lbs') {
             setNearbyEvents(item.events || []);
@@ -61,29 +84,27 @@ export default function ReturningHome() {
             return;
         }
 
-        const dataAny = item as any; // Temporary safe cast for mixed Item types
-
         setDetailData({
-            title: dataAny.title,
-            description: dataAny.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
-            icon: <span className="text-4xl">{dataAny.icon}</span>,
-            actionLabel: dataAny.actionLabel,
-            actionLink: dataAny.actionLink,
-            bgColorClass: dataAny.bgColorClass,
+            title: item.title,
+            description: item.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
+            icon: <span className="text-4xl">{item.icon}</span>,
+            actionLabel: item.actionLabel,
+            actionLink: item.actionLink,
+            bgColorClass: item.bgColorClass,
             // V2 Fields Copy
-            categoryLabel: dataAny.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
-            ingredients: dataAny.ingredients,
-            steps: dataAny.process_steps, // DB field is process_steps, UI prop is steps
-            tips: dataAny.tips,
-            time_required: dataAny.time_required,
-            difficulty: dataAny.difficulty,
+            categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
+            ingredients: item.ingredients,
+            steps: item.process_steps,
+            tips: item.tips || undefined,
+            time_required: item.time_required || undefined,
+            difficulty: item.difficulty || undefined,
 
             // V2.1 Premium Fields
-            image_url: dataAny.image_url,
-            servings: dataAny.servings,
-            calories: dataAny.calories,
-            age_group: dataAny.age_group,
-            location_type: dataAny.location_type
+            image_url: item.image_url || undefined,
+            servings: item.servings || undefined,
+            calories: item.calories || undefined,
+            age_group: item.age_group || undefined,
+            location_type: item.location_type || undefined
         });
         setDetailSheetOpen(true);
     };

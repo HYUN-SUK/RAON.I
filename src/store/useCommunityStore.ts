@@ -115,9 +115,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                     isLoading: false
                 }));
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            set({ error: err.message, isLoading: false });
+            set({ error: (err as Error).message, isLoading: false });
         }
     },
 
@@ -135,9 +135,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                 await get().loadPosts(activeTab, 1);
             }
             set({ isLoading: false });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            set({ error: err.message, isLoading: false });
+            set({ error: (err as Error).message, isLoading: false });
             throw err;
         }
     },
@@ -157,9 +157,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             const { activeTab } = get();
             await get().loadPosts(activeTab, 1);
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            set({ error: err.message, isLoading: false });
+            set({ error: (err as Error).message, isLoading: false });
             throw err;
         }
     },
@@ -178,9 +178,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             // Sync
             const { activeTab } = get();
             await get().loadPosts(activeTab, 1);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            set({ error: err.message, isLoading: false });
+            set({ error: (err as Error).message, isLoading: false });
             throw err;
         }
     },

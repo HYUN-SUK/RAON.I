@@ -31,8 +31,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
                 },
                 isLoading: false
             }));
-        } catch (error: any) {
-            set({ error: error.message, isLoading: false });
+        } catch (error: unknown) {
+            set({ error: (error as Error).message, isLoading: false });
         }
     },
 
@@ -52,8 +52,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
                     isLoading: false
                 };
             });
-        } catch (error: any) {
-            set({ error: error.message, isLoading: false });
+        } catch (error: unknown) {
+            set({ error: (error as Error).message, isLoading: false });
             throw error;
         }
     },
@@ -63,8 +63,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         try {
             const data = await marketService.getMyOrders();
             set({ orders: data, isLoading: false });
-        } catch (error: any) {
-            set({ error: error.message, isLoading: false });
+        } catch (error: unknown) {
+            set({ error: (error as Error).message, isLoading: false });
         }
     }
 }));

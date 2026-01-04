@@ -4,6 +4,7 @@ import {
     CreateContentDTO, CreateEpisodeDTO,
     CreatorContentType, CreatorContentStatus
 } from '@/types/creator';
+import { Database } from '@/types/supabase';
 
 const supabase = createClient();
 
@@ -251,7 +252,7 @@ export const creatorService = {
         if (error) throw error;
 
         // Map to include pseudo-info (We don't have user profiles joined yet)
-        return data.map((c: any) => ({
+        return data.map((c: Database['public']['Tables']['creators']['Row']) => ({
             ...c,
             is_mine: currentUserId === c.user_id,
             user_email: c.user_id ? `user-${c.user_id.substring(0, 4)}...` : '익명' // Temporary masking

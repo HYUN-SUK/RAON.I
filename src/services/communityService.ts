@@ -8,6 +8,20 @@ export const supabase = createClient();
 
 type CommentRow = Database['public']['Tables']['comments']['Row'];
 type CommentInsert = Database['public']['Tables']['comments']['Insert'];
+type DbPost = Database['public']['Tables']['posts']['Row'];
+
+// RPC return types for comments (includes extra fields like user_info, is_liked_by_me)
+interface DbCommentWithUserInfo {
+    id: string;
+    post_id: string;
+    user_id: string;
+    content: string;
+    created_at: string;
+    image_url?: string | null;
+    user_info?: { nickname?: string };
+    likes_count?: number;
+    is_liked_by_me?: boolean;
+}
 
 const ANON_USER_ID = '00000000-0000-0000-0000-000000000000'; // Valid UUID for testing
 
@@ -122,10 +136,10 @@ export const communityService = {
                 if (post.images && post.images.length > 0) {
                     await pointService.grantAction(user.id, 'UPLOAD_PHOTO', data.id);
                 }
-            } catch (e: any) {
+            } catch (e: unknown) {
                 console.error("Reward Failed", e);
                 // Temporary Debugging: Alert the user so they know WHY it failed
-                alert(`보상 지급 실패: ${e.message || JSON.stringify(e)}`);
+                alert(`보상 지급 실패: ${(e as Error).message || JSON.stringify(e)}`);
             }
         }
 
@@ -237,7 +251,7 @@ export const communityService = {
         const currentUserId = user?.id;
         const isAdmin = user?.email === 'admin@raon.ai' || user?.app_metadata?.role === 'admin';
 
-        const comments = (data || []).map((db: any) => ({
+        const comments = (data || []).map((db: DbCommentWithUserInfo) => ({
             id: db.id,
             postId: db.post_id,
             author: db.user_info?.nickname || 'Unknown',
@@ -395,7 +409,7 @@ function mapDbToComment(db: CommentRow & { image_url?: string }, currentUserId?:
 }
 
 // Helper to map DB Post to UI Post
-function mapDbToPost(db: any): Post {
+function mapDbToPost(db: DbPost): Post {
     if (!db) throw new Error('DB Record is null');
     try {
         return {
@@ -437,7 +451,7 @@ function mapDbToPost(db: any): Post {
     }
 }
 // Helper: Map App shape to DB shape
-function mapPostToDb(post: Partial<Post>): any {
+function mapPostToDb(post: Partial<Post>): Partial<DbPost> {
     return {
         type: post.type,
         title: post.title,

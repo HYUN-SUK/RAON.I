@@ -5,7 +5,7 @@ import { Post } from '@/store/useCommunityStore';
  * Sanitizes raw post data to ensure it conforms to the Post interface
  * and doesn't contain malformed fields that could crash UI components.
  */
-export function sanitizePost(rawPost: any): Post {
+export function sanitizePost(rawPost: unknown): Post {
     // 0. Null check
     if (!rawPost || typeof rawPost !== 'object') {
         return {
@@ -35,7 +35,7 @@ export function sanitizePost(rawPost: any): Post {
     // 2. Images Sanitization
     let safeImages: string[] = [];
     if (Array.isArray(rawPost.images)) {
-        safeImages = rawPost.images.filter((img: any) => typeof img === 'string' && img.length > 0);
+        safeImages = rawPost.images.filter((img: unknown) => typeof img === 'string' && img.length > 0);
     }
 
     // 3. Date Sanitization

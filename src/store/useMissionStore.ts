@@ -59,8 +59,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
                 const participants = await missionService.getMissionParticipants(mission.id);
                 set({ participants });
             }
-        } catch (error: any) {
-            set({ error: error.message });
+        } catch (error: unknown) {
+            set({ error: (error as Error).message });
         } finally {
             set({ isLoading: false });
         }
@@ -79,8 +79,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
             }
 
             set({ missions });
-        } catch (error: any) {
-            set({ error: error.message });
+        } catch (error: unknown) {
+            set({ error: (error as Error).message });
         } finally {
             set({ isLoading: false });
         }
@@ -109,8 +109,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
             const userMission = await missionService.joinMission(currentMission.id, user.id);
             set({ userMission });
-        } catch (error: any) {
-            set({ error: error.message });
+        } catch (error: unknown) {
+            set({ error: (error as Error).message });
         } finally {
             set({ isLoading: false });
         }
@@ -130,8 +130,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
             // Refresh participants to show my new post
             await get().fetchParticipants();
-        } catch (error: any) {
-            set({ error: error.message });
+        } catch (error: unknown) {
+            set({ error: (error as Error).message });
         } finally {
             set({ isLoading: false });
         }
@@ -186,9 +186,9 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
             // Background refresh to ensure consistency
             get().fetchParticipants();
-        } catch (error: any) {
-            set({ error: error.message });
-            toast.error('삭제 실패: ' + error.message);
+        } catch (error: unknown) {
+            set({ error: (error as Error).message });
+            toast.error('삭제 실패: ' + (error as Error).message);
             // Revert/Reload on error
             get().fetchParticipants();
         } finally {

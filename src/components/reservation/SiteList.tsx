@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { useEffect, useState } from 'react';
+import { Site } from '@/types/reservation';
 
 export default function SiteList() {
     const router = useRouter();
@@ -73,7 +74,7 @@ export default function SiteList() {
         return aAvailable ? -1 : 1;
     });
 
-    const handleSiteClick = (site: any) => {
+    const handleSiteClick = (site: Site) => {
         if (!isSiteAvailable(site.id)) {
             alert('선택하신 날짜에 예약할 수 없는 사이트입니다.');
             return;
@@ -82,7 +83,7 @@ export default function SiteList() {
         router.push(`/reservation/${site.id}`); // Note: Ensure [id] page is also styled if needed, but out of scope for strict SiteList
     };
 
-    const getPriceDisplay = (site: any) => {
+    const getPriceDisplay = (site: Site) => {
         if (!mounted || !selectedDateRange.from || !selectedDateRange.to) {
             return `${site.price.toLocaleString()}원 / 1박`;
         }

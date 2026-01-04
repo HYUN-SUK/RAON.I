@@ -5,11 +5,56 @@ import { dfs_xy_conv } from '@/lib/kma/kmaConverter';
 // KMA API Endpoints
 const KMA_BASE_URL = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0";
 
+// KMA API Response Types
+interface KMAItem {
+    category: string;
+    fcstDate?: string;
+    fcstTime?: string;
+    fcstValue?: string;
+    obsrValue?: string;
+}
+
+interface KMAResponseBody {
+    items: { item: KMAItem[] | KMAItem };
+}
+
+interface KMAResponse {
+    response: { body: KMAResponseBody };
+}
+
+// Weather Data Types
+interface CurrentWeather {
+    temp: number;
+    humidity: number;
+    windSpeed: number;
+    strPrecipitation: string;
+}
+
+interface DailyWeather {
+    date: string;
+    min: number | null;
+    max: number | null;
+    pop: number;
+    weatherCode: string;
+}
+
+interface TimelineWeather {
+    date: string;
+    time: string;
+    temp: number;
+    sky: number;
+    pty: number;
+    pop: number;
+    wsd?: number;
+    vec?: number;
+    weatherCode: string;
+}
+
 // Interface for Cache
 interface CachedWeather {
-    current: any;
-    daily: any[];
-    timeline: any[];
+    current: CurrentWeather | null;
+    daily: DailyWeather[];
+    timeline: TimelineWeather[];
     updatedAt: number;
 }
 
@@ -147,20 +192,28 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json(finalData);
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("KMA Fetch Error", e);
-        return NextResponse.json({ error: "Failed to fetch from KMA", details: e.message || String(e) }, { status: 500 });
+        return NextResponse.json({ error: "Failed to fetch from KMA", details: (e as Error).message || String(e) }, { status: 500 });
     }
 }
 
 // Helpers
-function parseNcst(json: any) {
-    if (!json?.response?.body?.items?.item) return null;
-    const items = json.response.body.items.item;
+function parseNcst(json: unknown): CurrentWeather | null {
+    // Type guard
+    const response = json as KMAResponse;
+    if (!response?.response?.body?.items?.item) return null;
+
+    const items = Array.isArray(response.response.body.items.item)
+        ? response.response.body.items.item
+        : [response.response.body.items.item];
+
     // PTY: rain type, T1H: temp, REH: humidity, WSD: wind speed
-    const data: any = {};
-    items.forEach((item: any) => {
-        data[item.category] = item.obsrValue;
+    const data: Record<string, string> = {};
+    items.forEach((item: KMAItem) => {
+        if (item.category && item.obsrValue) {
+            data[item.category] = item.obsrValue;
+        }
     });
 
     // Map to normalized format
@@ -173,50 +226,77 @@ function parseNcst(json: any) {
     };
 }
 
-async function parseFcst(json: any, lat: number, lng: number) {
-    if (!json?.response?.body?.items?.item) return { daily: [], timeline: [] };
-    const items = json.response.body.items.item;
+async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ daily: DailyWeather[], timeline: TimelineWeather[] }> {
+    // Type guard
+    const response = json as KMAResponse;
+    if (!response?.response?.body?.items?.item) return { daily: [], timeline: [] };
+
+    const items = Array.isArray(response.response.body.items.item)
+        ? response.response.body.items.item
+        : [response.response.body.items.item];
+
+    // Internal temp types for aggregation
+    interface DailyAgg {
+        date: string;
+        min: number;
+        max: number;
+        sky: number[];
+        pty: number[];
+        pop: number;
+    }
+
+    interface TimelineAgg {
+        date: string;
+        time: string;
+        temp: number;
+        sky: number;
+        pty: number;
+        pop: number;
+        wsd?: number;
+        vec?: number;
+        isDaytime: boolean;
+    }
 
     // 1. Daily Summary Map
-    const dailyMap = new Map<string, any>();
+    const dailyMap = new Map<string, DailyAgg>();
 
     // 2. Hourly (Timeline) Map [key: date+time]
-    const timelineMap = new Map<string, any>();
+    const timelineMap = new Map<string, TimelineAgg>();
 
-    items.forEach((item: any) => {
-        const date = item.fcstDate;
-        const time = item.fcstTime;
+    items.forEach((item: KMAItem) => {
+        const date = item.fcstDate || '';
+        const time = item.fcstTime || '';
         const dtKey = `${date}${time}`;
 
         // --- Daily Aggregation ---
         if (!dailyMap.has(date)) {
             dailyMap.set(date, { date, min: 100, max: -100, sky: [], pty: [], pop: 0 });
         }
-        const d = dailyMap.get(date);
-        if (item.category === 'TMN') d.min = parseFloat(item.fcstValue);
-        if (item.category === 'TMX') d.max = parseFloat(item.fcstValue);
+        const d = dailyMap.get(date)!;
+        if (item.category === 'TMN') d.min = parseFloat(item.fcstValue || '0');
+        if (item.category === 'TMX') d.max = parseFloat(item.fcstValue || '0');
         if (item.category === 'TMP') {
-            const t = parseFloat(item.fcstValue);
+            const t = parseFloat(item.fcstValue || '0');
             if (t < d.min || d.min === 100) d.min = t;
             if (t > d.max || d.max === -100) d.max = t;
         }
-        if (item.category === 'SKY') d.sky.push(parseInt(item.fcstValue));
-        if (item.category === 'PTY') d.pty.push(parseInt(item.fcstValue));
-        if (item.category === 'POP') d.pop = Math.max(d.pop || 0, parseInt(item.fcstValue));
+        if (item.category === 'SKY') d.sky.push(parseInt(item.fcstValue || '0'));
+        if (item.category === 'PTY') d.pty.push(parseInt(item.fcstValue || '0'));
+        if (item.category === 'POP') d.pop = Math.max(d.pop || 0, parseInt(item.fcstValue || '0'));
 
 
         // --- Timeline Aggregation ---
         if (!timelineMap.has(dtKey)) {
             timelineMap.set(dtKey, { date, time, temp: 0, sky: 0, pty: 0, pop: 0, isDaytime: true });
         }
-        const t = timelineMap.get(dtKey);
+        const t = timelineMap.get(dtKey)!;
 
-        if (item.category === 'TMP') t.temp = parseFloat(item.fcstValue);
-        if (item.category === 'SKY') t.sky = parseInt(item.fcstValue);
-        if (item.category === 'PTY') t.pty = parseInt(item.fcstValue);
-        if (item.category === 'POP') t.pop = parseInt(item.fcstValue);
-        if (item.category === 'WSD') t.wsd = parseFloat(item.fcstValue);
-        if (item.category === 'VEC') t.vec = parseFloat(item.fcstValue);
+        if (item.category === 'TMP') t.temp = parseFloat(item.fcstValue || '0');
+        if (item.category === 'SKY') t.sky = parseInt(item.fcstValue || '0');
+        if (item.category === 'PTY') t.pty = parseInt(item.fcstValue || '0');
+        if (item.category === 'POP') t.pop = parseInt(item.fcstValue || '0');
+        if (item.category === 'WSD') t.wsd = parseFloat(item.fcstValue || '0');
+        if (item.category === 'VEC') t.vec = parseFloat(item.fcstValue || '0');
 
         // Is Daytime? (0600 ~ 1800 roughly) - simple logic based on time
         if (parseInt(time) >= 600 && parseInt(time) <= 1900) t.isDaytime = true;
@@ -224,7 +304,7 @@ async function parseFcst(json: any, lat: number, lng: number) {
     });
 
     // Process Daily
-    const daily = Array.from(dailyMap.values()).map(d => {
+    const daily: DailyWeather[] = Array.from(dailyMap.values()).map(d => {
         const rainCount = d.pty.filter((c: number) => c > 0).length;
         let weather = "sunny";
         if (rainCount > d.pty.length * 0.3) weather = "rainy"; // if > 30% rainy intervals
@@ -243,7 +323,7 @@ async function parseFcst(json: any, lat: number, lng: number) {
     }).slice(0, 3); // Initial 3 days from Short-term
 
     // Process Timeline (Sort by Date+Time)
-    const timeline = Array.from(timelineMap.values())
+    const timeline: TimelineWeather[] = Array.from(timelineMap.values())
         .map(t => ({
             date: t.date,
             time: t.time,

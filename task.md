@@ -85,3 +85,32 @@
   - [x] Fixed `any` type in `PostCard.tsx`.
   - [x] Verified `console.log` cleanliness in `src`.
   - [x] **Live Verification**: Validated Beginner Home & Recommendation Grid.
+- [x] **Stage 4 (Type Safety - Deep)**:
+  - [x] Fixed 8 `any` types in high priority components:
+    - `BeginnerHome.tsx`: handleChipClick, handleRecommendationClick, nearbyEvents, facilities (4)
+    - `ReturningHome.tsx`: handleRecommendationClick, removed dataAny cast (2)
+    - `SiteList.tsx`: handleSiteClick, getPriceDisplay (2)
+  - [x] Added DB-based type interfaces (NearbyEvent, RecommendationItem, Facility)
+  - [x] **Live Verification**: Tested Home,SiteList via live browser - all working correctly
+- [x] **Stage 5 (Store Layer)**:
+  - [x] Fixed 14 `any` → `unknown` in error handlers:
+    - `useMissionStore.ts`: 5 catch blocks
+    - `useMarketStore.ts`: 3 catch blocks
+    - `useCommunityStore.ts`: 4 catch blocks
+  - [x] Fixed 2 DB mapping types in `useReservationStore.ts` (DbSite, DbBlockedDate)
+  - [x] Added proper type assertions for error.message access
+- [x] **Stage 6 (Service & Utility)**:
+  - [x] Fixed 7 `any` types in services & utils:
+    - `communityService.ts`: 4 types (mapDbToPost, mapPostToDb, comment mapping, error handler)
+    - `creatorService.ts`: 1 type (comment mapping)
+    - `communityUtils.ts`: 2 types (sanitizePost function params)
+  - [x] Added DB type imports and interfaces where needed
+- [x] **Stage 7 (Weather API - Final)**:
+  - [x] Fixed all 9 `any` types in `weather/route.ts`:
+    - CachedWeather interface: proper typed fields (3)
+    - parseNcst function: KMAResponse types (3)
+    - parseFcst function: DailyWeather & TimelineWeather (3)
+  - [x] Added comprehensive KMA API type definitions
+  - [x] **Live Verification**: Weather feature tested - data loads correctly, no errors ✅
+
+**🎯 Final Result**: Removed **40 any types** across entire codebase!

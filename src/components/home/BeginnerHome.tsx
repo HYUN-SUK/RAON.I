@@ -21,6 +21,59 @@ import { useLBS } from '@/hooks/useLBS';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { Database } from '@/types/supabase';
+
+// Type Definitions from DB
+type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
+type RecommendationPoolItem = Database['public']['Tables']['recommendation_pool']['Row'];
+
+// Simplified types for component usage
+interface BeginnerChip {
+    type: string;
+    icon: React.ReactNode;
+    label: string;
+    sub: string;
+    title: string;
+    description: string;
+    actionLabel?: string;
+    actionLink?: string;
+    isPriceGuide?: boolean;
+}
+
+interface Facility {
+    title: string;
+    description?: string;
+    category?: string;
+    name?: string;
+    phone?: string;
+    lat?: number;
+    lng?: number;
+}
+
+// Flexible recommendation item for UI
+interface RecommendationItem {
+    type?: string;
+    title: string;
+    description?: string | null;
+    icon?: string;
+    actionLabel?: string;
+    actionLink?: string;
+    bgColorClass?: string;
+    category?: string;
+    ingredients?: unknown;
+    materials?: unknown;
+    process_steps?: unknown;
+    steps?: unknown;
+    tips?: string | null;
+    time_required?: number | null;
+    difficulty?: number | null;
+    image_url?: string | null;
+    servings?: string | null;
+    calories?: number | null;
+    age_group?: string | null;
+    location_type?: string | null;
+    events?: NearbyEvent[];
+}
 
 export default function BeginnerHome() {
     const router = useRouter();
@@ -39,7 +92,7 @@ export default function BeginnerHome() {
 
     // Nearby LBS Sheet State
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
-    const [nearbyEvents, setNearbyEvents] = useState<any[]>([]);
+    const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
 
     // Dynamic Chip Data
     const chips = useMemo(() => {
@@ -101,7 +154,7 @@ export default function BeginnerHome() {
                 sub: "관광지 안내",
                 title: "주변 즐길거리",
                 description: Array.isArray(config.nearby_places) && config.nearby_places.length > 0
-                    ? (config.nearby_places as any[]).map(p => `• ${p.title || '장소명 없음'}\n  ${p.desc || '설명 없음'}`).join('\n\n')
+                    ? (config.nearby_places as NearbyEvent[]).map(p => `• ${p.title || '장소명 없음'}\n  ${p.description || '설명 없음'}`).join('\n\n')
                     : "등록된 인근 명소가 없습니다.",
                 actionLabel: "명소 리스트 확인",
                 actionLink: "/guide/scenery" // Or Keep as sheet logic if preferable
@@ -149,7 +202,7 @@ export default function BeginnerHome() {
         withAuth(action);
     };
 
-    const handleChipClick = (chip: any) => {
+    const handleChipClick = (chip: BeginnerChip) => {
         if (chip.isPriceGuide) return; // Handled by PriceGuideSheet wrapper in render
         if (!config) return;
 
@@ -215,7 +268,7 @@ export default function BeginnerHome() {
         setDetailSheetOpen(true);
     };
 
-    const handleRecommendationClick = (item: any) => {
+    const handleRecommendationClick = (item: RecommendationItem) => {
         withAuth(() => {
             // Special Handling for LBS Card
             if (item.type === 'nearby_lbs') {
@@ -235,16 +288,16 @@ export default function BeginnerHome() {
                 categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
                 ingredients: item.ingredients || item.materials,
                 steps: item.process_steps, // DB field is process_steps, UI prop is steps
-                tips: item.tips,
-                time_required: item.time_required,
-                difficulty: item.difficulty,
+                tips: item.tips || undefined,
+                time_required: item.time_required || undefined,
+                difficulty: item.difficulty || undefined,
 
                 // V2.1 Premium Fields
-                image_url: item.image_url,
-                servings: item.servings,
-                calories: item.calories,
-                age_group: item.age_group,
-                location_type: item.location_type
+                image_url: item.image_url || undefined,
+                servings: item.servings || undefined,
+                calories: item.calories || undefined,
+                age_group: item.age_group || undefined,
+                location_type: item.location_type || undefined
             });
             setDetailSheetOpen(true);
         });
@@ -417,7 +470,7 @@ export default function BeginnerHome() {
                 isOpen={nearbySheetOpen}
                 onClose={() => setNearbySheetOpen(false)}
                 events={nearbyEvents}
-                facilities={config?.nearby_places as any[] || []}
+                facilities={(config?.nearby_places || []) as Facility[]}
                 userLocation={lbs.location}
                 getDistance={lbs.getDistanceKm}
             />

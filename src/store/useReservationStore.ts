@@ -1,8 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Reservation, Site, ReservationStatus, PricingConfig, BlockedDate, SiteConfig } from '@/types/reservation';
+import { Reservation, Site, SiteType, ReservationStatus, PricingConfig, BlockedDate, SiteConfig } from '@/types/reservation';
 import { calculatePrice } from '@/utils/pricing';
 import { SITES as DEFAULT_SITES } from '@/constants/sites';
+import { Database } from '@/types/supabase';
+
+// DB row types
+type DbSite = Database['public']['Tables']['sites']['Row'];
+type DbBlockedDate = Database['public']['Tables']['blocked_dates']['Row'];
+// Note: reservations table not in current supabase.ts schema
 
 interface ReservationState {
     selectedDateRange: {
@@ -122,15 +128,15 @@ export const useReservationStore = create<ReservationState>()(
                 const { data, error } = await supabase.from('sites').select('*').order('id');
 
                 if (data) {
-                    const mappedSites: Site[] = data.map((s: any) => ({
+                    const mappedSites: Site[] = data.map((s: DbSite) => ({
                         id: s.id,
                         name: s.name,
-                        type: s.type, // Assumes DB matches 'TENT' | 'GLAMPING' etc.
+                        type: (s.type as SiteType) || 'TENT', // Safe cast with fallback
                         description: s.description || '',
                         price: s.price,
                         basePrice: s.base_price,
                         maxOccupancy: s.max_occupancy,
-                        imageUrl: s.image_url,
+                        imageUrl: s.image_url || '',
                         features: s.features || []
                     }));
                     set({ sites: mappedSites });
@@ -247,7 +253,7 @@ export const useReservationStore = create<ReservationState>()(
                 const history: Reservation[] = [];
 
                 if (resData) {
-                    resData.forEach((r: any) => {
+                    resData.forEach((r: any) => {  // TODO: Add reservations table to supabase.ts
                         history.push({
                             id: r.id,
                             userId: r.user_id,
@@ -263,7 +269,7 @@ export const useReservationStore = create<ReservationState>()(
                 }
 
                 if (blockData) {
-                    blockData.forEach((b: any) => {
+                    blockData.forEach((b: DbBlockedDate) => {
                         history.push({
                             id: b.id,
                             userId: b.guest_name || 'Manual',
