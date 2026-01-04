@@ -17,11 +17,11 @@
 | **Phase 1** | **사용자 홈 (User Home)** | ✅ **완료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic 완료 |
 | **Phase 2** | **내공간 (My Space)** | ✅ **완료** | 100% | 대시보드/지도/타임라인 완료. 아카이브(기록) 리뉴얼 및 XP/Token 완료. |
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
-| **Phase 4** | **커뮤니티 (Community)** | ✅ **완료** | 100% | RLS 보안, 관리자 공지/소모임 관리, 소모임 기능(생성/가입/조회) 완료 |
+| **Phase 4** | **미래 기능 (Future)** | ✅ **완료** | 100% | 웹 푸시(FCM) 스키마 및 관리자 발송 UI 구현. 보안 점검 완료. |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
-| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | 🔄 **진행 중** | 30% | `src/components` & `src/hooks` Sanitization 완료. 대청소(Code Cleanup) 진행 중. |
+| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | 🔄 **진행 중** | 40% | `src/components` & `src/hooks` Sanitization 완료. 대청소(Code Cleanup) 진행 중. |
 
 ---
 
