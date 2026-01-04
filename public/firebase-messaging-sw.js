@@ -2,14 +2,15 @@
 // Firebase Cloud Messaging Service Worker
 
 // TODO: User must replace this with their own config later.
-// SSOT 10.3: Web Push Strategy
+// TODO: [중요] 아래 firebaseConfig 값을 선생님이 발급받은 실제 값으로 직접 수정해주셔야 합니다.
+// (이 파일은 빌드 과정 밖에 있어서 process.env를 쓸 수 없습니다)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase (Example code, commented out until config is provided)
@@ -33,19 +34,19 @@ messaging.onBackgroundMessage((payload) => {
 */
 
 self.addEventListener('install', (event) => {
-    console.log('Firebase Service Worker Installed');
-    self.skipWaiting();
+  console.log('Firebase Service Worker Installed');
+  self.skipWaiting();
 });
 
 self.addEventListener('push', function (event) {
-    console.log('[Service Worker] Push Received.');
-    // Fallback for testing without FCM payload
-    const title = 'RAON.I 알림';
-    const options = {
-        body: event.data ? event.data.text() : '새로운 알림이 도착했습니다.',
-        icon: '/images/logo.png', // Update with actual logo path
-        badge: '/images/logo.png'
-    };
+  console.log('[Service Worker] Push Received.');
+  // Fallback for testing without FCM payload
+  const title = 'RAON.I 알림';
+  const options = {
+    body: event.data ? event.data.text() : '새로운 알림이 도착했습니다.',
+    icon: '/images/logo.png', // Update with actual logo path
+    badge: '/images/logo.png'
+  };
 
-    // event.waitUntil(self.registration.showNotification(title, options));
+  // event.waitUntil(self.registration.showNotification(title, options));
 });

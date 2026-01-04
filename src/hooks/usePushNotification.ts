@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase-client';
 
-// SSOT 10.3: Push Strategy
-// We use a placeholder for Firebase for now.
-// Once firebase config is provided, we will uncomment the imports.
+// This will be replaced by lib/firebase usage
+import { firebaseRequestPermission, firebaseSyncToken } from '@/lib/firebase';
 
 export function usePushNotification() {
     const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -22,14 +21,12 @@ export function usePushNotification() {
         if (typeof window === 'undefined') return;
 
         try {
-            const result = await Notification.requestPermission();
-            setPermission(result);
-            if (result === 'granted') {
-                // TODO: Get Token from Firebase
-                // const token = await getToken(messaging, { vapidKey: 'YOUR_VAPID_KEY' });
-                // setFcmToken(token);
-                // syncToken(token);
-                console.log('Notification permission granted.');
+            const token = await firebaseRequestPermission();
+            setPermission(Notification.permission);
+            if (token) {
+                setFcmToken(token);
+                // Sync to DB
+                await syncToken(token);
             }
         } catch (error) {
             console.error('Permission request failed', error);
