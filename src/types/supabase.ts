@@ -383,6 +383,65 @@ export interface Database {
                     content?: string
                 }
             }
+            system_config: {
+                Row: {
+                    id: number
+                    maintenance_mode: boolean
+                    reservation_enabled: boolean
+                    notification_enabled: boolean
+                    maintenance_message: string | null
+                    updated_at: string
+                    updated_by: string | null
+                }
+                Insert: {
+                    id?: number
+                    maintenance_mode?: boolean
+                    reservation_enabled?: boolean
+                    notification_enabled?: boolean
+                    maintenance_message?: string | null
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+                Update: {
+                    id?: number
+                    maintenance_mode?: boolean
+                    reservation_enabled?: boolean
+                    notification_enabled?: boolean
+                    maintenance_message?: string | null
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+            }
+            operation_logs: {
+                Row: {
+                    id: number
+                    action: string
+                    previous_state: Json
+                    new_state: Json
+                    actor: string
+                    description: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: number
+                    action: string
+                    previous_state?: Json
+                    new_state?: Json
+                    actor?: string
+                    description?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: number
+                    action?: string
+                    previous_state?: Json
+                    new_state?: Json
+                    actor?: string
+                    description?: string | null
+                    created_at?: string
+                }
+            }
         }
     }
 }
+

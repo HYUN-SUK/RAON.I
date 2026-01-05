@@ -27,6 +27,7 @@ export default function AdminLayout({
                 </div>
                 <nav className="p-2 space-y-1 overflow-x-auto md:overflow-visible flex md:block whitespace-nowrap md:whitespace-normal flex-1">
                     <NavLink href="/admin" icon={<Home size={18} />} label="대시보드" />
+                    <NavLink href="/admin/operations" icon={<Shield size={18} />} label="시스템 운영" />
                     <NavLink href="/admin/sites" icon={<Tent size={18} />} label="사이트 관리" />
                     <NavLink href="/admin/reservations" icon={<Calendar size={18} />} label="예약 관리" />
                     <NavLink href="/admin/payments" icon={<CreditCard size={18} />} label="입금 확인" />
