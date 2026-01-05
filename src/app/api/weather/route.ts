@@ -92,8 +92,13 @@ export async function GET(req: NextRequest) {
         .single();
 
     if (cacheData && !cacheError) {
-        // Cache Hit
-        return NextResponse.json(cacheData.data);
+        // Cache Hit - but verify it has mid-term data (at least 4 days)
+        const cachedDaily = cacheData.data?.daily || [];
+        if (cachedDaily.length >= 4) {
+            return NextResponse.json(cacheData.data);
+        }
+        // Cache is stale (only has short-term), continue to fetch fresh data
+        console.log('[Weather] Cache has only', cachedDaily.length, 'days, refreshing...');
     }
 
     // 3. Cache Miss - Fetch from KMA
@@ -342,6 +347,7 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
     // --- Phase 2: Mid-term Forecast Integration ---
     try {
         const midDaily = await getMidTermForecast(lat, lng);
+        console.log('[Weather] Mid-term fetch result:', midDaily?.length || 0, 'days');
         if (midDaily && midDaily.length > 0) {
             // Append to daily list
             // Short-term: Today, +1, +2. (Total 3 items). Mid starts +3.
@@ -354,6 +360,7 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
             });
             // Sort again
             daily.sort((a, b) => parseInt(a.date) - parseInt(b.date));
+            console.log('[Weather] Final daily count:', daily.length);
         }
     } catch (e) {
         console.warn("Mid-term fetch failed, returning short-term only", e);
@@ -501,17 +508,23 @@ async function getMidTermForecast(lat: number, lng: number) {
         const landItem = landRes?.response?.body?.items?.item?.[0];
         const tempItem = tempRes?.response?.body?.items?.item?.[0];
 
-        if (!landItem || !tempItem) return [];
+        if (!landItem || !tempItem) {
+            console.warn('[Weather] Mid-term: No landItem or tempItem found');
+            return [];
+        }
+
+        // Use TODAY (KST) as reference, not baseDate
+        // Mid-term forecast provides D+3 ~ D+10 from TODAY
+        const todayKST = new Date(utcNow + kstOffset);
+        todayKST.setHours(0, 0, 0, 0); // Reset to midnight
 
         const midDaily = [];
         // KMA Mid-term gives 3day to 10day
         for (let i = 3; i <= 10; i++) {
-            // Calculate date string for D+i
-            const d = new Date(baseDate);
-            d.setDate(d.getDate() + i); // BaseDate is 0-day reference roughly? 
-            // Wait, Mid-term starts from +3 days relative to announcement?
-            // Yes.
-            const dateStr = d.toISOString().replace(/[-T]/g, '').slice(0, 8); // YYYYMMDD
+            // Calculate date string for D+i from TODAY
+            const d = new Date(todayKST);
+            d.setDate(d.getDate() + i);
+            const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
 
             // Sky: wf3Am, wf3Pm ... wf7, wf8 (Day 8-10 are single value)
             let skyStr = '';
@@ -524,16 +537,16 @@ async function getMidTermForecast(lat: number, lng: number) {
                 // Or "Am/Pm" strings.
                 // KMA returns "맑음", "구름많음", "흐림", "비", "눈" text.
                 // We need to map to our types.
-                skyStr = landItem[`wf${i}Pm`] || landItem[`wf${i}`];
-                pop = landItem[`rnSt${i}Pm`] || landItem[`rnSt${i}`] || 0;
+                skyStr = landItem[`wf${i}Pm`] || landItem[`wf${i}Am`] || landItem[`wf${i}`] || '맑음';
+                pop = landItem[`rnSt${i}Pm`] || landItem[`rnSt${i}Am`] || landItem[`rnSt${i}`] || 0;
             } else {
-                skyStr = landItem[`wf${i}`];
+                skyStr = landItem[`wf${i}`] || '맑음';
                 pop = landItem[`rnSt${i}`] || 0;
             }
 
             // Temp: taMin3, taMax3 ...
-            const min = tempItem[`taMin${i}`];
-            const max = tempItem[`taMax${i}`];
+            const min = tempItem[`taMin${i}`] ?? null;
+            const max = tempItem[`taMax${i}`] ?? null;
 
             // Map text to code
             let weatherCode = 'sunny';
@@ -552,6 +565,7 @@ async function getMidTermForecast(lat: number, lng: number) {
                 weatherCode
             });
         }
+        console.log('[Weather] Mid-term parsed:', midDaily.length, 'days', midDaily.map(d => d.date));
         return midDaily;
 
     } catch (e) {
