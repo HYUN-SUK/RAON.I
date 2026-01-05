@@ -412,25 +412,30 @@ function mapDbToComment(db: CommentRow & { image_url?: string }, currentUserId?:
 function mapDbToPost(db: DbPost): Post {
     if (!db) throw new Error('DB Record is null');
     try {
+        // Type-safe meta_data extraction
+        const metaData = (typeof db.meta_data === 'object' && db.meta_data !== null)
+            ? db.meta_data as Record<string, unknown>
+            : {};
+
         return {
             id: db.id,
-            type: db.type,
+            type: db.type as BoardType,
             title: db.title,
             content: db.content,
-            author: db.author_name || 'Anonymous', // Fallback
+            author: db.author_name || 'Anonymous',
             date: db.created_at ? new Date(db.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             likeCount: db.like_count || 0,
             commentCount: db.comment_count || 0,
             readCount: db.read_count || 0,
-            images: (Array.isArray(db.images)) ? db.images : [], // Robust check
+            images: (Array.isArray(db.images)) ? db.images : [],
             isHot: db.is_hot,
-            // Flatten metadata
-            status: db.meta_data?.status || 'OPEN',
-            groupName: db.meta_data?.group_name,
+            // Type-safe metadata access
+            status: (metaData.status as 'OPEN' | 'CLOSED') || 'OPEN',
+            groupName: metaData.group_name as string | undefined,
             groupId: db.group_id,
-            thumbnailUrl: db.meta_data?.thumbnail_url,
-            videoUrl: db.meta_data?.video_url,
-            visibility: db.meta_data?.visibility || 'PUBLIC',
+            thumbnailUrl: metaData.thumbnail_url as string | undefined,
+            videoUrl: metaData.video_url as string | undefined,
+            visibility: (metaData.visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE') || 'PUBLIC',
         };
     } catch (e) {
         console.error('Error mapping post:', e, db);

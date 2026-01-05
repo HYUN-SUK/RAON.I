@@ -25,12 +25,14 @@ interface NearbyEvent {
 }
 
 interface Facility {
-    category: string;
+    category?: string;
     name: string;
-    distance?: string; // Distance is optional as it may be calculated dynamically
-    phone: string;
-    lat: number;
-    lng: number;
+    title?: string;
+    description?: string;
+    distance?: string;
+    phone?: string;
+    lat?: number;
+    lng?: number;
 }
 
 interface UserLocation {
@@ -253,7 +255,7 @@ export default function NearbyDetailSheet({
                                                 variant="outline"
                                                 size="sm"
                                                 className="w-10 h-10 rounded-full p-0 border-stone-200"
-                                                onClick={() => copyToClipboard(place.phone)}
+                                                onClick={() => place.phone && copyToClipboard(place.phone)}
                                             >
                                                 <Copy size={16} className="text-stone-400" />
                                             </Button>
@@ -261,7 +263,7 @@ export default function NearbyDetailSheet({
                                                 variant="outline"
                                                 size="sm"
                                                 className="w-10 h-10 rounded-full p-0 border-stone-200"
-                                                onClick={() => openNavigationChoice(place.lat, place.lng, place.name)}
+                                                onClick={() => place.lat !== undefined && place.lng !== undefined && openNavigationChoice(place.lat, place.lng, place.name || '')}
                                             >
                                                 <Navigation size={16} className="text-stone-600" />
                                             </Button>

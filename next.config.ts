@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
+interface ExtendedNextConfig extends NextConfig {
+  eslint?: {
+    ignoreDuringBuilds?: boolean;
+  };
+}
+
+const nextConfig: ExtendedNextConfig = {
   images: {
     remotePatterns: [
       {
@@ -36,12 +42,6 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-  },
-  // Production build configuration
-  // Temporarily bypass TypeScript errors due to DB schema sync issue
-  // TODO: Remove after running `npx supabase gen types typescript`
-  typescript: {
-    ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,

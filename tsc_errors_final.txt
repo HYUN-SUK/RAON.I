@@ -1,0 +1,20 @@
+﻿next.config.ts(46,3): error TS2353: Object literal may only specify known properties, and 'eslint' does not exist in type 'NextConfig'.
+src/app/admin/sites/page.tsx(82,67): error TS18047: 'site.price' is possibly 'null'.
+src/store/useReservationStore.ts(131,27): error TS2322: Type '{ id: number; name: string; type: SiteType; description: string; price: number | null; basePrice: number; maxOccupancy: number | null; imageUrl: string; features: string | number | true | { ...; } | Json[]; }[]' is not assignable to type 'Site[]'.
+  Type '{ id: number; name: string; type: SiteType; description: string; price: number | null; basePrice: number; maxOccupancy: number | null; imageUrl: string; features: string | number | true | { ...; } | Json[]; }' is not assignable to type 'Site'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+src/store/useReservationStore.ts(277,51): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+src/store/useReservationStore.ts(278,52): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.

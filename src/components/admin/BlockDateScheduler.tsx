@@ -46,8 +46,10 @@ export default function BlockDateScheduler() {
                 const newBlock: BlockedDate = {
                     id: Math.random().toString(36).substr(2, 9),
                     siteId,
-                    date: new Date(date),
-                    memo
+                    startDate: new Date(date),
+                    endDate: new Date(date),
+                    memo,
+                    isPaid: false
                 };
                 addBlockDate(newBlock);
             });
@@ -67,7 +69,7 @@ export default function BlockDateScheduler() {
 
     // Filter blocked dates for display
     const blockedModifiers = {
-        blocked: blockedDates.map(b => new Date(b.date))
+        blocked: blockedDates.map(b => new Date(b.startDate))
     };
 
     const blockedStyle = {
@@ -147,14 +149,14 @@ export default function BlockDateScheduler() {
                             <p>설정된 차단일이 없습니다.</p>
                         </div>
                     ) : (
-                        blockedDates.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(block => {
+                        blockedDates.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()).map(block => {
                             const siteName = SITES.find(s => s.id === block.siteId)?.name || 'Unknown';
                             return (
                                 <div key={block.id} className="flex items-center justify-between p-3 bg-stone-50 rounded-lg border border-stone-100">
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-bold text-stone-800">
-                                                {format(new Date(block.date), 'yyyy.MM.dd (eee)', { locale: ko })}
+                                                {format(new Date(block.startDate), 'yyyy.MM.dd (eee)', { locale: ko })}
                                             </span>
                                             <span className="px-2 py-0.5 bg-white border border-stone-200 rounded text-xs text-stone-600">
                                                 {siteName}

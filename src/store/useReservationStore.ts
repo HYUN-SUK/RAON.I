@@ -129,15 +129,15 @@ export const useReservationStore = create<ReservationState>()(
 
                 if (data) {
                     const mappedSites: Site[] = data.map((s: DbSite) => ({
-                        id: s.id,
+                        id: String(s.id),
                         name: s.name,
-                        type: (s.type as SiteType) || 'TENT', // Safe cast with fallback
+                        type: (s.type as SiteType) || 'TENT',
                         description: s.description || '',
-                        price: s.price,
+                        price: s.price || s.base_price,
                         basePrice: s.base_price,
-                        maxOccupancy: s.max_occupancy,
+                        maxOccupancy: s.max_occupancy || s.capacity,
                         imageUrl: s.image_url || '',
-                        features: s.features || []
+                        features: (Array.isArray(s.features) ? s.features : []) as string[]
                     }));
                     set({ sites: mappedSites });
                 }
@@ -274,8 +274,8 @@ export const useReservationStore = create<ReservationState>()(
                             id: b.id,
                             userId: b.guest_name || 'Manual',
                             siteId: b.site_id,
-                            checkInDate: new Date(b.start_date),
-                            checkOutDate: new Date(b.end_date),
+                            checkInDate: new Date(b.start_date || b.date),
+                            checkOutDate: new Date(b.end_date || b.date),
                             guests: 0,
                             price: 0,
                             status: b.is_paid ? 'CONFIRMED' : 'PENDING',

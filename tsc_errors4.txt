@@ -1,0 +1,41 @@
+﻿next.config.ts(46,3): error TS2353: Object literal may only specify known properties, and 'eslint' does not exist in type 'NextConfig'.
+src/app/admin/sites/page.tsx(82,67): error TS18047: 'site.price' is possibly 'null'.
+src/components/home/BeginnerHome.tsx(289,17): error TS2322: Type 'unknown' is not assignable to type 'string[] | { name: string; amount: string; }[] | undefined'.
+src/components/home/BeginnerHome.tsx(290,17): error TS2322: Type 'unknown' is not assignable to type 'string[] | undefined'.
+src/components/home/BeginnerHome.tsx(444,37): error TS2322: Type '(item: RecommendationItem) => void' is not assignable to type '(item: { id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }) => void'.
+  Types of parameters 'item' and 'item' are incompatible.
+    Type '{ id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }' is not assignable to type 'RecommendationItem'.
+      Property 'title' is missing in type '{ type: "nearby_lbs"; events: { id: number; title: string; description: string | null; location: string | null; latitude: number | null; longitude: number | null; start_date: string | null; ... 4 more ...; updated_at: string; }[]; }' but required in type 'RecommendationItem'.
+src/components/home/BeginnerHome.tsx(473,17): error TS2719: Type 'Facility[]' is not assignable to type 'Facility[]'. Two different types with this name exist, but they are unrelated.
+  Type 'Facility' is not assignable to type 'Facility'. Two different types with this name exist, but they are unrelated.
+    Types of property 'category' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/home/BeginnerHome.tsx(473,29): error TS2352: Conversion of type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]' to type 'Facility[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Json[]' is not comparable to type 'Facility[]'.
+    Type 'Json' is not comparable to type 'Facility'.
+      Property 'title' is missing in type 'Json[]' but required in type 'Facility'.
+src/components/home/ReturningHome.tsx(96,13): error TS2322: Type 'unknown' is not assignable to type 'string[] | { name: string; amount: string; }[] | undefined'.
+src/components/home/ReturningHome.tsx(97,13): error TS2322: Type 'unknown' is not assignable to type 'string[] | undefined'.
+src/components/home/ReturningHome.tsx(225,37): error TS2322: Type '(item: RecommendationItem) => void' is not assignable to type '(item: { id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }) => void'.
+  Types of parameters 'item' and 'item' are incompatible.
+    Type '{ id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }' is not assignable to type 'RecommendationItem'.
+      Property 'title' is missing in type '{ type: "nearby_lbs"; events: { id: number; title: string; description: string | null; location: string | null; latitude: number | null; longitude: number | null; start_date: string | null; ... 4 more ...; updated_at: string; }[]; }' but required in type 'RecommendationItem'.
+src/store/useReservationStore.ts(131,27): error TS2322: Type '{ id: number; name: string; type: SiteType; description: string; price: number | null; basePrice: number; maxOccupancy: number | null; imageUrl: string; features: string | number | true | { ...; } | Json[]; }[]' is not assignable to type 'Site[]'.
+  Type '{ id: number; name: string; type: SiteType; description: string; price: number | null; basePrice: number; maxOccupancy: number | null; imageUrl: string; features: string | number | true | { ...; } | Json[]; }' is not assignable to type 'Site'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+src/store/useReservationStore.ts(277,51): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+src/store/useReservationStore.ts(278,52): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.

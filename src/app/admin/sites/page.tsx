@@ -79,7 +79,7 @@ export default function AdminSitesPage() {
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-semibold">{site.price.toLocaleString()}원</p>
+                                    <p className="font-semibold">{(site.price ?? site.base_price).toLocaleString()}원</p>
                                     <p className="text-xs text-gray-500">기준 {site.base_price.toLocaleString()}원</p>
                                 </div>
                             </div>

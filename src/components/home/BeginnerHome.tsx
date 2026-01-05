@@ -41,10 +41,10 @@ interface BeginnerChip {
 }
 
 interface Facility {
-    title: string;
+    title?: string;
     description?: string;
     category?: string;
-    name?: string;
+    name: string;
     phone?: string;
     lat?: number;
     lng?: number;
@@ -286,8 +286,8 @@ export default function BeginnerHome() {
                 bgColorClass: item.bgColorClass,
                 // V2 Fields Copy
                 categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
-                ingredients: item.ingredients || item.materials,
-                steps: item.process_steps, // DB field is process_steps, UI prop is steps
+                ingredients: item.ingredients as string[] | { name: string; amount: string; }[] | undefined,
+                steps: item.process_steps as string[] | undefined, // DB field is process_steps, UI prop is steps
                 tips: item.tips || undefined,
                 time_required: item.time_required || undefined,
                 difficulty: item.difficulty || undefined,
@@ -441,7 +441,7 @@ export default function BeginnerHome() {
                 </section>
 
                 {/* 4. Recommendations Grid (Dynamic) */}
-                <RecommendationGrid onItemClick={handleRecommendationClick} />
+                <RecommendationGrid onItemClick={handleRecommendationClick as (item: unknown) => void} />
             </main>
 
             {/* Slim Notice Layout Position */}
@@ -470,7 +470,7 @@ export default function BeginnerHome() {
                 isOpen={nearbySheetOpen}
                 onClose={() => setNearbySheetOpen(false)}
                 events={nearbyEvents}
-                facilities={(config?.nearby_places || []) as Facility[]}
+                facilities={(config?.nearby_places as unknown as Facility[]) || []}
                 userLocation={lbs.location}
                 getDistance={lbs.getDistanceKm}
             />

@@ -1,0 +1,47 @@
+﻿next.config.ts(46,3): error TS2353: Object literal may only specify known properties, and 'eslint' does not exist in type 'NextConfig'.
+src/app/admin/settings/page.tsx(51,40): error TS2339: Property 'hero_image_url' does not exist on type '{ id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }'.
+src/app/admin/settings/page.tsx(52,35): error TS2339: Property 'bank_name' does not exist on type '{ id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }'.
+src/app/admin/settings/page.tsx(53,38): error TS2339: Property 'bank_account' does not exist on type '{ id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }'.
+src/app/admin/settings/page.tsx(54,37): error TS2339: Property 'bank_holder' does not exist on type '{ id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }'.
+src/app/admin/sites/[id]/page.tsx(17,42): error TS2339: Property 'sites' does not exist on type '{ site_config: { Row: { id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }; Insert: { ...; }; Update: { ...; }; }; ... 4 more ...; comments: { ...'.
+src/app/admin/sites/page.tsx(11,42): error TS2339: Property 'sites' does not exist on type '{ site_config: { Row: { id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }; Insert: { ...; }; Update: { ...; }; }; ... 4 more ...; comments: { ...'.
+src/components/admin/BlockDateScheduler.tsx(49,21): error TS2353: Object literal may only specify known properties, and 'date' does not exist in type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(70,51): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(150,64): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(150,93): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/admin/BlockDateScheduler.tsx(157,72): error TS2339: Property 'date' does not exist on type 'BlockedDate'.
+src/components/home/BeginnerHome.tsx(289,17): error TS2322: Type 'unknown' is not assignable to type 'string[] | { name: string; amount: string; }[] | undefined'.
+src/components/home/BeginnerHome.tsx(290,17): error TS2322: Type 'unknown' is not assignable to type 'string[] | undefined'.
+src/components/home/BeginnerHome.tsx(444,37): error TS2322: Type '(item: RecommendationItem) => void' is not assignable to type '(item: { id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }) => void'.
+  Types of parameters 'item' and 'item' are incompatible.
+    Type '{ id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }' is not assignable to type 'RecommendationItem'.
+      Property 'title' is missing in type '{ type: "nearby_lbs"; events: { id: number; title: string; description: string | null; location: string | null; latitude: number | null; longitude: number | null; start_date: string | null; ... 4 more ...; updated_at: string; }[]; }' but required in type 'RecommendationItem'.
+src/components/home/BeginnerHome.tsx(473,17): error TS2719: Type 'Facility[]' is not assignable to type 'Facility[]'. Two different types with this name exist, but they are unrelated.
+  Type 'Facility' is not assignable to type 'Facility'. Two different types with this name exist, but they are unrelated.
+    Types of property 'category' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/home/BeginnerHome.tsx(473,29): error TS2352: Conversion of type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]' to type 'Facility[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Json[]' is not comparable to type 'Facility[]'.
+    Type 'Json' is not comparable to type 'Facility'.
+      Property 'title' is missing in type 'Json[]' but required in type 'Facility'.
+src/components/home/ReturningHome.tsx(96,13): error TS2322: Type 'unknown' is not assignable to type 'string[] | { name: string; amount: string; }[] | undefined'.
+src/components/home/ReturningHome.tsx(97,13): error TS2322: Type 'unknown' is not assignable to type 'string[] | undefined'.
+src/components/home/ReturningHome.tsx(225,37): error TS2322: Type '(item: RecommendationItem) => void' is not assignable to type '(item: { id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }) => void'.
+  Types of parameters 'item' and 'item' are incompatible.
+    Type '{ id: number; category: string; title: string; description: string | null; image_url: string | null; tags: Json; content_url: string | null; metadata: Json; is_active: boolean; ... 13 more ...; location_type: string | null; } | { ...; }' is not assignable to type 'RecommendationItem'.
+      Property 'title' is missing in type '{ type: "nearby_lbs"; events: { id: number; title: string; description: string | null; location: string | null; latitude: number | null; longitude: number | null; start_date: string | null; ... 4 more ...; updated_at: string; }[]; }' but required in type 'RecommendationItem'.
+src/services/communityService.ts(417,13): error TS2322: Type 'string' is not assignable to type 'BoardType'.
+src/services/communityService.ts(424,27): error TS2339: Property 'read_count' does not exist on type '{ id: string; created_at: string; type: string; title: string; content: string; author_name: string; like_count: number; comment_count: number; images: string[]; is_hot: boolean; meta_data: Json; group_id?: string | undefined; }'.
+src/services/communityService.ts(428,35): error TS2339: Property 'status' does not exist on type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]'.
+  Property 'status' does not exist on type 'string'.
+src/services/communityService.ts(429,38): error TS2339: Property 'group_name' does not exist on type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]'.
+  Property 'group_name' does not exist on type 'string'.
+src/services/communityService.ts(431,41): error TS2339: Property 'thumbnail_url' does not exist on type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]'.
+  Property 'thumbnail_url' does not exist on type 'string'.
+src/services/communityService.ts(432,37): error TS2339: Property 'video_url' does not exist on type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]'.
+  Property 'video_url' does not exist on type 'string'.
+src/services/communityService.ts(433,39): error TS2339: Property 'visibility' does not exist on type 'string | number | boolean | { [key: string]: Json | undefined; } | Json[]'.
+  Property 'visibility' does not exist on type 'string'.
+src/store/useReservationStore.ts(9,44): error TS2339: Property 'sites' does not exist on type '{ site_config: { Row: { id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }; Insert: { ...; }; Update: { ...; }; }; ... 4 more ...; comments: { ...'.
+src/store/useReservationStore.ts(10,51): error TS2339: Property 'blocked_dates' does not exist on type '{ site_config: { Row: { id: number; camp_name: string; address_main: string; address_detail?: string | undefined; phone_number: string; layout_image_url?: string | undefined; guide_map_url?: string | undefined; ... 5 more ...; updated_at: string; }; Insert: { ...; }; Update: { ...; }; }; ... 4 more ...; comments: { ...'.
