@@ -98,7 +98,6 @@ export async function GET(req: NextRequest) {
             return NextResponse.json(cacheData.data);
         }
         // Cache is stale (only has short-term), continue to fetch fresh data
-        console.log('[Weather] Cache has only', cachedDaily.length, 'days, refreshing...');
     }
 
     // 3. Cache Miss - Fetch from KMA
@@ -347,7 +346,6 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
     // --- Phase 2: Mid-term Forecast Integration ---
     try {
         const midDaily = await getMidTermForecast(lat, lng);
-        console.log('[Weather] Mid-term fetch result:', midDaily?.length || 0, 'days');
         if (midDaily && midDaily.length > 0) {
             // Append to daily list
             // Short-term: Today, +1, +2. (Total 3 items). Mid starts +3.
@@ -360,7 +358,6 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
             });
             // Sort again
             daily.sort((a, b) => parseInt(a.date) - parseInt(b.date));
-            console.log('[Weather] Final daily count:', daily.length);
         }
     } catch (e) {
         console.warn("Mid-term fetch failed, returning short-term only", e);
@@ -565,7 +562,6 @@ async function getMidTermForecast(lat: number, lng: number) {
                 weatherCode
             });
         }
-        console.log('[Weather] Mid-term parsed:', midDaily.length, 'days', midDaily.map(d => d.date));
         return midDaily;
 
     } catch (e) {
