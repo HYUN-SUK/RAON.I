@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { Database } from '@/types/supabase';
 import { communityService } from '@/services/communityService';
+import { JsonImportButton } from './JsonImportButton';
 import {
     Dialog,
     DialogContent,
@@ -123,6 +124,15 @@ export default function RecommendationAdminPage() {
     const [tempIngName, setTempIngName] = useState('');
     const [tempIngAmount, setTempIngAmount] = useState('');
 
+    // V2 Admin Features
+    const [filterCategory, setFilterCategory] = useState<'all' | 'cooking' | 'play'>('all');
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+    // Computed
+    const filteredItems = recItems.filter(item => {
+        if (filterCategory === 'all') return true;
+        return item.category === filterCategory;
+    });
 
     // Fetch Data
     const fetchData = React.useCallback(async () => {
@@ -216,7 +226,50 @@ export default function RecommendationAdminPage() {
         fetchData();
     };
 
-    const handleBulkImport = async () => {
+    // Shared DB Insert Helper
+    const insertItemsToDb = async (items: any[]) => {
+        // Map incoming JSON to DB columns
+        const dbItems = items.map(item => ({
+            category: item.category || 'play',
+            title: item.title,
+            description: item.description,
+            difficulty: item.difficulty || 1,
+            time_required: item.time_required || 30,
+            min_participants: item.min_participants || 1,
+            max_participants: item.max_participants || 10,
+            materials: item.materials || [],
+            ingredients: item.ingredients || [],
+            process_steps: item.process_steps || [],
+            tips: item.tips || '',
+            servings: item.servings || null,
+            calories: item.calories || null,
+            age_group: item.age_group || null,
+            location_type: item.location_type || null,
+            tags: item.tags || {},
+            image_url: item.image_url || null,
+            is_active: true
+        }));
+
+        const { error } = await supabase.from('recommendation_pool').insert(dbItems);
+        if (error) throw error;
+        return dbItems.length;
+    };
+
+    const handleBulkJsonImport = async (items: any[]) => {
+        try {
+            setBulkLoading(true);
+            const count = await insertItemsToDb(items);
+            toast.success(`${count}개의 아이템이 파일에서 등록되었습니다!`);
+            fetchData();
+        } catch (error: any) {
+            console.error(error);
+            toast.error(`파일 등록 중 오류 발생: ${error.message}`);
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    const handleBulkPasteImport = async () => {
         if (!bulkJson.trim()) {
             toast.error('JSON 데이터를 입력해주세요.');
             return;
@@ -229,51 +282,52 @@ export default function RecommendationAdminPage() {
                 parsed = JSON.parse(bulkJson);
                 if (!Array.isArray(parsed)) throw new Error('데이터 형식이 배열이 아닙니다.');
             } catch (e) {
-                console.error(e);
                 toast.error('JSON 형식이 올바르지 않습니다.');
                 return;
             }
 
-            // Map incoming JSON to DB columns if needed, or assume matching structure
-            // Just basic validation here
-            const items = parsed.map(item => ({
-                category: item.category || 'play',
-                title: item.title,
-                description: item.description,
-                difficulty: item.difficulty || 1,
-                time_required: item.time_required || 30,
-                min_participants: item.min_participants || 1,
-                max_participants: item.max_participants || 10,
-                materials: item.materials || [],
-                ingredients: item.ingredients || [],
-                process_steps: item.process_steps || [],
-                tips: item.tips || '',
-                // V2.1 Fields
-                servings: item.servings || null,
-                calories: item.calories || null,
-                age_group: item.age_group || null,
-                location_type: item.location_type || null,
-                tags: item.tags || {},
-                image_url: item.image_url || null,
-                is_active: true
-            }));
-
-            const { error } = await supabase.from('recommendation_pool').insert(items);
-            if (error) throw error;
-
-            toast.success(`${items.length}개의 아이템이 일괄 등록되었습니다!`);
+            const count = await insertItemsToDb(parsed);
+            toast.success(`${count}개의 아이템이 붙여넣기로 등록되었습니다!`);
             setIsBulkOpen(false);
             setBulkJson('');
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            const message = error instanceof Error ? error.message : "알 수 없는 오류";
-            toast.error(`일괄 등록 중 오류 발생: ${message}`);
+            toast.error(`등록 중 오류 발생: ${error.message}`);
         } finally {
             setBulkLoading(false);
         }
-        setBulkLoading(false);
-    }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`선택한 ${selectedIds.size}개 항목을 정말 삭제하시겠습니까?`)) return;
+
+        try {
+            const { error } = await supabase.from('recommendation_pool').delete().in('id', Array.from(selectedIds));
+            if (error) throw error;
+            toast.success('삭제되었습니다.');
+            setSelectedIds(new Set());
+            fetchData();
+        } catch (e: any) {
+            toast.error(e.message);
+        }
+    };
+
+    const toggleSelection = (id: number) => {
+        const next = new Set(selectedIds);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setSelectedIds(next);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === filteredItems.length && filteredItems.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(filteredItems.map(i => i.id)));
+        }
+    };
 
 
     const handleCopyTemplate = () => {
@@ -407,21 +461,52 @@ export default function RecommendationAdminPage() {
 
                 {/* Recommendation Pool Tab */}
                 <TabsContent value="pool" className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <div className="text-sm text-gray-500">요리, 놀이 추천 데이터베이스를 관리합니다.</div>
-                        <div className="flex gap-2">
+                    {/* 1. Header & Filters */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-lg border">
+                        <div className="flex items-center gap-2">
+                            <div className="flex bg-stone-100 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setFilterCategory('all')}
+                                    className={`px-4 py-1.5 text-sm rounded-md transition-all ${filterCategory === 'all' ? 'bg-white shadow-sm font-bold text-stone-900' : 'text-stone-500 hover:text-stone-700'}`}
+                                >
+                                    전체 ({recItems.length})
+                                </button>
+                                <button
+                                    onClick={() => setFilterCategory('cooking')}
+                                    className={`px-4 py-1.5 text-sm rounded-md transition-all ${filterCategory === 'cooking' ? 'bg-white shadow-sm font-bold text-orange-700' : 'text-stone-500 hover:text-stone-700'}`}
+                                >
+                                    요리 ({recItems.filter(i => i.category === 'cooking').length})
+                                </button>
+                                <button
+                                    onClick={() => setFilterCategory('play')}
+                                    className={`px-4 py-1.5 text-sm rounded-md transition-all ${filterCategory === 'play' ? 'bg-white shadow-sm font-bold text-green-700' : 'text-stone-500 hover:text-stone-700'}`}
+                                >
+                                    놀이 ({recItems.filter(i => i.category === 'play').length})
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 w-full md:w-auto justify-end">
+                            {selectedIds.size > 0 && (
+                                <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="animate-in fade-in zoom-in">
+                                    <Trash2 size={14} className="mr-2" />
+                                    선택 삭제 ({selectedIds.size})
+                                </Button>
+                            )}
+
+                            {/* Paste Import Dialog */}
                             <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" className="gap-2">
-                                        <Upload className="w-4 h-4" />
-                                        AI 일괄 등록
+                                        <Copy className="w-4 h-4" />
+                                        직접 붙여넣기
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
                                     <DialogHeader>
-                                        <DialogTitle>AI 추천 데이터 일괄 등록</DialogTitle>
+                                        <DialogTitle>JSON 데이터 직접 붙여넣기</DialogTitle>
                                         <DialogDescription>
-                                            JSON 형식으로 데이터를 붙여넣으세요. (category: &apos;cooking&apos; | &apos;play&apos;)
+                                            AI가 생성한 JSON 데이터를 아래에 붙여넣으세요.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="flex justify-end px-1 pt-2">
@@ -438,48 +523,85 @@ export default function RecommendationAdminPage() {
                                         />
                                     </div>
                                     <DialogFooter>
-                                        <Button onClick={handleBulkImport} disabled={bulkLoading}>
-                                            {bulkLoading ? "등록 중..." : "일괄 등록하기"}
+                                        <Button onClick={handleBulkPasteImport} disabled={bulkLoading}>
+                                            {bulkLoading ? "등록 중..." : "등록하기"}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
 
+                            <JsonImportButton onImport={handleBulkJsonImport} isLoading={bulkLoading} />
+
                             <Button onClick={() => openRecSheet()} className="bg-[#1C4526]">
-                                <Plus size={16} className="mr-2" /> 아이템 추가
+                                <Plus size={16} className="mr-2" /> 개별 추가
                             </Button>
                         </div>
                     </div>
 
+                    {/* 2. Select All Bar */}
+                    <div className="flex items-center gap-2 px-1">
+                        <input
+                            type="checkbox"
+                            checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length}
+                            onChange={toggleSelectAll}
+                            className="w-4 h-4 rounded border-gray-300 text-[#1C4526] focus:ring-[#1C4526]"
+                        />
+                        <span className="text-sm text-gray-500">전체 선택</span>
+                    </div>
+
+                    {/* 3. Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {recItems.map(item => (
-                            <div key={item.id} className="border rounded-lg p-4 bg-white shadow-sm flex gap-4">
-                                {item.image_url ? (
-                                    <Image unoptimized src={item.image_url} width={80} height={80} className="w-20 h-20 rounded-md object-cover bg-gray-100" alt={item.title} />
-                                ) : (
-                                    <div className="w-20 h-20 rounded-md bg-gray-100 flex items-center justify-center">
-                                        {item.category === 'cooking' ? <ChefHat size={24} className="text-gray-400" /> : <Tent size={24} className="text-gray-400" />}
-                                    </div>
-                                )}
-                                <div className="flex-1 space-y-1">
-                                    <div className="flex justify-between">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${item.category === 'cooking' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                                            {item.category === 'cooking' ? '요리' : '놀이'}
-                                        </span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => openRecSheet(item)} className="text-gray-400 hover:text-blue-500"><Edit size={14} /></button>
-                                            <button onClick={() => handleDelete('recommendation_pool', item.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                        {filteredItems.map(item => (
+                            <div
+                                key={item.id}
+                                className={`
+                                    relative border rounded-lg p-4 bg-white shadow-sm flex gap-4 transition-all
+                                    ${selectedIds.has(item.id) ? 'ring-2 ring-[#1C4526] bg-green-50/10' : ''}
+                                `}
+                            >
+                                {/* Checkbox Overlay */}
+                                <div className="absolute top-3 left-3 z-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.has(item.id)}
+                                        onChange={() => toggleSelection(item.id)}
+                                        className="w-5 h-5 rounded border-gray-300 text-[#1C4526] focus:ring-[#1C4526] cursor-pointer"
+                                    />
+                                </div>
+
+                                <div className="pl-6 flex gap-4 w-full">
+                                    {item.image_url ? (
+                                        <Image unoptimized src={item.image_url} width={80} height={80} className="w-20 h-20 rounded-md object-cover bg-gray-100 shrink-0" alt={item.title} />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-md bg-stone-50 flex items-center justify-center shrink-0">
+                                            {item.category === 'cooking' ? <ChefHat size={24} className="text-stone-300" /> : <Tent size={24} className="text-stone-300" />}
                                         </div>
-                                    </div>
-                                    <h3 className="font-bold text-sm">{item.title}</h3>
-                                    <p className="text-xs text-gray-500 line-clamp-2">{item.description}</p>
-                                    <div className="flex gap-2 mt-1 text-xs text-stone-400">
-                                        <span>난이도: {item.difficulty}</span>
-                                        <span>소요시간: {item.time_required}분</span>
+                                    )}
+                                    <div className="flex-1 space-y-1 min-w-0">
+                                        <div className="flex justify-between items-start">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${item.category === 'cooking' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                                                {item.category === 'cooking' ? '요리' : '놀이'}
+                                            </span>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => openRecSheet(item)} className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded"><Edit size={14} /></button>
+                                                <button onClick={() => handleDelete('recommendation_pool', item.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
+                                            </div>
+                                        </div>
+                                        <h3 className="font-bold text-sm truncate">{item.title}</h3>
+                                        <p className="text-xs text-gray-500 line-clamp-2 min-h-[2.5em]">{item.description}</p>
+                                        <div className="flex gap-2 mt-1 text-[10px] text-stone-400">
+                                            <span className="flex items-center gap-1">⏱️ {item.time_required}분</span>
+                                            <span className="flex items-center gap-1">⭐ {item.difficulty}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         ))}
+                        {filteredItems.length === 0 && (
+                            <div className="col-span-full py-20 text-center text-stone-400">
+                                데이터가 없습니다.
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 

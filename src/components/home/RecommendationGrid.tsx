@@ -1,12 +1,13 @@
 import React from 'react';
-import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChefHat, Tent, MapPin, Clock } from 'lucide-react';
-
+import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation'; // Keep for type if exported, or just use ReturnType
 import { Database } from '@/types/supabase';
 
 type RecommendationItem = Database['public']['Tables']['recommendation_pool']['Row'];
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
+
+type PersonalizedData = ReturnType<typeof usePersonalizedRecommendation>['data'];
 
 interface DetailedRecommendationItem {
     id: string;
@@ -18,15 +19,16 @@ interface DetailedRecommendationItem {
     isWide?: boolean;
     description?: string | null;
     data: RecommendationItem | { type: 'nearby_lbs', events: NearbyEvent[] } | null;
+    reason?: string;
 }
 
 interface RecommendationGridProps {
-    onItemClick?: (item: RecommendationItem | { type: 'nearby_lbs', events: NearbyEvent[] }) => void;
+    data: PersonalizedData;
+    loading: boolean;
+    onItemClick?: (item: RecommendationItem | { type: 'nearby_lbs', events: NearbyEvent[] }, reason?: string) => void;
 }
 
-export default function RecommendationGrid({ onItemClick }: RecommendationGridProps) {
-    const { data, loading } = usePersonalizedRecommendation();
-
+export default function RecommendationGrid({ data, loading, onItemClick }: RecommendationGridProps) {
     if (loading) {
         return (
             <div className="px-4 mb-8 grid grid-cols-2 gap-3">
@@ -37,7 +39,7 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
         );
     }
 
-    const { cooking, play, events } = data;
+    const { cooking, play, events, reasons } = data;
 
     // Construct valid items for display
     const items = [];
@@ -51,7 +53,8 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
             title: cooking.title,
             bgColorClass: 'bg-orange-50',
             textColorClass: 'text-orange-600',
-            data: cooking
+            data: cooking,
+            reason: reasons?.cooking
         });
     } else {
         // Fallback Mock
@@ -75,7 +78,8 @@ export default function RecommendationGrid({ onItemClick }: RecommendationGridPr
             title: play.title,
             bgColorClass: 'bg-green-50',
             textColorClass: 'text-green-600',
-            data: play
+            data: play,
+            reason: reasons?.play
         });
     } else {
         items.push({

@@ -63,7 +63,7 @@ export default function ReturningHome() {
     const { initRebook } = useReservationStore();
     const { config } = useSiteConfig();
     const lbs = useLBS();
-    const { data: recData, weather } = usePersonalizedRecommendation();
+    const { data: recData, weather, loading: recLoading, shuffle } = usePersonalizedRecommendation();
     const { openDayRule, fetchOpenDayRule } = useReservationStore();
     React.useEffect(() => {
         fetchOpenDayRule();
@@ -78,7 +78,7 @@ export default function ReturningHome() {
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
     const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
 
-    const handleRecommendationClick = (item: RecommendationItem) => {
+    const handleRecommendationClick = (item: RecommendationItem, reason?: string) => {
         // Special Handling for LBS Card
         if (item.type === 'nearby_lbs') {
             setNearbyEvents(item.events || []);
@@ -106,7 +106,11 @@ export default function ReturningHome() {
             servings: item.servings || undefined,
             calories: item.calories || undefined,
             age_group: item.age_group || undefined,
-            location_type: item.location_type || undefined
+            location_type: item.location_type || undefined,
+
+            // V9 Personalization
+            reason: reason,
+            category: item.category as 'cooking' | 'play'
         });
         setDetailSheetOpen(true);
     };
@@ -224,7 +228,11 @@ export default function ReturningHome() {
 
                 {/* 4. Recommendations Grid (Dynamic) */}
                 {/* 4. Recommendations Grid (Dynamic) */}
-                <RecommendationGrid onItemClick={handleRecommendationClick as (item: unknown) => void} />
+                <RecommendationGrid
+                    data={recData}
+                    loading={recLoading}
+                    onItemClick={handleRecommendationClick as any}
+                />
             </main>
 
             {/* Slim Notice Layout Position */}
@@ -236,6 +244,7 @@ export default function ReturningHome() {
                 isOpen={detailSheetOpen}
                 onClose={() => setDetailSheetOpen(false)}
                 data={detailData}
+                onShuffle={shuffle}
             />
 
             {/* Weather Detail Sheet */}

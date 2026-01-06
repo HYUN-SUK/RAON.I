@@ -81,7 +81,7 @@ export default function BeginnerHome() {
     const lbs = useLBS(); // Real-time Location
 
     // Contextual Data
-    const { data: recData, loading: recLoading, weather } = usePersonalizedRecommendation();
+    const { data: recData, loading: recLoading, weather, shuffle } = usePersonalizedRecommendation();
     const { openDayRule, fetchOpenDayRule } = useReservationStore();
     React.useEffect(() => { fetchOpenDayRule(); }, [fetchOpenDayRule]);
 
@@ -268,7 +268,7 @@ export default function BeginnerHome() {
         setDetailSheetOpen(true);
     };
 
-    const handleRecommendationClick = (item: RecommendationItem) => {
+    const handleRecommendationClick = (item: RecommendationItem, reason?: string) => {
         withAuth(() => {
             // Special Handling for LBS Card
             if (item.type === 'nearby_lbs') {
@@ -297,7 +297,11 @@ export default function BeginnerHome() {
                 servings: item.servings || undefined,
                 calories: item.calories || undefined,
                 age_group: item.age_group || undefined,
-                location_type: item.location_type || undefined
+                location_type: item.location_type || undefined,
+
+                // V9 Personalization
+                reason: reason,
+                category: item.category as 'cooking' | 'play' // Explicit cast for shuffle
             });
             setDetailSheetOpen(true);
         });
@@ -441,7 +445,11 @@ export default function BeginnerHome() {
                 </section>
 
                 {/* 4. Recommendations Grid (Dynamic) */}
-                <RecommendationGrid onItemClick={handleRecommendationClick as (item: unknown) => void} />
+                <RecommendationGrid
+                    data={recData}
+                    loading={recLoading}
+                    onItemClick={handleRecommendationClick as any}
+                />
             </main>
 
             {/* Slim Notice Layout Position */}
@@ -454,6 +462,7 @@ export default function BeginnerHome() {
                 isOpen={detailSheetOpen}
                 onClose={() => setDetailSheetOpen(false)}
                 data={detailData}
+                onShuffle={shuffle}
             />
 
             {/* Weather Detail Sheet */}

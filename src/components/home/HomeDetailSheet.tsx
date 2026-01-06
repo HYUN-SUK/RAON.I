@@ -8,18 +8,20 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock, Flame, Users, CheckCircle2, ChevronDown, Check } from "lucide-react";
+import { ArrowRight, Clock, Flame, Users, ChevronDown, Check, Dices } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
 export interface HomeDetailData {
+    // ... items
     title: string;
     description: string;
     icon: React.ReactNode;
     categoryLabel?: string;
     actionLabel?: string;
     actionLink?: string;
-    bgColorClass?: string; // Optional branding color
-    image_url?: string; // For Hero Header
+    bgColorClass?: string;
+    image_url?: string;
     buttons?: {
         label: string;
         onClick: () => void;
@@ -33,23 +35,35 @@ export interface HomeDetailData {
     time_required?: number;
     difficulty?: number;
     // V2.1 Premium Data
-    servings?: string; // e.g. "2-3인분"
-    calories?: number; // e.g. 500
-    age_group?: string; // e.g. "5세 이상"
-    location_type?: string; // e.g. "실내"
+    servings?: string;
+    calories?: number;
+    age_group?: string;
+    location_type?: string;
+    // V9 Personalization
+    reason?: string;
+    category?: 'cooking' | 'play';
 }
 
 interface HomeDetailSheetProps {
     isOpen: boolean;
     onClose: () => void;
     data: HomeDetailData | null;
+    onShuffle?: (category: 'cooking' | 'play') => void;
 }
 
-export default function HomeDetailSheet({ isOpen, onClose, data }: HomeDetailSheetProps) {
+export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: HomeDetailSheetProps) {
     const router = useRouter();
     const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
 
     if (!data) return null;
+
+    const handleShuffle = () => {
+        if (onShuffle && data.category) {
+            onShuffle(data.category);
+            toast.success("새로운 추천을 가져왔습니다! 🎲");
+            onClose();
+        }
+    };
 
     const toggleIngredient = (index: number) => {
         setCheckedIngredients(prev =>
@@ -62,46 +76,39 @@ export default function HomeDetailSheet({ isOpen, onClose, data }: HomeDetailShe
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <SheetContent side="bottom" className="rounded-t-[32px] p-0 border-none max-h-[92vh] overflow-y-auto outline-none bg-white dark:bg-zinc-900">
-                {/* 1. Hero Section */}
-                <div className="relative w-full h-64 bg-stone-100 dark:bg-zinc-800">
-                    {data.image_url ? (
-                        <div
-                            className="w-full h-full bg-cover bg-center"
-                            style={{ backgroundImage: `url(${data.image_url})` }}
-                        />
-                    ) : (
-                        <div className={`w-full h-full flex items-center justify-center ${data.bgColorClass || 'bg-stone-200'} opacity-80`}>
-                            <div className="text-8xl opacity-50 scale-150 transform">{data.icon}</div>
-                        </div>
-                    )}
-                    {/* Gradient Overlay for Text Readability */}
-                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
-
-                    {/* Grab Handle */}
-                    <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/50 backdrop-blur-md rounded-full" />
-
-                    {/* Close Button (Icon) */}
+                {/* 1. Header Actions (Close) */}
+                <div className="sticky top-0 z-50 flex justify-end p-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-t-[32px]">
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+                        className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors"
                     >
-                        <ChevronDown size={20} />
+                        <ChevronDown size={20} className="text-stone-600 dark:text-stone-400" />
                     </button>
                 </div>
 
-                {/* 2. Floating Content Card */}
-                <div className="relative -mt-10 px-6 pb-10">
+                {/* 2. Content Card */}
+                <div className="px-6 pb-8">
                     <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-sm p-1 pt-6">
                         <SheetHeader className="text-left space-y-2 mb-6">
-                            <div className="flex items-start justify-between">
-                                <SheetTitle className="text-2xl font-bold text-stone-900 dark:text-stone-100 leading-tight">
-                                    {data.title}
-                                </SheetTitle>
-                                {data.categoryLabel && (
-                                    <Badge variant="outline" className="text-[10px] text-stone-500 border-stone-200">
-                                        {data.categoryLabel}
-                                    </Badge>
+                            <div className="flex flex-col gap-2">
+                                {/* Reason Badge */}
+                                {data.reason && (
+                                    <div className="inline-flex self-start">
+                                        <Badge variant="secondary" className="bg-[#1C4526]/10 text-[#1C4526] hover:bg-[#1C4526]/20 border-none px-2 py-0.5 text-[10px] font-bold">
+                                            ✨ {data.reason}
+                                        </Badge>
+                                    </div>
                                 )}
+                                <div className="flex items-start justify-between">
+                                    <SheetTitle className="text-2xl font-bold text-stone-900 dark:text-stone-100 leading-tight">
+                                        {data.title}
+                                    </SheetTitle>
+                                    {data.categoryLabel && (
+                                        <Badge variant="outline" className="text-[10px] text-stone-500 border-stone-200 shrink-0 ml-2">
+                                            {data.categoryLabel}
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
                             <SheetDescription className="text-base text-stone-600 dark:text-stone-400 break-keep">
                                 {data.description}
@@ -226,6 +233,20 @@ export default function HomeDetailSheet({ isOpen, onClose, data }: HomeDetailShe
                                         </p>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Shuffle Button Section */}
+                        {onShuffle && data.category && (
+                            <div className="mb-6">
+                                <Button
+                                    variant="outline"
+                                    className="w-full h-12 border-dashed border-stone-300 text-stone-500 hover:text-stone-800 hover:bg-stone-50 hover:border-stone-400 rounded-2xl gap-2"
+                                    onClick={handleShuffle}
+                                >
+                                    <Dices size={18} />
+                                    다른 추천 뽑기
+                                </Button>
                             </div>
                         )}
 

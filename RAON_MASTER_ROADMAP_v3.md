@@ -130,6 +130,14 @@
     *   [x] **Skeleton UI**: 3-State UX(Loading/Empty/Error) 적용 완료.
     *   [x] **관리**: 미션 관리자 페이지(Admin) 확인(Verified) + **참여 철회 기능 추가**.
     *   [x] **Ranking**: 인기순(Trending) 정렬 및 배지 로직 추가.
+    ### Phase 4: Personalization Engine Upgrade (Components & Logic) - **[COMPLETED]**
+    - [x] **Context-Aware Hook (`usePersonalizedRecommendation`)**
+      - [x] Rule-based Scoring (Season/Weather/Time).
+      - [x] Reason Generation.
+      - [x] Shuffle / Random Box Logic.
+    - [x] **UI Integration**
+      - [x] Home Detail Sheet: Add Shuffle Button & Reason Badge.
+      - [x] Restore Rich Content (Recipe Steps, Ingredients). 정렬 및 배지 로직 추가.
     *   [x] **Critical Fixes (2025-12-30)**: 
         *   Deletion Persistence (RPC Cascade + Self-Healing).
         *   Reverse Cascade (Comment Delete -> Mission Withdraw).
