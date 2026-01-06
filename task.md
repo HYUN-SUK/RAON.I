@@ -73,7 +73,14 @@
 - [ ] **Analytics**: Dashboard Key Metrics.
 
 ### Phase 4: Advanced
-- [ ] **Push**: Web Push Schema.
+- [x] **Push**: Web Push Schema & Event-Driven Notification System.
+  - [x] 이벤트 타입 정의 (`notificationEvents.ts`) - 15개 이벤트 카탈로그
+  - [x] 알림 서비스 (`notificationService.ts`) - 조용시간 로직 + 푸시/배지 분기
+  - [x] 인앱 배지 훅 (`useInAppBadge.ts`) - 탭별 배지 관리
+  - [x] BottomNav 배지 UI 통합 - 빨간 dot 표시 + 탭 클릭 시 해제
+  - [x] 빈자리 알림 버튼 (`WaitlistButton.tsx`)
+  - [x] 관리자 알림 테스트 UI (`/admin/push`)
+  - [ ] **DB 스키마 적용 대기**: `20260106_in_app_badges.sql`, `20260106_waitlist.sql`
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
 
