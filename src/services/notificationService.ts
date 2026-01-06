@@ -61,6 +61,13 @@ export class NotificationService {
         }
 
         // 3. 푸시 발송 시도
+        // userId가 UUID 형식이 아닌 경우(게스트) 푸시 발송 스킵
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(userId)) {
+            console.warn(`[NotificationService] userId is not a UUID (Guest?): ${userId} - Skip Push`);
+            return { success: false, method: 'none', message: 'Guest user (No UUID)' };
+        }
+
         const pushResult = await this.sendPush(userId, config, title, body, data);
 
         // 4. 푸시 성공 여부와 관계없이 fallback 배지 생성

@@ -1,18 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, addHours } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CheckCircle2, Clock, AlertCircle, Copy, Home } from 'lucide-react';
 import Image from 'next/image';
+import { notificationService } from '@/services/notificationService';
+import { NotificationEventType } from '@/types/notificationEvents';
 
 export default function ReservationCompletePage() {
     const router = useRouter();
-    const { reservations, sites, siteConfig, fetchSites, fetchSiteConfig } = useReservationStore();
+    const { reservations, sites, siteConfig, fetchSites, fetchSiteConfig, deadlineHours } = useReservationStore();
     const [latestReservation, setLatestReservation] = useState<any>(null);
     const [copied, setCopied] = useState(false);
+    const notificationSentRef = useRef(false);
 
     useEffect(() => {
         fetchSites();
@@ -21,14 +24,46 @@ export default function ReservationCompletePage() {
 
     useEffect(() => {
         if (reservations.length > 0) {
-            // Get the most recent reservation
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setLatestReservation(reservations[reservations.length - 1]);
+            const latest = reservations[reservations.length - 1];
+            setLatestReservation(latest);
+
+            // 예약 신청 알림 발송 (PENDING 상태이고, 아직 발송 안한 경우)
+            const notificationKey = `reservation_notification_${latest.id}`;
+            if (
+                latest.status === 'PENDING' &&
+                latest.userId &&
+                !notificationSentRef.current &&
+                !sessionStorage.getItem(notificationKey)
+            ) {
+                notificationSentRef.current = true;
+                sessionStorage.setItem(notificationKey, 'sent');
+
+                // 입금 기한 계산
+                const created = latest.createdAt ? new Date(latest.createdAt) : new Date();
+                const deadline = addHours(created, deadlineHours || 6);
+                const site = sites.find(s => s.id === latest.siteId);
+
+                notificationService.dispatchNotification(
+                    NotificationEventType.RESERVATION_SUBMITTED,
+                    latest.userId,
+                    {
+                        bankName: siteConfig?.bankName || '국민은행',
+                        bankAccount: siteConfig?.bankAccount || '',
+                        bankHolder: siteConfig?.bankHolder || '',
+                        totalPrice: latest.totalPrice.toLocaleString(),
+                        deadline: format(deadline, 'MM.dd HH:mm', { locale: ko }),
+                        checkIn: format(new Date(latest.checkInDate), 'MM.dd(eee)', { locale: ko }),
+                        checkOut: format(new Date(latest.checkOutDate), 'MM.dd(eee)', { locale: ko }),
+                        siteName: site?.name || latest.siteId,
+                        reservation_id: latest.id
+                    },
+                    latest.id
+                );
+            }
         } else {
-            // No reservation found, redirect to home or reservation list
             router.push('/reservation');
         }
-    }, [reservations, router]);
+    }, [reservations, router, sites, siteConfig, deadlineHours]);
 
     if (!latestReservation) return null;
 
@@ -42,7 +77,7 @@ export default function ReservationCompletePage() {
 
     // Calculate deposit deadline (6 hours from creation)
     const created = createdAt ? new Date(createdAt) : new Date();
-    const depositDeadline = new Date(created.getTime() + (6 * 60 * 60 * 1000));
+    const depositDeadline = new Date(created.getTime() + ((deadlineHours || 6) * 60 * 60 * 1000));
 
     const handleCopyAccount = () => {
         const account = siteConfig?.bankAccount || '3333-00-0000000';

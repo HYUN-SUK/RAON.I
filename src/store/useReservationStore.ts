@@ -27,6 +27,13 @@ interface ReservationState {
     setSelectedSite: (site: Site | null) => void;
     addReservation: (reservation: Reservation) => void;
     updateReservationStatus: (id: string, status: ReservationStatus) => void;
+    updateReservation: (id: string, updates: {
+        checkInDate?: Date;
+        checkOutDate?: Date;
+        siteId?: string;
+        familyCount?: number;
+        visitorCount?: number;
+    }) => { success: boolean; oldPrice: number; newPrice: number; diff: number; error?: string };
     reset: () => void;
 
     // Helper to calculate price
@@ -313,6 +320,66 @@ export const useReservationStore = create<ReservationState>()(
                         res.id === id ? { ...res, status } : res
                     ),
                 })),
+
+            // 예약 변경 (관리자 전용): 일정/사이트 변경 + 차액 계산
+            updateReservation: (id, updates) => {
+                const { reservations, sites, calculatePrice: calcPrice } = get();
+                const reservation = reservations.find(r => r.id === id);
+
+                if (!reservation) {
+                    return { success: false, oldPrice: 0, newPrice: 0, diff: 0, error: '예약을 찾을 수 없습니다.' };
+                }
+
+                // 변경될 값 계산
+                const newCheckIn = updates.checkInDate || reservation.checkInDate;
+                const newCheckOut = updates.checkOutDate || reservation.checkOutDate;
+                const newSiteId = updates.siteId || reservation.siteId;
+                const newFamilyCount = updates.familyCount ?? reservation.familyCount;
+                const newVisitorCount = updates.visitorCount ?? reservation.visitorCount;
+
+                // 중복 예약 검증 (자기 자신 제외)
+                const hasOverlap = reservations.some(r => {
+                    if (r.id === id) return false; // 자기 자신 제외
+                    if (r.siteId !== newSiteId || r.status === 'CANCELLED') return false;
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn < newCheckOut && rCheckOut > newCheckIn;
+                });
+
+                if (hasOverlap) {
+                    return { success: false, oldPrice: reservation.totalPrice, newPrice: 0, diff: 0, error: '해당 기간에 이미 다른 예약이 있습니다.' };
+                }
+
+                // 새로운 가격 계산
+                const site = sites.find(s => s.id === newSiteId);
+                if (!site) {
+                    return { success: false, oldPrice: reservation.totalPrice, newPrice: 0, diff: 0, error: '사이트를 찾을 수 없습니다.' };
+                }
+
+                const priceBreakdown = calcPrice(site, newCheckIn, newCheckOut, newFamilyCount, newVisitorCount);
+                const oldPrice = reservation.totalPrice;
+                const newPrice = priceBreakdown.totalPrice;
+                const diff = newPrice - oldPrice;
+
+                // 예약 업데이트
+                set((state) => ({
+                    reservations: state.reservations.map((res) =>
+                        res.id === id ? {
+                            ...res,
+                            checkInDate: newCheckIn,
+                            checkOutDate: newCheckOut,
+                            siteId: newSiteId,
+                            familyCount: newFamilyCount,
+                            visitorCount: newVisitorCount,
+                            guests: newFamilyCount + newVisitorCount,
+                            totalPrice: newPrice
+                        } : res
+                    ),
+                }));
+
+                return { success: true, oldPrice, newPrice, diff };
+            },
+
             reset: () => set({ selectedDateRange: { from: undefined, to: undefined }, selectedSite: null }),
 
 

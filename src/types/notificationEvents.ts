@@ -8,7 +8,8 @@
 // ========================================
 export enum NotificationEventType {
     // 예약 관련 (푸시 허용, 조용시간 예외)
-    RESERVATION_CONFIRMED = 'reservation_confirmed',
+    RESERVATION_SUBMITTED = 'reservation_submitted',  // 예약 신청 완료 (입금 대기)
+    RESERVATION_CONFIRMED = 'reservation_confirmed',  // 예약 확정 (입금 확인)
     RESERVATION_CANCELLED = 'reservation_cancelled',
     RESERVATION_CHANGED = 'reservation_changed',
     DEPOSIT_CONFIRMED = 'deposit_confirmed',
@@ -58,6 +59,29 @@ export interface NotificationEventConfig {
 // ========================================
 export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, NotificationEventConfig> = {
     // ===== 예약 관련 (푸시 O, 조용시간 예외 O) =====
+
+    // 1. 예약 신청 완료 (입금 대기)
+    [NotificationEventType.RESERVATION_SUBMITTED]: {
+        type: NotificationEventType.RESERVATION_SUBMITTED,
+        requires_push: true,
+        quiet_hours_override: true,
+        fallback_badge: true,
+        badge_target: 'reservation',
+        title_template: '예약 신청 완료',
+        body_template: `입금이 확인되면 예약이 최종 확정됩니다.
+
+▶ 입금 대기 중
+입금 계좌: {{bankName}} {{bankAccount}}
+예금주: {{bankHolder}}
+입금 금액: {{totalPrice}}원
+입금 기한: {{deadline}} 까지
+* 기한 내 미입금 시 자동 취소됩니다.
+
+일정: {{checkIn}} - {{checkOut}}
+사이트: {{siteName}}`,
+    },
+
+    // 2. 예약 확정 (입금 확인 후)
     [NotificationEventType.RESERVATION_CONFIRMED]: {
         type: NotificationEventType.RESERVATION_CONFIRMED,
         requires_push: true,
@@ -65,8 +89,18 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         fallback_badge: true,
         badge_target: 'reservation',
         title_template: '예약 확정',
-        body_template: '{{siteName}} 예약이 확정되었습니다. ({{checkIn}} ~ {{checkOut}})',
+        body_template: `예약이 확정되었습니다.
+
+▶ 이용 안내
+입실 시간: 14:00
+퇴실 시간: 12:00
+매너 타임: 22:00 ~ 07:00 (조용히 부탁드려요)
+
+일정: {{checkIn}} - {{checkOut}}
+사이트: {{siteName}}`,
     },
+
+    // 3. 예약 취소
     [NotificationEventType.RESERVATION_CANCELLED]: {
         type: NotificationEventType.RESERVATION_CANCELLED,
         requires_push: true,
@@ -74,8 +108,13 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         fallback_badge: true,
         badge_target: 'reservation',
         title_template: '예약 취소',
-        body_template: '{{siteName}} 예약이 취소되었습니다.',
+        body_template: `예약이 취소되었습니다.
+
+일정: {{checkIn}} - {{checkOut}}
+사이트: {{siteName}}`,
     },
+
+    // 4. 예약 변경
     [NotificationEventType.RESERVATION_CHANGED]: {
         type: NotificationEventType.RESERVATION_CHANGED,
         requires_push: true,
@@ -83,8 +122,19 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         fallback_badge: true,
         badge_target: 'reservation',
         title_template: '예약 변경',
-        body_template: '{{siteName}} 예약이 변경되었습니다.',
+        body_template: `예약이 변경되었습니다.
+
+▶ 기존
+일정: {{oldCheckIn}} - {{oldCheckOut}}
+사이트: {{oldSiteName}}
+
+▶ 변경
+일정: {{newCheckIn}} - {{newCheckOut}}
+사이트: {{newSiteName}}
+{{priceDiff}}`,
     },
+
+    // 5. 입금 확인 (레거시 - RESERVATION_CONFIRMED와 동일)
     [NotificationEventType.DEPOSIT_CONFIRMED]: {
         type: NotificationEventType.DEPOSIT_CONFIRMED,
         requires_push: true,
@@ -92,7 +142,15 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         fallback_badge: true,
         badge_target: 'reservation',
         title_template: '입금 확인',
-        body_template: '입금이 확인되었습니다. 예약이 완료되었어요!',
+        body_template: `입금이 확인되었습니다. 예약이 완료되었어요!
+
+▶ 이용 안내
+입실 시간: 14:00
+퇴실 시간: 12:00
+매너 타임: 22:00 ~ 07:00 (조용히 부탁드려요)
+
+일정: {{checkIn}} - {{checkOut}}
+사이트: {{siteName}}`,
     },
     [NotificationEventType.UPCOMING_STAY_D1]: {
         type: NotificationEventType.UPCOMING_STAY_D1,

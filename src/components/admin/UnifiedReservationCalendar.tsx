@@ -18,18 +18,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { notificationService } from '@/services/notificationService';
+import { NotificationEventType } from '@/types/notificationEvents';
 
 export default function UnifiedReservationCalendar() {
     const {
         reservations, blockedDates, fetchBlockedDates,
         addBlockDate, removeBlockDate, toggleBlockPaid, getUserHistory,
-        fetchHolidays, holidays // Added holidays
+        fetchHolidays, holidays, updateReservation, sites, calculatePrice
     } = useReservationStore();
 
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // Modal State
-    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | null>(null);
+    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
@@ -46,6 +48,12 @@ export default function UnifiedReservationCalendar() {
     const [contact, setContact] = useState('');
     const [isPaid, setIsPaid] = useState(false);
     const [maxDuration, setMaxDuration] = useState(30);
+
+    // 예약 변경 폼 상태
+    const [modifyCheckIn, setModifyCheckIn] = useState<Date | null>(null);
+    const [modifyDuration, setModifyDuration] = useState('1');
+    const [modifySiteId, setModifySiteId] = useState<string>('');
+    const [modifyPricePreview, setModifyPricePreview] = useState<{ oldPrice: number; newPrice: number; diff: number } | null>(null);
 
     useEffect(() => {
         fetchBlockedDates();
@@ -324,6 +332,25 @@ export default function UnifiedReservationCalendar() {
                                         <div><Label className="text-xs text-gray-500">인원</Label><p>{selectedReservation.guests}명</p></div>
                                     </div>
                                     <div><Label className="text-xs text-gray-500">요청사항</Label><p className="text-sm">{selectedReservation.requests || '-'}</p></div>
+
+                                    {/* 예약 변경 버튼 (관리자 전용) */}
+                                    <div className="flex gap-2 mt-4 pt-2 border-t">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200"
+                                            onClick={() => {
+                                                setModifyCheckIn(new Date(selectedReservation.checkInDate));
+                                                const nights = Math.ceil((new Date(selectedReservation.checkOutDate).getTime() - new Date(selectedReservation.checkInDate).getTime()) / (1000 * 60 * 60 * 24));
+                                                setModifyDuration(nights.toString());
+                                                setModifySiteId(selectedReservation.siteId);
+                                                setModifyPricePreview(null);
+                                                setViewMode('MODIFY');
+                                            }}
+                                        >
+                                            <Edit2 className="w-4 h-4 mr-1" /> 예약 변경
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                             {selectedBlock && (
@@ -369,6 +396,149 @@ export default function UnifiedReservationCalendar() {
                         </div>
                     </div>
                     <DialogFooter><Button onClick={() => setViewMode(null)}>닫기</Button></DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* 예약 변경 모달 */}
+            <Dialog open={viewMode === 'MODIFY'} onOpenChange={(o) => !o && setViewMode('DETAIL')}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>예약 변경</DialogTitle>
+                        <DialogDescription>
+                            {selectedReservation && `${SITES.find(s => s.id === selectedReservation.siteId)?.name} - ${format(new Date(selectedReservation.checkInDate), 'yyyy.MM.dd')} 예약`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        {/* 기존 예약 정보 */}
+                        <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                            <p className="text-gray-500 text-xs mb-1">기존 예약</p>
+                            <div className="flex justify-between">
+                                <span>일정: {selectedReservation && format(new Date(selectedReservation.checkInDate), 'MM.dd(eee)', { locale: ko })} ~ {selectedReservation && format(new Date(selectedReservation.checkOutDate), 'MM.dd(eee)', { locale: ko })}</span>
+                                <span className="font-bold">{selectedReservation?.totalPrice.toLocaleString()}원</span>
+                            </div>
+                        </div>
+
+                        {/* 변경 폼 */}
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label>입실일</Label>
+                                <Input
+                                    type="date"
+                                    value={modifyCheckIn ? format(modifyCheckIn, 'yyyy-MM-dd') : ''}
+                                    onChange={(e) => {
+                                        setModifyCheckIn(new Date(e.target.value));
+                                        setModifyPricePreview(null);
+                                    }}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>기간</Label>
+                                <Select value={modifyDuration} onValueChange={(v) => { setModifyDuration(v); setModifyPricePreview(null); }}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {[1, 2, 3, 4, 5, 6, 7].map(n => (
+                                            <SelectItem key={n} value={n.toString()}>{n}박</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>사이트</Label>
+                                <Select value={modifySiteId} onValueChange={(v) => { setModifySiteId(v); setModifyPricePreview(null); }}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {SITES.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* 가격 미리보기 버튼 */}
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                                if (!selectedReservation || !modifyCheckIn) return;
+                                const site = sites.find(s => s.id === modifySiteId);
+                                if (!site) return;
+                                const newCheckOut = addDays(modifyCheckIn, parseInt(modifyDuration));
+                                const priceBreakdown = calculatePrice(site, modifyCheckIn, newCheckOut, selectedReservation.familyCount, selectedReservation.visitorCount);
+                                setModifyPricePreview({
+                                    oldPrice: selectedReservation.totalPrice,
+                                    newPrice: priceBreakdown.totalPrice,
+                                    diff: priceBreakdown.totalPrice - selectedReservation.totalPrice
+                                });
+                            }}
+                        >
+                            가격 미리보기
+                        </Button>
+
+                        {/* 차액 표시 */}
+                        {modifyPricePreview && (
+                            <div className={`p-4 rounded-lg border-2 ${modifyPricePreview.diff > 0 ? 'bg-amber-50 border-amber-200' : modifyPricePreview.diff < 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className="flex justify-between text-sm mb-2">
+                                    <span>변경 후 금액</span>
+                                    <span className="font-bold">{modifyPricePreview.newPrice.toLocaleString()}원</span>
+                                </div>
+                                <div className={`flex justify-between text-lg font-bold ${modifyPricePreview.diff > 0 ? 'text-amber-700' : modifyPricePreview.diff < 0 ? 'text-green-700' : 'text-gray-700'}`}>
+                                    <span>{modifyPricePreview.diff > 0 ? '추가 입금 필요' : modifyPricePreview.diff < 0 ? '환불 안내' : '동일 금액'}</span>
+                                    <span>{modifyPricePreview.diff > 0 ? '+' : ''}{modifyPricePreview.diff.toLocaleString()}원</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setViewMode('DETAIL')}>취소</Button>
+                        <Button
+                            className="bg-amber-600 hover:bg-amber-700"
+                            disabled={!modifyPricePreview}
+                            onClick={async () => {
+                                if (!selectedReservation || !modifyCheckIn || !modifyPricePreview) return;
+                                const newCheckOut = addDays(modifyCheckIn, parseInt(modifyDuration));
+                                const result = updateReservation(selectedReservation.id, {
+                                    checkInDate: modifyCheckIn,
+                                    checkOutDate: newCheckOut,
+                                    siteId: modifySiteId
+                                });
+                                if (result.success) {
+                                    toast.success(`예약이 변경되었습니다. ${result.diff > 0 ? `추가 입금: ${result.diff.toLocaleString()}원` : result.diff < 0 ? `환불 예정: ${Math.abs(result.diff).toLocaleString()}원` : ''}`);
+
+                                    // 푸시 알림 발송: 예약 변경
+                                    if (selectedReservation.userId) {
+                                        const oldSite = SITES.find(s => s.id === selectedReservation.siteId);
+                                        const newSite = SITES.find(s => s.id === modifySiteId);
+                                        const priceDiffText = result.diff > 0
+                                            ? `\n추가 입금: +${result.diff.toLocaleString()}원`
+                                            : result.diff < 0
+                                                ? `\n환불 금액: ${Math.abs(result.diff).toLocaleString()}원`
+                                                : '';
+                                        await notificationService.dispatchNotification(
+                                            NotificationEventType.RESERVATION_CHANGED,
+                                            selectedReservation.userId,
+                                            {
+                                                oldCheckIn: format(new Date(selectedReservation.checkInDate), 'MM.dd(eee)', { locale: ko }),
+                                                oldCheckOut: format(new Date(selectedReservation.checkOutDate), 'MM.dd(eee)', { locale: ko }),
+                                                oldSiteName: oldSite?.name || selectedReservation.siteId,
+                                                newCheckIn: format(modifyCheckIn, 'MM.dd(eee)', { locale: ko }),
+                                                newCheckOut: format(newCheckOut, 'MM.dd(eee)', { locale: ko }),
+                                                newSiteName: newSite?.name || modifySiteId,
+                                                priceDiff: priceDiffText,
+                                                reservation_id: selectedReservation.id
+                                            },
+                                            selectedReservation.id
+                                        );
+                                    }
+                                    setViewMode(null);
+                                } else {
+                                    toast.error(result.error || '변경 실패');
+                                }
+                            }}
+                        >
+                            변경 확정
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

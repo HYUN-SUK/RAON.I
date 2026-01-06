@@ -7,6 +7,8 @@ import { ko } from 'date-fns/locale';
 import { SITES } from '@/constants/sites';
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
+import { notificationService } from '@/services/notificationService';
+import { NotificationEventType } from '@/types/notificationEvents';
 
 interface ReservationCardProps {
     reservation: Reservation;
@@ -20,23 +22,59 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
     const site = SITES.find(s => s.id === reservation.siteId);
     const [confirmStep, setConfirmStep] = useState<'IDLE' | 'CONFIRMING' | 'CANCELLING'>('IDLE');
 
-    const handleConfirmClick = () => {
+    const handleConfirmClick = async () => {
         if (confirmStep === 'CONFIRMING') {
             updateReservationStatus(reservation.id, 'CONFIRMED');
             // Award XP and Points
             addXp(100);
             addToken(100);
             setConfirmStep('IDLE');
+
+            // 푸시 알림 발송: 입금 확정 (예약 확정)
+            if (reservation.userId) {
+                const siteName = site?.name || reservation.siteId;
+                const checkIn = format(new Date(reservation.checkInDate), 'MM.dd(eee)', { locale: ko });
+                const checkOut = format(new Date(reservation.checkOutDate), 'MM.dd(eee)', { locale: ko });
+                await notificationService.dispatchNotification(
+                    NotificationEventType.DEPOSIT_CONFIRMED,
+                    reservation.userId,
+                    {
+                        siteName,
+                        checkIn,
+                        checkOut,
+                        reservation_id: reservation.id
+                    },
+                    reservation.id
+                );
+            }
         } else {
             setConfirmStep('CONFIRMING');
             setTimeout(() => setConfirmStep('IDLE'), 3000); // Reset after 3s
         }
     };
 
-    const handleCancelClick = () => {
+    const handleCancelClick = async () => {
         if (confirmStep === 'CANCELLING') {
             updateReservationStatus(reservation.id, 'CANCELLED');
             setConfirmStep('IDLE');
+
+            // 푸시 알림 발송: 예약 취소
+            if (reservation.userId) {
+                const siteName = site?.name || reservation.siteId;
+                const checkIn = format(new Date(reservation.checkInDate), 'MM.dd(eee)', { locale: ko });
+                const checkOut = format(new Date(reservation.checkOutDate), 'MM.dd(eee)', { locale: ko });
+                await notificationService.dispatchNotification(
+                    NotificationEventType.RESERVATION_CANCELLED,
+                    reservation.userId,
+                    {
+                        siteName,
+                        checkIn,
+                        checkOut,
+                        reservation_id: reservation.id
+                    },
+                    reservation.id
+                );
+            }
         } else {
             setConfirmStep('CANCELLING');
             setTimeout(() => setConfirmStep('IDLE'), 3000);

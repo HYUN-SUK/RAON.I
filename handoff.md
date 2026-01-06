@@ -1,67 +1,65 @@
 # Handoff Document
 **작성일**: 2026-01-06
 **작업자**: Antigravity (Google Deepmind)
+**세션**: 예약 변경 기능, 푸시 템플릿 상세화, FCM 서버 사이드 코드
 
 ## 📝 세션 요약 (Session Summary)
-이번 세션에서는 SSOT 기반 **상황별 푸시 알림 시스템**을 구현했습니다.
-
-### 1. 알림 이벤트 시스템 구축
-- **15개 알림 이벤트 정의**: 예약/커뮤니티/미션/시스템 카테고리
-- **정책 기반 분기**: 푸시 허용/금지, 조용시간 예외 여부
-- **템플릿 시스템**: 동적 데이터 바인딩 지원
-
-### 2. 인앱 배지 시스템 (In-App Badge)
-- **BottomNav 통합**: 탭별 빨간 dot 배지 표시
-- **자동 해제**: 탭 클릭 시 배지 읽음 처리
-- **실시간 구독**: Supabase Realtime으로 변경 감지
-
-### 3. 관리자 테스트 UI
-- **이벤트 기반 테스트**: `/admin/push`에서 다양한 이벤트 테스트 가능
-- **푸시/배지 분기 확인**: 정책에 따른 동작 검증
-
-### 4. 빈자리 알림 (Waitlist)
-- **대기 신청 버튼**: `WaitlistButton.tsx` 컴포넌트
-- **DB 스키마**: waitlist 테이블 및 RPC 함수
+이번 세션에서는 **예약 변경 기능 구현**과 **푸시 알림 시스템 완료(템플릿 상세화 + Edge Function)**를 진행했습니다.
 
 ---
 
-## 🏗️ 기술적 결정 사항 (Technical Decisions)
-- **조용시간 로직**: 22:00~08:00 KST 기준, 예약 관련 이벤트는 예외 허용
-- **배지 우선 전략**: 푸시 발송 여부와 관계없이 항상 배지도 생성 (fallback)
-- **sites.id 타입**: text 타입 유지 (waitlist FK 호환)
+## ✅ 완료된 작업
+
+### 1. 예약 변경 기능 (관리자 전용)
+- **Store**: `updateReservation` 액션 (일정/사이트 변경 + 중복 검증 + 차액 계산)
+- **UI**: 캘린더 상세 다이얼로그에 '예약 변경' 버튼 → 변경 폼 모달
+- **기능**: 입실일/기간/사이트 변경 시 실시간 가격 차액 계산 및 표시
+- **연동**: 변경 확정 시 `RESERVATION_CHANGED` 푸시 알림 발송
+
+### 2. 푸시 알림 고도화
+- **템플릿 상세화**:
+  - `RESERVATION_SUBMITTED`: 입금 계좌/금액/기한 정보 포함
+  - `RESERVATION_CONFIRMED`: 입퇴실 시간, 매너타임 등 이용안내 포함
+  - `RESERVATION_CHANGED`: 변경 전/후 일정, 차액 정보 포함
+- **예약 완료 알림**: `ReservationCompletePage` 진입 시 알림 발송 (단, UUID 없는 Guest는 제외)
+- **안전장치**: `notificationService.ts`에 UUID 검증 로직 추가 (Guest insert 오류 방지)
+
+### 3. 실제 FCM 발송 (서버 사이드)
+- **Edge Function 코드 작성**: `supabase/functions/push-notification/index.ts`
+- **로직**: `notifications` 테이블 Insert 트리거 → Google OAuth → FCM HTTP v1 API 전송
 
 ---
 
 ## 🚦 다음 작업 가이드 (Next Steps)
 
-### 우선순위 HIGH
-1. **실제 푸시 발송 연동**: Firebase Cloud Functions로 `notifications` 테이블 INSERT 트리거 구현
-2. **예약 서비스 통합**: 예약 확정/취소 시 `notificationService.dispatchNotification()` 호출
+### ⚠️ 필수 실행 (Action Required)
+1. **DB 마이그레이션 적용**
+   - 파일: `supabase/migrations/20260106_notifications_v2.sql`
+   - Supabase 대시보드 SQL Editor에서 실행하여 테이블에 `event_type`, `data`, `sent_at` 컬럼 추가
 
-### 우선순위 MEDIUM
-3. **커뮤니티 이벤트 연동**: 좋아요/댓글 작성 시 작성자에게 배지 알림
-4. **미션 보상 연동**: 미션 완료 시 보상 알림
-5. **빈자리 알림 트리거**: 예약 취소 시 waitlist 대기자에게 알림
-
-### 우선순위 LOW
-6. **알림 히스토리 UI**: 사용자가 받은 알림 목록 조회 페이지
-7. **알림 설정 UI**: 사용자별 알림 수신 설정
-
----
-
-## ⚠️ 주의 사항 (Notes)
-- **DB 스키마 적용 필수**: `20260106_in_app_badges.sql`, `20260106_waitlist.sql` 실행 (완료됨)
-- **Firebase 환경변수**: 실제 푸시 발송을 위해 `.env.local`에 Firebase 설정 필요
-- **Lint 경고**: `exhaustive-deps` 2개는 의도적인 구현 (무한 루프 방지)
+2. **Edge Function 배포 및 설정**
+   - **배포**: `supabase functions deploy push-notification`
+   - **환경변수 설정** (`.env.local` 내용 참고하여 Supabase Secrets에 등록):
+     - `FIREBASE_PROJECT_ID`
+     - `FIREBASE_CLIENT_EMAIL`
+     - `FIREBASE_PRIVATE_KEY` (JSON의 private_key 값 전체)
+     - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+   - **Webhook 연결**: `notifications` 테이블 INSERT 시 해당 Edge Function 호출하도록 Database Webhook 설정 (또는 SQL 내 `pg_notify` 리스너 구현)
 
 ---
 
-## 📁 생성된 파일
-| 파일 | 설명 |
-|------|------|
-| `src/types/notificationEvents.ts` | 15개 알림 이벤트 타입 및 정책 정의 |
-| `src/services/notificationService.ts` | 조용시간 + 푸시/배지 분기 서비스 |
-| `src/hooks/useInAppBadge.ts` | 탭별 배지 관리 훅 |
-| `src/components/reservation/WaitlistButton.tsx` | 빈자리 알림 신청 버튼 |
-| `supabase/migrations/20260106_in_app_badges.sql` | 인앱 배지 DB 스키마 |
-| `supabase/migrations/20260106_waitlist.sql` | 빈자리 대기 DB 스키마 |
+## 📁 수정된 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/store/useReservationStore.ts` | 예약 변경 액션 추가 |
+| `src/components/admin/UnifiedReservationCalendar.tsx` | 예약 변경 UI 구현 |
+| `src/types/notificationEvents.ts` | 알림 템플릿 상세화 |
+| `src/services/notificationService.ts` | UUID 검증 로직 추가 (Crash 방지) |
+| `supabase/functions/push-notification/index.ts` | FCM 발송 Edge Function (신규) |
+
+---
+
+## 🔍 검증 결과
+- **예약 변경**: 캘린더에서 정상적으로 변경 및 차액 계산 확인.
+- **알림 큐**: Admin 페이지에서 `RESERVATION_CONFIRMED` 등 알림 큐 적재 확인.
+- **Guest 처리**: 비로그인 예약 시 알림 발송 시도 차단하여 에러 방지 확인.

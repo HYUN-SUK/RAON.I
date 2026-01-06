@@ -21,7 +21,7 @@
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
-| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 95% | Deep Refactoring 완료. Push/Badge 시스템 구현. 실제 FCM 발송 연동 대기. |
+| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
 
 ---
 
@@ -200,6 +200,11 @@
         *   [ ] DB Schema Sync: `npx supabase gen types typescript` (15min)
         *   [ ] Remove `ignoreBuildErrors` flag (5min)
         *   [ ] Fix remaining type errors (0-5 expected) (30min)
+    *   **8.5 Push & Reservation Sync** ✅ (2026-01-06):
+        *   [x] **예약 변경 기능 (Admin Modify)**: 차액 계산 및 푸시 알림.
+        *   [x] **푸시 알림 고도화 (Templates)**: 상세 정보(계좌, 일정) 포함.
+        *   [x] **예약 완료 알림 (Trigger)**: Guest 예외 처리 및 실시간 발송.
+        *   [x] **FCM Edge Function**: Google Auth + FCM HTTP v1 API 작성 완료.
 
 
 ---

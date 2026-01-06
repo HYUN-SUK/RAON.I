@@ -80,7 +80,14 @@
   - [x] BottomNav 배지 UI 통합 - 빨간 dot 표시 + 탭 클릭 시 해제
   - [x] 빈자리 알림 버튼 (`WaitlistButton.tsx`)
   - [x] 관리자 알림 테스트 UI (`/admin/push`)
-  - [ ] **DB 스키마 적용 대기**: `20260106_in_app_badges.sql`, `20260106_waitlist.sql`
+  - [x] **FCM 서비스 워커 활성화** (`firebase-messaging-sw.js`) - 백그라운드 메시지 수신, 알림 클릭 핸들러
+  - [x] **예약 서비스 통합**: `ReservationCard.tsx`에서 입금 확정/예약 취소 시 푸시 알림 발송
+  - [x] **DB 스키마 v2**: `20260106_notifications_v2.sql` - event_type, data, quiet_hours_override 컬럼 추가
+  - [x] **예약 변경 기능**: `updateReservation` 액션 + 캘린더 변경 모달 UI (입실일/기간/사이트) + 차액 계산
+  - [x] **푸시 템플릿 상세화**: RESERVATION_SUBMITTED(입금안내), CONFIRMED(이용안내), CHANGED(변경내역), CANCELLED(취소)
+  - [x] **예약 완료 시 알림**: 예약 완료 페이지에서 RESERVATION_SUBMITTED 발송 연동 (Guest 제외 로직 추가)
+  - [x] **실제 FCM 발송**: `supabase/functions/push-notification` 작성 완료 (배포 필요)
+  - [ ] **DB 스키마 적용 대기**: Supabase 대시보드에서 마이그레이션 실행 필요
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
 
