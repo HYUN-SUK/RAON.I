@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { Database } from '@/types/supabase';
 import { useWeather, WeatherType } from '@/hooks/useWeather';
+import { useLBS } from '@/hooks/useLBS';
 
 type RecommendationItem = Database['public']['Tables']['recommendation_pool']['Row'];
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
+type UserProfile = Database['public']['Tables']['profiles']['Row'];
 
 interface PersonalizedData {
     cooking: RecommendationItem | null;
@@ -20,9 +22,8 @@ interface PersonalizedData {
         cooking: string;
         play: string;
     };
+    userProfile?: UserProfile | null;
 }
-
-import { useLBS } from '@/hooks/useLBS';
 
 interface TagData {
     season?: string[];
@@ -40,7 +41,8 @@ export function usePersonalizedRecommendation() {
             weather: 'unknown',
             temp: null,
             greeting: '반가워요, 캠퍼님'
-        }
+        },
+        userProfile: null
     });
 
     const [loading, setLoading] = useState(true);
@@ -64,32 +66,40 @@ export function usePersonalizedRecommendation() {
     };
 
     // Helper: Get Contextual Greeting
-    const getGreeting = (time: string, weatherType: WeatherType) => {
-        if (weatherType === 'rainy') return '빗소리와 함께하는 우중캠핑 ☔';
-        if (weatherType === 'snowy') return '눈 내리는 날의 낭만 ❄️';
-        if (weatherType === 'sunny' && time === 'afternoon') return '햇살 좋은 오후네요 ☀️';
+    const getGreeting = (time: string, weatherType: WeatherType, nickname?: string) => {
+        const name = nickname ? `${nickname}님` : '캠퍼님';
 
-        if (time === 'morning') return '상쾌한 아침 시작하세요 🌿';
-        if (time === 'afternoon') return '나른한 오후, 활력이 필요해요 ☕';
-        if (time === 'evening') return '맛있는 저녁 식사 하셨나요? 🍖';
-        if (time === 'night') return '별 보기 좋은 고요한 밤 🌙';
+        if (weatherType === 'rainy') return `빗소리와 함께, ${name} ☔`;
+        if (weatherType === 'snowy') return `눈 내리는 날, ${name} ❄️`;
 
-        return '반가워요, 캠퍼님';
+        if (time === 'morning') return `상쾌한 아침이에요, ${name} 🌿`;
+        if (time === 'afternoon') return `나른한 오후, ${name} 화이팅 ☕`;
+        if (time === 'evening') return `맛있는 저녁 되세요, ${name} 🍖`;
+        if (time === 'night') return `별이 빛나는 밤, ${name} 🌙`;
+
+        return `반가워요, ${name}`;
     };
 
-    // Derived Context (calculated on every render to ensure freshness)
+    // Derived Context
     const timeCtx = getTimeContext();
-    const context = {
-        time: timeCtx,
-        weather: weather.type,
-        temp: weather.temp,
-        greeting: getGreeting(timeCtx, weather.type)
-    };
 
     useEffect(() => {
         async function fetchRecommendations() {
             setLoading(true);
             try {
+                // 0. Fetch User Profile
+                const { data: { user } } = await supabase.auth.getUser();
+                let userProfile: UserProfile | null = null;
+
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    userProfile = profile;
+                }
+
                 // Determine Season
                 const month = new Date().getMonth() + 1;
                 let currentSeason = 'winter';
@@ -107,7 +117,7 @@ export function usePersonalizedRecommendation() {
                 let playItem: RecommendationItem | null = null;
 
                 if (poolData) {
-                    // 2. Score Items
+                    // 2. Score Items with Personalization
                     const scoredItems = poolData.map(item => {
                         let score = 0;
                         const tags = item.tags as unknown as TagData || {};
@@ -135,15 +145,28 @@ export function usePersonalizedRecommendation() {
                                 if (isOutdoor) score -= 50;
                             } else if (isSunny) {
                                 if (isOutdoor) score += 30;
-                                if (weather.type === 'sunny' && context.time === 'night') {
+                                if (weather.type === 'sunny' && timeCtx === 'night') {
                                     if (item.title.includes('별') || item.title.includes('불멍')) score += 50;
+                                }
+                            }
+
+                            // [Personalization: Family]
+                            if (userProfile?.family_type === 'family') {
+                                if (tags.age_group === 'kids' || item.title.includes('아이') || item.title.includes('가족')) {
+                                    score += 40;
+                                }
+                            }
+                            // [Personalization: Couple]
+                            if (userProfile?.family_type === 'couple') {
+                                if (item.title.includes('커플') || item.title.includes('2인')) {
+                                    score += 30;
                                 }
                             }
                         }
 
                         // [Time - Cooking]
                         if (category === 'cooking') {
-                            const time = context.time;
+                            const time = timeCtx;
                             const title = item.title.toLowerCase();
                             const desc = item.description?.toLowerCase() || '';
                             const combined = title + " " + desc;
@@ -157,6 +180,11 @@ export function usePersonalizedRecommendation() {
                                 if (combined.includes('안주') || combined.includes('꼬치') || combined.includes('어묵')) score += 40;
                                 if (combined.includes('가벼운') || combined.includes('간단')) score += 20;
                             }
+
+                            // [Personalization: Interests]
+                            if (userProfile?.interests && userProfile.interests.includes('cooking')) {
+                                score += 20; // General cooking interest boost
+                            }
                         }
 
                         return { ...item, score };
@@ -165,35 +193,37 @@ export function usePersonalizedRecommendation() {
                     // 3. Separate & Pick Top 5 -> Random
                     const cookings = scoredItems.filter(i => i.category === 'cooking' && i.score > -50).sort((a, b) => b.score - a.score);
                     const plays = scoredItems.filter(i => i.category === 'play' && i.score > -50).sort((a, b) => b.score - a.score);
-                    // Final Selection with Reason
+
                     const topCookings = cookings.slice(0, 5);
                     const topPlays = plays.slice(0, 5);
 
                     if (topCookings.length > 0) {
-                        const selected = topCookings[Math.floor(Math.random() * topCookings.length)];
-                        cookingItem = selected;
+                        cookingItem = topCookings[Math.floor(Math.random() * topCookings.length)];
                     } else if (cookings.length > 0) {
                         cookingItem = cookings[Math.floor(Math.random() * cookings.length)];
                     }
 
                     if (topPlays.length > 0) {
-                        const selected = topPlays[Math.floor(Math.random() * topPlays.length)];
-                        playItem = selected;
+                        playItem = topPlays[Math.floor(Math.random() * topPlays.length)];
                     } else if (plays.length > 0) {
                         playItem = plays[Math.floor(Math.random() * plays.length)];
                     }
                 }
 
-                // Reasons based on Context
-                const cookingReason = (context.time === 'morning') ? '상쾌한 아침을 여는 메뉴' :
-                    (context.time === 'evening') ? '캠핑의 꽃, 저녁 바비큐' :
-                        (context.time === 'night') ? '깊어가는 밤, 감성 야식' : '활력 넘치는 점심 메뉴';
+                // Reasons based on Context & Profile
+                let cookingReason = (timeCtx === 'morning') ? '상쾌한 아침을 여는 메뉴' :
+                    (timeCtx === 'evening') ? '캠핑의 꽃, 저녁 바비큐' :
+                        (timeCtx === 'night') ? '깊어가는 밤, 감성 야식' : '활력 넘치는 점심 메뉴';
 
-                const playReason = (weather.type === 'rainy') ? '비 오는 날, 텐트 안에서' :
+                let playReason = (weather.type === 'rainy') ? '비 오는 날, 텐트 안에서' :
                     (weather.type === 'snowy') ? '눈 내리는 날의 추억' :
-                        (context.time === 'night') ? '별 헤는 밤, 감성 놀이' : '햇살 좋은 날의 액티비티';
+                        (timeCtx === 'night') ? '별 헤는 밤, 감성 놀이' : '햇살 좋은 날의 액티비티';
 
-                // Fetch Nearby Events from API (not DB) for consistency with NearbyDetailSheet
+                if (userProfile?.family_type === 'family' && playItem?.tags && (playItem.tags as any).age_group === 'kids') {
+                    playReason = "아이들과 함께 즐기는 시간 👨‍👩‍👧‍👦";
+                }
+
+                // Fetch Nearby Events from API
                 let apiEvents: NearbyEvent[] = [];
                 try {
                     const lat = lbs.location?.latitude || 36.67;
@@ -202,7 +232,6 @@ export function usePersonalizedRecommendation() {
                     if (res.ok) {
                         const result = await res.json();
                         if (result.events && result.events.length > 0) {
-                            // Map API response to NearbyEvent type
                             apiEvents = result.events.slice(0, 3).map((e: any) => ({
                                 id: e.id || 0,
                                 title: e.title,
@@ -219,7 +248,7 @@ export function usePersonalizedRecommendation() {
                         }
                     }
                 } catch {
-                    // Silently fallback to empty
+                    // Silently fallback
                 }
 
                 // Update State
@@ -228,13 +257,16 @@ export function usePersonalizedRecommendation() {
                     play: playItem,
                     events: apiEvents,
                     context: {
-                        ...context,
-                        greeting: getGreeting(context.time, weather.type)
+                        time: timeCtx,
+                        weather: weather.type,
+                        temp: weather.temp,
+                        greeting: getGreeting(timeCtx, weather.type, userProfile?.nickname || undefined)
                     },
                     reasons: {
                         cooking: cookingReason,
                         play: playReason
-                    }
+                    },
+                    userProfile
                 });
 
             } catch (error) {
@@ -244,10 +276,9 @@ export function usePersonalizedRecommendation() {
             }
         }
 
-        // Trigger fetch
         fetchRecommendations();
 
-    }, [weather.type, refreshTrigger, context.time]);
+    }, [weather.type, refreshTrigger, timeCtx]);
 
     const shuffle = () => setRefreshTrigger(prev => prev + 1);
 

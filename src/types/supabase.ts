@@ -383,6 +383,44 @@ export interface Database {
                     content?: string
                 }
             }
+            profiles: {
+                Row: {
+                    id: string
+                    updated_at: string | null
+                    nickname: string | null
+                    avatar_url: string | null
+                    website: string | null
+                    email: string | null
+                    role: string | null
+                    family_type: string | null
+                    interests: string[] | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id: string
+                    updated_at?: string | null
+                    nickname?: string | null
+                    avatar_url?: string | null
+                    website?: string | null
+                    email?: string | null
+                    role?: string | null
+                    family_type?: string | null
+                    interests?: string[] | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    updated_at?: string | null
+                    nickname?: string | null
+                    avatar_url?: string | null
+                    website?: string | null
+                    email?: string | null
+                    role?: string | null
+                    family_type?: string | null
+                    interests?: string[] | null
+                    created_at?: string | null
+                }
+            },
             system_config: {
                 Row: {
                     id: number

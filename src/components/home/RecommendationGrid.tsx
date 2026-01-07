@@ -146,7 +146,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
                     return (
                         <div
                             key={item.id}
-                            onClick={() => item.data && onItemClick && onItemClick(item.data)}
+                            onClick={() => item.data && onItemClick && onItemClick(item.data, item.reason)}
                             className={`
                                 ${item.bgColorClass} 
                                 ${isWide ? 'col-span-2 flex-row items-center px-6' : 'col-span-1 flex-col items-start p-4'} 

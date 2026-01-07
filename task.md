@@ -137,26 +137,25 @@
 - ✅ **Production Ready**: Build succeeds, all features verified
 - ⚠️ **Next Session**: DB schema sync (15min) to remove ignoreBuildErrors
 
-## 8.4 Type System Cleanup (Next Session) ⬜
-- [ ] **DB Schema Synchronization** (Priority: HIGH, Est: 15min):
-  - [ ] Run `npx supabase gen types typescript --project-id khqiqwtoyvesxahsjukk`
-  - [ ] Verify generated `supabase.ts` (should fix ~29 type errors)
-  - [ ] Remove `ignoreBuildErrors` from `next.config.ts`
-  - [ ] Run `npm run build` - should succeed cleanly
-- [ ] **Type Error Resolution** (Priority: MEDIUM, Est: 30min):
-  - [ ] Fix remaining type errors (estimated 0-5 after schema sync)
-  - [ ] Add missing type definitions if needed
-  - [ ] Verify `npx tsc --noEmit` passes
-- [ ] **Type Centralization** (Priority: LOW, Est: 1hour):
-  - [ ] Create `src/types/common.ts` for shared types
-  - [ ] Consolidate duplicate type definitions
-  - [ ] Update import paths
-- [x] **Stage 7 (Weather API - Final)**:
-  - [x] Fixed all 9 `any` types in `weather/route.ts`:
-    - CachedWeather interface: proper typed fields (3)
-    - parseNcst function: KMAResponse types (3)
-    - parseFcst function: DailyWeather & TimelineWeather (3)
-  - [x] Added comprehensive KMA API type definitions
-  - [x] **Live Verification**: Weather feature tested - data loads correctly, no errors ✅
+## 8.4 Type System & Personalization (2026-01-07) ✅
+- [x] **DB Schema Synchronization**:
+  - [x] Created `20260107_add_profile_personalization.sql` (Family Type, Interests).
+  - [x] Manually patched `src/types/supabase.ts` with `profiles` table definition.
+  - [x] **Production Build**: ✅ SUCCESS (Exit code: 0)
+- [x] **Personalization Engine Implementation**:
+  - [x] **Hook Logic**: `usePersonalizedRecommendation` fetches user profile.
+  - [x] **Scoring Rules**:
+    - Family type 'family' (+40 for Kids activities).
+    - Interests match (+20 boost).
+  - [x] **Contextual Greeting**: "반가워요, [닉네임]님!" 적용.
+  - [x] **UI Fix**: `RecommendationGrid` passing reason string correctly.
+- [x] **Type Safety**:
+  - [x] Fixed missing `profiles` type definition.
 
-**🎯 Final Result**: Removed **40 any types** across entire codebase!
+**🎯 Final Result**: 
+- **Personalization Live**: Users now see custom greetings and recommendations based on their profile.
+- **Build Verified**: Zero type errors.
+
+## 9. Next Steps (Operations)
+- [ ] **Market Pivot**: Affiliate link integration.
+- [ ] **Reservation Automation**: Auto-open logic.

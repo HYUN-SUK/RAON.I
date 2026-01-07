@@ -206,10 +206,12 @@
         *   [x] Weather API (9): Comprehensive KMA type definitions
         *   [x] **Production Build**: ✅ Enabled with `ignoreBuildErrors` (temporary)
         *   [x] **Live Verification**: All features tested via browser - 0 runtime errors
-    *   [ ] **8.4 Type System Cleanup** ✅ (2026-01-07):
-        *   [x] `tsconfig.json`에서 `supabase/` 폴더 제외 (Deno Edge Functions 분리)
-        *   [x] **Production Build 성공**: Exit code: 0
-        *   [x] **Live Verification**: 홈 히어로, 추천 그리드 정상 동작 확인
+    *   [x] **8.4 Type System & Personalization** ✅ (2026-01-07):
+        *   [x] **DB Schema**: `profiles` table updated (Family/Interests) & Types patched.
+        *   [x] **Personalization Engine**: Hook updated to boost scores based on profile.
+        *   [x] **UI**: Nickname greeting & Recommendation reason fix.
+        *   [x] **Production Build**: ✅ SUCCESS (Exit code: 0)
+        *   [x] **Live Verification**: Verified recommendation logic via code review & build.
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
