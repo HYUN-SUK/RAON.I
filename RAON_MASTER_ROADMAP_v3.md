@@ -171,6 +171,8 @@
 *   **7.3 내공간 고도화 (My Space Pivot)** ✅:
     *   [x] **위치 기반 편의시설**: `site_config.nearby_places`와 연동된 주변 편의시설 탭 구현.
     *   [x] **주변 즐길거리**: `nearby_events` DB 연동 및 LBS.
+    *   [x] **Fallback 데이터 개선 (2026-01-07)**: 가평 → 예산군 데이터 변경, 검색 반경 10km → 20km 확장.
+    *   [x] **행사 UI 개선**: 이미지 제거, 진행중 뱃지 이동, 상세보기 버튼(TourAPI 연동).
     *   [x] **Archive UX (New)**: 불멍/별보기/꾸미기 버튼 삭제. 사진 업로드 및 뷰어 품질 강화.
     *   [x] **Action**: '기록하기(Log)' 버튼 강조 및 접근성 개선.
     *   [x] **일관성**: 내공간 전반(Records, Album, History)의 도구 UI 경험 통일.
