@@ -43,8 +43,8 @@ interface KakaoAPIResponse {
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const lat = searchParams.get('lat') || '37.7749';
-        const lng = searchParams.get('lng') || '127.5101';
+        const lat = searchParams.get('lat') || '36.67'; // 기본값: 예산군 응봉면
+        const lng = searchParams.get('lng') || '126.83';
         const radius = searchParams.get('radius') || '10000'; // 10km
 
         if (!KAKAO_API_KEY) {

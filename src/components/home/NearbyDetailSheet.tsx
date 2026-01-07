@@ -74,8 +74,8 @@ export default function NearbyDetailSheet({
     useEffect(() => {
         if (!isOpen || !enableApiCall) return;
 
-        const lat = userLocation?.latitude || 37.7749;
-        const lng = userLocation?.longitude || 127.5101;
+        const lat = userLocation?.latitude || 36.67; // 기본값: 예산군 응봉면
+        const lng = userLocation?.longitude || 126.83;
 
         // Fetch Events from TourAPI
         const fetchEvents = async () => {
