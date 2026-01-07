@@ -1,45 +1,38 @@
-# Handoff Document - Personalization & UI Enhancement
+# Handoff Document - Type System Cleanup
 
 ## 📅 Session Summary
-**Date:** 2026-01-06
-**Objective:** Personalization Engine Implementation & Home UI Overhaul
+**Date:** 2026-01-07
+**Objective:** Phase 8.4 Type System Cleanup & Build Stabilization
 
-This session focused on upgrading the static recommendation system to a **Context-Aware Personalization Engine (v9.0)**. We implemented rule-based scoring (Season, Weather, Time), added a "Shuffle" feature, and improved the Home UI/UX to display these dynamic recommendations with rich details.
+이번 세션에서 Production Build 안정화를 완료했습니다. Supabase Edge Functions (Deno 런타임)를 Next.js 빌드에서 분리하여 타입 충돌 없이 클린 빌드를 달성했습니다.
 
 ## ✅ Completed Tasks
-1.  **Personalization Engine Upgrade (`usePersonalizedRecommendation.ts`)**:
-    *   **Scoring Logic**: Implemented `season`, `weather` (rain/snow/sun), and `time` (morning/afternoon/evening/night) scoring.
-    *   **Reason Generation**: Added dynamic "Why This?" reasons (e.g., "☔ 비 오는 날, 텐트 안에서", "🌙 달밤의 야식 PICK").
-    *   **Shuffle Mechanism**: Added `shuffle()` function to re-roll top-scored candidates randomly ("Random Box" concept).
+1.  **Build Configuration Fix**:
+    *   `tsconfig.json`에 `"supabase"` 폴더를 exclude에 추가하여 Deno Edge Functions 분리.
+    *   `npm run build` **Exit code: 0** (클린 빌드 성공).
 
-2.  **UI/UX Enhancements**:
-    *   **`HomeDetailSheet.tsx` Overhaul**:
-        *   Added **Shuffle Button** ("다른 추천 뽑기 🎲") to allow users to request new recommendations directly from the detail view.
-        *   Added **Context Badge** ("✨ Recommendation Reason") to the header.
-        *   Restored and styled **Rich Content Sections**: Info Bar (Time/Difficulty), Ingredients Checklist, Timeline Steps, and Honey Tips.
-    *   **`RecommendationGrid.tsx`**: Refactored to receive data as props, preventing double-fetching and enabling parent interactions (Shuffle).
-    *   **Home Components (`BeginnerHome`, `ReturningHome`)**: Connected the new hook and passed `shuffle` and `data` props correctly.
+2.  **Live Verification**:
+    *   홈 히어로 섹션: "상쾌한 아침" 인사말, 날씨 배지 정상 출력.
+    *   추천 그리드: 오늘의 셰프(김치찌개), 오늘의 놀이(마라톤), 주변 행사(별빛 수목원) 표시.
+    *   Level/Token 시스템: Level 3, Raon Token 24개 정상 표시.
 
 ## 🛠️ Technical Decisions
-*   **Client-Side "AI"**: We opted for a lightweight, client-side rule-based system instead of a heavy server-side ML model to maintain low latency and zero cost, aligning with the "MVP" approach.
-*   **Props Drilling for Shuffle**: To keep `RecommendationGrid` pure and reusable, the `shuffle` function is passed down from the top-level page component (`BeginnerHome`) -> `HomeDetailSheet`.
+*   **Edge Functions 분리**: `supabase/functions/` 폴더는 Deno 런타임용이므로 Next.js 빌드에서 제외. 해당 함수들은 Supabase 대시보드에서 별도 배포.
+*   **eslint ignoreDuringBuilds 유지**: ESLint 경고는 빌드를 막지 않도록 설정 유지 (필요시 점진적 정리).
 
 ## 🚧 Next Steps
-1.  **Phase 8.4 Type System Cleanup**:
-    *   Run `npx supabase gen types typescript` to ensure DB schema changes (e.g., new recommendation tags) are fully synchronized.
-    *   Fix any residual `any` types in `RecommendationGrid` or Home components.
-2.  **Test in Production Build**:
-    *   Run `npm run build` to verify no strict type errors block deployment.
-3.  **Expanded Data Pool**:
-    *   Add more "Play" items to the database to make the Shuffle feature more effective (currently limited pool might show repeats).
+1.  **Supabase Edge Function 배포**:
+    *   `supabase/functions/push-notification/` → Supabase 대시보드에서 수동 배포 필요.
+    *   환경 변수 설정: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`.
+2.  **DB Schema 동기화 (선택)**:
+    *   Supabase CLI 인증 후 `npx supabase gen types typescript` 실행.
+    *   현재 빌드는 기존 타입 파일로 정상 동작 중.
+3.  **점진적 Lint 정리**:
+    *   `eslint ignoreDuringBuilds` 해제 전 경고 정리.
 
 ## ⚠️ Known Issues / Caveats
-*   **LBS Location**: Localhost might trigger `LBS Access Denied` if browser permissions are blocked. This falls back to default location (Camping Site).
-*   **Data Completeness**: Some older recommendation items in the DB might lack `process_steps` or `ingredients`, causing empty sections in the detail sheet. We added conditional rendering to handle this gracefully.
+*   **LBS 폴백**: 브라우저 위치 권한 거부 시 기본 위치(가평군)로 폴백 - 정상 동작.
+*   **Supabase CLI 인증**: 로컬에서 `npx supabase gen types` 실행 시 인증 필요.
 
 ## 📝 Modified Files
-*   `src/hooks/usePersonalizedRecommendation.ts`
-*   `src/components/home/HomeDetailSheet.tsx`
-*   `src/components/home/RecommendationGrid.tsx`
-*   `src/components/home/BeginnerHome.tsx`, `ReturningHome.tsx`
-*   `task.md`, `implementation_plan.md`
+*   `tsconfig.json` (supabase 폴더 제외)
