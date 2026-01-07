@@ -194,8 +194,8 @@ export function usePersonalizedRecommendation() {
                     const cookings = scoredItems.filter(i => i.category === 'cooking' && i.score > -50).sort((a, b) => b.score - a.score);
                     const plays = scoredItems.filter(i => i.category === 'play' && i.score > -50).sort((a, b) => b.score - a.score);
 
-                    const topCookings = cookings.slice(0, 5);
-                    const topPlays = plays.slice(0, 5);
+                    const topCookings = cookings.slice(0, 50);
+                    const topPlays = plays.slice(0, 50);
 
                     if (topCookings.length > 0) {
                         cookingItem = topCookings[Math.floor(Math.random() * topCookings.length)];

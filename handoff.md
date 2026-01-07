@@ -6,24 +6,20 @@
 
 ## ✅ 완료된 작업
 
-### 1. 개인화 추천 엔진 구현 (Personalization L0)
-- **홈 화면**: 로그인한 사용자의 프로필 정보(`family_type`, `interests`, `nickname`)를 기반으로 인사말과 추천 항목이 변경됩니다.
-- **로직 개선**:
-  - `userProfile` Fetch 로직 추가.
-  - **가족(family)**: '아이', '가족', '키즈' 태그가 포함된 놀이 항목 점수 +40.
-  - **커플(couple)**: '커플', '2인' 관련 항목 점수 +30.
-  - **관심사(Interests)**: 일치하는 카테고리 항목 점수 +20.
-- **버그 수정**: `RecommendationGrid`에서 추천 사유(`reason`)가 UI에 전달되지 않던 버그 수정.
-- **[수정 파일]**: `src/hooks/usePersonalizedRecommendation.ts`, `src/components/home/RecommendationGrid.tsx`
+### 1. 개인화 추천 엔진 (Personalization L0)
+- **홈 화면**: `usePersonalizedRecommendation` 훅 고도화.
+  - **가족(Family)**: '키즈', '아이' 태그 항목 +40점.
+  - **관심사(Interests)**: 일치하는 카테고리 +20점.
+  - **다양성 확보**: 추천 후보군(Pool)을 상위 5개에서 **50개**로 확장하여 랜덤 다양성 증대.
+- **UI**: 로그인한 닉네임("반가워요, OO님!") 표시 및 추천 사유(Reason) 전달 버그 수정.
 
-### 2. 관리자 페이지 UI 개선 (Ad-hoc)
-- **삭제 다이얼로그**: `confirm()` 팝업이 바로 사라지는 문제를 해결하기 위해 `AlertDialog` 컴포넌트로 교체.
-- **[수정 파일]**: `src/app/admin/recommendations/page.tsx`
+### 2. 관리자 페이지 개선
+- **삭제 다이얼로그**: `confirm()` 팝업 불안정 문제 해결을 위해 **`AlertDialog`** (Shadcn UI) 도입.
+- **위치**: `src/app/admin/recommendations/page.tsx`
 
-### 3. DB 스키마 동기화 및 빌드 정상화
-- **DB 마이그레이션**: `profiles` 테이블에 `family_type`, `interests` 컬럼 추가 완료.
-- **타입 패치**: `src/types/supabase.ts`에 `profiles` 테이블 정의 수동 추가 (CLI 실패 대응).
-- **빌드 성공**: `npm run build` 검증 완료 (Exit Code 0).
+### 3. 시스템 안정화
+- **DB 동기화**: `profiles` 테이블(가족/관심사 추가) 마이그레이션 적용.
+- **타입 & 빌드**: `src/types/supabase.ts` 수동 패치로 빌드 오류 0건 달성 (`ignoreBuildErrors` 제거).
 
 ---
 
@@ -31,29 +27,28 @@
 
 | 결정 | 이유 |
 |------|------|
-| **DB 타입 수동 패치** | Supabase CLI 인증 문제로 자동 생성이 불가하여, 긴급 빌드 정상화를 위해 수동으로 타입 정의 추가 |
-| **Hook 덮어쓰기** | 로직 변경 범위가 커서 部分 수정 대신 `usePersonalizedRecommendation` 전체 로직 재작성 |
+| **후보군 Top 50 확장** | 250개 이상의 콘텐츠가 쌓이면서, Top 5 제한이 추천 다양성을 심각하게 저해함. |
+| **Alert Dialog 도입** | 브라우저 네이티브 `confirm`이 일부 환경에서 즉시 닫히는 현상 발생, UX 안정성을 위해 교체. |
 
 ---
 
-## 📋 다음 세션 우선 작업
+## 📋 다음 세션 우선 작업 (Operations)
 
-1. **Market Pivot**: 외부 제휴 링크(쿠팡 파트너스 등) 지원 구조로 변경.
-2. **Reservation Automation**: 매월 1일 자동 예약 오픈 로직 구현.
-3. **Supabase CLI 설정**: 인증 토큰 갱신하여 `gen types` 자동화 복구 권장.
+1. **Market Pivot**: 수익 모델 강화를 위한 제휴 링크(Affiliate Link) 필드 및 UI 추가.
+2. **Reservation Automation**: 매월 1일 예약 자동 오픈을 위한 Edge Function 또는 스케줄러 구현.
 
 ---
 
 ## 📁 수정된 파일 목록
 
 ```
-src/types/supabase.ts (Manual Patch)
-src/hooks/usePersonalizedRecommendation.ts (Logic Update)
-src/components/home/RecommendationGrid.tsx (Bug Fix)
-supabase/migrations/20260107_add_profile_personalization.sql (New)
-task.md
+src/types/supabase.ts
+src/hooks/usePersonalizedRecommendation.ts
+src/components/home/RecommendationGrid.tsx
+src/app/admin/recommendations/page.tsx
+supabase/migrations/20260107_add_profile_personalization.sql
 ```
 
 ---
 
-**Git Commit**: `feat(personalization): Implement user profile based recommendation & build fix`
+**Git Commit**: `fix(admin): Replace confirm with AlertDialog & Improve Rec Variety`

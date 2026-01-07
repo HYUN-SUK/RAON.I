@@ -149,11 +149,15 @@
     - Interests match (+20 boost).
   - [x] **Contextual Greeting**: "반가워요, [닉네임]님!" 적용.
   - [x] **UI Fix**: `RecommendationGrid` passing reason string correctly.
+  - [x] **Variety Improvement**: Increased candidate pool to Top 50 (from 5).
+- [x] **Admin Operations**:
+  - [x] **UI Fix**: Replaced `confirm()` with `AlertDialog` for robust deletion in Recommendations board.
 - [x] **Type Safety**:
   - [x] Fixed missing `profiles` type definition.
 
 **🎯 Final Result**: 
 - **Personalization Live**: Users now see custom greetings and recommendations based on their profile.
+- **Improved UX**: Admin deletion is stable, and recommendations are more diverse.
 - **Build Verified**: Zero type errors.
 
 ## 9. Next Steps (Operations)

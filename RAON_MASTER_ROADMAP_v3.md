@@ -210,6 +210,8 @@
         *   [x] **DB Schema**: `profiles` table updated (Family/Interests) & Types patched.
         *   [x] **Personalization Engine**: Hook updated to boost scores based on profile.
         *   [x] **UI**: Nickname greeting & Recommendation reason fix.
+        *   [x] **Logic**: Expanded pool to Top 50 for variety.
+        *   [x] **Admin**: Replaced deletion popup with AlertDialog.
         *   [x] **Production Build**: ✅ SUCCESS (Exit code: 0)
         *   [x] **Live Verification**: Verified recommendation logic via code review & build.
 
