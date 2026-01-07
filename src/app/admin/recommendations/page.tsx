@@ -24,6 +24,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type RecItem = Database['public']['Tables']['recommendation_pool']['Row'];
 type EventItem = Database['public']['Tables']['nearby_events']['Row'];
@@ -128,6 +138,9 @@ export default function RecommendationAdminPage() {
     const [filterCategory, setFilterCategory] = useState<'all' | 'cooking' | 'play'>('all');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+    // Delete Dialog State
+    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk', table?: 'recommendation_pool' | 'nearby_events', id?: number } | null>(null);
+
     // Computed
     const filteredItems = recItems.filter(item => {
         if (filterCategory === 'all') return true;
@@ -219,11 +232,30 @@ export default function RecommendationAdminPage() {
         }
     };
 
-    const handleDelete = async (table: 'recommendation_pool' | 'nearby_events', id: number) => {
-        if (!confirm('정말 삭제하시겠습니까?')) return;
-        await supabase.from(table).delete().eq('id', id);
-        toast.success('삭제되었습니다.');
-        fetchData();
+    const handleDelete = (table: 'recommendation_pool' | 'nearby_events', id: number) => {
+        setDeleteTarget({ type: 'single', table, id });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+
+        try {
+            if (deleteTarget.type === 'single' && deleteTarget.table && deleteTarget.id) {
+                await supabase.from(deleteTarget.table).delete().eq('id', deleteTarget.id);
+                toast.success('삭제되었습니다.');
+            } else if (deleteTarget.type === 'bulk') {
+                if (selectedIds.size === 0) return;
+                const { error } = await supabase.from('recommendation_pool').delete().in('id', Array.from(selectedIds));
+                if (error) throw error;
+                toast.success(`${selectedIds.size}개 항목이 삭제되었습니다.`);
+                setSelectedIds(new Set());
+            }
+            fetchData();
+        } catch (e: any) {
+            toast.error(e.message || '삭제 중 오류가 발생했습니다.');
+        } finally {
+            setDeleteTarget(null);
+        }
     };
 
     // Shared DB Insert Helper
@@ -301,17 +333,7 @@ export default function RecommendationAdminPage() {
 
     const handleBulkDelete = async () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(`선택한 ${selectedIds.size}개 항목을 정말 삭제하시겠습니까?`)) return;
-
-        try {
-            const { error } = await supabase.from('recommendation_pool').delete().in('id', Array.from(selectedIds));
-            if (error) throw error;
-            toast.success('삭제되었습니다.');
-            setSelectedIds(new Set());
-            fetchData();
-        } catch (e: any) {
-            toast.error(e.message);
-        }
+        setDeleteTarget({ type: 'bulk' });
     };
 
     const toggleSelection = (id: number) => {
@@ -637,6 +659,26 @@ export default function RecommendationAdminPage() {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            {/* Delete Alert Dialog */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {deleteTarget?.type === 'bulk'
+                                ? `선택한 ${selectedIds.size}개 항목을 삭제합니다. 이 작업은 되돌릴 수 없습니다.`
+                                : '이 항목을 삭제합니다. 이 작업은 되돌릴 수 없습니다.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+                            삭제 확인
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Rec Modal (Enhanced V2) */}
             <Sheet open={isRecSheetOpen} onOpenChange={setIsRecSheetOpen}>

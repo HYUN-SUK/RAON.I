@@ -16,7 +16,11 @@
 - **버그 수정**: `RecommendationGrid`에서 추천 사유(`reason`)가 UI에 전달되지 않던 버그 수정.
 - **[수정 파일]**: `src/hooks/usePersonalizedRecommendation.ts`, `src/components/home/RecommendationGrid.tsx`
 
-### 2. DB 스키마 동기화 및 빌드 정상화
+### 2. 관리자 페이지 UI 개선 (Ad-hoc)
+- **삭제 다이얼로그**: `confirm()` 팝업이 바로 사라지는 문제를 해결하기 위해 `AlertDialog` 컴포넌트로 교체.
+- **[수정 파일]**: `src/app/admin/recommendations/page.tsx`
+
+### 3. DB 스키마 동기화 및 빌드 정상화
 - **DB 마이그레이션**: `profiles` 테이블에 `family_type`, `interests` 컬럼 추가 완료.
 - **타입 패치**: `src/types/supabase.ts`에 `profiles` 테이블 정의 수동 추가 (CLI 실패 대응).
 - **빌드 성공**: `npm run build` 검증 완료 (Exit Code 0).
