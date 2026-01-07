@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const lat = searchParams.get('lat') || '36.67'; // 기본값: 예산군 응봉면
         const lng = searchParams.get('lng') || '126.83';
-        const radius = searchParams.get('radius') || '10000'; // 10km
+        const radius = searchParams.get('radius') || '20000'; // 20km (농촌 지역 특성 반영)
 
         if (!TOUR_API_KEY) {
             // API 키 없으면 Fallback 데이터 반환
@@ -111,6 +111,8 @@ export async function GET(request: NextRequest) {
             end_date: formatDisplayDate(item.eventenddate),
             image_url: item.firstimage || item.firstimage2 || null,
             phone: item.tel,
+            // 한국관광공사 상세 페이지 URL
+            detail_url: `https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=${item.contentid}`,
         }));
 
         return NextResponse.json({
@@ -147,30 +149,32 @@ function formatDisplayDate(dateStr: string): string {
     return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 }
 
-// Fallback 데이터 (API 키 없을 때)
+// Fallback 데이터 (API 키 없거나 결과 없을 때) - 예산군/충남 지역 기준
 function getFallbackEvents() {
     return [
         {
             id: 'fallback-1',
-            title: '별빛 수목원 야간개장',
-            description: '아침고요수목원에서 진행하는 야간 조명 축제',
-            location: '가평군 상면 수목원로 432',
-            latitude: 37.7410,
-            longitude: 127.3456,
+            title: '예산 사과축제',
+            description: '예산 사과 수확 시즌을 기념하는 지역 축제',
+            location: '충남 예산군 예산읍 예산로 일대',
+            latitude: 36.6830,
+            longitude: 126.8444,
             start_date: '2026-01-01',
-            end_date: '2026-03-31',
+            end_date: '2026-02-28',
             image_url: null,
+            detail_url: null, // Fallback 데이터는 상세 링크 없음
         },
         {
             id: 'fallback-2',
-            title: '가평 겨울축제',
-            description: '자라섬에서 열리는 겨울 문화축제',
-            location: '가평군 가평읍 자라섬로 1',
-            latitude: 37.8152,
-            longitude: 127.5167,
+            title: '수덕사 겨울 명상 축제',
+            description: '수덕사에서 진행하는 겨울 템플스테이 행사',
+            location: '충남 예산군 덕산면 수덕사안길 79',
+            latitude: 36.6599,
+            longitude: 126.6159,
             start_date: '2026-01-15',
             end_date: '2026-02-15',
             image_url: null,
+            detail_url: null, // Fallback 데이터는 상세 링크 없음
         },
     ];
 }

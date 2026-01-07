@@ -8,21 +8,22 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Navigation, Phone, Copy, Loader2, RefreshCw } from 'lucide-react';
+import { MapPin, Calendar, Navigation, Phone, Copy, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface NearbyEvent {
-    id: number;
+    id: number | string;
     title: string;
     description: string | null;
     location: string | null;
     start_date: string | null;
     end_date: string | null;
-    image_url: string | null;
+    image_url?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+    detail_url?: string | null; // 행사 상세 페이지 링크
 }
 
 interface Facility {
@@ -200,7 +201,7 @@ export default function NearbyDetailSheet({
                         주변 즐길거리
                     </SheetTitle>
                     <SheetDescription>
-                        {userLocation ? '현재 위치 기준' : '캠핑장 기준'} 10km 내의 행사와 편의시설을 확인하세요.
+                        {userLocation ? '현재 위치 기준' : '캠핑장 기준'} 20km 내의 행사와 편의시설을 확인하세요.
                     </SheetDescription>
                 </SheetHeader>
 
@@ -262,48 +263,50 @@ export default function NearbyDetailSheet({
                                         distanceInfo = `${dist}km | ${event.location}`;
                                     }
 
+
                                     return (
-                                        <div key={event.id} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden shadow-sm border border-stone-100 dark:border-zinc-700 transition-all hover:shadow-md">
-                                            {/* Image */}
-                                            <div className="relative h-32 bg-stone-200">
-                                                {event.image_url ? (
-                                                    <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-stone-100 dark:bg-zinc-700 text-stone-400">
-                                                        <MapPin size={32} />
-                                                    </div>
-                                                )}
-                                                <div className="absolute top-3 left-3">
-                                                    <Badge className="bg-white/90 text-[#1C4526] hover:bg-white backdrop-blur-sm border-none shadow-sm">
-                                                        진행중
-                                                    </Badge>
+                                        <div key={event.id} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden shadow-sm border border-stone-100 dark:border-zinc-700 transition-all hover:shadow-md p-5">
+                                            {/* Header with Badge */}
+                                            <div className="flex items-start justify-between mb-2">
+                                                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex-1">{event.title}</h3>
+                                                <Badge className="bg-[#E8F5E9] text-[#1C4526] hover:bg-[#E8F5E9] border-none shadow-sm flex-none ml-2">
+                                                    진행중
+                                                </Badge>
+                                            </div>
+                                            <p className="text-sm text-stone-500 mb-4 line-clamp-2">{event.description}</p>
+
+                                            <div className="flex flex-col gap-2 text-sm text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-zinc-800/50 p-3 rounded-xl">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar size={14} className="text-[#C3A675]" />
+                                                    <span>{event.start_date} ~ {event.end_date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <MapPin size={14} className="text-[#C3A675]" />
+                                                    <span>{distanceInfo}</span>
                                                 </div>
                                             </div>
 
-                                            {/* Content */}
-                                            <div className="p-5">
-                                                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-1">{event.title}</h3>
-                                                <p className="text-sm text-stone-500 mb-4 line-clamp-2">{event.description}</p>
-
-                                                <div className="flex flex-col gap-2 text-sm text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-zinc-800/50 p-3 rounded-xl">
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar size={14} className="text-[#C3A675]" />
-                                                        <span>{event.start_date} ~ {event.end_date}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <MapPin size={14} className="text-[#C3A675]" />
-                                                        <span>{distanceInfo}</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Action */}
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2 mt-4">
+                                                {/* 상세보기 버튼 (링크가 있을 때만 표시) */}
+                                                {event.detail_url && (
+                                                    <Button
+                                                        variant="outline"
+                                                        className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12"
+                                                        onClick={() => window.open(event.detail_url!, '_blank')}
+                                                    >
+                                                        <ExternalLink size={16} className="mr-2" />
+                                                        상세보기
+                                                    </Button>
+                                                )}
+                                                {/* 길찾기 버튼 */}
                                                 {event.latitude && event.longitude && (
                                                     <Button
-                                                        className="w-full mt-4 bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12"
+                                                        className={`${event.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`}
                                                         onClick={() => openNavigationChoice(event.latitude!, event.longitude!, event.title)}
                                                     >
                                                         <Navigation size={16} className="mr-2" />
-                                                        길찾기 (네비게이션)
+                                                        길찾기
                                                     </Button>
                                                 )}
                                             </div>

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const lat = searchParams.get('lat') || '36.67'; // 기본값: 예산군 응봉면
         const lng = searchParams.get('lng') || '126.83';
-        const radius = searchParams.get('radius') || '10000'; // 10km
+        const radius = searchParams.get('radius') || '20000'; // 20km (농촌 지역 특성 반영)
 
         if (!KAKAO_API_KEY) {
             // API 키 없으면 Fallback 데이터 반환
@@ -102,6 +102,16 @@ export async function GET(request: NextRequest) {
             .flat()
             .sort((a, b) => a.distanceMeters - b.distanceMeters);
 
+        // 결과가 없으면 Fallback 사용
+        if (allFacilities.length === 0) {
+            return NextResponse.json({
+                success: true,
+                source: 'fallback',
+                facilities: getFallbackFacilities(),
+                message: 'No facilities found in area, using fallback data',
+            });
+        }
+
         return NextResponse.json({
             success: true,
             source: 'kakao',
@@ -121,58 +131,58 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// Fallback 데이터 (API 키 없을 때)
+// Fallback 데이터 (API 키 없거나 결과 없을 때) - 예산군 응봉면 기준
 function getFallbackFacilities() {
     return [
         {
             id: 'fallback-1',
             category: '마트',
-            name: '하나로마트 가평점',
-            address: '가평군 가평읍 읍내리 123',
-            phone: '031-582-1234',
-            lat: 37.8312,
-            lng: 127.5098,
-            distance: '3.2km',
+            name: '하나로마트 예산점',
+            address: '충남 예산군 예산읍 예산로 203',
+            phone: '041-333-1234',
+            lat: 36.6830,
+            lng: 126.8444,
+            distance: '2.5km',
         },
         {
             id: 'fallback-2',
             category: '주유소',
-            name: 'SK에너지 가평주유소',
-            address: '가평군 가평읍 읍내리 456',
-            phone: '031-582-5678',
-            lat: 37.8256,
-            lng: 127.5123,
-            distance: '2.8km',
+            name: 'SK에너지 응봉주유소',
+            address: '충남 예산군 응봉면 응봉서로 150',
+            phone: '041-333-5678',
+            lat: 36.6750,
+            lng: 126.8350,
+            distance: '1.2km',
         },
         {
             id: 'fallback-3',
             category: '약국',
-            name: '온누리약국',
-            address: '가평군 가평읍 읍내리 789',
-            phone: '031-582-9012',
-            lat: 37.8278,
-            lng: 127.5087,
-            distance: '3.0km',
+            name: '예산온누리약국',
+            address: '충남 예산군 예산읍 예산로 185',
+            phone: '041-333-9012',
+            lat: 36.6825,
+            lng: 126.8420,
+            distance: '2.3km',
         },
         {
             id: 'fallback-4',
             category: '병원',
-            name: '가평의원',
-            address: '가평군 가평읍 읍내리 101',
-            phone: '031-582-3456',
-            lat: 37.8290,
-            lng: 127.5112,
-            distance: '3.5km',
+            name: '예산의원',
+            address: '충남 예산군 예산읍 역전로 45',
+            phone: '041-333-3456',
+            lat: 36.6800,
+            lng: 126.8400,
+            distance: '2.0km',
         },
         {
             id: 'fallback-5',
             category: '편의점',
-            name: 'CU 가평역점',
-            address: '가평군 가평읍 읍내리 202',
+            name: 'CU 응봉점',
+            address: '충남 예산군 응봉면 응봉로 80',
             phone: null,
-            lat: 37.8234,
-            lng: 127.5145,
-            distance: '2.5km',
+            lat: 36.6700,
+            lng: 126.8300,
+            distance: '0.8km',
         },
     ];
 }

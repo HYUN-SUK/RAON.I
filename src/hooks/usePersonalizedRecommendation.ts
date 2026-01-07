@@ -193,21 +193,40 @@ export function usePersonalizedRecommendation() {
                     (weather.type === 'snowy') ? '눈 내리는 날의 추억' :
                         (context.time === 'night') ? '별 헤는 밤, 감성 놀이' : '햇살 좋은 날의 액티비티';
 
-                // Fetch Nearby
-                const today = new Date().toISOString().split('T')[0];
-                const { data: events } = await supabase
-                    .from('nearby_events')
-                    .select('*')
-                    .eq('is_active', true)
-                    .gte('end_date', today)
-                    .order('start_date', { ascending: true })
-                    .limit(1);
+                // Fetch Nearby Events from API (not DB) for consistency with NearbyDetailSheet
+                let apiEvents: NearbyEvent[] = [];
+                try {
+                    const lat = lbs.location?.latitude || 36.67;
+                    const lng = lbs.location?.longitude || 126.83;
+                    const res = await fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=20000`);
+                    if (res.ok) {
+                        const result = await res.json();
+                        if (result.events && result.events.length > 0) {
+                            // Map API response to NearbyEvent type
+                            apiEvents = result.events.slice(0, 3).map((e: any) => ({
+                                id: e.id || 0,
+                                title: e.title,
+                                description: e.description,
+                                location: e.location,
+                                start_date: e.start_date,
+                                end_date: e.end_date,
+                                image_url: e.image_url,
+                                latitude: e.latitude,
+                                longitude: e.longitude,
+                                is_active: true,
+                                created_at: new Date().toISOString(),
+                            }));
+                        }
+                    }
+                } catch {
+                    // Silently fallback to empty
+                }
 
                 // Update State
                 setData({
                     cooking: cookingItem,
                     play: playItem,
-                    events: events || [],
+                    events: apiEvents,
                     context: {
                         ...context,
                         greeting: getGreeting(context.time, weather.type)
