@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 환경변수: TOUR_API_KEY (공공데이터포털에서 발급)
  */
 
-const TOUR_API_KEY = process.env.TOUR_API_KEY;
+const TOUR_API_KEY = process.env.KMA_SERVICE_KEY; // 공공데이터포털 통합 인증키
 const BASE_URL = 'https://apis.data.go.kr/B551011/KorService1';
 
 interface TourAPIEvent {

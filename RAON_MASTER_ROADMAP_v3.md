@@ -219,6 +219,10 @@
     *   [ ] 현재 빌드는 기존 타입으로 정상 동작 중
 *   **9.3 ESLint 정리** (Priority: LOW):
     *   [ ] `eslint ignoreDuringBuilds` 해제 전 경고 정리
+*   **9.4 카카오맵 JavaScript SDK 등록** (Priority: LOW - 도메인 확정 후):
+    *   [ ] 도메인 확정 후 Kakao Developers 앱에 JavaScript SDK 도메인 등록
+    *   [ ] JavaScript 키 발급 및 `NEXT_PUBLIC_KAKAO_JS_KEY` 환경변수 추가
+    *   [ ] 지도 렌더링 기능 구현 (선택)
         *   [x] **예약 변경 기능 (Admin Modify)**: 차액 계산 및 푸시 알림.
         *   [x] **푸시 알림 고도화 (Templates)**: 상세 정보(계좌, 일정) 포함.
         *   [x] **예약 완료 알림 (Trigger)**: Guest 예외 처리 및 실시간 발송.
