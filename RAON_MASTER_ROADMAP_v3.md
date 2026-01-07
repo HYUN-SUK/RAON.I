@@ -204,11 +204,21 @@
         *   [x] Weather API (9): Comprehensive KMA type definitions
         *   [x] **Production Build**: ✅ Enabled with `ignoreBuildErrors` (temporary)
         *   [x] **Live Verification**: All features tested via browser - 0 runtime errors
-    *   [ ] **8.4 Type System Cleanup** (Next Session - Est: 45min):
-        *   [ ] DB Schema Sync: `npx supabase gen types typescript` (15min)
-        *   [ ] Remove `ignoreBuildErrors` flag (5min)
-        *   [ ] Fix remaining type errors (0-5 expected) (30min)
-    *   **8.5 Push & Reservation Sync** ✅ (2026-01-06):
+    *   [ ] **8.4 Type System Cleanup** ✅ (2026-01-07):
+        *   [x] `tsconfig.json`에서 `supabase/` 폴더 제외 (Deno Edge Functions 분리)
+        *   [x] **Production Build 성공**: Exit code: 0
+        *   [x] **Live Verification**: 홈 히어로, 추천 그리드 정상 동작 확인
+
+### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
+> ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
+*   **9.1 Edge Function 배포** (Priority: LOW):
+    *   [ ] `supabase/functions/push-notification/` → Supabase 대시보드에서 배포
+    *   [ ] 환경 변수 설정: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
+*   **9.2 DB Schema 동기화** (Priority: LOW):
+    *   [ ] Supabase CLI 인증 후 `npx supabase gen types typescript` 실행
+    *   [ ] 현재 빌드는 기존 타입으로 정상 동작 중
+*   **9.3 ESLint 정리** (Priority: LOW):
+    *   [ ] `eslint ignoreDuringBuilds` 해제 전 경고 정리
         *   [x] **예약 변경 기능 (Admin Modify)**: 차액 계산 및 푸시 알림.
         *   [x] **푸시 알림 고도화 (Templates)**: 상세 정보(계좌, 일정) 포함.
         *   [x] **예약 완료 알림 (Trigger)**: Guest 예외 처리 및 실시간 발송.

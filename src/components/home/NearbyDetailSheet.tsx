@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Sheet,
     SheetContent,
@@ -8,9 +8,10 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, ExternalLink, Navigation, Phone, Copy } from 'lucide-react';
+import { MapPin, Calendar, Navigation, Phone, Copy, Loader2, RefreshCw } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface NearbyEvent {
     id: number;
@@ -43,21 +44,84 @@ interface UserLocation {
 interface NearbyDetailSheetProps {
     isOpen: boolean;
     onClose: () => void;
-    events: NearbyEvent[];
-    facilities: Facility[];
+    events?: NearbyEvent[];
+    facilities?: Facility[];
     userLocation?: UserLocation;
     getDistance?: (lat: number, lng: number) => number;
+    enableApiCall?: boolean; // true면 API에서 실시간 데이터 조회
 }
 
 export default function NearbyDetailSheet({
     isOpen,
     onClose,
-    events,
-    facilities,
+    events: propEvents = [],
+    facilities: propFacilities = [],
     userLocation,
-    getDistance
+    getDistance,
+    enableApiCall = true,
 }: NearbyDetailSheetProps) {
     const [activeTab, setActiveTab] = useState("events");
+
+    // API Fetching States
+    const [apiEvents, setApiEvents] = useState<NearbyEvent[]>([]);
+    const [apiFacilities, setApiFacilities] = useState<Facility[]>([]);
+    const [eventsLoading, setEventsLoading] = useState(false);
+    const [facilitiesLoading, setFacilitiesLoading] = useState(false);
+    const [eventsError, setEventsError] = useState<string | null>(null);
+    const [facilitiesError, setFacilitiesError] = useState<string | null>(null);
+
+    // Fetch data when sheet opens
+    useEffect(() => {
+        if (!isOpen || !enableApiCall) return;
+
+        const lat = userLocation?.latitude || 37.7749;
+        const lng = userLocation?.longitude || 127.5101;
+
+        // Fetch Events from TourAPI
+        const fetchEvents = async () => {
+            setEventsLoading(true);
+            setEventsError(null);
+            try {
+                const res = await fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=10000`);
+                const data = await res.json();
+                if (data.success) {
+                    setApiEvents(data.events || []);
+                } else {
+                    setEventsError('행사 정보를 불러올 수 없습니다.');
+                }
+            } catch {
+                setEventsError('네트워크 오류가 발생했습니다.');
+            } finally {
+                setEventsLoading(false);
+            }
+        };
+
+        // Fetch Facilities from Kakao API
+        const fetchFacilities = async () => {
+            setFacilitiesLoading(true);
+            setFacilitiesError(null);
+            try {
+                const res = await fetch(`/api/nearby-facilities?lat=${lat}&lng=${lng}&radius=10000`);
+                const data = await res.json();
+                if (data.success) {
+                    setApiFacilities(data.facilities || []);
+                } else {
+                    setFacilitiesError('편의시설 정보를 불러올 수 없습니다.');
+                }
+            } catch {
+                setFacilitiesError('네트워크 오류가 발생했습니다.');
+            } finally {
+                setFacilitiesLoading(false);
+            }
+        };
+
+        fetchEvents();
+        fetchFacilities();
+    }, [isOpen, enableApiCall, userLocation]);
+
+    // Use API data if available, fallback to props
+    const events = enableApiCall && apiEvents.length > 0 ? apiEvents : propEvents;
+    const facilities = enableApiCall && apiFacilities.length > 0 ? apiFacilities : propFacilities;
 
     // Dynamic Facilities with Real-time Distance
     const dynamicFacilities = useMemo(() => {
@@ -66,7 +130,7 @@ export default function NearbyDetailSheet({
             const updated = facilities.map(f => {
                 if (f.lat && f.lng) {
                     const dist = getDistance(f.lat, f.lng);
-                    return { ...f, distance: `${dist}km` };
+                    return { ...f, distance: `${dist.toFixed(1)}km` };
                 }
                 return f;
             }).sort((a, b) => {
@@ -159,7 +223,37 @@ export default function NearbyDetailSheet({
 
                         {/* Events Tab */}
                         <TabsContent value="events" className="mt-6 space-y-4 pb-24 overflow-y-auto h-[calc(100%-180px)] pr-1 scrollbar-hide">
-                            {events.length > 0 ? (
+                            {eventsLoading ? (
+                                // Loading State
+                                <div className="space-y-4">
+                                    {[1, 2, 3].map((i) => (
+                                        <div key={i} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden">
+                                            <Skeleton className="h-32 w-full" />
+                                            <div className="p-5 space-y-3">
+                                                <Skeleton className="h-6 w-3/4" />
+                                                <Skeleton className="h-4 w-full" />
+                                                <Skeleton className="h-12 w-full rounded-xl" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : eventsError ? (
+                                // Error State
+                                <div className="text-center py-10">
+                                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <RefreshCw className="text-red-400" size={24} />
+                                    </div>
+                                    <p className="text-stone-600 mb-4">{eventsError}</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.location.reload()}
+                                        className="rounded-xl"
+                                    >
+                                        <RefreshCw size={14} className="mr-2" /> 다시 시도
+                                    </Button>
+                                </div>
+                            ) : events.length > 0 ? (
                                 events.map((event) => {
                                     // Calculate distance relative to User if possible
                                     let distanceInfo = event.location;
@@ -228,7 +322,42 @@ export default function NearbyDetailSheet({
 
                         {/* Facilities Tab */}
                         <TabsContent value="facilities" className="mt-6 space-y-3 pb-24 overflow-y-auto h-[calc(100%-180px)] pr-1 scrollbar-hide">
-                            {dynamicFacilities.length > 0 ? (
+                            {facilitiesLoading ? (
+                                // Loading State
+                                <div className="space-y-3">
+                                    {[1, 2, 3, 4, 5].map((i) => (
+                                        <div key={i} className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800 rounded-2xl">
+                                            <div className="flex items-center gap-4">
+                                                <Skeleton className="w-12 h-12 rounded-full" />
+                                                <div className="space-y-2">
+                                                    <Skeleton className="h-5 w-32" />
+                                                    <Skeleton className="h-3 w-24" />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Skeleton className="w-10 h-10 rounded-full" />
+                                                <Skeleton className="w-10 h-10 rounded-full" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : facilitiesError ? (
+                                // Error State
+                                <div className="text-center py-10">
+                                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <RefreshCw className="text-red-400" size={24} />
+                                    </div>
+                                    <p className="text-stone-600 mb-4">{facilitiesError}</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.location.reload()}
+                                        className="rounded-xl"
+                                    >
+                                        <RefreshCw size={14} className="mr-2" /> 다시 시도
+                                    </Button>
+                                </div>
+                            ) : dynamicFacilities.length > 0 ? (
                                 dynamicFacilities.map((place, idx) => (
                                     <div key={idx} className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-stone-100 dark:border-zinc-700">
                                         <div className="flex items-center gap-4">
