@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * 한국관광공사 TourAPI - 행사정보조회 (searchFestival1)
- * 사용자 위치 기반 반경 10km 내 행사/축제 정보 조회
+ * 사용자 위치 기반 반경 30km 내 행사/축제 정보 조회
  *
  * 환경변수: TOUR_API_KEY (공공데이터포털에서 발급)
  */
 
-const TOUR_API_KEY = process.env.KMA_SERVICE_KEY; // 공공데이터포털 통합 인증키
-const BASE_URL = 'https://apis.data.go.kr/B551011/KorService1';
+const TOUR_API_KEY = process.env.TOUR_API_KEY; // TourAPI 전용 인증키
+// 한국관광공사_국문 관광정보 서비스_GW 엔드포인트 (KorService2)
+const BASE_URL = 'https://apis.data.go.kr/B551011/KorService2';
 
 interface TourAPIEvent {
     contentid: string;
@@ -46,40 +47,33 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const lat = searchParams.get('lat') || '36.67'; // 기본값: 예산군 응봉면
         const lng = searchParams.get('lng') || '126.83';
-        const radius = searchParams.get('radius') || '20000'; // 20km (농촌 지역 특성 반영)
+        const radius = searchParams.get('radius') || '30000'; // 30km (농촌 지역 특성 반영)
 
         if (!TOUR_API_KEY) {
-            // API 키 없으면 Fallback 데이터 반환
+            // API 키 없으면 빈 배열 + 안내 메시지 반환 (가짜 데이터 노출 금지)
+            console.warn('[TourAPI] API 키가 설정되지 않았습니다.');
             return NextResponse.json({
                 success: true,
-                source: 'fallback',
-                events: getFallbackEvents(),
+                source: 'no_api_key',
+                events: [],
+                message: '현재 진행중인 행사 정보를 불러올 수 없습니다.',
             });
         }
 
-        // TourAPI 행사정보조회 호출
-        const apiUrl = new URL(`${BASE_URL}/searchFestival1`);
-        apiUrl.searchParams.set('serviceKey', TOUR_API_KEY);
-        apiUrl.searchParams.set('MobileOS', 'ETC');
-        apiUrl.searchParams.set('MobileApp', 'RAONI');
-        apiUrl.searchParams.set('_type', 'json');
-        apiUrl.searchParams.set('numOfRows', '20');
-        apiUrl.searchParams.set('pageNo', '1');
-        apiUrl.searchParams.set('arrange', 'S'); // 거리순
-        apiUrl.searchParams.set('mapX', lng);
-        apiUrl.searchParams.set('mapY', lat);
-        apiUrl.searchParams.set('radius', radius);
-        apiUrl.searchParams.set('contenttypeid', '15'); // 행사/축제/공연
-
-        // 현재 날짜를 기준으로 진행 중인 행사만 조회
+        // TourAPI 행사정보조회 (searchFestival2)
+        // KorService2 GW 버전 공식 API - 날짜 정보(eventstartdate, eventenddate) 포함
+        // eventStartDate: 오늘 날짜 이후 시작/진행 중인 행사 조회
         const today = new Date();
-        const eventStartDate = formatDate(today);
-        apiUrl.searchParams.set('eventStartDate', eventStartDate);
+        const todayStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+
+        // 충청남도(areaCode=34) 지역 행사 검색
+        // 전국 검색 시 areaCode 제거 가능
+        const apiUrl = `${BASE_URL}/searchFestival2?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=50&pageNo=1&arrange=S&eventStartDate=${todayStr}`;
 
         // DEBUG: API 호출 로그 (키 마스킹)
-        // console.log(`[TourAPI Request] ${apiUrl.toString().replace(TOUR_API_KEY, '***')}`);
+        console.log(`[TourAPI Request] ${apiUrl.replace(TOUR_API_KEY || '', '***MASKED***')}`);
 
-        const response = await fetch(apiUrl.toString(), {
+        const response = await fetch(apiUrl, {
             next: { revalidate: 0 }, // 디버깅을 위해 캐시 끔
         });
 
@@ -126,8 +120,47 @@ export async function GET(request: NextRequest) {
 
         const items = Array.isArray(rawItems) ? rawItems : [rawItems];
 
-        // 데이터 정규화
-        const events = items.map((item) => ({
+        // Haversine 공식으로 두 좌표 사이의 거리 계산 (km)
+        const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+            const R = 6371; // 지구 반지름 (km)
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        };
+
+        const userLat = parseFloat(lat);
+        const userLng = parseFloat(lng);
+        const radiusKm = parseInt(radius) / 1000; // m → km 변환
+
+        // 1단계: 종료일 기준 필터링 (종료일이 오늘 이상인 행사만)
+        const ongoingItems = items.filter((item) => {
+            const endDate = item.eventenddate || '';
+            const todayFilter = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+            return !endDate || endDate >= todayFilter;
+        });
+
+        // 2단계: 거리 기준 필터링 (30km 이내 행사만)
+        const nearbyItems = ongoingItems.filter((item) => {
+            const eventLat = parseFloat(item.mapy);
+            const eventLng = parseFloat(item.mapx);
+            if (isNaN(eventLat) || isNaN(eventLng)) return false;
+            const distance = calculateDistance(userLat, userLng, eventLat, eventLng);
+            return distance <= radiusKm;
+        }).map((item) => {
+            // 거리 정보 추가
+            const eventLat = parseFloat(item.mapy);
+            const eventLng = parseFloat(item.mapx);
+            const distance = calculateDistance(userLat, userLng, eventLat, eventLng);
+            return { ...item, distance };
+        }).sort((a, b) => a.distance - b.distance); // 가까운 순 정렬
+
+        // 데이터 정규화 (거리 필터링된 항목 사용)
+        const events = nearbyItems.map((item) => ({
             id: item.contentid,
             title: item.title,
             description: `${item.addr1 || ''} ${item.addr2 || ''}`.trim(),
@@ -138,6 +171,7 @@ export async function GET(request: NextRequest) {
             end_date: formatDisplayDate(item.eventenddate),
             image_url: item.firstimage || item.firstimage2 || null,
             phone: item.tel,
+            distance_km: Math.round(item.distance * 10) / 10, // 소수점 1자리
             // 한국관광공사 상세 페이지 URL
             detail_url: `https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=${item.contentid}`,
         }));
@@ -146,17 +180,19 @@ export async function GET(request: NextRequest) {
             success: true,
             source: 'tourapi',
             events,
-            totalCount: data.response.body.totalCount,
+            totalCount: events.length, // 필터링 후 개수
+            originalCount: data.response.body.totalCount, // 원본 개수
         });
 
     } catch (error) {
         console.error('TourAPI Error:', error);
 
-        // 에러 시 Fallback 제공하되, 로그에 남김
+        // 에러 시 빈 배열 + 안내 메시지 반환 (가짜 데이터 노출 금지)
         return NextResponse.json({
-            success: true,
-            source: 'fallback',
-            events: getFallbackEvents(),
+            success: false,
+            source: 'error',
+            events: [],
+            message: '현재 진행중인 행사 정보를 불러올 수 없습니다.',
             error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
@@ -176,32 +212,5 @@ function formatDisplayDate(dateStr: string): string {
     return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 }
 
-// Fallback 데이터 (API 키 없거나 결과 없을 때) - 예산군/충남 지역 기준
-function getFallbackEvents() {
-    return [
-        {
-            id: 'fallback-1',
-            title: '예산 사과축제',
-            description: '예산 사과 수확 시즌을 기념하는 지역 축제',
-            location: '충남 예산군 예산읍 예산로 일대',
-            latitude: 36.6830,
-            longitude: 126.8444,
-            start_date: '2026-01-01',
-            end_date: '2026-02-28',
-            image_url: null,
-            detail_url: null, // Fallback 데이터는 상세 링크 없음
-        },
-        {
-            id: 'fallback-2',
-            title: '수덕사 겨울 명상 축제',
-            description: '수덕사에서 진행하는 겨울 템플스테이 행사',
-            location: '충남 예산군 덕산면 수덕사안길 79',
-            latitude: 36.6599,
-            longitude: 126.6159,
-            start_date: '2026-01-15',
-            end_date: '2026-02-15',
-            image_url: null,
-            detail_url: null, // Fallback 데이터는 상세 링크 없음
-        },
-    ];
-}
+// NOTE: Fallback 데이터 완전 제거 (SSOT v9: 가짜 정보 노출 금지 원칙)
+// 행사 정보가 없을 경우 "현재 진행중인 행사가 없습니다" 메시지로 안내

@@ -83,15 +83,14 @@ export default function NearbyDetailSheet({
             setEventsLoading(true);
             setEventsError(null);
             try {
-                const res = await fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=10000`);
+                const res = await fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=30000`);
                 const data = await res.json();
-                if (data.success) {
-                    setApiEvents(data.events || []);
-                } else {
-                    setEventsError('행사 정보를 불러올 수 없습니다.');
-                }
+                // API 성공이든 실패든 events 배열 사용 (에러 시 빈 배열)
+                setApiEvents(data.events || []);
+                // 에러가 있어도 사용자에게는 "행사 없음"으로 표시 (API 장애 시에도 UX 유지)
             } catch {
-                setEventsError('네트워크 오류가 발생했습니다.');
+                // 네트워크 에러 시에도 빈 배열로 처리
+                setApiEvents([]);
             } finally {
                 setEventsLoading(false);
             }
@@ -102,7 +101,7 @@ export default function NearbyDetailSheet({
             setFacilitiesLoading(true);
             setFacilitiesError(null);
             try {
-                const res = await fetch(`/api/nearby-facilities?lat=${lat}&lng=${lng}&radius=10000`);
+                const res = await fetch(`/api/nearby-facilities?lat=${lat}&lng=${lng}&radius=30000`);
                 const data = await res.json();
                 if (data.success) {
                     setApiFacilities(data.facilities || []);
@@ -201,7 +200,7 @@ export default function NearbyDetailSheet({
                         주변 즐길거리
                     </SheetTitle>
                     <SheetDescription>
-                        {userLocation ? '현재 위치 기준' : '캠핑장 기준'} 20km 내의 행사와 편의시설을 확인하세요.
+                        {userLocation ? '현재 위치 기준' : '캠핑장 기준'} 30km 내의 행사와 편의시설을 확인하세요.
                     </SheetDescription>
                 </SheetHeader>
 
@@ -318,7 +317,8 @@ export default function NearbyDetailSheet({
                                     <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Calendar className="text-stone-400" size={24} />
                                     </div>
-                                    <p>진행 중인 행사가 없습니다.</p>
+                                    <p>현재 진행중인 행사가 없습니다.</p>
+                                    <p className="text-xs text-stone-400 mt-1">반경 30km 내 검색 결과입니다.</p>
                                 </div>
                             )}
                         </TabsContent>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * 카카오맵 Local API - 주변 편의시설 검색
- * 사용자 위치 기반 반경 10km 내 편의시설 조회
+ * 사용자 위치 기반 반경 30km 내 편의시설 조회
  *
  * 환경변수: KAKAO_REST_API_KEY (Kakao Developers에서 발급)
  */
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const lat = searchParams.get('lat') || '36.67'; // 기본값: 예산군 응봉면
         const lng = searchParams.get('lng') || '126.83';
-        const radius = searchParams.get('radius') || '20000'; // 20km (농촌 지역 특성 반영)
+        const radius = searchParams.get('radius') || '30000'; // 30km (농촌 지역 특성 반영)
 
         if (!KAKAO_API_KEY) {
             // API 키 없으면 Fallback 데이터 반환
@@ -63,7 +63,9 @@ export async function GET(request: NextRequest) {
                 apiUrl.searchParams.set('category_group_code', code);
                 apiUrl.searchParams.set('x', lng);
                 apiUrl.searchParams.set('y', lat);
-                apiUrl.searchParams.set('radius', radius);
+                // 카카오맵 API 최대 반경: 20,000m (20km)
+                const kakaoRadius = Math.min(parseInt(radius), 20000).toString();
+                apiUrl.searchParams.set('radius', kakaoRadius);
                 apiUrl.searchParams.set('sort', 'distance');
                 apiUrl.searchParams.set('size', '5'); // 카테고리당 최대 5개
 
@@ -75,7 +77,8 @@ export async function GET(request: NextRequest) {
                 });
 
                 if (!response.ok) {
-                    console.error(`Kakao API Error (${categoryName}):`, response.status);
+                    const errorText = await response.text();
+                    console.error(`Kakao API Error (${categoryName}): ${response.status}, Body: ${errorText}`);
                     return [];
                 }
 

@@ -228,7 +228,7 @@ export function usePersonalizedRecommendation() {
                 try {
                     const lat = lbs.location?.latitude || 36.67;
                     const lng = lbs.location?.longitude || 126.83;
-                    const res = await fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=20000`);
+                    const res = await fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=30000`);
                     if (res.ok) {
                         const result = await res.json();
                         if (result.events && result.events.length > 0) {
