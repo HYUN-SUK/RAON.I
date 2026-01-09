@@ -14,8 +14,8 @@ const TOUR_API_KEY = process.env.TOUR_API_KEY || '03e41a022f4e6033f803beff860f41
 // API Endpoints
 const API_URLS = {
     TOUR: 'https://apis.data.go.kr/B551011/KorService2/searchFestival2',
-    PERFORMANCE: 'https://api.data.go.kr/openapi/tn_pubr_public_pblprfr_event_info_api',
-    FESTIVAL: 'https://api.data.go.kr/openapi/tn_pubr_public_cltur_fstvl_api'
+    PERFORMANCE: 'http://api.data.go.kr/openapi/tn_pubr_public_pblprfr_event_info_api',
+    FESTIVAL: 'http://api.data.go.kr/openapi/tn_pubr_public_cltur_fstvl_api'
 };
 
 // 공통 이벤트 구조
@@ -80,15 +80,32 @@ export async function GET(request: NextRequest) {
         }
 
         // 3개 API 병렬 호출
+        const fetchWithDebug = async (url: string) => {
+            try {
+                // HTTP 프로토콜 사용 (SSL 문제 회피)
+                const res = await fetch(url, { next: { revalidate: 3600 } });
+                const text = await res.text();
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    // 키 에러 시 XML 또는 Plain Text 반환됨 -> 에러 메시지로 활용
+                    throw new Error(text);
+                }
+            } catch (e) {
+                throw e;
+            }
+        };
+
+        // 3개 API 병렬 호출
         const [tourRes, perfRes, festRes] = await Promise.allSettled([
             // 1. TourAPI (searchFestival2)
-            fetch(`${API_URLS.TOUR}?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=100&arrange=S&eventStartDate=${todayStr}`, { next: { revalidate: 3600 } }).then(r => r.json()),
+            fetchWithDebug(`${API_URLS.TOUR}?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=100&arrange=S&eventStartDate=${todayStr}`),
 
             // 2. 전국공연행사정보표준데이터
-            fetch(`${API_URLS.PERFORMANCE}?serviceKey=${TOUR_API_KEY}&type=json&numOfRows=1000&pageNo=1`, { next: { revalidate: 3600 } }).then(r => r.json()),
+            fetchWithDebug(`${API_URLS.PERFORMANCE}?serviceKey=${TOUR_API_KEY}&type=json&numOfRows=1000&pageNo=1`),
 
             // 3. 전국문화축제표준데이터
-            fetch(`${API_URLS.FESTIVAL}?serviceKey=${TOUR_API_KEY}&type=json&numOfRows=1000&pageNo=1`, { next: { revalidate: 3600 } }).then(r => r.json())
+            fetchWithDebug(`${API_URLS.FESTIVAL}?serviceKey=${TOUR_API_KEY}&type=json&numOfRows=1000&pageNo=1`)
         ]);
 
         let allEvents: NormalizedEvent[] = [];
@@ -206,9 +223,9 @@ export async function GET(request: NextRequest) {
             events: allEvents,
             totalCount: allEvents.length,
             debug: {
-                tour: tourRes.status,
-                perf: perfRes.status,
-                fest: festRes.status
+                tour: tourRes.status === 'rejected' ? String((tourRes as any).reason) : 'fulfilled',
+                perf: perfRes.status === 'rejected' ? String((perfRes.reason as any)) : 'fulfilled',
+                fest: festRes.status === 'rejected' ? String((festRes as any).reason) : 'fulfilled'
             }
         });
 
