@@ -264,6 +264,7 @@ export default function ReturningHome() {
                 facilities={config?.nearby_places as unknown as Facility[] || []}
                 userLocation={lbs.location}
                 getDistance={lbs.getDistanceKm}
+                isUsingDefault={lbs.usingDefault}
             />
         </div>
     );
