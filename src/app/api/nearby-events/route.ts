@@ -1,216 +1,224 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * 한국관광공사 TourAPI - 행사정보조회 (searchFestival1)
- * 사용자 위치 기반 반경 30km 내 행사/축제 정보 조회
- *
- * 환경변수: TOUR_API_KEY (공공데이터포털에서 발급)
+ * 주변 행사 통합 API
+ * 1. 한국관광공사 TourAPI (searchFestival2)
+ * 2. 전국공연행사정보표준데이터
+ * 3. 전국문화축제표준데이터
+ * 
+ * 사용자 위치(lat, lng) 기준 반경 30km 내 행사 조회 및 통합 정렬
  */
 
-const TOUR_API_KEY = process.env.TOUR_API_KEY; // TourAPI 전용 인증키
-// 한국관광공사_국문 관광정보 서비스_GW 엔드포인트 (KorService2)
-const BASE_URL = 'https://apis.data.go.kr/B551011/KorService2';
+const TOUR_API_KEY = process.env.TOUR_API_KEY || '03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2';
 
-interface TourAPIEvent {
-    contentid: string;
+// API Endpoints
+const API_URLS = {
+    TOUR: 'https://apis.data.go.kr/B551011/KorService2/searchFestival2',
+    PERFORMANCE: 'https://api.data.go.kr/openapi/tn_pubr_public_pblprfr_event_info_api',
+    FESTIVAL: 'https://api.data.go.kr/openapi/tn_pubr_public_cltur_fstvl_api'
+};
+
+// 공통 이벤트 구조
+interface NormalizedEvent {
+    id: string;
     title: string;
-    addr1: string;
-    addr2?: string;
-    eventstartdate: string;
-    eventenddate: string;
-    firstimage?: string;
-    firstimage2?: string;
-    mapx: string;
-    mapy: string;
-    tel?: string;
+    description: string;
+    location: string;
+    latitude: number;
+    longitude: number;
+    start_date: string; // YYYY.MM.DD
+    end_date: string;   // YYYY.MM.DD
+    image_url: string | null;
+    phone: string | null;
+    distance_km: number;
+    detail_url: string | null;
+    source: 'tourapi' | 'performance' | 'festival';
 }
 
-interface TourAPIResponse {
-    response: {
-        header: {
-            resultCode: string;
-            resultMsg: string;
-        };
-        body: {
-            items: {
-                item: TourAPIEvent | TourAPIEvent[];
-            };
-            numOfRows: number;
-            pageNo: number;
-            totalCount: number;
-        };
-    };
+// Haversine 거리 계산 (km)
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+// 날짜 포맷 변환 (YYYYMMDD or YYYY-MM-DD -> YYYY.MM.DD)
+function formatDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const cleanStr = dateStr.replace(/-/g, '');
+    if (cleanStr.length === 8) {
+        return `${cleanStr.substring(0, 4)}.${cleanStr.substring(4, 6)}.${cleanStr.substring(6, 8)}`;
+    }
+    return dateStr;
+}
+
+// 날짜 비교용 숫자 변환 (YYYY.MM.DD -> YYYYMMDD)
+function getDateNumber(dateStr: string): number {
+    return parseInt(dateStr.replace(/\./g, ''), 10);
 }
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const lat = searchParams.get('lat') || '36.67'; // 기본값: 예산군 응봉면
-        const lng = searchParams.get('lng') || '126.83';
-        const radius = searchParams.get('radius') || '30000'; // 30km (농촌 지역 특성 반영)
+        const lat = parseFloat(searchParams.get('lat') || '36.67');
+        const lng = parseFloat(searchParams.get('lng') || '126.83');
+        const radius = parseFloat(searchParams.get('radius') || '30000');
+        const radiusKm = radius / 1000;
 
-        if (!TOUR_API_KEY) {
-            // API 키 없으면 빈 배열 + 안내 메시지 반환 (가짜 데이터 노출 금지)
-            console.warn('[TourAPI] API 키가 설정되지 않았습니다.');
-            return NextResponse.json({
-                success: true,
-                source: 'no_api_key',
-                events: [],
-                message: '현재 진행중인 행사 정보를 불러올 수 없습니다.',
-            });
-        }
-
-        // TourAPI 행사정보조회 (searchFestival2)
-        // KorService2 GW 버전 공식 API - 날짜 정보(eventstartdate, eventenddate) 포함
-        // eventStartDate: 오늘 날짜 이후 시작/진행 중인 행사 조회
         const today = new Date();
         const todayStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+        const todayNum = parseInt(todayStr, 10);
 
-        // 충청남도(areaCode=34) 지역 행사 검색
-        // 전국 검색 시 areaCode 제거 가능
-        const apiUrl = `${BASE_URL}/searchFestival2?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=50&pageNo=1&arrange=S&eventStartDate=${todayStr}`;
-
-        // DEBUG: API 호출 로그 (키 마스킹)
-        console.log(`[TourAPI Request] ${apiUrl.replace(TOUR_API_KEY || '', '***MASKED***')}`);
-
-        const response = await fetch(apiUrl, {
-            next: { revalidate: 0 }, // 디버깅을 위해 캐시 끔
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[TourAPI Error] Status: ${response.status}, Body: ${errorText}`);
-            throw new Error(`TourAPI 응답 오류: ${response.status}`);
+        if (!TOUR_API_KEY) {
+            return NextResponse.json({ success: true, source: 'no_api_key', events: [], message: 'API 키가 설정되지 않았습니다.' });
         }
 
-        const data: TourAPIResponse = await response.json();
+        // 3개 API 병렬 호출
+        const [tourRes, perfRes, festRes] = await Promise.allSettled([
+            // 1. TourAPI (searchFestival2)
+            fetch(`${API_URLS.TOUR}?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=100&arrange=S&eventStartDate=${todayStr}`, { next: { revalidate: 3600 } }).then(r => r.json()),
 
-        // DEBUG: 응답 확인
-        // console.log('[TourAPI Response]', JSON.stringify(data).slice(0, 200));
+            // 2. 전국공연행사정보표준데이터
+            fetch(`${API_URLS.PERFORMANCE}?serviceKey=${TOUR_API_KEY}&type=json&numOfRows=1000&pageNo=1`, { next: { revalidate: 3600 } }).then(r => r.json()),
 
-        // 결과가 없을 경우 빈 배열 반환
-        if (!data.response?.body?.items) {
-            console.warn('[TourAPI Warning] No items found or invalid structure:', JSON.stringify(data));
-            // API는 성공했지만 데이터가 없는 경우 -> Fallback 대신 빈 배열 반환 (사용자가 혼동 없게)
-            // 또는 정말 오류인 경우에만 Fallback
-            if (data.response?.header?.resultCode !== '0000') {
-                console.error(`[TourAPI Fail] Code: ${data.response?.header?.resultCode}, Msg: ${data.response?.header?.resultMsg}`);
-                throw new Error(data.response?.header?.resultMsg);
+            // 3. 전국문화축제표준데이터
+            fetch(`${API_URLS.FESTIVAL}?serviceKey=${TOUR_API_KEY}&type=json&numOfRows=1000&pageNo=1`, { next: { revalidate: 3600 } }).then(r => r.json())
+        ]);
+
+        let allEvents: NormalizedEvent[] = [];
+
+        // 1. TourAPI 데이터 처리
+        if (tourRes.status === 'fulfilled' && tourRes.value?.response?.body?.items?.item) {
+            const items = Array.isArray(tourRes.value.response.body.items.item)
+                ? tourRes.value.response.body.items.item
+                : [tourRes.value.response.body.items.item];
+
+            items.forEach((item: any) => {
+                const itemLat = parseFloat(item.mapy);
+                const itemLng = parseFloat(item.mapx);
+                if (!isNaN(itemLat) && !isNaN(itemLng)) {
+                    const dist = calculateDistance(lat, lng, itemLat, itemLng);
+                    if (dist <= radiusKm) {
+                        allEvents.push({
+                            id: `tour_${item.contentid}`,
+                            title: item.title,
+                            description: `${item.addr1 || ''} ${item.addr2 || ''}`.trim(),
+                            location: item.addr1,
+                            latitude: itemLat,
+                            longitude: itemLng,
+                            start_date: formatDate(item.eventstartdate),
+                            end_date: formatDate(item.eventenddate),
+                            image_url: item.firstimage || item.firstimage2 || null,
+                            phone: item.tel,
+                            distance_km: Math.round(dist * 10) / 10,
+                            detail_url: `https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=${item.contentid}`,
+                            source: 'tourapi'
+                        });
+                    }
+                }
+            });
+        }
+
+        // 2. 전국공연행사정보표준데이터 처리
+        if (perfRes.status === 'fulfilled' && perfRes.value?.response?.body?.items) {
+            const items = perfRes.value.response.body.items; // Array
+            if (Array.isArray(items)) {
+                items.forEach((item: any) => {
+                    // 날짜 필터링 (종료일이 오늘 이후여야 함)
+                    const end = item.eventEndDate ? getDateNumber(formatDate(item.eventEndDate)) : 0;
+                    if (end >= todayNum) {
+                        const itemLat = parseFloat(item.latitude);
+                        const itemLng = parseFloat(item.longitude);
+                        if (!isNaN(itemLat) && !isNaN(itemLng)) {
+                            const dist = calculateDistance(lat, lng, itemLat, itemLng);
+                            if (dist <= radiusKm) {
+                                allEvents.push({
+                                    id: `perf_${Math.random().toString(36).substr(2, 9)}`, // ID가 없으면 임의 생성
+                                    title: item.eventNm,
+                                    description: item.eventCo || item.opar || '',
+                                    location: item.rdnmadr || item.lnmadr || '',
+                                    latitude: itemLat,
+                                    longitude: itemLng,
+                                    start_date: formatDate(item.eventStartDate),
+                                    end_date: formatDate(item.eventEndDate),
+                                    image_url: null, // 공공데이터는 이미지 URL이 잘 없음
+                                    phone: item.phoneNumber,
+                                    distance_km: Math.round(dist * 10) / 10,
+                                    detail_url: null,
+                                    source: 'performance'
+                                });
+                            }
+                        }
+                    }
+                });
             }
-
-            return NextResponse.json({
-                success: true,
-                source: 'tourapi',
-                events: [],
-                totalCount: 0,
-            });
         }
 
-        // item이 단일 객체일 수도, 배열일 수도 있음
-        // item이 undefined인 경우(결과 0개)도 체크
-        const rawItems = data.response.body.items.item;
-        if (!rawItems) {
-            return NextResponse.json({
-                success: true,
-                source: 'tourapi',
-                events: [],
-                totalCount: data.response.body.totalCount,
-            });
+        // 3. 전국문화축제표준데이터 처리
+        if (festRes.status === 'fulfilled' && festRes.value?.response?.body?.items) {
+            const items = festRes.value.response.body.items;
+            if (Array.isArray(items)) {
+                items.forEach((item: any) => {
+                    const end = item.fstvlEndDate ? getDateNumber(formatDate(item.fstvlEndDate)) : 0;
+                    if (end >= todayNum) {
+                        const itemLat = parseFloat(item.latitude);
+                        const itemLng = parseFloat(item.longitude);
+                        if (!isNaN(itemLat) && !isNaN(itemLng)) {
+                            const dist = calculateDistance(lat, lng, itemLat, itemLng);
+                            if (dist <= radiusKm) {
+                                allEvents.push({
+                                    id: `fest_${Math.random().toString(36).substr(2, 9)}`,
+                                    title: item.fstvlNm,
+                                    description: item.fstvlCo || item.opar || '',
+                                    location: item.rdnmadr || item.lnmadr || '',
+                                    latitude: itemLat,
+                                    longitude: itemLng,
+                                    start_date: formatDate(item.fstvlStartDate),
+                                    end_date: formatDate(item.fstvlEndDate),
+                                    image_url: null,
+                                    phone: item.phoneNumber,
+                                    distance_km: Math.round(dist * 10) / 10,
+                                    detail_url: item.homepageUrl || null,
+                                    source: 'festival'
+                                });
+                            }
+                        }
+                    }
+                });
+            }
         }
 
-        const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+        // 거리순 정렬
+        allEvents.sort((a, b) => a.distance_km - b.distance_km);
 
-        // Haversine 공식으로 두 좌표 사이의 거리 계산 (km)
-        const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-            const R = 6371; // 지구 반지름 (km)
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        };
-
-        const userLat = parseFloat(lat);
-        const userLng = parseFloat(lng);
-        const radiusKm = parseInt(radius) / 1000; // m → km 변환
-
-        // 1단계: 종료일 기준 필터링 (종료일이 오늘 이상인 행사만)
-        const ongoingItems = items.filter((item) => {
-            const endDate = item.eventenddate || '';
-            const todayFilter = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-            return !endDate || endDate >= todayFilter;
-        });
-
-        // 2단계: 거리 기준 필터링 (30km 이내 행사만)
-        const nearbyItems = ongoingItems.filter((item) => {
-            const eventLat = parseFloat(item.mapy);
-            const eventLng = parseFloat(item.mapx);
-            if (isNaN(eventLat) || isNaN(eventLng)) return false;
-            const distance = calculateDistance(userLat, userLng, eventLat, eventLng);
-            return distance <= radiusKm;
-        }).map((item) => {
-            // 거리 정보 추가
-            const eventLat = parseFloat(item.mapy);
-            const eventLng = parseFloat(item.mapx);
-            const distance = calculateDistance(userLat, userLng, eventLat, eventLng);
-            return { ...item, distance };
-        }).sort((a, b) => a.distance - b.distance); // 가까운 순 정렬
-
-        // 데이터 정규화 (거리 필터링된 항목 사용)
-        const events = nearbyItems.map((item) => ({
-            id: item.contentid,
-            title: item.title,
-            description: `${item.addr1 || ''} ${item.addr2 || ''}`.trim(),
-            location: item.addr1,
-            latitude: parseFloat(item.mapy),
-            longitude: parseFloat(item.mapx),
-            start_date: formatDisplayDate(item.eventstartdate),
-            end_date: formatDisplayDate(item.eventenddate),
-            image_url: item.firstimage || item.firstimage2 || null,
-            phone: item.tel,
-            distance_km: Math.round(item.distance * 10) / 10, // 소수점 1자리
-            // 한국관광공사 상세 페이지 URL
-            detail_url: `https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=${item.contentid}`,
-        }));
+        // 중복 제거 (거리와 제목이 매우 유사한 경우) - 간단히 ID 기준 중복은 없으므로 생략하거나 추후 고도화
 
         return NextResponse.json({
             success: true,
-            source: 'tourapi',
-            events,
-            totalCount: events.length, // 필터링 후 개수
-            originalCount: data.response.body.totalCount, // 원본 개수
+            source: 'combined',
+            events: allEvents,
+            totalCount: allEvents.length,
+            debug: {
+                tour: tourRes.status,
+                perf: perfRes.status,
+                fest: festRes.status
+            }
         });
 
     } catch (error) {
-        console.error('TourAPI Error:', error);
-
-        // 에러 시 빈 배열 + 안내 메시지 반환 (가짜 데이터 노출 금지)
+        console.error('Nearby Events Error:', error);
         return NextResponse.json({
             success: false,
             source: 'error',
             events: [],
-            message: '현재 진행중인 행사 정보를 불러올 수 없습니다.',
+            message: '행사 정보를 불러올 수 없습니다.',
             error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 }
-
-// 날짜 포맷 (YYYYMMDD)
-function formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}${month}${day}`;
-}
-
-// 디스플레이용 날짜 포맷 (YYYY-MM-DD)
-function formatDisplayDate(dateStr: string): string {
-    if (!dateStr || dateStr.length !== 8) return dateStr;
-    return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
-}
-
-// NOTE: Fallback 데이터 완전 제거 (SSOT v9: 가짜 정보 노출 금지 원칙)
-// 행사 정보가 없을 경우 "현재 진행중인 행사가 없습니다" 메시지로 안내

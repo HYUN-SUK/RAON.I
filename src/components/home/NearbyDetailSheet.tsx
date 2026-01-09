@@ -24,6 +24,7 @@ interface NearbyEvent {
     latitude?: number | null;
     longitude?: number | null;
     detail_url?: string | null; // 행사 상세 페이지 링크
+    source?: 'tourapi' | 'performance' | 'festival';
 }
 
 interface Facility {
@@ -66,8 +67,12 @@ export default function NearbyDetailSheet({
     // API Fetching States
     const [apiEvents, setApiEvents] = useState<NearbyEvent[]>([]);
     const [apiFacilities, setApiFacilities] = useState<Facility[]>([]);
+    const [apiLeisure, setApiLeisure] = useState<NearbyEvent[]>([]);
+    const [apiAttractions, setApiAttractions] = useState<NearbyEvent[]>([]);
     const [eventsLoading, setEventsLoading] = useState(false);
     const [facilitiesLoading, setFacilitiesLoading] = useState(false);
+    const [leisureLoading, setLeisureLoading] = useState(false);
+    const [attractionsLoading, setAttractionsLoading] = useState(false);
     const [eventsError, setEventsError] = useState<string | null>(null);
     const [facilitiesError, setFacilitiesError] = useState<string | null>(null);
 
@@ -115,8 +120,38 @@ export default function NearbyDetailSheet({
             }
         };
 
+        // Fetch Leisure (레포츠) from TourAPI
+        const fetchLeisure = async () => {
+            setLeisureLoading(true);
+            try {
+                const res = await fetch(`/api/nearby-activities?lat=${lat}&lng=${lng}&radius=30000&type=leisure`);
+                const data = await res.json();
+                setApiLeisure(data.items || []);
+            } catch {
+                setApiLeisure([]);
+            } finally {
+                setLeisureLoading(false);
+            }
+        };
+
+        // Fetch Attractions (관광지) from TourAPI
+        const fetchAttractions = async () => {
+            setAttractionsLoading(true);
+            try {
+                const res = await fetch(`/api/nearby-activities?lat=${lat}&lng=${lng}&radius=30000&type=attraction`);
+                const data = await res.json();
+                setApiAttractions(data.items || []);
+            } catch {
+                setApiAttractions([]);
+            } finally {
+                setAttractionsLoading(false);
+            }
+        };
+
         fetchEvents();
         fetchFacilities();
+        fetchLeisure();
+        fetchAttractions();
     }, [isOpen, enableApiCall, userLocation]);
 
     // Use API data if available, fallback to props
@@ -206,18 +241,30 @@ export default function NearbyDetailSheet({
 
                 <div className="px-6 mt-4 h-full">
                     <Tabs defaultValue="events" className="w-full h-full" onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full grid-cols-2 bg-stone-200/50 dark:bg-zinc-800 p-1 rounded-2xl h-12">
+                        <TabsList className="grid w-full grid-cols-4 bg-stone-200/50 dark:bg-zinc-800 p-1 rounded-2xl h-12">
                             <TabsTrigger
                                 value="events"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
                             >
-                                🎡 문화/행사 ({events.length})
+                                🎉 행사 ({events.length})
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="leisure"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                            >
+                                🏕️ 레포츠 ({apiLeisure.length})
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="attractions"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                            >
+                                📍 관광지 ({apiAttractions.length})
                             </TabsTrigger>
                             <TabsTrigger
                                 value="facilities"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
                             >
-                                🏪 편의시설 ({dynamicFacilities.length})
+                                🏪 편의 ({dynamicFacilities.length})
                             </TabsTrigger>
                         </TabsList>
 
@@ -263,13 +310,25 @@ export default function NearbyDetailSheet({
                                     }
 
 
+                                    // Badge Text & Color based on Source
+                                    let badgeText = "진행중";
+                                    let badgeClass = "bg-[#E8F5E9] text-[#1C4526]";
+
+                                    if (event.source === 'performance') {
+                                        badgeText = "공연";
+                                        badgeClass = "bg-purple-50 text-purple-600";
+                                    } else if (event.source === 'festival') {
+                                        badgeText = "축제";
+                                        badgeClass = "bg-pink-50 text-pink-600";
+                                    }
+
                                     return (
                                         <div key={event.id} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden shadow-sm border border-stone-100 dark:border-zinc-700 transition-all hover:shadow-md p-5">
                                             {/* Header with Badge */}
                                             <div className="flex items-start justify-between mb-2">
                                                 <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex-1">{event.title}</h3>
-                                                <Badge className="bg-[#E8F5E9] text-[#1C4526] hover:bg-[#E8F5E9] border-none shadow-sm flex-none ml-2">
-                                                    진행중
+                                                <Badge className={`${badgeClass} border-none shadow-sm flex-none ml-2`}>
+                                                    {badgeText}
                                                 </Badge>
                                             </div>
                                             <p className="text-sm text-stone-500 mb-4 line-clamp-2">{event.description}</p>
@@ -318,6 +377,116 @@ export default function NearbyDetailSheet({
                                         <Calendar className="text-stone-400" size={24} />
                                     </div>
                                     <p>현재 진행중인 행사가 없습니다.</p>
+                                    <p className="text-xs text-stone-400 mt-1">반경 30km 내 검색 결과입니다.</p>
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        {/* Leisure Tab */}
+                        <TabsContent value="leisure" className="mt-6 space-y-4 pb-24 overflow-y-auto h-[calc(100%-180px)] pr-1 scrollbar-hide">
+                            {leisureLoading ? (
+                                <div className="space-y-4">
+                                    {[1, 2, 3].map((i) => (
+                                        <div key={i} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden">
+                                            <Skeleton className="h-32 w-full" />
+                                            <div className="p-5 space-y-3">
+                                                <Skeleton className="h-6 w-3/4" />
+                                                <Skeleton className="h-4 w-full" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : apiLeisure.length > 0 ? (
+                                apiLeisure.map((item) => (
+                                    <div key={item.id} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden shadow-sm border border-stone-100 dark:border-zinc-700 transition-all hover:shadow-md p-5">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex-1">{item.title}</h3>
+                                            <Badge className="bg-orange-50 text-orange-600 border-none shadow-sm flex-none ml-2">
+                                                레포츠
+                                            </Badge>
+                                        </div>
+                                        <p className="text-sm text-stone-500 mb-4 line-clamp-2">{item.description}</p>
+                                        <div className="flex flex-col gap-2 text-sm text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-zinc-800/50 p-3 rounded-xl">
+                                            <div className="flex items-center gap-2">
+                                                <MapPin size={14} className="text-[#C3A675]" />
+                                                <span>{item.detail_url ? `${(item as any).distance_km}km | ${item.location}` : item.location}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 mt-4">
+                                            {item.detail_url && (
+                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => window.open(item.detail_url!, '_blank')}>
+                                                    <ExternalLink size={16} className="mr-2" /> 상세보기
+                                                </Button>
+                                            )}
+                                            {item.latitude && item.longitude && (
+                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => openNavigationChoice(item.latitude!, item.longitude!, item.title)}>
+                                                    <Navigation size={16} className="mr-2" /> 길찾기
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 text-stone-500">
+                                    <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <MapPin className="text-stone-400" size={24} />
+                                    </div>
+                                    <p>주변 레포츠 시설이 없습니다.</p>
+                                    <p className="text-xs text-stone-400 mt-1">반경 30km 내 검색 결과입니다.</p>
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        {/* Attractions Tab */}
+                        <TabsContent value="attractions" className="mt-6 space-y-4 pb-24 overflow-y-auto h-[calc(100%-180px)] pr-1 scrollbar-hide">
+                            {attractionsLoading ? (
+                                <div className="space-y-4">
+                                    {[1, 2, 3].map((i) => (
+                                        <div key={i} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden">
+                                            <Skeleton className="h-32 w-full" />
+                                            <div className="p-5 space-y-3">
+                                                <Skeleton className="h-6 w-3/4" />
+                                                <Skeleton className="h-4 w-full" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : apiAttractions.length > 0 ? (
+                                apiAttractions.map((item) => (
+                                    <div key={item.id} className="bg-white dark:bg-zinc-800 rounded-2xl overflow-hidden shadow-sm border border-stone-100 dark:border-zinc-700 transition-all hover:shadow-md p-5">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex-1">{item.title}</h3>
+                                            <Badge className="bg-blue-50 text-blue-600 border-none shadow-sm flex-none ml-2">
+                                                관광지
+                                            </Badge>
+                                        </div>
+                                        <p className="text-sm text-stone-500 mb-4 line-clamp-2">{item.description}</p>
+                                        <div className="flex flex-col gap-2 text-sm text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-zinc-800/50 p-3 rounded-xl">
+                                            <div className="flex items-center gap-2">
+                                                <MapPin size={14} className="text-[#C3A675]" />
+                                                <span>{item.detail_url ? `${(item as any).distance_km}km | ${item.location}` : item.location}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 mt-4">
+                                            {item.detail_url && (
+                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => window.open(item.detail_url!, '_blank')}>
+                                                    <ExternalLink size={16} className="mr-2" /> 상세보기
+                                                </Button>
+                                            )}
+                                            {item.latitude && item.longitude && (
+                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => openNavigationChoice(item.latitude!, item.longitude!, item.title)}>
+                                                    <Navigation size={16} className="mr-2" /> 길찾기
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 text-stone-500">
+                                    <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <MapPin className="text-stone-400" size={24} />
+                                    </div>
+                                    <p>주변 관광지가 없습니다.</p>
                                     <p className="text-xs text-stone-400 mt-1">반경 30km 내 검색 결과입니다.</p>
                                 </div>
                             )}
