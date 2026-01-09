@@ -154,6 +154,9 @@
   - [x] **UI Fix**: Replaced `confirm()` with `AlertDialog` for robust deletion in Recommendations board.
 - [x] **Type Safety**:
   - [x] Fixed missing `profiles` type definition.
+- [ ] **TourAPI Debugging** (In Progress):
+  - [x] Updated `nearby-events/route.ts` with detailed error logging.
+  - [ ] Verify if `KMA_SERVICE_KEY` works for TourAPI (ServiceKey Error usually requires encoding check).
 
 **🎯 Final Result**: 
 - **Personalization Live**: Users now see custom greetings and recommendations based on their profile.

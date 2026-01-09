@@ -69,35 +69,62 @@ export async function GET(request: NextRequest) {
         apiUrl.searchParams.set('mapX', lng);
         apiUrl.searchParams.set('mapY', lat);
         apiUrl.searchParams.set('radius', radius);
+        apiUrl.searchParams.set('contenttypeid', '15'); // 행사/축제/공연
 
         // 현재 날짜를 기준으로 진행 중인 행사만 조회
         const today = new Date();
         const eventStartDate = formatDate(today);
         apiUrl.searchParams.set('eventStartDate', eventStartDate);
 
+        // DEBUG: API 호출 로그 (키 마스킹)
+        // console.log(`[TourAPI Request] ${apiUrl.toString().replace(TOUR_API_KEY, '***')}`);
+
         const response = await fetch(apiUrl.toString(), {
-            next: { revalidate: 21600 }, // 6시간 캐시
+            next: { revalidate: 0 }, // 디버깅을 위해 캐시 끔
         });
 
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[TourAPI Error] Status: ${response.status}, Body: ${errorText}`);
             throw new Error(`TourAPI 응답 오류: ${response.status}`);
         }
 
         const data: TourAPIResponse = await response.json();
 
+        // DEBUG: 응답 확인
+        // console.log('[TourAPI Response]', JSON.stringify(data).slice(0, 200));
+
         // 결과가 없을 경우 빈 배열 반환
-        if (!data.response?.body?.items?.item) {
+        if (!data.response?.body?.items) {
+            console.warn('[TourAPI Warning] No items found or invalid structure:', JSON.stringify(data));
+            // API는 성공했지만 데이터가 없는 경우 -> Fallback 대신 빈 배열 반환 (사용자가 혼동 없게)
+            // 또는 정말 오류인 경우에만 Fallback
+            if (data.response?.header?.resultCode !== '0000') {
+                console.error(`[TourAPI Fail] Code: ${data.response?.header?.resultCode}, Msg: ${data.response?.header?.resultMsg}`);
+                throw new Error(data.response?.header?.resultMsg);
+            }
+
             return NextResponse.json({
                 success: true,
                 source: 'tourapi',
                 events: [],
+                totalCount: 0,
             });
         }
 
         // item이 단일 객체일 수도, 배열일 수도 있음
-        const items = Array.isArray(data.response.body.items.item)
-            ? data.response.body.items.item
-            : [data.response.body.items.item];
+        // item이 undefined인 경우(결과 0개)도 체크
+        const rawItems = data.response.body.items.item;
+        if (!rawItems) {
+            return NextResponse.json({
+                success: true,
+                source: 'tourapi',
+                events: [],
+                totalCount: data.response.body.totalCount,
+            });
+        }
+
+        const items = Array.isArray(rawItems) ? rawItems : [rawItems];
 
         // 데이터 정규화
         const events = items.map((item) => ({
@@ -125,7 +152,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('TourAPI Error:', error);
 
-        // 에러 시에도 Fallback 제공
+        // 에러 시 Fallback 제공하되, 로그에 남김
         return NextResponse.json({
             success: true,
             source: 'fallback',

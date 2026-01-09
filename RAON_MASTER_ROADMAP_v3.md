@@ -214,6 +214,7 @@
         *   [x] **Admin**: Replaced deletion popup with AlertDialog.
         *   [x] **Production Build**: ✅ SUCCESS (Exit code: 0)
         *   [x] **Live Verification**: Verified recommendation logic via code review & build.
+        *   [ ] **Issue**: TourAPI data verified as fallback; Debugging in progress.
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
