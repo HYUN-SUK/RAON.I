@@ -117,7 +117,8 @@ export async function GET(request: NextRequest) {
                             image_url: item.firstimage || item.firstimage2 || null,
                             phone: item.tel,
                             distance_km: Math.round(dist * 10) / 10,
-                            detail_url: `https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=${item.contentid}`,
+                            // 관광공사 링크 대신 네이버 검색 사용
+                            detail_url: `https://search.naver.com/search.naver?query=${encodeURIComponent(item.title)}`,
                             source: 'tourapi'
                         });
                     }
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
                                     image_url: null, // 공공데이터는 이미지 URL이 잘 없음
                                     phone: item.phoneNumber,
                                     distance_km: Math.round(dist * 10) / 10,
-                                    detail_url: null,
+                                    detail_url: `https://search.naver.com/search.naver?query=${encodeURIComponent(item.eventNm)}`,
                                     source: 'performance'
                                 });
                             }
@@ -184,7 +185,7 @@ export async function GET(request: NextRequest) {
                                     image_url: null,
                                     phone: item.phoneNumber,
                                     distance_km: Math.round(dist * 10) / 10,
-                                    detail_url: item.homepageUrl || null,
+                                    detail_url: item.homepageUrl || `https://search.naver.com/search.naver?query=${encodeURIComponent(item.fstvlNm)}`,
                                     source: 'festival'
                                 });
                             }

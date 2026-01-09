@@ -132,7 +132,8 @@ export async function GET(request: NextRequest) {
                     image_url: item.firstimage || item.firstimage2 || null,
                     phone: item.tel,
                     distance_km: Math.round(distance * 10) / 10,
-                    detail_url: `https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=${item.contentid}`,
+                    // 관광공사 ID 체계 변경으로 인해 직접 링크 대신 네이버 검색으로 연결 (더 정확함)
+                    detail_url: `https://search.naver.com/search.naver?query=${encodeURIComponent(item.title)}`,
                     category: contentType.label,
                 };
             })
