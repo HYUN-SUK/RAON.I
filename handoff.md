@@ -1,29 +1,35 @@
 # Handoff Document - 주변 즐길거리 확장 및 API 통합
 
 ## 📝 Summary
-이번 세션에서는 사용자가 캠핑장 주변에서 즐길 수 있는 다양한 활동을 찾을 수 있도록 기능을 확장했습니다.
-1.  **TourAPI 확장**: 기존 행사 정보 외에 **레포츠(28)**와 **관광지(12)** 정보를 제공하는 `nearby-activities` API를 신설했습니다.
-2.  **레포츠 필터링**: 캠핑장에 있는 사용자에게 중복된 정보를 주지 않기 위해 레포츠 목록에서 **'캠핑', '야영', '캠프'** 등의 키워드를 필터링했습니다.
-3.  **행사 데이터 통합**: `nearby-events` API를 수정하여 **TourAPI**, **전국공연행사정보표준데이터**, **전국문화축제표준데이터** 3가지 소스를 병합하여 제공하도록 했습니다.
-4.  **UI 개선**: `NearbyDetailSheet`를 4개 탭(행사, 레포츠, 관광지, 편의)으로 확장하고, 데이터 소스별 뱃지를 적용했습니다.
+사용자 위치 주변의 즐길거리(행사, 레포츠, 관광지)를 확장하고, 캠핑장 사용자에게 최적화된 경험을 제공하기 위해 API 통합 및 UI 개선을 완료했습니다.
+
+### 주요 성과
+1.  **카테고리 확장**: 기존 '행사', '편의'에 **'레포츠'**, **'관광지'** 탭을 추가했습니다. (TourAPI `type=28, 12` 활용)
+2.  **데이터 품질 개선**:
+    - **레포츠 필터링**: 캠핑장 사용자에게 불필요한 '캠핑', '야영' 관련 항목을 필터링하여 순수 액티비티만 제공.
+    - **상세보기 연결**: 한국관광공사 링크 오류 문제를 해결하기 위해 **네이버 통합 검색**으로 연결하여 더 풍부한 정보 제공.
+3.  **행사 데이터 통합**: TourAPI + 공공데이터(공연/축제) 3종 소스 병합 구조 완성. (현재 공공데이터는 키 승인 대기 중)
+4.  **UX 디테일**:
+    - 데이터 출처별 (진행중/공연/축제) 뱃지 구분.
+    - 위치 권한 여부에 따라 **"현재 위치 기준" / "캠핑장 기준"** 안내 문구 명확화.
 
 ## 🚧 Status & Next Steps
-- **현재 상태**: 구현은 모두 완료되었으나, 새로 추가한 공공데이터포털 API(공연/축제)가 `Service Key is not registered Error`를 반환 중입니다.
-- **다음 단계**: API 활용신청 승인이 완료(1~2시간 소요 예상)된 후, 다시 한 번 앱을 실행하여 `행사` 탭에 데이터가 들어오는지 확인해야 합니다.
-  - 별도의 코드 수정은 필요 없습니다. 승인만 되면 자동으로 데이터가 표시됩니다.
+- **현재 상태**: 구현 완료 및 안정화됨.
+- **남은 과제**:
+    - [ ] **공공데이터포털 키 승인 확인**: 1~2시간 후 `nearby-events` API가 자동으로 3개 소스 데이터를 병합해서 주는지 확인 필요. (코드는 이미 반영됨)
 
-## 🔍 Technical Details
-### New API Routes
-- `GET /api/nearby-activities`: 레포츠(type=leisure), 관광지(type=attraction) 조회. (TourAPI `locationBasedList2` 사용)
-- `GET /api/nearby-events`: 행사 통합 조회. (TourAPI `searchFestival2` + 공공데이터 표준데이터 2종 병합)
+## 🔍 Technical Decisions
+### 1. API Integration (`Promise.allSettled`)
+- TourAPI, 공연API, 축제API 3개를 병렬 호출하며, 하나가 실패해도(예: 키 미승인) 나머지는 정상 표시되도록 `allSettled`를 사용했습니다.
 
-### Environment Variables
-- `TOUR_API_KEY`: 기존 TourAPI 키 사용. (공공데이터포털 API도 동일한 키 사용 가정)
+### 2. Fallback to Naver Search
+- **문제**: 한국관광공사(VisitKorea) 홈페이지 개편으로 기존 숫자 ID 기반 링크(`ms_detail.do?cotid=...`)가 작동하지 않음.
+- **해결**: 모든 '상세보기' 버튼을 `search.naver.com` 쿼리로 연결하여 링크 깨짐을 방지하고 사용자에게 더 실용적인 정보(지도/리뷰)를 제공.
 
-### API Endpoints (Public Data)
-- 공연: `https://api.data.go.kr/openapi/tn_pubr_public_pblprfr_event_info_api`
-- 축제: `https://api.data.go.kr/openapi/tn_pubr_public_cltur_fstvl_api`
+### 3. Geolocation Logic (`useLBS`)
+- 브라우저 GPS를 우선 사용하며, 권한 거부 시 `DEFAULT_CAMPING_LOCATION`을 사용합니다.
+- UI에서 이 상태를 구분하여 "현재 위치 기준" 또는 "캠핑장 기준"으로 표시합니다.
 
 ## ⚠️ Notes
-- `nearby-events` API는 3개 중 하나라도 응답하면 데이터를 반환하도록 `Promise.allSettled`를 사용했습니다.
-- 레포츠 필터링 키워드는 `src/app/api/nearby-activities/route.ts`에 하드코딩 되어 있습니다. 필요 시 수정 가능합니다.
+- `TOUR_API_KEY` 환경변수는 하나로 통일되어 있습니다.
+- 레포츠 필터링 키워드(`src/app/api/nearby-activities/route.ts`)는 하드코딩 되어 있으므로 정책 변경 시 수정 필요합니다.
