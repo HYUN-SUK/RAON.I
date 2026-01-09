@@ -101,7 +101,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
         items.push({
             id: `event-lbs`,
             icon: <MapPin className="text-blue-600" size={28} />,
-            categoryLabel: '주변 행사 및 편의시설',
+            categoryLabel: '주변 레포츠, 관광지, 편의시설, 행사',
             title: firstEvent.title,
             bgColorClass: 'bg-blue-50',
             textColorClass: 'text-blue-600',
@@ -115,12 +115,12 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
         items.push({
             id: 'event-mock',
             icon: <MapPin className="text-stone-400" size={28} />,
-            categoryLabel: '주변 행사 및 편의시설',
-            title: '진행 중인 행사가 없어요',
+            categoryLabel: '주변 레포츠, 관광지, 편의시설, 행사',
+            title: '주변의 숨은 명소와 액티비티',
             bgColorClass: 'bg-stone-100',
             textColorClass: 'text-stone-500',
             isWide: true,
-            description: '주변 편의시설을 확인해보세요',
+            description: '레포츠, 관광지, 편의시설을 확인해보세요',
             data: { type: 'nearby_lbs' as const, events: [] }
         });
     }

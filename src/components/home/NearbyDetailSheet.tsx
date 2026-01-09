@@ -242,14 +242,8 @@ export default function NearbyDetailSheet({
                 </SheetHeader>
 
                 <div className="px-6 mt-4 h-full">
-                    <Tabs defaultValue="events" className="w-full h-full" onValueChange={setActiveTab}>
+                    <Tabs defaultValue="leisure" className="w-full h-full" onValueChange={setActiveTab}>
                         <TabsList className="grid w-full grid-cols-4 bg-stone-200/50 dark:bg-zinc-800 p-1 rounded-2xl h-12">
-                            <TabsTrigger
-                                value="events"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
-                            >
-                                🎉 행사 ({events.length})
-                            </TabsTrigger>
                             <TabsTrigger
                                 value="leisure"
                                 className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
@@ -267,6 +261,12 @@ export default function NearbyDetailSheet({
                                 className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 🏪 편의 ({dynamicFacilities.length})
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="events"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                            >
+                                🎉 행사 ({events.length})
                             </TabsTrigger>
                         </TabsList>
 
