@@ -214,7 +214,11 @@
         *   [x] **Admin**: Replaced deletion popup with AlertDialog.
         *   [x] **Production Build**: ✅ SUCCESS (Exit code: 0)
         *   [x] **Live Verification**: Verified recommendation logic via code review & build.
-        *   [ ] **Issue**: TourAPI data verified as fallback; Debugging in progress.
+        *   [x] **8.5 External API Expansion (Nearby Activities)** ✅ (2026-01-09):
+            *   [x] **Integration**: TourAPI(Leisure/Attraction) + Public Data Portal(Performance/Festival).
+            *   [x] **Filtering Logic**: Camping keyword exclusion in Leisure tab.
+            *   [x] **UI Enhancement**: 4-Tab System (Events/Leisure/Attractions/Facilities) with badges.
+            *   [ ] **Pending**: Public Data Portal API Key approval (Logic implemented).
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음

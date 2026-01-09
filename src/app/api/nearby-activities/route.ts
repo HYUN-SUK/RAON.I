@@ -86,8 +86,6 @@ export async function GET(request: NextRequest) {
         // TourAPI 위치기반 관광정보 조회 (locationBasedList2)
         const apiUrl = `${BASE_URL}/locationBasedList2?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=50&pageNo=1&arrange=E&mapX=${lng}&mapY=${lat}&radius=${radius}&contentTypeId=${contentType.id}`;
 
-        console.log(`[TourAPI Activities - ${contentType.label}] ${apiUrl.replace(TOUR_API_KEY || '', '***')}`);
-
         const response = await fetch(apiUrl, {
             next: { revalidate: 3600 }, // 1시간 캐시
         });
