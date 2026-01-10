@@ -154,15 +154,49 @@
   - [x] **UI Fix**: Replaced `confirm()` with `AlertDialog` for robust deletion in Recommendations board.
 - [x] **Type Safety**:
   - [x] Fixed missing `profiles` type definition.
-- [ ] **TourAPI Debugging** (In Progress):
+- [x] **TourAPI Debugging** (Completed):
   - [x] Updated `nearby-events/route.ts` with detailed error logging.
-  - [ ] Verify if `KMA_SERVICE_KEY` works for TourAPI (ServiceKey Error usually requires encoding check).
+  - [x] **Live Verified**: `/api/nearby-events` returns merged data (Tour+Public).
+  - [x] **Key Status**: TourAPI Key is working validly.
+  - [x] **UI Fix**: "Nearby" chip 404 error resolved (`BeginnerHome.tsx`).
+
+## 8.5 UI Polish & Admin Stability (2026-01-10) ✅
+- [x] **Recommendation UI** ("Today's Recommendation"):
+  - [x] **Color Harmonization**: Applied "Forest" theme (Warm Cream, Sage Green, Warm Blue) to cards.
+  - [x] **Clean Layout**: Removed "More" button for cleaner look.
+  - [x] **Icon Polish**: Updated Nearby card icon to Sky Blue for better visibility.
+- [x] **Admin Mission Management**:
+  - [x] **Deletion Fix**: Implemented `AlertDialog` + `deleteMissionAction` (Server Action) to solve RLS 401/403 errors.
+  - [x] **Bulk Import Fix**: Implemented `createBulkMissionsAction` (Server Action) to solve RLS 403 error for AI-generated JSON.
+  - [x] **Stability**: Confirmed persistent deletion and successful bulk registration via browser.
 
 **🎯 Final Result**: 
 - **Personalization Live**: Users now see custom greetings and recommendations based on their profile.
 - **Improved UX**: Admin deletion is stable, and recommendations are more diverse.
-- **Build Verified**: Zero type errors.
+- **Build Verified**: Zero type errors (Clean Build).
+
+## 8.6 Home & Admin Refinement (2026-01-10) ✅
+- [x] **Beginner Home Chips**:
+  - [x] **Facilities**: Integrated `FacilityDetailSheet` with multi-image gallery.
+  - [x] **Nearby Places**: Reverted to original LBS (`sheet:nearby`) per user feedback
+    - [x] **Chip**: Fixed to Campsite Location (Yesan-gun)
+    - [x] **Card**: Dynamic User Location.
+  - [x] **Pricing**: Integrated text from config into `PriceGuideSheet`.
+  - [x] **Content**: Updated Wayfinding and Rules text.
+- [x] **UI Refinement & Verification**:
+  - [x] **Nearby Chip Text**: Updated to "라온아이 캠핑장 근처..." (Fixed Location).
+  - [x] **Price Guide**: Removed hardcoded USP section.
+  - [x] **Readability**: Fixed line breaks for Wayfinding/Rules.
+  - [x] **Mobile Check**: Verified layouts on 390x844 viewport.
+- [x] **Admin Settings**:
+  - [x] **New Fields**: `facilities_description`, `bathroom_images`, `site_images`.
+  - [x] **UI**: Multi-image upload and text area added.
+  - [x] **Regression Fix**: Restored missing nearby place handlers.
+- [x] **Technical**:
+  - [x] **Schema**: Created `20260110_add_facilities_images.sql`.
+  - [x] **Build**: Verified `npm run build` success.
 
 ## 9. Next Steps (Operations)
 - [ ] **Market Pivot**: Affiliate link integration.
 - [ ] **Reservation Automation**: Auto-open logic.
+- [ ] **LBS Fallback**: Improve "Nearby" card empty state.

@@ -110,7 +110,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                                     )}
                                 </div>
                             </div>
-                            <SheetDescription className="text-base text-stone-600 dark:text-stone-400 break-keep">
+                            <SheetDescription className="text-base text-stone-600 dark:text-stone-400 break-keep whitespace-pre-line">
                                 {data.description}
                             </SheetDescription>
                         </SheetHeader>

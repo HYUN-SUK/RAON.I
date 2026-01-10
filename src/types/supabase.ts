@@ -9,65 +9,7 @@
 export interface Database {
     public: {
         Tables: {
-            site_config: {
-                Row: {
-                    id: number
-                    camp_name: string
-                    address_main: string
-                    address_detail?: string
-                    phone_number: string
-                    layout_image_url?: string
-                    guide_map_url?: string
-                    hero_image_url?: string
-                    bank_name?: string
-                    bank_account?: string
-                    bank_holder?: string
-                    pricing_guide_text: string | null
-                    rules_guide_text: string | null
-                    beginner_chips: Json
-                    nearby_places: Json
-                    created_at: string
-                    updated_at: string
-                }
-                Insert: {
-                    id?: number
-                    camp_name?: string | null
-                    address_main?: string | null
-                    address_detail?: string | null
-                    phone_number?: string | null
-                    layout_image_url?: string | null
-                    guide_map_url?: string | null
-                    hero_image_url?: string | null
-                    bank_name?: string | null
-                    bank_account?: string | null
-                    bank_holder?: string | null
-                    nearby_places?: Json
-                    pricing_guide_text?: string | null
-                    rules_guide_text?: string | null
-                    beginner_chips?: Json
-                    created_at?: string
-                    updated_at?: string
-                }
-                Update: {
-                    id?: number
-                    camp_name?: string | null
-                    address_main?: string | null
-                    address_detail?: string | null
-                    phone_number?: string | null
-                    layout_image_url?: string | null
-                    guide_map_url?: string | null
-                    hero_image_url?: string | null
-                    bank_name?: string | null
-                    bank_account?: string | null
-                    bank_holder?: string | null
-                    nearby_places?: Json
-                    pricing_guide_text?: string | null
-                    rules_guide_text?: string | null
-                    beginner_chips?: Json
-                    created_at?: string
-                    updated_at?: string
-                }
-            }
+
             sites: {
                 Row: {
                     id: number
@@ -419,6 +361,71 @@ export interface Database {
                     family_type?: string | null
                     interests?: string[] | null
                     created_at?: string | null
+                }
+            },
+            site_config: {
+                Row: {
+                    id: number
+                    created_at: string
+                    updated_at: string | null
+                    camp_name: string | null
+                    address_main: string | null
+                    address_detail: string | null
+                    phone_number: string | null
+                    layout_image_url: string | null
+                    nearby_places: Json | null
+                    pricing_guide_text: string | null
+                    rules_guide_text: string | null
+                    guide_map_url: string | null
+                    hero_image_url: string | null
+                    bank_name: string | null
+                    bank_account: string | null
+                    bank_holder: string | null
+                    facilities_description: string | null
+                    bathroom_images: string[] | null // mapped from jsonb
+                    site_images: string[] | null // mapped from jsonb
+                }
+                Insert: {
+                    address_detail?: string | null
+                    address_main?: string | null
+                    camp_name?: string | null
+                    created_at?: string
+                    guide_map_url?: string | null
+                    hero_image_url?: string | null
+                    id?: number
+                    layout_image_url?: string | null
+                    nearby_places?: Json | null
+                    phone_number?: string | null
+                    pricing_guide_text?: string | null
+                    rules_guide_text?: string | null
+                    updated_at?: string | null
+                    bank_name?: string | null
+                    bank_account?: string | null
+                    bank_holder?: string | null
+                    facilities_description?: string | null
+                    bathroom_images?: string[] | null
+                    site_images?: string[] | null
+                }
+                Update: {
+                    address_detail?: string | null
+                    address_main?: string | null
+                    camp_name?: string | null
+                    created_at?: string
+                    guide_map_url?: string | null
+                    hero_image_url?: string | null
+                    id?: number
+                    layout_image_url?: string | null
+                    nearby_places?: Json | null
+                    phone_number?: string | null
+                    pricing_guide_text?: string | null
+                    rules_guide_text?: string | null
+                    updated_at?: string | null
+                    bank_name?: string | null
+                    bank_account?: string | null
+                    bank_holder?: string | null
+                    facilities_description?: string | null
+                    bathroom_images?: string[] | null
+                    site_images?: string[] | null
                 }
             },
             system_config: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { adminMissionService, BulkMissionInput } from '@/services/adminMissionService';
+import { adminMissionService } from '@/services/adminMissionService';
 import { Mission } from '@/types/mission';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,19 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { deleteMissionAction, createBulkMissionsAction, BulkMissionInput } from '@/actions/admin-mission';
 
 export default function AdminMissionList() {
-    // const router = useRouter(); // unused
     const [missions, setMissions] = useState<Mission[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -32,6 +42,10 @@ export default function AdminMissionList() {
     const [isBulkOpen, setIsBulkOpen] = useState(false);
     const [bulkJson, setBulkJson] = useState('');
     const [bulkLoading, setBulkLoading] = useState(false);
+
+    // Delete State
+    const [deleteMissionId, setDeleteMissionId] = useState<string | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchMissions();
@@ -51,16 +65,29 @@ export default function AdminMissionList() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('정말 이 미션을 삭제하시겠습니까? (이 작업은 되돌릴 수 없습니다)')) return;
+    const handleDeleteClick = (id: string) => {
+        setDeleteMissionId(id);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteMissionId) return;
 
         try {
-            await adminMissionService.deleteMission(id);
+            await deleteMissionAction(deleteMissionId);
             toast.success('미션이 삭제되었습니다.');
             fetchMissions();
         } catch (error) {
             console.error(error);
-            toast.error('삭제 중 오류가 발생했습니다.');
+            // Show detailed error if available
+            if (error instanceof Error) {
+                toast.error(error.message);
+            } else {
+                toast.error('삭제 중 오류가 발생했습니다.');
+            }
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setDeleteMissionId(null);
         }
     };
 
@@ -81,7 +108,7 @@ export default function AdminMissionList() {
                 return;
             }
 
-            await adminMissionService.createBulkMissions(parsed);
+            await createBulkMissionsAction(parsed);
             toast.success(`${parsed.length}개의 미션이 일괄 등록되었습니다!`);
             setIsBulkOpen(false);
             setBulkJson('');
@@ -252,7 +279,7 @@ export default function AdminMissionList() {
                                                         variant="outline"
                                                         size="sm"
                                                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                        onClick={() => handleDelete(mission.id)}
+                                                        onClick={() => handleDeleteClick(mission.id)}
                                                     >
                                                         <Trash2 size={14} />
                                                     </Button>
@@ -266,6 +293,23 @@ export default function AdminMissionList() {
                     </CardContent>
                 </Card>
             )}
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>정말 미션을 삭제하시겠습니까?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            이 작업은 되돌릴 수 없으며, 관련된 모든 사용자 참여 기록이 함께 삭제될 수 있습니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+                            삭제
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

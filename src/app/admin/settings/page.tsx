@@ -37,6 +37,11 @@ export default function AdminSettingsPage() {
     // Nearby Places (JSON Editor simple version)
     const [nearbyPlaces, setNearbyPlaces] = useState<{ title: string, desc: string }[]>([]);
 
+    // New Facility States
+    const [facilitiesDescription, setFacilitiesDescription] = useState('');
+    const [bathroomImages, setBathroomImages] = useState<string[]>([]);
+    const [siteImages, setSiteImages] = useState<string[]>([]);
+
     useEffect(() => {
         if (config) {
             setFormData({
@@ -53,6 +58,11 @@ export default function AdminSettingsPage() {
                 bank_account: config.bank_account || '',
                 bank_holder: config.bank_holder || '',
             });
+
+            // Set new fields
+            setFacilitiesDescription(config.facilities_description || '');
+            setBathroomImages(config.bathroom_images || []);
+            setSiteImages(config.site_images || []);
 
             // Safe parse JSON
             try {
@@ -86,6 +96,42 @@ export default function AdminSettingsPage() {
         }
     };
 
+    // Generic Multi-Image Upload
+    const handleMultiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'bathroom' | 'site') => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        setLoading(true);
+        try {
+            const newUrls: string[] = [];
+            for (let i = 0; i < files.length; i++) {
+                const url = await communityService.uploadImage(files[i]);
+                newUrls.push(url);
+            }
+
+            if (type === 'bathroom') {
+                setBathroomImages(prev => [...prev, ...newUrls]);
+            } else {
+                setSiteImages(prev => [...prev, ...newUrls]);
+            }
+            toast.success(`${newUrls.length}개의 이미지가 업로드되었습니다.`);
+        } catch (error) {
+            console.error(error);
+            toast.error('이미지 업로드 실패');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRemoveImage = (type: 'bathroom' | 'site', index: number) => {
+        if (type === 'bathroom') {
+            setBathroomImages(prev => prev.filter((_, i) => i !== index));
+        } else {
+            setSiteImages(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    // Nearby Places Handlers
     const handleAddPlace = () => {
         setNearbyPlaces([...nearbyPlaces, { title: '', desc: '' }]);
     };
@@ -110,6 +156,10 @@ export default function AdminSettingsPage() {
                 .update({
                     ...formData,
                     nearby_places: nearbyPlaces,
+                    // New Fields
+                    facilities_description: facilitiesDescription,
+                    bathroom_images: bathroomImages,
+                    site_images: siteImages,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', 1);
@@ -241,49 +291,87 @@ export default function AdminSettingsPage() {
                 </div>
 
                 {/* Facilities & Guide */}
-                <div className="space-y-6 bg-white p-6 rounded-xl border shadow-sm">
+                <div className="space-y-6 bg-white p-6 rounded-xl border shadow-sm col-span-1 md:col-span-2">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Upload className="w-5 h-5 text-gray-500" /> 시설 및 안내
+                        <Upload className="w-5 h-5 text-gray-500" /> 시설 및 안내 상세 설정
                     </h2>
 
-                    <div className="space-y-2">
-                        <Label>시설 배치도 이미지</Label>
-                        <div className="flex gap-4 items-start">
-                            {formData.layout_image_url && (
-                                <Image
-                                    src={formData.layout_image_url}
-                                    alt="Layout"
-                                    width={96}
-                                    height={96}
-                                    className="object-cover rounded-lg border w-24 h-24"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>시설 소개 텍스트</Label>
+                                <Textarea
+                                    rows={5}
+                                    value={facilitiesDescription}
+                                    onChange={e => setFacilitiesDescription(e.target.value)}
+                                    placeholder="캠핑장 시설에 대한 전반적인 소개를 입력하세요."
+                                    className="resize-none"
                                 />
-                            )}
-                            <div className="flex-1">
-                                <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'layout')} />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    배치도 칩 클릭 시 보여질 이미지입니다.
-                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>시설 배치도 (대표 이미지)</Label>
+                                <div className="flex gap-4 items-start">
+                                    {formData.layout_image_url && (
+                                        <Image
+                                            src={formData.layout_image_url}
+                                            alt="Layout"
+                                            width={96}
+                                            height={96}
+                                            className="object-cover rounded-lg border w-24 h-24"
+                                        />
+                                    )}
+                                    <div className="flex-1">
+                                        <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'layout')} />
+                                        <p className="text-xs text-gray-500 mt-1">배치도 칩 클릭 시 보여질 이미지입니다.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label>오시는 길 안내도 (URL/외부링크)</Label>
-                        <Input
-                            value={formData.guide_map_url}
-                            onChange={e => setFormData({ ...formData, guide_map_url: e.target.value })}
-                            placeholder="https://..."
-                        />
-                    </div>
+                        <div className="space-y-4">
+                            {/* Bathroom Images */}
+                            <div className="space-y-2">
+                                <Label className="flex justify-between">
+                                    <span>욕실/화장실 이미지</span>
+                                    <span className="text-xs text-gray-400">{bathroomImages.length}장</span>
+                                </Label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {bathroomImages.map((url, i) => (
+                                        <div key={i} className="relative aspect-square">
+                                            <Image src={url} alt={`bath-${i}`} fill className="object-cover rounded border" />
+                                            <button onClick={() => handleRemoveImage('bathroom', i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 w-5 h-5 flex items-center justify-center text-xs">×</button>
+                                        </div>
+                                    ))}
+                                    <label className="border border-dashed rounded flex flex-col items-center justify-center aspect-square cursor-pointer hover:bg-gray-50 text-gray-400 text-xs text-center p-1">
+                                        <Upload className="w-4 h-4 mb-1" />
+                                        추가
+                                        <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleMultiImageUpload(e, 'bathroom')} />
+                                    </label>
+                                </div>
+                            </div>
 
-                    <div className="space-y-2">
-                        <Label>가격/이용 안내 (텍스트)</Label>
-                        <Textarea
-                            rows={8}
-                            value={formData.pricing_guide_text}
-                            onChange={e => setFormData({ ...formData, pricing_guide_text: e.target.value })}
-                            placeholder="이용 요금 및 관련 안내 사항을 입력하세요."
-                        />
+                            {/* Site Images */}
+                            <div className="space-y-2">
+                                <Label className="flex justify-between">
+                                    <span>사이트 전경 이미지</span>
+                                    <span className="text-xs text-gray-400">{siteImages.length}장</span>
+                                </Label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {siteImages.map((url, i) => (
+                                        <div key={i} className="relative aspect-square">
+                                            <Image src={url} alt={`site-${i}`} fill className="object-cover rounded border" />
+                                            <button onClick={() => handleRemoveImage('site', i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 w-5 h-5 flex items-center justify-center text-xs">×</button>
+                                        </div>
+                                    ))}
+                                    <label className="border border-dashed rounded flex flex-col items-center justify-center aspect-square cursor-pointer hover:bg-gray-50 text-gray-400 text-xs text-center p-1">
+                                        <Upload className="w-4 h-4 mb-1" />
+                                        추가
+                                        <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleMultiImageUpload(e, 'site')} />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -345,16 +433,8 @@ export default function AdminSettingsPage() {
 
                     {/* Chip 4: Facilities (Map) */}
                     <div className="border p-4 rounded-lg bg-gray-50 space-y-3 md:col-span-2">
-                        <Label className="font-bold text-gray-700">4. 시설현황 (배치도)</Label>
-                        <div className="space-y-2">
-                            <Label className="text-xs">배치도 이미지 업로드</Label>
-                            <div className="flex gap-4 items-start">
-                                {formData.layout_image_url && (
-                                    <Image src={formData.layout_image_url} alt="Layout" width={96} height={96} className="w-24 h-24 object-cover rounded border bg-white" />
-                                )}
-                                <Input type="file" onChange={(e) => handleImageUpload(e, 'layout')} className="bg-white flex-1" />
-                            </div>
-                        </div>
+                        <Label className="font-bold text-gray-700">4. 시설현황 (배치도 및 상세)</Label>
+                        <p className="text-xs text-gray-500">배치도 및 상세 이미지는 상단 "시설 및 안내" 섹션에서 관리하세요.</p>
                     </div>
 
                     {/* Chip 5: Nearby Places */}

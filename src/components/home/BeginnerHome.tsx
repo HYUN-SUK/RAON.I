@@ -12,7 +12,10 @@ import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailSheet';
 import WeatherDetailSheet from '@/components/home/WeatherDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
+import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
+
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { format } from 'date-fns';
 
 import { toast } from "sonner";
@@ -87,12 +90,20 @@ export default function BeginnerHome() {
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
-    const [weatherSheetOpen, setWeatherSheetOpen] = useState(false); // New State
+    const [weatherSheetOpen, setWeatherSheetOpen] = useState(false);
     const [detailData, setDetailData] = useState<HomeDetailData | null>(null);
 
-    // Nearby LBS Sheet State
+    // Nearby LBS Sheet State (Real-time Events)
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
     const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
+
+    // Search Location State (Undefined = default/LBS fallback, Object = specific location)
+    const [searchLocation, setSearchLocation] = useState<{ latitude: number, longitude: number } | undefined>(undefined);
+    // Custom Description for Nearby Sheet
+    const [nearbyDescription, setNearbyDescription] = useState<string | undefined>(undefined);
+
+    // Facility Detail Sheet State
+    const [facilitySheetOpen, setFacilitySheetOpen] = useState(false);
 
     // Dynamic Chip Data
     const chips = useMemo(() => {
@@ -102,8 +113,8 @@ export default function BeginnerHome() {
         // 1. Wayfinding (Address)
         // 2. Contact (Phone)
         // 3. Rules (Manners)
-        // 4. Facilities (Map)
-        // 5. Nearby Places
+        // 4. Facilities (Map + Images)
+        // 5. Nearby Places (LBS - Fixed relative to Campsite for Chip)
         // 6. Price Guide
 
         return [
@@ -113,7 +124,7 @@ export default function BeginnerHome() {
                 label: "길찾기",
                 sub: "카카오/티맵",
                 title: "오시는 길",
-                description: `주소: ${config.address_main}\n(상세: ${config.address_detail || '없음'})\n\n화악산의 맑은 공기와 함께하는 여정이 되시길 바랍니다.`,
+                description: `주소: ${config.address_main || ''}\n(상세: ${config.address_detail || '없음'})\n\n예산군의 맑은 공기와 함께하는 여정이 되시길 바랍니다.`,
                 actionLabel: "네비게이션 앱 선택",
                 actionLink: "sheet:navigation"
             },
@@ -123,7 +134,7 @@ export default function BeginnerHome() {
                 label: "문의",
                 sub: "연락처",
                 title: "문의 하기",
-                description: `예약 및 이용 관련 문의는 언제든 편하게 연락주세요.\n\n📞 ${config.phone_number}`,
+                description: `예약 및 이용 관련 문의는 언제든 편하게 연락주세요.\n\n📞 ${config.phone_number || ''}`,
                 actionLabel: "전화 연결",
                 actionLink: "sheet:contact"
             },
@@ -141,11 +152,11 @@ export default function BeginnerHome() {
                 type: 'map',
                 icon: <Map className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
                 label: "시설현황",
-                sub: "배치도",
-                title: "시설 배치도",
-                description: "전체 캠핑장 배치도입니다.\n이미지를 확대해서 보실 수 있습니다.",
-                actionLabel: "크게 보기",
-                actionLink: config.layout_image_url ? `image:${config.layout_image_url}` : undefined
+                sub: "배치도/사진",
+                title: "시설 현황",
+                description: "캠핑장 배치도와 편의시설(욕실, 개수대, 사이트) 사진을 확인하실 수 있습니다.",
+                actionLabel: "상세 보기",
+                actionLink: "sheet:facilities"
             },
             {
                 type: 'nearby',
@@ -153,11 +164,9 @@ export default function BeginnerHome() {
                 label: "주변 명소",
                 sub: "관광지 안내",
                 title: "주변 즐길거리",
-                description: Array.isArray(config.nearby_places) && config.nearby_places.length > 0
-                    ? (config.nearby_places as NearbyEvent[]).map(p => `• ${p.title || '장소명 없음'}\n  ${p.description || '설명 없음'}`).join('\n\n')
-                    : "등록된 인근 명소가 없습니다.",
-                actionLabel: "명소 리스트 확인",
-                actionLink: "/guide/scenery" // Or Keep as sheet logic if preferable
+                description: "캠핑장 주변의 행사와 축제, 관광지를 확인해보세요.",
+                actionLabel: "주변 정보 확인",
+                actionLink: "sheet:nearby"
             },
             {
                 type: 'price',
@@ -165,7 +174,7 @@ export default function BeginnerHome() {
                 label: "가격안내",
                 sub: "요금표",
                 title: "가격 안내",
-                description: config.pricing_guide_text || "가격 정보가 등록되지 않았습니다.",
+                description: "상세 이용 요금 안내입니다.",
                 isPriceGuide: true
             },
         ];
@@ -188,16 +197,9 @@ export default function BeginnerHome() {
         }
     };
 
-    // useEffect removed converted to useMemo
-
-
     // Auth Protection Hook
     const { withAuth } = useRequireAuth();
 
-    // Legacy function replaced by hook, but matching signature for compatibility with existing JSX calls if needed, 
-    // or better yet, update the call sites.
-    // The existing call site is: onClick={() => handleProtectedAction(() => router.push('/reservation'))}
-    // We can just keep a wrapper or update the usage. Let's keep wrapper for minimal code churn in JSX.
     const handleProtectedAction = (action: () => void) => {
         withAuth(action);
     };
@@ -219,16 +221,16 @@ export default function BeginnerHome() {
             setDetailData({
                 ...chip,
                 description: chip.description + "\n\n👇 원하시는 지도 앱을 선택해주세요.",
-                actionLabel: undefined, // Disable default button
+                actionLabel: undefined,
                 buttons: [
                     {
                         label: "네이버 지도",
-                        onClick: () => window.location.href = `https://map.naver.com/v5/search/${encodeURIComponent(config.address_main)}`,
+                        onClick: () => window.location.href = `https://map.naver.com/v5/search/${encodeURIComponent(config.address_main || '')}`,
                         variant: 'outline'
                     },
                     {
                         label: "카카오맵",
-                        onClick: () => window.location.href = `https://map.kakao.com/link/search/${encodeURIComponent(config.address_main)}`,
+                        onClick: () => window.location.href = `https://map.kakao.com/link/search/${encodeURIComponent(config.address_main || '')}`,
                         variant: 'outline'
                     }
                 ]
@@ -246,13 +248,13 @@ export default function BeginnerHome() {
                 buttons: [
                     {
                         label: "전화 걸기",
-                        onClick: () => window.location.href = `tel:${config.phone_number}`,
+                        onClick: () => window.location.href = `tel:${config.phone_number || ''}`,
                         variant: 'default'
                     },
                     {
                         label: "전화번호 복사",
                         onClick: () => {
-                            navigator.clipboard.writeText(config.phone_number);
+                            navigator.clipboard.writeText(config.phone_number || '');
                             toast.success("전화번호가 복사되었습니다");
                         },
                         variant: 'outline'
@@ -263,7 +265,22 @@ export default function BeginnerHome() {
             return;
         }
 
-        // Default Sheet
+        // 5. Facilities Sheet
+        if (chip.actionLink === "sheet:facilities") {
+            setFacilitySheetOpen(true);
+            return;
+        }
+
+        // 6. Nearby Sheet (LBS) - FIXED LOCATION for Chip
+        if (chip.actionLink === "sheet:nearby") {
+            setNearbyEvents([]); // Or load via API
+            setSearchLocation(DEFAULT_CAMPING_LOCATION); // Use RAON.I Location
+            setNearbyDescription("라온아이 캠핑장 근처 관광지와 편의시설을 확인하세요");
+            setNearbySheetOpen(true);
+            return;
+        }
+
+        // Default Sheet (Rules etc)
         setDetailData(chip);
         setDetailSheetOpen(true);
     };
@@ -273,6 +290,8 @@ export default function BeginnerHome() {
             // Special Handling for LBS Card
             if (item.type === 'nearby_lbs') {
                 setNearbyEvents(item.events || []);
+                setSearchLocation(lbs.location || undefined); // Use User Location
+                setNearbyDescription("주변 반경 30km의 레포츠,관광지,편의시설,행사를 확인하세요");
                 setNearbySheetOpen(true);
                 return;
             }
@@ -284,24 +303,19 @@ export default function BeginnerHome() {
                 actionLabel: item.actionLabel,
                 actionLink: item.actionLink,
                 bgColorClass: item.bgColorClass,
-                // V2 Fields Copy
                 categoryLabel: item.category === 'play' ? '오늘의 놀이' : '오늘의 셰프',
                 ingredients: item.ingredients as string[] | { name: string; amount: string; }[] | undefined,
-                steps: item.process_steps as string[] | undefined, // DB field is process_steps, UI prop is steps
+                steps: item.process_steps as string[] | undefined,
                 tips: item.tips || undefined,
                 time_required: item.time_required || undefined,
                 difficulty: item.difficulty || undefined,
-
-                // V2.1 Premium Fields
                 image_url: item.image_url || undefined,
                 servings: item.servings || undefined,
                 calories: item.calories || undefined,
                 age_group: item.age_group || undefined,
                 location_type: item.location_type || undefined,
-
-                // V9 Personalization
                 reason: reason,
-                category: item.category as 'cooking' | 'play' // Explicit cast for shuffle
+                category: item.category as 'cooking' | 'play'
             });
             setDetailSheetOpen(true);
         });
@@ -309,19 +323,18 @@ export default function BeginnerHome() {
 
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
-            {/* Global TopBar */}
             <TopBar />
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
                 {/* 1. Hero Section */}
                 <section className="relative w-full h-[50vh] min-h-[460px] flex flex-col justify-end p-6">
-                    {/* Background Image (Placeholder) */}
                     <div className="absolute inset-0 z-0 bg-stone-300">
-                        {/* Placeholder for Hero Image */}
-                        <div className="w-full h-full bg-stone-400 bg-[url('https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center grayscale-[20%]" />
+                        {/* Hero Image */}
+                        <div
+                            className="w-full h-full bg-cover bg-center grayscale-[20%]"
+                            style={{ backgroundImage: config?.hero_image_url ? `url(${config.hero_image_url})` : `url('https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&w=1000&auto=format&fit=crop')` }}
+                        />
                     </div>
-
-                    {/* Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
@@ -331,10 +344,6 @@ export default function BeginnerHome() {
                                 <div className="space-y-2">
                                     <Skeleton className="h-10 w-48 bg-white/20 rounded-lg" />
                                     <Skeleton className="h-10 w-36 bg-white/20 rounded-lg" />
-                                </div>
-                                <div className="space-y-1 pt-2">
-                                    <Skeleton className="h-5 w-full max-w-[280px] bg-white/20 rounded-md" />
-                                    <Skeleton className="h-5 w-full max-w-[240px] bg-white/20 rounded-md" />
                                 </div>
                             </div>
                         ) : (
@@ -364,15 +373,10 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
-
                 {/* 2. Info Chips (3x2 Grid) */}
                 <section className="px-4 -mt-8 relative z-30 mb-8">
                     <div className="grid grid-cols-3 gap-3">
                         {chips.map((chip, idx) => {
-                            // ChipIcon is already a ReactNode in my new state logic, 
-                            // BUT wait, in state above I set icon: <MapPin ... /> (JSX Element).
-                            // So I just render it directly.
-
                             const ChipContent = (
                                 <div
                                     onClick={() => handleChipClick(chip)}
@@ -386,7 +390,7 @@ export default function BeginnerHome() {
 
                             if (chip.isPriceGuide) {
                                 return (
-                                    <PriceGuideSheet key={idx}>
+                                    <PriceGuideSheet key={idx} pricingText={config?.pricing_guide_text}>
                                         {ChipContent}
                                     </PriceGuideSheet>
                                 )
@@ -395,8 +399,6 @@ export default function BeginnerHome() {
                         })}
                     </div>
                 </section>
-
-
 
                 {/* 3. Guide Card */}
                 <section className="px-4 mb-8">
@@ -425,8 +427,6 @@ export default function BeginnerHome() {
                             </div>
                         </div>
 
-
-
                         <Button
                             className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
                             onClick={() => handleProtectedAction(() => router.push('/reservation'))}
@@ -439,12 +439,7 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
-                {/* 3.5 Weekly Mission (Moved) */}
-                <section className="px-4 mb-8">
-                    <MissionHomeWidget />
-                </section>
-
-                {/* 4. Recommendations Grid (Dynamic) */}
+                {/* 4. Recommendations Grid */}
                 <RecommendationGrid
                     data={recData}
                     loading={recLoading}
@@ -452,12 +447,10 @@ export default function BeginnerHome() {
                 />
             </main>
 
-            {/* Slim Notice Layout Position */}
             <div className="absolute bottom-0 left-0 right-0 z-40">
                 <SlimNotice />
             </div>
 
-            {/* Global Detail Sheet */}
             <HomeDetailSheet
                 isOpen={detailSheetOpen}
                 onClose={() => setDetailSheetOpen(false)}
@@ -465,7 +458,6 @@ export default function BeginnerHome() {
                 onShuffle={shuffle}
             />
 
-            {/* Weather Detail Sheet */}
             {weather && (
                 <WeatherDetailSheet
                     isOpen={weatherSheetOpen}
@@ -474,15 +466,29 @@ export default function BeginnerHome() {
                 />
             )}
 
-            {/* Nearby LBS Sheet */}
+            {/* Live LBS Events Sheet (Contextual Recommendation) */}
             <NearbyDetailSheet
                 isOpen={nearbySheetOpen}
                 onClose={() => setNearbySheetOpen(false)}
                 events={nearbyEvents}
-                facilities={(config?.nearby_places as unknown as Facility[]) || []}
-                userLocation={lbs.location}
+                facilities={[]}
+                userLocation={searchLocation || lbs.location}
                 getDistance={lbs.getDistanceKm}
+                isUsingDefault={!searchLocation && !lbs.location}
+                customDescription={nearbyDescription}
             />
+
+            {/* Facility Details */}
+            {config && (
+                <FacilityDetailSheet
+                    isOpen={facilitySheetOpen}
+                    onClose={() => setFacilitySheetOpen(false)}
+                    layoutImage={config.layout_image_url}
+                    bathroomImages={config.bathroom_images}
+                    siteImages={config.site_images}
+                    description={config.facilities_description}
+                />
+            )}
         </div>
     );
 }

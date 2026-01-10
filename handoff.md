@@ -1,36 +1,35 @@
-# Handoff Document - 주변 즐길거리 확장 및 API 통합
+# Session Handoff: Admin Stability & UI Polish
 
-## 📝 Summary
-사용자 위치 주변의 즐길거리(행사, 레포츠, 관광지)를 확장하고, 캠핑장 사용자에게 최적화된 경험을 제공하기 위해 API 통합 및 UI 개선을 완료했습니다.
+## 📅 Session Summary (2026-01-10)
+This session focused on debugging and stabilizing critical admin operations (deletion, bulk import) that were failing due to Supabase RLS policies, and polishing the user-facing "Today's Recommendation" UI.
 
-### 주요 성과
-1.  **카테고리 확장**: 기존 '행사', '편의'에 **'레포츠'**, **'관광지'** 탭을 추가했습니다. (TourAPI `type=28, 12` 활용)
-2.  **데이터 품질 개선**:
-    - **레포츠 필터링**: 캠핑장 사용자에게 불필요한 '캠핑', '야영' 관련 항목을 필터링하여 순수 액티비티만 제공.
-    - **상세보기 연결**: 한국관광공사 링크 오류 문제를 해결하기 위해 **네이버 통합 검색**으로 연결하여 더 풍부한 정보 제공.
-3.  **행사 데이터 통합**: TourAPI + 공공데이터(공연/축제) 3종 소스 병합 구조 완성. (현재 공공데이터는 키 승인 대기 중)
-4.  **UX 디테일**:
-    - 데이터 출처별 (진행중/공연/축제) 뱃지 구분.
-    - 위치 권한 여부에 따라 **"현재 위치 기준" / "캠핑장 기준"** 안내 문구 명확화.
-    - **탭 순서 변경**: [레포츠 > 관광지 > 편의 > 행사] 순으로 변경하여, 행사가 없을 때도 풍부한 콘텐츠(레포츠/관광)를 먼저 보여줌.
+### 1. Admin Mission Management (Stability Fixes)
+- **Deletion Fixed**: Replaced the unreliable `window.confirm` with a robust **`AlertDialog`**. More importantly, fixed the silent failure (RLS 401/403) by migrating the actual deletion logic to a **Server Action (`deleteMissionAction`)** that utilizes the `SUPABASE_SERVICE_ROLE_KEY`.
+- **Bulk Import Fixed**: Resolved the 403 Forbidden error when AI-importing missions. Implemented **`createBulkMissionsAction`** to allow admin-privileged bulk inserts, verifying that JSON generated from `MISSION_GENERATION_PROMPT.md` works perfectly.
 
-## 🚧 Status & Next Steps
-- **현재 상태**: 구현 완료 및 안정화됨.
-- **남은 과제**:
-    - [ ] **공공데이터포털 키 승인 확인**: 1~2시간 후 `nearby-events` API가 자동으로 3개 소스 데이터를 병합해서 주는지 확인 필요. (코드는 이미 반영됨)
+### 2. UI Polish ("Today's Recommendation")
+- **Color Harmonization**: Aligned card colors with the "CampWarm Forest" theme:
+  - Cooking: `bg-[#FDFBF7]` (Warm Cream)
+  - Play: `bg-[#F1F8E9]` (Sage Green)
+  - Nearby: `bg-[#E3F2FD]` (Warm Blue)
+- **Layout**: Removed the redundant "More" (더보기) button from the header.
+- **Icon Visibility**: Changed the "Nearby" location icon color to `text-sky-600` for better contrast.
 
-## 🔍 Technical Decisions
-### 1. API Integration (`Promise.allSettled`)
-- TourAPI, 공연API, 축제API 3개를 병렬 호출하며, 하나가 실패해도(예: 키 미승인) 나머지는 정상 표시되도록 `allSettled`를 사용했습니다.
+## 🏗️ Technical Decisions
+- **Server Actions for Admin Ops**: Client-side Supabase calls were failing for `DELETE` and `INSERT` (Bulk) on the `missions` table due to strict RLS policies. Instead of loosening RLS for the public client, we moved these privileged operations to **Next.js Server Actions** (`src/actions/admin-mission.ts`). This allows us to safely use the `SUPABASE_SERVICE_ROLE_KEY` on the server to bypass RLS for authorized admin actions.
 
-### 2. Fallback to Naver Search
-- **문제**: 한국관광공사(VisitKorea) 홈페이지 개편으로 기존 숫자 ID 기반 링크(`ms_detail.do?cotid=...`)가 작동하지 않음.
-- **해결**: 모든 '상세보기' 버튼을 `search.naver.com` 쿼리로 연결하여 링크 깨짐을 방지하고 사용자에게 더 실용적인 정보(지도/리뷰)를 제공.
+## 📝 Next Steps
+1.  **Market & Analytics**: The Admin Console overhaul still has "Market Pivot" and "Analytics Dashboard" pending in the roadmap.
+2.  **Reservation Automation**: Logic for auto-opening reservations needs to be implemented.
+3.  **LBS Fallback UX**: While colors are fixed, the "Nearby" card could use a more descriptive empty state or fallback image when no events are found near the user (currently just shows text).
 
-### 3. Geolocation Logic (`useLBS`)
-- 브라우저 GPS를 우선 사용하며, 권한 거부 시 `DEFAULT_CAMPING_LOCATION`을 사용합니다.
-- UI에서 이 상태를 구분하여 "현재 위치 기준" 또는 "캠핑장 기준"으로 표시합니다.
+## ⚠️ Known Issues / Notes
+-   **Env Var Dependency**: The new server actions relies on `SUPABASE_SERVICE_ROLE_KEY`. Ensure this is set in the production environment variables, otherwise mission deletion and bulk import will fail 500. (`.env.local` has it currently).
+-   **Linting**: Some unused import warnings might remain in other files, but the critical admin and home components have been cleaned up this session.
 
-## ⚠️ Notes
-- `TOUR_API_KEY` 환경변수는 하나로 통일되어 있습니다.
-- 레포츠 필터링 키워드(`src/app/api/nearby-activities/route.ts`)는 하드코딩 되어 있으므로 정책 변경 시 수정 필요합니다.
+## 🧪 Verification Status
+-   **Localhost**: `npm run dev` verified.
+-   **Browser**:
+    -   Admin Mission Deletion: **Pass** (Item removed from DB).
+    -   Admin Bulk Import: **Pass** (JSON imported successfully).
+    -   Home UI: **Pass** (Colors and layout correct).

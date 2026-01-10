@@ -51,8 +51,8 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             icon: <ChefHat className="text-orange-600" size={28} />,
             categoryLabel: '오늘의 셰프',
             title: cooking.title,
-            bgColorClass: 'bg-orange-50',
-            textColorClass: 'text-orange-600',
+            bgColorClass: 'bg-[#FDFBF7]',
+            textColorClass: 'text-amber-900',
             data: cooking,
             reason: reasons?.cooking
         });
@@ -63,8 +63,8 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             icon: <ChefHat className="text-stone-400" size={28} />,
             categoryLabel: '오늘의 요리',
             title: '준비 중입니다',
-            bgColorClass: 'bg-stone-100',
-            textColorClass: 'text-stone-500',
+            bgColorClass: 'bg-[#FDFBF7]',
+            textColorClass: 'text-stone-400',
             data: null
         });
     }
@@ -76,8 +76,8 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             icon: <Tent className="text-green-600" size={28} />,
             categoryLabel: '오늘의 놀이',
             title: play.title,
-            bgColorClass: 'bg-green-50',
-            textColorClass: 'text-green-600',
+            bgColorClass: 'bg-[#F1F8E9]',
+            textColorClass: 'text-[#1C4526]',
             data: play,
             reason: reasons?.play
         });
@@ -87,8 +87,8 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             icon: <Tent className="text-stone-400" size={28} />,
             categoryLabel: '오늘의 놀이',
             title: '준비 중입니다',
-            bgColorClass: 'bg-stone-100',
-            textColorClass: 'text-stone-500',
+            bgColorClass: 'bg-[#F1F8E9]',
+            textColorClass: 'text-stone-400',
             data: null
         });
     }
@@ -100,11 +100,11 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
     if (eventCount > 0 && firstEvent) {
         items.push({
             id: `event-lbs`,
-            icon: <MapPin className="text-blue-600" size={28} />,
+            icon: <MapPin className="text-sky-600" size={28} />,
             categoryLabel: '주변 레포츠, 관광지, 편의시설, 행사',
             title: firstEvent.title,
-            bgColorClass: 'bg-blue-50',
-            textColorClass: 'text-blue-600',
+            bgColorClass: 'bg-[#E3F2FD]',
+            textColorClass: 'text-[#1E3A8A]',
             isWide: true,
             description: eventCount > 1
                 ? `외 ${eventCount - 1}개의 행사와 편의시설이 있어요`
@@ -114,11 +114,11 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
     } else {
         items.push({
             id: 'event-mock',
-            icon: <MapPin className="text-stone-400" size={28} />,
+            icon: <MapPin className="text-sky-600" size={28} />,
             categoryLabel: '주변 레포츠, 관광지, 편의시설, 행사',
             title: '주변의 숨은 명소와 액티비티',
-            bgColorClass: 'bg-stone-100',
-            textColorClass: 'text-stone-500',
+            bgColorClass: 'bg-[#E3F2FD]',
+            textColorClass: 'text-slate-500',
             isWide: true,
             description: '레포츠, 관광지, 편의시설을 확인해보세요',
             data: { type: 'nearby_lbs' as const, events: [] }
@@ -129,7 +129,6 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
         <section className="px-4 mb-8">
             <div className="flex justify-between items-end mb-4 px-1">
                 <h3 className="text-xl font-bold text-[#1C4526] dark:text-[#A7F3D0]">오늘의 추천</h3>
-                <span className="text-xs text-stone-500 cursor-pointer hover:underline">더보기</span>
             </div>
             {/* Bento Grid: 2 Top + 1 Bottom Wide */}
             <div className="grid grid-cols-2 gap-3">

@@ -8,22 +8,23 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Coins } from "lucide-react";
 
 interface PriceGuideSheetProps {
     children: React.ReactNode;
+    pricingText?: string | null;
 }
 
-export function PriceGuideSheet({ children }: PriceGuideSheetProps) {
+export function PriceGuideSheet({ children, pricingText }: PriceGuideSheetProps) {
     return (
         <Sheet>
             <SheetTrigger asChild>
                 {children}
             </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-[32px] px-6 pb-10">
-                <SheetHeader className="text-left mb-6">
+            <SheetContent side="bottom" className="rounded-t-[32px] px-6 pb-10 h-[80vh] overflow-y-auto scrollbar-hide bg-stone-50 dark:bg-zinc-900">
+                <SheetHeader className="text-left mb-6 pt-6">
                     <Badge variant="outline" className="w-fit mb-2 border-[#C3A675] text-[#C3A675]">Price Decoding</Badge>
-                    <SheetTitle className="text-2xl font-bold text-[#1C4526] leading-snug">
+                    <SheetTitle className="text-2xl font-bold text-[#1C4526] dark:text-[#A7F3D0] leading-snug">
                         라온아이 이용료,<br />
                         이런 가치가 담겨있어요.
                     </SheetTitle>
@@ -32,48 +33,19 @@ export function PriceGuideSheet({ children }: PriceGuideSheetProps) {
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="space-y-6">
-                    {/* item 1 */}
-                    <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#E8F5E9] flex items-center justify-center shrink-0">
-                            <span className="text-lg font-bold text-[#1C4526]">2x</span>
+                <div className="space-y-8 pb-12">
+                    {/* 0. Admin Dynamic Price Text (Priority) */}
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 shadow-sm border border-stone-100 dark:border-zinc-700">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Coins className="w-5 h-5 text-[#C3A675]" />
+                            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">상세 이용 요금</h3>
                         </div>
-                        <div>
-                            <h4 className="font-bold text-stone-900 dark:text-stone-100 text-lg">2배 더 넓은 사이트</h4>
-                            <p className="text-stone-600 dark:text-stone-400 text-sm mt-1 leading-relaxed">
-                                일반 캠핑장(6mx8m)보다 훨씬 넓은 10mx10m 사이트를 제공합니다.
-                                옆 텐트 소음 걱정 없이 우리만의 프라이빗한 시간을 즐기세요.
-                            </p>
-                        </div>
+                        <p className="text-stone-600 dark:text-stone-300 whitespace-pre-wrap leading-relaxed text-sm">
+                            {pricingText || "등록된 가격 정보가 없습니다.\n관리자에게 문의해주세요."}
+                        </p>
                     </div>
 
-                    {/* item 2 */}
-                    <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#E8F5E9] flex items-center justify-center shrink-0">
-                            <Check className="w-6 h-6 text-[#1C4526]" />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-stone-900 dark:text-stone-100 text-lg">개별 욕실 & 개수대</h4>
-                            <p className="text-stone-600 dark:text-stone-400 text-sm mt-1 leading-relaxed">
-                                공용 시설까지 걸어갈 필요 없어요.
-                                사이트 바로 옆에 우리 가족만 쓰는 전용 편의시설이 준비되어 있습니다.
-                            </p>
-                        </div>
-                    </div>
 
-                    {/* item 3 */}
-                    <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#E8F5E9] flex items-center justify-center shrink-0">
-                            <span className="text-lg font-bold text-[#1C4526]">0</span>
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-stone-900 dark:text-stone-100 text-lg">추가 요금 0원</h4>
-                            <p className="text-stone-600 dark:text-stone-400 text-sm mt-1 leading-relaxed">
-                                인원 추가, 차량 추가, 쓰레기 봉투값...
-                                현장에서 당황하지 마세요. 라온아이는 모든 필수 비용이 포함되어 있습니다.
-                            </p>
-                        </div>
-                    </div>
                 </div>
             </SheetContent>
         </Sheet>

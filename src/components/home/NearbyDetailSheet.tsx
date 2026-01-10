@@ -52,6 +52,7 @@ interface NearbyDetailSheetProps {
     getDistance?: (lat: number, lng: number) => number;
     enableApiCall?: boolean; // true면 API에서 실시간 데이터 조회
     isUsingDefault?: boolean; // 위치 권한 거부 시 true
+    customDescription?: string;
 }
 
 export default function NearbyDetailSheet({
@@ -63,6 +64,7 @@ export default function NearbyDetailSheet({
     getDistance,
     enableApiCall = true,
     isUsingDefault = false,
+    customDescription,
 }: NearbyDetailSheetProps) {
     const [activeTab, setActiveTab] = useState("events");
 
@@ -237,7 +239,7 @@ export default function NearbyDetailSheet({
                         주변 즐길거리
                     </SheetTitle>
                     <SheetDescription>
-                        {!isUsingDefault ? '현재 위치 기준' : '캠핑장(예산군) 기준'} 30km 내의 행사와 편의시설을 확인하세요.
+                        {customDescription || (!isUsingDefault ? '주변 반경 30km의 레포츠,관광지,편의시설,행사를 확인하세요' : '캠핑장(예산군) 기준 30km 내의 행사와 편의시설을 확인하세요')}
                     </SheetDescription>
                 </SheetHeader>
 
