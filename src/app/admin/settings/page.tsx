@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, MapPin, Upload, X } from 'lucide-react';
+import { Loader2, Save, MapPin, Upload, X, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase-client';
@@ -42,6 +42,13 @@ export default function AdminSettingsPage() {
     const [bathroomImages, setBathroomImages] = useState<string[]>([]);
     const [siteImages, setSiteImages] = useState<string[]>([]);
 
+    // Mission Reward Settings
+    const [missionRewards, setMissionRewards] = useState({
+        first_xp: 500, first_token: 150,
+        second_xp: 300, second_token: 100,
+        third_xp: 200, third_token: 50
+    });
+
     useEffect(() => {
         if (config) {
             setFormData({
@@ -63,6 +70,16 @@ export default function AdminSettingsPage() {
             setFacilitiesDescription(config.facilities_description || '');
             setBathroomImages(config.bathroom_images || []);
             setSiteImages(config.site_images || []);
+
+            // Mission Rewards
+            setMissionRewards({
+                first_xp: config.mission_reward_1st_xp ?? 500,
+                first_token: config.mission_reward_1st_token ?? 150,
+                second_xp: config.mission_reward_2nd_xp ?? 300,
+                second_token: config.mission_reward_2nd_token ?? 100,
+                third_xp: config.mission_reward_3rd_xp ?? 200,
+                third_token: config.mission_reward_3rd_token ?? 50
+            });
 
             // Safe parse JSON
             try {
@@ -160,6 +177,13 @@ export default function AdminSettingsPage() {
                     facilities_description: facilitiesDescription,
                     bathroom_images: bathroomImages,
                     site_images: siteImages,
+                    // Mission Reward Settings
+                    mission_reward_1st_xp: missionRewards.first_xp,
+                    mission_reward_1st_token: missionRewards.first_token,
+                    mission_reward_2nd_xp: missionRewards.second_xp,
+                    mission_reward_2nd_token: missionRewards.second_token,
+                    mission_reward_3rd_xp: missionRewards.third_xp,
+                    mission_reward_3rd_token: missionRewards.third_token,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', 1);
@@ -475,6 +499,99 @@ export default function AdminSettingsPage() {
                                 className="bg-white h-24"
                                 placeholder="예: 평일 50,000원 / 주말 70,000원..."
                             />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. Mission Reward Settings */}
+            <div className="bg-white p-6 rounded-xl border shadow-sm space-y-6">
+                <h2 className="text-lg font-semibold text-[#1C4526] flex items-center gap-2">
+                    <Trophy className="w-5 h-5" /> 주간 미션 Top 3 보상 설정
+                </h2>
+                <p className="text-sm text-gray-500">
+                    매주 일요일 21:00에 좋아요 수 기준 Top 3가 선정되어 아래 보상이 자동 지급됩니다.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* 1st Place */}
+                    <div className="border p-4 rounded-lg bg-yellow-50 space-y-3">
+                        <Label className="font-bold text-yellow-700 flex items-center gap-1">
+                            🥇 1위 보상
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                                <Label className="text-xs">XP</Label>
+                                <Input
+                                    type="number"
+                                    value={missionRewards.first_xp}
+                                    onChange={e => setMissionRewards({ ...missionRewards, first_xp: parseInt(e.target.value) || 0 })}
+                                    className="bg-white"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Token</Label>
+                                <Input
+                                    type="number"
+                                    value={missionRewards.first_token}
+                                    onChange={e => setMissionRewards({ ...missionRewards, first_token: parseInt(e.target.value) || 0 })}
+                                    className="bg-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2nd Place */}
+                    <div className="border p-4 rounded-lg bg-gray-100 space-y-3">
+                        <Label className="font-bold text-gray-700 flex items-center gap-1">
+                            🥈 2위 보상
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                                <Label className="text-xs">XP</Label>
+                                <Input
+                                    type="number"
+                                    value={missionRewards.second_xp}
+                                    onChange={e => setMissionRewards({ ...missionRewards, second_xp: parseInt(e.target.value) || 0 })}
+                                    className="bg-white"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Token</Label>
+                                <Input
+                                    type="number"
+                                    value={missionRewards.second_token}
+                                    onChange={e => setMissionRewards({ ...missionRewards, second_token: parseInt(e.target.value) || 0 })}
+                                    className="bg-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3rd Place */}
+                    <div className="border p-4 rounded-lg bg-orange-50 space-y-3">
+                        <Label className="font-bold text-orange-700 flex items-center gap-1">
+                            🥉 3위 보상
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                                <Label className="text-xs">XP</Label>
+                                <Input
+                                    type="number"
+                                    value={missionRewards.third_xp}
+                                    onChange={e => setMissionRewards({ ...missionRewards, third_xp: parseInt(e.target.value) || 0 })}
+                                    className="bg-white"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Token</Label>
+                                <Input
+                                    type="number"
+                                    value={missionRewards.third_token}
+                                    onChange={e => setMissionRewards({ ...missionRewards, third_token: parseInt(e.target.value) || 0 })}
+                                    className="bg-white"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

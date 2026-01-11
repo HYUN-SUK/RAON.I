@@ -25,7 +25,9 @@ export function ContentWriteForm() {
     // Body Content States
     const [liveUrl, setLiveUrl] = useState('');
     const [novelText, setNovelText] = useState('');
+
     const [webtoonFiles, setWebtoonFiles] = useState<File[]>([]);
+    const [webtoonLink, setWebtoonLink] = useState('');
 
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -102,7 +104,10 @@ export function ContentWriteForm() {
                     const url = await creatorService.uploadImage(file);
                     imageUrls.push(url);
                 }
-                bodyRef = { images: imageUrls };
+                bodyRef = {
+                    images: imageUrls,
+                    link: webtoonLink || undefined
+                };
             }
 
             // 4. Create First Episode
@@ -157,7 +162,9 @@ export function ContentWriteForm() {
                     <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
                         {type === 'LIVE' && "유튜브나 트위치 라이브 주소를 공유합니다. 승인 후 라이브 탭에 노출됩니다."}
                         {type === 'NOVEL' && "텍스트 기반의 소설을 연재합니다. 편안한 뷰어가 제공됩니다."}
-                        {type === 'WEBTOON' && "이미지 파일(세로 스크롤)을 업로드합니다."}
+                        {type === 'NOVEL' && "텍스트 기반의 소설을 연재합니다. 편안한 뷰어가 제공됩니다."}
+                        {type === 'WEBTOON' && "대용량 웹툰은 외부 링크를 권장합니다. (썸네일/대표 컷만 업로드)"}
+                        {type === 'ESSAY' && "감성적인 에세이나 칼럼을 작성합니다."}
                         {type === 'ESSAY' && "감성적인 에세이나 칼럼을 작성합니다."}
                     </div>
                 </CardContent>
@@ -241,14 +248,41 @@ export function ContentWriteForm() {
 
                 {type === 'WEBTOON' && (
                     <div>
-                        <label className="text-xs text-gray-500 mb-1 block">원고 이미지 (순서대로 업로드)</label>
+                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mb-4 text-xs text-orange-800 leading-relaxed">
+                            <strong>📢 서버 비용 절감 안내</strong><br />
+                            웹툰 전체 이미지를 올리면 서버 용량이 많이 소모됩니다.<br />
+                            <strong>전체 보기 링크(네이버, 포스타입 등)</strong>를 입력하고, 여기에는 썸네일과 앞부분 3~5장만 올려주세요!
+                        </div>
+
+                        <label className="text-xs text-gray-500 mb-1 block">웹툰 전체보기 링크 (선택)</label>
+                        <Input
+                            placeholder="https://postype.com/..."
+                            value={webtoonLink}
+                            onChange={(e) => setWebtoonLink(e.target.value)}
+                            className="mb-4"
+                        />
+
+                        <label className="text-xs text-gray-500 mb-1 block">대표 이미지 (최대 5장, 장당 5MB)</label>
                         <Input
                             type="file"
                             multiple
                             accept="image/*"
                             onChange={(e) => {
                                 if (e.target.files) {
-                                    setWebtoonFiles(Array.from(e.target.files));
+                                    const files = Array.from(e.target.files);
+
+                                    // Validation
+                                    if (files.length > 5) {
+                                        alert('대표 이미지는 최대 5장까지만 업로드해주세요.');
+                                        return;
+                                    }
+                                    const oversized = files.filter(f => f.size > 5 * 1024 * 1024);
+                                    if (oversized.length > 0) {
+                                        alert('이미지 파일 크기는 장당 5MB를 초과할 수 없습니다.');
+                                        return;
+                                    }
+
+                                    setWebtoonFiles(files);
                                 }
                             }}
                         />

@@ -11,6 +11,7 @@ import { useCommunityStore } from '@/store/useCommunityStore';
 import { Comment, communityService, supabase } from '@/services/communityService';
 import { compressImage } from '@/utils/imageUtils';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { EmberButton } from '@/components/mission/EmberButton';
 import {
 
     Dialog,
@@ -38,6 +39,16 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+    // Get current user ID
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setCurrentUserId(user?.id || null);
+        };
+        fetchUser();
+    }, []);
 
     const handleLike = async (commentId: string) => {
         await withAuth(async () => {
@@ -248,6 +259,19 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                                             <Heart className={`w-3.5 h-3.5 ${comment.isLiked ? 'fill-current' : ''}`} />
                                             <span>{comment.likesCount || 0}</span>
                                         </button>
+
+                                        {/* Ember Button (for other users' comments only) */}
+                                        {comment.authorId && currentUserId && comment.authorId !== currentUserId && (
+                                            <EmberButton
+                                                receiverId={comment.authorId}
+                                                targetId={comment.id}
+                                                targetType="comment"
+                                                receiverName={comment.author}
+                                                size="icon"
+                                                showLabel={false}
+                                            />
+                                        )}
+
                                         {(comment.isMine || comment.isAdmin) && (
                                             <button
                                                 onClick={() => handleDelete(comment.id)}

@@ -138,6 +138,21 @@ export const creatorService = {
         return data as CreatorContent;
     },
 
+    // 관리자 컨텐츠 삭제 (RPC 사용)
+    async deleteContent(id: string) {
+        const { data, error } = await supabase.rpc('admin_delete_creator_content', {
+            p_content_id: id
+        });
+
+        if (error) throw error;
+
+        // RPC 결과 확인
+        const result = data as { success: boolean; error?: string } | null;
+        if (result && !result.success) {
+            throw new Error(result.error || '콘텐츠 삭제에 실패했습니다.');
+        }
+    },
+
     // --- Episodes ---
     async getEpisodes(contentId: string) {
         const { data, error } = await supabase

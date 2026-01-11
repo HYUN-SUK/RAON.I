@@ -191,8 +191,14 @@ export const communityService = {
 
         if (isAdmin) {
             // Admin Deletion (Force RPC)
-            const { error } = await supabase.rpc('admin_force_delete_post', { p_post_id: id });
+            const { data, error } = await supabase.rpc('admin_force_delete_post', { p_post_id: id });
             if (error) throw error;
+
+            // RPC 결과 확인 (JSON 반환)
+            const result = data as { success: boolean; error?: string } | null;
+            if (result && !result.success) {
+                throw new Error(result.error || '게시물 삭제에 실패했습니다.');
+            }
         } else {
             // Normal Deletion (RLS)
             const { error, count } = await supabase
@@ -423,6 +429,7 @@ function mapDbToPost(db: DbPost): Post {
             title: db.title,
             content: db.content,
             author: db.author_name || 'Anonymous',
+            authorId: db.author_id || undefined, // UUID for ember support
             date: db.created_at ? new Date(db.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             likeCount: db.like_count || 0,
             commentCount: db.comment_count || 0,

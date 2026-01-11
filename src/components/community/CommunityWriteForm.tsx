@@ -77,6 +77,13 @@ export default function CommunityWriteForm() {
                 return;
             }
 
+            // Validation: 5MB size limit per file
+            const oversizedFiles = newFiles.filter(file => file.size > 5 * 1024 * 1024);
+            if (oversizedFiles.length > 0) {
+                alert('이미지 파일 크기는 장당 5MB를 초과할 수 없습니다.');
+                return;
+            }
+
             setSelectedFiles(prev => [...prev, ...newFiles]);
 
             const newUrls = newFiles.map(file => URL.createObjectURL(file));
@@ -91,6 +98,12 @@ export default function CommunityWriteForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); // Crucial
+
+        // Validation: Content Length
+        if (content.length > 3000) {
+            alert('내용은 3,000자 이내로 작성해주세요.');
+            return;
+        }
 
         // Zod Validation
         const validation = postSchema.safeParse({ type, title, content, images: selectedFiles });

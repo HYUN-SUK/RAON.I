@@ -221,6 +221,28 @@
             *   [x] **Admin Operations**: Mission Deletion & Bulk Import fully fixed (Server Actions).
             *   [x] **UI Polish**: Recommendation Colors & Layout finalized.
             *   [x] **Status**: **100% Done**
+        *   [x] **8.6 Weekly Mission Ranking & Ember Support** ✅ (2026-01-10):
+            *   [x] **Mission Ranking**: GitHub Actions cron (Sundays 21:00 KST) + API Route + Admin UI.
+            *   [x] **Ember Support (불씨)**: Token-based "quiet support" system (10 tokens).
+            *   [x] **Ember Integration**: Mission cards, Community posts, Comments.
+            *   [x] **Home Fix**: Restored MissionHomeWidget to BeginnerHome.
+            *   [x] **DB Migration**: `20260110_mission_ranking_rewards.sql`, `20260110_ember_support.sql`.
+            *   [x] **Planning**: Created `ember_feature_spec.md` & `ember_implementation_plan.md` for Phase 8.7.
+            *   [x] **Status**: **100% Done**
+        *   [x] **8.7 Ember Notifications & Stats** ✅ (2026-01-11):
+            *   [x] **Notification System**: `EMBER_RECEIVED` 알림 타입 + 인앱 배지 자동 생성.
+            *   [x] **Stats RPC**: `get_my_ember_stats`, `get_sent_embers`, `get_received_embers`.
+            *   [x] **HeroSection Badge**: 받은 불씨 > 0일 때 좌측 상단에 "불씨 N개" 표시.
+            *   [x] **Embers Page**: `/myspace/embers` - 받은/남긴 불씨 탭, 빈 상태 UI 포함.
+            *   [x] **DB Migration**: `20260111_ember_notifications.sql`.
+            *   [x] **Live Verification**: 브라우저 검증 완료.
+            *   [x] **Status**: **100% Done**
+        *   [x] **8.8 Reservation Concurrency & Admin Deletion** ✅ (2026-01-12):
+            *   [x] **Reservation Concurrency**: Advisory Lock + RPC (`create_reservation_safe`).
+            *   [x] **Admin Deletion**: AlertDialog 방식으로 후기/컨텐츠/마켓/공지 삭제 개선.
+            *   [x] **Notice Query Fix**: SlimNotice 컬럼명 수정 (`board_type` → `type`).
+            *   [x] **DB Migration**: `20260111_reservation_concurrency.sql`, `20260111_admin_delete_permissions.sql`.
+            *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
@@ -236,11 +258,55 @@
     *   [ ] 도메인 확정 후 Kakao Developers 앱에 JavaScript SDK 도메인 등록
     *   [ ] JavaScript 키 발급 및 `NEXT_PUBLIC_KAKAO_JS_KEY` 환경변수 추가
     *   [ ] 지도 렌더링 기능 구현 (선택)
-        *   [x] **예약 변경 기능 (Admin Modify)**: 차액 계산 및 푸시 알림.
-        *   [x] **푸시 알림 고도화 (Templates)**: 상세 정보(계좌, 일정) 포함.
-        *   [x] **예약 완료 알림 (Trigger)**: Guest 예외 처리 및 실시간 발송.
-        *   [x] **FCM Edge Function**: Google Auth + FCM HTTP v1 API 작성 완료.
+*   **9.5 PWA 구현** (Priority: MEDIUM - 배포 직전):
+    *   [ ] `manifest.json` 작성 (앱 이름, 아이콘, 테마 색상)
+    *   [ ] 앱 아이콘 준비 (192x192, 512x512, 180x180)
+    *   [ ] Service Worker 확장 (오프라인 캐싱)
+    *   [ ] 메타 태그 추가 (`layout.tsx`)
+    *   [ ] "홈 화면에 추가" 기능 테스트
+    *   [ ] (선택) TWA로 플레이스토어 등록
 
+
+---
+
+## 🚀 배포 체크리스트 (Deployment Checklist)
+
+### ✅ 배포 전 완료 항목 (Pre-Deployment - Done)
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| Supabase 마이그레이션 실행 | ✅ | `site_config` 보상 컬럼, `mission_rewards` 테이블, RPC 함수 |
+| 로컬 환경변수 설정 | ✅ | `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` |
+| 관리자 보상 설정 UI | ✅ | `/admin/settings` 하단 "주간 미션 Top 3 보상 설정" |
+
+### ⏳ 배포 후 필요 작업 (Post-Deployment - Pending)
+| 항목 | 설명 | 링크/방법 |
+|------|------|------|
+| **Supabase 마이그레이션** | 불씨(Ember) 지원 테이블 생성 | `20260110_ember_support.sql` 실행 |
+| **Vercel 환경변수 추가** | `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` | Vercel Dashboard → Settings → Environment Variables |
+| **GitHub Secrets 설정** | `APP_URL` (배포된 URL), `CRON_SECRET` | GitHub → Settings → Secrets → Actions |
+| **GitHub Actions 활성화** | `.github/workflows/mission-ranking-cron.yml` | Push 후 자동 활성화. Actions 탭에서 확인 |
+| **의도된 작동 확인** | 일요일 21:00 KST 자동 랭킹/보상 | Actions 로그 확인 또는 수동 트리거 테스트 |
+
+### 📌 GitHub Secrets 설정 방법
+1. GitHub 저장소 → **Settings** → **Secrets and variables** → **Actions**
+2. **New repository secret** 클릭
+3. 추가할 항목:
+   - `APP_URL`: `https://your-app.vercel.app` (배포 후 Vercel에서 확인)
+   - `CRON_SECRET`: 로컬 `.env`에 설정한 것과 동일한 값
+
+### 📌 Vercel 환경변수 설정 방법
+1. Vercel Dashboard → 프로젝트 선택 → **Settings** → **Environment Variables**
+2. 추가할 항목:
+   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase Dashboard에서 복사
+   - `CRON_SECRET`: GitHub Secrets와 동일한 값
+
+### 🧪 수동 테스트 방법
+```bash
+# 배포 후 API 테스트
+curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
+  -H "Authorization: Bearer YOUR_CRON_SECRET" \
+  -H "Content-Type: application/json"
+```
 
 ---
 

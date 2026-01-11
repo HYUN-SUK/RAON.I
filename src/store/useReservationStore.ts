@@ -26,6 +26,18 @@ interface ReservationState {
     setDateRange: (range: { from: Date | undefined; to: Date | undefined }) => void;
     setSelectedSite: (site: Site | null) => void;
     addReservation: (reservation: Reservation) => void;
+    createReservationSafe: (params: {
+        siteId: string;
+        checkIn: Date;
+        checkOut: Date;
+        familyCount: number;
+        visitorCount: number;
+        vehicleCount: number;
+        totalPrice: number;
+        guestName: string;
+        guestPhone: string;
+        requests?: string;
+    }) => Promise<{ success: boolean; reservationId?: string; error?: string; message?: string }>;
     updateReservationStatus: (id: string, status: ReservationStatus) => void;
     updateReservation: (id: string, updates: {
         checkInDate?: Date;
@@ -314,6 +326,71 @@ export const useReservationStore = create<ReservationState>()(
 
                 set((state) => ({ reservations: [...state.reservations, reservation] }));
             },
+
+            // 동시성 제어가 적용된 안전한 예약 생성 (DB RPC 사용)
+            createReservationSafe: async (params) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                // 현재 사용자 확인
+                const { data: { user } } = await supabase.auth.getUser();
+                const userId = user?.id || '00000000-0000-0000-0000-000000000000'; // Guest UUID
+
+                // RPC 호출
+                const { data, error } = await supabase.rpc('create_reservation_safe', {
+                    p_user_id: userId,
+                    p_site_id: params.siteId,
+                    p_check_in: params.checkIn.toISOString().split('T')[0],
+                    p_check_out: params.checkOut.toISOString().split('T')[0],
+                    p_family_count: params.familyCount,
+                    p_visitor_count: params.visitorCount,
+                    p_vehicle_count: params.vehicleCount,
+                    p_total_price: params.totalPrice,
+                    p_guest_name: params.guestName,
+                    p_guest_phone: params.guestPhone,
+                    p_requests: params.requests || null
+                });
+
+                if (error) {
+                    return {
+                        success: false,
+                        error: 'RPC_ERROR',
+                        message: error.message
+                    };
+                }
+
+                // RPC 반환값 파싱
+                const result = data as { success: boolean; reservation_id?: string; error?: string; message?: string };
+
+                if (result.success) {
+                    // 로컬 상태에도 추가 (옵티미스틱 업데이트)
+                    const newReservation: Reservation = {
+                        id: result.reservation_id || Math.random().toString(36).substr(2, 9),
+                        userId: userId,
+                        siteId: params.siteId,
+                        checkInDate: params.checkIn,
+                        checkOutDate: params.checkOut,
+                        familyCount: params.familyCount,
+                        visitorCount: params.visitorCount,
+                        vehicleCount: params.vehicleCount,
+                        guests: params.familyCount + params.visitorCount,
+                        totalPrice: params.totalPrice,
+                        status: 'PENDING',
+                        requests: params.requests || '',
+                        createdAt: new Date()
+                    };
+
+                    set((state) => ({ reservations: [...state.reservations, newReservation] }));
+                }
+
+                return {
+                    success: result.success,
+                    reservationId: result.reservation_id,
+                    error: result.error,
+                    message: result.message
+                };
+            },
+
             updateReservationStatus: (id, status) =>
                 set((state) => ({
                     reservations: state.reservations.map((res) =>

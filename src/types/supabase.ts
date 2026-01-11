@@ -240,6 +240,7 @@ export interface Database {
                     title: string
                     content: string
                     author_name: string
+                    author_id?: string
                     like_count: number
                     comment_count: number
                     read_count: number
@@ -384,6 +385,13 @@ export interface Database {
                     facilities_description: string | null
                     bathroom_images: string[] | null // mapped from jsonb
                     site_images: string[] | null // mapped from jsonb
+                    // Mission Reward Settings
+                    mission_reward_1st_xp: number | null
+                    mission_reward_1st_token: number | null
+                    mission_reward_2nd_xp: number | null
+                    mission_reward_2nd_token: number | null
+                    mission_reward_3rd_xp: number | null
+                    mission_reward_3rd_token: number | null
                 }
                 Insert: {
                     address_detail?: string | null
@@ -405,6 +413,13 @@ export interface Database {
                     facilities_description?: string | null
                     bathroom_images?: string[] | null
                     site_images?: string[] | null
+                    // Mission Reward Settings
+                    mission_reward_1st_xp?: number | null
+                    mission_reward_1st_token?: number | null
+                    mission_reward_2nd_xp?: number | null
+                    mission_reward_2nd_token?: number | null
+                    mission_reward_3rd_xp?: number | null
+                    mission_reward_3rd_token?: number | null
                 }
                 Update: {
                     address_detail?: string | null
@@ -426,6 +441,13 @@ export interface Database {
                     facilities_description?: string | null
                     bathroom_images?: string[] | null
                     site_images?: string[] | null
+                    // Mission Reward Settings
+                    mission_reward_1st_xp?: number | null
+                    mission_reward_1st_token?: number | null
+                    mission_reward_2nd_xp?: number | null
+                    mission_reward_2nd_token?: number | null
+                    mission_reward_3rd_xp?: number | null
+                    mission_reward_3rd_token?: number | null
                 }
             },
             system_config: {

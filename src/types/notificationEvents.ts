@@ -34,6 +34,9 @@ export enum NotificationEventType {
 
     // 마켓 관련 (푸시 금지 → 배지만)
     ORDER_STATUS_CHANGE = 'order_status_change',
+
+    // 불씨 관련 (푸시 금지 → 배지만)
+    EMBER_RECEIVED = 'ember_received',
 }
 
 // ========================================
@@ -260,6 +263,17 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         badge_target: 'myspace',
         title_template: '주문 상태 변경',
         body_template: '주문하신 상품이 {{status}} 상태로 변경되었습니다.',
+    },
+
+    // ===== 불씨 관련 (푸시 X → 배지만) =====
+    [NotificationEventType.EMBER_RECEIVED]: {
+        type: NotificationEventType.EMBER_RECEIVED,
+        requires_push: false,
+        quiet_hours_override: false,
+        fallback_badge: true,
+        badge_target: 'myspace',
+        title_template: '🔥 따뜻한 불씨',
+        body_template: '누군가 당신의 기록에 불씨를 남겼어요.',
     },
 };
 

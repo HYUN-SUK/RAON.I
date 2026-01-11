@@ -7,10 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Plus, ExternalLink, Loader2, Edit, Trash, Archive } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function AdminMarketPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         fetchProducts();
@@ -19,14 +31,8 @@ export default function AdminMarketPage() {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            // TODO: Ensure getAllProducts (including inactive) is available or modify getProducts
-            // For now getProducts filters by active, we might need an admin method later.
-            // Let's assume getProducts returns all for now or we will fix service.
-            // Wait, getProducts filters by is_active=true.
-            // We need a way to get ALL products.
-
-            // Temporary: just using getProducts. We should update service to allow fetching all for admin.
-            const data = await marketService.getProducts();
+            // 관리자용: 모든 상품 조회 (비활성 포함)
+            const data = await marketService.getProducts(undefined, true);
             setProducts(data);
         } catch (error) {
             console.error(error);
@@ -35,15 +41,18 @@ export default function AdminMarketPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('정말 삭제하시겠습니까?')) return;
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await marketService.deleteProduct(id);
-            alert('삭제되었습니다.');
-            fetchProducts();
+            await marketService.deleteProduct(deleteTarget.id);
+            setProducts(prev => prev.filter(p => p.id !== deleteTarget.id));
+            setDeleteTarget(null);
         } catch (error) {
             console.error(error);
             alert('삭제 중 오류가 발생했습니다.');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -147,7 +156,7 @@ export default function AdminMarketPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 hover:bg-red-50"
-                                                onClick={() => handleDelete(product.id)}
+                                                onClick={() => setDeleteTarget(product)}
                                             >
                                                 <Trash className="w-4 h-4 text-red-500" />
                                             </Button>
@@ -159,6 +168,31 @@ export default function AdminMarketPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* 삭제 확인 Dialog */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>상품 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            정말 <span className="font-bold text-gray-900">{deleteTarget?.name}</span> 상품을 삭제하시겠습니까?
+                            <br />
+                            이 작업은 되돌릴 수 없습니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={deleting}
+                            className="bg-red-500 hover:bg-red-600"
+                        >
+                            {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            삭제
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

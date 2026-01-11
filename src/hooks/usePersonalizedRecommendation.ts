@@ -65,17 +65,84 @@ export function usePersonalizedRecommendation() {
         return 'night';
     };
 
-    // Helper: Get Contextual Greeting
-    const getGreeting = (time: string, weatherType: WeatherType, nickname?: string) => {
+    // Helper: Get Contextual Greeting (다양한 멘트 풀에서 랜덤 선택)
+    const getGreeting = (time: string, weatherType: WeatherType, nickname?: string, temp?: number | null) => {
         const name = nickname ? `${nickname}님` : '캠퍼님';
+        const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
-        if (weatherType === 'rainy') return `빗소리와 함께, ${name} ☔`;
-        if (weatherType === 'snowy') return `눈 내리는 날, ${name} ❄️`;
+        // 날씨 기반 멘트 (우선 적용)
+        if (weatherType === 'rainy') {
+            return pick([
+                `빗소리와 함께, ${name} ☔`,
+                `비 오는 날의 낭만, ${name} 🌧️`,
+                `텐트 안 빗소리가 좋은 날, ${name} ☂️`,
+                `촉촉한 숲의 향기, ${name} 🌿`,
+            ]);
+        }
+        if (weatherType === 'snowy') {
+            return pick([
+                `눈 내리는 날, ${name} ❄️`,
+                `하얀 세상이 펼쳐진 날, ${name} ⛄`,
+                `눈꽃 캠핑 어떠세요, ${name} 🌨️`,
+            ]);
+        }
+        if (weatherType === 'cloudy') {
+            return pick([
+                `구름 낀 하늘도 운치 있어요, ${name} ☁️`,
+                `흐린 날의 여유, ${name} 🌫️`,
+            ]);
+        }
 
-        if (time === 'morning') return `상쾌한 아침이에요, ${name} 🌿`;
-        if (time === 'afternoon') return `나른한 오후, ${name} 화이팅 ☕`;
-        if (time === 'evening') return `맛있는 저녁 되세요, ${name} 🍖`;
-        if (time === 'night') return `별이 빛나는 밤, ${name} 🌙`;
+        // 온도 기반 멘트
+        if (temp !== null && temp !== undefined) {
+            if (temp <= 0) {
+                return pick([
+                    `따뜻하게 입으셨죠, ${name}? 🧤`,
+                    `불멍하기 좋은 추운 날, ${name} 🔥`,
+                ]);
+            }
+            if (temp >= 30) {
+                return pick([
+                    `시원한 그늘에서 쉬어가세요, ${name} 🌳`,
+                    `더운 날엔 물놀이죠, ${name} 💦`,
+                ]);
+            }
+        }
+
+        // 시간대 기반 멘트
+        if (time === 'morning') {
+            return pick([
+                `상쾌한 아침이에요, ${name} 🌿`,
+                `숲의 아침 공기가 맑아요, ${name} 🌄`,
+                `새소리와 함께 일어나셨군요, ${name} 🐦`,
+                `좋은 아침이에요, ${name} ☀️`,
+            ]);
+        }
+        if (time === 'afternoon') {
+            return pick([
+                `나른한 오후, ${name} 화이팅 ☕`,
+                `햇살 좋은 오후예요, ${name} 🌞`,
+                `점심 맛있게 드셨나요, ${name}? 🍱`,
+                `소풍 가기 좋은 날, ${name} 🧺`,
+            ]);
+        }
+        if (time === 'evening') {
+            return pick([
+                `맛있는 저녁 되세요, ${name} 🍖`,
+                `노을이 아름다운 저녁, ${name} 🌅`,
+                `캠프파이어 시간이에요, ${name} 🔥`,
+                `바비큐 준비하셨나요, ${name}? 🥩`,
+            ]);
+        }
+        if (time === 'night') {
+            return pick([
+                `별이 빛나는 밤, ${name} 🌙`,
+                `불멍하기 좋은 밤이에요, ${name} 🔥`,
+                `고요한 밤의 여유, ${name} ✨`,
+                `별자리 찾아볼까요, ${name}? ⭐`,
+                `깊어가는 밤, ${name} 🌌`,
+            ]);
+        }
 
         return `반가워요, ${name}`;
     };
@@ -260,7 +327,7 @@ export function usePersonalizedRecommendation() {
                         time: timeCtx,
                         weather: weather.type,
                         temp: weather.temp,
-                        greeting: getGreeting(timeCtx, weather.type, userProfile?.nickname || undefined)
+                        greeting: getGreeting(timeCtx, weather.type, userProfile?.nickname || undefined, weather.temp)
                     },
                     reasons: {
                         cooking: cookingReason,

@@ -106,13 +106,31 @@ export default function AdminContentListPage() {
                                         {getStatusBadge(item.status)}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <Button
-                                            size="sm"
-                                            onClick={() => router.push(`/admin/content/${item.id}`)}
-                                            className="bg-[#1C4526]"
-                                        >
-                                            심사하기
-                                        </Button>
+                                        <div className="flex gap-2 justify-end">
+                                            <Button
+                                                size="sm"
+                                                onClick={() => router.push(`/admin/content/${item.id}`)}
+                                                className="bg-[#1C4526]"
+                                            >
+                                                심사하기
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={async () => {
+                                                    if (confirm('정말 이 콘텐츠를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                                                        try {
+                                                            await creatorService.deleteContent(item.id);
+                                                            fetchContents();
+                                                        } catch (error) {
+                                                            alert('삭제 실패: ' + error);
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                삭제
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))

@@ -1,0 +1,33 @@
+name: Weekly Mission Ranking
+
+on:
+  schedule:
+    # Every Sunday at 12:00 UTC (21:00 KST)
+    - cron: '0 12 * * 0'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  process-ranking:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Process Mission Rankings
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/mission-ranking")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "Request failed with status $http_code"
+            exit 1
+          fi
+
+      - name: Log Result
+        run: echo "Mission ranking processing completed at $(date)"

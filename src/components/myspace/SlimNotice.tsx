@@ -1,10 +1,45 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Megaphone } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase-client";
+
+interface Notice {
+    id: string;
+    title: string;
+}
 
 export default function SlimNotice() {
     const router = useRouter();
+    const [notice, setNotice] = useState<Notice | null>(null);
+
+    useEffect(() => {
+        fetchLatestNotice();
+    }, []);
+
+    const fetchLatestNotice = async () => {
+        const supabase = createClient();
+        const { data } = await supabase
+            .from('posts')
+            .select('id, title, meta_data')
+            .eq('type', 'NOTICE')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        // status가 OPEN인 공지만 표시 (CLOSED이면 숨김)
+        if (data) {
+            const metaData = data.meta_data as Record<string, unknown> | null;
+            const status = metaData?.status || 'OPEN';
+            if (status !== 'CLOSED') {
+                setNotice(data);
+            }
+        }
+    };
+
+    // 공지가 없으면 숨김
+    if (!notice) return null;
 
     return (
         <div className="px-6 pb-4">
@@ -17,7 +52,7 @@ export default function SlimNotice() {
                 </div>
                 <span className="text-xs font-medium text-text-1 truncate tracking-tight">
                     <span className="font-bold text-brand-1 mr-1">공지</span>
-                    [시스템] 서버 점검 안내 (12/01 02:00~)
+                    {notice.title}
                 </span>
             </div>
         </div>

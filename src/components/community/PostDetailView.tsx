@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Share2, MoreVertical, Loader2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import LikeButton from './LikeButton';
+import { EmberButton } from '@/components/mission/EmberButton';
 import CommentSection from './CommentSection';
 import {
     DropdownMenu,
@@ -230,6 +231,16 @@ export default function PostDetailView() {
                             setPost((prev) => prev ? { ...prev, likeCount: newCount } : null);
                         }}
                     />
+
+                    {/* Ember Button (for other users' posts only) */}
+                    {post.authorId && currentUserId && post.authorId !== currentUserId && (
+                        <EmberButton
+                            receiverId={post.authorId}
+                            targetId={post.id}
+                            targetType="post"
+                            receiverName={post.author}
+                        />
+                    )}
 
                     {/* Stats */}
                     <div className="flex items-center gap-3 text-xs text-[#808080]">

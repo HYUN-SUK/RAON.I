@@ -6,7 +6,8 @@ import { useMissionStore } from '@/store/useMissionStore';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TopBar from '@/components/TopBar';
-import { ArrowLeft, Camera, CheckCircle, UploadCloud, Trash2 } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, UploadCloud, Trash2, Heart } from 'lucide-react';
+import { EmberButton } from '@/components/mission/EmberButton';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -294,20 +295,39 @@ export default function MissionDetailPage() {
                                         </div>
                                     )}
 
-                                    <div className="p-3 flex items-center justify-end gap-2">
-                                        {userMission?.user_id === p.user_id && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-stone-400 hover:text-red-500 hover:bg-red-50"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteClick();
-                                                }}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                    <div className="p-3 flex items-center justify-between">
+                                        {/* Ember Button (for other users' posts only) */}
+                                        {userMission?.user_id !== p.user_id && (
+                                            <EmberButton
+                                                receiverId={p.user_id}
+                                                targetId={p.id}
+                                                targetType="mission"
+                                                receiverName={p.user_info?.nickname || '이 캠퍼'}
+                                            />
                                         )}
+
+                                        {/* Like count display */}
+                                        <div className="flex items-center gap-1 text-stone-400 text-sm">
+                                            <Heart className="w-4 h-4" />
+                                            <span>{p.likes_count || 0}</span>
+                                        </div>
+
+                                        {/* Delete button (own posts only) */}
+                                        <div className="flex items-center gap-2">
+                                            {userMission?.user_id === p.user_id && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-stone-400 hover:text-red-500 hover:bg-red-50"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteClick();
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                         {/* Like Button Removed as per request (SSOT: Comment Likes) */}
                                     </div>
                                 </div>

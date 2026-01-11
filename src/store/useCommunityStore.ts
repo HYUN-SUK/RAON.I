@@ -9,6 +9,7 @@ export interface Post {
     title: string;
     content: string;
     author: string;
+    authorId?: string; // 작성자 ID (UUID) for ember support
     date: string;
     readCount?: number;
     likeCount: number;

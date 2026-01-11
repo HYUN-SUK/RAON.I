@@ -12,7 +12,7 @@ interface ReservationFormProps {
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, addReservation, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig } = useReservationStore();
+    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -44,7 +44,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
     const totalPrice = priceBreakdown ? priceBreakdown.totalPrice : 0;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!fromDate || !toDate) {
             alert('날짜를 선택해주세요.');
@@ -52,6 +52,14 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         }
         if (!agreed) {
             alert('이용 규정에 동의해주세요.');
+            return;
+        }
+        if (!name.trim()) {
+            alert('예약자 성함을 입력해주세요.');
+            return;
+        }
+        if (!phone.trim()) {
+            alert('연락처를 입력해주세요.');
             return;
         }
 
@@ -62,26 +70,34 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         }
 
         try {
-            addReservation({
-                // eslint-disable-next-line react-hooks/purity
-                id: Math.random().toString(36).substr(2, 9),
-                userId: 'guest',
+            // 동시성 제어가 적용된 안전한 예약 생성 (DB RPC)
+            const result = await createReservationSafe({
                 siteId: site.id,
-                checkInDate: fromDate,
-                checkOutDate: toDate,
+                checkIn: fromDate,
+                checkOut: toDate,
                 familyCount,
                 visitorCount,
                 vehicleCount,
-                guests: (familyCount * 4) + visitorCount,
                 totalPrice,
-                status: 'PENDING',
-                requests,
-                createdAt: new Date(),
+                guestName: name,
+                guestPhone: phone,
+                requests: requests || undefined
             });
 
-            router.push('/reservation/complete');
+            if (result.success) {
+                router.push('/reservation/complete');
+            } else {
+                // 동시성 충돌 또는 중복 예약
+                if (result.error === 'ALREADY_BOOKED') {
+                    alert('죄송합니다. 방금 다른 분이 먼저 예약을 완료했습니다.\n다른 날짜를 선택해주세요.');
+                } else if (result.error === 'CONCURRENT_REQUEST') {
+                    alert('다른 예약이 처리 중입니다. 잠시 후 다시 시도해주세요.');
+                } else {
+                    alert(result.message || '예약 중 오류가 발생했습니다.');
+                }
+            }
         } catch (error: any) {
-            alert(error.message);
+            alert(error.message || '예약 중 오류가 발생했습니다.');
         }
     };
 

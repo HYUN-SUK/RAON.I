@@ -41,6 +41,8 @@ export default function PostCard({ post }: PostCardProps) {
     const executeDelete = async () => {
         try {
             await communityService.deletePost(post.id);
+            // 삭제 성공 - 페이지 새로고침으로 리스트 업데이트
+            window.location.reload();
         } catch (error: unknown) {
             console.error(error);
             const message = error instanceof Error ? error.message : '알 수 없는 오류';

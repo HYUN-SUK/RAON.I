@@ -439,6 +439,11 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
+                {/* 3.5 Mission Widget */}
+                <section className="px-4 mb-8">
+                    <MissionHomeWidget />
+                </section>
+
                 {/* 4. Recommendations Grid */}
                 <RecommendationGrid
                     data={recData}

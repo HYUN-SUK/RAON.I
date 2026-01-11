@@ -123,7 +123,7 @@ export default function SiteList() {
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
+        <div className="grid grid-cols-2 gap-3 pb-20">
             {sortedSites.map((site) => {
                 const available = isSiteAvailable(site.id);
                 const priceText = getPriceDisplay(site);

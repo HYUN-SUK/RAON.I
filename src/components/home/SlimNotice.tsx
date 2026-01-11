@@ -1,9 +1,45 @@
-import React from 'react';
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import { useRouter } from "next/navigation";
+import { createClient } from '@/lib/supabase-client';
+
+interface Notice {
+    id: string;
+    title: string;
+}
 
 export default function SlimNotice() {
     const router = useRouter();
+    const [notice, setNotice] = useState<Notice | null>(null);
+
+    useEffect(() => {
+        fetchLatestNotice();
+    }, []);
+
+    const fetchLatestNotice = async () => {
+        const supabase = createClient();
+        const { data } = await supabase
+            .from('posts')
+            .select('id, title, meta_data')
+            .eq('type', 'NOTICE')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        // status가 OPEN인 공지만 표시 (CLOSED이면 숨김)
+        if (data) {
+            const metaData = data.meta_data as Record<string, unknown> | null;
+            const status = metaData?.status || 'OPEN';
+            if (status !== 'CLOSED') {
+                setNotice(data);
+            }
+        }
+    };
+
+    // 공지가 없으면 숨김
+    if (!notice) return null;
 
     return (
         <div
@@ -12,12 +48,10 @@ export default function SlimNotice() {
         >
             <Volume2 className="w-4 h-4 text-[#C3A675] shrink-0" />
             <div className="flex-1 overflow-hidden h-5 relative">
-                {/* Simple Marquee effect or single line truncation */}
                 <p className="text-xs text-stone-600 dark:text-stone-400 truncate">
-                    &apos;RAON.I&apos;가 처음이신가요? 🏕️주말 &apos;별보기 좋은 밤&apos; 행사가 진행됩니다. 따뜻한 옷을 챙겨주세요!
+                    {notice.title}
                 </p>
             </div>
-            {/* Arrow Icon for affordance */}
             <div className="text-stone-400">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </div>

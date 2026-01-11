@@ -8,12 +8,24 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export function AdminContentListTab() {
     const router = useRouter();
     const [contents, setContents] = useState<(CreatorContent & { creators: Creator })[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<CreatorContentStatus>('PENDING_REVIEW');
+    const [deleteTarget, setDeleteTarget] = useState<CreatorContent | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         fetchContents();
@@ -41,26 +53,18 @@ export function AdminContentListTab() {
         }
     };
 
-    const [selectedContent, setSelectedContent] = useState<CreatorContent | null>(null);
-
-    // ... (existing code for getStatusBadge)
-
-    const handleReviewClick = (content: CreatorContent) => {
-        setSelectedContent(content);
-    };
-
-    const handleProcessReview = async (status: CreatorContentStatus) => {
-        if (!selectedContent) return;
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            // Using updateContent to change status
-            await creatorService.updateContent(selectedContent.id, { status });
-
-            // Optimistic update: remove from list since filter is 'PENDING' usually
-            setContents(prev => prev.filter(c => c.id !== selectedContent.id));
-            setSelectedContent(null);
+            await creatorService.deleteContent(deleteTarget.id);
+            setContents(prev => prev.filter(c => c.id !== deleteTarget.id));
+            setDeleteTarget(null);
         } catch (error) {
             console.error(error);
-            alert('처리 중 오류가 발생했습니다.');
+            alert('삭제 실패: ' + error);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -129,14 +133,23 @@ export function AdminContentListTab() {
                                         {getStatusBadge(item.status)}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => router.push(`/admin/content/${item.id}`)}
-                                            className="border-gray-200 hover:bg-[#1C4526] hover:text-white transition-colors"
-                                        >
-                                            심사하기
-                                        </Button>
+                                        <div className="flex gap-2 justify-end">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => router.push(`/admin/content/${item.id}`)}
+                                                className="border-gray-200 hover:bg-[#1C4526] hover:text-white transition-colors"
+                                            >
+                                                심사하기
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => setDeleteTarget(item)}
+                                            >
+                                                삭제
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -144,6 +157,31 @@ export function AdminContentListTab() {
                     </tbody>
                 </table>
             </div>
+
+            {/* 삭제 확인 Dialog */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>콘텐츠 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            정말 <span className="font-bold text-gray-900">{deleteTarget?.title}</span> 콘텐츠를 삭제하시겠습니까?
+                            <br />
+                            이 작업은 되돌릴 수 없습니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={deleting}
+                            className="bg-red-500 hover:bg-red-600"
+                        >
+                            {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            삭제
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

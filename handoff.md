@@ -1,35 +1,83 @@
-# Session Handoff: Admin Stability & UI Polish
+# 세션 인수인계 문서 (Handoff)
+**날짜**: 2026-01-12  
+**세션 ID**: adbc30cb-9389-4b67-aecf-043d92243387
 
-## 📅 Session Summary (2026-01-10)
-This session focused on debugging and stabilizing critical admin operations (deletion, bulk import) that were failing due to Supabase RLS policies, and polishing the user-facing "Today's Recommendation" UI.
+---
 
-### 1. Admin Mission Management (Stability Fixes)
-- **Deletion Fixed**: Replaced the unreliable `window.confirm` with a robust **`AlertDialog`**. More importantly, fixed the silent failure (RLS 401/403) by migrating the actual deletion logic to a **Server Action (`deleteMissionAction`)** that utilizes the `SUPABASE_SERVICE_ROLE_KEY`.
-- **Bulk Import Fixed**: Resolved the 403 Forbidden error when AI-importing missions. Implemented **`createBulkMissionsAction`** to allow admin-privileged bulk inserts, verifying that JSON generated from `MISSION_GENERATION_PROMPT.md` works perfectly.
+## 📋 현재 상태 요약
 
-### 2. UI Polish ("Today's Recommendation")
-- **Color Harmonization**: Aligned card colors with the "CampWarm Forest" theme:
-  - Cooking: `bg-[#FDFBF7]` (Warm Cream)
-  - Play: `bg-[#F1F8E9]` (Sage Green)
-  - Nearby: `bg-[#E3F2FD]` (Warm Blue)
-- **Layout**: Removed the redundant "More" (더보기) button from the header.
-- **Icon Visibility**: Changed the "Nearby" location icon color to `text-sky-600` for better contrast.
+### ✅ 완료된 작업
 
-## 🏗️ Technical Decisions
-- **Server Actions for Admin Ops**: Client-side Supabase calls were failing for `DELETE` and `INSERT` (Bulk) on the `missions` table due to strict RLS policies. Instead of loosening RLS for the public client, we moved these privileged operations to **Next.js Server Actions** (`src/actions/admin-mission.ts`). This allows us to safely use the `SUPABASE_SERVICE_ROLE_KEY` on the server to bypass RLS for authorized admin actions.
+| 항목 | 설명 |
+|------|------|
+| **예약 동시성 제어** | Advisory Lock + RPC로 DB 레벨 동시성 제어 구현 |
+| **관리자 삭제 기능** | 후기/컨텐츠/마켓/공지 삭제 전면 개선 (AlertDialog 방식) |
+| **한줄공지 수정** | 홈/내공간 SlimNotice 쿼리 컬럼명 오류 수정 |
+| **공지 관리 개선** | 노출중지/삭제 버튼 AlertDialog 방식으로 변경 |
 
-## 📝 Next Steps
-1.  **Market & Analytics**: The Admin Console overhaul still has "Market Pivot" and "Analytics Dashboard" pending in the roadmap.
-2.  **Reservation Automation**: Logic for auto-opening reservations needs to be implemented.
-3.  **LBS Fallback UX**: While colors are fixed, the "Nearby" card could use a more descriptive empty state or fallback image when no events are found near the user (currently just shows text).
+---
 
-## ⚠️ Known Issues / Notes
--   **Env Var Dependency**: The new server actions relies on `SUPABASE_SERVICE_ROLE_KEY`. Ensure this is set in the production environment variables, otherwise mission deletion and bulk import will fail 500. (`.env.local` has it currently).
--   **Linting**: Some unused import warnings might remain in other files, but the critical admin and home components have been cleaned up this session.
+## 🔧 기술적 결정 사항
 
-## 🧪 Verification Status
--   **Localhost**: `npm run dev` verified.
--   **Browser**:
-    -   Admin Mission Deletion: **Pass** (Item removed from DB).
-    -   Admin Bulk Import: **Pass** (JSON imported successfully).
-    -   Home UI: **Pass** (Colors and layout correct).
+### 1. 예약 동시성 제어
+- **방식**: PostgreSQL Advisory Lock + RPC (`create_reservation_safe`)
+- **이유**: 두 사용자가 동시에 같은 날짜/사이트 예약 시 경합 조건 방지
+- **파일**: `supabase/migrations/20260111_reservation_concurrency.sql`
+
+### 2. 관리자 삭제 기능
+- **방식**: `confirm()` 대신 `AlertDialog` 컴포넌트 사용
+- **이유**: 브라우저 confirm 팝업이 제대로 표시되지 않는 문제 해결
+- **RPC 함수**:
+  - `admin_force_delete_post` - 게시물 삭제
+  - `admin_delete_creator_content` - 콘텐츠 삭제
+
+### 3. SlimNotice 쿼리 수정
+- **변경**: `board_type` → `type`, `is_public` 조건 제거
+- **이유**: 실제 DB 스키마와 불일치 수정
+
+---
+
+## 📌 다음 작업 가이드
+
+### 우선순위 높음
+1. **배포 전 최종 테스트**: 예약, 삭제, 공지 기능 통합 테스트
+2. **프로덕션 DB 마이그레이션**: 아래 SQL 파일 실행 필요
+   - `20260111_reservation_concurrency.sql`
+   - `20260111_admin_delete_permissions.sql`
+
+### 우선순위 보통
+3. 커뮤니티 후기 삭제 후 UX 개선 (토스트 알림 등)
+4. 관리자 콘솔 전반적인 UX 점검
+
+---
+
+## ⚠️ 주의 사항
+
+1. **SQL 마이그레이션**: 위 2개 파일 프로덕션 DB에 반드시 실행
+2. **AlertDialog 컴포넌트**: `@/components/ui/alert-dialog` 의존성 확인
+3. **RLS 정책**: 관리자 이메일이 `admin@raon.ai`로 하드코딩되어 있음
+
+---
+
+## 📁 주요 수정 파일
+
+```
+src/
+├── store/useReservationStore.ts      # createReservationSafe 추가
+├── components/
+│   ├── reservation/ReservationForm.tsx
+│   ├── community/PostCard.tsx        # 삭제 후 새로고침
+│   ├── home/SlimNotice.tsx           # 쿼리 수정
+│   ├── myspace/SlimNotice.tsx        # 쿼리 수정
+│   └── admin/community/AdminContentListTab.tsx
+├── services/
+│   ├── communityService.ts           # RPC 결과 파싱
+│   └── creatorService.ts             # RPC 삭제
+├── app/admin/
+│   ├── market/page.tsx               # AlertDialog 방식
+│   └── notice/page.tsx               # AlertDialog 방식
+
+supabase/migrations/
+├── 20260111_reservation_concurrency.sql
+└── 20260111_admin_delete_permissions.sql
+```

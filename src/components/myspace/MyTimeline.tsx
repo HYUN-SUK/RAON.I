@@ -24,14 +24,7 @@ export default function MyTimeline() {
                 </h3>
             </div>
 
-            {/* AI Summary Placeholder for Phase 4 */}
-            <div className="mb-8 p-4 bg-gradient-to-r from-[#F7F5EF] to-white dark:from-zinc-900 dark:to-zinc-800 rounded-2xl border border-stone-200 dark:border-zinc-700 shadow-sm">
-                <p className="text-sm text-stone-600 dark:text-stone-300 italic">
-                    "최근 <span className="font-bold text-[#1C4526] dark:text-green-400">3번의 캠핑</span>에서 불멍을 가장 즐기셨네요!
-                    다음엔 별보기 좋은 <span className="font-bold text-[#1C4526] dark:text-green-400">명당 사이트</span>를 추천해드릴까요?"
-                </p>
-                <p className="text-xs text-stone-400 mt-2 text-right">- RAON AI Analysis</p>
-            </div>
+            {/* AI 개인화 분석은 추후 구현 예정 */}
 
             <div className="flex flex-col">
                 {timelineItems.length > 0 ? (

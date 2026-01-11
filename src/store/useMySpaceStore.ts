@@ -61,6 +61,7 @@ export interface MySpaceState {
     level: number;
     raonToken: number; // Renamed from points
     title: string;     // New
+    heroImage: string | null; // User custom hero image
 
     // Actions to sync with server
     setWallet: (xp: number, level: number, token: number) => void;
@@ -84,6 +85,8 @@ export interface MySpaceState {
     timelineItems: TimelineItem[];
     fetchTimeline: (userId?: string) => void;
     fetchAlbum: () => void;
+    fetchProfile: (userId?: string) => Promise<void>;
+    setHeroImage: (url: string) => void;
     reset: () => void;
 }
 
@@ -105,6 +108,7 @@ export const useMySpaceStore = create<MySpaceState>()(
             level: 1,
             raonToken: 0,
             title: '초보 캠퍼',
+            heroImage: null,
 
             setWallet: (xp, level, token) => {
                 const info = getLevelInfo(xp);
@@ -233,6 +237,24 @@ export const useMySpaceStore = create<MySpaceState>()(
                     }
                 ] as any[] // Temporarily casting to any to bypass strict interface check if AlbumItem tag definition is missing
             }),
+            setHeroImage: (url) => set({ heroImage: url }),
+            fetchProfile: async (userId) => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                const targetUserId = userId || user?.id;
+
+                if (!targetUserId) return;
+
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('hero_image_url')
+                    .eq('id', targetUserId)
+                    .single();
+
+                if (profile?.hero_image_url) {
+                    set({ heroImage: profile.hero_image_url });
+                }
+            },
             reset: () => set({
                 isNightMode: false,
                 isFireOn: false,

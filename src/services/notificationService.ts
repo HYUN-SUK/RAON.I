@@ -168,6 +168,9 @@ export class NotificationService {
         if (eventType.startsWith('order')) {
             return 'market';
         }
+        if (eventType.startsWith('ember')) {
+            return 'ember';
+        }
         return 'system';
     }
 }

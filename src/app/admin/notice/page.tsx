@@ -2,39 +2,64 @@
 
 import { useEffect, useState } from 'react';
 import { useCommunityStore, Post } from '@/store/useCommunityStore';
+import { communityService } from '@/services/communityService';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Loader2, Eye, EyeOff, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function AdminNoticePage() {
     const { posts, loadPosts, updatePost, isLoading } = useCommunityStore();
     const [mounted, setMounted] = useState(false);
+    const [actionTarget, setActionTarget] = useState<{ post: Post; action: 'toggle' | 'delete' } | null>(null);
+    const [processing, setProcessing] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
         loadPosts('NOTICE');
     }, [loadPosts]);
 
     if (!mounted) return null;
 
-    const handleToggleStatus = async (post: Post, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent row click
-        if (!confirm(`${post.title} 공지를 ${post.status === 'CLOSED' ? '노출하시겠습니까?' : '숨기시겠습니까?'} `)) return;
-
+    const handleToggleStatus = async () => {
+        if (!actionTarget || actionTarget.action !== 'toggle') return;
+        const post = actionTarget.post;
+        setProcessing(true);
         try {
             const newStatus = post.status === 'CLOSED' ? 'OPEN' : 'CLOSED';
-            // Also update visibility for consistency if needed, but status is main gate
-            await updatePost(post.id, {
-                status: newStatus,
-                // If CLOSED, set visibility PRIVATE? Maybe. But let's stick to status.
-            });
-            alert('상태가 변경되었습니다.');
+            await updatePost(post.id, { status: newStatus });
+            loadPosts('NOTICE'); // 리스트 새로고침
+            setActionTarget(null);
         } catch (error) {
             alert(error instanceof Error ? error.message : 'Unknown error');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!actionTarget || actionTarget.action !== 'delete') return;
+        setProcessing(true);
+        try {
+            await communityService.deletePost(actionTarget.post.id);
+            loadPosts('NOTICE'); // 리스트 새로고침
+            setActionTarget(null);
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Unknown error');
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -104,24 +129,84 @@ export default function AdminNoticePage() {
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className={`h-8 px-2 ${post.status === 'CLOSED' ? 'text-green-600 border-green-200 hover:bg-green-50' : 'text-red-600 border-red-200 hover:bg-red-50'}`}
-                                    onClick={(e) => handleToggleStatus(post, e)}
+                                    className={`h-8 px-2 ${post.status === 'CLOSED' ? 'text-green-600 border-green-200 hover:bg-green-50' : 'text-orange-600 border-orange-200 hover:bg-orange-50'}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActionTarget({ post, action: 'toggle' });
+                                    }}
                                 >
                                     {post.status === 'CLOSED' ? (
-                                        <>
-                                            <Eye className="w-3 h-3 mr-1" /> 재개
-                                        </>
+                                        <><Eye className="w-3 h-3 mr-1" /> 재개</>
                                     ) : (
-                                        <>
-                                            <EyeOff className="w-3 h-3 mr-1" /> 중지
-                                        </>
+                                        <><EyeOff className="w-3 h-3 mr-1" /> 중지</>
                                     )}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActionTarget({ post, action: 'delete' });
+                                    }}
+                                >
+                                    <Trash2 className="w-3 h-3 mr-1" /> 삭제
                                 </Button>
                             </div>
                         </div>
                     ))
                 )}
             </div>
+
+            {/* 노출중지/재개 Dialog */}
+            <AlertDialog open={actionTarget?.action === 'toggle'} onOpenChange={(open) => !open && setActionTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {actionTarget?.post.status === 'CLOSED' ? '공지 재개' : '공지 노출 중지'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            <span className="font-bold text-gray-900">{actionTarget?.post.title}</span> 공지를{' '}
+                            {actionTarget?.post.status === 'CLOSED' ? '다시 노출하시겠습니까?' : '숨기시겠습니까?'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={processing}>취소</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleToggleStatus}
+                            disabled={processing}
+                            className={actionTarget?.post.status === 'CLOSED' ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-500 hover:bg-orange-600'}
+                        >
+                            {processing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                            {actionTarget?.post.status === 'CLOSED' ? '재개' : '중지'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* 삭제 Dialog */}
+            <AlertDialog open={actionTarget?.action === 'delete'} onOpenChange={(open) => !open && setActionTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>공지 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            정말 <span className="font-bold text-gray-900">{actionTarget?.post.title}</span> 공지를 삭제하시겠습니까?
+                            <br />이 작업은 되돌릴 수 없습니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={processing}>취소</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            disabled={processing}
+                            className="bg-red-500 hover:bg-red-600"
+                        >
+                            {processing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                            삭제
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

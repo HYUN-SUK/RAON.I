@@ -200,3 +200,55 @@
 - [ ] **Market Pivot**: Affiliate link integration.
 - [ ] **Reservation Automation**: Auto-open logic.
 - [ ] **LBS Fallback**: Improve "Nearby" card empty state.
+
+## 8.7 Visual & Widgets (2026-01-10)
+- [x] **Home Hero Images**: Generate 3 concept images (Morning, Night, Active).
+- [x] **My Space Hero Widget**:
+  - [x] Implement image upload logic in `HeroSection.tsx`.
+  - [x] Connect to Supabase Storage & Profile DB.
+  - [x] Verify persistence.
+
+## 8.8 Data & Cost Optimization (2026-01-10)
+- [x] **Community Write**:
+  - [x] **Image**: Max 5MB per file limit implemented.
+  - [x] **Text**: Max 3,000 characters limit.
+- [x] **Webtoon Strategy**:
+  - [x] **Guidance**: Warning message added about server costs.
+  - [x] **External Link**: Input field for full webtoon link (Naver/Postype).
+  - [x] **Upload Restriction**: Encouraged thumbnail/teaser upload only.
+
+## 8.9 Weekly Mission Ranking & Ember Support (2026-01-10) ✅
+- [x] **Weekly Mission Ranking System**:
+  - [x] **DB Migration**: `20260110_mission_ranking_rewards.sql` (site_config fields + RPC).
+  - [x] **GitHub Actions**: `mission-ranking-cron.yml` - Every Sunday 21:00 KST.
+  - [x] **API Route**: `/api/cron/mission-ranking` - Top 3 reward distribution.
+  - [x] **Admin UI**: Reward token settings in Admin Settings page.
+  - [x] **Type Safety**: Added reward fields to `site_config` in `supabase.ts`.
+- [x] **Token Ember Support (불씨 남기기)**:
+  - [x] **DB Migration**: `20260110_ember_support.sql` (target_type: mission/post/comment).
+  - [x] **Component**: `EmberButton.tsx` with confirmation dialog + fire animation.
+  - [x] **Integration**:
+    - [x] Mission Detail Page: Ember button on participant cards.
+    - [x] Community Posts: Ember button next to like button.
+    - [x] Comments: Ember icon in comment actions.
+  - [x] **RPC**: `send_ember(receiver_id, target_id, target_type)` - 10 token deduction.
+  - [x] **UX**: Only shows for other users' content (self-send prevention).
+- [x] **Home Page Fix**:
+  - [x] Restored `MissionHomeWidget` to BeginnerHome.tsx (was imported but not rendered).
+- [x] **Documentation & Planning**:
+  - [x] Created `ember_feature_spec.md`: User discussion brief.
+  - [x] Created `ember_implementation_plan.md`: Detailed plan for Phase 8.7.
+
+## 8.10 Ember Notifications & Stats (2026-01-11) ✅
+- [x] **Notification System**: `EMBER_RECEIVED` 알림 타입 + 인앱 배지 자동 생성.
+- [x] **Stats RPC**: `get_my_ember_stats`, `get_sent_embers`, `get_received_embers`.
+- [x] **HeroSection Badge**: 받은 불씨 > 0일 때 좌측 상단에 "불씨 N개" 표시.
+- [x] **Embers Page**: `/myspace/embers` - 받은/남긴 불씨 탭, 빈 상태 UI 포함.
+- [x] **DB Migration**: `20260111_ember_notifications.sql` 작성 완료.
+- [x] **Live Verification**: 브라우저 검증 완료.
+
+## 9. Next Steps (Operations)
+- [ ] **Market Pivot**: Affiliate link integration.
+- [ ] **Reservation Automation**: Auto-open logic.
+- [ ] **LBS Fallback**: Improve "Nearby" card empty state.
+
