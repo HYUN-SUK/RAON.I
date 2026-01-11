@@ -243,6 +243,12 @@
             *   [x] **Notice Query Fix**: SlimNotice 컬럼명 수정 (`board_type` → `type`).
             *   [x] **DB Migration**: `20260111_reservation_concurrency.sql`, `20260111_admin_delete_permissions.sql`.
             *   [x] **Status**: **100% Done**
+        *   [x] **8.9 Emotional Greeting System (New)** ✅ (2026-01-12):
+            *   [x] **Logic Upgrade**: 날씨/시간/계절/온도(혹한/무더위) 통합 판별 로직 적용.
+            *   [x] **Rich Pool**: 100+ 문학적/감성적 멘트 풀(Pool) 구축 및 랜덤 로테이션.
+            *   [x] **UI Integration**: SlimNotice(한줄공지) 겹침 해결 및 버그 수정.
+            *   [x] **Verification**: 브라우저 시뮬레이션 검증 완료.
+            *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
