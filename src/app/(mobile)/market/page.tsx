@@ -11,7 +11,10 @@ import { Button } from '@/components/ui/button';
 import { useCartUIStore } from '@/store/useCartUIStore';
 import { useCartStore } from '@/store/useCartStore';
 
-const CATEGORIES = [
+import { createClient } from '@/lib/supabase-client';
+
+// 기본 카테고리 (폴백)
+const DEFAULT_CATEGORIES = [
     { id: 'all', label: '전체' },
     { id: 'lantern', label: '조명/랜턴' },
     { id: 'tableware', label: '식기/키친' },
@@ -23,6 +26,7 @@ export default function MarketPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
 
     // Cart Stores
     const { openCart } = useCartUIStore();
@@ -32,6 +36,30 @@ export default function MarketPage() {
     useEffect(() => {
         fetchProducts();
     }, [selectedCategory]);
+
+    // 카테고리 로드
+    useEffect(() => {
+        const loadCategories = async () => {
+            const supabase = createClient();
+            const { data } = await supabase
+                .from('site_config')
+                .select('market_categories')
+                .eq('id', 1)
+                .single();
+
+            if (data?.market_categories && Array.isArray(data.market_categories)) {
+                const cats = data.market_categories as { id: string; label: string }[];
+                if (cats.length > 0) {
+                    // '전체' 카테고리 맨 앞에 추가
+                    setCategories([
+                        { id: 'all', label: '전체' },
+                        ...cats
+                    ]);
+                }
+            }
+        };
+        loadCategories();
+    }, []);
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -62,10 +90,9 @@ export default function MarketPage() {
                 </div>
             </header>
 
-            {/* Categories */}
             <div className="px-4 py-4 overflow-x-auto scrollbar-hide">
                 <div className="flex gap-2">
-                    {CATEGORIES.map(cat => (
+                    {categories.map(cat => (
                         <button
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.id)}

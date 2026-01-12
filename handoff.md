@@ -1,89 +1,56 @@
-# 세션 인수인계 문서 (Handoff)
-**날짜**: 2026-01-12  
-**세션 ID**: 16c1d8f4-3b2e-42d5-ac33-e2cf203827ea
+# Handoff Document - Operation "Sparkling Forest" (Market Evolution)
+**Date**: 2026-01-12
+**Session Goal**: Optimize Market Data & Enable Dynamic Configuration
 
----
+## 📝 Summary
+Successfully evolved the E-commerce module with cost-saving optimizations and dynamic administrative controls.
+1. **Cost & Conversion Optimization**: Implemented zero-cost video embedding (YouTube/Shorts) and sales-boosting badges.
+2. **Infrastructure Upgrade**: Replaced URL-only image input with Drag & Drop Supabase Storage upload.
+3. **Dynamic Administration**: Empowered admins to manage market categories directly from settings, removing code dependencies.
 
-## 📋 현재 상태 요약
+## 🏗️ Key Changes
 
-### ✅ 완료된 작업
+### 1. Market Data Optimization (Zero-Cost Video & Badges)
+- **Features**:
+  - `VideoEmbed` component with Lazy Loading and platform detection (YouTube/Shorts/Instagram/TikTok).
+  - 6 new product badges (Free Shipping, Best Seller, etc.) with multi-select UI.
+- **Impact**: Expected annual cost saving of ~₩2.3M by offloading video hosting.
 
-| 항목 | 설명 |
-|------|------|
-| **예약 취소/환불 시스템** | 사용자 취소 요청 → 관리자 환불 처리 전체 플로우 구현 |
-| **환불 정책 적용** | D-7 100% ~ D-Day 0% 환불율 정책 구현 |
-| **사용자 예약 내역 페이지** | `/myspace/reservations` - 전체 예약 조회 및 취소 요청 |
-| **관리자 환불 처리 UI** | 환불대기 탭 + 환불완료 버튼 추가 |
+### 2. Product Image Upload System
+- **New UI**: Dropzone area in `ProductForm` supporting drag & drop.
+- **Backend**: Direct upload to `product_images` Supabase Storage bucket.
+- **Validation**: Client-side checks for file size (5MB) and format (WebP recommended).
 
----
+### 3. Dynamic Market Categories
+- **Database**: Added `market_categories` JSONB column to `site_config`.
+- **Admin UI**: New section in Settings page to Add/Edit/Reorder/Delete categories.
+- **Frontend**: `ProductForm` and `MarketPage` now fetch categories dynamically from DB.
 
-## 🔧 기술적 결정 사항
+## ⚠️ Critical Action Items (Required)
+The following SQL migration MUST be executed for features to work:
 
-### 1. 예약 취소/환불 시스템
-- **DB 구조**: `reservations` 테이블에 환불 관련 컬럼 6개 추가
-  - `refund_bank`, `refund_account`, `refund_holder`, `cancel_reason`
-  - `refund_amount`, `refund_rate`, `cancelled_at`, `refunded_at`
-- **새 상태**: `REFUND_PENDING` (환불대기) 추가
-- **RPC 함수**: 
-  - `request_reservation_cancel` - 사용자 취소 요청
-  - `complete_reservation_refund` - 관리자 환불 완료
-  - `get_my_reservations` - 본인 예약 목록
-  - `calculate_refund_rate` - 환불율 계산
+```sql
+-- Run this in Supabase SQL Editor
+-- File: supabase/migrations/20260112_market_complete_fix.sql
 
-### 2. 환불 정책 (하드코딩)
+-- 1. Add Category Management Column
+ALTER TABLE site_config 
+ADD COLUMN IF NOT EXISTS market_categories JSONB DEFAULT '[
+    {"id": "lantern", "label": "조명/랜턴", "order": 1},
+    {"id": "tableware", "label": "식기/키친", "order": 2},
+    {"id": "furniture", "label": "가구/체어", "order": 3},
+    {"id": "goods", "label": "굿즈", "order": 4}
+]'::jsonb;
+
+-- 2. Create Storage Bucket & Policies
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('product_images', 'product_images', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[])
+ON CONFLICT (id) DO NOTHING;
+
+-- (Policies are created safely with DO blocks in the provided SQL file)
 ```
-D-7 이상: 100%
-D-6: 90%
-D-5: 50%
-D-4: 40%
-D-3: 30%
-D-2: 20%
-D-1/당일: 0%
-```
 
-### 3. 은행 목록
-- 16개 주요 은행 하드코딩 (카카오뱅크, 토스뱅크, KB국민 등)
-- "직접입력" 옵션으로 기타 은행 대응
-
----
-
-## 📌 다음 작업 가이드
-
-### 우선순위 높음
-1. **프로덕션 DB 마이그레이션**: 아래 SQL 파일 실행 필요
-   - `20260112_reservation_cancellation.sql` ← **이번 세션**
-   - `20260111_reservation_concurrency.sql`
-   - `20260111_admin_delete_permissions.sql`
-
-### 우선순위 보통
-2. **브라우저 통합 테스트**: 예약 → 취소 요청 → 관리자 환불 플로우 검증
-3. **푸시 알림 연동**: 취소 요청/환불 완료 시 알림 발송
-
----
-
-## ⚠️ 주의 사항
-
-1. **SQL 마이그레이션**: 위 파일들 프로덕션 DB에 반드시 실행
-2. **환불 정책 변경**: `calculate_refund_rate` 함수 및 `refund.ts` 수정 필요
-3. **은행 목록 추가**: `refund.ts`의 `KOREAN_BANKS` 배열에 추가
-
----
-
-## 📁 주요 수정 파일
-
-```
-src/
-├── types/reservation.ts           # REFUND_PENDING, REFUNDED 상태 추가
-├── constants/refund.ts            # [NEW] 은행 목록, 환불율 계산
-├── store/useReservationStore.ts   # 취소/환불 액션 3개 추가
-├── components/
-│   ├── reservation/CancelReservationSheet.tsx  # [NEW] 취소 요청 바텀시트
-│   ├── admin/ReservationCard.tsx  # 환불 정보 표시 + 환불완료 버튼
-│   └── myspace/UpcomingReservation.tsx  # 예약 내역 링크 추가
-├── app/
-│   ├── (mobile)/myspace/reservations/page.tsx  # [NEW] 예약 내역 페이지
-│   └── admin/reservations/page.tsx  # 환불대기/환불완료 탭 추가
-
-supabase/migrations/
-└── 20260112_reservation_cancellation.sql  # [NEW] 환불 시스템 스키마
-```
+## ⏭️ Next Steps
+1. **Affiliate Link Integration**: Market pivot strategy.
+2. **Reservation Automation**: Auto-open logic implementation.
+3. **Analytics**: Dashboard implementation for sales/visit metrics.

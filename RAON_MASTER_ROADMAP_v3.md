@@ -112,6 +112,10 @@
 *   **5.5 관리자 & 통계 (Admin & Analytics)** ✅ (New):
     *   [x] **마켓 관리**: 상품 등록/수정/삭제 (CRUD) 및 외부 링크(External) 상품 지원.
     *   [x] **대시보드**: 전체/활동 회원 수, 입금 대기, 주문 건수 실시간 집계 구현.
+*   **5.6 마켓 고도화 (Market 2.0) - 2026-01-12** ✅:
+    *   [x] **데이터 최적화**: YouTube/Shorts 임베드(비용 0원) 및 상품 배지(Benefit Badges) 구현.
+    *   [x] **이미지 업로드**: Supabase Storage 연동 및 Drag & Drop UI.
+    *   [x] **동적 카테고리**: 관리자 설정 페이지에서 카테고리 추가/순서변경 기능 구현.
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
 **"더 깊은 연결과 재미"**
@@ -248,6 +252,11 @@
             *   [x] **Rich Pool**: 100+ 문학적/감성적 멘트 풀(Pool) 구축 및 랜덤 로테이션.
             *   [x] **UI Integration**: SlimNotice(한줄공지) 겹침 해결 및 버그 수정.
             *   [x] **Verification**: 브라우저 시뮬레이션 검증 완료.
+            *   [x] **Status**: **100% Done**
+        *   [x] **8.10 Market Data Optimization & Dynamic Config** ✅ (2026-01-12):
+            *   [x] **Zero-Cost Video**: YouTube/Shorts/TikTok Lazy Load 임베드.
+            *   [x] **Image System**: URL 방식 → Supabase Storage 직접 업로드 전환.
+            *   [x] **Admin Empowerment**: 마켓 카테고리 관리자 직접 설정(JSONB) 구현.
             *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)

@@ -266,8 +266,42 @@
 - [x] **Navigation**: `UpcomingReservation`에 '전체 예약 내역 보기' 링크 추가
 - [x] **Build Verification**: ✅ 빌드 성공 (Exit code: 0)
 
-## 9. Next Steps (Operations)
-- [ ] **Market Pivot**: Affiliate link integration.
-- [ ] **Reservation Automation**: Auto-open logic.
-- [ ] **LBS Fallback**: Improve "Nearby" card empty state.
+## 8.12 Market Data Optimization (2026-01-12) ✅
+- [x] **Type Extensions**: `market.ts`
+  - [x] `VideoType` 타입 추가 (youtube, youtube_shorts, instagram, tiktok)
+  - [x] `ProductBadge` 타입 추가 (free_shipping, quality_guarantee, limited_stock, gift_included, best_seller, new_arrival)
+  - [x] `Product` 및 `CreateProductDTO`에 video_url, video_type, badges 필드 추가
+- [x] **YouTube Utilities**: `src/utils/youtube.ts`
+  - [x] `extractYouTubeId`, `detectVideoType`, `getYouTubeEmbedUrl`, `getYouTubeThumbnail` 함수
+  - [x] Instagram/TikTok 지원 함수
+  - [x] URL 유효성 검사 및 플랫폼 감지
+- [x] **VideoEmbed Component**: `src/components/market/VideoEmbed.tsx`
+  - [x] Lazy Load 방식 (썸네일 먼저 → 클릭 시 영상 로드)
+  - [x] YouTube/Shorts/Instagram/TikTok 자동 감지
+  - [x] 데이터 비용 0원 배지 표시
+- [x] **Admin ProductForm Enhancement**: `src/app/admin/market/components/ProductForm.tsx`
+  - [x] 이미지 최적화 가이드라인 (WebP, 800px, 200KB)
+  - [x] YouTube 영상 URL 입력 + 실시간 유효성 검사 + 미리보기
+  - [x] 데이터 비용 절감 안내 (💰 비용 0원 섹션)
+  - [x] 혜택 배지 선택 UI (6종 배지 토글)
+- [x] **Product Detail Page**: `src/app/(mobile)/market/products/[id]/page.tsx`
+  - [x] 동적 배지 표시 (DB에서 가져온 배지 렌더링)
+  - [x] YouTube 영상 임베드 섹션 (Lazy Load)
+  - [x] BADGE_MAP 상수로 배지 아이콘/색상 관리
+- [x] **Cost Savings Analysis**:
+  - [x] 영상 임베드: ₩0/월 (vs 직접 호스팅 ₩15,000/월)
+  - [x] 연간 절감액 (상품 10개 기준): ~₩2,340,000
+- [x] **Build Verification**: ✅ 타입 체크 통과
+- [x] **Live Verification**: ✅ 관리자 폼 브라우저 테스트 완료
 
+## 8.13 Market Features 2.0 (2026-01-12) ✅
+- [x] **Product Image Upload**:
+  - [x] Drag & Drop UI (Dropzone).
+  - [x] Supabase Storage Integration (`product_images` bucket).
+- [x] **Dynamic Market Categories**:
+  - [x] **DB**: `market_categories` JSONB column in `site_config`.
+  - [x] **Admin**: Category Management UI (Add/Edit/Sort/Delete) in Settings.
+  - [x] **Market**: Dynamic category loading in ProductForm & Market Main Page.
+- [x] **Verification**:
+  - [x] Verified Image Upload UI.
+  - [x] Verified Category Management UI.

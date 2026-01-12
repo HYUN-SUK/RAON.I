@@ -3,15 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { marketService } from '@/services/marketService';
-import { Product } from '@/types/market';
+import { Product, ProductBadge } from '@/types/market';
 import { useCartStore } from '@/store/useCartStore';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet"; // Use Shadcn Sheet
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ShoppingCart, Share2, Plus, Minus, ChevronRight, Heart } from 'lucide-react';
 import Image from 'next/image';
 import { ProductReviews } from '@/app/(mobile)/market/components/ProductReviews';
+import VideoEmbed from '@/components/market/VideoEmbed';
+
+// 배지 아이콘 맵
+const BADGE_MAP: Record<ProductBadge, { label: string; icon: string; color: string }> = {
+    free_shipping: { label: '무료배송', icon: '🚚', color: 'bg-gray-100 text-gray-600' },
+    quality_guarantee: { label: '품질보증', icon: '✅', color: 'bg-green-50 text-green-700' },
+    limited_stock: { label: '한정수량', icon: '⏰', color: 'bg-orange-50 text-orange-700' },
+    gift_included: { label: '사은품', icon: '🎁', color: 'bg-pink-50 text-pink-700' },
+    best_seller: { label: '베스트', icon: '🔥', color: 'bg-red-50 text-red-700' },
+    new_arrival: { label: '신상품', icon: '✨', color: 'bg-blue-50 text-blue-700' },
+};
 
 export default function ProductDetailPage() {
     const router = useRouter();
@@ -148,10 +159,29 @@ export default function ProductDetailPage() {
                     <span className="text-sm text-red-500 font-bold">10%</span>
                 </div>
 
-                {/* Benefits / Badges */}
+                {/* Benefits / Badges - 동적 표시 */}
                 <div className="flex flex-wrap gap-2 pt-2">
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-600 font-normal">무료배송</Badge>
-                    <Badge variant="secondary" className="bg-green-50 text-green-700 font-normal">내일 도착 보장</Badge>
+                    {product.badges && product.badges.length > 0 ? (
+                        product.badges.map((badge) => {
+                            const badgeInfo = BADGE_MAP[badge];
+                            if (!badgeInfo) return null;
+                            return (
+                                <Badge
+                                    key={badge}
+                                    variant="secondary"
+                                    className={`${badgeInfo.color} font-normal`}
+                                >
+                                    {badgeInfo.icon} {badgeInfo.label}
+                                </Badge>
+                            );
+                        })
+                    ) : (
+                        // 기본 배지 (배지가 없는 경우)
+                        <>
+                            <Badge variant="secondary" className="bg-gray-100 text-gray-600 font-normal">🚚 무료배송</Badge>
+                            <Badge variant="secondary" className="bg-green-50 text-green-700 font-normal">✅ 품질보증</Badge>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -187,9 +217,26 @@ export default function ProductDetailPage() {
                 <section id="info" className="p-5 py-10 scroll-mt-28">
                     <h3 className="font-bold text-lg mb-4">상품 설명</h3>
                     <p className="whitespace-pre-wrap text-gray-600 leading-7">{product.description}</p>
-                    <div className="mt-8 bg-gray-100 rounded-xl aspect-[4/5] flex items-center justify-center text-gray-400">
-                        상세 이미지 영역
-                    </div>
+
+                    {/* 상품 소개 영상 (YouTube 임베드 - 데이터 비용 0원!) */}
+                    {product.video_url && (
+                        <div className="mt-8">
+                            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                                📹 상품 소개 영상
+                            </h4>
+                            <VideoEmbed
+                                url={product.video_url}
+                                aspectRatio={product.video_type === 'youtube_shorts' ? 'shorts' : 'video'}
+                            />
+                        </div>
+                    )}
+
+                    {/* 상세 이미지 영역 (영상이 없는 경우만 플레이스홀더 표시) */}
+                    {!product.video_url && (
+                        <div className="mt-8 bg-gray-100 rounded-xl aspect-[4/5] flex items-center justify-center text-gray-400">
+                            상세 이미지 영역
+                        </div>
+                    )}
                 </section>
 
                 <div className="h-2 bg-gray-50" />

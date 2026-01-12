@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, MapPin, Upload, X, Trophy, Banknote } from 'lucide-react';
+import { Loader2, Save, MapPin, Upload, X, Trophy, Banknote, ShoppingBag, Plus, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase-client';
@@ -59,6 +59,14 @@ export default function AdminSettingsPage() {
         d2: 20,
         d1_day: 0
     });
+
+    // Market Categories
+    const [marketCategories, setMarketCategories] = useState<{ id: string; label: string; order: number }[]>([
+        { id: 'lantern', label: '조명/랜턴', order: 1 },
+        { id: 'tableware', label: '식기/키친', order: 2 },
+        { id: 'furniture', label: '가구/체어', order: 3 },
+        { id: 'goods', label: '굿즈', order: 4 },
+    ]);
 
     useEffect(() => {
         if (config) {
@@ -114,6 +122,11 @@ export default function AdminSettingsPage() {
                     d2: configAny.refund_policy.d2 ?? 20,
                     d1_day: configAny.refund_policy.d1_day ?? 0
                 });
+            }
+
+            // Market Categories
+            if (configAny.market_categories && Array.isArray(configAny.market_categories)) {
+                setMarketCategories(configAny.market_categories);
             }
         }
     }, [config]);
@@ -188,6 +201,37 @@ export default function AdminSettingsPage() {
         setNearbyPlaces(nearbyPlaces.filter((_, i) => i !== index));
     };
 
+    // Market Category Handlers
+    const handleAddCategory = () => {
+        const newOrder = marketCategories.length + 1;
+        const newId = `category_${Date.now()}`;
+        setMarketCategories([...marketCategories, { id: newId, label: '', order: newOrder }]);
+    };
+
+    const handleCategoryChange = (index: number, field: 'id' | 'label', value: string) => {
+        const newCategories = [...marketCategories];
+        newCategories[index] = { ...newCategories[index], [field]: value };
+        setMarketCategories(newCategories);
+    };
+
+    const handleRemoveCategory = (index: number) => {
+        const newCategories = marketCategories.filter((_, i) => i !== index)
+            .map((cat, i) => ({ ...cat, order: i + 1 }));
+        setMarketCategories(newCategories);
+    };
+
+    const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === marketCategories.length - 1) return;
+
+        const newCategories = [...marketCategories];
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        [newCategories[index], newCategories[swapIndex]] = [newCategories[swapIndex], newCategories[index]];
+
+        // Reorder
+        setMarketCategories(newCategories.map((cat, i) => ({ ...cat, order: i + 1 })));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -211,6 +255,8 @@ export default function AdminSettingsPage() {
                     mission_reward_3rd_token: missionRewards.third_token,
                     // Refund Policy
                     refund_policy: refundPolicy,
+                    // Market Categories
+                    market_categories: marketCategories,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', 1);
@@ -740,6 +786,90 @@ export default function AdminSettingsPage() {
                         <p className="text-xs text-red-500">입실 당일 및 1일 전 취소 시 적용</p>
                     </div>
                 </div>
+            </div>
+
+            {/* 5. Market Categories Settings */}
+            <div className="bg-white p-6 rounded-xl border shadow-sm space-y-6">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-[#1C4526] flex items-center gap-2">
+                        <ShoppingBag className="w-5 h-5" /> 마켓 카테고리 관리
+                    </h2>
+                    <Button variant="outline" size="sm" onClick={handleAddCategory}>
+                        <Plus className="w-4 h-4 mr-1" /> 카테고리 추가
+                    </Button>
+                </div>
+                <p className="text-sm text-gray-500">
+                    상품 등록 시 사용되는 카테고리를 관리합니다. 순서를 변경하려면 화살표 버튼을 사용하세요.
+                </p>
+
+                <div className="space-y-2">
+                    {marketCategories.map((category, idx) => (
+                        <div key={category.id} className="flex gap-2 items-center bg-gray-50 p-3 rounded-lg border">
+                            {/* Order indicator */}
+                            <div className="flex flex-col gap-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => handleMoveCategory(idx, 'up')}
+                                    disabled={idx === 0}
+                                    className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                                >
+                                    ▲
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleMoveCategory(idx, 'down')}
+                                    disabled={idx === marketCategories.length - 1}
+                                    className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                                >
+                                    ▼
+                                </button>
+                            </div>
+
+                            {/* Order Number */}
+                            <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">
+                                {idx + 1}
+                            </span>
+
+                            {/* ID Input */}
+                            <div className="flex-1">
+                                <Label className="text-xs text-gray-500">ID (영문)</Label>
+                                <Input
+                                    placeholder="예: lantern"
+                                    value={category.id}
+                                    onChange={e => handleCategoryChange(idx, 'id', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                    className="bg-white text-sm"
+                                />
+                            </div>
+
+                            {/* Label Input */}
+                            <div className="flex-1">
+                                <Label className="text-xs text-gray-500">표시명</Label>
+                                <Input
+                                    placeholder="예: 조명/랜턴"
+                                    value={category.label}
+                                    onChange={e => handleCategoryChange(idx, 'label', e.target.value)}
+                                    className="bg-white text-sm"
+                                />
+                            </div>
+
+                            {/* Delete Button */}
+                            <button
+                                type="button"
+                                onClick={() => handleRemoveCategory(idx)}
+                                className="text-red-500 p-2 hover:bg-red-50 rounded"
+                                disabled={marketCategories.length <= 1}
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+
+                {marketCategories.length === 0 && (
+                    <div className="text-center py-8 text-gray-400">
+                        아직 카테고리가 없습니다. 위 버튼을 클릭하여 추가하세요.
+                    </div>
+                )}
             </div>
         </div>
     );

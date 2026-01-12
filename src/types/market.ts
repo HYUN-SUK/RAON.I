@@ -1,5 +1,8 @@
 export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
 
+export type VideoType = 'youtube' | 'youtube_shorts' | 'instagram' | 'tiktok' | null;
+export type ProductBadge = 'free_shipping' | 'quality_guarantee' | 'limited_stock' | 'gift_included' | 'best_seller' | 'new_arrival';
+
 export interface Product {
     id: string;
     name: string;
@@ -14,6 +17,10 @@ export interface Product {
     updated_at: string;
     type: 'INTERNAL' | 'EXTERNAL';
     link: string | null;
+    // 데이터 최적화 필드
+    video_url?: string | null;      // YouTube/쇼츠/릴스 임베드 URL
+    video_type?: VideoType;         // 영상 플랫폼 유형
+    badges?: ProductBadge[];        // 혜택 배지
 }
 
 export interface CartItem {
@@ -85,6 +92,10 @@ export interface CreateProductDTO {
     is_active: boolean;
     type: 'INTERNAL' | 'EXTERNAL';
     link?: string;
+    // 데이터 최적화 필드
+    video_url?: string;
+    video_type?: VideoType;
+    badges?: ProductBadge[];
 }
 
 export interface UpdateProductDTO extends Partial<CreateProductDTO> {
