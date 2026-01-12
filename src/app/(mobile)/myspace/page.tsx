@@ -33,11 +33,8 @@ export default function MySpacePage() {
             {/* 6. Slim Notice */}
             <SlimNotice />
 
-            {/* 7. Upcoming Reservation Card with Title */}
-            <div className="mt-2">
-                <h2 className="px-7 text-lg font-bold text-text-1 mb-3">다가오는 예약</h2>
-                <UpcomingReservation />
-            </div>
+            {/* 7. Upcoming Reservation Card */}
+            <UpcomingReservation />
         </div>
     );
 }

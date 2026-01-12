@@ -12,7 +12,7 @@ export interface Site {
     features: string[];
 }
 
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO-SHOW';
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REFUND_PENDING' | 'REFUNDED' | 'COMPLETED' | 'NO-SHOW';
 
 export interface Reservation {
     id: string;
@@ -28,6 +28,15 @@ export interface Reservation {
     status: ReservationStatus;
     requests: string; // SSOT: 요청사항
     createdAt: Date;
+    // 환불 관련 필드
+    refundBank?: string;
+    refundAccount?: string;
+    refundHolder?: string;
+    cancelReason?: string;
+    cancelledAt?: Date;
+    refundedAt?: Date;
+    refundAmount?: number;
+    refundRate?: number; // 환불율 (0~100)
 }
 
 export interface PriceBreakdown {

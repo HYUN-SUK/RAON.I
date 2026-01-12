@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, MapPin, Upload, X, Trophy } from 'lucide-react';
+import { Loader2, Save, MapPin, Upload, X, Trophy, Banknote } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase-client';
@@ -49,6 +49,17 @@ export default function AdminSettingsPage() {
         third_xp: 200, third_token: 50
     });
 
+    // Refund Policy Settings
+    const [refundPolicy, setRefundPolicy] = useState({
+        d7_plus: 100,
+        d6: 90,
+        d5: 50,
+        d4: 40,
+        d3: 30,
+        d2: 20,
+        d1_day: 0
+    });
+
     useEffect(() => {
         if (config) {
             setFormData({
@@ -89,6 +100,20 @@ export default function AdminSettingsPage() {
                 setNearbyPlaces(places);
             } catch (e) {
                 console.error(e);
+            }
+
+            // Refund Policy
+            const configAny = config as any;
+            if (configAny.refund_policy) {
+                setRefundPolicy({
+                    d7_plus: configAny.refund_policy.d7_plus ?? 100,
+                    d6: configAny.refund_policy.d6 ?? 90,
+                    d5: configAny.refund_policy.d5 ?? 50,
+                    d4: configAny.refund_policy.d4 ?? 40,
+                    d3: configAny.refund_policy.d3 ?? 30,
+                    d2: configAny.refund_policy.d2 ?? 20,
+                    d1_day: configAny.refund_policy.d1_day ?? 0
+                });
             }
         }
     }, [config]);
@@ -184,6 +209,8 @@ export default function AdminSettingsPage() {
                     mission_reward_2nd_token: missionRewards.second_token,
                     mission_reward_3rd_xp: missionRewards.third_xp,
                     mission_reward_3rd_token: missionRewards.third_token,
+                    // Refund Policy
+                    refund_policy: refundPolicy,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', 1);
@@ -593,6 +620,124 @@ export default function AdminSettingsPage() {
                                 />
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 4. Refund Policy Settings */}
+            <div className="bg-white p-6 rounded-xl border shadow-sm space-y-6">
+                <h2 className="text-lg font-semibold text-[#1C4526] flex items-center gap-2">
+                    <Banknote className="w-5 h-5" /> 환불 정책 설정
+                </h2>
+                <p className="text-sm text-gray-500">
+                    입실일 기준 며칠 전 취소 시 적용되는 환불 비율을 설정합니다. (0~100%)
+                </p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="border p-4 rounded-lg bg-green-50 space-y-2">
+                        <Label className="font-bold text-green-700">7일+ 전</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={refundPolicy.d7_plus}
+                                onChange={e => setRefundPolicy({ ...refundPolicy, d7_plus: parseInt(e.target.value) || 0 })}
+                                className="bg-white"
+                            />
+                            <span className="text-sm text-gray-500">%</span>
+                        </div>
+                    </div>
+
+                    <div className="border p-4 rounded-lg bg-green-50/50 space-y-2">
+                        <Label className="font-bold text-green-600">6일 전</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={refundPolicy.d6}
+                                onChange={e => setRefundPolicy({ ...refundPolicy, d6: parseInt(e.target.value) || 0 })}
+                                className="bg-white"
+                            />
+                            <span className="text-sm text-gray-500">%</span>
+                        </div>
+                    </div>
+
+                    <div className="border p-4 rounded-lg bg-yellow-50 space-y-2">
+                        <Label className="font-bold text-yellow-700">5일 전</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={refundPolicy.d5}
+                                onChange={e => setRefundPolicy({ ...refundPolicy, d5: parseInt(e.target.value) || 0 })}
+                                className="bg-white"
+                            />
+                            <span className="text-sm text-gray-500">%</span>
+                        </div>
+                    </div>
+
+                    <div className="border p-4 rounded-lg bg-yellow-50/50 space-y-2">
+                        <Label className="font-bold text-yellow-600">4일 전</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={refundPolicy.d4}
+                                onChange={e => setRefundPolicy({ ...refundPolicy, d4: parseInt(e.target.value) || 0 })}
+                                className="bg-white"
+                            />
+                            <span className="text-sm text-gray-500">%</span>
+                        </div>
+                    </div>
+
+                    <div className="border p-4 rounded-lg bg-orange-50 space-y-2">
+                        <Label className="font-bold text-orange-700">3일 전</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={refundPolicy.d3}
+                                onChange={e => setRefundPolicy({ ...refundPolicy, d3: parseInt(e.target.value) || 0 })}
+                                className="bg-white"
+                            />
+                            <span className="text-sm text-gray-500">%</span>
+                        </div>
+                    </div>
+
+                    <div className="border p-4 rounded-lg bg-orange-50/50 space-y-2">
+                        <Label className="font-bold text-orange-600">2일 전</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={refundPolicy.d2}
+                                onChange={e => setRefundPolicy({ ...refundPolicy, d2: parseInt(e.target.value) || 0 })}
+                                className="bg-white"
+                            />
+                            <span className="text-sm text-gray-500">%</span>
+                        </div>
+                    </div>
+
+                    <div className="border p-4 rounded-lg bg-red-50 space-y-2 col-span-2">
+                        <Label className="font-bold text-red-700">당일/1일 전</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={refundPolicy.d1_day}
+                                onChange={e => setRefundPolicy({ ...refundPolicy, d1_day: parseInt(e.target.value) || 0 })}
+                                className="bg-white"
+                            />
+                            <span className="text-sm text-gray-500">%</span>
+                        </div>
+                        <p className="text-xs text-red-500">입실 당일 및 1일 전 취소 시 적용</p>
                     </div>
                 </div>
             </div>

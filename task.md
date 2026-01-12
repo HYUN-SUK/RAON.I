@@ -247,6 +247,25 @@
 - [x] **DB Migration**: `20260111_ember_notifications.sql` 작성 완료.
 - [x] **Live Verification**: 브라우저 검증 완료.
 
+## 8.11 Reservation Cancellation & Refund (2026-01-12) ✅
+- [x] **DB Migration**: `20260112_reservation_cancellation.sql`
+  - [x] 환불 관련 컬럼 추가 (refund_bank, refund_account, refund_holder, cancel_reason, refund_amount, refund_rate)
+  - [x] `REFUND_PENDING` 상태 추가
+  - [x] `calculate_refund_rate` 함수 (D-7 100% ~ D-Day 0% 정책)
+  - [x] `request_reservation_cancel` RPC (사용자 취소 요청)
+  - [x] `complete_reservation_refund` RPC (관리자 환불 완료)
+  - [x] `get_my_reservations` RPC (본인 예약 목록)
+- [x] **Type Definitions**: `reservation.ts`에 `REFUND_PENDING`, `REFUNDED` 상태 및 환불 필드 추가
+- [x] **Constants**: `refund.ts` - 은행 목록 16개(+직접입력), 환불율 계산 함수, 취소 사유 옵션
+- [x] **Store Actions**: `useReservationStore`에 `fetchMyReservations`, `requestCancelReservation`, `completeRefund` 추가
+- [x] **User Pages**: `/myspace/reservations` - 전체 예약 내역 페이지
+- [x] **UI Components**: `CancelReservationSheet.tsx` - 취소 요청 바텀시트 (환불 계좌 입력, 환불율 미리보기)
+- [x] **Admin Updates**: 
+  - [x] 예약 관리 페이지에 '환불대기'/'환불완료' 필터 탭 추가
+  - [x] `ReservationCard`에 환불 정보 표시 및 '환불 완료' 버튼 추가
+- [x] **Navigation**: `UpcomingReservation`에 '전체 예약 내역 보기' 링크 추가
+- [x] **Build Verification**: ✅ 빌드 성공 (Exit code: 0)
+
 ## 9. Next Steps (Operations)
 - [ ] **Market Pivot**: Affiliate link integration.
 - [ ] **Reservation Automation**: Auto-open logic.

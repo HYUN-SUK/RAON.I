@@ -38,7 +38,7 @@ interface ReservationState {
         guestPhone: string;
         requests?: string;
     }) => Promise<{ success: boolean; reservationId?: string; error?: string; message?: string }>;
-    updateReservationStatus: (id: string, status: ReservationStatus) => void;
+    updateReservationStatus: (id: string, status: ReservationStatus) => Promise<void>;
     updateReservation: (id: string, updates: {
         checkInDate?: Date;
         checkOutDate?: Date;
@@ -47,6 +47,17 @@ interface ReservationState {
         visitorCount?: number;
     }) => { success: boolean; oldPrice: number; newPrice: number; diff: number; error?: string };
     reset: () => void;
+
+    // 예약 취소/환불 관련 액션
+    fetchMyReservations: () => Promise<Reservation[]>;
+    requestCancelReservation: (params: {
+        reservationId: string;
+        refundBank: string;
+        refundAccount: string;
+        refundHolder: string;
+        cancelReason?: string;
+    }) => Promise<{ success: boolean; refundRate?: number; refundAmount?: number; error?: string; message?: string }>;
+    completeRefund: (reservationId: string) => Promise<{ success: boolean; error?: string; message?: string }>;
 
     // Helper to calculate price
     calculatePrice: (site: Site, checkIn: Date, checkOut: Date, familyCount: number, visitorCount: number) => PriceBreakdown;
@@ -391,12 +402,147 @@ export const useReservationStore = create<ReservationState>()(
                 };
             },
 
-            updateReservationStatus: (id, status) =>
+            // 내 예약 목록 조회 (DB에서)
+            fetchMyReservations: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                const { data, error } = await supabase.rpc('get_my_reservations');
+
+                if (error || !data) {
+                    return [];
+                }
+
+                const mapped: Reservation[] = data.map((r: any) => ({
+                    id: r.id,
+                    userId: r.user_id,
+                    siteId: r.site_id,
+                    checkInDate: new Date(r.check_in_date),
+                    checkOutDate: new Date(r.check_out_date),
+                    familyCount: r.family_count || 1,
+                    visitorCount: r.visitor_count || 0,
+                    vehicleCount: r.vehicle_count || 1,
+                    guests: r.guests || (r.family_count + r.visitor_count),
+                    totalPrice: r.total_price || 0,
+                    status: r.status,
+                    requests: r.requests || '',
+                    createdAt: new Date(r.created_at),
+                    // 환불 관련 필드
+                    refundBank: r.refund_bank,
+                    refundAccount: r.refund_account,
+                    refundHolder: r.refund_holder,
+                    cancelReason: r.cancel_reason,
+                    cancelledAt: r.cancelled_at ? new Date(r.cancelled_at) : undefined,
+                    refundedAt: r.refunded_at ? new Date(r.refunded_at) : undefined,
+                    refundAmount: r.refund_amount,
+                    refundRate: r.refund_rate
+                }));
+
+                // 로컬 상태도 업데이트
+                set({ reservations: mapped });
+                return mapped;
+            },
+
+            // 사용자 취소 요청
+            requestCancelReservation: async (params) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                const { data, error } = await supabase.rpc('request_reservation_cancel', {
+                    p_reservation_id: params.reservationId,
+                    p_refund_bank: params.refundBank,
+                    p_refund_account: params.refundAccount,
+                    p_refund_holder: params.refundHolder,
+                    p_cancel_reason: params.cancelReason || null
+                });
+
+                if (error) {
+                    return { success: false, error: 'RPC_ERROR', message: error.message };
+                }
+
+                const result = data as { success: boolean; refund_rate?: number; refund_amount?: number; error?: string; message?: string };
+
+                if (result.success) {
+                    // 로컬 상태 업데이트
+                    set((state) => ({
+                        reservations: state.reservations.map((res) =>
+                            res.id === params.reservationId
+                                ? {
+                                    ...res,
+                                    status: 'REFUND_PENDING' as const,
+                                    refundBank: params.refundBank,
+                                    refundAccount: params.refundAccount,
+                                    refundHolder: params.refundHolder,
+                                    cancelReason: params.cancelReason,
+                                    refundRate: result.refund_rate,
+                                    refundAmount: result.refund_amount,
+                                    cancelledAt: new Date()
+                                }
+                                : res
+                        )
+                    }));
+                }
+
+                return {
+                    success: result.success,
+                    refundRate: result.refund_rate,
+                    refundAmount: result.refund_amount,
+                    error: result.error,
+                    message: result.message
+                };
+            },
+
+            // 관리자 환불 완료 처리
+            completeRefund: async (reservationId) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                const { data, error } = await supabase.rpc('complete_reservation_refund', {
+                    p_reservation_id: reservationId
+                });
+
+                if (error) {
+                    return { success: false, error: 'RPC_ERROR', message: error.message };
+                }
+
+                const result = data as { success: boolean; error?: string; message?: string };
+
+                if (result.success) {
+                    set((state) => ({
+                        reservations: state.reservations.map((res) =>
+                            res.id === reservationId
+                                ? { ...res, status: 'REFUNDED' as const, refundedAt: new Date() }
+                                : res
+                        )
+                    }));
+                }
+
+                return result;
+            },
+
+            // 예약 상태 변경 (DB + 로컬 동기화)
+            updateReservationStatus: async (id, status) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                // DB 업데이트
+                const { error } = await supabase
+                    .from('reservations')
+                    .update({ status, updated_at: new Date().toISOString() })
+                    .eq('id', id);
+
+                if (error) {
+                    console.error('Failed to update reservation status:', error);
+                    return;
+                }
+
+                // 로컬 상태도 업데이트
                 set((state) => ({
                     reservations: state.reservations.map((res) =>
                         res.id === id ? { ...res, status } : res
                     ),
-                })),
+                }));
+            },
 
             // 예약 변경 (관리자 전용): 일정/사이트 변경 + 차액 계산
             updateReservation: (id, updates) => {

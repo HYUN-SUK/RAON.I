@@ -42,6 +42,8 @@ export default function AdminReservationsPage() {
                     <FilterButton label="전체" active={filterStatus === 'ALL'} onClick={() => setFilterStatus('ALL')} />
                     <FilterButton label="입금 대기" active={filterStatus === 'PENDING'} onClick={() => setFilterStatus('PENDING')} count={reservations.filter(r => r.status === 'PENDING').length} />
                     <FilterButton label="확정됨" active={filterStatus === 'CONFIRMED'} onClick={() => setFilterStatus('CONFIRMED')} />
+                    <FilterButton label="환불대기" active={filterStatus === 'REFUND_PENDING'} onClick={() => setFilterStatus('REFUND_PENDING')} count={reservations.filter(r => r.status === 'REFUND_PENDING').length} />
+                    <FilterButton label="환불완료" active={filterStatus === 'REFUNDED'} onClick={() => setFilterStatus('REFUNDED')} />
                     <FilterButton label="취소됨" active={filterStatus === 'CANCELLED'} onClick={() => setFilterStatus('CANCELLED')} />
                 </div>
             </div>
