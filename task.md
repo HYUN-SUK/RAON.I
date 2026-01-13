@@ -338,11 +338,11 @@
     - Fixed `Set<number>` vs `Set<string>` (UUID) mismatch.
 - [x] **Build Verification**: ✅ `npm run build` SUCCESS (Exit code: 0).
 
-## 11. PWA Install Prompt (2026-01-13)
-- [ ] **Hook**: Create `usePWAInstallPrompt` (handle `beforeinstallprompt` event).
-- [ ] **UI**: Add "앱 설치" button to `TopBar`.
-- [ ] **Logic**: Hide button if already installed (standalone mode) or after installation.
-- [ ] **iOS Support**: Show simple guide modal for iOS users (manual install).
+## 11. PWA Install Prompt (2026-01-13) ✅
+- [x] **Hook**: Create `usePWAInstallPrompt` (handle `beforeinstallprompt` event).
+- [x] **UI**: Add "앱 설치" button to `TopBar`.
+- [x] **Logic**: Hide button if already installed (standalone mode) or after installation.
+- [x] **iOS Support**: Show simple guide modal for iOS users (manual install).
 
 ## 10. Deployment (2026-01-13) 🚀
 - [x] **Deployment Guide**: Created `deployment_guide.md` for GitHub & Vercel.
