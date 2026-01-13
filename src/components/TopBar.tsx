@@ -20,7 +20,7 @@ import {
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { usePushNotification } from "@/hooks/usePushNotification";
 import { usePWAInstallPrompt } from "@/hooks/usePWAInstallPrompt";
-import IOSInstallModal from "@/components/pwa/IOSInstallModal";
+import PWAInstallGuideModal from "@/components/pwa/PWAInstallGuideModal";
 
 interface UserInfo {
     nickname: string;
@@ -36,7 +36,7 @@ export default function TopBar() {
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
     // PWA
-    const { isInstallable, promptInstall, isIOS } = usePWAInstallPrompt();
+    const { isInstallable, promptInstall, platform } = usePWAInstallPrompt();
     const [isIOSModalOpen, setIsIOSModalOpen] = useState(false);
 
     // Dynamic Level Progress
@@ -99,8 +99,10 @@ export default function TopBar() {
 
     const handleInstallClick = async () => {
         const result = await promptInstall();
-        if (result === 'IOS_manual') {
-            setIsIOSModalOpen(true);
+        // If result is NOT 'accepted' or 'dismissed', it means native prompt wasn't available
+        // So we show the manual guide modal (which uses the 'platform' return value)
+        if (result !== 'accepted' && result !== 'dismissed') {
+            setIsIOSModalOpen(true); // Reusing this state name for generic modal open functionality
         }
     };
 
@@ -201,9 +203,10 @@ export default function TopBar() {
                 )}
             </div>
 
-            <IOSInstallModal
+            <PWAInstallGuideModal
                 isOpen={isIOSModalOpen}
                 onClose={() => setIsIOSModalOpen(false)}
+                platform={platform} // Pass detected platform
             />
         </header>
     );
