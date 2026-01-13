@@ -306,3 +306,34 @@
 - [x] **Verification**:
   - [x] Verified Image Upload UI.
   - [x] Verified Category Management UI.
+
+## 8.14 Final Polish (2026-01-13) ✅
+- [x] **Home UI Logic**:
+  - [x] **Production Branching**: Removed Dev-only "Beginner/User Mode" toggle.
+  - [x] **Terminology**: Updated Mission Card rewards (POINT -> RAONTOKEN, xp -> XP).
+- [x] **Verification**:
+  - [x] **Admin Route**: Verified access to `/admin`.
+  - [x] **Home UI**: Verified mission widget and beginner home layout.
+
+## 8.15 Build Fix & Type Sync (2026-01-13) ✅
+- [x] **Supabase Types (`src/types/supabase.ts`)**:
+  - [x] **New Tables**: Added `blocked_dates`, `comments`, `likes`.
+  - [x] **Updated Tables**:
+    - `site_config`: Replaced key-value type with "Wide Table" definition (camp_name, etc).
+    - `sites`: Added `features`, `is_active`, `price`.
+    - `posts`: Updated to match Community Service (author_id, meta_data, images).
+    - `recommendation_pool`: Added `min_participants`, `max_participants`, `materials`.
+    - `nearby_events`: Added `location`, `start_date`, `end_date`, `image_url` aliases.
+- [x] **Code Corrections**:
+  - [x] **BeginnerHome/ReturningHome**: Mapped DB events to `NearbyEvent` interface for UI Sheet.
+  - [x] **AdminSitesPage**: Fixed `price` and `is_active` usage.
+  - [x] **CommunityService**:
+    - Fix `groupId` null/undefined mismatch.
+    - Fix `author` null/unknown mismatch.
+  - [x] **UseReservationStore**:
+    - Fixed `type` -> `site_type` property access.
+    - Removed `max_occupancy` (use `capacity`).
+    - Removed `date` access on `blocked_dates`.
+  - [x] **AdminRecommendationsPage**:
+    - Fixed `Set<number>` vs `Set<string>` (UUID) mismatch.
+- [x] **Build Verification**: ✅ `npm run build` SUCCESS (Exit code: 0).

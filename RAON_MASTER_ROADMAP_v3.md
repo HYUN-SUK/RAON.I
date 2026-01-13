@@ -280,6 +280,10 @@
     *   [x] 메타 태그 추가 (`layout.tsx`) - 한국어 SEO 및 OG 태그 적용
     *   [x] "홈 화면에 추가" 기능 테스트 완료
     *   [ ] (선택) TWA로 플레이스토어 등록
+*   **9.6 빌드 오류 수정 및 타입 동기화** ✅ (2026-01-13):
+    *   [x] **Supabase Types**: `site_config`, `posts`, `sites`, `nearby_events` 정의 현행화.
+    *   [x] **Code Corrections**: `BeginnerHome`(이벤트 타입), `ReservationStore`(사이트/예약 타입), `CommunityService`(글/댓글 타입) 수정.
+    *   [x] **Build Verification**: `npm run build` 성공 (Exit code: 0).
 
 
 ---

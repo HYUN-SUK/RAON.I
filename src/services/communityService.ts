@@ -411,7 +411,7 @@ function mapDbToComment(db: CommentRow & { image_url?: string }, currentUserId?:
     return {
         id: db.id,
         postId: db.post_id,
-        author: db.author_name,
+        author: db.author_name || 'Unknown',
         content: db.content,
         date: new Date(db.created_at).toISOString(),
         imageUrl: db.image_url,
@@ -445,7 +445,7 @@ function mapDbToPost(db: DbPost): Post {
             // Type-safe metadata access
             status: (metaData.status as 'OPEN' | 'CLOSED') || 'OPEN',
             groupName: metaData.group_name as string | undefined,
-            groupId: db.group_id,
+            groupId: db.group_id || undefined,
             thumbnailUrl: metaData.thumbnail_url as string | undefined,
             videoUrl: metaData.video_url as string | undefined,
             visibility: (metaData.visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE') || 'PUBLIC',

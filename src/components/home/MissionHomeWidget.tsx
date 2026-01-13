@@ -9,7 +9,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function MissionHomeWidget() {
     const router = useRouter();
-    const { currentMission, userMission, fetchCurrentMission, isLoading } = useMissionStore();
+    const { currentMission, userMission, fetchCurrentMission } = useMissionStore();
     const { withAuth } = useRequireAuth();
 
     useEffect(() => {
@@ -44,10 +44,10 @@ export default function MissionHomeWidget() {
 
                     <div className="flex gap-2">
                         <Badge variant="secondary" className="bg-white/10 text-white hover:bg-white/20 border-none text-[10px]">
-                            xp {currentMission.reward_xp}
+                            XP {currentMission.reward_xp}
                         </Badge>
                         <Badge variant="secondary" className="bg-white/10 text-white hover:bg-white/20 border-none text-[10px]">
-                            point {currentMission.reward_point}
+                            Raon Token {currentMission.reward_point}
                         </Badge>
                     </div>
                 </div>
@@ -60,10 +60,10 @@ export default function MissionHomeWidget() {
             <Button
                 variant="ghost"
                 className={`w-full mt-4 text-xs h-9 justify-between px-3 transition-colors ${isCompleted
-                        ? 'bg-white/10 text-white/50 hover:bg-white/20'
-                        : userMission
-                            ? 'bg-blue-500/20 text-blue-100 hover:bg-blue-500/30 ring-1 ring-blue-400/30'
-                            : 'bg-white/10 text-white hover:bg-white/20'
+                    ? 'bg-white/10 text-white/50 hover:bg-white/20'
+                    : userMission
+                        ? 'bg-blue-500/20 text-blue-100 hover:bg-blue-500/30 ring-1 ring-blue-400/30'
+                        : 'bg-white/10 text-white hover:bg-white/20'
                     }`}
                 onClick={() => withAuth(() => router.push(`/mission/${currentMission.id}`))}
             >

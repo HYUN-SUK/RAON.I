@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Upload, Copy } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
-import { Database } from '@/types/supabase';
+import type { Database } from '@/types/supabase';
 import { communityService } from '@/services/communityService';
 import { JsonImportButton } from './JsonImportButton';
 import {
@@ -136,10 +136,10 @@ export default function RecommendationAdminPage() {
 
     // V2 Admin Features
     const [filterCategory, setFilterCategory] = useState<'all' | 'cooking' | 'play'>('all');
-    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     // Delete Dialog State
-    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk', table?: 'recommendation_pool' | 'nearby_events', id?: number } | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk', table?: 'recommendation_pool' | 'nearby_events', id?: string } | null>(null);
 
     // Computed
     const filteredItems = recItems.filter(item => {
@@ -232,7 +232,7 @@ export default function RecommendationAdminPage() {
         }
     };
 
-    const handleDelete = (table: 'recommendation_pool' | 'nearby_events', id: number) => {
+    const handleDelete = (table: 'recommendation_pool' | 'nearby_events', id: string) => {
         setDeleteTarget({ type: 'single', table, id });
     };
 
@@ -251,8 +251,9 @@ export default function RecommendationAdminPage() {
                 setSelectedIds(new Set());
             }
             fetchData();
-        } catch (e: any) {
-            toast.error(e.message || '삭제 중 오류가 발생했습니다.');
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다.';
+            toast.error(message);
         } finally {
             setDeleteTarget(null);
         }
@@ -336,7 +337,7 @@ export default function RecommendationAdminPage() {
         setDeleteTarget({ type: 'bulk' });
     };
 
-    const toggleSelection = (id: number) => {
+    const toggleSelection = (id: string) => {
         const next = new Set(selectedIds);
         if (next.has(id)) next.delete(id);
         else next.add(id);

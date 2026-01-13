@@ -287,7 +287,19 @@ export default function ReturningHome() {
             <NearbyDetailSheet
                 isOpen={nearbySheetOpen}
                 onClose={() => setNearbySheetOpen(false)}
-                events={nearbyEvents}
+                events={nearbyEvents.map(e => ({
+                    id: e.id,
+                    title: e.title,
+                    description: e.addr1 || '',
+                    location: e.location || e.addr1 || null,
+                    start_date: e.start_date || e.eventstartdate || null,
+                    end_date: e.end_date || e.eventenddate || null,
+                    image_url: e.image_url || e.firstimage || null,
+                    latitude: e.mapy || null,
+                    longitude: e.mapx || null,
+                    detail_url: null,
+                    source: 'tourapi'
+                }))}
                 facilities={config?.nearby_places as unknown as Facility[] || []}
                 userLocation={lbs.location}
                 getDistance={lbs.getDistanceKm}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import BeginnerHome from '@/components/home/BeginnerHome';
 import ReturningHome from '@/components/home/ReturningHome';
-import { Button } from '@/components/ui/button';
+
 import { createClient } from '@/lib/supabase-client';
 
 /**
@@ -72,16 +72,7 @@ export default function Home() {
         [DEV ONLY] 상태 전환 토글 버튼 
         개발 및 데모 시연을 위해 우측 상단에 임시로 배치합니다.
       */}
-      <div className="fixed top-20 right-4 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <Button
-          variant="outline"
-          size="sm"
-          className="bg-white/80 backdrop-blur text-xs h-7"
-          onClick={() => setIsFirstTimeUser(!isFirstTimeUser)}
-        >
-          {isFirstTimeUser ? '모드: 초보자' : '모드: 기존 유저'}
-        </Button>
-      </div>
+
 
       {/* 상태에 따른 화면 렌더링 */}
       {isFirstTimeUser ? (
