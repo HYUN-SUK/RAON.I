@@ -12,8 +12,8 @@ interface IBeforeInstallPromptEvent extends Event {
 export function usePWAInstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<IBeforeInstallPromptEvent | null>(null);
     const [isStandalone, setIsStandalone] = useState(false);
-    const [isIOS, setIsIOS] = useState(false);
     const [isInstallable, setIsInstallable] = useState(false);
+    const [platform, setPlatform] = useState<'ios' | 'android' | 'pc' | 'mac'>('pc');
 
     useEffect(() => {
         // Detect if already installed (Standalone mode)
@@ -26,10 +26,17 @@ export function usePWAInstallPrompt() {
         checkStandalone();
         window.matchMedia('(display-mode: standalone)').addEventListener('change', checkStandalone);
 
-        // Detect iOS
+        // Detect Platform
         const userAgent = window.navigator.userAgent.toLowerCase();
-        const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-        setIsIOS(isIosDevice);
+        if (/iphone|ipad|ipod/.test(userAgent)) {
+            setPlatform('ios');
+        } else if (/mac os/.test(userAgent) && !/iphone|ipad|ipod/.test(userAgent)) {
+            setPlatform('mac');
+        } else if (/android/.test(userAgent)) {
+            setPlatform('android');
+        } else {
+            setPlatform('pc');
+        }
 
         // Capture the event for Android/Desktop
         const handleBeforeInstallPrompt = (e: Event) => {
@@ -43,8 +50,6 @@ export function usePWAInstallPrompt() {
 
         // FOR DEBUGGING/USER UX:
         // Always show button if not standalone (to debug, or allow manual guide)
-        // In production, we usually wait for event. But for this user issue, let's force it visible
-        // and if no event, we can show a manual guide similar to iOS or just alert.
         if (!isStandalone) {
             setIsInstallable(true);
         }
@@ -56,26 +61,22 @@ export function usePWAInstallPrompt() {
     }, [isStandalone]);
 
     const promptInstall = async () => {
-        if (isIOS) {
-            // iOS requires manual modal
-            return 'IOS_manual';
-        }
-
+        // 1. Try Native Prompt first (if event captured)
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             if (outcome === 'accepted') {
                 setDeferredPrompt(null);
                 setIsInstallable(false);
+                return 'accepted';
             }
-        } else {
-            // No event captured yet (Desktop/Android manual fallback)
-            // Maybe show a tooltip or just return null?
-            // For now, let's treat it as iOS manual so at least they see "Add to Home" instructions?
-            // Or just alert?
-            alert("브라우저 메뉴(⋮)에서 '앱 설치' 또는 '홈 화면에 추가'를 선택해주세요.");
+            return 'dismissed';
         }
+
+        // 2. Fallback to Manual Guide
+        // Return platform so UI can show the correct modal
+        return platform;
     };
 
-    return { isInstallable: isInstallable && !isStandalone, promptInstall, isIOS };
+    return { isInstallable: isInstallable && !isStandalone, promptInstall, platform };
 }
