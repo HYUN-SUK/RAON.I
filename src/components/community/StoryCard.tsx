@@ -66,21 +66,17 @@ export default function StoryCard({ post }: { post: any }) {
         <Card className="mb-4 overflow-hidden border-none shadow-sm cursor-pointer active:opacity-95 transition-opacity">
             <CardContent className="p-0">
                 <Link href={`/community/${post.id}`}>
-                    {/* Image Area */}
-                    <div className="relative w-full aspect-video bg-gray-100">
-                        {thumbnail ? (
-                            // eslint-disable-next-line @next/next/no-img-element
+                    {/* Image Area - 이미지가 있을 때만 표시 */}
+                    {thumbnail && (
+                        <div className="relative w-full aspect-video bg-gray-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={thumbnail}
                                 alt={safeTitle}
                                 className="w-full h-full object-cover"
                             />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
-                                <span className="text-2xl">⛺</span>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </Link>
 
                 {/* Content Area */}

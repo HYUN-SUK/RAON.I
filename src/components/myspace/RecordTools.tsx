@@ -87,49 +87,12 @@ export default function RecordTools() {
             return;
         }
 
-        // 1. If already unlocked, just selecting (Mock selection for now)
-        if (unlockedFeatures.has(item.key)) {
-            toast.success(`'${item.name}' 기능이 활성화되었습니다.`);
-            // In future: set active view state store
-            return;
-        }
-
-        // 2. Check Tokens
-        if (userTokens !== null && userTokens < item.cost) {
-            toast.error("라온 토큰이 부족합니다.", {
-                description: `현재 보유: ${userTokens} T / 필요: ${item.cost} T`
-            });
-            return;
-        }
-
-        // 3. Purchase RPC
-        if (isLoading) return;
-        setIsLoading(true);
-
-        try {
-            const { data, error } = await supabase.rpc('purchase_feature', {
-                p_feature_key: item.key,
-                p_cost: item.cost
-            });
-
-            if (error) throw error;
-
-            if (data && data.success) {
-                toast.success(`'${item.name}' 잠금 해제 완료!`, {
-                    description: `${item.cost} 토큰이 차감되었습니다.`
-                });
-                setUnlockedFeatures(prev => new Set(prev).add(item.key));
-                // Update tokens display locally or wait for subscription
-                if (userTokens !== null) setUserTokens(userTokens - item.cost);
-            } else {
-                toast.error(data?.message || "구매 실패");
-            }
-        } catch (err: any) {
-            console.error(err);
-            toast.error("기능 잠금 해제 중 오류가 발생했습니다.");
-        } finally {
-            setIsLoading(false);
-        }
+        // 모든 기능은 아직 준비 중 - 토스트로 안내
+        toast('준비 중인 기능이에요', {
+            description: `'${item.name}' 기능은 곧 업데이트될 예정입니다.`,
+            icon: '🔧'
+        });
+        // 추후 기능 구현 시 여기에 구매 로직 추가
     };
 
     const renderOptionList = (title: string, options: OptionItem[]) => (

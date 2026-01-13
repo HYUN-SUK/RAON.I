@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Calendar, Users, Tent, Shield, ShoppingBag } from "lucide-react";
+import { Home, Calendar, Users, Tent, ShoppingBag } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useInAppBadge } from "@/hooks/useInAppBadge";
@@ -27,7 +27,6 @@ export default function BottomNav() {
         { name: "커뮤니티", href: "/community", icon: Users, badgeTarget: 'community' },
         { name: "내공간", href: "/myspace", icon: Tent, badgeTarget: 'myspace' },
         { name: "마켓", href: "/market", icon: ShoppingBag },
-        { name: "Admin", href: "/admin", icon: Shield },
     ];
 
     const handleNavigation = (tab: TabConfig) => {

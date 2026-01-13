@@ -52,15 +52,22 @@ export default function TimelineCard({ item }: TimelineCardProps) {
     const router = useRouter();
 
     const handleCardClick = () => {
+        // 아이템 ID에서 실제 DB ID 추출 (예: "post-123" → "123")
+        const extractId = (prefixedId: string, prefix: string) => {
+            return prefixedId.startsWith(prefix) ? prefixedId.slice(prefix.length) : prefixedId;
+        };
+
         if (item.type === 'reservation') {
-            // Navigate to Reservation Detail (Placeholder ID)
-            // Navigate to Reservation Detail (Placeholder ID)
-            // router.push(`/reservation/${item.siteId}`)
-            router.push('/myspace/history');
+            // 예약 상세 페이지로 이동
+            router.push('/myspace/reservations');
         } else if (item.type === 'photo') {
-            router.push('/myspace/album');
+            // 게시글 상세 페이지로 이동 (/community/[id])
+            const postId = extractId(item.id, 'post-');
+            router.push(`/community/${postId}`);
         } else if (item.type === 'mission') {
-            // alert("미션 달성 현황 화면으로 이동합니다.\n(获得 포인트: " + item.missionPoints + ")");
+            // 미션 상세 페이지로 이동 (/mission/[id])
+            const missionId = item.missionId || extractId(item.id, 'mission-');
+            router.push(`/mission/${missionId}`);
         }
     };
 

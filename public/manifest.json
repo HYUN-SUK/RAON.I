@@ -1,0 +1,23 @@
+{
+    "name": "라온아이 - 예산군 오토캠핑장",
+    "short_name": "라온아이",
+    "description": "두가족도 넉넉한 2배사이트, 깨끗한 개별욕실. 라온아이에서 불편은 덜고, 추억은 쌓으세요.",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#F7F5EF",
+    "theme_color": "#22C55E",
+    "icons": [
+        {
+            "src": "/icons/logo-original.jpg",
+            "sizes": "512x512",
+            "type": "image/jpeg"
+        }
+    ],
+    "categories": [
+        "travel",
+        "lifestyle"
+    ],
+    "lang": "ko",
+    "dir": "ltr"
+}

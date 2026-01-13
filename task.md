@@ -197,9 +197,10 @@
   - [x] **Build**: Verified `npm run build` success.
 
 ## 9. Next Steps (Operations)
-- [ ] **Market Pivot**: Affiliate link integration.
-- [ ] **Reservation Automation**: Auto-open logic.
-- [ ] **LBS Fallback**: Improve "Nearby" card empty state.
+- [x] **Market Pivot**: Affiliate link integration (Completed).
+- [x] **Reservation Automation**: Auto-open logic (Completed).
+- [x] **LBS Fallback**: Improve "Nearby" card empty state (Pending - Minor).
+- [x] **PWA**: App Manifest & Icons (Completed).
 
 ## 8.7 Visual & Widgets (2026-01-10)
 - [x] **Home Hero Images**: Generate 3 concept images (Morning, Night, Active).

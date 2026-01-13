@@ -68,7 +68,18 @@ interface ReservationState {
     getOverdueReservations: () => { overdue: Reservation[], warning: Reservation[] };
     cancelOverdueReservations: () => void;
     validateReservation: (siteId: string, checkIn: Date, checkOut: Date) => string | null;
-    initRebook: (siteId: string) => void;
+    initRebook: (siteId: string, familyCount?: number, visitorCount?: number, vehicleCount?: number) => void;
+
+    // Last Reservation (for Smart Re-book)
+    lastReservation: {
+        siteId: string;
+        siteName: string;
+        familyCount: number;
+        visitorCount: number;
+        vehicleCount: number;
+        checkInDate: Date;
+    } | null;
+    fetchLastReservation: () => Promise<void>;
 
     // Admin Config
     priceConfig: PricingConfig;
@@ -137,6 +148,7 @@ export const useReservationStore = create<ReservationState>()(
             selectedSite: null,
             reservations: [],
             deadlineHours: 6, // Default 6h
+            lastReservation: null, // Smart Re-book용 마지막 예약 정보
 
             sites: DEFAULT_SITES, // Initialize with default constant for immediate render
             siteConfig: null,
@@ -728,13 +740,63 @@ export const useReservationStore = create<ReservationState>()(
                 return null;
             },
 
-            initRebook: (siteId) => {
-                // Now using dynamic sites if available, but for rebook standard we can look up from store
+            // Smart Re-book용 마지막 예약 조회
+            fetchLastReservation: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    set({ lastReservation: null });
+                    return;
+                }
+
+                // 가장 최근 완료된 예약 가져오기 (CONFIRMED 또는 COMPLETED 상태)
+                const { data, error } = await supabase
+                    .from('reservations')
+                    .select(`
+                        id,
+                        site_id,
+                        family_count,
+                        visitor_count,
+                        vehicle_count,
+                        check_in_date,
+                        sites(name)
+                    `)
+                    .eq('user_id', user.id)
+                    .in('status', ['CONFIRMED', 'COMPLETED'])
+                    .order('check_in_date', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (error || !data) {
+                    set({ lastReservation: null });
+                    return;
+                }
+
+                // sites 조인 결과 처리
+                const siteName = (data.sites as unknown as { name: string })?.name || '알 수 없는 사이트';
+
+                set({
+                    lastReservation: {
+                        siteId: data.site_id,
+                        siteName: siteName,
+                        familyCount: data.family_count || 1,
+                        visitorCount: data.visitor_count || 0,
+                        vehicleCount: data.vehicle_count || 1,
+                        checkInDate: new Date(data.check_in_date)
+                    }
+                });
+            },
+
+            initRebook: (siteId, familyCount, visitorCount, vehicleCount) => {
+                // 사이트 선택
                 const { sites } = get();
                 const site = sites.find(s => s.id === siteId);
                 if (site) {
                     set({ selectedSite: site });
                 }
+                // 추가 상태 설정은 예약 페이지에서 처리
             },
 
             // Open Day Rule

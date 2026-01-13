@@ -291,51 +291,62 @@ export default function ProductDetailPage() {
                     <span className="text-[10px]">62</span>
                 </button>
 
-                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                    <SheetTrigger asChild>
-                        <Button className="flex-1 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl h-12 text-base font-bold">
-                            구매하기
-                        </Button>
-                    </SheetTrigger>
+                {/* EXTERNAL 상품: 외부 링크로 이동 */}
+                {product.type === 'EXTERNAL' && product.link ? (
+                    <Button
+                        className="flex-1 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl h-12 text-base font-bold flex items-center justify-center gap-2"
+                        onClick={() => window.open(product.link!, '_blank')}
+                    >
+                        🔗 구매처로 이동
+                    </Button>
+                ) : (
+                    /* INTERNAL 상품: 기존 장바구니 플로우 */
+                    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                        <SheetTrigger asChild>
+                            <Button className="flex-1 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl h-12 text-base font-bold">
+                                구매하기
+                            </Button>
+                        </SheetTrigger>
 
-                    {/* Bottom Sheet Content */}
-                    <SheetContent side="bottom" className="max-w-[430px] mx-auto rounded-t-3xl">
-                        <SheetHeader className="text-left mb-6">
-                            <SheetTitle>옵션 선택</SheetTitle>
-                            <SheetDescription>{product.name}</SheetDescription>
-                        </SheetHeader>
+                        {/* Bottom Sheet Content */}
+                        <SheetContent side="bottom" className="max-w-[430px] mx-auto rounded-t-3xl">
+                            <SheetHeader className="text-left mb-6">
+                                <SheetTitle>옵션 선택</SheetTitle>
+                                <SheetDescription>{product.name}</SheetDescription>
+                            </SheetHeader>
 
-                        <div className="space-y-6">
-                            {/* Quantity */}
-                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                <span className="font-medium text-gray-700">수량</span>
-                                <div className="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm">
-                                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-50"><Minus className="w-4 h-4" /></button>
-                                    <span className="font-medium w-8 text-center">{quantity}</span>
-                                    <button onClick={() => setQuantity(quantity + 1)} className="p-2 hover:bg-gray-50"><Plus className="w-4 h-4" /></button>
+                            <div className="space-y-6">
+                                {/* Quantity */}
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                    <span className="font-medium text-gray-700">수량</span>
+                                    <div className="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm">
+                                        <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-50"><Minus className="w-4 h-4" /></button>
+                                        <span className="font-medium w-8 text-center">{quantity}</span>
+                                        <button onClick={() => setQuantity(quantity + 1)} className="p-2 hover:bg-gray-50"><Plus className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+
+                                {/* Total Price */}
+                                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                                    <span className="text-gray-500 font-medium">총 상품 금액</span>
+                                    <span className="text-xl font-bold text-[#1C4526]">
+                                        {new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(product.price * quantity)}
+                                    </span>
+                                </div>
+
+                                {/* Real Action */}
+                                <div className="flex gap-3">
+                                    <Button variant="outline" className="flex-1 h-12 rounded-xl border-[#1C4526] text-[#1C4526] font-bold" onClick={handleAddToCart}>
+                                        장바구니
+                                    </Button>
+                                    <Button className="flex-1 h-12 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl font-bold" onClick={handleBuyNow}>
+                                        바로구매
+                                    </Button>
                                 </div>
                             </div>
-
-                            {/* Total Price */}
-                            <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                                <span className="text-gray-500 font-medium">총 상품 금액</span>
-                                <span className="text-xl font-bold text-[#1C4526]">
-                                    {new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(product.price * quantity)}
-                                </span>
-                            </div>
-
-                            {/* Real Action */}
-                            <div className="flex gap-3">
-                                <Button variant="outline" className="flex-1 h-12 rounded-xl border-[#1C4526] text-[#1C4526] font-bold" onClick={handleAddToCart}>
-                                    장바구니
-                                </Button>
-                                <Button className="flex-1 h-12 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl font-bold" onClick={handleBuyNow}>
-                                    바로구매
-                                </Button>
-                            </div>
-                        </div>
-                    </SheetContent>
-                </Sheet>
+                        </SheetContent>
+                    </Sheet>
+                )}
             </div>
         </div>
     );

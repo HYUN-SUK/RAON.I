@@ -105,7 +105,13 @@ export const communityService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        // 게시글이 없거나 PGRST116 에러(single row expected)인 경우 null 반환
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return null; // 게시글이 삭제되었거나 존재하지 않음
+            }
+            throw error;
+        }
         return mapDbToPost(data);
     },
 

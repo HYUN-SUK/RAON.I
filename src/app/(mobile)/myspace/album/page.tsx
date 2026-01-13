@@ -5,30 +5,34 @@ import { useRouter } from 'next/navigation';
 import { useMySpaceStore, AlbumItem } from '@/store/useMySpaceStore';
 import PhotoGrid from '@/components/myspace/PhotoGrid';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import UnlockableFeatureSection from '@/components/myspace/UnlockableFeatureSection';
 import { cn } from '@/lib/utils';
 
-const FILTERS = ["전체", "텐트", "불멍", "요리", "풍경"];
+const FILTERS = ["전체", "#게시글", "#미션"];
 
 export default function MySpaceAlbumPage() {
     const router = useRouter();
     const { album, fetchAlbum } = useMySpaceStore();
     const [activeFilter, setActiveFilter] = useState("전체");
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Load data
-        if (album.length === 0) {
-            fetchAlbum();
-        }
-    }, [fetchAlbum, album.length]);
+        // 매번 마운트 시 최신 사진 가져오기
+        const loadAlbum = async () => {
+            setIsLoading(true);
+            await fetchAlbum();
+            setIsLoading(false);
+        };
+        loadAlbum();
+    }, [fetchAlbum]);
 
     const filteredPhotos = React.useMemo(() => {
         if (activeFilter === "전체") return album;
-        // Simple mock filter: check if any tag string contains the filter keyword
+        // 태그 기반 필터링
         return album.filter(item =>
-            item.tags?.some(tag => tag.includes(activeFilter))
+            item.tags?.some(tag => tag.includes(activeFilter.replace('#', '')))
         );
     }, [album, activeFilter]);
 
@@ -71,12 +75,28 @@ export default function MySpaceAlbumPage() {
 
                 {/* Grid */}
                 <div className="mt-2 text-stone-300">
-                    <PhotoGrid photos={filteredPhotos} />
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <Loader2 className="w-8 h-8 animate-spin text-stone-400 mb-2" />
+                            <p className="text-stone-400 text-sm">사진을 불러오는 중...</p>
+                        </div>
+                    ) : (
+                        <PhotoGrid photos={filteredPhotos} />
+                    )}
                 </div>
 
-                {filteredPhotos.length === 0 && (
+                {!isLoading && filteredPhotos.length === 0 && (
                     <div className="py-20 text-center text-stone-400">
-                        <p>해당하는 사진이 없어요.</p>
+                        <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p className="mb-2">아직 앨범에 사진이 없어요.</p>
+                        <p className="text-sm">게시글이나 미션 인증에서 사진을 업로드하면<br />이곳에 자동으로 모아집니다!</p>
+                        <Button
+                            variant="outline"
+                            className="mt-4 text-[#1C4526] border-[#1C4526]"
+                            onClick={() => router.push('/community/write?type=STORY')}
+                        >
+                            첫 기록 남기기
+                        </Button>
                     </div>
                 )}
 

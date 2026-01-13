@@ -91,9 +91,22 @@ export default function PostDetailView() {
     );
 
     if (error || !post) return (
-        <div className="flex flex-col justify-center items-center min-h-screen p-5 text-center">
-            <p className="text-red-500 mb-4">{error || 'Post not found'}</p>
-            <Button onClick={() => router.back()}>Back</Button>
+        <div className="flex flex-col justify-center items-center min-h-screen p-5 text-center bg-[#F7F5EF]">
+            <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center mb-4">
+                <Trash2 className="w-8 h-8 text-stone-400" />
+            </div>
+            <h2 className="text-lg font-bold text-stone-700 mb-2">
+                {error ? '오류가 발생했어요' : '삭제된 게시글이에요'}
+            </h2>
+            <p className="text-sm text-stone-500 mb-6">
+                {error || '이 게시글은 삭제되었거나 더 이상 존재하지 않아요.'}
+            </p>
+            <Button
+                onClick={() => router.back()}
+                className="bg-[#1C4526] hover:bg-[#15341d] text-white"
+            >
+                돌아가기
+            </Button>
         </div>
     );
 

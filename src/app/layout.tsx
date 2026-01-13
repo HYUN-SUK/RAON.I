@@ -7,8 +7,24 @@ import LoginRequestDialog from "@/components/auth/LoginRequestDialog";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "RAON.I",
-  description: "Forest-based Human-Centric Playground",
+  title: "라온아이 | 예산군 오토캠핑장",
+  description: "두가족도 넉넉한 2배사이트, 깨끗한 개별욕실. 라온아이에서 불편은 덜고, 추억은 쌓으세요.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "라온아이",
+  },
+  icons: {
+    icon: "/icons/logo-original.jpg",
+    apple: "/icons/logo-original.jpg",
+  },
+  openGraph: {
+    title: "라온아이 | 예산군 오토캠핑장",
+    description: "두가족도 넉넉한 2배사이트, 깨끗한 개별욕실. 라온아이에서 불편은 덜고, 추억은 쌓으세요.",
+    type: "website",
+    locale: "ko_KR",
+  },
 };
 
 export const dynamic = 'force-dynamic';

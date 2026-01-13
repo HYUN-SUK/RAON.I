@@ -60,14 +60,15 @@ interface RecommendationItem {
 
 export default function ReturningHome() {
     const router = useRouter();
-    const { initRebook } = useReservationStore();
+    const { initRebook, lastReservation, fetchLastReservation, openDayRule, fetchOpenDayRule } = useReservationStore();
     const { config } = useSiteConfig();
     const lbs = useLBS();
     const { data: recData, weather, loading: recLoading, shuffle } = usePersonalizedRecommendation();
-    const { openDayRule, fetchOpenDayRule } = useReservationStore();
+
     React.useEffect(() => {
         fetchOpenDayRule();
-    }, [fetchOpenDayRule]);
+        fetchLastReservation();
+    }, [fetchOpenDayRule, fetchLastReservation]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -167,41 +168,67 @@ export default function ReturningHome() {
                             </div>
 
                             {/* Zero-click Smart Re-booking (Roadmap v3) */}
-                            <div className="mb-4 bg-[#F7F5EF] dark:bg-zinc-800 rounded-xl p-4 border border-[#1C4526]/10">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <Badge className="bg-[#1C4526] text-white hover:bg-[#1C4526] mb-1.5 px-2 py-0.5 text-[10px]">Smart Re-book</Badge>
-                                        <p className="font-bold text-stone-800 dark:text-stone-100 text-sm">지난 여행 조건으로 예약하기</p>
-                                        <p className="text-xs text-stone-500 mt-0.5">인원, 차량, 사이트 설정을 불러옵니다.</p>
+                            {lastReservation ? (
+                                <div className="mb-4 bg-[#F7F5EF] dark:bg-zinc-800 rounded-xl p-4 border border-[#1C4526]/10">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <Badge className="bg-[#1C4526] text-white hover:bg-[#1C4526] mb-1.5 px-2 py-0.5 text-[10px]">Smart Re-book</Badge>
+                                            <p className="font-bold text-stone-800 dark:text-stone-100 text-sm">지난 여행 조건으로 예약하기</p>
+                                            <p className="text-xs text-stone-500 mt-0.5">인원, 차량, 사이트 설정을 불러옵니다.</p>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-stone-100 dark:bg-zinc-700 flex items-center justify-center">
+                                            <RefreshCcw className="w-4 h-4 text-stone-500" />
+                                        </div>
                                     </div>
-                                    <div className="w-8 h-8 rounded-full bg-stone-100 dark:bg-zinc-700 flex items-center justify-center">
-                                        <RefreshCcw className="w-4 h-4 text-stone-500" />
+
+                                    <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 p-3 rounded-lg border border-stone-200 dark:border-zinc-700 mb-3 shadow-sm">
+                                        <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-xl">⛺</div>
+                                        <div>
+                                            <h3 className="font-semibold text-xs text-stone-800 dark:text-stone-200">{lastReservation.siteName}</h3>
+                                            <p className="text-[10px] text-stone-500">
+                                                성인 {lastReservation.familyCount}
+                                                {lastReservation.visitorCount > 0 && `, 방문자 ${lastReservation.visitorCount}`}
+                                                {' · '}차량 {lastReservation.vehicleCount}대
+                                            </p>
+                                        </div>
                                     </div>
+
+                                    <Button
+                                        className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
+                                        onClick={() => {
+                                            initRebook(lastReservation.siteId);
+                                            router.push('/reservation');
+                                        }}
+                                    >
+                                        빠르게 재예약하기 (날짜 선택)
+                                    </Button>
+                                    <p className="text-center text-xs text-stone-400 mt-2">
+                                        {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
+                                    </p>
                                 </div>
-
-                                <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 p-3 rounded-lg border border-stone-200 dark:border-zinc-700 mb-3 shadow-sm">
-                                    <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-xl">⛺</div>
-                                    <div>
-                                        <h3 className="font-semibold text-xs text-stone-800 dark:text-stone-200">담이네 (A-7)</h3>
-                                        <p className="text-[10px] text-stone-500">성인 2, 아이 2 · 차량 1대</p>
+                            ) : (
+                                <div className="mb-4 bg-[#F7F5EF] dark:bg-zinc-800 rounded-xl p-4 border border-[#1C4526]/10">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <Badge className="bg-stone-400 text-white hover:bg-stone-400 mb-1.5 px-2 py-0.5 text-[10px]">첫 방문</Badge>
+                                            <p className="font-bold text-stone-800 dark:text-stone-100 text-sm">새로운 예약 시작하기</p>
+                                            <p className="text-xs text-stone-500 mt-0.5">원하는 날짜와 사이트를 선택해보세요.</p>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-stone-100 dark:bg-zinc-700 flex items-center justify-center">
+                                            <Tent className="w-4 h-4 text-stone-500" />
+                                        </div>
                                     </div>
+                                    <Button
+                                        className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
+                                        onClick={() => router.push('/reservation')}
+                                    >
+                                        예약하러 가기
+                                    </Button>
+                                    <p className="text-center text-xs text-stone-400 mt-2">
+                                        {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
+                                    </p>
                                 </div>
-
-
-
-                                <Button
-                                    className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
-                                    onClick={() => {
-                                        initRebook('site-7');
-                                        router.push('/reservation');
-                                    }}
-                                >
-                                    빠르게 재예약하기 (날짜 선택)
-                                </Button>
-                                <p className="text-center text-xs text-stone-400 mt-2">
-                                    {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
-                                </p>
-                            </div>
+                            )}
                         </div>
 
                         {/* Return to Tent Button */}

@@ -188,7 +188,8 @@ export const useMySpaceStore = create<MySpaceState>()(
                     date: m.completed_at || m.created_at,
                     title: `미션 성공: ${m.mission?.title}`,
                     content: m.content || m.mission?.description,
-                    missionPoints: m.mission?.reward_xp, // Display XP as points or Token? XP is better for timeline achievement
+                    missionId: m.mission_id, // 미션 상세 페이지 이동용
+                    missionPoints: m.mission?.reward_xp,
                     images: m.image_url ? [m.image_url] : []
                 }));
 
@@ -198,45 +199,69 @@ export const useMySpaceStore = create<MySpaceState>()(
 
                 set({ timelineItems: allItems });
             },
-            fetchAlbum: () => set({
-                album: [
-                    {
-                        id: 'a-1',
-                        imageUrl: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d',
-                        description: '불멍 타임 🔥',
-                        date: '2025-11-20',
-                        tags: ['#불멍', '#밤', '#힐링']
-                    },
-                    {
-                        id: 'a-2',
-                        imageUrl: 'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7',
-                        description: '텐트 설치 완료!',
-                        date: '2025-10-05',
-                        tags: ['#텐트', '#가을', '#첫캠핑']
-                    },
-                    {
-                        id: 'a-3',
-                        imageUrl: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4',
-                        description: '아침 숲 산책',
-                        date: '2025-11-21',
-                        tags: ['#숲', '#아침', '#산책']
-                    },
-                    {
-                        id: 'a-4',
-                        imageUrl: 'https://images.unsplash.com/photo-1537905569824-f89f14cceb68',
-                        description: '맛있는 바베큐',
-                        date: '2025-10-05',
-                        tags: ['#요리', '#바베큐', '#먹방']
-                    },
-                    {
-                        id: 'a-5',
-                        imageUrl: 'https://images.unsplash.com/photo-1517824806704-9040b037703b',
-                        description: '별이 쏟아지는 밤',
-                        date: '2025-09-15',
-                        tags: ['#별', '#밤하늘', '#감성']
-                    }
-                ] as any[] // Temporarily casting to any to bypass strict interface check if AlbumItem tag definition is missing
-            }),
+            fetchAlbum: async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (!user) {
+                    set({ album: [] });
+                    return;
+                }
+
+                try {
+                    // 1. 게시글에서 이미지가 있는 항목 가져오기
+                    const { data: posts } = await supabase
+                        .from('posts')
+                        .select('id, title, images, created_at')
+                        .eq('author_id', user.id)
+                        .not('images', 'is', null)
+                        .order('created_at', { ascending: false });
+
+                    // 2. 미션 인증 사진 가져오기
+                    const { data: missions } = await supabase
+                        .from('user_missions')
+                        .select('id, image_url, created_at, mission:missions(title)')
+                        .eq('user_id', user.id)
+                        .not('image_url', 'is', null)
+                        .order('created_at', { ascending: false });
+
+                    // 3. 게시글 이미지를 AlbumItem으로 변환
+                    const postAlbumItems: AlbumItem[] = [];
+                    (posts || []).forEach(post => {
+                        const images = post.images as string[] | null;
+                        if (images && Array.isArray(images)) {
+                            images.forEach((imgUrl, idx) => {
+                                postAlbumItems.push({
+                                    id: `post-${post.id}-${idx}`,
+                                    imageUrl: imgUrl,
+                                    description: post.title || '게시글 사진',
+                                    date: post.created_at,
+                                    tags: ['#게시글']
+                                });
+                            });
+                        }
+                    });
+
+                    // 4. 미션 인증 사진을 AlbumItem으로 변환
+                    const missionAlbumItems: AlbumItem[] = (missions || []).map(m => ({
+                        id: `mission-${m.id}`,
+                        imageUrl: m.image_url as string,
+                        description: `미션 인증: ${(m.mission as { title?: string })?.title || '미션'}`,
+                        date: m.created_at,
+                        tags: ['#미션', '#인증']
+                    }));
+
+                    // 5. 날짜순 정렬 후 합치기
+                    const allItems = [...postAlbumItems, ...missionAlbumItems].sort((a, b) =>
+                        new Date(b.date).getTime() - new Date(a.date).getTime()
+                    );
+
+                    set({ album: allItems });
+                } catch (error) {
+                    console.error('앨범 로드 실패:', error);
+                    set({ album: [] });
+                }
+            },
             setHeroImage: (url) => set({ heroImage: url }),
             fetchProfile: async (userId) => {
                 const supabase = createClient();
