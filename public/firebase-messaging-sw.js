@@ -96,5 +96,13 @@ self.addEventListener('push', function (event) {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   }
+  event.waitUntil(self.registration.showNotification(title, options));
+}
+});
+
+// PWA Install Criteria: Must have a fetch handler
+self.addEventListener('fetch', (event) => {
+  // Just a pass-through for now, but required for PWA 'Add to Home Screen'
+  return;
 });
 
