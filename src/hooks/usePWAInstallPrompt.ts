@@ -36,12 +36,16 @@ export function usePWAInstallPrompt() {
             e.preventDefault();
             setDeferredPrompt(e as IBeforeInstallPromptEvent);
             setIsInstallable(true);
+            console.log("PWA Install Event captured!");
         };
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-        // If iOS and Not Standalone, it is "installable" (manually)
-        if (isIosDevice && !isStandalone) {
+        // FOR DEBUGGING/USER UX:
+        // Always show button if not standalone (to debug, or allow manual guide)
+        // In production, we usually wait for event. But for this user issue, let's force it visible
+        // and if no event, we can show a manual guide similar to iOS or just alert.
+        if (!isStandalone) {
             setIsInstallable(true);
         }
 
@@ -64,6 +68,12 @@ export function usePWAInstallPrompt() {
                 setDeferredPrompt(null);
                 setIsInstallable(false);
             }
+        } else {
+            // No event captured yet (Desktop/Android manual fallback)
+            // Maybe show a tooltip or just return null?
+            // For now, let's treat it as iOS manual so at least they see "Add to Home" instructions?
+            // Or just alert?
+            alert("브라우저 메뉴(⋮)에서 '앱 설치' 또는 '홈 화면에 추가'를 선택해주세요.");
         }
     };
 

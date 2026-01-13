@@ -96,8 +96,6 @@ self.addEventListener('push', function (event) {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   }
-  event.waitUntil(self.registration.showNotification(title, options));
-}
 });
 
 // PWA Install Criteria: Must have a fetch handler
