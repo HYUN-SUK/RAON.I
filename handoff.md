@@ -27,6 +27,13 @@ This session focused on eliminating build errors (`npm run build`). The primary 
     -   *Action*: Verify DB schema in Supabase Dashboard or run migrations if pending.
 -   **Nearby Events**: The usage of `addr1`, `mapx` etc in DB suggests raw TourAPI data is stored. `NearbyDetailSheet` expects standardized fields. The current inline mapping works but a centralized transformation utility is recommended.
 
-## 🔜 Next Steps
 -   **DB Verification**: Confirm `posts` table has `author_id` and `type` columns working in production.
--   **Deployment**: The app is ready for deployment (Build passes).
+
+## 🚀 Deployment (Success) 
+-   **URL**: `https://raon-i.vercel.app`
+-   **Status**: Live & Verified (Auth, Weather, Events all working).
+-   **Next Actions**:
+    1.  **Domain Purchase**: Buy `raon-camping.com` (optional) and connect via Vercel Settings.
+    2.  **Marketing**: Share the link with beta testers.
+    3.  **Monitoring**: Check Vercel Analytics for performance.
+

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase-client";
-import { LogOut, LogIn, Settings, User, Bell, FileText } from "lucide-react";
+import { LogOut, LogIn, Settings, User, Bell, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
 import { pointService } from "@/services/pointService";
 import { getLevelInfo } from "@/config/pointPolicy";
@@ -19,6 +19,8 @@ import {
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { usePushNotification } from "@/hooks/usePushNotification";
+import { usePWAInstallPrompt } from "@/hooks/usePWAInstallPrompt";
+import IOSInstallModal from "@/components/pwa/IOSInstallModal";
 
 interface UserInfo {
     nickname: string;
@@ -32,6 +34,10 @@ export default function TopBar() {
     const supabase = createClient();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+    // PWA
+    const { isInstallable, promptInstall, isIOS } = usePWAInstallPrompt();
+    const [isIOSModalOpen, setIsIOSModalOpen] = useState(false);
 
     // Dynamic Level Progress
     const { progress } = getLevelInfo(xp);
@@ -91,6 +97,13 @@ export default function TopBar() {
         }
     };
 
+    const handleInstallClick = async () => {
+        const result = await promptInstall();
+        if (result === 'IOS_manual') {
+            setIsIOSModalOpen(true);
+        }
+    };
+
     return (
         <header className="sticky top-0 z-[100] flex justify-between items-center px-6 h-[60px] bg-white shadow-sm">
             {/* Level & XP */}
@@ -112,65 +125,86 @@ export default function TopBar() {
                 RAON.I
             </h1>
 
-            {/* Auth Action Icon */}
-            {isLoggedIn ? (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <button
-                            className="relative z-[101] -mr-2 rounded-full overflow-hidden hover:opacity-80 transition-opacity outline-none"
-                            aria-label="Settings"
-                        >
-                            {userInfo?.avatarUrl ? (
-                                <div className="relative w-9 h-9 border border-gray-200 rounded-full overflow-hidden">
-                                    <Image
-                                        src={userInfo.avatarUrl}
-                                        alt="Profile"
-                                        fill
-                                        className="object-cover"
-                                        sizes="36px"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="p-2 text-text-1 hover:bg-gray-100 rounded-full">
-                                    <Settings size={22} strokeWidth={1.5} />
-                                </div>
-                            )}
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 bg-white">
-                        <DropdownMenuLabel>
-                            {userInfo?.nickname || '내 계정'}
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => router.push('/myspace')} className="cursor-pointer">
-                            <User className="mr-2 h-4 w-4" />
-                            <span>프로필 / 내 공간</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => requestPermission()} className="cursor-pointer">
-                            <Bell className="mr-2 h-4 w-4" />
-                            <span>알림 설정 / 권한 허용</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
-                            <FileText className="mr-2 h-4 w-4" />
-                            <span>이용 약관</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>로그아웃</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ) : (
-                <button
-                    onClick={handleLogin}
-                    className="relative z-[101] py-2 px-3 -mr-2 flex items-center gap-1.5 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer"
-                    aria-label="Login"
-                >
-                    <LogIn size={18} strokeWidth={1.5} />
-                    <span className="text-sm font-semibold text-stone-600">로그인</span>
-                </button>
-            )}
+            {/* Right Side: Install + Auth */}
+            <div className="flex items-center gap-2 -mr-2">
+
+                {/* PWA Install Button (Visible only if installable) */}
+                {isInstallable && (
+                    <button
+                        onClick={handleInstallClick}
+                        className="flex items-center gap-1 py-1.5 px-2.5 rounded-full bg-stone-100/80 hover:bg-stone-200 transition-colors text-stone-600"
+                        title="홈 화면에 추가"
+                    >
+                        <Download size={16} strokeWidth={2} />
+                        <span className="text-xs font-bold hidden sm:inline">앱 설치</span>
+                    </button>
+                )}
+
+                {/* Auth Action Icon */}
+                {isLoggedIn ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                className="relative z-[101] rounded-full overflow-hidden hover:opacity-80 transition-opacity outline-none"
+                                aria-label="Settings"
+                            >
+                                {userInfo?.avatarUrl ? (
+                                    <div className="relative w-9 h-9 border border-gray-200 rounded-full overflow-hidden">
+                                        <Image
+                                            src={userInfo.avatarUrl}
+                                            alt="Profile"
+                                            fill
+                                            className="object-cover"
+                                            sizes="36px"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="p-2 text-text-1 hover:bg-gray-100 rounded-full">
+                                        <Settings size={22} strokeWidth={1.5} />
+                                    </div>
+                                )}
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 bg-white">
+                            <DropdownMenuLabel>
+                                {userInfo?.nickname || '내 계정'}
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => router.push('/myspace')} className="cursor-pointer">
+                                <User className="mr-2 h-4 w-4" />
+                                <span>프로필 / 내 공간</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => requestPermission()} className="cursor-pointer">
+                                <Bell className="mr-2 h-4 w-4" />
+                                <span>알림 설정 / 권한 허용</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer">
+                                <FileText className="mr-2 h-4 w-4" />
+                                <span>이용 약관</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>로그아웃</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ) : (
+                    <button
+                        onClick={handleLogin}
+                        className="relative z-[101] py-2 px-3 -mr-2 flex items-center gap-1.5 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer"
+                        aria-label="Login"
+                    >
+                        <LogIn size={18} strokeWidth={1.5} />
+                        <span className="text-sm font-semibold text-stone-600">로그인</span>
+                    </button>
+                )}
+            </div>
+
+            <IOSInstallModal
+                isOpen={isIOSModalOpen}
+                onClose={() => setIsIOSModalOpen(false)}
+            />
         </header>
     );
 }

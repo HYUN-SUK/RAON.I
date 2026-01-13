@@ -337,3 +337,19 @@
   - [x] **AdminRecommendationsPage**:
     - Fixed `Set<number>` vs `Set<string>` (UUID) mismatch.
 - [x] **Build Verification**: ✅ `npm run build` SUCCESS (Exit code: 0).
+
+## 11. PWA Install Prompt (2026-01-13)
+- [ ] **Hook**: Create `usePWAInstallPrompt` (handle `beforeinstallprompt` event).
+- [ ] **UI**: Add "앱 설치" button to `TopBar`.
+- [ ] **Logic**: Hide button if already installed (standalone mode) or after installation.
+- [ ] **iOS Support**: Show simple guide modal for iOS users (manual install).
+
+## 10. Deployment (2026-01-13) 🚀
+- [x] **Deployment Guide**: Created `deployment_guide.md` for GitHub & Vercel.
+- [x] **Git Push**: Pushed code to `origin/main`.
+- [x] **Vercel**: Deployed to `https://raon-i.vercel.app`.
+- [x] **Hotfix**: Updated Next.js to fix CVE-2025-66478.
+- [x] **Missing Env Vars**: Added `KMA_SERVICE_KEY`, `TOUR_API_KEY` to Vercel/Kakao.
+- [x] **Auth Check**: Verified Kakao Login (working).
+- [x] **External API Check**: Verified Weather & Nearby APIs (working).
+

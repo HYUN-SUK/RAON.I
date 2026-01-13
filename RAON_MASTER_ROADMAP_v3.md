@@ -284,6 +284,7 @@
     *   [x] **Supabase Types**: `site_config`, `posts`, `sites`, `nearby_events` 정의 현행화.
     *   [x] **Code Corrections**: `BeginnerHome`(이벤트 타입), `ReservationStore`(사이트/예약 타입), `CommunityService`(글/댓글 타입) 수정.
     *   [x] **Build Verification**: `npm run build` 성공 (Exit code: 0).
+    *   [x] **Deployment**: ✅ Vercel 배포 완료 (`https://raon-i.vercel.app`)
 
 
 ---
