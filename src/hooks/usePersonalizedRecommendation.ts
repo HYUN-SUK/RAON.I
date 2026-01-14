@@ -421,18 +421,17 @@ export function usePersonalizedRecommendation() {
         async function fetchRecommendations() {
             setLoading(true);
             try {
-                // 0. Fetch User Profile
-                const { data: { user } } = await supabase.auth.getUser();
-                let userProfile: UserProfile | null = null;
+                // 0. Parallel Execution: Profile, Pool, Season
+                const profilePromise = supabase.auth.getUser().then(async ({ data: { user } }) => {
+                    if (user) {
+                        return supabase.from('profiles').select('*').eq('id', user.id).single().then(r => r.data);
+                    }
+                    return null;
+                });
 
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', user.id)
-                        .single();
-                    userProfile = profile;
-                }
+                const poolPromise = supabase.from('recommendation_pool').select('*').eq('is_active', true);
+
+                const [userProfile, { data: poolData }] = await Promise.all([profilePromise, poolPromise]);
 
                 // Determine Season
                 const month = new Date().getMonth() + 1;
@@ -441,17 +440,11 @@ export function usePersonalizedRecommendation() {
                 else if (month >= 6 && month <= 8) currentSeason = 'summer';
                 else if (month >= 9 && month <= 11) currentSeason = 'autumn';
 
-                // 1. Fetch Pool
-                const { data: poolData } = await supabase
-                    .from('recommendation_pool')
-                    .select('*')
-                    .eq('is_active', true);
-
                 let cookingItem: RecommendationItem | null = null;
                 let playItem: RecommendationItem | null = null;
 
                 if (poolData) {
-                    // 2. Score Items with Personalization
+                    // 2. Score Items with Personalization (Logic unchanged)
                     const scoredItems = poolData.map(item => {
                         let score = 0;
                         const tags = item.tags as unknown as TagData || {};
@@ -557,16 +550,36 @@ export function usePersonalizedRecommendation() {
                     playReason = "아이들과 함께 즐기는 시간 👨‍👩‍👧‍👦";
                 }
 
-                // Fetch Nearby Events from API
-                let apiEvents: NearbyEvent[] = [];
-                try {
-                    const lat = lbs.location?.latitude || 36.67;
-                    const lng = lbs.location?.longitude || 126.83;
-                    const res = await fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=30000`);
-                    if (res.ok) {
-                        const result = await res.json();
+                // Update Main Data (Without Events yet)
+                setData(prev => ({
+                    ...prev,
+                    cooking: cookingItem,
+                    play: playItem,
+                    context: {
+                        time: timeCtx,
+                        weather: weather.type,
+                        temp: weather.temp,
+                        greeting: getGreeting(timeCtx, weather.type, userProfile?.nickname || undefined, weather.temp)
+                    },
+                    reasons: {
+                        cooking: cookingReason,
+                        play: playReason
+                    },
+                    userProfile
+                }));
+
+                // IMPORTANT: Release Loading Here - Hero and Main Cards are ready
+                setLoading(false);
+
+                // Fetch Nearby Events from API - NON BLOCKING (Fire and Forget update)
+                const lat = lbs.location?.latitude || 36.67;
+                const lng = lbs.location?.longitude || 126.83;
+
+                fetch(`/api/nearby-events?lat=${lat}&lng=${lng}&radius=30000`)
+                    .then(res => res.json())
+                    .then(result => {
                         if (result.events && result.events.length > 0) {
-                            apiEvents = result.events.slice(0, 3).map((e: any) => ({
+                            const apiEvents = result.events.slice(0, 3).map((e: any) => ({
                                 id: e.id || 0,
                                 title: e.title,
                                 description: e.description,
@@ -579,33 +592,15 @@ export function usePersonalizedRecommendation() {
                                 is_active: true,
                                 created_at: new Date().toISOString(),
                             }));
-                        }
-                    }
-                } catch {
-                    // Silently fallback
-                }
 
-                // Update State
-                setData({
-                    cooking: cookingItem,
-                    play: playItem,
-                    events: apiEvents,
-                    context: {
-                        time: timeCtx,
-                        weather: weather.type,
-                        temp: weather.temp,
-                        greeting: getGreeting(timeCtx, weather.type, userProfile?.nickname || undefined, weather.temp)
-                    },
-                    reasons: {
-                        cooking: cookingReason,
-                        play: playReason
-                    },
-                    userProfile
-                });
+                            // Silent Update
+                            setData(prev => ({ ...prev, events: apiEvents }));
+                        }
+                    })
+                    .catch(err => console.warn("Background nearby fetch failed", err));
 
             } catch (error) {
                 console.error("Failed to fetch recommendations:", error);
-            } finally {
                 setLoading(false);
             }
         }

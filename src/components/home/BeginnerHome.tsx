@@ -338,40 +338,35 @@ export default function BeginnerHome() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
-                        {recLoading ? (
-                            <div className="space-y-4 animate-pulse">
-                                {/* Badge Skeleton */}
-                                <Skeleton className="h-7 w-32 bg-white/20 rounded-full" />
-                                {/* Title & Subtitle Skeleton - Matching actual height to prevent 'jump' */}
-                                <div className="space-y-3 pt-2">
-                                    <Skeleton className="h-16 w-3/4 bg-white/20 rounded-xl" /> {/* Title area */}
-                                    <Skeleton className="h-12 w-full bg-white/20 rounded-xl" /> {/* Description area */}
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <Badge
-                                    variant="secondary"
-                                    className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1 cursor-pointer transition-colors"
-                                    onClick={() => weather && setWeatherSheetOpen(true)}
-                                >
-                                    {recData.context?.weather
-                                        ? `${recData.context.temp !== null ? Math.round(recData.context.temp) + '°C ' : ''}${recData.context.greeting}`
-                                        : 'Welcome to RAON.I'
-                                    }
-                                </Badge>
-                                <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
-                                <h1 className="text-responsive-hero-title font-bold leading-tight">
-                                    {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
-                                        recData.context?.time === 'night' ? '고요한 밤,\n' :
-                                            '처음이신가요?\n'}
-                                </h1>
-                                <p className="text-responsive-hero-sub font-semibold text-white/95 drop-shadow-md">
-                                    두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
-                                    라온아이에서 불편은 덜고, 추억은 쌓으세요.
-                                </p>
-                            </>
-                        )}
+
+                        {/* Always show content, use default values during loading */}
+
+                        {/* Weather/Greeting Badge */}
+                        <Badge
+                            variant="secondary"
+                            className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1 cursor-pointer transition-colors"
+                            onClick={() => weather && setWeatherSheetOpen(true)}
+                        >
+                            {recData.context?.weather && recData.context?.weather !== 'unknown'
+                                ? `${recData.context.temp !== null ? Math.round(recData.context.temp) + '°C ' : ''}${recData.context.greeting}`
+                                : recLoading ? 'Loading...' : 'Welcome to RAON.I'
+                            }
+                        </Badge>
+                        <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
+
+                        {/* Title - Immediate Render */}
+                        <h1 className="text-responsive-hero-title font-bold leading-tight">
+                            {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
+                                recData.context?.time === 'night' ? '고요한 밤,\n' :
+                                    recData.context?.time === 'evening' ? '아름다운 저녁,\n' :
+                                        '반가워요,\n'}
+                        </h1>
+
+                        {/* Subtitle - Immediate Render */}
+                        <p className="text-responsive-hero-sub font-semibold text-white/95 drop-shadow-md">
+                            두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
+                            라온아이에서 불편은 덜고, 추억은 쌓으세요.
+                        </p>
                     </div>
                 </section>
 
@@ -465,13 +460,15 @@ export default function BeginnerHome() {
                 onShuffle={shuffle}
             />
 
-            {weather && (
-                <WeatherDetailSheet
-                    isOpen={weatherSheetOpen}
-                    onClose={() => setWeatherSheetOpen(false)}
-                    weather={weather}
-                />
-            )}
+            {
+                weather && (
+                    <WeatherDetailSheet
+                        isOpen={weatherSheetOpen}
+                        onClose={() => setWeatherSheetOpen(false)}
+                        weather={weather}
+                    />
+                )
+            }
 
             {/* Live LBS Events Sheet (Contextual Recommendation) */}
             <NearbyDetailSheet
@@ -499,16 +496,18 @@ export default function BeginnerHome() {
             />
 
             {/* Facility Details */}
-            {config && (
-                <FacilityDetailSheet
-                    isOpen={facilitySheetOpen}
-                    onClose={() => setFacilitySheetOpen(false)}
-                    layoutImage={config.layout_image_url}
-                    bathroomImages={config.bathroom_images}
-                    siteImages={config.site_images}
-                    description={config.facilities_description}
-                />
-            )}
-        </div>
+            {
+                config && (
+                    <FacilityDetailSheet
+                        isOpen={facilitySheetOpen}
+                        onClose={() => setFacilitySheetOpen(false)}
+                        layoutImage={config.layout_image_url}
+                        bathroomImages={config.bathroom_images}
+                        siteImages={config.site_images}
+                        description={config.facilities_description}
+                    />
+                )
+            }
+        </div >
     );
 }
