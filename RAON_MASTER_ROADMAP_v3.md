@@ -273,6 +273,10 @@
                 *   [x] **Beginner Home**: Hero Title/Description & Info Chips.
                 *   [x] **Recommendation Grid**: Card Titles & Badges (Difficulty/Time/Calories).
             *   [x] **Build Verification**: ✅ SUCCESS (Exit code: 0).
+        *   [x] **8.13 My Map UX & Geocoding** ✅ (2026-01-14):
+            *   [x] **Reverse Geocoding**: Kakao Maps API 연동하여 지도 클릭/검색 시 주소 자동 변환.
+            *   [x] **UX Enhancement**: 검색-지도 클릭 간섭 방지, 새 아이템 리스트 상단 추가 및 자동 스크롤.
+            *   [x] **UI Polish**: 마커 아이콘 변경 (Flag), 툴팁 정보 강화.
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음

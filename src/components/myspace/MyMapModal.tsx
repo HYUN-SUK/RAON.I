@@ -37,6 +37,7 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
     const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isAddingMode, setIsAddingMode] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
 
     // Search States
     const [searchQuery, setSearchQuery] = useState('');
@@ -479,25 +480,48 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
 
                 {/* Current Location Button */}
                 <button
-                    className="absolute bottom-4 right-4 bg-white px-4 py-2.5 rounded-full shadow-lg z-10 text-gray-700 hover:text-brand-1 active:scale-95 transition-all flex items-center gap-2"
+                    className={`absolute bottom-4 right-4 bg-white px-4 py-2.5 rounded-full shadow-lg z-10 text-gray-700 hover:text-brand-1 active:scale-95 transition-all flex items-center gap-2 ${isLocating ? 'opacity-80 cursor-wait' : ''}`}
+                    disabled={isLocating}
                     onClick={() => {
                         if (!mapRef.current) return;
                         if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition((pos) => {
-                                const lat = pos.coords.latitude;
-                                const lng = pos.coords.longitude;
-                                mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
-                                mapRef.current.setLevel(5);
-                                setCenter({ lat, lng });
-                                toast.success("현재 위치로 이동했습니다.");
-                            });
+                            setIsLocating(true);
+                            navigator.geolocation.getCurrentPosition(
+                                (pos) => {
+                                    const lat = pos.coords.latitude;
+                                    const lng = pos.coords.longitude;
+                                    mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
+                                    mapRef.current.setLevel(5);
+                                    setCenter({ lat, lng });
+                                    toast.success("현재 위치로 이동했습니다.");
+                                    setIsLocating(false);
+                                },
+                                (err) => {
+                                    console.error(err);
+                                    let errorMsg = "위치 정보를 가져올 수 없습니다.";
+                                    if (err.code === 1) errorMsg = "위치 정보 권한을 허용해주세요.";
+                                    if (err.code === 3) errorMsg = "위치 확인 시간이 초과되었습니다.";
+
+                                    toast.error(errorMsg);
+                                    setIsLocating(false);
+                                },
+                                {
+                                    enableHighAccuracy: true,
+                                    maximumAge: 60000, // 1 minute cache
+                                    timeout: 10000     // 10 seconds timeout
+                                }
+                            );
                         } else {
                             toast.error("위치 정보를 사용할 수 없습니다.");
                         }
                     }}
                 >
-                    <Locate size={18} />
-                    <span className="text-xs font-bold">현위치</span>
+                    {isLocating ? (
+                        <Loader2 size={18} className="animate-spin text-brand-1" />
+                    ) : (
+                        <Locate size={18} />
+                    )}
+                    <span className="text-xs font-bold">{isLocating ? '찾는 중...' : '현위치'}</span>
                 </button>
             </div>
 

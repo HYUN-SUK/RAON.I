@@ -316,6 +316,8 @@
   - [x] **Features**: Implemented keyword search (Places API), marker clustering, and precise pin adding.
   - [x] **Verification**: Verified map loading, search, and pin addition on localhost (domain registered).
   - [x] **UX Polish**: Added auto-address fill, enhanced search UI, 'Current Location' label, expandable list area, and list filtering.
+  - [x] **Geolocation Fix**: Optimized `getCurrentPosition` with timeout/cache options & Added Loading UI.
+  - [x] **Data Migration**: `migrate_mymap.ts` script executed to convert legacy x/y to lat/lng.
 
 ## 11. PWA Install Prompt (2026-01-13) ✅
 - [x] **Hook**: Created `usePWAInstallPrompt` (handle `beforeinstallprompt` event + Platform Detection).
