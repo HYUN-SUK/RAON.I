@@ -202,25 +202,29 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     />
                 </div>
 
-                {/* Agreement */}
+
+                {/* Agreement - 체크박스 클릭 시 Dialog 열기 */}
                 <div className="flex items-center gap-2">
                     <input
                         type="checkbox"
                         id="agreement"
                         checked={agreed}
-                        onChange={(e) => setAgreed(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-[#2F5233] focus:ring-[#2F5233]"
+                        onChange={(e) => {
+                            // 체크하려고 할 때는 Dialog 열기 (확인 후 체크)
+                            if (e.target.checked) {
+                                setTermsDialogOpen(true);
+                            } else {
+                                // 체크 해제는 바로 가능
+                                setAgreed(false);
+                            }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-[#2F5233] focus:ring-[#2F5233] cursor-pointer"
                     />
-                    <span className="text-sm text-white/80">
-                        [필수]{' '}
-                        <button
-                            type="button"
-                            onClick={() => setTermsDialogOpen(true)}
-                            className="underline hover:text-white transition-colors"
-                        >
-                            이용 규정 및 환불 규정
-                        </button>
-                        에 동의합니다.
+                    <span
+                        className="text-sm text-white/80 cursor-pointer select-none"
+                        onClick={() => !agreed && setTermsDialogOpen(true)}
+                    >
+                        [필수] 이용 규정 및 환불 규정에 동의합니다.
                     </span>
                 </div>
 
