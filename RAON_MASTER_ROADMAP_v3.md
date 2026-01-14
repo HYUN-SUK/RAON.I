@@ -258,6 +258,14 @@
             *   [x] **Image System**: URL 방식 → Supabase Storage 직접 업로드 전환.
             *   [x] **Admin Empowerment**: 마켓 카테고리 관리자 직접 설정(JSONB) 구현.
             *   [x] **Status**: **100% Done**
+        *   [x] **8.11 UX Improvements & Loading Optimization** ✅ (2026-01-14):
+            *   [x] **Terms Integration**: 이용수칙/환불규정 통합 (TermsAgreementDialog 컴포넌트).
+            *   [x] **Back Button UX**: 4개 Sheet 백버튼 처리 (HomeDetailSheet, FacilityDetailSheet, NearbyDetailSheet, PriceGuideSheet).
+            *   [x] **Touch Feedback**: 모바일 터치 피드백 (globals.css + BottomNav).
+            *   [x] **Reservation DB Sync**: 예약 상세 페이지 SITES 상수 → Supabase 조회 변경.
+            *   [x] **Loading Optimization**: 날씨 의존성 분리 (usePersonalizedRecommendation).
+            *   [x] **User Guidance**: 날씨/주변정보 시간차 안내 문구 추가.
+            *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
