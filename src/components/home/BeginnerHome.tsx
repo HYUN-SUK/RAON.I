@@ -340,10 +340,12 @@ export default function BeginnerHome() {
                     <div className="relative z-20 text-white space-y-4 mb-6">
                         {recLoading ? (
                             <div className="space-y-4 animate-pulse">
+                                {/* Badge Skeleton */}
                                 <Skeleton className="h-7 w-32 bg-white/20 rounded-full" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-10 w-48 bg-white/20 rounded-lg" />
-                                    <Skeleton className="h-10 w-36 bg-white/20 rounded-lg" />
+                                {/* Title & Subtitle Skeleton - Matching actual height to prevent 'jump' */}
+                                <div className="space-y-3 pt-2">
+                                    <Skeleton className="h-16 w-3/4 bg-white/20 rounded-xl" /> {/* Title area */}
+                                    <Skeleton className="h-12 w-full bg-white/20 rounded-xl" /> {/* Description area */}
                                 </div>
                             </div>
                         ) : (

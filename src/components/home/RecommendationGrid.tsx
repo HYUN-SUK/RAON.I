@@ -32,9 +32,9 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
     if (loading) {
         return (
             <div className="px-4 mb-8 grid grid-cols-2 gap-3">
-                <Skeleton className="h-32 rounded-2xl" />
-                <Skeleton className="h-32 rounded-2xl" />
-                <Skeleton className="h-32 rounded-2xl col-span-2" />
+                <Skeleton className="h-32 rounded-2xl w-full" />
+                <Skeleton className="h-32 rounded-2xl w-full" />
+                <Skeleton className="h-32 rounded-2xl col-span-2 w-full" />
             </div>
         );
     }
@@ -116,7 +116,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             id: 'event-mock',
             icon: <MapPin className="text-sky-600" size={28} />,
             categoryLabel: '주변 레포츠, 관광지, 편의시설, 행사',
-            title: '주변의 숨은 명소와 액티비티',
+            title: '주변의 숨은 명소와 그래비티',
             bgColorClass: 'bg-[#E3F2FD]',
             textColorClass: 'text-slate-500',
             isWide: true,
@@ -170,7 +170,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
 
                                     {/* V2 Badges: Difficulty & Time */}
                                     {hasV2Info && (
-                                        <div className="flex gap-1 mt-2 flex-nowrap overflow-hidden">
+                                        <div className="flex gap-2 mt-2 flex-nowrap overflow-hidden items-center">
                                             {dataV2.difficulty && (
                                                 <span className="inline-flex items-center text-responsive-badge text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
                                                     {'⭐'.repeat(dataV2.difficulty)}
