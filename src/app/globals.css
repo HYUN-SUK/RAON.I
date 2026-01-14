@@ -151,6 +151,28 @@ body {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
+/* 모바일 터치 피드백 - 버튼/카드 터치 시 시각적 반응 */
+.touch-feedback {
+  transition: transform 0.1s ease-out, filter 0.1s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-feedback:active {
+  transform: scale(0.97);
+  filter: brightness(0.92);
+}
+
+/* 칩/카드용 터치 피드백 (좀 더 부드럽게) */
+.touch-feedback-soft {
+  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-feedback-soft:active {
+  transform: scale(0.98);
+  opacity: 0.85;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Sheet,
     SheetContent,
@@ -55,6 +55,26 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
     const router = useRouter();
     const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
 
+    // 백버튼 처리: Sheet 열릴 때 히스토리 추가, 백버튼 시 Sheet 닫기
+    useEffect(() => {
+        if (isOpen) {
+            // 히스토리에 상태 추가 (백버튼 누르면 이 상태로 돌아옴)
+            history.pushState({ sheet: 'detail' }, '');
+
+            const handlePopState = () => {
+                // 백버튼 감지 시 Sheet 닫기
+                onClose();
+            };
+
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [isOpen, onClose]);
+
+    // 데이터 없으면 렌더링 안함 (훅 호출 후에 조건부 return)
     if (!data) return null;
 
     const handleShuffle = () => {
@@ -72,6 +92,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                 : [...prev, index]
         );
     };
+
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
