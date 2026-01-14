@@ -277,7 +277,7 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
         setIsAddingMode(false);
         setIsDetailOpen(false);
         setVisibleCount(10); // Reset pagination
-        toast.success('나만의 지도에 추가되었습니다!');
+        toast.success('나만의 캠핑지도에 추가되었습니다!');
 
         // Scroll to top of list after a short delay
         setTimeout(() => {

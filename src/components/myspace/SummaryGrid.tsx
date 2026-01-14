@@ -50,7 +50,7 @@ export default function SummaryGrid() {
         },
         {
             icon: Map,
-            label: "나만의 지도",
+            label: "나만의 캠핑지도",
             color: "text-emerald-600",
             bg: "bg-emerald-50",
             value: null,
