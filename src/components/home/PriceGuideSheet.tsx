@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Sheet,
     SheetContent,
@@ -8,7 +8,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Check, Coins } from "lucide-react";
+import { Coins } from "lucide-react";
 
 interface PriceGuideSheetProps {
     children: React.ReactNode;
@@ -16,8 +16,27 @@ interface PriceGuideSheetProps {
 }
 
 export function PriceGuideSheet({ children, pricingText }: PriceGuideSheetProps) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    // 백버튼 처리: Sheet 열릴 때 히스토리 추가, 백버튼 시 Sheet 닫기
+    useEffect(() => {
+        if (isOpen) {
+            history.pushState({ sheet: 'price' }, '');
+
+            const handlePopState = () => {
+                setIsOpen(false);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [isOpen]);
+
     return (
-        <Sheet>
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
                 {children}
             </SheetTrigger>

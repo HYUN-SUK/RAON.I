@@ -80,6 +80,23 @@ export default function NearbyDetailSheet({
     const [eventsError, setEventsError] = useState<string | null>(null);
     const [facilitiesError, setFacilitiesError] = useState<string | null>(null);
 
+    // 백버튼 처리: Sheet 열릴 때 히스토리 추가, 백버튼 시 Sheet 닫기
+    useEffect(() => {
+        if (isOpen) {
+            history.pushState({ sheet: 'nearby' }, '');
+
+            const handlePopState = () => {
+                onClose();
+            };
+
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [isOpen, onClose]);
+
     // Fetch data when sheet opens
     useEffect(() => {
         if (!isOpen || !enableApiCall) return;

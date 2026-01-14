@@ -1,20 +1,41 @@
-import { SITES } from '@/constants/sites';
+import { createClient } from '@/lib/supabase-server';
 import ReservationForm from '@/components/reservation/ReservationForm';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import SitePriceDisplay from '@/components/reservation/SitePriceDisplay';
+import { Site } from '@/types/reservation';
 
 // Correctly typing params for Next.js 15+ (if applicable, but safe for 14 too usually, though 15 requires awaiting params in some cases or just props)
 // Assuming Next.js 14/15 standard
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const site = SITES.find((s) => s.id === id);
+    const supabase = await createClient();
 
-    if (!site) {
+    // DB에서 사이트 정보 조회
+    const { data: siteData, error } = await supabase
+        .from('sites')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error || !siteData) {
         notFound();
     }
+
+    // DB 데이터를 Site 타입으로 변환
+    const site: Site = {
+        id: siteData.id,
+        name: siteData.name,
+        type: siteData.site_type || 'AUTO',
+        description: siteData.description || '',
+        price: siteData.price || siteData.base_price,
+        basePrice: siteData.base_price,
+        maxOccupancy: siteData.capacity,
+        imageUrl: siteData.image_url || '/images/tent_view_hero.png',
+        features: siteData.features || [],
+    };
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] text-white pb-24">

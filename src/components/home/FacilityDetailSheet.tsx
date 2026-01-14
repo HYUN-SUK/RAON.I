@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Sheet,
     SheetContent,
@@ -30,6 +30,23 @@ export default function FacilityDetailSheet({
     description
 }: FacilityDetailSheetProps) {
     const [activeTab, setActiveTab] = useState("info");
+
+    // 백버튼 처리: Sheet 열릴 때 히스토리 추가, 백버튼 시 Sheet 닫기
+    useEffect(() => {
+        if (isOpen) {
+            history.pushState({ sheet: 'facility' }, '');
+
+            const handlePopState = () => {
+                onClose();
+            };
+
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [isOpen, onClose]);
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>

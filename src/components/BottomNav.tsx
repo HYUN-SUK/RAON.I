@@ -59,7 +59,7 @@ export default function BottomNav() {
                     <button
                         key={tab.name}
                         onClick={() => handleNavigation(tab)}
-                        className={`relative flex flex-col items-center justify-center w-full h-full gap-1 ${isActive ? "text-brand-1" : "text-text-2"
+                        className={`relative flex flex-col items-center justify-center w-full h-full gap-1 touch-feedback ${isActive ? "text-brand-1" : "text-text-2"
                             }`}
                     >
                         {/* 아이콘 + 배지 */}
