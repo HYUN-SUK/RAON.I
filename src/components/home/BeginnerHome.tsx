@@ -359,12 +359,12 @@ export default function BeginnerHome() {
                                     }
                                 </Badge>
                                 <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
-                                <h1 className="text-3xl font-bold leading-tight">
+                                <h1 className="text-responsive-hero-title font-bold leading-tight">
                                     {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
                                         recData.context?.time === 'night' ? '고요한 밤,\n' :
                                             '처음이신가요?\n'}
                                 </h1>
-                                <p className="text-lg font-semibold text-white/95 leading-snug drop-shadow-md">
+                                <p className="text-responsive-hero-sub font-semibold text-white/95 drop-shadow-md">
                                     두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
                                     라온아이에서 불편은 덜고, 추억은 쌓으세요.
                                 </p>
@@ -383,8 +383,8 @@ export default function BeginnerHome() {
                                     className="flex flex-col items-center justify-center aspect-square bg-[#FAF9F6]/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] border border-stone-200/50 dark:border-zinc-700/50 hover:bg-[#F5F2EA] dark:hover:bg-zinc-700 hover:scale-[1.02] transition-all duration-300 p-2 cursor-pointer group touch-feedback-soft"
                                 >
                                     {chip.icon}
-                                    <p className="text-xs font-bold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 text-center leading-tight transition-colors">{chip.label}</p>
-                                    <p className="text-[10px] text-stone-400 group-hover:text-[#C3A675] mt-1 transition-colors">{chip.sub}</p>
+                                    <p className="text-responsive-chip-label font-bold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 text-center leading-tight transition-colors">{chip.label}</p>
+                                    <p className="text-responsive-badge text-stone-400 group-hover:text-[#C3A675] mt-1 transition-colors">{chip.sub}</p>
                                 </div>
                             );
 

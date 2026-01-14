@@ -266,6 +266,13 @@
             *   [x] **Loading Optimization**: 날씨 의존성 분리 (usePersonalizedRecommendation).
             *   [x] **User Guidance**: 날씨/주변정보 시간차 안내 문구 추가.
             *   [x] **Status**: **100% Done**
+        *   [x] **8.12 Responsive Typography Review** ✅ (2026-01-14):
+            *   [x] **Issue**: 히어로 텍스트 및 추천 카드 UI가 모바일 화면 너비에 따라 틀어지는 현상.
+            *   [x] **Core Utility**: `globals.css`에 `clamp()` 기반 반응형 텍스트 클래스 추가 (`.text-responsive-hero-title` 등).
+            *   [x] **Applied Areas**:
+                *   [x] **Beginner Home**: Hero Title/Description & Info Chips.
+                *   [x] **Recommendation Grid**: Card Titles & Badges (Difficulty/Time/Calories).
+            *   [x] **Build Verification**: ✅ SUCCESS (Exit code: 0).
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음

@@ -173,6 +173,33 @@ body {
   opacity: 0.85;
 }
 
+/* 반응형 타이포그래피 - 화면 크기에 따라 폰트 크기 자동 조절 */
+.text-responsive-hero-title {
+  font-size: clamp(1.5rem, 6vw, 1.875rem);
+  /* 24px ~ 30px */
+}
+
+.text-responsive-hero-sub {
+  font-size: clamp(0.875rem, 3.8vw, 1.125rem);
+  /* 14px ~ 18px */
+  line-height: 1.5;
+}
+
+.text-responsive-chip-label {
+  font-size: clamp(0.625rem, 2.8vw, 0.75rem);
+  /* 10px ~ 12px */
+}
+
+.text-responsive-card-title {
+  font-size: clamp(0.875rem, 3.5vw, 1.125rem);
+  /* 14px ~ 18px */
+}
+
+.text-responsive-badge {
+  font-size: clamp(0.5rem, 2.2vw, 0.625rem);
+  /* 8px ~ 10px */
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -252,6 +279,7 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

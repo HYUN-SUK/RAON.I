@@ -163,8 +163,8 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
                                     {item.icon}
                                 </span>
                                 <div>
-                                    <p className={`text-xs ${item.textColorClass} font-bold mb-1`}>{item.categoryLabel}</p>
-                                    <h4 className={`${isWide ? 'text-lg' : 'text-sm'} font-bold text-stone-800 dark:text-stone-100 leading-tight`}>
+                                    <p className={`text-responsive-badge ${item.textColorClass} font-bold mb-1`}>{item.categoryLabel}</p>
+                                    <h4 className={`${isWide ? 'text-responsive-card-title' : 'text-responsive-chip-label'} font-bold text-stone-800 dark:text-stone-100 leading-tight`}>
                                         {item.title}
                                     </h4>
 
@@ -172,18 +172,18 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
                                     {hasV2Info && (
                                         <div className="flex gap-1 mt-2 flex-nowrap overflow-hidden">
                                             {dataV2.difficulty && (
-                                                <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
+                                                <span className="inline-flex items-center text-responsive-badge text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
                                                     {'⭐'.repeat(dataV2.difficulty)}
                                                 </span>
                                             )}
                                             {dataV2.time_required && (
-                                                <span className="inline-flex items-center text-[10px] text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md">
-                                                    <Clock size={10} className="mr-1" />
+                                                <span className="inline-flex items-center text-responsive-badge text-stone-500 bg-white/50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                                    <Clock size={10} className="mr-0.5 flex-shrink-0" />
                                                     {dataV2.time_required}분
                                                 </span>
                                             )}
                                             {dataV2.calories && (
-                                                <span className="inline-flex items-center text-[10px] text-orange-600 bg-orange-50/80 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                                <span className="inline-flex items-center text-responsive-badge text-orange-600 bg-orange-50/80 px-1.5 py-0.5 rounded-md whitespace-nowrap">
                                                     {dataV2.calories}kcal
                                                 </span>
                                             )}

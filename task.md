@@ -300,6 +300,10 @@
   - [x] **UseReservationStore**: Fix `site_type`, `capacity` properties.
   - [x] **AdminRecommendationsPage**: Fix `Set` type mismatch.
 - [x] **Build Verification**: ✅ `npm run build` SUCCESS (Exit code: 0).
+- [x] **Responsive Typography** (2026-01-14):
+  - [x] **Utility**: Added `clamp()` based responsive text classes to `globals.css`.
+  - [x] **Apply**: Applied to `BeginnerHome` (Hero/Chips) & `RecommendationGrid` (Cards/Badges).
+  - [x] **Build**: ✅ Verified `npm run build` success.
 
 ## 11. PWA Install Prompt (2026-01-13) ✅
 - [x] **Hook**: Created `usePWAInstallPrompt` (handle `beforeinstallprompt` event + Platform Detection).
