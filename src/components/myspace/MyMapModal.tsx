@@ -1,161 +1,261 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import Image from 'next/image';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useMySpaceStore, MapItem } from '@/store/useMySpaceStore';
 import { SITES } from '@/constants/sites';
 import { Modal } from '@/components/ui/Modal';
-import { MapPin, Plus, ZoomIn, ZoomOut, Check, X } from 'lucide-react';
+import { MapPin, Search, Plus, Loader2, Navigation, Check, X, Locate } from 'lucide-react';
 import PlaceDetailSheet from './PlaceDetailSheet';
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
+import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } from 'react-kakao-maps-sdk';
+import { toast } from 'sonner';
+
+// Kakao Maps SDK Type Augmentation for TypeScript
+declare global {
+    interface Window {
+        kakao: any;
+    }
+}
 
 interface MyMapModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-interface Cluster {
-    type: 'cluster';
-    id: string;
-    items: MapItem[];
-    x: number;
-    y: number;
-    count: number;
-}
-
-interface RenderableItem {
-    type: 'item';
-    data: MapItem;
-    id: string;
-    x: number;
-    y: number;
-}
-
-type RenderablePin = Cluster | RenderableItem;
-
 export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
+    // 1. Load Kakao Maps SDK
+    const [loading, error] = useKakaoLoader({
+        appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!, // Use env variable
+        libraries: ['clusterer', 'services'],
+    });
+
     const { reservations } = useReservationStore();
-    const { mapItems, addMapItem } = useMySpaceStore();
+    const { mapItems, addMapItem, updateMapItem } = useMySpaceStore();
 
     // UI States
     const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
-    const [isDetailOpen, setIsDetailOpen] = useState(false); // New: Control sheet visibility separately
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isAddingMode, setIsAddingMode] = useState(false);
-    const [pendingPin, setPendingPin] = useState<{ x: number, y: number } | null>(null);
 
-    // Zoom & Pan States
-    const mapRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null); // To measure viewport
-    const [scale, setScale] = useState(1);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    // Search States
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState<any[]>([]); // Kakao Places result
+    const [visibleCount, setVisibleCount] = useState(10); // Pagination for list
 
-    // Auto-sync logic for RAON internal sites
+    // Map States
+    const mapRef = useRef<any>(null); // Kakao Map Instance
+    const [center, setCenter] = useState<{ lat: number, lng: number }>(
+        { lat: DEFAULT_CAMPING_LOCATION.latitude, lng: DEFAULT_CAMPING_LOCATION.longitude }
+    );
+    // Temporary pin for adding new location
+    const [pendingPin, setPendingPin] = useState<{ lat: number, lng: number, name?: string, address?: string } | null>(null);
+    // Timestamp to skip map click after search selection (using window to bypass React closure)
+    // @ts-ignore
+    if (typeof window !== 'undefined' && window.__skipMapClickUntil === undefined) {
+        // @ts-ignore
+        window.__skipMapClickUntil = 0;
+    }
+
+    // 2. Data Migration: Legacy Items (Raon Internal) -> Real Coordinates
     useEffect(() => {
         if (!isOpen) return;
+
+        // 2-1. Sync from Reservations (Auto-add Raon visits)
         const visited = reservations.filter(r =>
             r.status === 'COMPLETED' ||
             (r.status === 'CONFIRMED' && new Date(r.checkOutDate) < new Date())
         );
 
         visited.forEach(r => {
-            const siteInfo = SITES.find(s => s.id === r.siteId);
-            const siteName = siteInfo ? `${siteInfo.name} (라온 캠핑장)` : `${r.siteId} (라온 캠핑장)`;
-            const baseX = 70;
-            const baseY = 25;
-            const randomOffset = () => (Math.random() - 0.5) * 5;
+            const exists = mapItems.some(i => i.id === r.id);
+            if (!exists) {
+                const siteInfo = SITES.find(s => s.id === r.siteId);
+                const siteName = siteInfo ? `${siteInfo.name} (라온 캠핑장)` : `${r.siteId} (라온 캠핑장)`;
 
-            addMapItem({
-                id: r.id,
-                siteId: r.siteId,
-                siteName: siteName,
-                x: baseX + randomOffset(),
-                y: baseY + randomOffset(),
-                visitedDate: new Date(r.checkInDate).toISOString(),
-                isStamped: true,
-                photos: [],
-                memo: '',
-                rating: 0,
-                isFavorite: false,
-                tags: ['라온캠핑장']
+                // Add new item with Real Coordinates (Raon Location + Random Jitter)
+                const jitter = () => (Math.random() - 0.5) * 0.002; // Very small offset set (~100m)
+
+                addMapItem({
+                    id: r.id,
+                    siteId: r.siteId,
+                    siteName: siteName,
+                    x: 50, // Legacy fallback
+                    y: 50, // Legacy fallback
+                    lat: DEFAULT_CAMPING_LOCATION.latitude + jitter(),
+                    lng: DEFAULT_CAMPING_LOCATION.longitude + jitter(),
+                    visitedDate: new Date(r.checkInDate).toISOString(),
+                    isStamped: true,
+                    photos: [],
+                    memo: '',
+                    rating: 0,
+                    isFavorite: false,
+                    tags: ['라온캠핑장'],
+                    address: '충청남도 예산군 응봉면 입침리 341'
+                });
+            }
+        });
+
+        // 2-2. Migrate Existing Legacy Items (Missing lat/lng)
+        mapItems.forEach(item => {
+            if (!item.lat || !item.lng) {
+                // If it looks like a Raon site, assign Raon coords
+                if (item.siteName.includes('라온') || item.tags.includes('라온캠핑장')) {
+                    const jitter = () => (Math.random() - 0.5) * 0.002;
+                    updateMapItem(item.id, {
+                        lat: DEFAULT_CAMPING_LOCATION.latitude + jitter(),
+                        lng: DEFAULT_CAMPING_LOCATION.longitude + jitter(),
+                        address: '충청남도 예산군 응봉면 입침리 341'
+                    });
+                } else {
+                    // For unknown legacy items, default to Seoul or Raon? 
+                    // Let's default to Raon for safety as that was the only context before.
+                    const jitter = () => (Math.random() - 0.5) * 0.002;
+                    updateMapItem(item.id, {
+                        lat: DEFAULT_CAMPING_LOCATION.latitude + jitter(),
+                        lng: DEFAULT_CAMPING_LOCATION.longitude + jitter(),
+                    });
+                }
+            }
+        });
+
+    }, [isOpen, reservations, mapItems, addMapItem, updateMapItem]);
+
+
+    // 3. Search Logic (Kakao Places)
+    useEffect(() => {
+        if (!searchQuery || !window.kakao || !window.kakao.maps.services) {
+            setSearchResults([]);
+            return;
+        }
+
+        const ps = new window.kakao.maps.services.Places();
+
+        // Search for "Camping" related keywords
+        // If user query doesn't contain "캠핑", maybe append it? or just raw search.
+        // Let's do raw search but prioritize camping category 'AD5' (Accommodation) if possible, 
+        // but keyword search is usually enough.
+
+        ps.keywordSearch(searchQuery, (data: any[], status: any) => {
+            if (status === window.kakao.maps.services.Status.OK) {
+                setSearchResults(data);
+            } else {
+                setSearchResults([]);
+            }
+        });
+
+    }, [searchQuery]);
+
+
+    // 5. List Search State
+    const [listSearchQuery, setListSearchQuery] = useState('');
+
+    // Filtered Items for List
+    const getFilteredItems = () => {
+        let items = [...mapItems].sort((a, b) => new Date(b.visitedDate).getTime() - new Date(a.visitedDate).getTime());
+
+        if (listSearchQuery) {
+            const query = listSearchQuery.toLowerCase();
+            items = items.filter(item =>
+                item.siteName.toLowerCase().includes(query) ||
+                item.address?.toLowerCase().includes(query) ||
+                item.tags?.some(tag => tag.toLowerCase().includes(query)) ||
+                item.memo?.toLowerCase().includes(query)
+            );
+        }
+        return items;
+    };
+
+    const filteredItems = getFilteredItems();
+    const displayItems = filteredItems.slice(0, visibleCount);
+
+
+    // --- Handlers ---
+
+    const handleSearchSelect = (place: any) => {
+        const lat = parseFloat(place.y);
+        const lng = parseFloat(place.x);
+
+        // Show "Add this location?" pin FIRST before changing center
+        const pinData = {
+            lat,
+            lng,
+            name: place.place_name,
+            address: place.road_address_name || place.address_name || '주소 정보 없음'
+        };
+        setPendingPin(pinData);
+
+        // Set skip timestamp to prevent map click from overwriting (10 seconds window)
+        // @ts-ignore
+        window.__skipMapClickUntil = Date.now() + 10000;
+
+        setSearchQuery('');
+        setIsSearching(false);
+        setCenter({ lat, lng });
+    };
+
+    const handleMapClick = (_: any, mouseEvent: any) => {
+        const now = Date.now();
+        // @ts-ignore
+        const skipUntil = window.__skipMapClickUntil || 0;
+
+        // Skip if triggered by search selection (within 2 second window)
+        if (now < skipUntil) {
+            return;
+        }
+
+        // Click to add custom spot with Reverse Geocoding
+        const lat = mouseEvent.latLng.getLat();
+        const lng = mouseEvent.latLng.getLng();
+
+        // Initially set with loading state
+        setPendingPin({
+            lat,
+            lng,
+            name: '새로운 캠핑장',
+            address: '주소 불러오는 중...'
+        });
+
+        // Use Kakao Geocoder for Reverse Geocoding
+        if (window.kakao && window.kakao.maps.services) {
+            const geocoder = new window.kakao.maps.services.Geocoder();
+            geocoder.coord2Address(lng, lat, (result: any[], status: any) => {
+                if (status === window.kakao.maps.services.Status.OK && result[0]) {
+                    const addressData = result[0];
+                    // Prefer road_address if available, otherwise use address
+                    const fetchedAddress = addressData.road_address
+                        ? addressData.road_address.address_name
+                        : addressData.address?.address_name || '주소 정보 없음';
+                    setPendingPin({
+                        lat,
+                        lng,
+                        name: '새로운 캠핑장',
+                        address: fetchedAddress
+                    });
+                } else {
+                    setPendingPin({
+                        lat,
+                        lng,
+                        name: '새로운 캠핑장',
+                        address: '주소 정보 없음'
+                    });
+                }
             });
-        });
-    }, [isOpen, reservations, addMapItem]);
-
-    // --- Zoom & Pan Logic ---
-
-    const handleZoom = (delta: number) => {
-        setScale(prev => Math.min(Math.max(prev + delta, 1), 3)); // Clamp between 1x and 3x
-    };
-
-    const handleWheel = (e: React.WheelEvent) => {
-        // Optional: Support mouse wheel zoom
-        // e.preventDefault();
-        // const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        // handleZoom(delta);
-    };
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (isAddingMode) return; // Don't pan when adding
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging || isAddingMode) return;
-        e.preventDefault();
-        setPosition({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y
-        });
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    // Touch support for Pan (Basic)
-    const handleTouchStart = (e: React.TouchEvent) => {
-        if (isAddingMode) return;
-        const touch = e.touches[0];
-        setIsDragging(true);
-        setDragStart({ x: touch.clientX - position.x, y: touch.clientY - position.y });
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (!isDragging || isAddingMode) return;
-        const touch = e.touches[0];
-        setPosition({
-            x: touch.clientX - dragStart.x,
-            y: touch.clientY - dragStart.y
-        });
-    };
-
-    // --- Map Click Logic ---
-
-    const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isDragging) return; // Prevent click on drag end
-        if (!mapRef.current) return;
-
-        // Calculate relative coordinates regardless of zoom/pan
-        // rect is the current transformed dimensions of the map image div
-        const rect = mapRef.current.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-        setPendingPin({ x, y });
+        }
     };
 
     const confirmPendingPin = () => {
         if (!pendingPin) return;
 
-        // Open Detail Sheet in "New" mode
-        setSelectedItem({
+        const newItem = {
             id: 'temp-id',
-            siteName: '',
-            x: pendingPin.x,
-            y: pendingPin.y,
+            siteName: pendingPin.name || '새로운 장소',
+            x: 50, // Legacy
+            y: 50, // Legacy
+            lat: pendingPin.lat,
+            lng: pendingPin.lng,
+            address: pendingPin.address || '',
             visitedDate: new Date().toISOString(),
             isStamped: true,
             photos: [],
@@ -163,9 +263,10 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
             rating: 0,
             isFavorite: false,
             tags: []
-        });
+        };
+        setSelectedItem(newItem);
         setIsAddingMode(true);
-        setIsDetailOpen(true); // Open sheet for new item
+        setIsDetailOpen(true);
     };
 
     const handleSaveNew = (newItem: MapItem) => {
@@ -173,423 +274,323 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
         setPendingPin(null);
         setSelectedItem(null);
         setIsAddingMode(false);
-        setIsDetailOpen(false); // Close sheet
+        setIsDetailOpen(false);
+        setVisibleCount(10); // Reset pagination
+        toast.success('나만의 지도에 추가되었습니다!');
+
+        // Scroll to top of list after a short delay
+        setTimeout(() => {
+            const listHeader = document.querySelector('[data-list-header]');
+            listHeader?.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
     };
 
-    const cancelPendingPin = () => {
-        setPendingPin(null);
-    };
-
-
-    // Search State
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-
-    // Viewport & Clustering State
-    const [visibleItems, setVisibleItems] = useState<MapItem[]>([]);
-
-    // Derived State for List: Group by Date
-    const getGroupedItems = () => {
-        const sorted = [...visibleItems].sort((a, b) => new Date(b.visitedDate).getTime() - new Date(a.visitedDate).getTime());
-        const groups: { [key: string]: MapItem[] } = {};
-
-        sorted.forEach(item => {
-            const date = new Date(item.visitedDate);
-            const key = `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(item);
-        });
-
-        return groups;
-    };
-
-    const groupedItems = getGroupedItems();
-
-    // --- Viewport Sync Logic ---
-    const updateVisibleItems = React.useCallback(() => {
-        if (!mapRef.current || !containerRef.current) return;
-
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const mapRect = mapRef.current.getBoundingClientRect();
-
-        // Calculate visible bounds in Map % coordinates
-        // Left edge of container relative to map
-        const leftPct = ((containerRect.left - mapRect.left) / mapRect.width) * 100;
-        const rightPct = ((containerRect.right - mapRect.left) / mapRect.width) * 100;
-        const topPct = ((containerRect.top - mapRect.top) / mapRect.height) * 100;
-        const bottomPct = ((containerRect.bottom - mapRect.top) / mapRect.height) * 100;
-
-        // Filter items
-        const visible = mapItems.filter(item => {
-            return item.x >= leftPct && item.x <= rightPct &&
-                item.y >= topPct && item.y <= bottomPct;
-        });
-
-        // Ensure we don't cause infinite loops or unnecessary re-renders
-        // Simple length check or ID check implies 'good enough' for this demo
-        setVisibleItems(prev => {
-            if (prev.length !== visible.length) return visible;
-            const isSame = prev.every((p, i) => p.id === visible[i].id);
-            return isSame ? prev : visible;
-        });
-
-    }, [mapItems, scale, position]); // Depend on transform changes
-
-    // Update visibility when map transforms
-    useEffect(() => {
-        updateVisibleItems();
-    }, [updateVisibleItems]);
-
-
-    // --- Clustering Logic (Simple Distance Based) ---
-    // Returns list of Renderable Pins (either Single Item or Cluster)
-    // We render this INSTEAD of mapItems directly
-    const getRenderablePins = (): RenderablePin[] => {
-        if (!mapRef.current) return mapItems.map(i => ({ type: 'item', data: i, id: i.id, x: i.x, y: i.y }));
-
-        const thresholdPx = 40; // Pixel distance to group
-        const mapWidth = mapRef.current.getBoundingClientRect().width;
-
-        // Convert % to current pixels for distance Calc
-        const pxPerPct = mapWidth / 100;
-
-        const clusters: RenderablePin[] = [];
-        const processed = new Set<string>();
-
-        const sortedItems = [...mapItems].sort((a, b) => b.y - a.y); // Sort by Y for simple rendering order
-
-        sortedItems.forEach(item => {
-            if (processed.has(item.id)) return;
-
-            // Find close neighbors
-            const neighbors = sortedItems.filter(other => {
-                if (item.id === other.id || processed.has(other.id)) return false;
-                const dx = (item.x - other.x) * pxPerPct;
-                const dy = (item.y - other.y) * pxPerPct;
-                return Math.sqrt(dx * dx + dy * dy) < thresholdPx;
-            });
-
-            if (neighbors.length > 0) {
-                // Create Cluster
-                const clusterItems = [item, ...neighbors];
-                clusterItems.forEach(i => processed.add(i.id));
-
-                // Average position
-                const avgX = clusterItems.reduce((sum, i) => sum + i.x, 0) / clusterItems.length;
-                const avgY = clusterItems.reduce((sum, i) => sum + i.y, 0) / clusterItems.length;
-
-                clusters.push({
-                    type: 'cluster',
-                    id: `cluster-${item.id}`,
-                    items: clusterItems,
-                    x: avgX,
-                    y: avgY,
-                    count: clusterItems.length
-                });
-            } else {
-                processed.add(item.id);
-                clusters.push({ type: 'item', data: item, id: item.id, x: item.x, y: item.y });
-            }
-        });
-
-        return clusters;
-    };
-
-    const renderablePins = getRenderablePins();
-
-    const centerOnItem = (item: MapItem) => {
-        if (!containerRef.current) return;
-
-        const newScale = 2.5; // Zoom in
-        const containerW = containerRef.current.clientWidth;
-        const containerH = containerRef.current.clientHeight;
-
-        // Target position to center the item
-        // item.x/100 * containerW * scale + pos = containerW / 2
-        // pos = containerW/2 - (item.x/100 * containerW * scale)
-        // Note: Assuming map base size matches container size roughly for calculation
-        // Precision is improved by just using the formula:
-
-        const targetX = (containerW / 2) - ((item.x / 100) * containerW * newScale);
-        const targetY = (containerH / 2) - ((item.y / 100) * containerH * newScale);
-
-        setScale(newScale);
-        setPosition({ x: targetX, y: targetY });
-
-        // Highlight
-        setSelectedItem(item);
-        setIsDetailOpen(true);
-    };
-
-    const centerOnCluster = (cluster: Cluster) => {
-        if (!containerRef.current) return;
-        const newScale = Math.min(scale + 1, 3);
-
-        const containerW = containerRef.current.clientWidth;
-        const containerH = containerRef.current.clientHeight;
-
-        const targetX = (containerW / 2) - ((cluster.x / 100) * containerW * newScale);
-        const targetY = (containerH / 2) - ((cluster.y / 100) * containerH * newScale);
-
-        setScale(newScale);
-        setPosition({ x: targetX, y: targetY });
-    };
+    if (!isOpen) return null;
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
             title="나만의 캠핑 지도"
-            fullScreen={true} // Use full screen mode
-            className="flex flex-col bg-slate-50"
+            fullScreen={true}
+            className="flex flex-col bg-slate-50 overflow-y-auto"
         >
             {/* Search Bar - Floating (Top Right) */}
-            <div className="absolute top-4 right-4 z-40 w-auto">
-                <div className={`bg-white rounded-full shadow-lg border border-gray-100 flex items-center px-4 py-2 transition-all duration-300 ${isSearching ? 'w-full max-w-sm' : 'w-10 h-10 p-0 justify-center'}`}>
+            <div className="absolute top-4 right-4 z-[100] w-auto flex flex-col items-end gap-2">
+                <div className={`bg-white rounded-full shadow-lg border border-gray-100 flex items-center px-4 py-3 transition-all duration-300 ${isSearching ? 'w-full max-w-sm' : 'w-12 h-12 p-0 justify-center'}`}>
                     {isSearching ? (
                         <>
-                            <MapPin className="text-gray-400 mr-2 shrink-0" size={16} />
+                            <Search className="text-gray-400 mr-2 shrink-0" size={20} />
                             <input
                                 type="text"
-                                placeholder="캠핑장 검색..."
-                                className="flex-1 bg-transparent border-none text-sm focus:ring-0 outline-none placeholder:text-gray-400 min-w-0"
+                                placeholder="캠핑장 이름 검색..."
+                                className="flex-1 bg-transparent border-none text-base focus:ring-0 outline-none placeholder:text-gray-400 min-w-0"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 autoFocus
                                 onBlur={() => setTimeout(() => {
-                                    if (!searchQuery) setIsSearching(false);
+                                    // Delay hiding to allow click on result
                                 }, 200)}
                             />
                             <button onClick={() => { setSearchQuery(''); setIsSearching(false); }} className="ml-2 text-gray-400 hover:text-gray-600">
-                                <X size={14} />
+                                <X size={18} />
                             </button>
                         </>
                     ) : (
                         <button onClick={() => setIsSearching(true)} className="w-full h-full flex items-center justify-center text-gray-600 hover:text-brand-1 bg-white hover:bg-gray-50 rounded-full transition-colors group">
                             <div className="sr-only">검색</div>
-                            {/* Enhanced Search Icon */}
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-                            </div>
+                            <Search size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
                         </button>
                     )}
                 </div>
 
-                {/* Search Results Dropdown */}
+                {/* Search Results */}
                 {isSearching && searchQuery && (
-                    <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto w-64 sm:w-80">
-                        {mapItems.filter(i => i.siteName.includes(searchQuery) || i.address?.includes(searchQuery)).map(item => (
+                    <div className="bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto w-64 sm:w-80 mt-2">
+                        {searchResults.length > 0 ? searchResults.map((place) => (
                             <button
-                                key={item.id}
+                                key={place.id}
                                 className="w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 flex items-center gap-2 last:border-0"
-                                onClick={() => {
-                                    centerOnItem(item);
-                                    setSearchQuery('');
-                                    setIsSearching(false);
+                                onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    // @ts-ignore
+                                    window.__skipMapClickUntil = Date.now() + 10000;
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // @ts-ignore
+                                    window.__skipMapClickUntil = Date.now() + 10000;
+                                    handleSearchSelect(place);
                                 }}
                             >
-                                <MapPin size={14} className="text-brand-1" />
-                                <div>
-                                    <div className="text-sm font-bold text-gray-800">{item.siteName}</div>
-                                    <div className="text-xs text-gray-500 truncate">{item.address}</div>
+                                <MapPin size={16} className="text-brand-1 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="text-sm font-bold text-gray-800 truncate">{place.place_name}</div>
+                                    <div className="text-xs text-gray-500 truncate">{place.road_address_name || place.address_name}</div>
                                 </div>
                             </button>
-                        ))}
-                        {mapItems.filter(i => i.siteName.includes(searchQuery)).length === 0 && (
-                            <div className="p-4 text-center text-sm text-gray-400">검색 결과가 없습니다.</div>
+                        )) : (
+                            <div className="p-4 text-center text-sm text-gray-400">
+                                {window.kakao ? '검색 결과가 없습니다.' : '지도 로딩 중...'}
+                            </div>
                         )}
                     </div>
                 )}
             </div>
 
-            {/* Main Scrollable Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden bg-surface-1 pb-20 relative">
-                {/* Map Area - Fixed Height */}
-                <div
-                    className="relative w-full h-[55vh] bg-[#F5F5F0] overflow-hidden group select-none shrink-0"
-                    ref={containerRef}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleMouseUp}
-                >
-                    {/* Scalable/Draggable Layer */}
-                    <div
-                        ref={mapRef}
-                        className="absolute w-full h-full origin-center transition-transform duration-75 ease-out"
-                        style={{
-                            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                            cursor: isDragging ? 'grabbing' : 'grab'
-                        }}
+            {/* Map Area */}
+            <div className="w-full h-[65vh] relative shrink-0">
+                {loading ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <Loader2 className="animate-spin text-brand-1" size={32} />
+                        <span className="ml-2 text-gray-500 font-medium">지도 불러오는 중...</span>
+                    </div>
+                ) : error ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-6 text-center">
+                        <MapPin className="text-gray-300 mb-2" size={48} />
+                        <p className="text-gray-500 font-bold">지도를 불러올 수 없습니다.</p>
+                        <p className="text-xs text-red-400 mt-1">{error.message}</p>
+                        <p className="text-xs text-gray-400 mt-2">관리자에게 문의해주세요.</p>
+                    </div>
+                ) : (
+                    <Map
+                        center={center}
+                        style={{ width: "100%", height: "100%" }}
+                        level={10} // Initial Zoom Level (Country Wide like)
                         onClick={handleMapClick}
+                        ref={mapRef}
                     >
-                        <Image
-                            src="/images/korea_map_view.png"
-                            alt="Korea Map"
-                            fill
-                            className="object-contain p-8 opacity-80 pointer-events-none"
-                            priority
-                        />
-
-                        {/* Render Clusters and Pins */}
-                        {renderablePins.map(pin => {
-                            if (pin.type === 'cluster') {
+                        <MarkerClusterer
+                            averageCenter={true}
+                            minLevel={10} // Cluster at high levels (zoomed out)
+                        >
+                            {mapItems.map((item) => {
+                                if (!item.lat || !item.lng) return null;
                                 return (
-                                    <button
-                                        key={pin.id}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            centerOnCluster(pin);
-                                        }}
-                                        className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110 z-20"
-                                        style={{
-                                            left: `${pin.x}%`,
-                                            top: `${pin.y}%`,
-                                            transform: `translate(-50%, -50%) scale(${1 / scale})`
-                                        }}
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-brand-1 text-white border-2 border-white shadow-lg flex items-center justify-center font-bold text-sm">
-                                            {pin.count}
-                                        </div>
-                                    </button>
-                                );
-                            } else {
-                                const item = pin.data as MapItem;
-                                return (
-                                    <button
+                                    <MapMarker
                                         key={item.id}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsAddingMode(false);
+                                        position={{ lat: item.lat, lng: item.lng }}
+                                        onClick={() => {
                                             setSelectedItem(item);
-                                            // Scroll to item in list
-                                            const listElement = document.getElementById(`map-item-${item.id}`);
-                                            if (listElement) {
-                                                listElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                            }
+                                            setIsAddingMode(false);
+                                            // Scroll to item
+                                            const el = document.getElementById(`map-item-${item.id}`);
+                                            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                         }}
-                                        className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-125 z-10"
-                                        style={{
-                                            left: `${item.x}%`,
-                                            top: `${item.y}%`,
-                                            transform: `translate(-50%, -50%) scale(${1 / scale})`
+                                        image={{
+                                            src: "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png", // Yellow star flag marker
+                                            size: { width: 24, height: 35 },
+                                            options: { offset: { x: 12, y: 35 } }
                                         }}
                                     >
-                                        <div className="flex flex-col items-center group/pin">
-                                            <div className="w-8 h-8 rounded-full bg-brand-1 border-2 border-white shadow-md flex items-center justify-center text-white relative">
-                                                <MapPin size={16} fill="currentColor" />
-                                            </div>
-                                            <span className={`mt-1 px-2 py-0.5 bg-white/90 backdrop-blur rounded text-[10px] font-bold text-gray-800 shadow-sm whitespace-nowrap max-w-[100px] truncate ${scale < 1.5 ? 'hidden group-hover/pin:block' : 'block'}`}>
-                                                {item.siteName}
-                                            </span>
-                                        </div>
-                                    </button>
+                                        {/* Simple Label on Hover or Always? Let's use CustomOverlay for labels if needed */}
+                                    </MapMarker>
                                 );
-                            }
+                            })}
+                        </MarkerClusterer>
+
+                        {/* Labels (Custom Overlay) - Show names for favorites or selected? */}
+                        {mapItems.map(item => {
+                            if (!item.lat || !item.lng) return null;
+                            // Show label if zoomed in enough? For now simple always show if not too many? 
+                            // Or better: Just show for selected item
+                            if (selectedItem?.id !== item.id) return null;
+
+                            return (
+                                <CustomOverlayMap
+                                    key={`label-${item.id}`}
+                                    position={{ lat: item.lat, lng: item.lng }}
+                                    yAnchor={2.2} // Above the marker
+                                >
+                                    <div className="bg-white px-3 py-1 rounded-lg shadow-md border border-gray-100 text-xs font-bold whitespace-nowrap animate-in fade-in zoom-in duration-200">
+                                        {item.siteName}
+                                    </div>
+                                </CustomOverlayMap>
+                            )
                         })}
 
-                        {/* Pending Pin */}
+                        {/* Pending Pin Marker */}
                         {pendingPin && (
-                            <div
-                                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
-                                style={{ left: `${pendingPin.x}%`, top: `${pendingPin.y}%` }}
+                            <MapMarker
+                                position={{ lat: pendingPin.lat, lng: pendingPin.lng }}
+                                image={{
+                                    src: "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png", // Default star marker
+                                    size: { width: 24, height: 35 }
+                                }}
+                            />
+                        )}
+
+                        {/* Pending Pin Confirmation Tooltip */}
+                        {pendingPin && (
+                            <CustomOverlayMap
+                                key={`pending-${pendingPin.lat}-${pendingPin.lng}-${pendingPin.address}`}
+                                position={{ lat: pendingPin.lat, lng: pendingPin.lng }}
+                                yAnchor={1.5}
                             >
-                                <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-lg flex items-center justify-center text-white animate-bounce">
-                                    <Plus size={20} />
+                                <div className="bg-white px-4 py-3 rounded-2xl shadow-xl z-30 flex items-center gap-3 animate-in slide-in-from-bottom-5 max-w-[280px]">
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                        <span className="text-sm font-bold text-gray-800 truncate">{pendingPin.name || "새로운 장소"}</span>
+                                        {pendingPin.address && (
+                                            <span className="text-[10px] text-gray-500 truncate">{pendingPin.address}</span>
+                                        )}
+                                        <span className="text-[10px] text-brand-1 mt-0.5">이곳을 추가할까요?</span>
+                                    </div>
+                                    <div className="flex gap-2 flex-shrink-0">
+                                        <button
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => { e.stopPropagation(); confirmPendingPin(); }}
+                                            className="p-1.5 bg-brand-1 text-white rounded-full hover:bg-brand-1/90 shadow-sm"
+                                        >
+                                            <Check size={14} strokeWidth={3} />
+                                        </button>
+                                        <button
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => { e.stopPropagation(); setPendingPin(null); }}
+                                            className="p-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200"
+                                        >
+                                            <X size={14} strokeWidth={3} />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </CustomOverlayMap>
+                        )}
+                    </Map>
+                )}
+
+                {/* Current Location Button */}
+                <button
+                    className="absolute bottom-4 right-4 bg-white px-4 py-2.5 rounded-full shadow-lg z-10 text-gray-700 hover:text-brand-1 active:scale-95 transition-all flex items-center gap-2"
+                    onClick={() => {
+                        if (!mapRef.current) return;
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition((pos) => {
+                                const lat = pos.coords.latitude;
+                                const lng = pos.coords.longitude;
+                                mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
+                                mapRef.current.setLevel(5);
+                                setCenter({ lat, lng });
+                                toast.success("현재 위치로 이동했습니다.");
+                            });
+                        } else {
+                            toast.error("위치 정보를 사용할 수 없습니다.");
+                        }
+                    }}
+                >
+                    <Locate size={18} />
+                    <span className="text-xs font-bold">현위치</span>
+                </button>
+            </div>
+
+            {/* List View */}
+            <div className="bg-surface-1 pb-10 relative z-20 flex flex-col min-h-screen">
+                <div data-list-header className="p-4 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10 space-y-3">
+                    <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                            <Navigation size={18} className="text-brand-1" />
+                            나의 캠핑 기록
+                        </h3>
+                        <span className="text-xs font-bold text-brand-1 bg-brand-1/10 px-2.5 py-1 rounded-full">{mapItems.length}곳 정복!</span>
+                    </div>
+                    {/* 5. List Search Bar */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="내 기록 검색 (이름, 주소, 메모)"
+                            className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-9 pr-4 text-sm focus:ring-1 focus:ring-brand-1/50 transition-all"
+                            value={listSearchQuery}
+                            onChange={(e) => setListSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {displayItems.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-gray-400 text-sm">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                            <MapPin size={28} className="opacity-30" />
+                        </div>
+                        <p className="text-center">
+                            {listSearchQuery ? '검색 결과가 없어요.' : <>아직 기록된 캠핑장이 없어요.<br />지도에서 찾아보세요!</>}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="p-4 space-y-3">
+                        {displayItems.map(item => (
+                            <button
+                                key={item.id}
+                                id={`map-item-${item.id}`}
+                                onClick={() => {
+                                    setSelectedItem(item);
+                                    if (mapRef.current && item.lat && item.lng) {
+                                        mapRef.current.setCenter(new window.kakao.maps.LatLng(item.lat, item.lng));
+                                        mapRef.current.setLevel(4);
+                                    }
+                                    setIsDetailOpen(true);
+                                }}
+                                className={`w-full flex items-center gap-3 p-4 border rounded-2xl shadow-sm text-left transition-all ${selectedItem?.id === item.id
+                                    ? 'bg-brand-1/5 border-brand-1 ring-1 ring-brand-1'
+                                    : 'bg-white border-gray-100 hover:border-brand-1/30 hover:shadow-md'
+                                    }`}
+                            >
+                                <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
+                                    <MapPin size={20} className="text-brand-1" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="font-bold text-gray-900 truncate text-base">{item.siteName}</span>
+                                        {item.isFavorite && <span className="text-red-400 text-xs">❤</span>}
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-500 gap-2">
+                                        <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">{new Date(item.visitedDate).toLocaleDateString()}</span>
+                                        {item.address && <span className="truncate max-w-[120px]">{item.address}</span>}
+                                    </div>
+                                    {/* Show Memo Snippet if exists */}
+                                    {item.memo && (
+                                        <p className="text-xs text-gray-400 mt-1 truncate">"{item.memo}"</p>
+                                    )}
+                                </div>
+                            </button>
+                        ))}
+
+                        {/* Load More Button */}
+                        {visibleCount < filteredItems.length && (
+                            <button
+                                onClick={() => setVisibleCount(prev => prev + 10)}
+                                className="w-full py-4 bg-gray-50 text-gray-600 font-medium rounded-2xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Plus size={18} />
+                                <span>더 보기 ({filteredItems.length - visibleCount}개 남음)</span>
+                            </button>
                         )}
                     </div>
-
-                    {/* UI Overlay Controls - Moved to bottom right of map area */}
-                    <div className="absolute right-4 bottom-24 flex flex-col gap-2 z-30">
-                        <button onClick={() => handleZoom(0.5)} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 active:scale-95"><ZoomIn size={20} /></button>
-                        <button onClick={() => handleZoom(-0.5)} className="p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-gray-700 active:scale-95"><ZoomOut size={20} /></button>
-                    </div>
-
-                    {/* Pending Pin Confirmation Tooltip */}
-                    {pendingPin && (
-                        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white px-4 py-3 rounded-2xl shadow-xl z-30 flex items-center gap-3 animate-in slide-in-from-bottom-5 w-max">
-                            <span className="text-sm font-bold text-gray-700">이 위치에 추가할까요?</span>
-                            <div className="flex gap-2">
-                                <button onClick={confirmPendingPin} className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600"><Check size={16} /></button>
-                                <button onClick={cancelPendingPin} className="p-1.5 bg-gray-200 text-gray-500 rounded-full hover:bg-gray-300"><X size={16} /></button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* List View - Flows naturally below map */}
-                <div className="bg-white border-t border-gray-100 p-0 flex flex-col relative z-20 shrink-0 min-h-[50vh]">
-                    {/* Header for list */}
-                    <div className="p-4 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10 flex justify-between items-center">
-                        <h3 className="font-bold text-lg text-gray-900">
-                            지도에 보이는 곳
-                        </h3>
-                        <span className="text-sm font-normal text-brand-1 bg-brand-1/10 px-2 py-0.5 rounded-full">{visibleItems.length}곳</span>
-                    </div>
-
-                    {visibleItems.length === 0 ? (
-                        <div className="text-center py-12 text-gray-400 text-sm flex flex-col items-center justify-center h-40">
-                            <MapPin size={32} className="mb-3 opacity-30" />
-                            <p>이 지역에는 기록이 없어요.<br />지도를 움직여보세요!</p>
-                        </div>
-                    ) : (
-                        <div className="pb-32">
-                            {Object.entries(groupedItems).map(([groupKey, groupItems]) => (
-                                <div key={groupKey}>
-                                    {/* Group Header */}
-                                    <div className="px-4 py-2 bg-gray-50 text-xs font-bold text-gray-500 sticky top-[60px] z-[5] border-b border-gray-100">
-                                        {groupKey}
-                                    </div>
-                                    <div className="px-4 py-2 space-y-3">
-                                        {groupItems.map(item => (
-                                            <button
-                                                key={item.id}
-                                                id={`map-item-${item.id}`} // Add ID for scrolling
-                                                onClick={() => {
-                                                    setSelectedItem(item);
-                                                    setIsAddingMode(false);
-                                                    setIsDetailOpen(true);
-                                                }}
-                                                className={`w-full flex items-center gap-3 p-4 border rounded-2xl shadow-sm text-left transition-all ${selectedItem?.id === item.id
-                                                    ? 'bg-brand-1/5 border-brand-1 ring-1 ring-brand-1'
-                                                    : 'bg-white border-gray-100 hover:border-brand-1/30 hover:shadow-md'
-                                                    }`}
-                                            >
-                                                <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
-                                                    <MapPin size={20} className="text-brand-1" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="font-bold text-gray-900 truncate text-base">{item.siteName}</span>
-                                                        {item.isFavorite && <span className="text-red-400 text-xs">❤</span>}
-                                                    </div>
-                                                    <div className="flex items-center text-xs text-gray-500 gap-2">
-                                                        <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">{new Date(item.visitedDate).toLocaleDateString()}</span>
-                                                        {item.address && <span className="truncate max-w-[120px]">{item.address}</span>}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
 
             {/* Detail Sheet Overlay */}
             <PlaceDetailSheet
                 item={selectedItem}
                 isOpen={isDetailOpen}
-                onClose={() => {
-                    setIsDetailOpen(false);
-                }}
+                onClose={() => setIsDetailOpen(false)}
                 isNew={isAddingMode}
                 onSaveNew={handleSaveNew}
             />

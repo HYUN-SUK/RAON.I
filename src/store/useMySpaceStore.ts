@@ -20,6 +20,10 @@ export interface MapItem {
     x: number;
     y: number;
 
+    // 실제 지도 좌표 (카카오맵)
+    lat?: number;
+    lng?: number;
+
     visitedDate: string;
     isStamped: boolean;
     address?: string; // New: Address string
@@ -133,7 +137,7 @@ export const useMySpaceStore = create<MySpaceState>()(
                 const exists = state.mapItems.some(i => i.id === item.id || (i.siteName === item.siteName && i.visitedDate === item.visitedDate));
 
                 if (exists) return state;
-                return { mapItems: [...state.mapItems, item] };
+                return { mapItems: [item, ...state.mapItems] }; // Prepend new item
             }),
             updateMapItem: (id, updates) => set((state) => {
 

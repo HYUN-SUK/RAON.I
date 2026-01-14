@@ -308,6 +308,14 @@
   - [x] **Loading UX**: Optimized Skeleton height for Hero & Grid to prevent layout shift (CLS).
   - [x] **Visual**: Widened badge spacing (`gap-2`) in Recommendation Cards.
   - [x] **Content**: Updated "Activity" to "Gravity" in nearby card title.
+- [x] **LBS Data Refresh Fix** (2026-01-14):
+  - [x] **Fix**: Updated `NearbyDetailSheet` useEffect dependencies to track `lat/lng` values instead of object reference.
+  - [x] **Result**: Ensures facilities data is refetched when user location changes.
+- [x] **My Camping Map Upgrade** (2026-01-14):
+  - [x] **Integration**: Replaced static map image with interactive `react-kakao-maps-sdk`.
+  - [x] **Features**: Implemented keyword search (Places API), marker clustering, and precise pin adding.
+  - [x] **Verification**: Verified map loading, search, and pin addition on localhost (domain registered).
+  - [x] **UX Polish**: Added auto-address fill, enhanced search UI, 'Current Location' label, expandable list area, and list filtering.
 
 ## 11. PWA Install Prompt (2026-01-13) ✅
 - [x] **Hook**: Created `usePWAInstallPrompt` (handle `beforeinstallprompt` event + Platform Detection).
