@@ -239,6 +239,7 @@ export interface Database {
                     mission_reward_3rd_token: number | null
 
                     refund_policy: Json | null
+                    refund_rules_text: string | null
 
                     created_at: string
                     updated_at: string
@@ -272,6 +273,7 @@ export interface Database {
                     mission_reward_3rd_token?: number | null
 
                     refund_policy?: Json | null
+                    refund_rules_text?: string | null
 
                     created_at?: string
                     updated_at?: string
@@ -305,6 +307,7 @@ export interface Database {
                     mission_reward_3rd_token?: number | null
 
                     refund_policy?: Json | null
+                    refund_rules_text?: string | null
 
                     created_at?: string
                     updated_at?: string

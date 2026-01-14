@@ -141,10 +141,10 @@ export default function BeginnerHome() {
             {
                 type: 'rules',
                 icon: <Clock className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
-                label: "이용수칙",
-                sub: "매너타임 외",
-                title: "이용 수칙 안내",
-                description: config.rules_guide_text || "모두가 행복한 캠핑을 위해 이용 수칙을 준수해주세요.\n\n매너타임: 22:00 ~ 08:00\n(상세 수칙은 관리자에게 문의하세요)",
+                label: "이용수칙, 환불규정",
+                sub: "규정 안내",
+                title: "이용수칙 및 환불규정",
+                description: `[이용수칙]\n${config.rules_guide_text || "모두가 행복한 캠핑을 위해 이용 수칙을 준수해주세요.\n\n매너타임: 22:00 ~ 08:00"}\n\n────────────────────\n\n[환불규정]\n${config.refund_rules_text || "• 7일 전: 100% 환불\n• 5~6일 전: 90% 환불\n• 3~4일 전: 50% 환불\n• 1~2일 전: 20% 환불\n• 당일: 환불 불가"}`,
                 actionLabel: "확인",
                 actionLink: "#"
             },

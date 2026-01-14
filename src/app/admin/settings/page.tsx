@@ -41,6 +41,7 @@ export default function AdminSettingsPage() {
     const [facilitiesDescription, setFacilitiesDescription] = useState('');
     const [bathroomImages, setBathroomImages] = useState<string[]>([]);
     const [siteImages, setSiteImages] = useState<string[]>([]);
+    const [refundRulesText, setRefundRulesText] = useState('');
 
     // Mission Reward Settings
     const [missionRewards, setMissionRewards] = useState({
@@ -89,6 +90,7 @@ export default function AdminSettingsPage() {
             setFacilitiesDescription(config.facilities_description || '');
             setBathroomImages(config.bathroom_images || []);
             setSiteImages(config.site_images || []);
+            setRefundRulesText(config.refund_rules_text || '');
 
             // Mission Rewards
             setMissionRewards({
@@ -255,6 +257,7 @@ export default function AdminSettingsPage() {
                     mission_reward_3rd_token: missionRewards.third_token,
                     // Refund Policy
                     refund_policy: refundPolicy,
+                    refund_rules_text: refundRulesText,
                     // Market Categories
                     market_categories: marketCategories,
                     updated_at: new Date().toISOString(),
@@ -514,18 +517,30 @@ export default function AdminSettingsPage() {
                         </div>
                     </div>
 
-                    {/* Chip 3: Rules */}
+                    {/* Chip 3: Rules & Refund */}
                     <div className="border p-4 rounded-lg bg-gray-50 space-y-3 md:col-span-2">
-                        <Label className="font-bold text-gray-700">3. 이용수칙</Label>
-                        <div className="space-y-2">
-                            <Label className="text-xs">이용 수칙 상세 내용 (줄바꿈 지원)</Label>
-                            <Textarea
-                                value={formData.rules_guide_text}
-                                onChange={e => setFormData({ ...formData, rules_guide_text: e.target.value })}
-                                className="bg-white h-24"
-                                placeholder="예: 매너타임은 22시부터 08시까지입니다..."
-                            />
+                        <Label className="font-bold text-gray-700">3. 이용수칙 / 환불규정</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs">이용수칙 (줄바꿈 지원)</Label>
+                                <Textarea
+                                    value={formData.rules_guide_text}
+                                    onChange={e => setFormData({ ...formData, rules_guide_text: e.target.value })}
+                                    className="bg-white h-32"
+                                    placeholder="예: 매너타임은 22시부터 08시까지입니다..."
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs">환불규정 (줄바꿈 지원)</Label>
+                                <Textarea
+                                    value={refundRulesText}
+                                    onChange={e => setRefundRulesText(e.target.value)}
+                                    className="bg-white h-32"
+                                    placeholder="예: 7일 전 100% 환불, 3일 전 50% 환불..."
+                                />
+                            </div>
                         </div>
+                        <p className="text-xs text-gray-500">※ 예약 폼에서 사용자가 동의 체크 시 위 내용이 표시됩니다.</p>
                     </div>
 
                     {/* Chip 4: Facilities (Map) */}
