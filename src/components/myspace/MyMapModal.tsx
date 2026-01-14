@@ -448,28 +448,40 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
                                 position={{ lat: pendingPin.lat, lng: pendingPin.lng }}
                                 yAnchor={1.5}
                             >
-                                <div className="bg-white px-4 py-3 rounded-2xl shadow-xl z-30 flex items-center gap-3 animate-in slide-in-from-bottom-5 max-w-[280px]">
+                                <div
+                                    className="bg-white px-5 py-4 rounded-2xl shadow-xl z-50 flex items-center gap-4 animate-in slide-in-from-bottom-5 max-w-[320px]"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                >
                                     <div className="flex flex-col flex-1 min-w-0">
-                                        <span className="text-sm font-bold text-gray-800 truncate">{pendingPin.name || "새로운 장소"}</span>
+                                        <span className="text-base font-bold text-gray-900 truncate">{pendingPin.name || "새로운 장소"}</span>
                                         {pendingPin.address && (
-                                            <span className="text-[10px] text-gray-500 truncate">{pendingPin.address}</span>
+                                            <span className="text-xs text-gray-500 truncate mt-0.5">{pendingPin.address}</span>
                                         )}
-                                        <span className="text-[10px] text-brand-1 mt-0.5">이곳을 추가할까요?</span>
+                                        <span className="text-xs text-brand-1 mt-1 font-medium">이곳을 추가할까요?</span>
                                     </div>
-                                    <div className="flex gap-2 flex-shrink-0">
+                                    <div className="flex gap-3 flex-shrink-0">
                                         <button
                                             onMouseDown={(e) => e.stopPropagation()}
-                                            onClick={(e) => { e.stopPropagation(); confirmPendingPin(); }}
-                                            className="p-1.5 bg-brand-1 text-white rounded-full hover:bg-brand-1/90 shadow-sm"
+                                            onTouchStart={(e) => e.stopPropagation()}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                confirmPendingPin();
+                                            }}
+                                            className="p-3 bg-brand-1 text-white rounded-full hover:bg-brand-1/90 shadow-md active:scale-95 transition-transform"
                                         >
-                                            <Check size={14} strokeWidth={3} />
+                                            <Check size={20} strokeWidth={3} />
                                         </button>
                                         <button
                                             onMouseDown={(e) => e.stopPropagation()}
-                                            onClick={(e) => { e.stopPropagation(); setPendingPin(null); }}
-                                            className="p-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200"
+                                            onTouchStart={(e) => e.stopPropagation()}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPendingPin(null);
+                                            }}
+                                            className="p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 active:scale-95 transition-transform"
                                         >
-                                            <X size={14} strokeWidth={3} />
+                                            <X size={20} strokeWidth={3} />
                                         </button>
                                     </div>
                                 </div>

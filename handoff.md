@@ -43,6 +43,7 @@
 ## 4. 최근 세션 요약 (Session 8.16: Geolocation & Migration)
 - **Geolocation UX**: `MyMapModal`에 로딩 상태(`isLocating`) 및 타임아웃(10s)/캐시(1m) 옵션 추가로 반응성 개선.
 - **Home Optimization**: `usePersonalizedRecommendation`의 API 호출을 Non-blocking으로 전환하고, `BeginnerHome`의 텍스트가 즉시 렌더링되도록 개선하여 LCP/FCP 대폭 단축.
+- **UI Polish**: '나만의 지도' → '나만의 캠핑지도'로 명칭 통일.
 - **Data Migration**: `scripts/migrate_mymap.ts`를 통해 레거시 좌표(x/y)를 실제 위경도(lat/lng)로 일괄 변환 완료.
 - **Build Verification**: `npm run build` 성공 확인.
 - **Git Status**: 로컬 커밋 완료 (`fix: optimize home loading...`), `git push` 대기 중.
