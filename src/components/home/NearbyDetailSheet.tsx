@@ -258,6 +258,9 @@ export default function NearbyDetailSheet({
                     <SheetDescription>
                         {customDescription || (!isUsingDefault ? '주변 반경 30km의 레포츠,관광지,편의시설,행사를 확인하세요' : '캠핑장(예산군) 기준 30km 내의 행사와 편의시설을 확인하세요')}
                     </SheetDescription>
+                    <p className="text-[10px] text-stone-400 mt-1">
+                        ※ 외부 데이터 연동으로 정보 업데이트에 수초가 소요될 수 있습니다
+                    </p>
                 </SheetHeader>
 
                 <div className="px-6 mt-4 h-full">
@@ -601,6 +604,6 @@ export default function NearbyDetailSheet({
                     </Tabs>
                 </div>
             </SheetContent>
-        </Sheet>
+        </Sheet >
     );
 }

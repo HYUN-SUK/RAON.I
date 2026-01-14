@@ -612,9 +612,28 @@ export function usePersonalizedRecommendation() {
 
         fetchRecommendations();
 
-    }, [weather.type, refreshTrigger, timeCtx]);
+        // 의존성에서 weather.type 제거 - 날씨 로딩 기다리지 않고 먼저 추천 표시
+        // 날씨 정보는 greeting에서만 사용하며, 날씨 도착 시 별도 업데이트
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refreshTrigger, timeCtx]);
 
     const shuffle = () => setRefreshTrigger(prev => prev + 1);
+
+    // 날씨 로딩 완료 시 context/greeting 업데이트 (기존 추천은 유지)
+    useEffect(() => {
+        if (!weather.loading && weather.type !== 'unknown') {
+            setData(prev => ({
+                ...prev,
+                context: {
+                    ...prev.context,
+                    weather: weather.type,
+                    temp: weather.temp,
+                    greeting: getGreeting(timeCtx, weather.type, prev.userProfile?.nickname || undefined, weather.temp)
+                }
+            }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [weather.loading, weather.type, weather.temp]);
 
     return { data, loading, weather, shuffle };
 }

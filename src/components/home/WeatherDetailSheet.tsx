@@ -59,10 +59,13 @@ export default function WeatherDetailSheet({ isOpen, onClose, weather, locationN
 
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 dark:bg-zinc-800 text-stone-500 dark:text-stone-400 text-xs font-medium mb-4">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 dark:bg-zinc-800 text-stone-500 dark:text-stone-400 text-xs font-medium mb-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                            {locationName} 실시간
+                            현위치 날씨 실시간 안내
                         </div>
+                        <p className="text-[10px] text-stone-400 mb-4">
+                            ※ 기상청 데이터 특성상 정보 업데이트에 수초가 소요될 수 있습니다
+                        </p>
 
                         <div className="flex flex-col items-center py-4">
                             <div className="flex items-center gap-6">
