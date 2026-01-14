@@ -173,7 +173,7 @@ export default function NearbyDetailSheet({
         fetchFacilities();
         fetchLeisure();
         fetchAttractions();
-    }, [isOpen, enableApiCall, userLocation]);
+    }, [isOpen, enableApiCall, userLocation?.latitude, userLocation?.longitude]);
 
     // Use API data if available, fallback to props
     const events = enableApiCall && apiEvents.length > 0 ? apiEvents : propEvents;

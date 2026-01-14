@@ -304,6 +304,10 @@
   - [x] **Utility**: Added `clamp()` based responsive text classes to `globals.css`.
   - [x] **Apply**: Applied to `BeginnerHome` (Hero/Chips) & `RecommendationGrid` (Cards/Badges).
   - [x] **Build**: ✅ Verified `npm run build` success.
+- [x] **UX Polish & Optimization** (2026-01-14):
+  - [x] **Loading UX**: Optimized Skeleton height for Hero & Grid to prevent layout shift (CLS).
+  - [x] **Visual**: Widened badge spacing (`gap-2`) in Recommendation Cards.
+  - [x] **Content**: Updated "Activity" to "Gravity" in nearby card title.
 
 ## 11. PWA Install Prompt (2026-01-13) ✅
 - [x] **Hook**: Created `usePWAInstallPrompt` (handle `beforeinstallprompt` event + Platform Detection).
