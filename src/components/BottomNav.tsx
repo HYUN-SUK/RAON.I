@@ -25,7 +25,7 @@ export default function BottomNav() {
         { name: "홈", href: "/", icon: Home, badgeTarget: 'home' },
         { name: "예약", href: "/reservation", icon: Calendar, badgeTarget: 'reservation' },
         { name: "커뮤니티", href: "/community", icon: Users, badgeTarget: 'community' },
-        { name: "내공간", href: "/myspace", icon: Tent, badgeTarget: 'myspace' },
+        { name: "내 수첩", href: "/myspace", icon: Tent, badgeTarget: 'myspace' },
         { name: "마켓", href: "/market", icon: ShoppingBag },
     ];
 

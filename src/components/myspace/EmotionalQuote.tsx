@@ -23,9 +23,26 @@ export default function EmotionalQuote() {
     return (
         <div className="mx-4 my-4">
             <div className="relative bg-gradient-to-br from-[#F7F5EF] to-[#ECE8DF] dark:from-zinc-800 dark:to-zinc-900 rounded-2xl p-5 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm overflow-hidden">
+
+                {/* Dog-ear (종이 접힘) 효과 - 오른쪽 상단 */}
+                <div
+                    className="absolute top-0 right-0 w-8 h-8 pointer-events-none"
+                    style={{
+                        background: 'linear-gradient(135deg, transparent 50%, #E8E4DB 50%, #DDD8CF 100%)',
+                        borderBottomLeftRadius: '8px',
+                    }}
+                />
+                <div
+                    className="absolute top-0 right-0 w-8 h-8 pointer-events-none"
+                    style={{
+                        background: 'linear-gradient(135deg, #F7F5EF 50%, transparent 50%)',
+                        boxShadow: '-1px 1px 2px rgba(0,0,0,0.05)',
+                    }}
+                />
+
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-5 pointer-events-none">
-                    <div className="absolute top-2 right-4 text-6xl">{getContextEmoji()}</div>
+                    <div className="absolute top-2 right-12 text-6xl">{getContextEmoji()}</div>
                 </div>
 
                 {/* Quote Content */}
@@ -41,3 +58,4 @@ export default function EmotionalQuote() {
         </div>
     );
 }
+

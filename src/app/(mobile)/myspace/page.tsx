@@ -9,10 +9,11 @@ import MyTimeline from "@/components/myspace/MyTimeline";
 import UpcomingReservation from "@/components/myspace/UpcomingReservation";
 import SlimNotice from "@/components/myspace/SlimNotice";
 import MyGroupsWidget from "@/components/myspace/MyGroupsWidget";
+import PaperBackground from "@/components/myspace/PaperBackground";
 
 export default function MySpacePage() {
     return (
-        <div className="w-full min-h-screen bg-surface-1 pb-32">
+        <PaperBackground className="w-full pb-32">
             {/* 1. Top Bar (Static) */}
             <TopBar />
 
@@ -39,6 +40,7 @@ export default function MySpacePage() {
 
             {/* 7. Upcoming Reservation Card */}
             <UpcomingReservation />
-        </div>
+        </PaperBackground>
     );
 }
+
