@@ -3,6 +3,7 @@
 import TopBar from "@/components/TopBar";
 import HeroSection from "@/components/myspace/HeroSection";
 import ActionButtons from "@/components/myspace/ActionButtons";
+import EmotionalQuote from "@/components/myspace/EmotionalQuote";
 import SummaryGrid from "@/components/myspace/SummaryGrid";
 import MyTimeline from "@/components/myspace/MyTimeline";
 import UpcomingReservation from "@/components/myspace/UpcomingReservation";
@@ -21,7 +22,10 @@ export default function MySpacePage() {
             {/* 3. Action Buttons */}
             <ActionButtons />
 
-            {/* 3.5 My Groups Widget */}
+            {/* 3.5 Emotional Quote - 동적 감성 문구 */}
+            <EmotionalQuote />
+
+            {/* 4. My Groups Widget */}
             <MyGroupsWidget />
 
             {/* 4. Summary Grid */}
