@@ -347,4 +347,23 @@
   - [x] External APIs (Weather, Tour)
   - [x] PWA Install Button (Hybrid flow)
 
+## 8.16 MySpace Notebook Feel (2026-01-16) ✅
+- [x] **Paper Background**:
+  - [x] Created `PaperBackground.tsx` with SVG noise texture.
+  - [x] Applied ivory/cream gradient background.
+  - [x] Added edge shadow effect for paper feel.
+- [x] **EmotionalQuote Dog-ear**:
+  - [x] Added paper folded corner effect (top-right).
+  - [x] CSS-only implementation (no images).
+- [x] **SummaryGrid Tape Effect**:
+  - [x] Added tape strips on each card with varied positions/angles.
+  - [x] Cards have slight rotation (-0.8° to +1°) for natural feel.
+  - [x] Hover animation returns cards to normal rotation.
+- [x] **BottomNav Rename**:
+  - [x] Changed "내공간" to "내 수첩" for notebook concept.
+- [x] **Code Cleanup**:
+  - [x] Removed unused `Award` import from SummaryGrid.
+- [x] **Build Verification**: ✅ SUCCESS (Exit code: 0).
+
 ## ✅ Session Completed
+

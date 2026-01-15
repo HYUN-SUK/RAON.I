@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon, History, Map, Award, Star } from "lucide-react";
+import { Image as ImageIcon, History, Map, Star } from "lucide-react";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";

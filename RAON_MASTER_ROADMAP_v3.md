@@ -287,6 +287,12 @@
             *   [x] **Navigation**: '나의 예약' 더보기 버튼 → 전체 내역 페이지 연결.
             *   [x] **UI Polish**: "1가족, 방문객 N명" 포맷 통일 및 라벨링 개선.
             *   [x] **Status**: **100% Done**
+        *   [x] **8.16 MySpace Notebook Feel (New)** ✅ (2026-01-16):
+            *   [x] **Paper Background**: `PaperBackground.tsx` (SVG noise + cream gradient).
+            *   [x] **Dog-ear Effect**: EmotionalQuote 상단 우측 모서리 접힘 CSS 효과.
+            *   [x] **Tape Effect**: SummaryGrid 카드 상단 테이프 + 기울기 효과.
+            *   [x] **Branding**: "내공간" → "내 수첩" 명칭 변경.
+            *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
