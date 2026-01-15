@@ -50,6 +50,10 @@ export interface WeatherState {
 
     loading: boolean;
     error: string | null;
+
+    // 갱신 시간 정보
+    lastUpdated: Date | null;
+    nextUpdate: Date | null;
 }
 
 export const useWeather = (userLat?: number, userLng?: number) => {
@@ -65,6 +69,8 @@ export const useWeather = (userLat?: number, userLng?: number) => {
 
         loading: true,
         error: null,
+        lastUpdated: null,
+        nextUpdate: null,
     });
 
     useEffect(() => {
@@ -80,8 +86,16 @@ export const useWeather = (userLat?: number, userLng?: number) => {
             if (cached) {
                 const parsed = JSON.parse(cached);
                 const now = new Date().getTime();
-                if (now - parsed.timestamp < 1800 * 1000) {
-                    setWeather(parsed.data);
+                const cacheAge = now - parsed.timestamp;
+                if (cacheAge < 1800 * 1000) {
+                    // 캠시에서 갑어올 때 갱신 시간 정보 추가
+                    const lastUpdated = new Date(parsed.timestamp);
+                    const nextUpdate = new Date(parsed.timestamp + 1800 * 1000);
+                    setWeather({
+                        ...parsed.data,
+                        lastUpdated,
+                        nextUpdate,
+                    });
                     return;
                 }
             }
@@ -147,6 +161,8 @@ export const useWeather = (userLat?: number, userLng?: number) => {
                     timeline: data.timeline || [],
                     loading: false,
                     error: null,
+                    lastUpdated: new Date(),
+                    nextUpdate: new Date(Date.now() + 1800 * 1000),
                 };
 
                 setWeather(weatherData);

@@ -277,6 +277,16 @@
             *   [x] **Reverse Geocoding**: Kakao Maps API 연동하여 지도 클릭/검색 시 주소 자동 변환.
             *   [x] **UX Enhancement**: 검색-지도 클릭 간섭 방지, 새 아이템 리스트 상단 추가 및 자동 스크롤.
             *   [x] **UI Polish**: 마커 아이콘 변경 (Flag), 툴팁 정보 강화.
+            *   [x] **Mobile Map**: 터치 이벤트 전파 차단으로 지도 등록 오동작 해결.
+            *   [x] **Consistency**: "나만의 캠핑지도" 명칭 통일 & 데이터 마이그레이션(x/y -> lat/lng) 완료.
+            *   [x] **Status**: **100% Done**
+        *   [x] **8.15 Reservation UX & Smart Re-book** ✅ (2026-01-15):
+            *   [x] **Smart Re-book**: "지난 여행 조건으로 예약하기" 기능 고도화 (인원/차량/연락처 Pre-fill).
+            *   [x] **Smart Pre-fill**: 새 예약 시에도 최근 예약 기록(취소건 포함) 기반 연락처 자동 입력 지원.
+            *   [x] **Upcoming UI**: 체크인 날짜순 정렬 복원 및 입금대기(Pending) 예약 별도 카드/시트 분리.
+            *   [x] **Navigation**: '나의 예약' 더보기 버튼 → 전체 내역 페이지 연결.
+            *   [x] **UI Polish**: "1가족, 방문객 N명" 포맷 통일 및 라벨링 개선.
+            *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음

@@ -63,6 +63,16 @@ export default function WeatherDetailSheet({ isOpen, onClose, weather, locationN
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                             현위치 날씨 실시간 안내
                         </div>
+
+                        {/* 갱신 시간 정보 */}
+                        <div className="flex justify-center gap-4 text-[10px] text-stone-400 mb-2">
+                            {weather.lastUpdated && (
+                                <span>마지막 갱신: {format(weather.lastUpdated, 'HH:mm')}</span>
+                            )}
+                            {weather.nextUpdate && (
+                                <span>다음 갱신: {format(weather.nextUpdate, 'HH:mm')}</span>
+                            )}
+                        </div>
                         <p className="text-[10px] text-stone-400 mb-4">
                             ※ 기상청 데이터 특성상 정보 업데이트에 수초가 소요될 수 있습니다
                         </p>
@@ -108,7 +118,6 @@ export default function WeatherDetailSheet({ isOpen, onClose, weather, locationN
                         </div>
                     </div>
 
-
                     {/* Hourly Timeline */}
                     <div className="mb-8">
                         <div className="flex items-center gap-2 mb-3">
@@ -116,36 +125,48 @@ export default function WeatherDetailSheet({ isOpen, onClose, weather, locationN
                             <h3 className="font-bold text-stone-800 dark:text-stone-100 text-sm">시간별 예보</h3>
                         </div>
                         <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 scrollbar-hide">
-                            {weather.timeline?.length > 0 ? weather.timeline.map((item, idx) => {
-                                const timeStr = item.time.substring(0, 2) + '시';
-                                const isNewDay = idx > 0 && item.date !== weather.timeline[idx - 1].date;
-                                return (
-                                    <div key={idx} className={`flex flex-col items-center flex-shrink-0 space-y-2 ${isNewDay ? 'border-l pl-4 border-stone-200' : ''} min-w-[3.5rem]`}>
-                                        <span className="text-[10px] text-stone-400">{isNewDay ? item.date.substring(4, 6) + '.' + item.date.substring(6, 8) : timeStr}</span>
-                                        <WeatherIcon type={item.weatherCode} className="w-6 h-6" isDay={true} />
-                                        <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{Math.round(item.temp)}°</span>
+                            {(() => {
+                                // 현재 시각 기준 필터링
+                                const now = new Date();
+                                const currentHour = now.getHours();
+                                const today = format(now, 'yyyyMMdd');
 
-                                        {/* Wind Info */}
-                                        <div className="flex flex-col items-center gap-0.5 mt-1">
-                                            {/* ArrowUp points UP at 0deg. We rotate it. 
-                                                Wind Direction 0 (North Wind) means blowing FROM North TO South.
-                                                So arrow should point DOWN (180deg). 
-                                                Formula: vec + 180. 
-                                            */}
-                                            <ArrowUp
-                                                className="w-3 h-3 text-stone-400"
-                                                style={{ transform: `rotate(${(item.vec || 0) + 180}deg)` }}
-                                            />
-                                            <span className="text-[9px] text-stone-500">{Math.round(item.wsd || 0)}m/s</span>
-                                            <span className="text-[8px] text-stone-400">{getWindDirection(item.vec || 0)}</span>
+                                const filteredTimeline = weather.timeline?.filter((item) => {
+                                    if (item.date > today) return true; // 내일 이후는 모두 표시
+                                    const itemHour = parseInt(item.time.substring(0, 2), 10);
+                                    return item.date === today && itemHour >= currentHour;
+                                }) || [];
+
+                                return filteredTimeline.length > 0 ? filteredTimeline.map((item, idx) => {
+                                    const itemHour = parseInt(item.time.substring(0, 2), 10);
+                                    const timeStr = item.time.substring(0, 2) + '시';
+                                    const isNewDay = idx > 0 && item.date !== filteredTimeline[idx - 1].date;
+                                    // 낮: 6시~17시, 밤: 18시~5시
+                                    const isDay = itemHour >= 6 && itemHour < 18;
+
+                                    return (
+                                        <div key={idx} className={`flex flex-col items-center flex-shrink-0 space-y-2 ${isNewDay ? 'border-l pl-4 border-stone-200' : ''} min-w-[3.5rem]`}>
+                                            <span className="text-[10px] text-stone-400">{isNewDay ? item.date.substring(4, 6) + '.' + item.date.substring(6, 8) : timeStr}</span>
+                                            <WeatherIcon type={item.weatherCode} className="w-6 h-6" isDay={isDay} />
+                                            <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{Math.round(item.temp)}°</span>
+
+                                            {/* Wind Info */}
+                                            <div className="flex flex-col items-center gap-0.5 mt-1">
+                                                <ArrowUp
+                                                    className="w-3 h-3 text-stone-400"
+                                                    style={{ transform: `rotate(${(item.vec || 0) + 180}deg)` }}
+                                                />
+                                                <span className="text-[9px] text-stone-500">{Math.round(item.wsd || 0)}m/s</span>
+                                                <span className="text-[8px] text-stone-400">{getWindDirection(item.vec || 0)}</span>
+                                            </div>
+
+                                            {item.pop > 0 && <span className="text-[9px] text-blue-500 font-bold">{item.pop}%</span>}
                                         </div>
-
-                                        {item.pop > 0 && <span className="text-[9px] text-blue-500 font-bold">{item.pop}%</span>}
-                                    </div>
-                                )
-                            }) : (
-                                <p className="text-xs text-stone-400 w-full text-center">상세 예보 정보가 없습니다.</p>
-                            )}
+                                    );
+                                }) : (
+                                    <p className="text-xs text-stone-400 w-full text-center">상세 예보 정보가 없습니다.</p>
+                                );
+                            })()}
                         </div>
                     </div>
 

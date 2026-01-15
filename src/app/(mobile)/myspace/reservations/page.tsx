@@ -9,6 +9,17 @@ import { ko } from "date-fns/locale";
 import { ChevronLeft, Calendar, MapPin, Clock, CheckCircle2, AlertCircle, XCircle, Loader2, RefreshCw, BanknoteIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CancelReservationSheet from "@/components/reservation/CancelReservationSheet";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 // 상태별 스타일 및 라벨
 const STATUS_CONFIG: Record<ReservationStatus, { label: string; color: string; icon: React.ElementType; bgColor: string }> = {
@@ -23,10 +34,15 @@ const STATUS_CONFIG: Record<ReservationStatus, { label: string; color: string; i
 
 export default function MyReservationsPage() {
     const router = useRouter();
-    const { reservations, fetchMyReservations } = useReservationStore();
+    const { reservations, fetchMyReservations, updateReservationStatus } = useReservationStore();
     const [loading, setLoading] = useState(true);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [cancelSheetOpen, setCancelSheetOpen] = useState(false);
+
+    // 입금대기 취소용 상태
+    const [pendingCancelReservation, setPendingCancelReservation] = useState<Reservation | null>(null);
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [directCancelling, setDirectCancelling] = useState(false);
 
     const loadReservations = useCallback(async () => {
         setLoading(true);
@@ -39,8 +55,33 @@ export default function MyReservationsPage() {
     }, [loadReservations]);
 
     const handleCancelClick = (reservation: Reservation) => {
-        setSelectedReservation(reservation);
-        setCancelSheetOpen(true);
+        if (reservation.status === 'PENDING') {
+            // 입금대기 상태면 확인 다이얼로그 표시 후 바로 취소
+            setPendingCancelReservation(reservation);
+            setConfirmDialogOpen(true);
+        } else {
+            // CONFIRMED일 때만 환불 계좌 입력 Sheet 표시
+            setSelectedReservation(reservation);
+            setCancelSheetOpen(true);
+        }
+    };
+
+    // 입금대기 상태 바로 취소
+    const handleDirectCancel = async () => {
+        if (!pendingCancelReservation) return;
+
+        setDirectCancelling(true);
+        try {
+            await updateReservationStatus(pendingCancelReservation.id, 'CANCELLED');
+            toast.success('예약이 취소되었습니다');
+            setConfirmDialogOpen(false);
+            setPendingCancelReservation(null);
+            loadReservations();
+        } catch {
+            toast.error('취소에 실패했습니다');
+        } finally {
+            setDirectCancelling(false);
+        }
     };
 
     const handleCancelComplete = () => {
@@ -84,9 +125,23 @@ export default function MyReservationsPage() {
                 ) : (
                     reservations.map((reservation) => {
                         const site = SITES.find((s) => s.id === reservation.siteId);
-                        const config = STATUS_CONFIG[reservation.status];
+
+                        // 지나간 예약 체크
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const checkOut = new Date(reservation.checkOutDate);
+                        checkOut.setHours(0, 0, 0, 0);
+                        const isPast = checkOut <= today;
+
+                        // 지나간 예약(CONFIRMED/PENDING)은 UI에서 "이용 완료"로 표시
+                        const displayStatus = isPast && (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED')
+                            ? 'COMPLETED' as const
+                            : reservation.status;
+
+                        const config = STATUS_CONFIG[displayStatus];
                         const StatusIcon = config.icon;
-                        const canCancel = reservation.status === "PENDING" || reservation.status === "CONFIRMED";
+
+                        const canCancel = !isPast && (reservation.status === "PENDING" || reservation.status === "CONFIRMED");
 
                         return (
                             <div
@@ -173,7 +228,7 @@ export default function MyReservationsPage() {
                 )}
             </div>
 
-            {/* 취소 요청 바텀시트 */}
+            {/* 취소 요청 바텀시트 (CONFIRMED일 때만 사용) */}
             {selectedReservation && (
                 <CancelReservationSheet
                     open={cancelSheetOpen}
@@ -182,6 +237,28 @@ export default function MyReservationsPage() {
                     onComplete={handleCancelComplete}
                 />
             )}
+
+            {/* 입금대기 취소 확인 다이얼로그 */}
+            <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>예약을 취소하시겠습니까?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            아직 입금하지 않은 예약입니다. 취소하시면 예약이 즉시 취소됩니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>돌아가기</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDirectCancel}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={directCancelling}
+                        >
+                            {directCancelling ? '취소 중...' : '예약 취소'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

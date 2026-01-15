@@ -68,7 +68,7 @@ interface ReservationState {
     getOverdueReservations: () => { overdue: Reservation[], warning: Reservation[] };
     cancelOverdueReservations: () => void;
     validateReservation: (siteId: string, checkIn: Date, checkOut: Date) => string | null;
-    initRebook: (siteId: string, familyCount?: number, visitorCount?: number, vehicleCount?: number) => void;
+    initRebook: (siteId: string, familyCount?: number, visitorCount?: number, vehicleCount?: number, guestName?: string, guestPhone?: string) => void;
 
     // Last Reservation (for Smart Re-book)
     lastReservation: {
@@ -78,8 +78,28 @@ interface ReservationState {
         visitorCount: number;
         vehicleCount: number;
         checkInDate: Date;
+        guestName?: string;
+        guestPhone?: string;
     } | null;
     fetchLastReservation: () => Promise<void>;
+
+    // Rebook Data (폼 자동 입력용)
+    rebookData: {
+        siteId: string;
+        familyCount: number;
+        visitorCount: number;
+        vehicleCount: number;
+        guestName?: string;
+        guestPhone?: string;
+    } | null;
+    clearRebookData: () => void;
+
+    // Generic User Contact Info (New Reservation용)
+    userContactInfo: {
+        guestName: string;
+        guestPhone: string;
+    } | null;
+    fetchUserContactInfo: () => Promise<void>;
 
     // Admin Config
     priceConfig: PricingConfig;
@@ -149,6 +169,8 @@ export const useReservationStore = create<ReservationState>()(
             reservations: [],
             deadlineHours: 6, // Default 6h
             lastReservation: null, // Smart Re-book용 마지막 예약 정보
+            rebookData: null, // Rebook 폼 자동 입력용
+            userContactInfo: null, // 단순 연락처 정보 (New Reservation용)
 
             sites: DEFAULT_SITES, // Initialize with default constant for immediate render
             siteConfig: null,
@@ -741,6 +763,7 @@ export const useReservationStore = create<ReservationState>()(
             },
 
             // Smart Re-book용 마지막 예약 조회
+            // Smart Re-book용 마지막 예약 조회
             fetchLastReservation: async () => {
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
@@ -751,7 +774,8 @@ export const useReservationStore = create<ReservationState>()(
                     return;
                 }
 
-                // 가장 최근 완료된 예약 가져오기 (CONFIRMED 또는 COMPLETED 상태)
+                // Most recent CONFIRMED or COMPLETED reservation
+                // Removed sites(name) join to avoid RLS/FK issues
                 const { data, error } = await supabase
                     .from('reservations')
                     .select(`
@@ -761,7 +785,8 @@ export const useReservationStore = create<ReservationState>()(
                         visitor_count,
                         vehicle_count,
                         check_in_date,
-                        sites(name)
+                        guest_name,
+                        guest_phone
                     `)
                     .eq('user_id', user.id)
                     .in('status', ['CONFIRMED', 'COMPLETED'])
@@ -769,13 +794,21 @@ export const useReservationStore = create<ReservationState>()(
                     .limit(1)
                     .maybeSingle();
 
-                if (error || !data) {
+                if (error) {
+                    console.error('[Store] fetchLastReservation Error:', error);
                     set({ lastReservation: null });
                     return;
                 }
 
-                // sites 조인 결과 처리
-                const siteName = (data.sites as unknown as { name: string })?.name || '알 수 없는 사이트';
+                if (!data) {
+                    set({ lastReservation: null });
+                    return;
+                }
+
+                // Find site name from local store (safe)
+                const { sites } = get();
+                const site = sites.find(s => s.id === data.site_id);
+                const siteName = site ? site.name : (data.site_id || '알 수 없는 사이트');
 
                 set({
                     lastReservation: {
@@ -784,20 +817,60 @@ export const useReservationStore = create<ReservationState>()(
                         familyCount: data.family_count || 1,
                         visitorCount: data.visitor_count || 0,
                         vehicleCount: data.vehicle_count || 1,
-                        checkInDate: new Date(data.check_in_date)
+                        checkInDate: new Date(data.check_in_date),
+                        guestName: data.guest_name || undefined,
+                        guestPhone: data.guest_phone || undefined
                     }
                 });
             },
 
-            initRebook: (siteId, familyCount, visitorCount, vehicleCount) => {
+            initRebook: (siteId, familyCount, visitorCount, vehicleCount, guestName, guestPhone) => {
                 // 사이트 선택
-                const { sites } = get();
+                const { sites, lastReservation } = get();
                 const site = sites.find(s => s.id === siteId);
                 if (site) {
                     set({ selectedSite: site });
                 }
-                // 추가 상태 설정은 예약 페이지에서 처리
+
+                // Rebook 데이터 저장 (폼 자동 입력용)
+                set({
+                    rebookData: {
+                        siteId,
+                        familyCount: familyCount ?? lastReservation?.familyCount ?? 1,
+                        visitorCount: visitorCount ?? lastReservation?.visitorCount ?? 0,
+                        vehicleCount: vehicleCount ?? lastReservation?.vehicleCount ?? 1,
+                        guestName: guestName ?? lastReservation?.guestName,
+                        guestPhone: guestPhone ?? lastReservation?.guestPhone
+                    }
+                });
             },
+
+            fetchUserContactInfo: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                // 상태 상관없이 가장 최근 예약 1건 조회 (이름/연락처만)
+                const { data } = await supabase
+                    .from('reservations')
+                    .select('guest_name, guest_phone')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (data && data.guest_name && data.guest_phone) {
+                    set({
+                        userContactInfo: {
+                            guestName: data.guest_name,
+                            guestPhone: data.guest_phone
+                        }
+                    });
+                }
+            },
+
+            clearRebookData: () => set({ rebookData: null }),
 
             // Open Day Rule
             openDayRule: null,

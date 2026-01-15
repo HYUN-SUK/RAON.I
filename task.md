@@ -318,6 +318,12 @@
   - [x] **UX Polish**: Added auto-address fill, enhanced search UI, 'Current Location' label, expandable list area, and list filtering.
   - [x] **Geolocation Fix**: Optimized `getCurrentPosition` with timeout/cache options & Added Loading UI.
   - [x] **Data Migration**: `migrate_mymap.ts` script executed to convert legacy x/y to lat/lng.
+- [x] **Home Optimization** (2026-01-14):
+  - [x] **Performance**: Converted `nearby-events` API to non-blocking & enabled immediate text rendering (LCP optimized).
+  - [x] **Fix**: Removed duplicate wrapper in `BeginnerHome.tsx`.
+- [x] **UI & Mobile Polish** (2026-01-14):
+  - [x] **Rename**: Changed "나만의 지도" to "나만의 캠핑지도".
+  - [x] **Mobile UX**: Enlarged map confirmation buttons & prevented touch propagation to fix map click conflict.
 
 ## 11. PWA Install Prompt (2026-01-13) ✅
 - [x] **Hook**: Created `usePWAInstallPrompt` (handle `beforeinstallprompt` event + Platform Detection).

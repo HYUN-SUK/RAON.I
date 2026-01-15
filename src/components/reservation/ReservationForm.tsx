@@ -14,7 +14,7 @@ interface ReservationFormProps {
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe } = useReservationStore();
+    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -30,7 +30,32 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         setIsMounted(true);
         setSelectedSite(site);
         fetchSiteConfig();
-    }, [site, setSelectedSite, fetchSiteConfig]);
+
+        // rebookData가 있으면 폼 자동 입력 (Smart Re-book)
+        if (rebookData) {
+            setFamilyCount(rebookData.familyCount);
+            setVisitorCount(rebookData.visitorCount);
+            setVehicleCount(rebookData.vehicleCount);
+            if (rebookData.guestName) setName(rebookData.guestName);
+            if (rebookData.guestPhone) setPhone(rebookData.guestPhone);
+        } else {
+            // rebookData가 없으면(새 예약), 최근 예약 기록에서 이름/연락처만이라도 가져오기
+            fetchUserContactInfo();
+        }
+
+        // 언마운트 시 rebookData 클리어
+        return () => {
+            clearRebookData();
+        };
+    }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo]);
+
+    // userContactInfo가 로드되면 폼에 적용 (이미 입력된 값이 없을 때만)
+    useEffect(() => {
+        if (!rebookData && userContactInfo) {
+            if (!name && userContactInfo.guestName) setName(userContactInfo.guestName);
+            if (!phone && userContactInfo.guestPhone) setPhone(userContactInfo.guestPhone);
+        }
+    }, [userContactInfo, rebookData]);
 
     // Calculate dates
     const fromDate = selectedDateRange.from ? new Date(selectedDateRange.from) : undefined;
