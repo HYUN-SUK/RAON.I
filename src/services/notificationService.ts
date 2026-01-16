@@ -83,7 +83,7 @@ export class NotificationService {
     }
 
     // ========================================
-    // 푸시 발송 (notifications 테이블에 큐잉)
+    // 푸시 발송 (notifications 테이블에 큐잉 + Edge Function 호출)
     // ========================================
     private async sendPush(
         userId: string,
@@ -93,21 +93,37 @@ export class NotificationService {
         data: Record<string, string>
     ): Promise<{ success: boolean; message?: string }> {
         try {
-            const { error } = await this.supabase.from('notifications').insert({
-                user_id: userId,
-                category: this.getCategoryFromEvent(config.type),
-                event_type: config.type,
-                title,
-                body,
-                data,
-                quiet_hours_override: config.quiet_hours_override,
-                status: 'queued',
-            });
+            // 1. DB Insert (Queue)
+            const { data: insertedData, error } = await this.supabase
+                .from('notifications')
+                .insert({
+                    user_id: userId,
+                    category: this.getCategoryFromEvent(config.type),
+                    event_type: config.type,
+                    title,
+                    body,
+                    data,
+                    quiet_hours_override: config.quiet_hours_override,
+                    status: 'queued',
+                })
+                .select()
+                .single();
 
             if (error) {
                 console.error('[NotificationService] Push queue error:', error);
                 return { success: false, message: error.message };
             }
+
+            // 2. Edge Function 직접 호출 (Webhook 대용)
+            // Fire & Forget 방식으로 호출하여 클라이언트 응답 속도 저하 방지
+            // 단, 에러 로깅을 위해 catch 블록 추가
+            this.supabase.functions.invoke('push-notification', {
+                body: { record: insertedData }
+            }).then(({ data: funcData, error: funcError }) => {
+                if (funcError) {
+                    console.error('[NotificationService] Edge Function error:', funcError);
+                }
+            });
 
             return { success: true };
         } catch (err) {

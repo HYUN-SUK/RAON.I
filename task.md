@@ -91,7 +91,10 @@
   - [x] **예약 완료 시 알림**: 예약 완료 페이지에서 RESERVATION_SUBMITTED 발송 연동 (Guest 제외 로직 추가)
   - [x] **실제 FCM 발송**: `supabase/functions/push-notification` 작성 완료 (배포 필요)
   - [x] **예약/취소 알림**: Store 연동 및 페이지 중복 제거 완료 <!-- id: 890 -->
-  - [ ] **[Debug] 실제 수신 실패 원인 규명** (Webhook/Secrets/Edge Function) <!-- id: 891 -->
+  - [x] **[Debug] 실제 수신 실패 원인 규명** (Resolved) <!-- id: 891 -->
+    - [x] **Cause**: DB RLS Policy blocked creation of notifications by users.
+    - [x] **Fix**: Modified `notificationService` to invoke Edge Function directly + Fixed RLS Policy.
+    - [x] **Verification**: Browser Console confirmed `Edge Function success` response.
   - [ ] **DB 스키마 적용 대기**: Supabase 대시보드에서 마이그레이션 실행 필요
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
@@ -370,5 +373,9 @@
   - [x] Removed unused `Award` import from SummaryGrid.
 - [x] **Build Verification**: ✅ SUCCESS (Exit code: 0).
 
-## ✅ Session Completed
+## ✅ Session Completed (2026-01-16)
+- [x] **Push Notification Fix**: RLS Policy added, Edge Function direct invocation implemented.
+- [x] **Verification**: Live Browser Test passed.
+- [x] **Build**: Production build verified.
+
 

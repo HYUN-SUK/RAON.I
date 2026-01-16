@@ -9,6 +9,12 @@
 
 ---
 
+- [x] **9.1 Push Notification Debugging (Urgent)**
+  - [x] **Infrastructure Check**: Verify `push-notification` Edge Function code & secrets.
+  - [x] **Webhook Check**: Confirm Trigger exists on `notifications` table (Bypassed via Client Invoke).
+  - [x] **Fix**: Create migration for Webhook if missing (Fixed RLS instead).
+  - [x] **Verification**: Live booking test -> Check DB `notifications` status.
+
 ## 📅 전체 진행률 요약 (Progress Summary)
 
 | 단계 | 구분 | 상태 | 진행률 | 비고 |
