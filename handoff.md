@@ -35,6 +35,12 @@ Resolved critical issues preventing push notifications (Firebase Auth/Env), fixe
   - Ran cleanup script to delete duplicate tokens, keeping only the most recent one.
   - Updated `push_tokens` table logic (implicitly verified via cleanup).
 
+### 4. Admin Security & UI Access
+- **Issue**: Non-admin users could access `/admin` routes (though data was hidden by RLS).
+- **Fix**:
+  - **Middleware**: Updated `src/middleware.ts` to strictly redirect users without `admin@raon.ai` email to home.
+  - **RLS Reset**: Executed `20260117_nuclear_rls_reset.sql` to drop conflicting policies and establish a clean V3 policy set.
+
 ## 📝 Code Changes
 - **Supabase**:
   - `migrations/20260117_fix_admin_rls_v2.sql`: Comprehensive RLS fix for Admin access.

@@ -103,6 +103,8 @@
   - [x] **Admin Console Fix**:
     - [x] Fixed `create_reservation_safe` visibility via RLS (`fix_admin_rls_v2.sql`).
     - [x] Default `AdminReservationsPage` was missing `fetchAllReservations`. Added it.
+    - [x] **SECURITY UPGRADE**: `middleware.ts` now strictly blocks non-admin emails from accessing `/admin`.
+    - [x] **RLS STABILIZATION**: Performed Nuclear Reset (`20260117_nuclear_rls_reset.sql`) to unify policies.
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
 
