@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarCheck, AlertCircle, ShoppingCart, Server, Users, Activity } from 'lucide-react';
+import { CalendarCheck, AlertCircle, ShoppingCart, Server, Users, Activity, Bell, MapPin } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-client';
@@ -14,7 +14,9 @@ export default function AdminDashboard() {
         pendingCount: 0,
         marketOrders: 0,
         totalUsers: 0,
-        activeUsers: 0
+        activeUsers: 0,
+        locationConsents: 0,
+        pushConsents: 0
     });
     const [loading, setLoading] = useState(true);
 
@@ -57,12 +59,26 @@ export default function AdminDashboard() {
                 .select('*', { count: 'exact', head: true })
                 .gt('updated_at', thirtyDaysAgo.toISOString());
 
+            // 6. Location Consents
+            const { count: locationConsents } = await supabase
+                .from('user_permission_consents')
+                .select('*', { count: 'exact', head: true })
+                .eq('location_granted', true);
+
+            // 7. Push Consents
+            const { count: pushConsents } = await supabase
+                .from('user_permission_consents')
+                .select('*', { count: 'exact', head: true })
+                .eq('push_granted', true);
+
             setStats({
                 todayCheckIns: todayCheckIns || 0,
                 pendingCount: pendingCount || 0,
                 marketOrders: marketOrders || 0,
                 totalUsers: totalUsers || 0,
-                activeUsers: activeUsers || 0
+                activeUsers: activeUsers || 0,
+                locationConsents: locationConsents || 0,
+                pushConsents: pushConsents || 0
             });
         } catch (error) {
             console.error('Error fetching dashboard stats:', error);
@@ -121,6 +137,22 @@ export default function AdminDashboard() {
                     value={loading ? '-' : stats.activeUsers.toString() + '명'}
                     icon={<Activity className="text-rose-500" />}
                     description="최근 30일 내 활동 기록이 있는 회원"
+                />
+            </div>
+
+            {/* Permission Consent Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DashboardCard
+                    title="📍 위치 동의"
+                    value={loading ? '-' : `${stats.locationConsents}명`}
+                    icon={<MapPin className="text-green-500" />}
+                    description={`전체 ${stats.totalUsers}명 중 ${stats.totalUsers > 0 ? Math.round((stats.locationConsents / stats.totalUsers) * 100) : 0}%`}
+                />
+                <DashboardCard
+                    title="🔔 푸시 동의"
+                    value={loading ? '-' : `${stats.pushConsents}명`}
+                    icon={<Bell className="text-amber-500" />}
+                    description={`전체 ${stats.totalUsers}명 중 ${stats.totalUsers > 0 ? Math.round((stats.pushConsents / stats.totalUsers) * 100) : 0}%`}
                 />
             </div>
 

@@ -20,7 +20,11 @@ import {
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { usePushNotification } from "@/hooks/usePushNotification";
 import { usePWAInstallPrompt } from "@/hooks/usePWAInstallPrompt";
+import { usePermissionFlow } from "@/hooks/usePermissionFlow";
 import PWAInstallGuideModal from "@/components/pwa/PWAInstallGuideModal";
+import LocationPermissionPrompt from "@/components/permission/LocationPermissionPrompt";
+import PushPermissionPrompt from "@/components/permission/PushPermissionPrompt";
+import IOSPWAGuidePrompt from "@/components/permission/IOSPWAGuidePrompt";
 
 interface UserInfo {
     nickname: string;
@@ -38,6 +42,19 @@ export default function TopBar() {
     // PWA
     const { isInstallable, promptInstall, platform } = usePWAInstallPrompt();
     const [isIOSModalOpen, setIsIOSModalOpen] = useState(false);
+
+    // Permission Flow
+    const {
+        showLocationPrompt,
+        showPushPrompt,
+        showIOSPWAPrompt,
+        startFlow,
+        handleLocationResult,
+        handlePushResult,
+        handleIOSPWAResult,
+        isFirstLoginPrompt,
+        markFirstLoginPrompted,
+    } = usePermissionFlow();
 
     // Dynamic Level Progress
     const { progress } = getLevelInfo(xp);
@@ -65,6 +82,14 @@ export default function TopBar() {
                 const wallet = await pointService.getWallet(user.id);
                 if (wallet) {
                     setWallet(wallet.xp, wallet.level, wallet.raonToken);
+                }
+                // 3. 첫 로그인 시 권한 플로우 시작
+                if (isFirstLoginPrompt()) {
+                    markFirstLoginPrompted();
+                    // 약간의 딜레이 후 플로우 시작 (로그인 성공 토스트 확인 후)
+                    setTimeout(() => {
+                        startFlow();
+                    }, 2000);
                 }
             } catch (error) {
                 console.error("Login reward/sync failed:", error);
@@ -207,6 +232,23 @@ export default function TopBar() {
                 isOpen={isIOSModalOpen}
                 onClose={() => setIsIOSModalOpen(false)}
                 platform={platform} // Pass detected platform
+            />
+
+            {/* Permission Flow Prompts */}
+            <LocationPermissionPrompt
+                isOpen={showLocationPrompt}
+                onAccept={() => handleLocationResult(true)}
+                onDismiss={() => handleLocationResult(false)}
+            />
+            <PushPermissionPrompt
+                isOpen={showPushPrompt}
+                onAccept={() => handlePushResult(true)}
+                onDismiss={() => handlePushResult(false)}
+            />
+            <IOSPWAGuidePrompt
+                isOpen={showIOSPWAPrompt}
+                onAccept={() => handleIOSPWAResult(true)}
+                onDismiss={() => handleIOSPWAResult(false)}
             />
         </header>
     );

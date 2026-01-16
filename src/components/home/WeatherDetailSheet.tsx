@@ -23,6 +23,34 @@ interface WeatherDetailSheetProps {
 
 export default function WeatherDetailSheet({ isOpen, onClose, weather, locationName = "라온아이 오토캠핑장" }: WeatherDetailSheetProps) {
 
+    // 현재 시간 기준 타임라인에서 온도 찾기
+    const getCurrentHourTemp = () => {
+        if (!weather.timeline || weather.timeline.length === 0) return weather.temp;
+
+        const now = new Date();
+        const currentHour = now.getHours();
+        const today = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+
+        // 현재 시간과 가장 가까운 타임라인 데이터 찾기
+        const currentHourData = weather.timeline.find((item) => {
+            const itemHour = parseInt(item.time.substring(0, 2), 10);
+            return item.date === today && itemHour === currentHour;
+        });
+
+        // 현재 시간 데이터가 있으면 사용, 없으면 타임라인 첫 번째 또는 기존 temp 사용
+        if (currentHourData) return currentHourData.temp;
+
+        // 현재 시간보다 가까운 시간 찾기
+        const closestData = weather.timeline.find((item) => {
+            const itemHour = parseInt(item.time.substring(0, 2), 10);
+            return item.date === today && itemHour >= currentHour;
+        });
+
+        return closestData?.temp ?? weather.temp;
+    };
+
+    const displayTemp = getCurrentHourTemp();
+
     // Icon Mapping
     const getWeatherIcon = (type: WeatherType, className = "w-6 h-6") => {
         switch (type) {
@@ -83,7 +111,7 @@ export default function WeatherDetailSheet({ isOpen, onClose, weather, locationN
                                 <div className="flex flex-col items-start translate-y-1">
                                     <div className="flex items-baseline gap-2">
                                         <h2 className="text-6xl font-bold tracking-tighter text-stone-900 dark:text-stone-50">
-                                            {weather.temp !== null ? Math.round(weather.temp) : '--'}°
+                                            {displayTemp !== null ? Math.round(displayTemp) : '--'}°
                                         </h2>
                                         <span className="text-xl font-medium text-stone-600 dark:text-stone-400">
                                             {getWeatherLabel(weather.type)}
