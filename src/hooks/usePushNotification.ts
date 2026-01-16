@@ -35,9 +35,9 @@ export function usePushNotification() {
                     toast.error('알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.');
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Permission request failed', error);
-            toast.error('알림 설정 중 오류가 발생했습니다.');
+            toast.error(error.message || '알림 설정 중 오류가 발생했습니다.');
         }
     };
 

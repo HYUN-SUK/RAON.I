@@ -37,29 +37,30 @@ const getMessagingInstance = async (): Promise<Messaging | null> => {
 export const firebaseRequestPermission = async (): Promise<string | null> => {
     const messaging = await getMessagingInstance();
     if (!messaging) {
-        console.warn('[Firebase] Messaging not supported');
-        return null;
+        throw new Error('이 브라우저는 푸시 알림을 지원하지 않습니다.');
     }
 
     try {
         const permission = await Notification.requestPermission();
 
         if (permission === 'granted') {
-            // VAPID Key가 없으면 경고
             if (!VAPID_KEY) {
-                console.error('[Firebase] VAPID Key missing');
-                return null;
+                throw new Error('서버 설정 오류 (VAPID Key Missing)');
             }
 
             const token = await getToken(messaging, { vapidKey: VAPID_KEY });
             return token;
         } else {
-            console.warn('[Firebase] Notification permission denied');
+            throw new Error('알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.');
         }
-    } catch (error) {
-        console.error('[Firebase] An error occurred while retrieving token:', error);
+    } catch (error: any) {
+        // Firebase specific errors
+        if (error.code === 'messaging/permission-blocked' || error.message?.includes('permission')) {
+            throw new Error('알림 권한이 차단되었습니다.');
+        }
+        // Rethrow with custom message if needed, or just let it bubble
+        throw error;
     }
-    return null;
 }
 
 export const firebaseSyncToken = async (token: string) => {
