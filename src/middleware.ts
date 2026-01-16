@@ -52,13 +52,12 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/admin/login', request.url));
         }
 
-        // Ideally, we check 'is_admin' claim here.
-        // However, Supabase session doesn't carry custom claims by default unless configured.
-        // For MVP security, we rely on:
-        // 1. Auth presence (Middleware)
-        // 2. RLS (Database - already done)
-        // 3. Layout check (Client-side - already done)
-        // This triple layer is sufficient for now.
+        // 3. Strict Admin Check (Middleware Level)
+        // Check email to prevent regular users from seeing Admin UI
+        if (user.email !== 'admin@raon.ai') {
+            // Redirect to home if not admin
+            return NextResponse.redirect(new URL('/', request.url));
+        }
     }
 
     return response;
