@@ -4,6 +4,8 @@ import { Reservation, Site, SiteType, ReservationStatus, PricingConfig, BlockedD
 import { calculatePrice } from '@/utils/pricing';
 import { SITES as DEFAULT_SITES } from '@/constants/sites';
 import { Database } from '@/types/supabase';
+import { notificationService } from '@/services/notificationService';
+import { NotificationEventType } from '@/types/notificationEvents';
 
 // DB row types
 type DbSite = Database['public']['Tables']['sites']['Row'];
@@ -426,6 +428,30 @@ export const useReservationStore = create<ReservationState>()(
                     };
 
                     set((state) => ({ reservations: [...state.reservations, newReservation] }));
+
+                    // Notification Trigger (누락된 알림 코드 추가)
+                    const { sites, siteConfig } = get();
+                    const siteName = sites.find(s => s.id === params.siteId)?.name || '캠핑장';
+
+                    // 입금 기한: 현재 + deadlineHours (default 6h)
+                    const deadline = new Date(Date.now() + get().deadlineHours * 60 * 60 * 1000);
+
+                    // Fire & Forget (await 하지 않음)
+                    notificationService.dispatchNotification(
+                        NotificationEventType.RESERVATION_SUBMITTED,
+                        userId,
+                        {
+                            bankName: siteConfig?.bankName || '농협',
+                            bankAccount: siteConfig?.bankAccount || '000-0000-0000-00',
+                            bankHolder: siteConfig?.bankHolder || '라온아이',
+                            totalPrice: params.totalPrice.toLocaleString(),
+                            deadline: deadline.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                            checkIn: params.checkIn.toLocaleDateString(),
+                            checkOut: params.checkOut.toLocaleDateString(),
+                            siteName: siteName
+                        },
+                        result.reservation_id
+                    ).catch(err => console.error('[Store] Notification Dispatch Failed:', err));
                 }
 
                 return {
