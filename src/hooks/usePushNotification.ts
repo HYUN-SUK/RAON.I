@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase-client';
 
 // This will be replaced by lib/firebase usage
 import { firebaseRequestPermission, firebaseSyncToken } from '@/lib/firebase';
+import { toast } from 'sonner';
 
 export function usePushNotification() {
     const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -23,13 +24,20 @@ export function usePushNotification() {
         try {
             const token = await firebaseRequestPermission();
             setPermission(Notification.permission);
+
             if (token) {
                 setFcmToken(token);
                 // Sync to DB
                 await syncToken(token);
+                toast.success('알림 설정이 완료되었습니다!');
+            } else {
+                if (Notification.permission === 'denied') {
+                    toast.error('알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.');
+                }
             }
         } catch (error) {
             console.error('Permission request failed', error);
+            toast.error('알림 설정 중 오류가 발생했습니다.');
         }
     };
 
