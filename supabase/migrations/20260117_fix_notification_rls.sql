@@ -5,7 +5,7 @@
 -- Required for: Reservation confirmation notifications created by client-side logic.
 -- ================================================
 
--- DROP POLICY IF EXISTS "Users can insert their own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can insert their own notifications" ON public.notifications;
 
 create policy "Users can insert their own notifications"
 on public.notifications for insert

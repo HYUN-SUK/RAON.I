@@ -95,7 +95,10 @@
     - [x] **Cause**: DB RLS Policy blocked creation of notifications by users.
     - [x] **Fix**: Modified `notificationService` to invoke Edge Function directly + Fixed RLS Policy.
     - [x] **Verification**: Browser Console confirmed `Edge Function success` response.
-  - [ ] **DB 스키마 적용 대기**: Supabase 대시보드에서 마이그레이션 실행 필요
+  - [x] **DB 스키마 적용 대기**: SQL applied manually by user.
+  - [ ] **Production Deployment** (Required for Mobile Test):
+    - [ ] Current Mobile App is running **OLD Code** (pre-fix).
+    - [ ] Must `git push` to apply `notificationService` & `useReservationStore` fixes to Production.
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
 
