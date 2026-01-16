@@ -35,6 +35,7 @@ const getMessagingInstance = async (): Promise<Messaging | null> => {
 };
 
 export const firebaseRequestPermission = async (): Promise<string | null> => {
+    console.log('[Firebase] Starting permission request...');
     const messaging = await getMessagingInstance();
     if (!messaging) {
         console.warn('[Firebase] Messaging not supported in this browser');
@@ -42,7 +43,10 @@ export const firebaseRequestPermission = async (): Promise<string | null> => {
     }
 
     try {
+        console.log('[Firebase] Requesting notification permission...');
         const permission = await Notification.requestPermission();
+        console.log('[Firebase] Permission result:', permission);
+
         if (permission === 'granted') {
             // VAPID Key가 없으면 경고
             if (!VAPID_KEY) {
@@ -50,10 +54,11 @@ export const firebaseRequestPermission = async (): Promise<string | null> => {
                 return null;
             }
 
+            console.log('[Firebase] Getting FCM token with VAPID key...');
             const token = await getToken(messaging, {
                 vapidKey: VAPID_KEY
             });
-            console.log('[Firebase] FCM Token obtained successfully');
+            console.log('[Firebase] FCM Token obtained:', token ? token.slice(0, 30) + '...' : 'NULL');
             return token;
         } else {
             console.warn('[Firebase] Notification permission denied');

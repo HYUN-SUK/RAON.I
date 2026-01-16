@@ -34,17 +34,28 @@ export function usePushNotification() {
     };
 
     const syncToken = async (token: string) => {
+        console.log('[PushHook] Syncing token to DB...');
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+            console.warn('[PushHook] No user logged in, cannot sync token');
+            return;
+        }
 
+        console.log('[PushHook] User ID:', user.id);
         // DB: push_tokens
-        await supabase.from('push_tokens').upsert({
+        const { error } = await supabase.from('push_tokens').upsert({
             token,
             user_id: user.id,
             device_type: 'web',
             is_active: true,
             last_updated_at: new Date().toISOString()
         });
+
+        if (error) {
+            console.error('[PushHook] Token sync failed:', error);
+        } else {
+            console.log('[PushHook] Token synced successfully!');
+        }
     };
 
     return {

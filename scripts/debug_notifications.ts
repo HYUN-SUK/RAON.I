@@ -1,47 +1,38 @@
-
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing env vars: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    process.exit(1);
-}
+if (!supabaseUrl || !supabaseKey) { process.exit(1); }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkNotifications() {
-    console.log('--- Checking Latest Notifications ---');
-
-    const { data: notifications, error } = await supabase
+    const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(3);
 
-    if (error) {
-        console.error('Error fetching notifications:', error);
+    if (error || !data || data.length === 0) {
+        console.log('No notifications found or error:', error);
         return;
     }
 
-    if (!notifications || notifications.length === 0) {
-        console.log('No notifications found.');
-        return;
-    }
-
-    const latest = notifications[0];
-    console.log(`\n=== LATEST NOTIFICATION ===`);
-    console.log(`To: ${latest.user_id}`);
-    console.log(`Status: ${latest.status}`);
-    console.log(`Created (KST): ${new Date(latest.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
-    console.log(`Result: ${latest.result || 'NULL'}`);
-    console.log(`===========================\n`);
+    console.log('\n=== LATEST 3 NOTIFICATIONS ===');
+    data.forEach((n, i) => {
+        console.log(`\n[${i + 1}] ID: ${n.id.slice(0, 8)}...`);
+        console.log(`    Status: ${n.status}`);
+        console.log(`    Event: ${n.event_type}`);
+        console.log(`    Created: ${new Date(n.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
+        console.log(`    Sent At: ${n.sent_at || 'NULL'}`);
+        console.log(`    Result: ${n.result || 'NULL'}`);
+    });
+    console.log('\n==============================\n');
 }
 
 checkNotifications();

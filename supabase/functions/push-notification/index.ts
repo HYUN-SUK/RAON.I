@@ -27,30 +27,48 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
  * Get Google Access Token for FCM HTTP v1 API
  */
 async function getAccessToken() {
+    console.log('[AUTH] Checking Firebase credentials...');
+    console.log('[AUTH] PROJECT_ID:', FIREBASE_PROJECT_ID || 'MISSING');
+    console.log('[AUTH] CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL || 'MISSING');
+    console.log('[AUTH] PRIVATE_KEY exists:', !!FIREBASE_PRIVATE_KEY);
+    console.log('[AUTH] PRIVATE_KEY starts with:', FIREBASE_PRIVATE_KEY?.slice(0, 30) || 'N/A');
+
     if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
         throw new Error("Missing Firebase Credentials");
     }
 
-    const jwt = await new jose.SignJWT({
-        iss: FIREBASE_CLIENT_EMAIL,
-        scope: "https://www.googleapis.com/auth/firebase.messaging",
-        aud: "https://oauth2.googleapis.com/token",
-    })
-        .setProtectedHeader({ alg: "RS256" })
-        .setExpirationTime("1h")
-        .sign(await jose.importPKCS8(FIREBASE_PRIVATE_KEY, "RS256"));
+    try {
+        const jwt = await new jose.SignJWT({
+            iss: FIREBASE_CLIENT_EMAIL,
+            scope: "https://www.googleapis.com/auth/firebase.messaging",
+            aud: "https://oauth2.googleapis.com/token",
+        })
+            .setProtectedHeader({ alg: "RS256" })
+            .setIssuedAt()
+            .setExpirationTime("1h")
+            .sign(await jose.importPKCS8(FIREBASE_PRIVATE_KEY, "RS256"));
 
-    const response = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-            grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-            assertion: jwt,
-        }),
-    });
+        console.log('[AUTH] JWT created successfully');
 
-    const data = await response.json();
-    return data.access_token;
+        const response = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                assertion: jwt,
+            }),
+        });
+
+        const data = await response.json();
+        console.log('[AUTH] Token response status:', response.status);
+        if (!data.access_token) {
+            console.error('[AUTH] Token error:', JSON.stringify(data));
+        }
+        return data.access_token;
+    } catch (err) {
+        console.error('[AUTH] Exception during token generation:', err);
+        throw err;
+    }
 }
 
 serve(async (req) => {
@@ -72,7 +90,7 @@ serve(async (req) => {
 
         const { id, user_id, title, body, data } = record;
 
-        console.log(`Processing notification ${id} for user ${user_id}`);
+        console.log(`[STEP 1] Processing notification ${id} for user ${user_id}`);
 
         // 2. Fetch User's Push Tokens
         const { data: tokens, error: tokenError } = await supabase
@@ -80,18 +98,30 @@ serve(async (req) => {
             .select('token')
             .eq('user_id', user_id);
 
-        if (tokenError) throw tokenError;
+        if (tokenError) {
+            console.error('[STEP 2-ERR] Token fetch error:', tokenError);
+            throw tokenError;
+        }
+
+        console.log(`[STEP 2] Found ${tokens?.length || 0} tokens for user`);
+
         if (!tokens || tokens.length === 0) {
-            console.log(`No tokens found for user ${user_id}`);
+            console.log(`[STEP 2-SKIP] No tokens found for user ${user_id}`);
             await updateNotificationStatus(id, 'failed', 'No tokens found');
             return new Response(JSON.stringify({ message: "No tokens found" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
         // 3. Get FCM Access Token
+        console.log('[STEP 3] Getting FCM access token...');
         const accessToken = await getAccessToken();
+        console.log('[STEP 3] FCM access token obtained successfully');
 
         // 4. Send to All Tokens
-        const results = await Promise.all(tokens.map(async (t) => {
+        console.log(`[STEP 4] Sending to ${tokens.length} token(s)...`);
+
+        const results = await Promise.all(tokens.map(async (t, idx) => {
+            console.log(`[STEP 4-${idx}] Preparing message for token ${t.token.slice(0, 20)}...`);
+
             const message = {
                 message: {
                     token: t.token,
@@ -102,11 +132,13 @@ serve(async (req) => {
                     data: data || {}, // Custom data
                     webpush: {
                         fcm_options: {
-                            link: "https://raon-i.vercel.app/myspace" // TODO: config
+                            link: "https://raon-i.vercel.app/myspace"
                         }
                     }
                 }
             };
+
+            console.log(`[STEP 4-${idx}] Calling FCM API...`);
 
             const res = await fetch(
                 `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
@@ -120,8 +152,13 @@ serve(async (req) => {
                 }
             );
 
-            return { token: t.token, status: res.status, body: await res.json() };
+            const resBody = await res.json();
+            console.log(`[STEP 4-${idx}] FCM Response: ${res.status}`, JSON.stringify(resBody));
+
+            return { token: t.token, status: res.status, body: resBody };
         }));
+
+        console.log(`[STEP 5] All FCM calls completed. Success: ${results.filter(r => r.status === 200).length}`);
 
         // 5. Cleanup Invalid Tokens & Update Status
         const successCount = results.filter(r => r.status === 200).length;
