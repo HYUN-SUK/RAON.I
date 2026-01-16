@@ -7,8 +7,6 @@ import { format, addHours } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CheckCircle2, Clock, AlertCircle, Copy, Home } from 'lucide-react';
 import Image from 'next/image';
-import { notificationService } from '@/services/notificationService';
-import { NotificationEventType } from '@/types/notificationEvents';
 
 export default function ReservationCompletePage() {
     const router = useRouter();
@@ -26,40 +24,6 @@ export default function ReservationCompletePage() {
         if (reservations.length > 0) {
             const latest = reservations[reservations.length - 1];
             setLatestReservation(latest);
-
-            // 예약 신청 알림 발송 (PENDING 상태이고, 아직 발송 안한 경우)
-            const notificationKey = `reservation_notification_${latest.id}`;
-            if (
-                latest.status === 'PENDING' &&
-                latest.userId &&
-                !notificationSentRef.current &&
-                !sessionStorage.getItem(notificationKey)
-            ) {
-                notificationSentRef.current = true;
-                sessionStorage.setItem(notificationKey, 'sent');
-
-                // 입금 기한 계산
-                const created = latest.createdAt ? new Date(latest.createdAt) : new Date();
-                const deadline = addHours(created, deadlineHours || 6);
-                const site = sites.find(s => s.id === latest.siteId);
-
-                notificationService.dispatchNotification(
-                    NotificationEventType.RESERVATION_SUBMITTED,
-                    latest.userId,
-                    {
-                        bankName: siteConfig?.bankName || '국민은행',
-                        bankAccount: siteConfig?.bankAccount || '',
-                        bankHolder: siteConfig?.bankHolder || '',
-                        totalPrice: latest.totalPrice.toLocaleString(),
-                        deadline: format(deadline, 'MM.dd HH:mm', { locale: ko }),
-                        checkIn: format(new Date(latest.checkInDate), 'MM.dd(eee)', { locale: ko }),
-                        checkOut: format(new Date(latest.checkOutDate), 'MM.dd(eee)', { locale: ko }),
-                        siteName: site?.name || latest.siteId,
-                        reservation_id: latest.id
-                    },
-                    latest.id
-                );
-            }
         } else {
             router.push('/reservation');
         }

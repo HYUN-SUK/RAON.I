@@ -541,6 +541,24 @@ export const useReservationStore = create<ReservationState>()(
                                 : res
                         )
                     }));
+
+                    // Notification Trigger (사용자 취소 알림)
+                    const targetReservation = get().reservations.find(r => r.id === params.reservationId);
+                    if (targetReservation && targetReservation.userId) {
+                        const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || targetReservation.siteId;
+
+                        notificationService.dispatchNotification(
+                            NotificationEventType.RESERVATION_CANCELLED,
+                            targetReservation.userId,
+                            {
+                                siteName,
+                                checkIn: targetReservation.checkInDate.toLocaleDateString(),
+                                checkOut: targetReservation.checkOutDate.toLocaleDateString(),
+                                reservation_id: params.reservationId
+                            },
+                            params.reservationId
+                        ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
+                    }
                 }
 
                 return {

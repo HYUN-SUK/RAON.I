@@ -292,6 +292,13 @@
             *   [x] **Dog-ear Effect**: EmotionalQuote 상단 우측 모서리 접힘 CSS 효과.
             *   [x] **Tape Effect**: SummaryGrid 카드 상단 테이프 + 기울기 효과.
             *   [x] **Branding**: "내공간" → "내 수첩" 명칭 변경.
+            *   [x] **Branding**: "내공간" → "내 수첩" 명칭 변경.
+            *   [x] **Status**: **100% Done**
+        *   [x] **8.17 Permission Flow & Admin Dashboard** ✅ (2026-01-16):
+            *   [x] **Sequential Flow**: 위치 권한(1단계) -> 푸시 권한(2단계) 순차 UX 및 감성 카피 적용.
+            *   [x] **iOS Support**: iOS Safari '홈 화면에 추가' 가이드 모달 구현.
+            *   [x] **Admin Dashboard**: 위치/푸시 권한 동의율 통계 카드 추가 (DB 연동).
+            *   [x] **Weather Consistency**: `useWeather.ts`의 타임존(UTC) 이슈 해결 및 상세화면(`WeatherDetailSheet`) 로직 통일.
             *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)

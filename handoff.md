@@ -1,79 +1,52 @@
-# Handoff Document - 2026-01-16 Session
-
-## ✅ 완료된 작업
-
-### MySpace "내 수첩" 컨셉 UI 구현
-"내공간"을 "내 수첩(My Notebook)"으로 재브랜딩하고, 아날로그 감성의 종이 질감 UI를 적용했습니다.
-
-| 컴포넌트 | 변경 내용 |
-|----------|-----------|
-| `PaperBackground.tsx` | 종이 배경 래퍼 (SVG 노이즈 텍스처 + 크림색 그라데이션) |
-| `EmotionalQuote.tsx` | Dog-ear 효과 (오른쪽 상단 모서리 접힘) |
-| `SummaryGrid.tsx` | 테이프 효과 + 카드 기울기 (포스트잇 느낌) |
-| `BottomNav.tsx` | "내공간" → "내 수첩" 명칭 변경 |
-| `myspace/page.tsx` | PaperBackground 래퍼 적용 |
+# 📄 개발 세션 인수인계 문서 (Handoff)
+**작성일시**: 2026-01-16
+**세션 목표**: 권한 동의 UX 개선, 관리자 대시보드 고도화, 날씨 정보 일관성 확보
 
 ---
 
-## 🔧 기술적 결정 사항
+## 📝 현재 상태 요약 (Current Status)
 
-### 1. Inline SVG 노이즈 패턴
-- 외부 이미지 대신 Base64 encoded SVG 사용
-- **이유**: 추가 네트워크 요청 0개, 로딩 지연 없음
+이번 세션에서는 사용자 경험(UX)을 개선하고 데이터의 신뢰성을 높이는 데 집중했습니다.
 
-### 2. CSS-only 종이 효과
-- Dog-ear: `linear-gradient` 2개 레이어 조합
-- Tape: 반투명 그라데이션 + 미세한 테두리
-- **이유**: 이미지 없이 순수 CSS로 구현하여 성능 최적화
+1.  **권한 동의 UX 개선 (완료)**
+    *   위치 및 푸시 알림 권한 요청을 2단계(안내 모달 -> 시스템 팝업)로 분리하여 거부율을 낮추도록 설계했습니다.
+    *   **순차적 흐름**: 위치 동의 -> (성공 시) -> 푸시 알림 동의 순서로 자연스럽게 유도됩니다.
+    *   **iOS PWA 가이드**: 아이폰 사용자를 위해 '홈 화면에 추가' 가이드 모달을 구현했습니다.
+    *   **DB 연동**: 사용자의 권한 동의 상태(`location_granted`, `push_granted`)를 `user_permission_consents` 테이블에 실시간으로 저장합니다.
 
-### 3. 카드 기울기 배열
-```js
-const cardStyles = [
-  { rotate: '-0.8deg', tapeRotate: '-8deg', tapeOffset: '15%' },
-  { rotate: '0.5deg', tapeRotate: '5deg', tapeOffset: '20%' },
-  { rotate: '-0.5deg', tapeRotate: '-3deg', tapeOffset: '25%' },
-  { rotate: '1deg', tapeRotate: '7deg', tapeOffset: '10%' },
-];
-```
-- **이유**: 자연스러운 랜덤 배치 느낌을 주되, 항상 일관된 결과 보장
+2.  **관리자 대시보드 고도화 (완료)**
+    *   전체 회원 대비 위치/푸시 권한 동의율을 그래프 카드 형태로 시각화했습니다.
+    *   실질적인 마케팅/알림 수신 가능 모수를 파악할 수 있게 되었습니다.
+
+3.  **날씨 온도 일관성 확보 (중요 해결)**
+    *   **문제**: 로컬 개발환경(KST)과 배포 서버(UTC)의 시차로 인해, 홈 화면의 실황 온도와 상세 화면의 타임라인 온도가 불일치하는 문제가 있었습니다.
+    *   **해결**: `useWeather.ts`에서 단순 시간(`HH`) 비교가 아닌, **ISO 타임스탬프 기반의 절대 시간** 비교 로직을 도입하여 타임존에 상관없이 한국 시간(KST) 기준의 정확한 예보 데이터를 가져오도록 수정했습니다.
+    *   **UI 통일**: 상세 화면(`WeatherDetailSheet`)의 중복 계산 로직을 제거하고, 훅에서 계산된 값을 그대로 사용하도록 하여 **100% 일관성**을 확보했습니다.
 
 ---
 
-## 📋 다음 작업 가이드
+## 🏗 기술적 결정 사항 (Technical Decisions)
 
-### 우선순위 높음
-1. **Git Push**: 현재 커밋 완료 상태, 푸시만 필요
-2. **Vercel 배포 확인**: 푸시 후 자동 배포 검증
-
-### 검토 필요
-- 사용자 피드백에 따라 테이프/Dog-ear 효과 조정 가능
-- 롤백 백업 파일 위치: `C:\Users\USER\.gemini\antigravity\brain\932cec00-b496-41ac-a206-ae9237b9cab2\`
+*   **권한 상태 서버 동기화 (`usePermissionFlow.ts`)**: 클라이언트(`localStorage`) 상태뿐만 아니라 서버 DB에도 동의 여부를 저장하여, 추후 타겟 마케팅이나 기기 변경 시에도 설정이 유지되도록 기반을 마련했습니다.
+*   **날씨 데이터 매칭 전략**: 기상청 API 데이터는 한국 시간 기준이고 서버는 UTC일 수 있으므로, 날짜 문자열(`YYYYMMDD`) 비교 대신 `Epoch Time (ms)` 차이를 계산하는 방식으로 변경하여 로직의 견고함(Robustness)을 확보했습니다.
 
 ---
 
-## ⚠️ 주의 사항
+## 🚀 다음 작업 가이드 (Next Steps)
 
-### 롤백 명령어
-```powershell
-# 전체 롤백
-Copy-Item "C:\Users\USER\.gemini\antigravity\brain\932cec00-b496-41ac-a206-ae9237b9cab2\backup_EmotionalQuote.tsx" "c:\Users\USER\Desktop\RAON.I\src\components\myspace\EmotionalQuote.tsx" -Force
-Copy-Item "C:\Users\USER\.gemini\antigravity\brain\932cec00-b496-41ac-a206-ae9237b9cab2\backup_SummaryGrid.tsx" "c:\Users\USER\Desktop\RAON.I\src\components\myspace\SummaryGrid.tsx" -Force
-Copy-Item "C:\Users\USER\.gemini\antigravity\brain\932cec00-b496-41ac-a206-ae9237b9cab2\backup_myspace_page.tsx" "c:\Users\USER\Desktop\RAON.I\src\app\(mobile)\myspace\page.tsx" -Force
-Copy-Item "C:\Users\USER\.gemini\antigravity\brain\932cec00-b496-41ac-a206-ae9237b9cab2\backup_BottomNav.tsx" "c:\Users\USER\Desktop\RAON.I\src\components\BottomNav.tsx" -Force
-```
+1.  **Git Push 및 배포 확인**
+    *   현재 로컬에서 모든 커밋이 완료되었습니다. `git push origin main`을 수행하여 배포를 진행하세요.
+    *   배포 후 도메인 접속 시 홈 화면과 날씨 상세 화면의 온도가 일치하는지 최종 확인이 필요합니다.
 
-### 빌드 상태
-- ✅ `npm run build` 성공 (Exit code: 0)
-- ✅ 런타임 오류 없음
+2.  **푸시 알림 통합 테스트**
+    *   권한 동의를 받은 사용자에게 실제 FCM 푸시 메시지가 정상적으로 도달하는지 테스트가 필요합니다. (`/admin/push` 페이지 활용)
+
+3.  **회원가입 플로우 연동**
+    *   현재 메인 화면 진입 시 뜨도록 되어 있는 권한 동의 모달을, 추후 회원가입 완료 직후 단계로 배치하는 것을 고려해볼 수 있습니다.
 
 ---
 
-## 📁 변경된 파일 목록
+## ⚠️ 주의 사항 (Caveats)
 
-```
-src/components/myspace/PaperBackground.tsx   [NEW]
-src/components/myspace/EmotionalQuote.tsx    [MODIFIED]
-src/components/myspace/SummaryGrid.tsx       [MODIFIED]
-src/components/BottomNav.tsx                 [MODIFIED]
-src/app/(mobile)/myspace/page.tsx            [MODIFIED]
-```
+*   **iOS 사파리 권한**: iOS 정책상 웹 푸시 알림은 **"홈 화면에 추가(PWA 설치)"** 된 상태에서만 작동합니다. 일반 사파리 브라우저에서는 푸시 요청이 작동하지 않을 수 있음을 유의하세요. (구현된 안내 모달이 이를 설명하고 있습니다.)
+*   **기상청 API 단기예보 지연**: 기상청 서버 사정에 따라 실시간 데이터 업데이트가 수 초 지연될 수 있다는 안내 문구가 UI에 추가되어 있습니다.
