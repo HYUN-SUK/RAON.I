@@ -152,35 +152,38 @@ export const useWeather = (userLat?: number, userLng?: number) => {
 
                 // Match "Current Temp" with "Hourly Forecast Temp" for consistency
                 // 중요: 타임라인 데이터와 일관성을 위해 현재 시간의 타임라인 온도를 메인 온도로 사용
-                let displayTemp = current.temp;
-                const now = new Date(); // Local system time
-                const currentHour = now.getHours();
+                let displayTemp = current.temp; // Default fallback
+                const nowTime = new Date().getTime(); // Current System Abs Time (UTC)
 
-                // Fix: toISOString is UTC, we need Local YYYYMMDD
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const todayStr = `${year}${month}${day}`;
-
-                // Find closest timeline item (exact match or closest future/past)
-                let closestItem = null;
+                let closestItem: HourlyForecast | null = null;
                 let minDiff = Infinity;
 
                 data.timeline?.forEach((item: HourlyForecast) => {
-                    if (item.date !== todayStr) return;
+                    // 기상청 데이터는 무조건 한국 시간(KST, UTC+9)
+                    // ISO Formatter를 사용하여 KST 절대 시간으로 변환
+                    const y = item.date.substring(0, 4);
+                    const m = item.date.substring(4, 6);
+                    const d = item.date.substring(6, 8);
+                    const h = item.time.substring(0, 2);
+                    const min = item.time.substring(2, 4);
 
-                    const itemHour = parseInt(item.time.substring(0, 2), 10);
-                    const diff = Math.abs(itemHour - currentHour);
+                    // "YYYY-MM-DDTHH:mm:00+09:00" -> This parses correctly in any timezone
+                    const isoStr = `${y}-${m}-${d}T${h}:${min}:00+09:00`;
+                    const itemTime = new Date(isoStr).getTime();
 
-                    // 우선순위: 차이가 작은 것 (0이면 현재 시간)
+                    if (isNaN(itemTime)) return; // Safety check
+
+                    const diff = Math.abs(itemTime - nowTime);
+
                     if (diff < minDiff) {
                         minDiff = diff;
                         closestItem = item;
                     }
                 });
 
-                if (closestItem && minDiff <= 3) {
-                    // 3시간 이내의 데이터만 유효한 것으로 간주 (너무 먼 과거/미래 방지)
+                // 2시간(7200000ms) 이내의 근사 데이터가 있으면 사용
+                // 예보 데이터는 1시간 단위이므로 정상적인 경우 오차는 0~30분 수준임
+                if (closestItem && minDiff <= 3 * 3600 * 1000) {
                     displayTemp = (closestItem as HourlyForecast).temp;
                 }
 
