@@ -9,11 +9,12 @@
 
 ---
 
-- [x] **9.1 Push Notification Debugging (Urgent)**
+- [x] **9.1 Push Notification Debugging (Fixed)** ✅
   - [x] **Infrastructure Check**: Verify `push-notification` Edge Function code & secrets.
   - [x] **Webhook Check**: Confirm Trigger exists on `notifications` table (Bypassed via Client Invoke).
-  - [x] **Fix**: Create migration for Webhook if missing (Fixed RLS instead).
-  - [x] **Verification**: Live booking test -> Check DB `notifications` status.
+  - [x] **Auth Fix**: Fixed Firebase 401 (Added Service Account), Vercel Env (Added `NEXT_PUBLIC_` vars), JWT Claim (`iat`).
+  - [x] **Token Cleanup**: Removed duplicate FCM tokens to prevent double notifications.
+  - [x] **Verification**: Live booking test -> 1 notification received successfully.
 
 ## 📅 전체 진행률 요약 (Progress Summary)
 
@@ -310,9 +311,10 @@
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
-*   **9.1 Edge Function 배포** (Priority: LOW):
-    *   [ ] `supabase/functions/push-notification/` → Supabase 대시보드에서 배포
-    *   [ ] 환경 변수 설정: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
+*   **9.1 Edge Function 배포 (Complete)** ✅:
+    *   [x] `supabase/functions/push-notification/` → Supabase 대시보드에서 배포 완료
+    *   [x] 환경 변수 설정: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (Supabase Secrets)
+    *   [x] 클라이언트 환경 변수: `NEXT_PUBLIC_FIREBASE_*` (Vercel)
 *   **9.2 DB Schema 동기화** (Priority: LOW):
     *   [ ] Supabase CLI 인증 후 `npx supabase gen types typescript` 실행
     *   [ ] 현재 빌드는 기존 타입으로 정상 동작 중
