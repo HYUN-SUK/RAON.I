@@ -35,15 +35,13 @@ async function checkNotifications() {
         return;
     }
 
-    for (const n of notifications) {
-        console.log(`\n[ID: ${n.id}]`);
-        console.log(`  To User: ${n.user_id}`);
-        console.log(`  Type: ${n.event_type} | Category: ${n.category}`);
-        console.log(`  Title: ${n.title}`);
-        console.log(`  Status: ${n.status}`);
-        console.log(`  Created: ${n.created_at}`);
-        console.log(`  Result: ${n.result || 'NULL'}`); // This contains the FCM response
-    }
+    const latest = notifications[0];
+    console.log(`\n=== LATEST NOTIFICATION ===`);
+    console.log(`To: ${latest.user_id}`);
+    console.log(`Status: ${latest.status}`);
+    console.log(`Created (KST): ${new Date(latest.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
+    console.log(`Result: ${latest.result || 'NULL'}`);
+    console.log(`===========================\n`);
 }
 
 checkNotifications();

@@ -1,36 +1,32 @@
-# 📋 Session Handoff: Push Notification Fixed & Deployment Prep
+# Handoff: Mobile Reservation & Notification Fix
 
-## 📅 Session Info
-- **Date:** 2026-01-16
-- **Focus:** Push Notification Debugging, Infrastructure Fix, Live Verification
+## 📅 Session: 2026-01-16 (Late Night)
 
-## ✅ Completed Work
-1.  **Push Notification Debugging (RESOLVED)**:
-    -   **Issue**: Client requested Push Notification but none received.
-    -   **Root Cause 1 (Infra)**: DB Trigger/Webhook was missing for `notifications` table.
-    -   **Root Cause 2 (RLS)**: `notifications` table RLS blocked `INSERT` from authenticated users (Error 42501).
-    -   **Fix**:
-        -   **Refactor**: Changed `notificationService.ts` to **directly invoke** `push-notification` Edge Function (bypassing complex Webhook setup).
-        -   **Policy**: Added RLS policy `Users can insert their own notifications` to allow reservation logic to queue notifications.
-    -   **Verification**: Verified via Localhost Browser.
-        -   Scenario: Reservation (Bank Transfer) -> 2026-01-17 ~ 21 (Younghee-ne).
-        -   Result: Console Log "[NotificationService] Edge Function success".
-2.  **Documentation**:
-    -   Updated `RAON_MASTER_ROADMAP_v3.md` (Phase 9.1 Completed).
-    -   Updated `task.md` with debug results.
+## 🚧 Resolved Issues
+1.  **Mobile Reservation Invisible in Admin Console**
+    *   **Root Cause 1 (RLS)**: Row Level Security policies prevented Admin (`admin@raon.ai`) from viewing reservations made by others.
+    *   **Root Cause 2 (Logic)**: `AdminReservationsPage` component was missing the `fetchAllReservations` call, so it never actually requested data from the DB.
+    *   **Fix**:
+        *   Applied `fix_admin_rls_v2.sql` to allow Admin email/metadata to `SELECT`.
+        *   Updated `useReservationStore.ts` to add `fetchAllReservations`.
+        *   Updated `src/app/admin/reservations/page.tsx` to call `fetchAllReservations` on mount.
 
-## ⚠️ Current Issues & Caveats
--   **FCM Token**: 실제 기기 수신은 FCM Token의 유효성 및 권한(Notification Permission)에 따라 달라질 수 있음. (Server-side 발송 성공은 확인됨).
--   **Email Logic**: 이메일 발송 로직은 현재 `console.log`로만 처리되어 있음 (향후 Resend 등 연동 필요 시 챙겨야 함).
+2.  **Push Notification Failure**
+    *   **Root Cause**:
+        *   **Local**: RLS blocked `INSERT` into `notifications`.
+        *   **Production**: Supabase Edge Function (`push-notification`) was missing Firebase Secrets and wasn't deployed.
+    *   **Fix**:
+        *   Applied `fix_notification_rls.sql`.
+        *   Used `supabase secrets set` to upload Firebase Credentials.
+        *   Deployed Edge Function via `supabase functions deploy`.
 
-## 📝 Next Guide (For Next Session)
-1.  **Production Deployment**:
-    -   [ ] Git Push & Vercel Auto-Deployment Check.
-    -   [ ] Real Device Test (iOS/Android PWA).
-2.  **Post-Deployment**:
-    -   [ ] Vercel Environment Variables (`SUPABASE_SERVICE_ROLE_KEY` etc.) double-check.
-    -   [ ] Monitor `notifications` table for `sent` status in production.
+## 🛠 Key Changes
+*   `supabase/migrations/20260117_fix_admin_rls_v2.sql`: Robust Admin RLS policy.
+*   `src/store/useReservationStore.ts`: Added `fetchAllReservations`.
+*   `src/app/admin/reservations/page.tsx`: Added data fetching logic.
+*   `supabase/migrations/20260117_fix_notification_rls.sql`: User insert permission for notifications.
 
-## 📌 Technical notes
--   **Edge Function Invocation**: `supabase.functions.invoke('push-notification', { body: { record: ... } })` pattern established for reliable execution.
--   **RLS Policy**: `supabase/migrations/20260117_fix_notification_rls.sql` is critical. Ensure it is applied to production DB.
+## 📝 Next Steps
+*   **Verify Deployment**: Monitor the Vercel deployment of the latest commit.
+*   **Monitor Logs**: Check Supabase Edge Function logs if any future notifications fail.
+*   **Clean Up**: The SQL migration files can be organized/archived in a future DB maintenance session.

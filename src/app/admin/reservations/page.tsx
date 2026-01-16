@@ -8,7 +8,7 @@ import { ReservationStatus } from '@/types/reservation';
 import { useSearchParams } from 'next/navigation';
 
 export default function AdminReservationsPage() {
-    const { reservations } = useReservationStore();
+    const { reservations, fetchAllReservations } = useReservationStore();
     const searchParams = useSearchParams();
     const initialStatus = searchParams.get('status') as ReservationStatus | 'ALL' | null;
 
@@ -18,7 +18,8 @@ export default function AdminReservationsPage() {
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
-    }, []);
+        fetchAllReservations();
+    }, [fetchAllReservations]);
 
     useEffect(() => {
         if (initialStatus) {

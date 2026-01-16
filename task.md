@@ -96,9 +96,13 @@
     - [x] **Fix**: Modified `notificationService` to invoke Edge Function directly + Fixed RLS Policy.
     - [x] **Verification**: Browser Console confirmed `Edge Function success` response.
   - [x] **DB 스키마 적용 대기**: SQL applied manually by user.
-  - [ ] **Production Deployment** (Required for Mobile Test):
-    - [ ] Current Mobile App is running **OLD Code** (pre-fix).
-    - [ ] Must `git push` to apply `notificationService` & `useReservationStore` fixes to Production.
+  - [x] **Production Deployment** (Required for Mobile Test):
+    - [x] Current Mobile App is running **OLD Code** (pre-fix).
+    - [x] `git push` to apply `notificationService` & `useReservationStore` fixes.
+    - [x] **Edge Function Deployed**: `push-notification` deployed & secrets set.
+  - [x] **Admin Console Fix**:
+    - [x] Fixed `create_reservation_safe` visibility via RLS (`fix_admin_rls_v2.sql`).
+    - [x] Default `AdminReservationsPage` was missing `fetchAllReservations`. Added it.
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
 

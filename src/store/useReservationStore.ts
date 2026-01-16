@@ -51,6 +51,7 @@ interface ReservationState {
     reset: () => void;
 
     // 예약 취소/환불 관련 액션
+    fetchAllReservations: () => Promise<void>;
     fetchMyReservations: () => Promise<Reservation[]>;
     requestCancelReservation: (params: {
         reservationId: string;
@@ -501,6 +502,52 @@ export const useReservationStore = create<ReservationState>()(
                 // 로컬 상태도 업데이트
                 set({ reservations: mapped });
                 return mapped;
+            },
+
+            // 관리자용: 모든 예약 조회
+            fetchAllReservations: async () => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                // RLS 정책에 따라 관리자는 모든 예약을 볼 수 있음
+                const { data, error } = await supabase
+                    .from('reservations')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error || !data) {
+                    console.error('Failed to fetch all reservations:', error);
+                    return;
+                }
+
+                const mapped: Reservation[] = data.map((r: any) => ({
+                    id: r.id,
+                    userId: r.user_id,
+                    siteId: r.site_id,
+                    checkInDate: new Date(r.check_in_date),
+                    checkOutDate: new Date(r.check_out_date),
+                    familyCount: r.family_count || 1,
+                    visitorCount: r.visitor_count || 0,
+                    vehicleCount: r.vehicle_count || 1,
+                    guests: r.guests || (r.family_count + r.visitor_count),
+                    totalPrice: r.total_price || 0,
+                    status: r.status,
+                    guestName: r.guest_name, // Guest Name Mapping
+                    guestPhone: r.guest_phone,
+                    requests: r.requests || '',
+                    createdAt: new Date(r.created_at),
+                    // 환불 관련 필드
+                    refundBank: r.refund_bank,
+                    refundAccount: r.refund_account,
+                    refundHolder: r.refund_holder,
+                    cancelReason: r.cancel_reason,
+                    cancelledAt: r.cancelled_at ? new Date(r.cancelled_at) : undefined,
+                    refundedAt: r.refunded_at ? new Date(r.refunded_at) : undefined,
+                    refundAmount: r.refund_amount,
+                    refundRate: r.refund_rate
+                }));
+
+                set({ reservations: mapped });
             },
 
             // 사용자 취소 요청
