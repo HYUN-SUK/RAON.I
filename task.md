@@ -76,8 +76,11 @@
 - [x] **Push**: Web Push Schema & Event-Driven Notification System.
   - [x] 이벤트 타입 정의 (`notificationEvents.ts`) - 15개 이벤트 카탈로그
   - [x] 알림 서비스 (`notificationService.ts`) - 조용시간 로직 + 푸시/배지 분기
-  - [x] 인앱 배지 훅 (`useInAppBadge.ts`) - 탭별 배지 관리
-  - [x] BottomNav 배지 UI 통합 - 빨간 dot 표시 + 탭 클릭 시 해제
+   - [x] 권한 요청 시점 최적화 (회원가입/로그인 직후 or 특정 액션 시) <!-- id: 10 -->
+   - [x] 권한 거부 시 재요청 쿨타임/UX 정책 수립 <!-- id: 11 -->
+   - [x] **[NEW]** 위치/푸시 권한 2단계 순차 동의 플로우 구현 (감성 문구 포함)
+   - [x] **[NEW]** 관리자 대시보드 위치/푸시 동의 현황 카드 추가
+   - [x] **[NEW]** 날씨 온도 일관성 수정 (실황->타임라인 통합)표시 + 탭 클릭 시 해제
   - [x] 빈자리 알림 버튼 (`WaitlistButton.tsx`)
   - [x] 관리자 알림 테스트 UI (`/admin/push`)
   - [x] **FCM 서비스 워커 활성화** (`firebase-messaging-sw.js`) - 백그라운드 메시지 수신, 알림 클릭 핸들러

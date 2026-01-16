@@ -150,9 +150,43 @@ export const useWeather = (userLat?: number, userLng?: number) => {
                     feelsLike = current.temp; // Fallback to actual temp
                 }
 
+                // Match "Current Temp" with "Hourly Forecast Temp" for consistency
+                // 중요: 타임라인 데이터와 일관성을 위해 현재 시간의 타임라인 온도를 메인 온도로 사용
+                let displayTemp = current.temp;
+                const now = new Date(); // Local system time
+                const currentHour = now.getHours();
+
+                // Fix: toISOString is UTC, we need Local YYYYMMDD
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}${month}${day}`;
+
+                // Find closest timeline item (exact match or closest future/past)
+                let closestItem = null;
+                let minDiff = Infinity;
+
+                data.timeline?.forEach((item: HourlyForecast) => {
+                    if (item.date !== todayStr) return;
+
+                    const itemHour = parseInt(item.time.substring(0, 2), 10);
+                    const diff = Math.abs(itemHour - currentHour);
+
+                    // 우선순위: 차이가 작은 것 (0이면 현재 시간)
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestItem = item;
+                    }
+                });
+
+                if (closestItem && minDiff <= 3) {
+                    // 3시간 이내의 데이터만 유효한 것으로 간주 (너무 먼 과거/미래 방지)
+                    displayTemp = (closestItem as HourlyForecast).temp;
+                }
+
                 const weatherData: WeatherState = {
                     type,
-                    temp: current.temp,
+                    temp: displayTemp,
                     feelsLike,
                     humidity: current.humidity,
                     windSpeed: current.windSpeed,

@@ -134,8 +134,16 @@ export default function ReturningHome() {
                         {recData ? (
                             <>
                                 <Badge variant="outline" className="text-white/80 border-white/20 mb-2 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => weather && setWeatherSheetOpen(true)}>
-                                    {recData.context?.weather && recData.context.temp !== null ? `${Math.round(recData.context.temp)}°C ` : ''}
-                                    {recData.context?.weather === 'sunny' ? '☀️ 맑음' : recData.context?.weather === 'rainy' ? '☔ 비' : ''}
+                                    {weather?.temp !== null && weather?.temp !== undefined ? `${Math.round(weather.temp)}°C ` :
+                                        recData.context?.temp !== null && recData.context?.temp !== undefined ? `${Math.round(recData.context.temp)}°C ` : ''}
+                                    {recData.context?.weather === 'sunny' ? '☀️ 맑음' :
+                                        recData.context?.weather === 'partly_cloudy' ? '⛅ 구름 많음' :
+                                            recData.context?.weather === 'cloudy' ? '☁️ 흐림' :
+                                                recData.context?.weather === 'rainy' ? '☔ 비' :
+                                                    recData.context?.weather === 'snowy' ? '❄️ 눈' :
+                                                        weather?.type === 'sunny' ? '☀️ 맑음' :
+                                                            weather?.type === 'cloudy' ? '☁️ 흐림' :
+                                                                weather?.type === 'rainy' ? '☔ 비' : '🌤️ 날씨'}
                                 </Badge>
                                 <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
                                 <p className="text-white/80 text-sm mb-1">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
