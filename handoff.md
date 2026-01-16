@@ -1,52 +1,37 @@
-# 📄 개발 세션 인수인계 문서 (Handoff)
-**작성일시**: 2026-01-16
-**세션 목표**: 권한 동의 UX 개선, 관리자 대시보드 고도화, 날씨 정보 일관성 확보
+# 📋 Session Handoff: Push Notification Debugging
 
----
+## 📅 Session Info
+- **Date:** 2026-01-16
+- **Focus:** Weather Logic Fix, Push Notification Sys Implementation
 
-## 📝 현재 상태 요약 (Current Status)
+## ✅ Completed Work
+1.  **Weather Consistency Fix**:
+    -   `useWeather.ts`: `toISOString` (UTC) 제거 및 Epoch Time 비교 로직 적용. KST 데이터와의 시간 불일치 해결.
+    -   `WeatherDetailSheet.tsx`: 중복/부정확한 온도 계산 로직 제거 (`weather.temp` SSOT 준수).
+2.  **Push Notification Logic Fix**:
+    -   **Problem**: 예약 완료 시 알림 발송 코드가 누락되어 있었음. 예약 완료 페이지와 중복되는 문제도 있었음.
+    -   **Fix**:
+        -   `useReservationStore.ts`: `createReservationSafe` (신청), `requestCancelReservation` (취소) 성공 시 `notificationService` 호출 로직 추가.
+        -   `complete/page.tsx`: 중복 발송되던 불안정한 페이지 레벨 알림 로직 제거.
+        -   Lint Fix: 불필요한 중복 import 제거.
 
-이번 세션에서는 사용자 경험(UX)을 개선하고 데이터의 신뢰성을 높이는 데 집중했습니다.
+## ⚠️ Current Issues (CRITICAL)
+-   **증상**: 코드는 정상적으로 수정하여 배포했으나, **실제 모바일 기기로 푸시 알림이 도착하지 않음.**
+-   **코드 상태**: `notificationService.dispatchNotification`은 정상 호출되고 있으며, DB `notifications` 테이블에 큐잉까지는 될 것으로 추정됨.
+-   **추정 원인** (Backend/Infra):
+    1.  **Supabase Secrets 미설정**: Edge Function이 Firebase에 접근하기 위한 환경변수(`FIREBASE_PROJECT_ID`, `client_email`, `private_key`)가 Supabase Dashboard에 설정되어 있지 않을 가능성 높음.
+    2.  **Database Webhook 미연결**: `notifications` 테이블에 INSERT 될 때 `push-notification` Edge Function을 트리거하는 **Webhook** 설정이 빠져있을 가능성. (코드만 배포한다고 자동 연결되지 않음)
+    3.  **Service Worker**: `firebase-messaging-sw.js` 등록 실패 또는 브라우저 권한 문제.
 
-1.  **권한 동의 UX 개선 (완료)**
-    *   위치 및 푸시 알림 권한 요청을 2단계(안내 모달 -> 시스템 팝업)로 분리하여 거부율을 낮추도록 설계했습니다.
-    *   **순차적 흐름**: 위치 동의 -> (성공 시) -> 푸시 알림 동의 순서로 자연스럽게 유도됩니다.
-    *   **iOS PWA 가이드**: 아이폰 사용자를 위해 '홈 화면에 추가' 가이드 모달을 구현했습니다.
-    *   **DB 연동**: 사용자의 권한 동의 상태(`location_granted`, `push_granted`)를 `user_permission_consents` 테이블에 실시간으로 저장합니다.
+## 📝 Next Guide (For Next Session)
+1.  **Supabase 설정 확인 (1순위)**:
+    -   [ ] [Supabase Dashboard] -> Edge Functions -> `push-notification` 로그 확인 (에러 메시지 확인).
+    -   [ ] [Supabase Dashboard] -> Project Settings -> Secrets에 Firebase 인증 정보 등록 여부 확인.
+    -   [ ] [Supabase Dashboard] -> Database -> Webhooks에서 `notifications` 테이블 INSERT 시 Function 호출 트리거 설정 확인.
+2.  **Client Debugging**:
+    -   [ ] PC 브라우저 개발자 도구에서 `notificationService` 호출 시 에러 로그 확인.
+    -   [ ] `notifications` 테이블 조회: 데이터가 쌓이고 있는지, status가 `queued`에서 `sent`로 바뀌는지 `error`인지 확인.
 
-2.  **관리자 대시보드 고도화 (완료)**
-    *   전체 회원 대비 위치/푸시 권한 동의율을 그래프 카드 형태로 시각화했습니다.
-    *   실질적인 마케팅/알림 수신 가능 모수를 파악할 수 있게 되었습니다.
-
-3.  **날씨 온도 일관성 확보 (중요 해결)**
-    *   **문제**: 로컬 개발환경(KST)과 배포 서버(UTC)의 시차로 인해, 홈 화면의 실황 온도와 상세 화면의 타임라인 온도가 불일치하는 문제가 있었습니다.
-    *   **해결**: `useWeather.ts`에서 단순 시간(`HH`) 비교가 아닌, **ISO 타임스탬프 기반의 절대 시간** 비교 로직을 도입하여 타임존에 상관없이 한국 시간(KST) 기준의 정확한 예보 데이터를 가져오도록 수정했습니다.
-    *   **UI 통일**: 상세 화면(`WeatherDetailSheet`)의 중복 계산 로직을 제거하고, 훅에서 계산된 값을 그대로 사용하도록 하여 **100% 일관성**을 확보했습니다.
-
----
-
-## 🏗 기술적 결정 사항 (Technical Decisions)
-
-*   **권한 상태 서버 동기화 (`usePermissionFlow.ts`)**: 클라이언트(`localStorage`) 상태뿐만 아니라 서버 DB에도 동의 여부를 저장하여, 추후 타겟 마케팅이나 기기 변경 시에도 설정이 유지되도록 기반을 마련했습니다.
-*   **날씨 데이터 매칭 전략**: 기상청 API 데이터는 한국 시간 기준이고 서버는 UTC일 수 있으므로, 날짜 문자열(`YYYYMMDD`) 비교 대신 `Epoch Time (ms)` 차이를 계산하는 방식으로 변경하여 로직의 견고함(Robustness)을 확보했습니다.
-
----
-
-## 🚀 다음 작업 가이드 (Next Steps)
-
-1.  **Git Push 및 배포 확인**
-    *   현재 로컬에서 모든 커밋이 완료되었습니다. `git push origin main`을 수행하여 배포를 진행하세요.
-    *   배포 후 도메인 접속 시 홈 화면과 날씨 상세 화면의 온도가 일치하는지 최종 확인이 필요합니다.
-
-2.  **푸시 알림 통합 테스트**
-    *   권한 동의를 받은 사용자에게 실제 FCM 푸시 메시지가 정상적으로 도달하는지 테스트가 필요합니다. (`/admin/push` 페이지 활용)
-
-3.  **회원가입 플로우 연동**
-    *   현재 메인 화면 진입 시 뜨도록 되어 있는 권한 동의 모달을, 추후 회원가입 완료 직후 단계로 배치하는 것을 고려해볼 수 있습니다.
-
----
-
-## ⚠️ 주의 사항 (Caveats)
-
-*   **iOS 사파리 권한**: iOS 정책상 웹 푸시 알림은 **"홈 화면에 추가(PWA 설치)"** 된 상태에서만 작동합니다. 일반 사파리 브라우저에서는 푸시 요청이 작동하지 않을 수 있음을 유의하세요. (구현된 안내 모달이 이를 설명하고 있습니다.)
-*   **기상청 API 단기예보 지연**: 기상청 서버 사정에 따라 실시간 데이터 업데이트가 수 초 지연될 수 있다는 안내 문구가 UI에 추가되어 있습니다.
+## 📌 Technical notes
+-   알림 템플릿(`notificationEvents.ts`) 확인 결과, 취소 알림에는 환불 금액 정보가 필요 없어 추가 파라미터 작업 불필요.
+-   `useReservationStore`에서 알림 발송은 `Fire & Forget` (await 안 함) 방식으로 처리되어 UI 멈춤 없음.
