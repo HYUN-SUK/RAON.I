@@ -299,6 +299,7 @@
             *   [x] **iOS Support**: iOS Safari '홈 화면에 추가' 가이드 모달 구현.
             *   [x] **Admin Dashboard**: 위치/푸시 권한 동의율 통계 카드 추가 (DB 연동).
             *   [x] **Weather Consistency**: `useWeather.ts`의 타임존(UTC) 이슈 해결 및 상세화면(`WeatherDetailSheet`) 로직 통일.
+            *   [x] **Push Audit**: 예약/취소 알림 로직 전수 조사 및 보완 완료 (수신 실패 디버깅 대기).
             *   [x] **Status**: **100% Done**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)

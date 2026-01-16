@@ -90,6 +90,8 @@
   - [x] **푸시 템플릿 상세화**: RESERVATION_SUBMITTED(입금안내), CONFIRMED(이용안내), CHANGED(변경내역), CANCELLED(취소)
   - [x] **예약 완료 시 알림**: 예약 완료 페이지에서 RESERVATION_SUBMITTED 발송 연동 (Guest 제외 로직 추가)
   - [x] **실제 FCM 발송**: `supabase/functions/push-notification` 작성 완료 (배포 필요)
+  - [x] **예약/취소 알림**: Store 연동 및 페이지 중복 제거 완료 <!-- id: 890 -->
+  - [ ] **[Debug] 실제 수신 실패 원인 규명** (Webhook/Secrets/Edge Function) <!-- id: 891 -->
   - [ ] **DB 스키마 적용 대기**: Supabase 대시보드에서 마이그레이션 실행 필요
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
