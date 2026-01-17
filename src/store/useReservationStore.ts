@@ -661,6 +661,25 @@ export const useReservationStore = create<ReservationState>()(
                     return;
                 }
 
+                // 3. Notification Trigger (If status changed to CONFIRMED)
+                if (status === 'CONFIRMED') {
+                    const targetReservation = get().reservations.find(r => r.id === id);
+                    if (targetReservation && targetReservation.userId) {
+                        const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || '캠핑장';
+
+                        notificationService.dispatchNotification(
+                            NotificationEventType.DEPOSIT_CONFIRMED,
+                            targetReservation.userId,
+                            {
+                                siteName,
+                                checkIn: targetReservation.checkInDate.toLocaleDateString(),
+                                days: String(Math.ceil((targetReservation.checkOutDate.getTime() - targetReservation.checkInDate.getTime()) / (1000 * 60 * 60 * 24)))
+                            },
+                            id
+                        ).catch(err => console.error('[Store] Deposit Confirmed Notification Failed:', err));
+                    }
+                }
+
                 // 로컬 상태도 업데이트
                 set((state) => ({
                     reservations: state.reservations.map((res) =>

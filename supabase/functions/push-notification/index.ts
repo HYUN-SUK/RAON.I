@@ -116,10 +116,17 @@ serve(async (req) => {
         const accessToken = await getAccessToken();
         console.log('[STEP 3] FCM access token obtained successfully');
 
-        // 4. Send to All Tokens
-        console.log(`[STEP 4] Sending to ${tokens.length} token(s)...`);
+        // Deduplicate tokens
+        const uniqueTokens = Array.from(new Set(tokens.map(t => t.token)))
+            .map(token => {
+                return tokens.find(t => t.token === token);
+            })
+            .filter((t): t is { token: string } => !!t);
 
-        const results = await Promise.all(tokens.map(async (t, idx) => {
+        // 4. Send to All Tokens
+        console.log(`[STEP 4] Sending to ${uniqueTokens.length} unique token(s)...`);
+
+        const results = await Promise.all(uniqueTokens.map(async (t, idx) => {
             console.log(`[STEP 4-${idx}] Preparing message for token ${t.token.slice(0, 20)}...`);
 
             const message = {
@@ -129,10 +136,26 @@ serve(async (req) => {
                         title: title,
                         body: body,
                     },
-                    data: { ...data, link: "https://raon-i.vercel.app/notifications" }, // Explicit link in data for SW
+                    data: {
+                        ...data,
+                        link: "https://raon-i.vercel.app/notifications",
+                        click_action: "https://raon-i.vercel.app/notifications" // Legacy support
+                    },
                     webpush: {
                         fcm_options: {
                             link: "https://raon-i.vercel.app/notifications"
+                        }
+                    },
+                    android: {
+                        notification: {
+                            click_action: "https://raon-i.vercel.app/notifications"
+                        }
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                category: "NEW_MESSAGE"
+                            }
                         }
                     }
                 }
