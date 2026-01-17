@@ -51,7 +51,10 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   // 앱으로 이동
-  const urlToOpen = event.notification.data?.link || '/';
+  let urlToOpen = event.notification.data?.link || '/notifications'; // Default to notifications page
+  if (!urlToOpen || urlToOpen === '/') {
+    urlToOpen = '/notifications';
+  }
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
