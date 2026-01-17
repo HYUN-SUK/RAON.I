@@ -400,3 +400,6 @@
   - [x] Fixed "Foreground Notification" missing issue (Added `onMessage` toast).
   - [x] Fixed "FCM Quota Exceeded" loop (Memoized `requestPermission`).
   - [x] Fixed "Open App Deep Link" failure (Added `postMessage` to SW).
+  - [x] **UX Refinements**:
+    - [x] Silenced "Permission Granted" toast on Home visit.
+    - [x] Disabled "Foreground" toast (User preference) while keeping Deep Link logic safe.

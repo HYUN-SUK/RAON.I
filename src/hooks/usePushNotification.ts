@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-client';
 
 // This will be replaced by lib/firebase usage
 import { firebaseRequestPermission, firebaseSyncToken } from '@/lib/firebase';
-import { toast } from 'sonner';
+// import { toast } from 'sonner'; // Toast removed for silence
 
 export function usePushNotification() {
     const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -41,10 +41,12 @@ export function usePushNotification() {
                     });
                 }
 
-                toast.success('알림 설정이 완료되었습니다!');
+                // Silent success (User requested to hide toast on every visit)
+                // toast.success('알림 설정이 완료되었습니다!');
             } else {
                 if (Notification.permission === 'denied') {
-                    toast.error('알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.');
+                    // toast.error('알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.');
+                    console.warn('Notification permission denied');
                 }
             }
         } catch (error: any) {
