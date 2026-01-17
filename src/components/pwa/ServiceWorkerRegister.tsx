@@ -11,8 +11,7 @@ export default function ServiceWorkerRegister() {
         if ('serviceWorker' in navigator) {
             const registerSW = async () => {
                 try {
-                    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-                    console.log('Service Worker registered with scope:', registration.scope);
+                    await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                 } catch (err) {
                     console.log('Service Worker registration failed:', err);
                 }
@@ -24,7 +23,6 @@ export default function ServiceWorkerRegister() {
             // DO NOT REMOVE THIS even if foreground toasts are disabled.
             const handleMessage = (event: MessageEvent) => {
                 if (event.data && event.data.type === 'NOTIFICATION_CLICK' && event.data.url) {
-                    console.log('[App] Received navigation request:', event.data.url);
                     window.location.href = event.data.url;
                 }
             };

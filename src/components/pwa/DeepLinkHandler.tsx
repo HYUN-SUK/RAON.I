@@ -11,8 +11,6 @@ export default function DeepLinkHandler() {
     useEffect(() => {
         const redirectUrl = searchParams.get('push_redirect');
         if (redirectUrl) {
-            console.log('[DeepLink] Redirecting to:', redirectUrl);
-            toast.success(`알림 페이지로 이동합니다...`);
             router.replace(redirectUrl);
         }
     }, [searchParams, router]);
