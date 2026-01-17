@@ -25,6 +25,7 @@ import { useLBS } from '@/hooks/useLBS';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { usePushNotification } from '@/hooks/usePushNotification';
 import { Database } from '@/types/supabase';
 
 // Type Definitions from DB
@@ -87,7 +88,12 @@ export default function BeginnerHome() {
     // Contextual Data
     const { data: recData, loading: recLoading, weather, shuffle } = usePersonalizedRecommendation();
     const { openDayRule, fetchOpenDayRule } = useReservationStore();
-    React.useEffect(() => { fetchOpenDayRule(); }, [fetchOpenDayRule]);
+    const { requestPermission } = usePushNotification();
+
+    React.useEffect(() => {
+        fetchOpenDayRule();
+        requestPermission();
+    }, [fetchOpenDayRule, requestPermission]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);

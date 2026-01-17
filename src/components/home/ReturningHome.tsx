@@ -20,6 +20,7 @@ import { useLBS } from '@/hooks/useLBS';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { Database } from '@/types/supabase';
 import NotificationBadge from '@/components/common/NotificationBadge';
+import { usePushNotification } from '@/hooks/usePushNotification';
 
 
 
@@ -67,11 +68,15 @@ export default function ReturningHome() {
     const lbs = useLBS();
     const { data: recData, weather, loading: recLoading, shuffle } = usePersonalizedRecommendation();
 
+    const { requestPermission } = usePushNotification();
+
     React.useEffect(() => {
         fetchSites();
         fetchOpenDayRule();
         fetchLastReservation();
-    }, [fetchOpenDayRule, fetchLastReservation, fetchSites]);
+        // Auto-request permission on Home Load
+        requestPermission();
+    }, [fetchOpenDayRule, fetchLastReservation, fetchSites, requestPermission]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
