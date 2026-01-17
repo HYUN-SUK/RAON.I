@@ -114,16 +114,11 @@ export class NotificationService {
                 return { success: false, message: error.message };
             }
 
-            // 2. Edge Function 직접 호출 (Webhook 대용)
-            // Fire & Forget 방식으로 호출하여 클라이언트 응답 속도 저하 방지
-            // 단, 에러 로깅을 위해 catch 블록 추가
-            this.supabase.functions.invoke('push-notification', {
-                body: { record: insertedData }
-            }).then(({ data: funcData, error: funcError }) => {
-                if (funcError) {
-                    console.error('[NotificationService] Edge Function error:', funcError);
-                }
-            });
+            // 2. Edge Function 직접 호출 부분 제거 (DB Webhook Trigger와 중복 발송 방지)
+            // if (webhook_is_not_configured) {
+            //      this.supabase.functions.invoke(...)
+            // }
+            // 현재 중복 발송 문제가 발생하므로, DB Webhook이 정상 동작한다고 가정하고 이 코드는 주석/제거 처리합니다.
 
             return { success: true };
         } catch (err) {

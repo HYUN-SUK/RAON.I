@@ -10,6 +10,7 @@ import UpcomingReservation from "@/components/myspace/UpcomingReservation";
 import SlimNotice from "@/components/myspace/SlimNotice";
 import MyGroupsWidget from "@/components/myspace/MyGroupsWidget";
 import PaperBackground from "@/components/myspace/PaperBackground";
+import NotificationBadge from "@/components/common/NotificationBadge";
 
 export default function MySpacePage() {
     return (
@@ -34,6 +35,9 @@ export default function MySpacePage() {
 
             {/* 5. My Timeline */}
             <MyTimeline />
+
+            {/* 5.5 Notification Badge (Inline) */}
+            <NotificationBadge variant="inline" />
 
             {/* 6. Slim Notice */}
             <SlimNotice />

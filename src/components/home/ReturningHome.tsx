@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
@@ -17,9 +17,11 @@ import WeatherDetailSheet from '@/components/home/WeatherDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useLBS } from '@/hooks/useLBS';
-import { useState } from 'react';
 import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { Database } from '@/types/supabase';
+import NotificationBadge from '@/components/common/NotificationBadge';
+
+
 
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
 // Simplified facility interface based on usage
@@ -129,6 +131,8 @@ export default function ReturningHome() {
 
                     {/* Abstract Pattern */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+
+                    <NotificationBadge variant="hero" />
 
                     <div className="relative z-10 mt-4">
                         {recData ? (

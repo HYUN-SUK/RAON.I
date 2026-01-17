@@ -103,4 +103,3 @@ self.addEventListener('fetch', (event) => {
   // Just a pass-through for now, but required for PWA 'Add to Home Screen'
   return;
 });
-

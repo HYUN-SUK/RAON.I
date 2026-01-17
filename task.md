@@ -387,4 +387,13 @@
 - [x] **Verification**: Live Browser Test passed.
 - [x] **Build**: Production build verified.
 
-
+## 8.17 Push Notification Refinements (2026-01-17) ✅
+- [x] **Duplicate Fix**: 
+  - [x] Removed manual Edge Function invocation (using DB Webhook instead).
+  - [x] Added token cleanup logic (deletes UNREGISTERED/INVALID tokens) to Edge Function.
+- [x] **Notification UI**:
+  - [x] Created `wrapper` NotificationBadge component (Hero & Inline variants).
+  - [x] Created `/notifications` text-message style history page.
+  - [x] Applied Badge to `BeginnerHome` (Hero), `ReturningHome` (Hero), and `MySpace` (Inline).
+- [x] **Deep Linking**:
+  - [x] Configured FCM payload and SW to support `/notifications` deep link.

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren } from 'lucide-react';
 import TopBar from '@/components/TopBar';
+import NotificationBadge from '@/components/common/NotificationBadge';
 import SlimNotice from '@/components/home/SlimNotice';
 import { PriceGuideSheet } from '@/components/home/PriceGuideSheet';
 import RecommendationGrid from '@/components/home/RecommendationGrid';
@@ -336,6 +337,8 @@ export default function BeginnerHome() {
                         />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
+
+                    <NotificationBadge variant="hero" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
 

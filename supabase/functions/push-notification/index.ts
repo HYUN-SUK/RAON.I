@@ -129,10 +129,10 @@ serve(async (req) => {
                         title: title,
                         body: body,
                     },
-                    data: data || {}, // Custom data
+                    data: { ...data, link: "https://raon-i.vercel.app/notifications" }, // Explicit link in data for SW
                     webpush: {
                         fcm_options: {
-                            link: "https://raon-i.vercel.app/myspace"
+                            link: "https://raon-i.vercel.app/notifications"
                         }
                     }
                 }
@@ -164,13 +164,23 @@ serve(async (req) => {
         const successCount = results.filter(r => r.status === 200).length;
         const failureCount = results.length - successCount;
 
+        // Cleanup: Delete invalid tokens
+        const invalidTokens = results
+            .filter(r => r.status === 400 || r.status === 404 || (r.body.error && (r.body.error.code === 404 || r.body.error.status === 'UNREGISTERED' || r.body.error.status === 'INVALID_ARGUMENT')))
+            .map(r => r.token);
+
+        if (invalidTokens.length > 0) {
+            console.log(`[CLEANUP] Found ${invalidTokens.length} invalid tokens. Deleting...`);
+            await supabase.from('push_tokens').delete().in('token', invalidTokens);
+        }
+
         // Determine final status
         const finalStatus = successCount > 0 ? 'sent' : 'failed';
         const resultSummary = JSON.stringify(results.map(r => ({ status: r.status, err: r.body.error?.message })));
 
         await updateNotificationStatus(id, finalStatus, resultSummary); // Update sent_at if success
 
-        return new Response(JSON.stringify({ success: true, results }), {
+        return new Response(JSON.stringify({ success: true, results, cleaned: invalidTokens.length }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
 
