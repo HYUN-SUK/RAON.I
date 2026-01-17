@@ -62,15 +62,15 @@ self.addEventListener('notificationclick', (event) => {
         for (const client of windowClients) {
           // Check if client is under same origin
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            // Focus first, then navigate via postMessage (more robust)
+            // Focus first, then navigate via text query param (most robust)
             return client.focus().then((focusedClient) => {
-              const absoluteUrl = new URL(urlToOpen, self.location.origin).href;
-              focusedClient.postMessage({
-                type: 'NOTIFICATION_CLICK',
-                url: absoluteUrl
-              });
-              // Fallback: direct navigation if listener missed
-              return focusedClient.navigate(absoluteUrl);
+              const targetUrl = new URL(urlToOpen, self.location.origin).href;
+              // Construct redirect URL: /?push_redirect=TARGET_URL
+              const redirectUrl = new URL('/', self.location.origin);
+              redirectUrl.searchParams.set('push_redirect', targetUrl);
+
+              // Fallback: direct navigation with param
+              return focusedClient.navigate(redirectUrl.href);
             });
           }
         }

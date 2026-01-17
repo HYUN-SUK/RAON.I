@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import LoginRequestDialog from "@/components/auth/LoginRequestDialog";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import DeepLinkHandler from "@/components/pwa/DeepLinkHandler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,6 +51,9 @@ export default function RootLayout({
         {children}
         <Toaster position="top-center" />
         <LoginRequestDialog />
+        <Suspense fallback={null}>
+          <DeepLinkHandler />
+        </Suspense>
         <ServiceWorkerRegister />
       </body>
     </html>
