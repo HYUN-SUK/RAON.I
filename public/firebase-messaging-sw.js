@@ -55,16 +55,22 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
-        // 이미 열린 창이 있으면 포커스
+        // 1. Check if there is an existing window we can focus
         for (const client of windowClients) {
+          // Check if client is under same origin
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            client.navigate(urlToOpen);
-            return client.focus();
+            // Focus first, then navigate
+            return client.focus().then(() => {
+              return client.navigate(urlToOpen);
+            });
           }
         }
-        // 없으면 새 창 열기
+
+        // 2. If no window exists, open a new one
         if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
+          // Absolute URL is safer
+          const absoluteUrl = new URL(urlToOpen, self.location.origin).href;
+          return clients.openWindow(absoluteUrl);
         }
       })
   );
