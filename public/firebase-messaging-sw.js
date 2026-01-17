@@ -64,12 +64,13 @@ self.addEventListener('notificationclick', (event) => {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
             // Focus first, then navigate via postMessage (more robust)
             return client.focus().then((focusedClient) => {
+              const absoluteUrl = new URL(urlToOpen, self.location.origin).href;
               focusedClient.postMessage({
                 type: 'NOTIFICATION_CLICK',
-                url: urlToOpen
+                url: absoluteUrl
               });
               // Fallback: direct navigation if listener missed
-              return focusedClient.navigate(urlToOpen);
+              return focusedClient.navigate(absoluteUrl);
             });
           }
         }
