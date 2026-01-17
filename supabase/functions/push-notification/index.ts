@@ -139,18 +139,10 @@ serve(async (req) => {
                     data: {
                         ...data,
                         link: "https://raon-i.vercel.app/notifications",
-                        click_action: "https://raon-i.vercel.app/notifications" // Legacy support
                     },
-                    webpush: {
-                        fcm_options: {
-                            link: "https://raon-i.vercel.app/notifications"
-                        }
-                    },
-                    android: {
-                        notification: {
-                            click_action: "https://raon-i.vercel.app/notifications"
-                        }
-                    },
+                    // webpush & android click_action REMOVED
+                    // to force Service Worker to handle the click event
+                    // and apply ?push_redirect= logic.
                     apns: {
                         payload: {
                             aps: {
@@ -160,6 +152,9 @@ serve(async (req) => {
                     }
                 }
             };
+
+            // Critical Debug Log: Check if webpush is really gone
+            console.log(`[STEP 4-${idx}] Outgoing Payload:`, JSON.stringify(message, null, 2));
 
             console.log(`[STEP 4-${idx}] Calling FCM API...`);
 
