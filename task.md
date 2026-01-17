@@ -397,3 +397,6 @@
   - [x] Applied Badge to `BeginnerHome` (Hero), `ReturningHome` (Hero), and `MySpace` (Inline).
 - [x] **Deep Linking**:
   - [x] Configured FCM payload and SW to support `/notifications` deep link.
+  - [x] Fixed "Foreground Notification" missing issue (Added `onMessage` toast).
+  - [x] Fixed "FCM Quota Exceeded" loop (Memoized `requestPermission`).
+  - [x] Fixed "Open App Deep Link" failure (Added `postMessage` to SW).

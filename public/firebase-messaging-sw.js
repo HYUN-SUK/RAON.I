@@ -62,14 +62,19 @@ self.addEventListener('notificationclick', (event) => {
         for (const client of windowClients) {
           // Check if client is under same origin
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            // Focus first, then navigate via text query param (most robust)
+            // Focus first, then SIGNAL the client to navigate (More reliable than client.navigate for PWA)
             return client.focus().then((focusedClient) => {
               const targetUrl = new URL(urlToOpen, self.location.origin).href;
-              // Construct redirect URL: /?push_redirect=TARGET_URL
+
+              // 1. Try sending a message to the client (Handled by ServiceWorkerRegister.tsx)
+              focusedClient.postMessage({
+                type: 'NOTIFICATION_CLICK',
+                url: targetUrl
+              });
+
+              // 2. Also try redirecting via param as backup (for full reloads)
               const redirectUrl = new URL('/', self.location.origin);
               redirectUrl.searchParams.set('push_redirect', targetUrl);
-
-              // Fallback: direct navigation with param
               return focusedClient.navigate(redirectUrl.href);
             });
           }

@@ -45,7 +45,7 @@ export default function ServiceWorkerRegister() {
                                     window.location.href = '/notifications';
                                 }
                             },
-                            duration: 5000, // Stay a bit longer
+                            duration: Infinity, // Persistent until clicked or dismissed
                         });
                     });
                 }
