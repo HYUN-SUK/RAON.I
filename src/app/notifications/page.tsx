@@ -44,6 +44,15 @@ export default function NotificationsPage() {
                 console.error('Failed to fetch notifications:', error);
             } else {
                 setNotifications(data || []);
+
+                // Mark ALL notifications as read (Background)
+                supabase.from('notifications')
+                    .update({ is_read: true })
+                    .eq('user_id', session.user.id)
+                    .eq('is_read', false)
+                    .then(({ error }) => {
+                        if (error) console.error('Failed to mark all read:', error);
+                    });
             }
             setLoading(false);
         };

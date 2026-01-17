@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 
@@ -12,7 +12,9 @@ interface NotificationBadgeProps {
 
 export default function NotificationBadge({ className = '', variant = 'inline' }: NotificationBadgeProps) {
     const router = useRouter();
-    const [latestNotification, setLatestNotification] = useState<{ title: string; created_at: string } | null>(null);
+    const [latestNotification, setLatestNotification] = useState<{ title: string; created_at: string; is_read: boolean } | null>(null);
+
+    const pathname = usePathname();
 
     useEffect(() => {
         const fetchLatest = async () => {
@@ -20,23 +22,30 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const { data, error } = await supabase
+            let query = supabase
                 .from('notifications')
-                .select('title, created_at')
-                .eq('user_id', session.user.id)
+                .select('title, created_at, is_read')
+                .eq('user_id', session.user.id);
+
+            // Apply filter BEFORE order/limit
+            if (variant === 'hero') {
+                query = query.eq('is_read', false);
+            }
+
+            const { data, error } = await query
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
 
             if (data && !error) {
                 setLatestNotification(data);
+            } else {
+                setLatestNotification(null); // Clear if no data
             }
         };
 
         fetchLatest();
-
-        // Optional: Realtime subscription could be added here
-    }, []);
+    }, [pathname]); // Refresh on navigation
 
     if (!latestNotification) return null;
 
@@ -70,7 +79,9 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
         >
             <div className="bg-white dark:bg-black p-1.5 rounded-full border border-stone-200 dark:border-zinc-700 relative">
                 <Bell className="w-4 h-4 text-[#C3A675]" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-bounce" />
+                {!latestNotification.is_read && (
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-bounce" />
+                )}
             </div>
             <div className="text-left flex-1 min-w-0">
                 <p className="text-xs text-stone-500 dark:text-stone-400 font-bold mb-0.5">알림 내역 확인</p>
