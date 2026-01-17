@@ -59,9 +59,14 @@ self.addEventListener('notificationclick', (event) => {
         for (const client of windowClients) {
           // Check if client is under same origin
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            // Focus first, then navigate
-            return client.focus().then(() => {
-              return client.navigate(urlToOpen);
+            // Focus first, then navigate via postMessage (more robust)
+            return client.focus().then((focusedClient) => {
+              focusedClient.postMessage({
+                type: 'NOTIFICATION_CLICK',
+                url: urlToOpen
+              });
+              // Fallback: direct navigation if listener missed
+              return focusedClient.navigate(urlToOpen);
             });
           }
         }

@@ -30,24 +30,6 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
             addXp(100);
             addToken(100);
             setConfirmStep('IDLE');
-
-            // 푸시 알림 발송: 입금 확정 (예약 확정)
-            if (reservation.userId) {
-                const siteName = site?.name || reservation.siteId;
-                const checkIn = format(new Date(reservation.checkInDate), 'MM.dd(eee)', { locale: ko });
-                const checkOut = format(new Date(reservation.checkOutDate), 'MM.dd(eee)', { locale: ko });
-                await notificationService.dispatchNotification(
-                    NotificationEventType.DEPOSIT_CONFIRMED,
-                    reservation.userId,
-                    {
-                        siteName,
-                        checkIn,
-                        checkOut,
-                        reservation_id: reservation.id
-                    },
-                    reservation.id
-                );
-            }
         } else {
             setConfirmStep('CONFIRMING');
             setTimeout(() => setConfirmStep('IDLE'), 3000); // Reset after 3s
@@ -58,24 +40,6 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
         if (confirmStep === 'CANCELLING') {
             updateReservationStatus(reservation.id, 'CANCELLED');
             setConfirmStep('IDLE');
-
-            // 푸시 알림 발송: 예약 취소
-            if (reservation.userId) {
-                const siteName = site?.name || reservation.siteId;
-                const checkIn = format(new Date(reservation.checkInDate), 'MM.dd(eee)', { locale: ko });
-                const checkOut = format(new Date(reservation.checkOutDate), 'MM.dd(eee)', { locale: ko });
-                await notificationService.dispatchNotification(
-                    NotificationEventType.RESERVATION_CANCELLED,
-                    reservation.userId,
-                    {
-                        siteName,
-                        checkIn,
-                        checkOut,
-                        reservation_id: reservation.id
-                    },
-                    reservation.id
-                );
-            }
         } else {
             setConfirmStep('CANCELLING');
             setTimeout(() => setConfirmStep('IDLE'), 3000);
