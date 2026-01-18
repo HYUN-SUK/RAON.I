@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { notificationService } from '@/services/notificationService';
 import { NotificationEventType } from '@/types/notificationEvents';
 import { toast } from 'sonner';
+import CancelReservationDialog from './CancelReservationDialog';
 
 interface ReservationCardProps {
     reservation: Reservation;
@@ -168,16 +169,17 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                     </button>
                 )}
                 {reservation.status !== 'CANCELLED' && reservation.status !== 'REFUND_PENDING' && reservation.status !== 'REFUNDED' && (
-                    <button
-                        onClick={handleCancelClick}
-                        className={`flex items-center space-x-1 px-3 py-2 border rounded text-sm font-medium transition-colors ${confirmStep === 'CANCELLING'
-                            ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
-                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                            }`}
-                    >
-                        <XCircle size={16} />
-                        <span>{confirmStep === 'CANCELLING' ? '정말 취소할까요?' : '취소'}</span>
-                    </button>
+                    <CancelReservationDialog
+                        reservationId={reservation.id}
+                        trigger={
+                            <button
+                                className="flex items-center space-x-1 px-3 py-2 border rounded text-sm font-medium transition-colors bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                            >
+                                <XCircle size={16} />
+                                <span>취소</span>
+                            </button>
+                        }
+                    />
                 )}
             </div>
         </div>

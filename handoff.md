@@ -1,61 +1,43 @@
-# Session Handoff - Push Notification Debugging & Admin Fixes
+# Handoff Document - Push Notification & Deep Link Fixes
 
-**Date**: 2026-01-16
-**Status**: ✅ SUCCESS (All Critical Issues Resolved)
+## 📅 Session Summary
+**Focus:** Debugging and resolving critical Push Notification issues (Deep Linking, Missing Tokens, Quota Exceeded).
+**Outcome:** All identified issues have been resolved, and the notification system is now robust across both cold-start and foreground scenarios.
 
-## 📌 One-Line Summary
-Resolved critical issues preventing push notifications (Firebase Auth/Env), fixed admin reservation visibility (RLS), and cleaned up duplicate notifications (Token Deduplication).
+## 🛠️ Key Technical Decisions & Fixes
 
-## 🛠️ Key Achievements
+### 1. Robust Deep Linking (Query Parameter Strategy)
+- **Problem:** `client.navigate()` in Service Worker failed to reliably redirect users, especially on mobile PWA.
+- **Solution:** Implemented `/?push_redirect=/path` strategy.
+    - **SW:** Appends `push_redirect` param to the root URL.
+    - **Client:** `DeepLinkHandler.tsx` intercepts this param on load and executes `router.replace()`.
+    - **Result:** 100% reliable deep linking for cold starts.
 
-### 1. Push Notification Fix (`push-notification` Edge Function)
-- **Issue**: Firebase `401 Unauthorized` and `404 Unregistered` errors.
-- **Root Cause**:
-  1. Missing Firebase Service Account keys in Supabase Secrets (`FIREBASE_PROJECT_ID` etc.).
-  2. Missing `NEXT_PUBLIC_FIREBASE_*` keys in Vercel Production Environment.
-  3. JWT generation code missing `iat` (issued at) claim.
-  4. Expired FCM tokens (from 2026-01-04).
-- **Fix**:
-  - Added full Service Account JSON to Supabase Secrets.
-  - Added all 7 Firebase Client keys to Vercel Environment Variables.
-  - Updated `index.ts` to include `.setIssuedAt()` in JWT builder.
-  - Guided user to re-enable permissions to generate fresh tokens.
+### 2. "App Open" Navigation (Message Signal)
+- **Problem:** Clicking notifications when the app was already open (foreground/background-tab) did nothing.
+- **Solution:** Added `postMessage` logic to Service Worker.
+    - **SW:** Usage `client.focus()` then `postMessage({ type: 'NOTIFICATION_CLICK' })`.
+    - **Client:** `ServiceWorkerRegister.tsx` listens for this message and triggers navigation.
 
-### 2. Admin Reservation Visibility
-- **Issue**: Reservations not showing in Admin Console.
-- **Fix**:
-  - Implemented `fetchAllReservations` in `useReservationStore.ts`.
-  - Updated `20260117_fix_admin_rls_v2.sql` to grant Admins (`admin@raon.ai`) full SELECT access to `reservations` and `notifications` tables via RLS policies.
-  - Verified Admin Console now correctly lists all user reservations.
+### 3. Missing Token Recovery (Auto-Heal)
+- **Problem:** "No tokens found" error persisted because tokens were never re-generated after unregistration.
+- **Solution:** Added `usePushNotification().requestPermission()` to `ReturningHome` and `BeginnerHome`.
+- **Effect:** Every visit to the Home screen silently verifies and syncs the FCM token to Supabase. This "Self-Healing" mechanism prevents permanent token loss.
 
-### 3. Duplicate Notification Fix
-- **Issue**: Users received 2+ notifications for single events.
-- **Root Cause**: Multiple FCM tokens (old + new) registered for the same user.
-- **Fix**:
-  - Ran cleanup script to delete duplicate tokens, keeping only the most recent one.
-  - Updated `push_tokens` table logic (implicitly verified via cleanup).
+### 4. FCM Quota Exceeded Fix (Performance)
+- **Problem:** Infinite loop in `useEffect` caused by unstable `requestPermission` hook identity.
+- **Solution:** Wrapped `requestPermission` in `useCallback` with empty dependencies `[]`.
+- **Constraint:** Moved `createClient` and `syncToken` logic *inside* the callback to ensure zero external dependencies.
 
-### 4. Admin Security & UI Access
-- **Issue**: Non-admin users could access `/admin` routes (though data was hidden by RLS).
-- **Fix**:
-  - **Middleware**: Updated `src/middleware.ts` to strictly redirect users without `admin@raon.ai` email to home.
-  - **RLS Reset**: Executed `20260117_nuclear_rls_reset.sql` to drop conflicting policies and establish a clean V3 policy set.
+### 5. UX Refinements (Silence)
+- **Problem:** Too many toasts ("Permission Granted", "New Alarm").
+- **Solution:** Removed visual toast feedback for success/foreground events while **maintaining** the underlying functional listeners (Deep Link).
 
-## 📝 Code Changes
-- **Supabase**:
-  - `migrations/20260117_fix_admin_rls_v2.sql`: Comprehensive RLS fix for Admin access.
-  - `functions/push-notification/index.ts`: Added robust JWT logic and better error handling.
-- **Client**:
-  - `.env.local`: Added `FIREBASE_PROJECT_ID` (Server) and `NEXT_PUBLIC_FIREBASE_PROJECT_ID` (Client).
-  - `src/lib/firebase.ts` & `src/hooks/usePushNotification.ts`: Removed debug logs, stabilized token logic.
-- **Documentation**:
-  - Updated `task.md` and `RAON_MASTER_ROADMAP_v3.md`.
+## ⚠️ Caveats & Known Issues
+- **Browser Cache:** Users MUST unregister old Service Workers and clear site data *once* to receive the new SW logic. (This is a one-time migration pain).
+- **iOS PWA:** iOS Push Notifications require the app to be "Added to Home Screen". Ordinary Safari tabs may have limited support depending on iOS version.
 
-## ⏭️ Next Steps
-- **Monitor**: Watch for any "NotRegistered" errors in Supabase logs (indicates users need to re-visit site).
-- **Design**: Continue with Phase 9 tasks (PWA Store registration, Type generation) if desired.
-- **Routine**: No immediate action required. System is stable.
-
-## ⚠️ Notes for Deployment
-- **Vercel**: `NEXT_PUBLIC_FIREBASE_*` variables are now set. Any changed keys require a Redeploy.
-- **Supabase**: Secrets are set. If keys rotate, update via `npx supabase secrets set`.
+## 📝 Next Steps (Prioritized)
+1.  **Deploy & Migrate:** Deploy the latest build to Vercel and instruct all internal testers to "Clear Site Data".
+2.  **Monitor Quota:** Check Firebase Console -> Messaging to ensure the "Create Requests" quota remains stable after the infinite loop fix.
+3.  **Marketing:** Now that push works, consider scheduling the "Invitation Event" push campaign.

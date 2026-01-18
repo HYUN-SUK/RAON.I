@@ -40,7 +40,7 @@ interface ReservationState {
         guestPhone: string;
         requests?: string;
     }) => Promise<{ success: boolean; reservationId?: string; error?: string; message?: string }>;
-    updateReservationStatus: (id: string, status: ReservationStatus) => Promise<void>;
+    updateReservationStatus: (id: string, status: ReservationStatus, cancelReason?: string) => Promise<void>;
     updateReservation: (id: string, updates: {
         checkInDate?: Date;
         checkOutDate?: Date;
@@ -646,14 +646,20 @@ export const useReservationStore = create<ReservationState>()(
             },
 
             // 예약 상태 변경 (DB + 로컬 동기화)
-            updateReservationStatus: async (id, status) => {
+            updateReservationStatus: async (id, status, cancelReason) => {
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
 
-                // DB 업데이트
+                // DB 업데이트 (취소 사유가 있으면 함께 업데이트)
+                const updateData: any = { status, updated_at: new Date().toISOString() };
+                if (status === 'CANCELLED' && cancelReason) {
+                    updateData.cancel_reason = cancelReason;
+                    updateData.cancelled_at = new Date().toISOString();
+                }
+
                 const { error } = await supabase
                     .from('reservations')
-                    .update({ status, updated_at: new Date().toISOString() })
+                    .update(updateData)
                     .eq('id', id);
 
                 if (error) {
@@ -661,29 +667,46 @@ export const useReservationStore = create<ReservationState>()(
                     return;
                 }
 
-                // 3. Notification Trigger (If status changed to CONFIRMED)
-                if (status === 'CONFIRMED') {
-                    const targetReservation = get().reservations.find(r => r.id === id);
-                    if (targetReservation && targetReservation.userId) {
-                        const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || '캠핑장';
+                // 3. Notification Trigger
+                const targetReservation = get().reservations.find(r => r.id === id);
+                if (targetReservation && targetReservation.userId) {
+                    const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || '캠핑장';
+                    const payload = {
+                        siteName,
+                        checkIn: targetReservation.checkInDate.toLocaleDateString(),
+                        checkOut: targetReservation.checkOutDate.toLocaleDateString(),
+                        reason: cancelReason || '관리자 취소'
+                    };
 
+                    // A. 예약 확정 (CONFIRMED)
+                    if (status === 'CONFIRMED') {
                         notificationService.dispatchNotification(
-                            NotificationEventType.DEPOSIT_CONFIRMED,
+                            NotificationEventType.RESERVATION_CONFIRMED,
                             targetReservation.userId,
-                            {
-                                siteName,
-                                checkIn: targetReservation.checkInDate.toLocaleDateString(),
-                                days: String(Math.ceil((targetReservation.checkOutDate.getTime() - targetReservation.checkInDate.getTime()) / (1000 * 60 * 60 * 24)))
-                            },
+                            payload,
                             id
-                        ).catch(err => console.error('[Store] Deposit Confirmed Notification Failed:', err));
+                        ).catch(err => console.error('[Store] Reservation Confirmed Notification Failed:', err));
+                    }
+                    // B. 예약 취소 (CANCELLED)
+                    else if (status === 'CANCELLED') {
+                        notificationService.dispatchNotification(
+                            NotificationEventType.RESERVATION_CANCELLED,
+                            targetReservation.userId,
+                            payload,
+                            id
+                        ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
                     }
                 }
 
                 // 로컬 상태도 업데이트
                 set((state) => ({
                     reservations: state.reservations.map((res) =>
-                        res.id === id ? { ...res, status } : res
+                        res.id === id ? {
+                            ...res,
+                            status,
+                            cancelReason: status === 'CANCELLED' ? cancelReason : res.cancelReason,
+                            cancelledAt: status === 'CANCELLED' ? new Date() : res.cancelledAt
+                        } : res
                     ),
                 }));
             },

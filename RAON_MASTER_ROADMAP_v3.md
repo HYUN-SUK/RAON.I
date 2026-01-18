@@ -14,6 +14,9 @@
   - [x] **Webhook Check**: Confirm Trigger exists on `notifications` table (Bypassed via Client Invoke).
   - [x] **Auth Fix**: Fixed Firebase 401 (Added Service Account), Vercel Env (Added `NEXT_PUBLIC_` vars), JWT Claim (`iat`).
   - [x] **Token Cleanup**: Removed duplicate FCM tokens to prevent double notifications.
+  - [x] **Deep Linking**: Implemented `push_redirect` query strategy + `postMessage` for open apps.
+  - [x] **Reliability**: Auto-token refresh on Home visit (Self-Healing).
+  - [x] **Performance**: Fixed FCM Quota Infinite Loop (Memoization).
   - [x] **Verification**: Live booking test -> 1 notification received successfully.
 
 ## 📅 전체 진행률 요약 (Progress Summary)

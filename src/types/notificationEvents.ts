@@ -113,6 +113,8 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         title_template: '예약 취소',
         body_template: `예약이 취소되었습니다.
 
+취소 사유: {{reason}}
+
 일정: {{checkIn}} - {{checkOut}}
 사이트: {{siteName}}`,
     },
