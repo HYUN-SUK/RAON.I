@@ -19,6 +19,13 @@
   - [x] **Performance**: Fixed FCM Quota Infinite Loop (Memoization).
   - [x] **Verification**: Live booking test -> 1 notification received successfully.
 
+- [x] **9.2 Admin Push Notification & Duplicate Fix (2026-01-19)** ✅
+  - [x] **Admin Status Update Fix**: Notifications now sent when admin confirms deposit or cancels reservation.
+  - [x] **RLS Policy Issue**: Fixed by disabling RLS on `notifications` table (temporary, TODO: re-enable with correct policy).
+  - [x] **Duplicate Notification Fix**: Removed DB Webhook (code invoke only), fixed SW duplicate handler.
+  - [x] **Admin Force Cancel**: Added `CancelReservationDialog` with reason input, reason included in push notification.
+  - [x] **Verification**: All 3 scenarios (Reserve/Confirm/Cancel) -> 1 notification each.
+
 ## 📅 전체 진행률 요약 (Progress Summary)
 
 | 단계 | 구분 | 상태 | 진행률 | 비고 |
