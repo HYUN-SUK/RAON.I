@@ -668,9 +668,30 @@ export const useReservationStore = create<ReservationState>()(
                 }
 
                 // 3. Notification Trigger
-                const targetReservation = get().reservations.find(r => r.id === id);
+                // 먼저 로컬 스토어에서 찾고, 없으면 DB에서 직접 조회 (Admin 콘솔 대응)
+                let targetReservation = get().reservations.find(r => r.id === id);
+
+                if (!targetReservation) {
+                    // Admin 페이지에서 호출 시 로컬 스토어에 없을 수 있음 -> DB에서 직접 조회
+                    const { data: dbReservation } = await supabase
+                        .from('reservations')
+                        .select('id, user_id, site_id, check_in_date, check_out_date')
+                        .eq('id', id)
+                        .single();
+
+                    if (dbReservation) {
+                        targetReservation = {
+                            id: dbReservation.id,
+                            userId: dbReservation.user_id,
+                            siteId: dbReservation.site_id,
+                            checkInDate: new Date(dbReservation.check_in_date),
+                            checkOutDate: new Date(dbReservation.check_out_date),
+                        } as any;
+                    }
+                }
+
                 if (targetReservation && targetReservation.userId) {
-                    const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || '캠핑장';
+                    const siteName = get().sites.find(s => s.id === targetReservation!.siteId)?.name || '캠핑장';
                     const payload = {
                         siteName,
                         checkIn: targetReservation.checkInDate.toLocaleDateString(),
@@ -696,6 +717,8 @@ export const useReservationStore = create<ReservationState>()(
                             id
                         ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
                     }
+                } else {
+                    console.warn('[Store] Cannot send notification: Reservation not found or no userId', id);
                 }
 
                 // 로컬 상태도 업데이트
