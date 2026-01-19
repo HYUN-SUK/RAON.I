@@ -90,33 +90,8 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// 레거시 푸시 이벤트 (FCM 없이 직접 푸시 테스트용)
-self.addEventListener('push', function (event) {
-  // FCM이 아닌 직접 푸시의 경우 처리
-  if (!event.data) return;
-
-  try {
-    const payload = event.data.json();
-    const title = payload.notification?.title || 'RAON.I 알림';
-    const options = {
-      body: payload.notification?.body || event.data.text(),
-      icon: '/images/logo.png',
-      badge: '/images/logo.png',
-      data: payload.data || {}
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (e) {
-    // JSON 파싱 실패 시 텍스트로 처리
-    const title = 'RAON.I 알림';
-    const options = {
-      body: event.data.text(),
-      icon: '/images/logo.png',
-      badge: '/images/logo.png'
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-  }
-});
+// 레거시 푸시 이벤트 리스너 제거 (FCM onBackgroundMessage와 중복되었음)
+// FCM을 사용하므로 onBackgroundMessage만 있으면 됩니다.
 
 // PWA Install Criteria: Must have a fetch handler
 self.addEventListener('fetch', (event) => {

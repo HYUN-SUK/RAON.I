@@ -667,7 +667,7 @@ export const useReservationStore = create<ReservationState>()(
                     return;
                 }
 
-                // 3. Notification Trigger
+                // Notification Trigger
                 // 먼저 로컬 스토어에서 찾고, 없으면 DB에서 직접 조회 (Admin 콘솔 대응)
                 let targetReservation = get().reservations.find(r => r.id === id);
 
@@ -717,8 +717,6 @@ export const useReservationStore = create<ReservationState>()(
                             id
                         ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
                     }
-                } else {
-                    console.warn('[Store] Cannot send notification: Reservation not found or no userId', id);
                 }
 
                 // 로컬 상태도 업데이트
