@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Reservation, Site, SiteType, ReservationStatus, PricingConfig, BlockedDate, SiteConfig } from '@/types/reservation';
 import { calculatePrice } from '@/utils/pricing';
-import { formatLocalDate } from '@/utils/date';
+import { formatLocalDate, parseSafeDate } from '@/utils/date';
 import { SITES as DEFAULT_SITES } from '@/constants/sites';
 import { Database } from '@/types/supabase';
 import { notificationService } from '@/services/notificationService';
@@ -343,8 +343,8 @@ export const useReservationStore = create<ReservationState>()(
                             id: r.id,
                             userId: r.user_id,
                             siteId: r.site_id,
-                            checkInDate: new Date(r.check_in_date),
-                            checkOutDate: new Date(r.check_out_date),
+                            checkInDate: parseSafeDate(r.check_in_date),
+                            checkOutDate: parseSafeDate(r.check_out_date),
                             guests: r.guests,
                             price: r.total_price,
                             status: r.status,
@@ -503,8 +503,8 @@ export const useReservationStore = create<ReservationState>()(
                     id: r.id,
                     userId: r.user_id,
                     siteId: r.site_id,
-                    checkInDate: new Date(r.check_in_date),
-                    checkOutDate: new Date(r.check_out_date),
+                    checkInDate: parseSafeDate(r.check_in_date),
+                    checkOutDate: parseSafeDate(r.check_out_date),
                     familyCount: r.family_count || 1,
                     visitorCount: r.visitor_count || 0,
                     vehicleCount: r.vehicle_count || 1,
@@ -549,8 +549,8 @@ export const useReservationStore = create<ReservationState>()(
                     id: r.id,
                     userId: r.user_id,
                     siteId: r.site_id,
-                    checkInDate: new Date(r.check_in_date),
-                    checkOutDate: new Date(r.check_out_date),
+                    checkInDate: parseSafeDate(r.check_in_date),
+                    checkOutDate: parseSafeDate(r.check_out_date),
                     familyCount: r.family_count || 1,
                     visitorCount: r.visitor_count || 0,
                     vehicleCount: r.vehicle_count || 1,
@@ -597,8 +597,8 @@ export const useReservationStore = create<ReservationState>()(
                     id: `public-${r.site_id}-${r.check_in_date}`, // 임시 ID
                     userId: '00000000-0000-0000-0000-000000000000', // 익명
                     siteId: r.site_id,
-                    checkInDate: new Date(r.check_in_date),
-                    checkOutDate: new Date(r.check_out_date),
+                    checkInDate: parseSafeDate(r.check_in_date),
+                    checkOutDate: parseSafeDate(r.check_out_date),
                     familyCount: 1,
                     visitorCount: 0,
                     vehicleCount: 1,
@@ -769,8 +769,8 @@ export const useReservationStore = create<ReservationState>()(
                             id: dbReservation.id,
                             userId: dbReservation.user_id,
                             siteId: dbReservation.site_id,
-                            checkInDate: new Date(dbReservation.check_in_date),
-                            checkOutDate: new Date(dbReservation.check_out_date),
+                            checkInDate: parseSafeDate(dbReservation.check_in_date),
+                            checkOutDate: parseSafeDate(dbReservation.check_out_date),
                         } as any;
                     }
                 }

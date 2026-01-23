@@ -25,3 +25,21 @@ export const formatLocalDate = (date: Date | string): string => {
 
     return `${year}-${month}-${day}`;
 };
+
+/**
+ * YYYY-MM-DD 문자열을 로컬 타임존의 00:00:00 Date 객체로 변환합니다.
+ * new Date("YYYY-MM-DD")는 UTC 00:00으로 파싱되어 타임존에 따라 전날/다음날로 밀릴 위험이 있습니다.
+ * 이 함수는 브라우저의 로컬 날짜로 정확히 매핑합니다.
+ */
+export const parseSafeDate = (dateStr: string): Date => {
+    if (!dateStr) return new Date();
+    // YYYY-MM-DD 형식이라고 가정
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // 월은 0-indexed
+        const day = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+    }
+    return new Date(dateStr); // Fallback
+};
