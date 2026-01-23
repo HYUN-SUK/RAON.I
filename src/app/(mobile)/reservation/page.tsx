@@ -140,6 +140,12 @@ export default function ReservationPage() {
                 <h1 className="font-bold text-lg text-stone-800">예약하기</h1>
             </header>
 
+            {/* DEBUG BANNER: 문제 해결 후 삭제 예정 */}
+            <div className="bg-black/80 text-white text-[10px] p-1 text-center font-mono">
+                DEBUG: Total Res={reservations.length}, Sites={sites.length},
+                Last Update={new Date().toLocaleTimeString()}
+            </div>
+
             {/* SSOT 5.10.3 Open Day Banner */}
             <div className={`text-white px-5 py-4 shadow-md transition-colors ${isClosed ? 'bg-stone-600' : 'bg-[#1C4526]'}`}>
                 <div className="flex items-start gap-4 max-w-lg mx-auto">
