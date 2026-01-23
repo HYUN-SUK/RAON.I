@@ -26,6 +26,13 @@
   - [x] **Admin Force Cancel**: Added `CancelReservationDialog` with reason input, reason included in push notification.
   - [x] **Verification**: All 3 scenarios (Reserve/Confirm/Cancel) -> 1 notification each.
 
+- [x] **9.3 Waitlist Notification & Timezone Fix (2026-01-23)** ✅
+  - [x] **Waitlist Persistence**: WaitlistButton now checks DB on mount to maintain 'subscribed' state across page navigations.
+  - [x] **Timezone Parsing**: Added `parseSafeDate()` to prevent date shift when parsing "YYYY-MM-DD" strings.
+  - [x] **Public Reservation Sync**: Added `get_public_reservations` RPC for availability check without sensitive data.
+  - [x] **LocalStorage Cache Fix**: `fetchPublicReservations` now replaces (not merges) cached data with server data.
+  - [x] **Verification**: Live test confirmed - vacancy notification received, reservation sync accurate.
+
 ## 📅 전체 진행률 요약 (Progress Summary)
 
 | 단계 | 구분 | 상태 | 진행률 | 비고 |
