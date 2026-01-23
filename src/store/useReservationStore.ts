@@ -578,7 +578,6 @@ export const useReservationStore = create<ReservationState>()(
             // 공개 예약 조회 (마감 현황 확인용)
             fetchPublicReservations: async (start: Date, end: Date) => {
                 const { createClient } = await import('@/lib/supabase-client');
-                const { toast } = await import('sonner');
                 const supabase = createClient();
 
                 // RPC 호출
@@ -589,7 +588,6 @@ export const useReservationStore = create<ReservationState>()(
 
                 if (error || !data) {
                     console.error('[Store] Failed to fetch public reservations:', error);
-                    toast.error(`동기화 오류: ${error?.message || 'No Data'}`);
                     return;
                 }
 
