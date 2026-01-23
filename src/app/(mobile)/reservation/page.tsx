@@ -15,12 +15,18 @@ import { differenceInDays, startOfDay, format } from 'date-fns';
 
 export default function ReservationPage() {
     const router = useRouter();
-    const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites } = useReservationStore();
+    const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchPublicReservations } = useReservationStore();
 
     useEffect(() => {
         fetchOpenDayRule();
         fetchSites();
-    }, [fetchOpenDayRule, fetchSites]);
+
+        // Fetch public reservations for the next 6 months to ensure availability is up to date
+        const start = new Date();
+        const end = new Date();
+        end.setMonth(end.getMonth() + 6);
+        fetchPublicReservations(start, end);
+    }, [fetchOpenDayRule, fetchSites, fetchPublicReservations]);
 
     const activeConfig = useMemo(() => {
         if (openDayRule) {

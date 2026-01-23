@@ -134,6 +134,9 @@ interface ReservationState {
     // Dynamic Holidays
     holidays: Set<string>;
     fetchHolidays: () => Promise<void>;
+
+    // Public Reservations (Availability Check)
+    fetchPublicReservations: (start: Date, end: Date) => Promise<void>;
 }
 
 
@@ -570,6 +573,58 @@ export const useReservationStore = create<ReservationState>()(
                 }));
 
                 set({ reservations: mapped });
+            },
+
+            // 공개 예약 조회 (마감 현황 확인용)
+            fetchPublicReservations: async (start: Date, end: Date) => {
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+
+                // RPC 호출
+                const { data, error } = await supabase.rpc('get_public_reservations', {
+                    p_start_date: formatLocalDate(start),
+                    p_end_date: formatLocalDate(end)
+                });
+
+                if (error || !data) {
+                    console.error('[Store] Failed to fetch public reservations:', error);
+                    return;
+                }
+
+                const publicReservations: Reservation[] = data.map((r: any) => ({
+                    id: `public-${r.site_id}-${r.check_in_date}`, // 임시 ID
+                    userId: '00000000-0000-0000-0000-000000000000', // 익명
+                    siteId: r.site_id,
+                    checkInDate: new Date(r.check_in_date),
+                    checkOutDate: new Date(r.check_out_date),
+                    familyCount: 1,
+                    visitorCount: 0,
+                    vehicleCount: 1,
+                    guests: 1,
+                    totalPrice: 0,
+                    status: 'CONFIRMED', // 마감 처리됨
+                    requests: '',
+                    createdAt: new Date(),
+                }));
+
+                // 기존 예약(내 예약 등)과 병합하되 중복 제거
+                set((state) => {
+                    // 기존 예약 중복 방지 (ID 기준) - public은 ID가 임의생성이므로 날짜/사이트로 비교해야 완벽하지만,
+                    // 일단 기존 것을 유지하고 public을 추가하는 식이면 '내 예약'이 덮어써질 수 있음(상세 정보 부족).
+                    // 따라서 '내 예약'이 있으면 public을 무시하도록 하거나, 아니면 그냥 view 용도이므로 합침.
+                    // SiteList에서는 마감 여부만 중요함.
+
+                    // 내 예약(상세 정보 있음)은 유지하고, 없는 것만 추가
+                    const existingIds = new Set(state.reservations.map(r => `${r.siteId}-${r.checkInDate.toISOString()}`));
+
+                    const newReservations = publicReservations.filter(r =>
+                        !existingIds.has(`${r.siteId}-${r.checkInDate.toISOString()}`)
+                    );
+
+                    return {
+                        reservations: [...state.reservations, ...newReservations]
+                    };
+                });
             },
 
             // 사용자 취소 요청
