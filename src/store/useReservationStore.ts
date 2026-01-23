@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Reservation, Site, SiteType, ReservationStatus, PricingConfig, BlockedDate, SiteConfig } from '@/types/reservation';
 import { calculatePrice } from '@/utils/pricing';
+import { formatLocalDate } from '@/utils/date';
 import { SITES as DEFAULT_SITES } from '@/constants/sites';
 import { Database } from '@/types/supabase';
 import { notificationService } from '@/services/notificationService';
@@ -282,8 +283,22 @@ export const useReservationStore = create<ReservationState>()(
             removeBlockDate: async (id: string) => {
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
+
+                // 삭제 전에 날짜/사이트 정보 저장 (빈자리 알림용)
+                const { blockedDates } = get();
+                const targetBlock = blockedDates.find(b => b.id === id);
+
                 await supabase.from('blocked_dates').delete().eq('id', id);
                 set((state) => ({ blockedDates: state.blockedDates.filter(b => b.id !== id) }));
+
+                // 빈자리 알림 발송 (차단 해제 시)
+                if (targetBlock) {
+                    const startDateStr = targetBlock.startDate.toISOString().split('T')[0];
+                    import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
+                        notifyWaitlistUsers(startDateStr, targetBlock.siteId)
+                            .catch(err => console.error('[Store] Waitlist Notify on Block Remove Failed:', err));
+                    });
+                }
             },
 
             toggleBlockPaid: async (id: string) => {
@@ -384,12 +399,18 @@ export const useReservationStore = create<ReservationState>()(
                 const { data: { user } } = await supabase.auth.getUser();
                 const userId = user?.id || '00000000-0000-0000-0000-000000000000'; // Guest UUID
 
+                console.log('[createReservationSafe] Call RPC with:', {
+                    site_id: params.siteId,
+                    check_in: formatLocalDate(params.checkIn),
+                    check_out: formatLocalDate(params.checkOut)
+                });
+
                 // RPC 호출
                 const { data, error } = await supabase.rpc('create_reservation_safe', {
                     p_user_id: userId,
                     p_site_id: params.siteId,
-                    p_check_in: params.checkIn.toISOString().split('T')[0],
-                    p_check_out: params.checkOut.toISOString().split('T')[0],
+                    p_check_in: formatLocalDate(params.checkIn),
+                    p_check_out: formatLocalDate(params.checkOut),
                     p_family_count: params.familyCount,
                     p_visitor_count: params.visitorCount,
                     p_vehicle_count: params.vehicleCount,
@@ -400,10 +421,11 @@ export const useReservationStore = create<ReservationState>()(
                 });
 
                 if (error) {
+                    console.error('[createReservationSafe] RPC Error:', error);
                     return {
                         success: false,
                         error: 'RPC_ERROR',
-                        message: error.message
+                        message: (error as any).message || 'Unknown DB Error'
                     };
                 }
 
@@ -605,6 +627,13 @@ export const useReservationStore = create<ReservationState>()(
                             },
                             params.reservationId
                         ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
+
+                        // 빈자리 알림 발송 (Server Action 호출)
+                        const checkInDateStr = targetReservation.checkInDate.toISOString().split('T')[0];
+                        import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
+                            notifyWaitlistUsers(checkInDateStr, targetReservation.siteId)
+                                .catch(err => console.error('[Store] Waitlist Notify Failed:', err));
+                        });
                     }
                 }
 
@@ -716,6 +745,13 @@ export const useReservationStore = create<ReservationState>()(
                             payload,
                             id
                         ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
+
+                        // 빈자리 알림 발송 (Server Action 호출)
+                        const checkInDateStr = targetReservation.checkInDate.toISOString().split('T')[0];
+                        import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
+                            notifyWaitlistUsers(checkInDateStr, targetReservation.siteId)
+                                .catch(err => console.error('[Store] Waitlist Notify Failed:', err));
+                        });
                     }
                 }
 

@@ -5,7 +5,7 @@
  * 사용자가 특정 날짜에 빈자리 알림을 신청
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase-client';
@@ -21,6 +21,33 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
     const [loading, setLoading] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
     const supabase = createClient();
+
+    // 초기 상태 확인
+    useEffect(() => {
+        const checkRegistration = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const query = supabase
+                .from('waitlist')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('target_date', targetDate);
+
+            if (siteId) {
+                query.eq('site_id', siteId);
+            } else {
+                query.is('site_id', null);
+            }
+
+            const { data } = await query.single();
+            if (data) {
+                setIsRegistered(true);
+            }
+        };
+
+        checkRegistration();
+    }, [targetDate, siteId, supabase]);
 
     // 대기 신청
     const handleRegister = async () => {
@@ -95,7 +122,7 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
                 size="sm"
                 onClick={handleCancel}
                 disabled={loading}
-                className="gap-2 text-gray-500"
+                className="gap-2 bg-stone-100 text-stone-500 border-stone-300"
             >
                 {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -109,19 +136,17 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
 
     return (
         <Button
-            variant="outline"
             size="sm"
             onClick={handleRegister}
             disabled={loading}
-            className="gap-2 border-brand-1 text-brand-1 hover:bg-brand-1/10"
+            className="gap-1.5 bg-[#1C4526] text-white shadow-md hover:bg-[#153d1f] hover:shadow-lg transition-all duration-300 animate-pulse hover:animate-none text-xs px-3 py-1.5"
         >
             {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-                <Bell className="w-4 h-4" />
+                <Bell className="w-3.5 h-3.5" />
             )}
             빈자리 알림
-            {siteName && <span className="text-xs text-gray-400">({siteName})</span>}
         </Button>
     );
 }

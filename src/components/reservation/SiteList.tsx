@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 
 import { useEffect, useState } from 'react';
 import { Site } from '@/types/reservation';
+import WaitlistButton from './WaitlistButton';
+import { format } from 'date-fns';
 
 export default function SiteList() {
     const router = useRouter();
@@ -173,6 +175,20 @@ export default function SiteList() {
                                     </span>
                                 ))}
                             </div>
+
+                            {/* 개별 사이트 빈자리 알림 버튼 */}
+                            {!available && selectedDateRange.from && (
+                                <div className="mt-4 pt-3 border-t border-stone-100" onClick={(e) => e.stopPropagation()}>
+                                    <p className="text-xs text-stone-500 mb-2 text-center">
+                                        이 사이트에 빈자리가 나면 알려드릴게요!
+                                    </p>
+                                    <WaitlistButton
+                                        targetDate={format(selectedDateRange.from, 'yyyy-MM-dd')}
+                                        siteId={site.id}
+                                        siteName={site.name}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 )

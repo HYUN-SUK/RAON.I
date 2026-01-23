@@ -7,7 +7,9 @@ import { useReservationStore } from '@/store/useReservationStore';
 import { checkReservationRules, D_N_DAYS } from '@/utils/reservationRules';
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Lock, CalendarClock, Megaphone } from 'lucide-react';
+import { ArrowLeft, Lock, CalendarClock, Megaphone, Bell } from 'lucide-react';
+import WaitlistButton from '@/components/reservation/WaitlistButton';
+import { format as formatDate } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { differenceInDays, startOfDay, format } from 'date-fns';
 
@@ -104,6 +106,24 @@ export default function ReservationPage() {
         return { ...ruleResult, hasEndCapAvailability, isNextDayBlocked };
     }, [selectedDateRange.from, activeConfig, selectedDateRange.to, reservations, now, sites]);
 
+    // 추가: 모든 사이트가 예약되었는지 체크
+    const allSitesBooked = useMemo(() => {
+        if (!selectedDateRange.from || !selectedDateRange.to || sites.length === 0) return false;
+
+        const checkIn = new Date(selectedDateRange.from);
+        const checkOut = new Date(selectedDateRange.to);
+
+        // 각 사이트별로 예약 여부 확인
+        return sites.every(site => {
+            return reservations.some(r => {
+                if (r.siteId !== site.id || r.status === 'CANCELLED') return false;
+                const rCheckIn = new Date(r.checkInDate);
+                const rCheckOut = new Date(r.checkOutDate);
+                return rCheckIn < checkOut && rCheckOut > checkIn;
+            });
+        });
+    }, [selectedDateRange.from, selectedDateRange.to, sites, reservations]);
+
     return (
         <main className="min-h-screen bg-[#F7F5EF] pb-32">
             {/* Header */}
@@ -170,11 +190,27 @@ export default function ReservationPage() {
                         <h2 className="text-lg font-bold text-stone-800">사이트 선택</h2>
                     </div>
 
-                    {isBlocked ? (
-                        <div className="p-6 text-center bg-white rounded-2xl border border-stone-200 shadow-sm">
-                            <p className="text-sm text-stone-600 leading-relaxed break-keep leading-relaxed pb-2 pt-2">
+                    {(isBlocked || allSitesBooked) ? (
+                        <div className="p-6 text-center bg-white rounded-2xl border border-stone-200 shadow-sm pointer-events-auto">
+                            <p className="text-sm text-stone-600 leading-relaxed break-keep pb-4">
                                 현재 지정한 기간에는 예약 가능한 사이트가 없습니다.<br />기간을 다시 지정해보세요.
                             </p>
+
+                            {/* 빈자리 알림 안내 */}
+                            {selectedDateRange.from && (
+                                <div className="pt-4 border-t border-stone-100">
+                                    <div className="flex items-center justify-center gap-2 mb-2 text-brand-1">
+                                        <Bell className="w-4 h-4" />
+                                        <span className="font-medium text-sm">빈자리 알림</span>
+                                    </div>
+                                    <p className="text-xs text-stone-500 mb-3">
+                                        빈자리가 나면 알려드릴게요!
+                                    </p>
+                                    <WaitlistButton
+                                        targetDate={formatDate(selectedDateRange.from, 'yyyy-MM-dd')}
+                                    />
+                                </div>
+                            )}
                         </div>
                     ) : !isOpen && !isClosed ? (
                         <div className="p-6 text-center bg-white rounded-2xl border border-stone-200 shadow-sm">

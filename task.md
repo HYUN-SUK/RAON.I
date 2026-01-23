@@ -105,6 +105,10 @@
     - [x] Default `AdminReservationsPage` was missing `fetchAllReservations`. Added it.
     - [x] **SECURITY UPGRADE**: `middleware.ts` now strictly blocks non-admin emails from accessing `/admin`.
     - [x] **RLS STABILIZATION**: Performed Nuclear Reset (`20260117_nuclear_rls_reset.sql`) to unify policies.
+  - [x] **빈자리 알림 시스템 구현** (2026-01-23):
+    - [x] 예약 페이지 UI: 자리 없음 시 빈자리 알림 버튼 및 안내 문구 노출
+    - [x] 서버 액션: `waitlist-notifier.ts` - 대기자 조회 및 푸시 알림 발송
+    - [x] Store 연동: 예약 취소/차단 해제 시 자동 알림 트리거
 - [ ] **Security**: Encryption Review.
 - [ ] **Recovery**: Snapshot Policy (SSOT 26).
 
