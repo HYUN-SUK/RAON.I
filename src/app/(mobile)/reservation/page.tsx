@@ -140,6 +140,7 @@ export default function ReservationPage() {
                 <h1 className="font-bold text-lg text-stone-800">예약하기</h1>
             </header>
 
+
             {/* SSOT 5.10.3 Open Day Banner */}
             <div className={`text-white px-5 py-4 shadow-md transition-colors ${isClosed ? 'bg-stone-600' : 'bg-[#1C4526]'}`}>
                 <div className="flex items-start gap-4 max-w-lg mx-auto">

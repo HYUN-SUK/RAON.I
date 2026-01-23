@@ -607,23 +607,9 @@ export const useReservationStore = create<ReservationState>()(
                     createdAt: new Date(),
                 }));
 
-                // 기존 예약(내 예약 등)과 병합
-                set((state) => {
-                    // 1. 기존 state에서 'public-'으로 시작하는(우리가 임의로 만든) 예약 데이터는 모두 제거
-                    // (이유: 취소된 예약이 있으면 RPC 결과에는 없으므로, 기존 state에서도 지워야 함)
-                    const realReservations = state.reservations.filter(r => !r.id.startsWith('public-'));
-
-                    // 2. 내 예약과 겹치는 public 데이터는 제외 (내 예약의 상세 정보를 우선하기 위해)
-                    const myReservationKeys = new Set(realReservations.map(r => `${r.siteId}-${r.checkInDate.toISOString()}`));
-
-                    const newPublicReservations = publicReservations.filter(r =>
-                        !myReservationKeys.has(`${r.siteId}-${r.checkInDate.toISOString()}`)
-                    );
-
-                    return {
-                        reservations: [...realReservations, ...newPublicReservations]
-                    };
-                });
+                // 서버에서 받아온 공개 예약 데이터로 완전히 교체
+                // (localStorage 캐시된 오래된 데이터를 무시하고 최신 서버 데이터만 사용)
+                set({ reservations: publicReservations });
             },
 
             // 사용자 취소 요청
