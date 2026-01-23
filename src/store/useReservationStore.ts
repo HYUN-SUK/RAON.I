@@ -607,22 +607,21 @@ export const useReservationStore = create<ReservationState>()(
                     createdAt: new Date(),
                 }));
 
-                // 기존 예약(내 예약 등)과 병합하되 중복 제거
+                // 기존 예약(내 예약 등)과 병합
                 set((state) => {
-                    // 기존 예약 중복 방지 (ID 기준) - public은 ID가 임의생성이므로 날짜/사이트로 비교해야 완벽하지만,
-                    // 일단 기존 것을 유지하고 public을 추가하는 식이면 '내 예약'이 덮어써질 수 있음(상세 정보 부족).
-                    // 따라서 '내 예약'이 있으면 public을 무시하도록 하거나, 아니면 그냥 view 용도이므로 합침.
-                    // SiteList에서는 마감 여부만 중요함.
+                    // 1. 기존 state에서 'public-'으로 시작하는(우리가 임의로 만든) 예약 데이터는 모두 제거
+                    // (이유: 취소된 예약이 있으면 RPC 결과에는 없으므로, 기존 state에서도 지워야 함)
+                    const realReservations = state.reservations.filter(r => !r.id.startsWith('public-'));
 
-                    // 내 예약(상세 정보 있음)은 유지하고, 없는 것만 추가
-                    const existingIds = new Set(state.reservations.map(r => `${r.siteId}-${r.checkInDate.toISOString()}`));
+                    // 2. 내 예약과 겹치는 public 데이터는 제외 (내 예약의 상세 정보를 우선하기 위해)
+                    const myReservationKeys = new Set(realReservations.map(r => `${r.siteId}-${r.checkInDate.toISOString()}`));
 
-                    const newReservations = publicReservations.filter(r =>
-                        !existingIds.has(`${r.siteId}-${r.checkInDate.toISOString()}`)
+                    const newPublicReservations = publicReservations.filter(r =>
+                        !myReservationKeys.has(`${r.siteId}-${r.checkInDate.toISOString()}`)
                     );
 
                     return {
-                        reservations: [...state.reservations, ...newReservations]
+                        reservations: [...realReservations, ...newPublicReservations]
                     };
                 });
             },
