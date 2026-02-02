@@ -21,6 +21,7 @@ import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommenda
 import { Database } from '@/types/supabase';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import { usePushNotification } from '@/hooks/usePushNotification';
+import PlanLockCard from '@/components/planlock/PlanLockCard';
 
 
 
@@ -277,6 +278,11 @@ export default function ReturningHome() {
                             </Button>
                         </div>
                     </Card>
+                </div>
+
+                {/* 2.5 Plan Lock Card */}
+                <div className="px-4 mb-4">
+                    <PlanLockCard />
                 </div>
 
                 {/* 3. Mission Widget (Weekly) */}
