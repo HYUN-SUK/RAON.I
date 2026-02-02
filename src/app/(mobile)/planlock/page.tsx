@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
 import {
@@ -17,8 +17,18 @@ import ModeSelector from '@/components/planlock/ModeSelector';
 import ToggleSelector from '@/components/planlock/ToggleSelector';
 import RecommendationCard from '@/components/planlock/RecommendationCard';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, Loader2 } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Loader2, Users, User, Heart, Flame, Car, Leaf } from 'lucide-react';
 import { toast } from 'sonner';
+
+// 모드 아이콘 매핑
+const MODE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+    Users,
+    User,
+    Heart,
+    Flame,
+    Car,
+    Leaf,
+};
 
 /**
  * Plan Lock 메인 페이지
@@ -237,7 +247,13 @@ export default function PlanLockPage() {
                         {/* 선택된 모드 표시 */}
                         {modeConfig && (
                             <div className="flex items-center gap-2 mb-6 p-3 bg-brand-1/5 rounded-xl">
-                                <span className="text-2xl">{modeConfig.icon}</span>
+                                <div className="w-10 h-10 rounded-xl bg-brand-1/10 flex items-center justify-center">
+                                    {MODE_ICON_MAP[modeConfig.icon] && (
+                                        React.createElement(MODE_ICON_MAP[modeConfig.icon], {
+                                            className: 'w-5 h-5 text-brand-1'
+                                        })
+                                    )}
+                                </div>
                                 <div>
                                     <p className="text-sm text-gray-500">선택한 모드</p>
                                     <p className="font-semibold text-brand-1">
