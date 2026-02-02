@@ -348,7 +348,7 @@ export default function PlanLockPage() {
 
             {/* 하단 버튼 */}
             {step < 2 && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
+                <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50">
                     <Button
                         onClick={handleNext}
                         disabled={step === 0 && !selectedMode}
