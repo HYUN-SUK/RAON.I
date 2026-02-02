@@ -407,3 +407,67 @@
   - [x] **UX Refinements**:
     - [x] Silenced "Permission Granted" toast on Home visit.
     - [x] Disabled "Foreground" toast (User preference) while keeping Deep Link logic safe.
+
+## 📋 Planning Session (2026-02-02) ✅
+**세션 유형**: 논의/계획 (코드 변경 없음)
+
+- [x] **AI 프리미엄 수익화 전략 논의**:
+  - [x] AI API 비용 분석 (Gemini 무료 티어, GPT-4o-mini 등)
+  - [x] "1회 호출 = 완벽한 결과" 설계 원칙 수립
+  - [x] Phase 10으로 로드맵에 기록
+
+- [x] **프라이빗 커뮤니티 기능 설계**:
+  - [x] 실시간 채팅 ❌ → 캠핑 노트 방식 결정 (운영비 최소화)
+  - [x] Phase 5로 `implementation_plan.md`에 추가
+
+- [x] **AI 에이전트 시대 대응 전략**:
+  - [x] 외부 검색 분석 (ChatGPT 8억 사용자, 527% 성장)
+  - [x] llms.txt, AEO, Schema.org 전략 정리
+  - [x] Phase 11로 로드맵에 기록 (최종 출시 직전 진행)
+
+### 📄 생성된 문서
+- `docs/premium_features_v2.md` - 프리미엄 기능 제안서
+- `brain/*/ai_agent_era_strategy.md` - AI 에이전트 대응 전략 분석
+- `brain/*/implementation_plan.md` - Phase 5 프라이빗 커뮤니티 추가
+
+---
+
+## 🏕️ 캠핑 아지트 구현 (2026-02-02~) 🔄
+
+### Phase 1: 모드/토글/Plan Lock (~16시간)
+- [x] **DB 스키마 생성**: `20260202_camping_ajiit_full.sql`
+- [x] **모드 선택 UI**: `ModeSelector.tsx` (6개 모드)
+- [x] **토글 선택 UI**: `ToggleSelector.tsx` (6개 토글, 최대 3개)
+- [x] **Plan Lock 페이지**: `app/(mobile)/planlock/page.tsx`
+- [x] **추천 로직**: `lib/campground-recommendation.ts`
+- [x] **추천 카드 UI**: `RecommendationCard.tsx`
+- [x] **홈 카드 연동**: `PlanLockCard.tsx`
+- [x] **빌드 검증**: npm run build 통과
+- [x] **라이브 검증**: 브라우저 테스트 완료
+
+### Phase 2: 캠핑장 DB 구축 (~8시간)
+- [ ] **고캠핑 API 연동**: `lib/gocamping-api.ts`
+- [ ] **자동 태깅**: `lib/auto-tagging.ts`
+
+### Phase 3: 일정/기록/찜/알림 (~30시간)
+- [ ] **일정 관리 페이지**: `app/(mobile)/myspace/schedule/page.tsx`
+- [ ] **일정 카드**: `ScheduleCard.tsx`
+- [ ] **MyMapModal 연동**: 일정 등록 모드 추가
+- [ ] **1분 기록 폼**: `QuickRecordForm.tsx`
+- [ ] **이미지 편집기**: `ImageEditor.tsx` (TOAST UI)
+- [ ] **아지트 카드**: `AjiitCard.tsx`
+- [ ] **찜 버튼**: `FavoriteButton.tsx`
+- [ ] **찜 목록 페이지**: `app/(mobile)/myspace/favorites/page.tsx`
+- [ ] **준비 알림 Edge Function**: `camping-notifications/index.ts`
+- [ ] **메뉴 추천 모듈**: `lib/meal-recommendation.ts`
+
+### Phase 4: 복합 편집 기능 (~31시간) [분리 진행]
+- [ ] **4-A 기본**: 계절별 모아보기, 타임라인, 사진 갤러리
+- [ ] **4-B 고급**: 감정 캘린더, 책으로 보기, 콜라주
+
+### Phase 5: 프라이빗 커뮤니티 (~16시간) [분리 진행]
+- [ ] **그룹 타입 확장**: `groups.type = 'private'`
+- [ ] **캠핑 노트 UI**: `PrivateGroupNote.tsx`
+- [ ] **공유 일정**: `GroupScheduleCard.tsx`
+- [ ] **할 일 체크리스트**: `GroupTaskList.tsx`
+- [ ] **그룹 앨범**: 캠핑별 사진 자동 그룹화
