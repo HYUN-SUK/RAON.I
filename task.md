@@ -434,14 +434,15 @@
 
 ## 🏕️ 캠핑 아지트 구현 (2026-02-02~) 🔄
 
-### Phase 1: 모드/토글/Plan Lock (~16시간)
+### Phase 1: 모드/토글/Plan Lock (~16시간) ✅
 - [x] **DB 스키마 생성**: `20260202_camping_ajiit_full.sql`
-- [x] **모드 선택 UI**: `ModeSelector.tsx` (6개 모드)
-- [x] **토글 선택 UI**: `ToggleSelector.tsx` (6개 토글, 최대 3개)
-- [x] **Plan Lock 페이지**: `app/(mobile)/planlock/page.tsx`
-- [x] **추천 로직**: `lib/campground-recommendation.ts`
+- [x] **모드 선택 UI**: `ModeSelector.tsx` (6개 모드, Lucide 아이콘)
+- [x] **토글 선택 UI**: `ToggleSelector.tsx` (12개 토글, 최대 4개 선택, Lucide 아이콘)
+- [x] **Plan Lock 페이지**: `app/(mobile)/planlock/page.tsx` (3단계 플로우)
+- [x] **추천 로직**: `lib/campground-recommendation.ts` (점수 기반 알고리즘)
 - [x] **추천 카드 UI**: `RecommendationCard.tsx`
-- [x] **홈 카드 연동**: `PlanLockCard.tsx`
+- [x] **홈 카드 연동**: `PlanLockCard.tsx` (BeginnerHome, ReturningHome 추가)
+- [x] **아이콘 세련화**: 모드/토글 이모지 → Lucide SVG 아이콘
 - [x] **빌드 검증**: npm run build 통과
 - [x] **라이브 검증**: 브라우저 테스트 완료
 

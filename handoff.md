@@ -1,98 +1,119 @@
-# 세션 인수인계 문서 (Handoff)
+# 🏕️ RAON.I 세션 인수인계 문서
 
-**날짜**: 2026-02-02
-**세션 목적**: AI 프리미엄 수익화 전략 및 캠핑 아지트 구현 계획 논의
+**세션 일시**: 2026-02-02 14:00 ~ 16:36
+**작업자**: AI Assistant (Antigravity)
 
 ---
 
-## 📌 현재 상태 요약
+## ✅ 이번 세션 완료 작업
 
-### 세션 유형
-**논의/계획 세션** - 코드 변경 없음, 전략 및 기능 설계 중심
+### 캠핑 아지트 Phase 1 - Plan Lock 기능 구현
 
-### 완료된 작업
+1. **DB 스키마 생성**
+   - `supabase/migrations/20260202_camping_ajiit_full.sql`
+   - 테이블: campgrounds, user_camping_modes, user_plan_locks, user_favorites, user_camping_schedules, record_tags, campground_user_tags
+   - RLS 정책 포함
 
-1. **AI 프리미엄 수익화 전략 수립**
-   - AI API 비용 분석 (Gemini 무료 티어: 일 1,500 요청)
-   - "1회 호출 = 완벽한 결과" 설계 원칙 확정
-   - 유료 구독자만 AI 기능 → 항상 흑자 구조
-   - Phase 10으로 로드맵에 추가
+2. **타입 정의**
+   - `src/types/camping-ajiit.ts`
+   - 6개 캠핑 모드: family, solo, couple, friends, car, healing
+   - 12개 토글: shower, electricity, wifi, pet, firepit, playground, water, quiet, view, forest, parking, ocean
+   - MAX_TOGGLE_SELECTION = 4
 
-2. **프라이빗 커뮤니티 설계 (Phase 5)**
-   - 실시간 채팅 ❌ → 캠핑 노트 방식 ✅
-   - 운영비 최소화 원칙 적용
-   - 공유 일정/할일/메모/앨범 기능 정의
-   - `implementation_plan.md`에 상세 계획 추가
+3. **UI 컴포넌트**
+   - `ModeSelector.tsx` - 6개 모드 그리드 (Lucide SVG 아이콘)
+   - `ToggleSelector.tsx` - 12개 토글 그리드 (Lucide SVG 아이콘)
+   - `RecommendationCard.tsx` - 추천 캠핑장 카드
+   - `PlanLockCard.tsx` - 홈 화면 진입 카드
 
-3. **AI 에이전트 시대 대응 전략 (Phase 11)**
-   - 외부 검색 분석 (ChatGPT 8억 사용자, 527% 성장)
-   - llms.txt, AEO, Schema.org 전략 정리
-   - **최종 출시 직전**에 진행하기로 결정 (정보 확정 후)
+4. **추천 로직**
+   - `src/lib/campground-recommendation.ts`
+   - Haversine 거리 계산, 시설 매칭, 환경 선호도 점수화
+
+5. **페이지**
+   - `src/app/(mobile)/planlock/page.tsx`
+   - 3단계 플로우: 모드 선택 → 토글 선택 → 추천 결과
+
+6. **홈 화면 연동**
+   - `BeginnerHome.tsx`에 PlanLockCard 추가
+   - `ReturningHome.tsx`에 PlanLockCard 추가
 
 ---
 
 ## 🔧 기술적 결정 사항
 
-### 1. AI 프리미엄 기능 설계 원칙
-- **"1회 호출 = 완벽한 결과"** 원칙 준수
-- 일정 + 메뉴 + 준비물을 한 번에 제공
-- 동일 조건 결과는 캐싱하여 재사용
+### 1. 토글 확장 (6개 → 12개)
+- **이유**: 연구 기반으로 모드별 분별력 향상
+- **선택 수**: 3개 → 4개 (기본 2개 + 사용자 2개)
 
-### 2. 프라이빗 커뮤니티 소통 방식
-- 실시간 채팅 = WebSocket 비용 높음 → 제외
-- 게시판형 메모 + 푸시 알림 = 비용 거의 0원
-- 카카오톡과 경쟁 ❌ → 캠핑 특화 기능으로 차별화
+### 2. 모드별 기본 토글 매핑
+| 모드 | 기본 토글 |
+|------|----------|
+| 가족 | 샤워/화장실, 놀이시설 |
+| 솔로 | 조용한곳, 숲속 |
+| 커플 | 뷰맛집, 조용한곳 |
+| 친구 | 불멍, 바다/해변 |
+| 차박 | 개별주차, 전기 |
+| 힐링 | 계곡/물가, 숲속 |
 
-### 3. AI 에이전트 대응 시점
-- 현재: 계속 수정/보완 중 → 정보 변경 가능
-- AI가 오래된 정보를 캐시할 위험
-- **개발 완료 후, 최종 출시 직전**에 진행
+### 3. 아이콘 시스템
+- 이모지 → Lucide SVG 아이콘으로 통일
+- 세련된 UI, 일관된 스타일
+
+### 4. 하단 버튼 위치
+- `bottom-0` → `bottom-16`으로 변경
+- 하단 네비게이션 바 위에 표시
 
 ---
 
-## 📋 다음 작업 가이드
+## 🔜 다음 세션 작업 가이드
 
-### 우선 순위 높음 (즉시)
-1. **캠핑 아지트 기능 구현 시작**
-   - Phase 1~3 순차 개발
-   - 참고: `brain/*/implementation_plan.md`
+### 우선순위 1: Phase 2 - 캠핑장 DB 구축 (~8시간)
+1. 고캠핑 API 연동
+   - `lib/gocamping-api.ts` 생성
+   - API Key 환경변수 설정
+   - 캠핑장 데이터 동기화 함수
 
-### 우선 순위 중간 (초기 버전 후)
-2. **Phase 4~5 개발**
-   - 복합 편집 기능 (4-A, 4-B)
-   - 프라이빗 커뮤니티 (Phase 5)
+2. 자동 태깅 로직
+   - `lib/auto-tagging.ts` 생성
+   - 시설 정보 기반 토글 필드 자동 설정
 
-### 우선 순위 낮음 (출시 직전)
-3. **Phase 11: AI 에이전트 대응**
-   - llms.txt 생성
-   - AEO 공개 페이지
-   - Schema.org 마크업
+### 우선순위 2: 추천 테스트 데이터
+- campgrounds 테이블에 테스트 데이터 삽입
+- 다양한 조건의 캠핑장 10~20개
+
+### 우선순위 3: Phase 3 착수
+- 일정 관리 페이지 설계
+- 1분 기록 폼 UI 설계
 
 ---
 
 ## ⚠️ 주의 사항
 
-### 결정된 원칙
-- **운영비 최소화**: 실시간 채팅 등 비용 높은 기능 제외
-- **AI 비용 상쇄**: AI 기능은 프리미엄 전용 (항상 흑자)
-- **정보 확정 후 AEO**: 수정 중에는 AI 노출 보류
+### 알려진 제약
+1. **campgrounds 테이블 비어있음** - 현재 추천 결과가 없음 표시됨 (정상)
+2. **고캠핑 API 미연동** - Phase 2에서 처리 예정
 
-### 참고 문서
-| 문서 | 경로 |
-|------|------|
-| 구현 계획 | `brain/*/implementation_plan.md` |
-| 프리미엄 기능 | `docs/premium_features_v2.md` |
-| AI 대응 전략 | `brain/*/ai_agent_era_strategy.md` |
-| 마스터 로드맵 | `RAON_MASTER_ROADMAP_v3.md` |
+### 환경 설정
+- Supabase 마이그레이션 필요: `20260202_camping_ajiit_full.sql` 실행
+- 환경변수 필요: `GOCAMPING_API_KEY` (Phase 2)
+
+### 코드 품질
+- Lint 에러 없음 (npm run build 통과)
+- TypeScript 타입 안전성 확보
 
 ---
 
-## 📁 주요 변경/생성 파일
+## 📝 커밋 히스토리 (이번 세션)
 
-| 파일 | 변경 내용 |
-|------|----------|
-| `RAON_MASTER_ROADMAP_v3.md` | Phase 10, 11 추가 |
-| `docs/premium_features_v2.md` | 프리미엄 기능 제안서 복사 |
-| `brain/*/implementation_plan.md` | Phase 5 캠핑 노트 추가 |
-| `brain/*/ai_agent_era_strategy.md` | AI 대응 전략 분석 신규 |
-| `task.md` | Planning Session 기록 추가 |
+1. `feat: implement Phase 1 - planlock mode selection and recommendation UI`
+2. `feat: add PlanLockCard to BeginnerHome for planlock entry`
+3. `feat: add PlanLockCard to ReturningHome`
+4. `fix: planlock button position above bottom nav`
+5. `style: replace emoji icons with Lucide icons in ModeSelector`
+6. `feat: expand toggles to 12 items with Lucide icons, max selection 4`
+7. `fix: render Lucide icon for selected mode in toggle step`
+
+---
+
+**다음 세션 시작 시**: `/session_start` 워크플로우 실행
