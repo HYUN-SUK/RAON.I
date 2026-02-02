@@ -2,7 +2,17 @@
 
 import { CampingMode, CampingModeConfig, CAMPING_MODES } from '@/types/camping-ajiit';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
+import { Check, Users, User, Heart, Flame, Car, Leaf } from 'lucide-react';
+
+// 아이콘 매핑
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+    Users,
+    User,
+    Heart,
+    Flame,
+    Car,
+    Leaf,
+};
 
 interface ModeSelectorProps {
     selectedMode: CampingMode | null;
@@ -45,6 +55,8 @@ interface ModeCardProps {
 }
 
 function ModeCard({ mode, isSelected, onSelect }: ModeCardProps) {
+    const IconComponent = ICON_MAP[mode.icon];
+
     return (
         <button
             type="button"
@@ -67,9 +79,17 @@ function ModeCard({ mode, isSelected, onSelect }: ModeCardProps) {
             )}
 
             {/* 아이콘 */}
-            <span className="text-3xl mb-2" role="img" aria-label={mode.label}>
-                {mode.icon}
-            </span>
+            <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center mb-2',
+                isSelected ? 'bg-brand-1/10' : 'bg-gray-100'
+            )}>
+                {IconComponent && (
+                    <IconComponent className={cn(
+                        'w-5 h-5',
+                        isSelected ? 'text-brand-1' : 'text-gray-600'
+                    )} />
+                )}
+            </div>
 
             {/* 라벨 */}
             <span className={cn(
@@ -83,3 +103,4 @@ function ModeCard({ mode, isSelected, onSelect }: ModeCardProps) {
 }
 
 export default ModeSelector;
+

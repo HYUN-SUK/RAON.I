@@ -20,7 +20,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
     {
         key: 'family',
         label: '가족',
-        icon: '👨‍👩‍👧‍👦',
+        icon: 'Users',
         defaultToggles: ['shower', 'electricity'],
         defaultDistance: 80,
         description: '아이와 함께하는 편안한 캠핑'
@@ -28,7 +28,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
     {
         key: 'solo',
         label: '솔로',
-        icon: '🧘',
+        icon: 'User',
         defaultToggles: ['wifi'],
         defaultDistance: 150,
         description: '나만의 조용한 힐링 시간'
@@ -36,7 +36,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
     {
         key: 'couple',
         label: '커플',
-        icon: '💑',
+        icon: 'Heart',
         defaultToggles: [],
         defaultDistance: 100,
         description: '둘만의 로맨틱한 캠핑'
@@ -44,7 +44,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
     {
         key: 'friends',
         label: '친구',
-        icon: '🍻',
+        icon: 'Flame',
         defaultToggles: ['firepit'],
         defaultDistance: 100,
         description: '친구들과 함께하는 불멍'
@@ -52,7 +52,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
     {
         key: 'car',
         label: '차박',
-        icon: '🚗',
+        icon: 'Car',
         defaultToggles: ['electricity'],
         defaultDistance: 150,
         description: '차에서 즐기는 자유로운 캠핑'
@@ -60,7 +60,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
     {
         key: 'healing',
         label: '힐링',
-        icon: '🌿',
+        icon: 'Leaf',
         defaultToggles: [],
         defaultDistance: 80,
         description: '자연 속 깊은 휴식'
