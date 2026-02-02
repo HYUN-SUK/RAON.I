@@ -21,7 +21,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
         key: 'family',
         label: '가족',
         icon: 'Users',
-        defaultToggles: ['shower', 'electricity'],
+        defaultToggles: ['shower', 'playground'],
         defaultDistance: 80,
         description: '아이와 함께하는 편안한 캠핑'
     },
@@ -29,7 +29,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
         key: 'solo',
         label: '솔로',
         icon: 'User',
-        defaultToggles: ['wifi'],
+        defaultToggles: ['quiet', 'forest'],
         defaultDistance: 150,
         description: '나만의 조용한 힐링 시간'
     },
@@ -37,7 +37,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
         key: 'couple',
         label: '커플',
         icon: 'Heart',
-        defaultToggles: [],
+        defaultToggles: ['view', 'quiet'],
         defaultDistance: 100,
         description: '둘만의 로맨틱한 캠핑'
     },
@@ -45,7 +45,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
         key: 'friends',
         label: '친구',
         icon: 'Flame',
-        defaultToggles: ['firepit'],
+        defaultToggles: ['firepit', 'ocean'],
         defaultDistance: 100,
         description: '친구들과 함께하는 불멍'
     },
@@ -53,7 +53,7 @@ export const CAMPING_MODES: CampingModeConfig[] = [
         key: 'car',
         label: '차박',
         icon: 'Car',
-        defaultToggles: ['electricity'],
+        defaultToggles: ['parking', 'electricity'],
         defaultDistance: 150,
         description: '차에서 즐기는 자유로운 캠핑'
     },
@@ -61,16 +61,18 @@ export const CAMPING_MODES: CampingModeConfig[] = [
         key: 'healing',
         label: '힐링',
         icon: 'Leaf',
-        defaultToggles: [],
+        defaultToggles: ['water', 'forest'],
         defaultDistance: 80,
         description: '자연 속 깊은 휴식'
     },
 ];
 
 // ═══════════════════════════════════════════════════════════
-// 토글 (시설/환경 필터)
+// 토글 (시설/환경 필터) - 12개
 // ═══════════════════════════════════════════════════════════
-export type ToggleKey = 'shower' | 'electricity' | 'wifi' | 'pet' | 'firepit' | 'water';
+export type ToggleKey =
+    | 'shower' | 'electricity' | 'wifi' | 'pet' | 'firepit' | 'water'
+    | 'playground' | 'quiet' | 'view' | 'forest' | 'parking' | 'ocean';
 
 export interface ToggleConfig {
     key: ToggleKey;
@@ -81,15 +83,23 @@ export interface ToggleConfig {
 }
 
 export const CAMPING_TOGGLES: ToggleConfig[] = [
-    { key: 'shower', label: '샤워/화장실', icon: '🚿', dbField: 'has_shower', description: '깨끗한 샤워 시설' },
-    { key: 'electricity', label: '전기', icon: '🔌', dbField: 'has_electricity', description: '개별 전기 사용 가능' },
-    { key: 'wifi', label: '와이파이', icon: '📶', dbField: 'has_wifi', description: 'Wi-Fi 제공' },
-    { key: 'pet', label: '반려동물', icon: '🐕', dbField: 'pet_allowed', description: '반려동물 동반 가능' },
-    { key: 'firepit', label: '불멍', icon: '🔥', dbField: 'has_firepit', description: '개별 화로대/불멍' },
-    { key: 'water', label: '계곡/물가', icon: '💧', dbField: 'environment', description: '물놀이 가능' },
+    // 시설 관련 (6개)
+    { key: 'shower', label: '샤워/화장실', icon: 'ShowerHead', dbField: 'has_shower', description: '깨끗한 샤워 시설' },
+    { key: 'electricity', label: '전기', icon: 'Zap', dbField: 'has_electricity', description: '개별 전기 사용 가능' },
+    { key: 'wifi', label: '와이파이', icon: 'Wifi', dbField: 'has_wifi', description: 'Wi-Fi 제공' },
+    { key: 'pet', label: '반려동물', icon: 'Dog', dbField: 'pet_allowed', description: '반려동물 동반 가능' },
+    { key: 'firepit', label: '불멍', icon: 'Flame', dbField: 'has_firepit', description: '개별 화로대/불멍' },
+    { key: 'playground', label: '놀이시설', icon: 'Baby', dbField: 'has_playground', description: '어린이 놀이터' },
+    // 환경 관련 (6개)
+    { key: 'water', label: '계곡/물가', icon: 'Waves', dbField: 'env_water', description: '계곡/물놀이 가능' },
+    { key: 'quiet', label: '조용한곳', icon: 'Moon', dbField: 'env_quiet', description: '소음 규제/프라이빗' },
+    { key: 'view', label: '뷰맛집', icon: 'Sunrise', dbField: 'env_view', description: '경관/별보기 좋음' },
+    { key: 'forest', label: '숲속', icon: 'TreePine', dbField: 'env_forest', description: '산림/자연 몰입' },
+    { key: 'parking', label: '개별주차', icon: 'ParkingCircle', dbField: 'has_parking', description: '사이트 옆 주차' },
+    { key: 'ocean', label: '바다/해변', icon: 'Umbrella', dbField: 'env_ocean', description: '해안가 위치' },
 ];
 
-export const MAX_TOGGLE_SELECTION = 3;
+export const MAX_TOGGLE_SELECTION = 4;
 
 // ═══════════════════════════════════════════════════════════
 // 캠핑장 데이터

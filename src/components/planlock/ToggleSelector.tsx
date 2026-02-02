@@ -2,8 +2,27 @@
 
 import { ToggleKey, ToggleConfig, CAMPING_TOGGLES, MAX_TOGGLE_SELECTION } from '@/types/camping-ajiit';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
+import {
+    Check, ShowerHead, Zap, Wifi, Dog, Flame, Baby,
+    Waves, Moon, Sunrise, TreePine, ParkingCircle, Umbrella
+} from 'lucide-react';
 import { toast } from 'sonner';
+
+// 아이콘 매핑
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+    ShowerHead,
+    Zap,
+    Wifi,
+    Dog,
+    Flame,
+    Baby,
+    Waves,
+    Moon,
+    Sunrise,
+    TreePine,
+    ParkingCircle,
+    Umbrella,
+};
 
 interface ToggleSelectorProps {
     selectedToggles: ToggleKey[];
@@ -13,7 +32,7 @@ interface ToggleSelectorProps {
 
 /**
  * 시설/환경 토글 선택 컴포넌트
- * 6개 토글, 최대 3개 선택 가능
+ * 12개 토글, 최대 4개 선택 가능
  */
 export function ToggleSelector({ selectedToggles, onToggle, className }: ToggleSelectorProps) {
     const handleToggle = (key: ToggleKey) => {
@@ -46,7 +65,7 @@ export function ToggleSelector({ selectedToggles, onToggle, className }: ToggleS
                 꼭 필요한 시설을 선택해 주세요 (선택사항)
             </p>
 
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="grid grid-cols-3 gap-2 mt-4">
                 {CAMPING_TOGGLES.map((toggle) => (
                     <ToggleChip
                         key={toggle.key}
@@ -72,35 +91,50 @@ interface ToggleChipProps {
 }
 
 function ToggleChip({ toggle, isSelected, onToggle, disabled }: ToggleChipProps) {
+    const IconComponent = ICON_MAP[toggle.icon];
+
     return (
         <button
             type="button"
             onClick={onToggle}
             disabled={disabled}
             className={cn(
-                'inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full',
+                'relative flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl',
                 'border transition-all duration-200',
                 'touch-manipulation active:scale-95',
-                'text-sm font-medium',
+                'text-xs font-medium',
                 isSelected
-                    ? 'bg-brand-1 border-brand-1 text-white'
+                    ? 'bg-brand-1 border-brand-1 text-white shadow-md'
                     : disabled
                         ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
                         : 'bg-white border-gray-200 text-gray-700 hover:border-brand-2/50'
             )}
         >
             {/* 아이콘 */}
-            <span className="text-base" role="img" aria-label={toggle.label}>
-                {toggle.icon}
-            </span>
+            <div className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center',
+                isSelected ? 'bg-white/20' : 'bg-gray-100'
+            )}>
+                {IconComponent && (
+                    <IconComponent className={cn(
+                        'w-4 h-4',
+                        isSelected ? 'text-white' : 'text-gray-600'
+                    )} />
+                )}
+            </div>
 
             {/* 라벨 */}
-            <span>{toggle.label}</span>
+            <span className="truncate w-full text-center">{toggle.label}</span>
 
             {/* 선택 표시 */}
-            {isSelected && <Check className="w-4 h-4 ml-0.5" />}
+            {isSelected && (
+                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center">
+                    <Check className="w-3 h-3 text-brand-1" />
+                </div>
+            )}
         </button>
     );
 }
 
 export default ToggleSelector;
+
