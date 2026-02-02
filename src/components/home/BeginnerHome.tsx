@@ -14,6 +14,7 @@ import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailShe
 import WeatherDetailSheet from '@/components/home/WeatherDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
+import PlanLockCard from '@/components/planlock/PlanLockCard';
 
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
@@ -443,6 +444,11 @@ export default function BeginnerHome() {
                             {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
                         </p>
                     </div>
+                </section>
+
+                {/* 3.5 Plan Lock Card */}
+                <section className="px-4 mb-8">
+                    <PlanLockCard />
                 </section>
 
                 {/* 3.5 Mission Widget */}
