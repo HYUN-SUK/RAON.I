@@ -446,9 +446,24 @@
 - [x] **빌드 검증**: npm run build 통과
 - [x] **라이브 검증**: 브라우저 테스트 완료
 
-### Phase 2: 캠핑장 DB 구축 (~8시간)
-- [ ] **고캠핑 API 연동**: `lib/gocamping-api.ts`
-- [ ] **자동 태깅**: `lib/auto-tagging.ts`
+### Phase 2: 캠핑장 DB 구축 (~8시간) 🔄
+- [x] **고캠핑 API 연동**: `lib/gocamping-api.ts`
+  - [x] API 타입 정의 (GoCampingResponse, GoCampingItem)
+  - [x] 기본 조회, 검색, 일괄 조회 함수
+- [x] **자동 태깅**: `lib/auto-tagging.ts`
+  - [x] 시설 감지 (샤워, 전기, 와이파이, 반려동물, 불멍, 놀이시설, 주차)
+  - [x] 환경 감지 (계곡, 조용함, 뷰맛집, 숲속, 바다)
+  - [x] 태그 생성 및 변환 함수
+- [x] **DB 스키마 확장**: `20260203_campground_sync.sql`
+  - [x] 환경 필드 추가 (has_playground, has_parking, env_*)
+  - [x] upsert_campground RPC 함수
+- [x] **동기화 API**: `/api/admin/campgrounds/sync`
+  - [x] POST: 전체/검색/샘플 동기화
+  - [x] GET: 동기화 상태 확인
+- [x] **타입 확장**: `camping-ajiit.ts` Campground 인터페이스 업데이트
+- [x] **빌드 검증**: npm run build 통과
+- [ ] **마이그레이션 실행**: Supabase SQL 실행 대기
+- [ ] **테스트 동기화**: API 호출로 샘플 데이터 동기화
 
 ### Phase 3: 일정/기록/찜/알림 (~30시간)
 - [ ] **일정 관리 페이지**: `app/(mobile)/myspace/schedule/page.tsx`

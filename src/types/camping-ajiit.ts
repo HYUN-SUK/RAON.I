@@ -114,11 +114,20 @@ export interface Campground {
     lat?: number;
     lng?: number;
     facility_type?: string[];
+    // 시설 관련
     has_shower: boolean;
     has_electricity: boolean;
     has_wifi: boolean;
     pet_allowed: boolean;
     has_firepit: boolean;
+    has_playground: boolean;
+    has_parking: boolean;
+    // 환경 관련
+    env_water: boolean;
+    env_quiet: boolean;
+    env_view: boolean;
+    env_forest: boolean;
+    env_ocean: boolean;
     environment?: string[];
     auto_tags?: string[];
     user_tags?: Record<string, number>; // { tag: count }
