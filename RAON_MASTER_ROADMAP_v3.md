@@ -515,10 +515,12 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 *   [x] **추천 로직**: 점수 기반 알고리즘
 *   [x] **홈 진입점**: BeginnerHome, ReturningHome 카드 추가
 
-### Phase 12.2: 캠핑장 DB 구축 (다음 세션)
-*   [ ] **고캠핑 API 연동**: `lib/gocamping-api.ts`
-*   [ ] **자동 태깅**: `lib/auto-tagging.ts`
-*   [ ] **데이터 동기화**: Edge Function or Cron
+### Phase 12.2: 캠핑장 DB 구축 ✅ (완료: 2026-02-03)
+*   [x] **고캠핑 API 연동**: `lib/gocamping-api.ts` - 기본/검색/전체 조회
+*   [x] **자동 태깅**: `lib/auto-tagging.ts` - 12개 토글 매핑
+*   [x] **데이터 동기화**: `/api/admin/campgrounds/sync` API
+*   [x] **DB 스키마 확장**: 환경 필드 7개 추가, upsert RPC
+*   [x] **검증**: 샘플 100개 동기화 성공
 
 ### Phase 12.3: 일정/기록/찜/알림 (~30시간)
 *   [ ] **일정 관리**: 캠핑 일정 CRUD

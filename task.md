@@ -462,8 +462,8 @@
   - [x] GET: 동기화 상태 확인
 - [x] **타입 확장**: `camping-ajiit.ts` Campground 인터페이스 업데이트
 - [x] **빌드 검증**: npm run build 통과
-- [ ] **마이그레이션 실행**: Supabase SQL 실행 대기
-- [ ] **테스트 동기화**: API 호출로 샘플 데이터 동기화
+- [x] **마이그레이션 실행**: Supabase SQL 실행 완료
+- [x] **테스트 동기화**: API 호출로 샘플 데이터 100개 동기화 성공
 
 ### Phase 3: 일정/기록/찜/알림 (~30시간)
 - [ ] **일정 관리 페이지**: `app/(mobile)/myspace/schedule/page.tsx`
