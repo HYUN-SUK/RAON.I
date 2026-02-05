@@ -465,17 +465,22 @@
 - [x] **마이그레이션 실행**: Supabase SQL 실행 완료
 - [x] **테스트 동기화**: API 호출로 샘플 데이터 100개 동기화 성공
 
-### Phase 3: 일정/기록/찜/알림 (~30시간)
-- [ ] **일정 관리 페이지**: `app/(mobile)/myspace/schedule/page.tsx`
-- [ ] **일정 카드**: `ScheduleCard.tsx`
-- [ ] **MyMapModal 연동**: 일정 등록 모드 추가
+### Phase 3: 일정/기록/찜/알림 (~30시간) 🔄
+- [x] **DB 스키마**: `20260204_schedule_system.sql` (일정/체크리스트/찜)
+- [x] **Server Actions**: `actions/schedule.ts` (CRUD + 체크리스트 + 찜)
+- [x] **일정 관리 페이지**: `app/(mobile)/myspace/schedule/page.tsx`
+- [x] **일정 상세 페이지**: `app/(mobile)/myspace/schedule/[id]/page.tsx`
+- [x] **일정 카드**: `ScheduleCard.tsx` (D-Day 배지, 라온아이 출처)
+- [x] **일정 등록 폼**: `ScheduleForm.tsx`
+- [x] **찜 버튼**: `FavoriteButton.tsx`
+- [x] **홈 위젯**: `ScheduleHomeWidget.tsx`
+- [x] **빌드 검증**: npm run build 통과
+- [x] **MyMapModal 연동**: 일정 등록 모드 + 홈 위젯 추가
 - [ ] **1분 기록 폼**: `QuickRecordForm.tsx`
-- [ ] **이미지 편집기**: `ImageEditor.tsx` (TOAST UI)
-- [ ] **아지트 카드**: `AjiitCard.tsx`
-- [ ] **찜 버튼**: `FavoriteButton.tsx`
 - [ ] **찜 목록 페이지**: `app/(mobile)/myspace/favorites/page.tsx`
 - [ ] **준비 알림 Edge Function**: `camping-notifications/index.ts`
 - [ ] **메뉴 추천 모듈**: `lib/meal-recommendation.ts`
+
 
 ### Phase 4: 복합 편집 기능 (~31시간) [분리 진행]
 - [ ] **4-A 기본**: 계절별 모아보기, 타임라인, 사진 갤러리

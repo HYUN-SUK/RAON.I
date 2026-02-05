@@ -22,6 +22,7 @@ import { Database } from '@/types/supabase';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import PlanLockCard from '@/components/planlock/PlanLockCard';
+import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 
 
 
@@ -288,6 +289,11 @@ export default function ReturningHome() {
                 {/* 3. Mission Widget (Weekly) */}
                 <div className="px-4 mb-4">
                     <MissionHomeWidget />
+                </div>
+
+                {/* 3.5 Schedule Widget */}
+                <div className="px-4 mb-4">
+                    <ScheduleHomeWidget />
                 </div>
 
                 {/* 4. Recommendations Grid (Dynamic) */}

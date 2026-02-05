@@ -21,9 +21,13 @@ declare global {
 interface MyMapModalProps {
     isOpen: boolean;
     onClose: () => void;
+    /** 'view' = 기존 지도 보기 모드, 'schedule' = 일정 등록용 장소 선택 모드 */
+    mode?: 'view' | 'schedule';
+    /** 일정 등록 모드에서 장소 선택 시 호출되는 콜백 */
+    onPlaceSelect?: (place: { name: string; address: string; lat: number; lng: number }) => void;
 }
 
-export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
+export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSelect }: MyMapModalProps) {
     // 1. Load Kakao Maps SDK
     const [loading, error] = useKakaoLoader({
         appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!, // Use env variable
@@ -249,6 +253,20 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
     const confirmPendingPin = () => {
         if (!pendingPin) return;
 
+        // 일정 등록 모드: 장소 선택 후 콜백 호출
+        if (mode === 'schedule' && onPlaceSelect) {
+            onPlaceSelect({
+                name: pendingPin.name || '새로운 장소',
+                address: pendingPin.address || '',
+                lat: pendingPin.lat,
+                lng: pendingPin.lng
+            });
+            setPendingPin(null);
+            onClose();
+            return;
+        }
+
+        // 기존 지도 보기 모드: 상세 시트 열기
         const newItem = {
             id: 'temp-id',
             siteName: pendingPin.name || '새로운 장소',
@@ -292,7 +310,7 @@ export default function MyMapModal({ isOpen, onClose }: MyMapModalProps) {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="나만의 캠핑 지도"
+            title={mode === 'schedule' ? '캠핑장 찾기' : '나만의 캠핑 지도'}
             fullScreen={true}
             className="flex flex-col bg-slate-50 overflow-y-auto"
         >

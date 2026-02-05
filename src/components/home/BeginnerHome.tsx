@@ -15,6 +15,7 @@ import WeatherDetailSheet from '@/components/home/WeatherDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
 import PlanLockCard from '@/components/planlock/PlanLockCard';
+import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
@@ -454,6 +455,11 @@ export default function BeginnerHome() {
                 {/* 3.5 Mission Widget */}
                 <section className="px-4 mb-8">
                     <MissionHomeWidget />
+                </section>
+
+                {/* 3.6 Schedule Widget */}
+                <section className="px-4 mb-8">
+                    <ScheduleHomeWidget />
                 </section>
 
                 {/* 4. Recommendations Grid */}

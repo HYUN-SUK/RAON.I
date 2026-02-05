@@ -523,7 +523,7 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 *   [x] **검증**: 샘플 100개 동기화 성공
 
 ### Phase 12.3: 일정/기록/찜/알림 (~30시간)
-*   [ ] **일정 관리**: 캠핑 일정 CRUD
+*   [x] **일정 관리**: 캠핑 일정 CRUD (UpcomingReservation 통합 표시 완료)
 *   [ ] **1분 기록**: 빠른 기록 폼 + 이미지
 *   [ ] **찜 기능**: 캠핑장 찜하기
 *   [ ] **준비 알림**: D-4, D-1, D-0 알림
