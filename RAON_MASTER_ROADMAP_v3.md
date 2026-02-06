@@ -524,7 +524,12 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 
 ### Phase 12.3: 일정/기록/찜/알림 (~30시간)
 *   [x] **일정 관리**: 캠핑 일정 CRUD (UpcomingReservation 통합 표시 완료)
-*   [ ] **1분 기록**: 빠른 기록 폼 + 이미지
+*   [x] **1분 기록 (MyAjiit)** ✅:
+    *   [x] **DB**: `camping_records` 스키마 및 RLS.
+    *   [x] **UI**: `QuickRecordForm`, `RecordList`, `AjiitCard`.
+    *   [x] **Photo**: Image Editor (TUI), Storage 업로드, 편집(Crop/Filter) 구현.
+    *   [x] **Map**: `MyMapList` (지도) 연동 완료.
+    *   [x] **Review**: `ReviewBoard` 탭 분리 (RaonAI vs Camper) 구현 완료.
 *   [ ] **찜 기능**: 캠핑장 찜하기
 *   [ ] **준비 알림**: D-4, D-1, D-0 알림
 

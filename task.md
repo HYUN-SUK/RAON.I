@@ -469,14 +469,14 @@
 - [x] **DB 스키마**: `20260204_schedule_system.sql` (일정/체크리스트/찜)
 - [x] **Server Actions**: `actions/schedule.ts` (CRUD + 체크리스트 + 찜)
 - [x] **일정 관리 페이지**: `app/(mobile)/myspace/schedule/page.tsx`
-- [x] **일정 상세 페이지**: `app/(mobile)/myspace/schedule/[id]/page.tsx`
+- [x] **일정 상세 페이지**: `app/(mobile)/myspace/schedule/[id]/page.tsx` (수정/삭제 완료)
 - [x] **일정 카드**: `ScheduleCard.tsx` (D-Day 배지, 라온아이 출처)
 - [x] **일정 등록 폼**: `ScheduleForm.tsx`
 - [x] **찜 버튼**: `FavoriteButton.tsx`
 - [x] **홈 위젯**: `ScheduleHomeWidget.tsx`
 - [x] **빌드 검증**: npm run build 통과
 - [x] **MyMapModal 연동**: 일정 등록 모드 + 홈 위젯 추가
-- [ ] **1분 기록 폼**: `QuickRecordForm.tsx`
+- [x] **1분 기록 폼**: `QuickRecordForm.tsx` + `actions/record.ts` + FAB 버튼 + 표준 태그 20개 + TOAST UI `ImageEditor.tsx` + `AjiitCard.tsx`
 - [ ] **찜 목록 페이지**: `app/(mobile)/myspace/favorites/page.tsx`
 - [ ] **준비 알림 Edge Function**: `camping-notifications/index.ts`
 - [ ] **메뉴 추천 모듈**: `lib/meal-recommendation.ts`

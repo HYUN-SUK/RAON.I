@@ -2,7 +2,7 @@ import React from 'react';
 import { TimelineItem } from '@/store/useMySpaceStore';
 import { useRouter } from 'next/navigation';
 import { Badge } from "@/components/ui/badge";
-import { Tent, Camera, Flag, Clock } from 'lucide-react';
+import { Tent, Camera, Flag, Clock, Sparkles } from 'lucide-react';
 
 interface TimelineCardProps {
     item: TimelineItem;
@@ -36,6 +36,13 @@ export default function TimelineCard({ item }: TimelineCardProps) {
                     borderClass: 'border-green-200 dark:border-green-800',
                     iconColor: 'text-green-600'
                 };
+            case 'record':
+                return {
+                    icon: Sparkles,
+                    bgClass: 'bg-yellow-50 dark:bg-yellow-900/10',
+                    borderClass: 'border-yellow-200 dark:border-yellow-800',
+                    iconColor: 'text-yellow-600'
+                };
             default:
                 return {
                     icon: Clock,
@@ -68,6 +75,9 @@ export default function TimelineCard({ item }: TimelineCardProps) {
             // 미션 상세 페이지로 이동 (/mission/[id])
             const missionId = item.missionId || extractId(item.id, 'mission-');
             router.push(`/mission/${missionId}`);
+        } else if (item.type === 'record') {
+            // 1분 기록 목록 페이지로 이동
+            router.push('/myspace/records?tab=records');
         }
     };
 
@@ -101,7 +111,7 @@ export default function TimelineCard({ item }: TimelineCardProps) {
                 </div>
 
                 {item.content && (
-                    <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
+                    <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3 line-clamp-2">
                         {item.content}
                     </p>
                 )}
@@ -109,12 +119,17 @@ export default function TimelineCard({ item }: TimelineCardProps) {
                 {/* Image Grid (for Photo type) */}
                 {item.images && item.images.length > 0 && (
                     <div className="grid grid-cols-2 gap-2 mt-2">
-                        {item.images.map((img, idx) => (
-                            <div key={idx} className="relative aspect-video rounded-lg overflow-hidden bg-stone-200">
-                                {/* Ideally use Next/Image but we need domain config, mock with standard img for now often works better in dev unless configured */}
+                        {item.images.slice(0, 2).map((img, idx) => (
+                            <div key={idx} className="relative aspect-video rounded-lg overflow-hidden bg-stone-200 border border-stone-100">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={img} alt="timeline-img" className="object-cover w-full h-full" />
                             </div>
                         ))}
+                        {item.images.length > 2 && (
+                            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                                +{item.images.length - 2}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

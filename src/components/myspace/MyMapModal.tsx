@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useMySpaceStore, MapItem } from '@/store/useMySpaceStore';
+import { getMyRecords, CampingRecord } from '@/actions/record'; // Import added
 import { SITES } from '@/constants/sites';
 import { Modal } from '@/components/ui/Modal';
 import { MapPin, Search, Plus, Loader2, Navigation, Check, X, Locate } from 'lucide-react';
@@ -25,9 +26,11 @@ interface MyMapModalProps {
     mode?: 'view' | 'schedule';
     /** 일정 등록 모드에서 장소 선택 시 호출되는 콜백 */
     onPlaceSelect?: (place: { name: string; address: string; lat: number; lng: number }) => void;
+    /** 모달이 열릴 때 자동으로 검색 모드 활성화 */
+    autoSearch?: boolean;
 }
 
-export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSelect }: MyMapModalProps) {
+export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSelect, autoSearch }: MyMapModalProps) {
     // 1. Load Kakao Maps SDK
     const [loading, error] = useKakaoLoader({
         appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!, // Use env variable
@@ -48,6 +51,57 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]); // Kakao Places result
     const [visibleCount, setVisibleCount] = useState(10); // Pagination for list
+
+    // Auto-activate search mode when modal opens (for schedule mode or autoSearch)
+    useEffect(() => {
+        if (isOpen && (mode === 'schedule' || autoSearch)) {
+            setIsSearching(true);
+        }
+    }, [isOpen, mode, autoSearch]);
+
+    // Fetch Camping Records (1분 기록)
+    const [recordItems, setRecordItems] = useState<MapItem[]>([]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchRecords = async () => {
+            try {
+                const records = await getMyRecords(100, 0); // Fetch recent 100
+                const mapped: MapItem[] = records
+                    .filter(r => r.latitude && r.longitude) // 좌표 있는 것만
+                    .map(r => ({
+                        id: `record-${r.id}`,
+                        siteName: r.campground_name || '캠핑 기록',
+                        x: 50, // Dummy
+                        y: 50, // Dummy
+                        lat: r.latitude!,
+                        lng: r.longitude!,
+                        visitedDate: r.created_at,
+                        isStamped: true,
+                        address: r.campground_address || undefined,
+                        photos: r.photo_url ? [r.photo_url] : [],
+                        memo: r.content,
+                        rating: 0,
+                        isFavorite: false,
+                        tags: r.tags || []
+                    }));
+                setRecordItems(mapped);
+            } catch (err) {
+                console.error('Failed to load map records', err);
+            }
+        };
+
+        fetchRecords();
+    }, [isOpen]);
+
+    // Combine Store Items + Record Items
+    const allMarkers = useMemo(() => {
+        // ID 중복 제거 (Store 아이템 우선)
+        const storeIds = new Set(mapItems.map(i => i.id));
+        const filteredRecords = recordItems.filter(r => !storeIds.has(r.id));
+        return [...mapItems, ...filteredRecords];
+    }, [mapItems, recordItems]);
 
     // Map States
     const mapRef = useRef<any>(null); // Kakao Map Instance
@@ -158,7 +212,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     // Filtered Items for List
     const getFilteredItems = () => {
-        let items = [...mapItems].sort((a, b) => new Date(b.visitedDate).getTime() - new Date(a.visitedDate).getTime());
+        let items = [...allMarkers].sort((a, b) => new Date(b.visitedDate).getTime() - new Date(a.visitedDate).getTime());
 
         if (listSearchQuery) {
             const query = listSearchQuery.toLowerCase();
@@ -403,7 +457,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             averageCenter={true}
                             minLevel={10} // Cluster at high levels (zoomed out)
                         >
-                            {mapItems.map((item) => {
+                            {allMarkers.map((item) => {
                                 if (!item.lat || !item.lng) return null;
                                 return (
                                     <MapMarker
@@ -429,7 +483,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                         </MarkerClusterer>
 
                         {/* Labels (Custom Overlay) - Show names for favorites or selected? */}
-                        {mapItems.map(item => {
+                        {allMarkers.map(item => {
                             if (!item.lat || !item.lng) return null;
                             // Show label if zoomed in enough? For now simple always show if not too many? 
                             // Or better: Just show for selected item

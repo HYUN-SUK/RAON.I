@@ -1,41 +1,44 @@
-# Handoff Document
-**Session Date**: 2026-02-05
-**Task**: Unified Schedule Display (Phase 12.3)
+# Handoff: Phase 12.3 - 1분 기록 & 이미지 에디터 구현 완료
 
-## 📝 Summary
-이번 세션에서는 '마이스페이스'(`myspace/page.tsx`)와 '예약 내역'(`myspace/reservations/page.tsx`)에서 **라온아이 예약**과 **타캠핑장 일정**을 통합하여 표시하는 기능을 구현했습니다.
-사용자가 어떤 플랫폼을 통해 여행을 가든, 가장 가까운 일정을 메인 화면에서 직관적으로 확인할 수 있도록 UX를 개선했습니다.
+## 1. 현재 상태 요약 (Current Status)
+- **Phase 12.3 (1-Minute Record)** 구현을 완료했습니다.
+- 사용자는 자신의 캠핑 일정(`schedules`)에 기반하여 사진과 짧은 글을 남길 수 있습니다.
+- **이미지 에디터(Image Editor)** 기능이 탑재되어, 사진 업로드 전 자르기/필터/텍스트 편집이 가능합니다.
+- 작성된 기록은 **내 공간(My Space)**과 **커뮤니티(Review Board)**에 즉시 연동됩니다.
 
-## ✅ Completed Tasks
-1.  **통합 일정 타입 정의 (`UnifiedUpcoming`)**:
-    *   `UpcomingReservation.tsx` 내부에서 예약(Reservation)과 일정(Schedule)을 아우르는 유니온 타입 정의.
-    *   체크인 날짜를 기준으로 정렬 및 비교 로직 구현.
-2.  **메인 카드 조건부 렌더링**:
-    *   `upcomingItem` 타입(`reservation` vs `schedule`)에 따라 다른 디자인의 카드를 렌더링.
-    *   **라온아이 예약**: 기존 입금 대기/확정 상태 비주얼(그라디언트) 유지.
-    *   **타캠핑장 일정**: 숲 테마(녹색) 및 심플한 정보(박수, 장소) 카드 적용.
-3.  **빈 상태 개선**:
-    *   다가오는 일정이 없을 때 "타캠핑장 일정 추가" 버튼을 노출하여 사용 유도.
-    *   "다가오는 예약" → "다가오는 일정"으로 타이틀 변경.
-4.  **검증**:
-    *   `/myspace` 페이지에서 타캠핑장 일정이 가장 가까울 때 정상 표시됨을 확인.
-    *   `/myspace/reservations` 페이지의 통합 리스트 확인.
+## 2. 주요 구현 내용 (Key Deliverables)
+### A. 1분 기록 (MyAjiit Record)
+- **DB**: `camping_records` 테이블 생성 및 RLS 정책 적용.
+- **UI**: `QuickRecordForm` (작성/수정), `AjiitCard` (카드형 뷰).
+- **Auto-fill**: 일정 선택 시 캠핑장 이름/주소 자동 입력 + 방문 횟수(N번째) 카운팅 로직.
+- **연동**: `MyMapList` (지도) 마커 병합 및 커뮤니티(리뷰) 노출.
 
-## 🏗️ Technical Decisions
-*   **컴포넌트 내 통합 로직**: 별도의 백엔드 통합 API를 만드는 대신, 클라이언트 컴포넌트(`UpcomingReservation`)에서 `useReservationStore`와 `getMySchedules`를 병렬로 호출하여 클라이언트 사이드에서 병합했습니다. (반응성 및 기존 로직 최소 건드림)
-*   **Upcoming Item 선정 기준**:
-    *   `activeReservations`: 체크아웃이 오늘 이후이고, 상태가 `PENDING` 또는 `CONFIRMED`인 예약.
-    *   `activeSchedules`: 체크아웃이 오늘 이후인 일정.
-    *   위 두 리스트를 합쳐 `checkIn` 날짜 오름차순 정렬 후 첫 번째 항목 선택.
+### B. 이미지 에디터 (Image Editor)
+- **라이브러리**: `@toast-ui/react-image-editor` 사용.
+- **트러블슈팅 및 해결**:
+  1. **CSS 누락**: CDN(`uicdn.toast.com`) 링크 주입으로 스타일 복구.
+  2. **Focus Trap**: Radix Sheet와 TUI Editor 간의 키보드 충돌 해결을 위해 **React Portal 기반 Custom Modal**로 교체.
+  3. **SSR 에러**: `window` 객체 접근 방어 코드(`useEffect`) 추가.
+  4. **Z-Index**: Portal을 사용하여 최상위 레이어(`document.body`)에서 렌더링.
 
-## 🚀 Next Steps (Priority)
-1.  **일정 관리 CRUD (Phase 12.3 계속)**:
-    *   현재는 일정 추가 및 표시만 가능. 수정/삭제 기능 확인 및 보완 필요.
-2.  **1분 기록 (Instant Log)**:
-    *   캠핑 중 빠르게 사진과 메모를 남기는 기능 구현.
-3.  **찜 기능 & 알림**:
-    *   캠핑장 찜하기 및 D-Day 알림 구현.
+### C. 커뮤니티 (Review Board)
+- **탭 분리**: 'RaonAI 후기' (예약 시스템 연동) vs '캠퍼 후기' (외부/1분 기록) 분리.
+- **필터링**: `campground_type` (`raonai` | `external`) 컬럼 기준 조회 로직 분리.
 
-## ⚠️ Notes & Caveats
-*   **데이터 페칭**: `UpcomingReservation` 컴포넌트가 마운트될 때마다 예약을 다시 불러옵니다(`fetchMyReservations`). 성능상 큰 문제는 없으나 추후 React Query 등으로 캐싱 전략을 도입하면 더 효율적일 수 있습니다.
-*   **lint**: `UpcomingReservation.tsx`에서 일부 lint 에러가 발생할 수 있으나 빌드에는 지장이 없도록 확인했습니다. (변수 미사용 등 정리 완료)
+## 3. 기술적 결정 사항 (Technical Decisions)
+- **Portal & Custom Modal**: 기존 `Sheet` 컴포넌트는 접근성(Focus Trap) 제어가 강력하여, TUI Image Editor 같은 Canvas 기반 외부 라이브러리와 충돌이 발생했습니다. 이를 우회하기 위해 순수 React Portal과 Div Overlay를 사용하여 편집 모달을 독립적으로 구현했습니다.
+- **CDN for CSS**: Next.js App Router와 TUI Editor의 Webpack 로더 충돌(이미지 경로)을 피하기 위해, CSS를 로컬 import 대신 CDN 링크로 로드하는 방식을 채택했습니다.
+
+## 4. 다음 작업 가이드 (Next Steps)
+`RAON_MASTER_ROADMAP_v3.md`의 **Phase 12.3 잔여 항목**부터 진행하면됩니다.
+
+1. **찜 기능 (Wishlist)**:
+   - 외부 캠핑장(`camping_ajiit_db`) 및 내부 캠핑장 찜하기 기능 통합.
+   - `bookmarks` 테이블 확장 또는 신규 매핑 테이블 필요.
+2. **준비 알림 (Notifications)**:
+   - 일정 기반 D-Day 알림 (D-4, D-1) 스케줄러 구현 (Cron).
+   - 푸시 알림 연동.
+
+## 5. 알려진 이슈 (Known Issues)
+- **Image Editor Icons**: TUI Editor 기본 아이콘을 사용 중입니다. 더 나은 디자인을 위해 추후 커스텀 아이콘셋 적용을 고려할 수 있습니다.
+- **Network Dependency**: 이미지 에디터 스타일이 CDN에 의존하므로, 오프라인 환경에서는 스타일이 깨질 수 있습니다. (현재 웹앱 특성상 큰 문제는 아님).

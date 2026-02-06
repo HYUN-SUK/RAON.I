@@ -16,7 +16,8 @@ import {
     Check,
     Circle,
     Loader2,
-    ExternalLink
+    ExternalLink,
+    Pencil
 } from 'lucide-react';
 import {
     Schedule,
@@ -26,11 +27,26 @@ import {
     addChecklistItem,
     toggleChecklistItem,
     deleteChecklistItem,
-    completeSchedule
+    completeSchedule,
+    updateSchedule,
+    deleteSchedule
 } from '@/actions/schedule';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
 
 const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
     essential: '필수품',
@@ -50,6 +66,74 @@ export default function ScheduleDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [newItem, setNewItem] = useState('');
     const [isAddingItem, setIsAddingItem] = useState(false);
+
+    // 수정/삭제 상태
+    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [editForm, setEditForm] = useState({
+        campground_name: '',
+        check_in: '',
+        check_out: '',
+        memo: ''
+    });
+
+    // 수정 폼 초기화
+    useEffect(() => {
+        if (schedule) {
+            setEditForm({
+                campground_name: schedule.campground_name,
+                check_in: schedule.check_in,
+                check_out: schedule.check_out,
+                memo: schedule.memo || ''
+            });
+        }
+    }, [schedule]);
+
+    // 일정 수정
+    const handleUpdate = async () => {
+        if (!schedule) return;
+        setIsUpdating(true);
+        try {
+            const result = await updateSchedule(schedule.id, {
+                campground_name: editForm.campground_name,
+                check_in: editForm.check_in,
+                check_out: editForm.check_out,
+                memo: editForm.memo || undefined
+            });
+            if (result.success) {
+                toast.success('일정이 수정되었어요!');
+                setIsEditSheetOpen(false);
+                loadData();
+            } else {
+                toast.error(result.error || '수정에 실패했어요');
+            }
+        } catch {
+            toast.error('오류가 발생했어요');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    // 일정 삭제
+    const handleDelete = async () => {
+        if (!schedule) return;
+        setIsDeleting(true);
+        try {
+            const result = await deleteSchedule(schedule.id);
+            if (result.success) {
+                toast.success('일정이 삭제되었어요');
+                router.push('/myspace/schedule');
+            } else {
+                toast.error(result.error || '삭제에 실패했어요');
+            }
+        } catch {
+            toast.error('오류가 발생했어요');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     // 데이터 로드
     const loadData = useCallback(async () => {
@@ -169,10 +253,30 @@ export default function ScheduleDetailPage() {
                     >
                         <ChevronLeft className="w-6 h-6 text-gray-700" />
                     </button>
-                    <h1 className="text-lg font-semibold text-gray-900 truncate max-w-[200px]">
+                    <h1 className="text-lg font-semibold text-gray-900 truncate max-w-[180px]">
                         {schedule.campground_name}
                     </h1>
-                    <div className="w-10" />
+                    {/* 타캠핑장 일정만 수정/삭제 가능 */}
+                    {schedule.source === 'external' ? (
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setIsEditSheetOpen(true)}
+                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                title="수정"
+                            >
+                                <Pencil className="w-5 h-5 text-gray-600" />
+                            </button>
+                            <button
+                                onClick={() => setIsDeleteDialogOpen(true)}
+                                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                title="삭제"
+                            >
+                                <Trash2 className="w-5 h-5 text-red-500" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="w-10" />
+                    )}
                 </div>
             </div>
 
@@ -353,6 +457,106 @@ export default function ScheduleDetailPage() {
                     </Button>
                 </div>
             )}
+
+            {/* 수정 Sheet */}
+            <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+                <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
+                    <SheetHeader className="pb-4 border-b border-gray-100">
+                        <SheetTitle className="flex items-center gap-2">
+                            <Pencil className="w-5 h-5 text-[#224732]" />
+                            일정 수정
+                        </SheetTitle>
+                    </SheetHeader>
+                    <div className="py-5 space-y-4">
+                        {/* 캠핑장 이름 */}
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">캠핑장 이름</label>
+                            <Input
+                                value={editForm.campground_name}
+                                onChange={(e) => setEditForm({ ...editForm, campground_name: e.target.value })}
+                                placeholder="캠핑장 이름"
+                            />
+                        </div>
+                        {/* 일정 */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-2 block">입실일</label>
+                                <Input
+                                    type="date"
+                                    value={editForm.check_in}
+                                    onChange={(e) => setEditForm({ ...editForm, check_in: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-2 block">퇴실일</label>
+                                <Input
+                                    type="date"
+                                    value={editForm.check_out}
+                                    onChange={(e) => setEditForm({ ...editForm, check_out: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        {/* 메모 */}
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">메모</label>
+                            <Textarea
+                                value={editForm.memo}
+                                onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
+                                placeholder="메모를 입력하세요"
+                                rows={3}
+                            />
+                        </div>
+                        {/* 버튼 */}
+                        <div className="flex gap-3 pt-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsEditSheetOpen(false)}
+                                className="flex-1"
+                                disabled={isUpdating}
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                onClick={handleUpdate}
+                                className="flex-1 bg-[#224732] hover:bg-[#1a3626]"
+                                disabled={isUpdating || !editForm.campground_name.trim()}
+                            >
+                                {isUpdating ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                        저장 중...
+                                    </>
+                                ) : (
+                                    '저장하기'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* 삭제 확인 AlertDialog */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>일정을 삭제하시겠습니까?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            <strong>{schedule.campground_name}</strong> 일정이 삭제됩니다.
+                            이 작업은 되돌릴 수 없습니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? '삭제 중...' : '삭제'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

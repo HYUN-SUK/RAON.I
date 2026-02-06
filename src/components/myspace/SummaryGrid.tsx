@@ -10,14 +10,16 @@ import MyMapModal from './MyMapModal';
 
 export default function SummaryGrid() {
     const router = useRouter();
-    const { raonToken } = useMySpaceStore();
+    const { raonToken, timelineItems } = useMySpaceStore();
     const { reservations } = useReservationStore();
 
     // 모달 상태 관리
     const [isMapOpen, setIsMapOpen] = useState(false);
 
-    // Calculate history (completed or confirmed reservations in the past)
-    const historyCount = reservations.filter(r => r.status === 'COMPLETED' || (r.status === 'CONFIRMED' && new Date(r.checkOutDate) < new Date())).length;
+    // Calculate history (completed or confirmed reservations in the past + 1분 기록)
+    const reservationCount = reservations.filter(r => r.status === 'COMPLETED' || (r.status === 'CONFIRMED' && new Date(r.checkOutDate) < new Date())).length;
+    const recordCount = timelineItems.filter(i => i.type === 'record').length;
+    const historyCount = reservationCount + recordCount;
 
     const items = [
         {

@@ -97,30 +97,28 @@ export default function ScheduleForm({
     return (
         <>
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* 캠핑장 이름 */}
+                {/* 캠핑장 이름 - 클릭하면 바로 지도 검색 열림 */}
                 <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                         <Tent className="w-4 h-4 text-[#224732]" />
                         캠핑장 이름
                     </label>
-                    <div className="relative">
-                        <Input
-                            type="text"
-                            placeholder="예: 라온아이 캠핑장"
-                            value={formData.campgroundName || ''}
-                            onChange={(e) => setFormData({ ...formData, campgroundName: e.target.value })}
-                            className="pr-10"
-                            required
-                        />
-                        <button
-                            type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#224732] transition-colors"
-                            onClick={() => setIsMapOpen(true)}
-                            title="지도에서 캠핑장 찾기"
-                        >
-                            <Search className="w-5 h-5" />
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsMapOpen(true)}
+                        className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:border-[#224732] hover:bg-gray-50 transition-colors text-left"
+                    >
+                        <span className={formData.campgroundName ? 'text-gray-900' : 'text-gray-400'}>
+                            {formData.campgroundName || '지도에서 캠핑장 검색하기'}
+                        </span>
+                        <Search className="w-5 h-5 text-[#224732]" />
+                    </button>
+                    {formData.campgroundAddress && (
+                        <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {formData.campgroundAddress}
+                        </p>
+                    )}
                 </div>
 
                 {/* 주소 */}

@@ -39,7 +39,7 @@ export interface MapItem {
 // 타임라인 아이템 인터페이스 (Timeline Item Interface)
 export interface TimelineItem {
     id: string;
-    type: 'reservation' | 'photo' | 'mission';
+    type: 'reservation' | 'photo' | 'mission' | 'record'; // 'record' 추가
     date: string; // ISO String (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
     title: string;
     content?: string;
@@ -49,6 +49,7 @@ export interface TimelineItem {
     siteId?: string;       // For reservation
     missionId?: string;    // For mission
     missionPoints?: number;
+    recordId?: string;     // For camping record
 }
 
 export interface MySpaceState {
@@ -176,7 +177,14 @@ export const useMySpaceStore = create<MySpaceState>()(
                     .eq('user_id', targetUserId)
                     .eq('status', 'COMPLETED');
 
-                // 3. Map to TimelineItems
+                // 3. Fetch Camping Records (1분 기록)
+                const { data: records } = await supabase
+                    .from('camping_records')
+                    .select('*')
+                    .eq('user_id', targetUserId)
+                    .order('created_at', { ascending: false });
+
+                // 4. Map to TimelineItems
                 const postItems: TimelineItem[] = (posts || []).map(p => ({
                     id: `post-${p.id}`,
                     type: 'photo', // Treating posts as photo/story records
@@ -197,7 +205,17 @@ export const useMySpaceStore = create<MySpaceState>()(
                     images: m.image_url ? [m.image_url] : []
                 }));
 
-                const allItems = [...postItems, ...missionItems].sort((a, b) =>
+                const recordItems: TimelineItem[] = (records || []).map(r => ({
+                    id: `record-${r.id}`,
+                    type: 'record',
+                    date: r.created_at,
+                    title: r.campground_name ? `1분 기록: ${r.campground_name}` : '나의 1분 기록',
+                    content: r.content,
+                    images: r.photo_url ? [r.photo_url] : [],
+                    recordId: r.id
+                }));
+
+                const allItems = [...postItems, ...missionItems, ...recordItems].sort((a, b) =>
                     new Date(b.date).getTime() - new Date(a.date).getTime()
                 );
 

@@ -121,12 +121,13 @@ export default function UpcomingReservation() {
         )[0];
     }, [activeReservations]);
 
-    // 입금대기 리스트 (메인 예약 제외한 모든 PENDING 예약)
+    // 입금대기 리스트: 메인 카드가 라온아이 PENDING인 경우만 해당 예약 제외, 그 외에는 모든 PENDING 표시
     const pendingList = useMemo(() => {
+        const isMainPending = upcomingItem?.type === 'reservation' && upcomingItem.data.status === 'PENDING';
         return activeReservations
-            .filter(r => r.status === 'PENDING' && r.id !== mainReservation?.id)
+            .filter(r => r.status === 'PENDING' && !(isMainPending && r.id === upcomingItem?.data.id))
             .sort((a, b) => new Date(a.checkInDate).getTime() - new Date(b.checkInDate).getTime());
-    }, [activeReservations, mainReservation]);
+    }, [activeReservations, upcomingItem]);
 
     // 입금 계좌 정보
     const bankName = config?.bank_name || '카카오뱅크';

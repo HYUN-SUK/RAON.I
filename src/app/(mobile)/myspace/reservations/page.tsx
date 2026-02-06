@@ -155,6 +155,18 @@ export default function MyReservationsPage() {
                         <StatusIcon size={16} />
                         <span className="text-sm font-bold">{config.label}</span>
                         <span className="ml-1 text-xs bg-brand-1/20 text-brand-1 px-1.5 py-0.5 rounded font-medium">라온아이</span>
+                        {/* D-Day 배지: 예정된 예약에 표시 */}
+                        {!isPast && (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED') && (() => {
+                            const checkInDate = new Date(reservation.checkInDate);
+                            checkInDate.setHours(0, 0, 0, 0);
+                            const daysUntil = differenceInDays(checkInDate, today);
+                            const dDayText = daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`;
+                            return (
+                                <span className="ml-auto text-xs font-bold bg-brand-1 text-white px-2 py-0.5 rounded-full">
+                                    {dDayText}
+                                </span>
+                            );
+                        })()}
                     </div>
                     <span className="text-xs text-text-2">
                         {format(new Date(reservation.createdAt), "yyyy.MM.dd HH:mm")}
