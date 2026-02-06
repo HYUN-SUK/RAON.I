@@ -1,14 +1,6 @@
 'use client';
 
-import { useRef, useImperativeHandle, forwardRef, useEffect, useState, createElement } from 'react';
-import dynamic from 'next/dynamic';
-
-// TOAST UI Image Editor 동적 import (SSR 비활성화)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ToastImageEditor: any = dynamic(
-    () => import('@toast-ui/react-image-editor').then(mod => mod.default),
-    { ssr: false, loading: () => <div className="h-[500px] bg-gray-100 animate-pulse rounded-xl" /> }
-);
+import { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
 
 // 커스텀 테마 (캠핑 감성)
 const campingTheme = {
@@ -95,33 +87,27 @@ interface CampingImageEditorProps {
     imagePath: string;
     width?: number;
     height?: number;
-    onSave?: (dataUrl: string) => void;
 }
 
 const CampingImageEditor = forwardRef<ImageEditorRef, CampingImageEditorProps>(
     ({ imagePath, width = 400, height = 500 }, ref) => {
+        const containerRef = useRef<HTMLDivElement>(null);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const editorRef = useRef<any>(null);
-        const [isMounted, setIsMounted] = useState(false);
-
-        useEffect(() => {
-            setIsMounted(true);
-        }, []);
+        const instanceRef = useRef<any>(null);
 
         useImperativeHandle(ref, () => ({
             getEditedImage: async () => {
-                if (!editorRef.current) return null;
+                if (!instanceRef.current) return null;
                 try {
-                    const editor = editorRef.current.getInstance();
-                    return editor.toDataURL();
+                    return instanceRef.current.toDataURL();
                 } catch {
                     return null;
                 }
             },
             reset: () => {
-                if (editorRef.current) {
+                if (instanceRef.current) {
                     try {
-                        editorRef.current.getInstance().clearObjects();
+                        instanceRef.current.clearObjects();
                     } catch {
                         // ignore
                     }
@@ -129,19 +115,20 @@ const CampingImageEditor = forwardRef<ImageEditorRef, CampingImageEditorProps>(
             },
         }));
 
-        if (!isMounted) {
-            return <div className="h-[500px] bg-gray-100 animate-pulse rounded-xl" />;
-        }
+        useEffect(() => {
+            let destroyed = false;
 
-        return (
-            <div className="relative">
-                <link
-                    rel="stylesheet"
-                    href="https://uicdn.toast.com/tui-image-editor/v3.15.3/tui-image-editor.min.css"
-                />
-                <ToastImageEditor
-                    ref={editorRef}
-                    includeUI={{
+            const initEditor = async () => {
+                if (!containerRef.current) return;
+
+                // Vanila JS Library Dynamic Import
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const TuiImageEditor = (await import('tui-image-editor')).default;
+
+                if (destroyed) return;
+
+                instanceRef.current = new TuiImageEditor(containerRef.current, {
+                    includeUI: {
                         loadImage: {
                             path: imagePath,
                             name: 'CampingImage',
@@ -155,15 +142,35 @@ const CampingImageEditor = forwardRef<ImageEditorRef, CampingImageEditorProps>(
                         },
                         menuBarPosition: 'bottom',
                         locale,
-                    }}
-                    cssMaxHeight={height}
-                    cssMaxWidth={width}
-                    selectionStyle={{
+                    },
+                    cssMaxHeight: height,
+                    cssMaxWidth: width,
+                    selectionStyle: {
                         cornerSize: 10,
                         rotatingPointOffset: 50,
-                    }}
-                    usageStatistics={false}
+                    },
+                    usageStatistics: false,
+                });
+            };
+
+            initEditor();
+
+            return () => {
+                destroyed = true;
+                if (instanceRef.current) {
+                    instanceRef.current.destroy();
+                    instanceRef.current = null;
+                }
+            };
+        }, [imagePath, width, height]);
+
+        return (
+            <div className="relative">
+                <link
+                    rel="stylesheet"
+                    href="https://uicdn.toast.com/tui-image-editor/v3.15.3/tui-image-editor.min.css"
                 />
+                <div ref={containerRef} style={{ width, height }} />
             </div>
         );
     }
@@ -172,4 +179,3 @@ const CampingImageEditor = forwardRef<ImageEditorRef, CampingImageEditorProps>(
 CampingImageEditor.displayName = 'CampingImageEditor';
 
 export default CampingImageEditor;
-

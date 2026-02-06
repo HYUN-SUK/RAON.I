@@ -20,6 +20,7 @@
   2. **Focus Trap**: Radix Sheet와 TUI Editor 간의 키보드 충돌 해결을 위해 **React Portal 기반 Custom Modal**로 교체.
   3. **SSR 에러**: `window` 객체 접근 방어 코드(`useEffect`) 추가.
   4. **Z-Index**: Portal을 사용하여 최상위 레이어(`document.body`)에서 렌더링.
+  5. **React 19 호환성**: `react-image-editor` Wrapper 라이브러리의 호환성 문제로 인해, Wrapper를 제거하고 **Vanilla JS (`tui-image-editor`)**를 직접 연동하는 방식으로 재구축하여 안정성을 확보했습니다.
 
 ### C. 커뮤니티 (Review Board)
 - **탭 분리**: 'RaonAI 후기' (예약 시스템 연동) vs '캠퍼 후기' (외부/1분 기록) 분리.
@@ -27,7 +28,8 @@
 
 ## 3. 기술적 결정 사항 (Technical Decisions)
 - **Portal & Custom Modal**: 기존 `Sheet` 컴포넌트는 접근성(Focus Trap) 제어가 강력하여, TUI Image Editor 같은 Canvas 기반 외부 라이브러리와 충돌이 발생했습니다. 이를 우회하기 위해 순수 React Portal과 Div Overlay를 사용하여 편집 모달을 독립적으로 구현했습니다.
-- **CDN for CSS**: Next.js App Router와 TUI Editor의 Webpack 로더 충돌(이미지 경로)을 피하기 위해, CSS를 로컬 import 대신 CDN 링크로 로드하는 방식을 채택했습니다.
+- **Vanilla JS Rewrite**: `react-image-editor`가 React 최신 버전(Next.js 15) 환경에서 불안정한 동작을 보여, 의존성을 제거하고 useEffect 내에서 순수 JS 인스턴스를 관리하는 방식으로 전환했습니다.
+- **CDN for CSS**: Next.js App Router와 TUI Editor의 Webpack 로더 충돌(이미지 경로)을 피하기 위해, CSS를 로컬 import 대신 CDN 링크로 로드하는 방식으로 변경했습니다.
 
 ## 4. 다음 작업 가이드 (Next Steps)
 `RAON_MASTER_ROADMAP_v3.md`의 **Phase 12.3 잔여 항목**부터 진행하면됩니다.
