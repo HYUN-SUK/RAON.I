@@ -272,7 +272,22 @@ export default function QuickRecordForm({
     return (
         <>
             <Sheet open={isOpen} onOpenChange={handleClose}>
-                <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
+                <SheetContent
+                    side="bottom"
+                    className="rounded-t-3xl max-h-[85vh] overflow-y-auto"
+                    onInteractOutside={(e) => {
+                        // 이미지 에디터가 열려있을 때 외부 클릭으로 Sheet 닫히는 것 방지
+                        if (isEditorOpen) {
+                            e.preventDefault();
+                        }
+                    }}
+                    onPointerDownOutside={(e) => {
+                        // 이미지 에디터가 열려있을 때 포인터 다운으로 Sheet 닫히는 것 방지
+                        if (isEditorOpen) {
+                            e.preventDefault();
+                        }
+                    }}
+                >
                     <SheetHeader className="pb-3 border-b border-gray-100">
                         <SheetTitle className="flex items-center gap-2 text-[#224732]">
                             <Sparkles className="w-5 h-5" />
@@ -362,18 +377,20 @@ export default function QuickRecordForm({
                                             <Loader2 className="w-8 h-8 text-white animate-spin" />
                                         </div>
                                     )}
-                                    <div className="absolute top-2 right-2 flex gap-1">
+                                    <div className="absolute top-2 right-2 flex gap-2 z-10">
                                         <button
                                             onClick={() => setIsEditorOpen(true)}
-                                            className="p-1.5 bg-[#224732]/80 rounded-full hover:bg-[#224732] transition-colors"
+                                            className="w-9 h-9 flex items-center justify-center bg-[#224732] rounded-full hover:bg-[#1a3626] transition-colors shadow-lg"
                                             disabled={isUploading}
+                                            aria-label="사진 편집"
                                         >
                                             <Edit3 className="w-4 h-4 text-white" />
                                         </button>
                                         <button
                                             onClick={handleRemovePhoto}
-                                            className="p-1.5 bg-black/60 rounded-full hover:bg-black/80 transition-colors"
+                                            className="w-9 h-9 flex items-center justify-center bg-black/70 rounded-full hover:bg-black/90 transition-colors shadow-lg"
                                             disabled={isUploading}
+                                            aria-label="사진 삭제"
                                         >
                                             <X className="w-4 h-4 text-white" />
                                         </button>

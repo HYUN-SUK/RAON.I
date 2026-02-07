@@ -7,7 +7,10 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Sheet = SheetPrimitive.Root
+// modal={false}로 설정하면 body scroll lock이 비활성화되어 레이아웃 밀림 방지
+const Sheet = ({ modal = false, ...props }: { modal?: boolean } & React.ComponentProps<typeof SheetPrimitive.Root>) => (
+    <SheetPrimitive.Root modal={modal} {...props} />
+)
 
 const SheetTrigger = SheetPrimitive.Trigger
 
