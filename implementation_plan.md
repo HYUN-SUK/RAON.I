@@ -1,41 +1,55 @@
-# Implementation Plan: Operation "Sparkling Forest" (Code Cleanup)
+# Implementation Plan: Phase 12.3 Completion (Wishlist, Notifications, Meal Recs)
 
-## 🎯 Goal
-Clean up the entire codebase (`Code De-cluttering`) to improve maintainability, readability, and stability, while strictly **preserving all existing features, UI designs, and functionality**.
+## Goal
+Complete the remaining parts of Phase 12.3 "Camping Ajiit" to enhance user engagement.
 
-## 🛡️ Principles (The "Boy Scout" Rule)
-1.  **Invisible Changes**: The user should see NO difference in the app's look or feel.
-2.  **Zero Warnings**: Aim for zero ESLint warnings and zero console logs in production.
-3.  **SSOT Alignment**: Ensure code structures align with the latest `RAONAI_SSOT_MASTER_v9.md`.
+## User Review Required
+> [!IMPORTANT]
+> **Push Notifications**: This plan assumes `supabase/functions/camping-notifications` will be triggered by a Cron Job.
+> **Meal Recommendation**: Currently rule-based (L0).
 
-## 📋 Execution Strategy
+## Proposed Changes
 
-### Step 1: Sanitization (The Purge)
-_Remove noise and potential bugs._
-*   **Linting**: Run strict linting and fix errors (e.g., `unused-vars`, `exhaustive-deps`).
-*   **Console Logs**: Use regex search to find and remove `console.log`, `console.warn` (keep `console.error` in try-catch).
-*   **Ghost Code**: Remove large blocks of commented-out code.
-*   **Unused Files**: Identify files that are never imported (using tools or manual audit).
+### 1. Wishlist (찜 목록)
+#### [NEW] [Favorites Page](file:///c:/Users/USER/Desktop/RAON.I/src/app/(mobile)/myspace/favorites/page.tsx)
+-   **Path**: `/myspace/favorites`
+-   **Logic**:
+    -   Fetch `campground_favorites` joined with `campgrounds` via `get_my_favorites`.
+    -   Display using `RecommendationCard` or similar (AjiitCard).
+    -   Empty state: "아직 찜한 캠핑장이 없어요."
 
-### Step 2: Organization (Structure)
-_Put things where they belong._
-*   **Imports**: Standardize imports to use absolute paths (`@/components/...`) instead of relative (`../../`).
-*   **Types**: Move inline interfaces (e.g., `interface Props {...}`) to dedicated types files if reused, or keep them co-located but named consistently.
-*   **File Names**: Ensure `PascalCase` for React components and `camelCase` for utilities/hooks.
+### 2. Smart Preparation Notifications (준비 알림)
+#### [NEW] [Edge Function](file:///c:/Users/USER/Desktop/RAON.I/supabase/functions/camping-notifications/index.ts)
+-   **Trigger**: Scheduled (Cron) daily at 09:00 KST.
+-   **Logic**:
+    -   Query `user_schedules` where `check_in` is:
+        -   **D-4**: "캠핑 4일 전! 체크리스트를 점검해보세요."
+        -   **D-1**: "내일이 캠핑이네요! 빠진 짐은 없나요?"
+        -   **D-Day**: "즐거운 캠핑 되세요! 안전 운전!"
+    -   Send FCM via `notificationService`.
 
-### Step 3: Standardization (SSOT v9)
-_Enforce the Design System at the code level._
-*   **Colors**: Replace hardcoded hex values (e.g., `#1C4526`) with Tailwind variables (`bg-brand-1`).
-*   **Spacing**: Ensure margins/paddings use Tailwind's 4px grid (e.g., `p-[13px]` -> `p-3` or `p-3.5`).
-*   **Typography**: Verify strict font usage (no arbitrary font sizes).
+### 3. Meal Recommendation (메뉴 추천)
+#### [NEW] [Logic Module](file:///c:/Users/USER/Desktop/RAON.I/src/lib/meal-recommendation.ts)
+-   **Function**: `getMealRecommendation(weather, memberType, season)`
+-   **Rule Engine**:
+    -   **Rainy**: 파전, 어묵탕 via `weather.condition`
+    -   **Cold (<10°C)**: 전골, 밀푀유나베
+    -   **Family (Kids)**: 찜닭, 소세지
+    -   **Couple**: 스테이크, 파스타
+-   **Output**: Menu Name, Reason, Simple Ingredients.
 
-## 🔍 Verification Plan
-Since we are changing internal structures, verification is critical.
-1.  **Static Analysis**: `npm run lint` must pass with 0 errors.
-2.  **Build Check**: `npm run build` must succeed.
-3.  **Visual Regression (Manual)**:
-    *   Compare `Home`, `Mission`, `My Space` screens before/after.
-    *   Check interactive flows (Tab switching, Modal opening).
+#### [NEW] [Meal UI Widget](file:///c:/Users/USER/Desktop/RAON.I/src/components/myspace/MealRecommendationWidget.tsx)
+-   Display in `MySpace` or `ScheduleDetail`.
 
-## 📝 Next Steps
-Upon approval, I will start with **Phase 1: Linting & Console Removal**.
+## Verification Plan
+
+### Manual Verification
+1.  **Wishlist**:
+    -   Go to a campground card -> Click Heart.
+    -   Go to `/myspace/favorites` -> Verify item.
+2.  **Notifications**:
+    -   Create a schedule for D-4.
+    -   Invoke Edge Function (curl).
+    -   Verify Push Notification.
+3.  **Meal Recs**:
+    -   Check the output based on simulated weather.

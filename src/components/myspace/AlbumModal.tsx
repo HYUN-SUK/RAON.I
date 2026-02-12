@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { Camera, Plus, Trash2, Calendar, ArrowLeft } from 'lucide-react';
 import { useMySpaceStore, AlbumItem } from '@/store/useMySpaceStore';
 import { Modal } from '@/components/ui/Modal';
@@ -18,16 +19,30 @@ export default function AlbumModal({ isOpen, onClose }: AlbumModalProps) {
     const [newImage, setNewImage] = useState<string | null>(null);
     const [description, setDescription] = useState('');
 
+    // Editor State
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+
+    // Dynamic Import
+    const ImageEditorModal = dynamic(() => import('@/components/record/ImageEditorModal'), { ssr: false });
+
     // 파일 선택 핸들러
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setNewImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            const url = URL.createObjectURL(file);
+            setTempImage(url);
+            setIsEditorOpen(true);
+
+            // Clear input
+            e.target.value = '';
         }
+    };
+
+    const handleEditorSave = (dataUrl: string) => {
+        setNewImage(dataUrl);
+        setIsEditorOpen(false);
+        setTempImage(null);
     };
 
     // 저장 핸들러
@@ -148,6 +163,16 @@ export default function AlbumModal({ isOpen, onClose }: AlbumModalProps) {
                         <span>추억 추가하기</span>
                     </button>
                 </div>
+            )}
+
+            {/* Image Editor Modal */}
+            {tempImage && isEditorOpen && (
+                <ImageEditorModal
+                    isOpen={isEditorOpen}
+                    onClose={() => setIsEditorOpen(false)}
+                    imagePath={tempImage}
+                    onSave={handleEditorSave}
+                />
             )}
         </Modal>
     );

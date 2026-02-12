@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import {
@@ -46,6 +46,8 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import MealRecommendationWidget from '@/components/myspace/MealRecommendationWidget';
+import { getRandomRecommendations } from '@/actions/recommendation';
 
 
 const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
@@ -59,13 +61,18 @@ const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
 export default function ScheduleDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const scheduleId = params.id as string;
+    const initialRecipeId = searchParams.get('recipeId');
 
     const [schedule, setSchedule] = useState<Schedule | null>(null);
     const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [newItem, setNewItem] = useState('');
     const [isAddingItem, setIsAddingItem] = useState(false);
+
+    // Meal Recommendations State
+    const [mealRecommendations, setMealRecommendations] = useState<any[]>([]);
 
     // 수정/삭제 상태
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
@@ -90,6 +97,24 @@ export default function ScheduleDetailPage() {
             });
         }
     }, [schedule]);
+
+    // Fetch Recommendations
+    useEffect(() => {
+        const fetchRecs = async () => {
+            const recs = await getRandomRecommendations(3);
+
+            const mappedRecs = recs.map(r => ({
+                id: r.id,
+                name: r.title,
+                description: r.description || '',
+                tags: r.tags || [],
+                difficulty: r.difficulty || 1, // Pass number directly
+                season: []
+            }));
+            setMealRecommendations(mappedRecs as any);
+        };
+        fetchRecs();
+    }, []);
 
     // 일정 수정
     const handleUpdate = async () => {
@@ -241,6 +266,7 @@ export default function ScheduleDetailPage() {
     const daysUntil = differenceInDays(checkIn, today);
     const nights = differenceInDays(checkOut, checkIn);
     const checkedCount = checklist.filter(i => i.is_checked).length;
+
 
     return (
         <div className="min-h-screen bg-[#F7F5EF]">
@@ -443,6 +469,12 @@ export default function ScheduleDetailPage() {
                         </div>
                     </a>
                 )}
+
+                {/* 추천 요리 위젯 */}
+                <MealRecommendationWidget
+                    recommendations={mealRecommendations}
+                    initialRecipeId={initialRecipeId}
+                />
             </div>
 
             {/* 하단 버튼 */}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { Modal } from '@/components/ui/Modal'; // Assuming custom Modal
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,13 @@ export function CreatorIdentityModal({
     const [nickname, setNickname] = useState(initialNickname || '');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialImage || null);
+
+    // Editor State
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+
+    // Dynamic Import
+    const ImageEditorModal = dynamic(() => import('@/components/record/ImageEditorModal'), { ssr: false });
 
     // Validation States
     const [isChecking, setIsChecking] = useState(false);
@@ -76,10 +84,27 @@ export function CreatorIdentityModal({
                 alert('이미지 크기는 5MB 이하여야 합니다.');
                 return;
             }
-            setImageFile(file);
+            // Instead of setting directly, open editor
             const url = URL.createObjectURL(file);
-            setPreviewUrl(url);
+            setTempImage(url);
+            setIsEditorOpen(true);
+
+            // Clear input
+            e.target.value = '';
         }
+    };
+
+    const handleEditorSave = async (dataUrl: string) => {
+        setPreviewUrl(dataUrl);
+
+        // Convert Data URL to File for upload
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], "profile_image.png", { type: "image/png" });
+        setImageFile(file);
+
+        setIsEditorOpen(false);
+        setTempImage(null);
     };
 
     const handleSubmit = async () => {
@@ -189,6 +214,16 @@ export function CreatorIdentityModal({
                     {isSubmitting ? '저장 중...' : '설정 완료하고 시작하기'}
                 </Button>
             </div>
+
+            {/* Image Editor Modal */}
+            {tempImage && isEditorOpen && (
+                <ImageEditorModal
+                    isOpen={isEditorOpen}
+                    onClose={() => setIsEditorOpen(false)}
+                    imagePath={tempImage}
+                    onSave={handleEditorSave}
+                />
+            )}
         </Modal>
     );
 }

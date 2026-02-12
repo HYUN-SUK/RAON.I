@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon, History, Map, Star } from "lucide-react";
+import { Image as ImageIcon, History, Map, Star, Heart } from "lucide-react";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";
@@ -24,9 +24,9 @@ export default function SummaryGrid() {
     const items = [
         {
             icon: ImageIcon,
-            label: "앨범",
-            color: "text-blue-600",
-            bg: "bg-blue-50",
+            label: "내 앨범",
+            color: "text-rose-600",
+            bg: "bg-rose-50",
             value: null,
             onClick: () => router.push('/myspace/album')
         },

@@ -33,6 +33,7 @@ export default function ScheduleHomeWidget() {
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [upcomingItem, setUpcomingItem] = useState<UnifiedSchedule | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -100,6 +101,42 @@ export default function ScheduleHomeWidget() {
         setUpcomingItem(unifiedList[0] || null);
     }, [reservations, schedules]);
 
+    const handleCardClick = async () => {
+        if (!upcomingItem || isNavigating) return;
+
+        // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
+        if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
+            router.push('/reservation/complete');
+            return;
+        }
+
+        // 그 외 (예약 확정, 타캠핑장) -> 일정 상세 페이지로
+        if (upcomingItem.type === 'reservation') {
+            setIsNavigating(true);
+            try {
+                // 예약 -> 일정 변환 (Lazy Creation)
+                const { ensureScheduleFromReservation } = await import('@/actions/schedule');
+                const result = await ensureScheduleFromReservation(upcomingItem.id);
+
+                if (result.success && result.scheduleId) {
+                    router.push(`/myspace/schedule/${result.scheduleId}`);
+                } else {
+                    console.error('Failed to ensure schedule:', result.error);
+                    // 실패 시 예약 페이지로라도 보내줌 (fallback)
+                    router.push('/reservation/complete');
+                }
+            } catch (e) {
+                console.error('Navigation error:', e);
+                router.push('/reservation/complete');
+            } finally {
+                // 네비게이션 중에는 로딩 상태 유지 (페이지 이동하므로 false설정 안해도 됨)
+            }
+        } else {
+            // 이미 스케줄임
+            router.push(`/myspace/schedule/${upcomingItem.id}`);
+        }
+    };
+
     // 로딩
     if (isLoading) {
         return (
@@ -141,11 +178,6 @@ export default function ScheduleHomeWidget() {
     const daysUntil = differenceInDays(upcomingItem.checkIn, today);
     const nights = differenceInDays(upcomingItem.checkOut, upcomingItem.checkIn);
 
-    // 라온아이 예약인지 타캠핑장인지에 따라 다른 링크
-    const detailLink = upcomingItem.type === 'reservation'
-        ? '/reservation/complete'
-        : `/myspace/schedule/${upcomingItem.id}`;
-
     // 라온아이 예약 여부
     const isRaonai = upcomingItem.type === 'reservation';
     // 입금대기 여부
@@ -161,8 +193,17 @@ export default function ScheduleHomeWidget() {
     return (
         <div className="space-y-3">
             {/* 다가오는 캠핑 카드 */}
-            <Link href={detailLink}>
-                <div className={`bg-gradient-to-br ${bgGradient} rounded-2xl p-4 text-white hover:shadow-lg transition-all`}>
+            <div
+                onClick={handleCardClick}
+                className="cursor-pointer"
+            >
+                <div className={`bg-gradient-to-br ${bgGradient} rounded-2xl p-4 text-white hover:shadow-lg transition-all relative overflow-hidden`}>
+                    {isNavigating && (
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        </div>
+                    )}
+
                     <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
@@ -205,7 +246,7 @@ export default function ScheduleHomeWidget() {
                         <ChevronRight className="w-4 h-4 ml-auto" />
                     </div>
                 </div>
-            </Link>
+            </div>
 
             {/* 타캠핑장 일정 추가 버튼 */}
             <button

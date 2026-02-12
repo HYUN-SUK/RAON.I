@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 
+import { SITES } from '@/constants/sites';
+
 // ═══════════════════════════════════════════════════════════
 // 타입 정의
 // ═══════════════════════════════════════════════════════════
@@ -374,4 +376,122 @@ export async function isFavorite(campgroundId: string): Promise<boolean> {
         .single();
 
     return !!data;
+}
+/**
+ * 찜한 캠핑장 상세 목록 조회
+ */
+import { CampgroundWithScore } from '@/types/camping-ajiit';
+
+export async function getFavoriteCampgrounds(): Promise<CampgroundWithScore[]> {
+    const supabase = await createClient();
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return [];
+
+    // 1. 찜 목록 조회
+    const { data: favorites, error: favError } = await supabase
+        .from('campground_favorites')
+        .select('campground_id, created_at')
+        .eq('user_id', userData.user.id)
+        .order('created_at', { ascending: false });
+
+    if (favError || !favorites || favorites.length === 0) {
+        return [];
+    }
+
+    const campgroundIds = favorites.map(f => f.campground_id);
+
+    // 2. 캠핑장 상세 정보 조회
+    const { data: campgrounds, error: campError } = await supabase
+        .from('campgrounds')
+        .select('*')
+        .in('id', campgroundIds);
+
+    if (campError || !campgrounds) {
+        console.error('Fetch favorite campgrounds error:', campError);
+        return [];
+    }
+
+    // 3. 데이터 병합 및 변환
+    // 순서를 찜한 순서대로 유지하기 위해 map 사용
+    const result: CampgroundWithScore[] = favorites
+        .map(fav => {
+            const camp = campgrounds.find(c => c.id === fav.campground_id);
+            if (!camp) return null;
+
+            return {
+                ...camp,
+                score: 100, // 찜한 목록이므로 높은 점수
+                matchReason: '내가 찜한 캠핑장',
+                isFavorite: true,
+                favoriteCount: 0, // DB에서 가져오려면 추가 조인 필요 (일단 0 or 생략)
+                // 거리 정보는 현재 위치가 없으므로 생략 또는 계산 필요
+            } as CampgroundWithScore;
+        })
+        .filter((c): c is CampgroundWithScore => c !== null);
+
+    return result;
+}
+
+/**
+ * 예약 ID로 일정 보장 (없으면 생성) - Lazy Creation
+ */
+export async function ensureScheduleFromReservation(reservationId: string): Promise<{ success: boolean; scheduleId?: string; error?: string }> {
+    const supabase = await createClient();
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+        return { success: false, error: '로그인이 필요합니다' };
+    }
+
+    // 1. 이미 존재하는지 확인
+    const { data: existing } = await supabase
+        .from('user_schedules')
+        .select('id')
+        .eq('reservation_id', reservationId)
+        .eq('user_id', userData.user.id) // 보안: 내 예약만
+        .single();
+
+    if (existing) {
+        return { success: true, scheduleId: existing.id };
+    }
+
+    // 2. 예약 정보 조회
+    const { data: reservation, error: resError } = await supabase
+        .from('reservations')
+        .select('*')
+        .eq('id', reservationId)
+        .eq('user_id', userData.user.id) // 보안확인
+        .single();
+
+    if (resError || !reservation) {
+        return { success: false, error: '예약 정보를 찾을 수 없습니다' };
+    }
+
+    // 3. 일정 생성
+    const siteName = SITES.find(s => s.id === reservation.site_id)?.name || reservation.site_id;
+
+    // upsert_schedule RPC 사용 (이미 createSchedule에서 사용중인 로직 재사용)
+    // 주의: reservation의 날짜 포맷이 DB마다 다를 수 있으므로 확인 필요하지만, 보통 string 그대로 넘김
+    const { data: newScheduleId, error: createError } = await supabase.rpc('upsert_schedule', {
+        p_user_id: userData.user.id,
+        p_source: 'raonai',
+        p_campground_name: siteName,
+        p_campground_address: null, // 주소는 정보가 있다면 넣을 수 있음 (SITES에는 주소 없음, 하드코딩된 데이터라)
+        p_campground_lat: null,
+        p_campground_lng: null,
+        p_check_in: reservation.check_in_date,
+        p_check_out: reservation.check_out_date,
+        p_memo: null,
+        p_campground_id: null, // 외부 API ID가 아님
+        p_reservation_id: reservationId,
+    });
+
+    if (createError) {
+        console.error('Auto-create schedule error:', createError);
+        return { success: false, error: createError.message };
+    }
+
+    revalidatePath('/myspace/schedule');
+    return { success: true, scheduleId: newScheduleId };
 }

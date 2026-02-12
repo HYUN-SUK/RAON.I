@@ -1,0 +1,3 @@
+Keys: id, category, title, description, image_url, tags, content_url, metadata, is_active, created_at, updated_at, difficulty, time_required, min_participants, max_participants, materials, ingredients, process_steps, tips, servings, calories, age_group, location_type
+Difficulty: 2
+Title: 삼겹살 구이 (변주: 아이 동반 간장 양념)

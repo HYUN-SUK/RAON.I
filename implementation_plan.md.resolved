@@ -1,0 +1,730 @@
+# 라온아이 "캠핑 아지트" 구현 계획서 (Final)
+
+**작성일**: 2026-01-30  
+**확정된 스펙**: 모드 6개, 토글 6개(3선택), Top 3 추천, 검색 링크 포함, DB 규칙+사용자 태그
+
+---
+
+## 📋 확정 스펙 요약
+
+| 항목 | 결정 |
+|------|------|
+| 모드 | 6개: 가족, 솔로, 커플, 친구, 차박, 힐링 |
+| 토글 | 6개 노출, 최대 3개 선택 |
+| 추천 | Top 3 고정 |
+| 예약 버튼 | URL → 직접 이동 / 없음 → 검색 링크 |
+| DB 구축 | 고캠핑 API + 규칙 태그 + 사용자 태그 |
+| 이미지 편집 | **TOAST UI Image Editor** (풀 편집기) |
+| 준비 알림 시각 | 오전 9시 고정 |
+| 메뉴 추천 | 아침/점심/저녁 전체 |
+| **네비게이션 순서** | **홈 → 내 수첩 → 커뮤니티 → 예약 → 마켓** (변경) |
+| **탭 이름** | "내 수첩" 유지 |
+
+---
+
+## 전체 DB 스키마
+
+#### [NEW] `supabase/migrations/20260130_camping_ajiit_full.sql`
+
+```sql
+-- ═══════════════════════════════════════════════════════════
+-- 1. 캠핑장 마스터 테이블 (고캠핑 API)
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE campgrounds (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  gocamping_id TEXT UNIQUE,
+  name TEXT NOT NULL,
+  address TEXT,
+  tel TEXT,
+  homepage_url TEXT,
+  lat NUMERIC(10,7),
+  lng NUMERIC(10,7),
+  facility_type TEXT[],
+  has_shower BOOLEAN DEFAULT false,
+  has_electricity BOOLEAN DEFAULT false,
+  has_wifi BOOLEAN DEFAULT false,
+  pet_allowed BOOLEAN DEFAULT false,
+  has_firepit BOOLEAN DEFAULT false,
+  environment TEXT[],
+  auto_tags TEXT[],
+  user_tags JSONB DEFAULT '{}',
+  site_count INTEGER,
+  intro TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- 2. 사용자 캠핑 모드
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE user_camping_modes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  mode TEXT NOT NULL,
+  toggles TEXT[] DEFAULT '{}',
+  distance_km INTEGER DEFAULT 100,
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, mode)
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- 3. Plan Lock
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE user_plan_locks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  mode TEXT NOT NULL,
+  toggles TEXT[] DEFAULT '{}',
+  distance_km INTEGER DEFAULT 100,
+  locked_at TIMESTAMPTZ DEFAULT NOW(),
+  recommended_campgrounds UUID[],
+  selected_campground_id UUID,
+  status TEXT DEFAULT 'planning',
+  UNIQUE(user_id)
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- 4. 찜 (Favorites)
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE user_favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  campground_id UUID REFERENCES campgrounds(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, campground_id)
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- 5. 캠핑 일정 (라온아이 + 타 캠핑장)
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE user_camping_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  source TEXT NOT NULL,                -- 'raonai' | 'external'
+  reservation_id UUID,                 -- 라온아이 예약 시 연결
+  campground_name TEXT,
+  campground_address TEXT,
+  campground_lat NUMERIC(10,7),
+  campground_lng NUMERIC(10,7),
+  check_in TIMESTAMPTZ NOT NULL,
+  check_out TIMESTAMPTZ NOT NULL,
+  status TEXT DEFAULT 'scheduled',     -- 'scheduled', 'completed', 'cancelled'
+  record_written BOOLEAN DEFAULT false,
+  notification_d4_sent BOOLEAN DEFAULT false,
+  notification_d1_sent BOOLEAN DEFAULT false,
+  notification_d0_sent BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- 6. 기록 태그
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE record_tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  record_id UUID REFERENCES community_posts(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  is_standard BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- 7. 캠핑장 사용자 태그 기록
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE campground_user_tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  campground_id UUID REFERENCES campgrounds(id) ON DELETE CASCADE,
+  tags TEXT[] NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, campground_id)
+);
+
+-- 인덱스
+CREATE INDEX idx_campgrounds_lat_lng ON campgrounds(lat, lng);
+CREATE INDEX idx_campgrounds_auto_tags ON campgrounds USING GIN(auto_tags);
+CREATE INDEX idx_user_favorites_user ON user_favorites(user_id);
+CREATE INDEX idx_user_schedules_user ON user_camping_schedules(user_id);
+CREATE INDEX idx_user_schedules_checkin ON user_camping_schedules(check_in);
+
+-- 찜 수 집계 뷰
+CREATE VIEW campground_favorites_count AS
+SELECT campground_id, COUNT(*) as favorite_count
+FROM user_favorites GROUP BY campground_id;
+```
+
+---
+
+## Phase 1: 모드/토글/Plan Lock (~16시간)
+
+### 1.1 모드 선택 UI
+
+#### [NEW] `src/components/planlock/ModeSelector.tsx`
+
+| 모드 | 아이콘 | 기본 토글 | 기본 거리 |
+|------|--------|----------|----------|
+| 가족 | 👨‍👩‍👧‍👦 | shower, electricity | 80km |
+| 솔로 | 🧘 | wifi | 150km |
+| 커플 | 💑 | - | 100km |
+| 친구 | 🍻 | firepit | 100km |
+| 차박 | 🚗 | electricity | 150km |
+| 힐링 | 🌿 | - | 80km |
+
+### 1.2 토글 선택 UI
+
+#### [NEW] `src/components/planlock/ToggleSelector.tsx`
+
+| 토글 | 키 | 매칭 필드 |
+|------|-----|----------|
+| 샤워/화장실 | shower | has_shower |
+| 전기 | electricity | has_electricity |
+| 와이파이 | wifi | has_wifi |
+| 반려동물 | pet | pet_allowed |
+| 불멍 | firepit | has_firepit |
+| 계곡/물가 | water | environment |
+
+### 1.3 추천 로직
+
+#### [NEW] `src/lib/campground-recommendation.ts`
+
+점수 계산: 시설 매칭(+20) + 거리(+30) + 모드 환경(+15) + 사용자 태그(+10)
+
+### 1.4 추천 카드 UI
+
+#### [NEW] `src/components/planlock/RecommendationCard.tsx`
+
+```
+┌──────────────────────────────────────┐
+│  🏕️ 캠핑장 이름          ❤️ 찜 23   │
+│  📍 주소                             │
+│  [샤워] [전기] [조용함]              │
+│  "가족모드+샤워 충족, 65km"          │
+│  [카카오맵] [길찾기] [예약하기]      │
+└──────────────────────────────────────┘
+```
+
+### 1.5 기타 파일
+
+- `src/app/(mobile)/planlock/page.tsx` - Plan Lock 메인 페이지
+- `src/components/planlock/PlanLockCard.tsx` - 홈 표시용 카드
+
+---
+
+## Phase 2: 캠핑장 DB 구축 (~8시간)
+
+### 2.1 고캠핑 API 연동
+
+#### [NEW] `src/lib/gocamping-api.ts`
+
+### 2.2 규칙 기반 자동 태깅
+
+#### [NEW] `src/lib/auto-tagging.ts`
+
+```typescript
+// 규칙 예시
+if (site_count <= 20) tags.push('조용함');
+if (has_firepit) tags.push('불멍가능');
+if (environment.includes('계곡')) tags.push('물놀이');
+```
+
+---
+
+## Phase 3: 일정/기록/찜/알림 (~28시간)
+
+### 3-A. 캠핑 일정 관리 + 지도 연동 (~6시간)
+
+#### 핵심: 나만의 캠핑지도 연동
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  일정 ↔ 지도 연동 플로우                                           │
+├────────────────────────────────────────────────────────────────────┤
+│  [라온아이 예약]                                                   │
+│      ↓ 자동                                                        │
+│  user_camping_schedules + mapItems 동시 등록                        │
+│                                                                    │
+│  [타 캠핑장 일정 등록]                                             │
+│      ↓ "지도에서 찾기" 버튼 클릭                                   │
+│  나만의 캠핑지도 검색 UI (MyMapModal 재활용)                        │
+│      ↓ 장소 클릭                                                   │
+│  이름/주소 자동 입력 → 일정(체크인/체크아웃)만 수동 입력            │
+│      ↓                                                             │
+│  user_camping_schedules + mapItems 동시 등록                        │
+│                                                                    │
+│  [기록 작성 시]                                                    │
+│      ↓                                                             │
+│  내 기록 + 히스토리 + 나만의 캠핑지도 동시 표시                     │
+│                                                                    │
+│  [같은 곳 재방문 시]                                               │
+│  "라온아이캠핑장 1", "라온아이캠핑장 2" (자동 넘버링)               │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+#### 동일 장소 넘버링 로직
+
+```typescript
+function getVisitNumber(siteName: string, mapItems: MapItem[]): number {
+  const baseName = siteName.replace(/\s*\d+$/, ''); // 기존 번호 제거
+  const sameNameItems = mapItems.filter(item => 
+    item.siteName.replace(/\s*\d+$/, '') === baseName
+  );
+  return sameNameItems.length + 1;
+}
+
+// 저장 시 적용
+const visitNumber = getVisitNumber(place.name, mapItems);
+const numberedName = visitNumber > 1 
+  ? `${place.name} ${visitNumber}` 
+  : place.name;
+```
+
+#### [NEW] `src/app/(mobile)/myspace/schedule/page.tsx`
+
+- 라온아이 예약 → 자동 등록 (기존 로직 활용)
+- 타 캠핑장 → "지도에서 찾기" → 이름/주소 자동 입력 → 일정만 수동
+- 일정 종료 시 "기록 남기기" 푸시 + 배지
+
+#### [NEW] `src/components/myspace/ScheduleCard.tsx`
+
+```
+┌──────────────────────────────────────┐
+│  📅 캠핑 일정                        │
+│  ────────────────────────────────── │
+│  D-3 ⛺ 라온아이 포레스트 (1/31~2/2) │
+│  [완료] 🏕️ 수원캠핑장 (1/25~1/26)   │
+│                                      │
+│  [+ 타 캠핑장 일정 추가]             │
+│       ↳ 지도에서 찾기 → 이름/주소 자동
+└──────────────────────────────────────┘
+```
+
+#### [MODIFY] [src/components/myspace/MyMapModal.tsx](file:///c:/Users/USER/Desktop/RAON.I/src/components/myspace/MyMapModal.tsx)
+
+- 일정 등록 모드 추가 (`mode: 'schedule' | 'view'`)
+- 장소 선택 시 콜백으로 이름/주소/좌표 반환
+
+### 3-B. 1분 기록 + 이미지 편집 (~12시간)
+
+> **변경**: TOAST UI Image Editor 도입 (MIT 라이선스, 무료)
+
+#### 표준 태그 Taxonomy (20개)
+
+| 카테고리 | 태그 |
+|----------|------|
+| 분위기 | #조용해요 #뷰맛집 #프라이빗 #가족친화 #힐링됨 |
+| 시설 | #샤워굿 #전기굿 #화장실깔끔 #넓은사이트 #Wi-Fi굿 |
+| 액티비티 | #불멍최고 #물놀이 #아이랑좋아요 #반려견환영 #숲체험 |
+| 기타 | #가성비 #사장님친절 #음식맛집 #재방문의사 #별보기좋음 |
+
+#### 이미지 편집: TOAST UI Image Editor
+
+| 기능 | 포함 여부 |
+|------|----------|
+| 텍스트 추가/이동/크기조절 | ✅ |
+| 여러 텍스트 레이어 | ✅ |
+| 도형 (원, 사각형, 선) | ✅ |
+| 필터 (밝기, 대비 등) | ✅ |
+| 크롭 | ✅ |
+| 이미지 Export | ✅ |
+| 스티커 (커스텀 추가) | ⚠️ 추후 확장 |
+
+```bash
+# 설치
+npm install @toast-ui/react-image-editor
+```
+
+#### [NEW] `src/components/record/ImageEditor.tsx`
+
+```tsx
+import ImageEditor from '@toast-ui/react-image-editor';
+import 'tui-image-editor/dist/tui-image-editor.css';
+
+// 한국어 UI 커스텀 + 캠핑 테마 적용
+const editorOptions = {
+  includeUI: {
+    loadImage: { path: '', name: 'Image' },
+    theme: campingTheme, // 커스텀 테마
+    menu: ['text', 'filter', 'crop', 'shape'],
+    uiSize: { width: '100%', height: '500px' },
+    menuBarPosition: 'bottom',
+  },
+};
+```
+
+#### [NEW] `src/components/record/QuickRecordForm.tsx`
+
+```
+┌──────────────────────────────────────┐
+│  📸 1분 기록                         │
+│  ────────────────────────────────── │
+│  [이미지 선택] (최대 5장)            │
+│                                      │
+│  [🖼️ 이미지 편집하기]                │
+│   └→ TOAST UI 편집기 실행            │
+│      ✅ 텍스트 추가/이동/크기조절     │
+│      ✅ 필터, 크롭, 도형              │
+│                                      │
+│  이 캠핑장은 어땠나요? (최대 5개)    │
+│  [#조용해요] [#불멍최고] [#뷰맛집]   │
+│  [#가성비] [#재방문의사] ...         │
+│                                      │
+│  [기록 저장] → 아지트 카드 발행      │
+└──────────────────────────────────────┘
+```
+
+#### [NEW] `src/components/record/AjiitCard.tsx`
+
+```
+┌──────────────────────────────────────┐
+│  🌲 나의 캠핑 기록 🌲                │
+│  ────────────────────────────────── │
+│  📍 라온아이 포레스트 | 2026.01.28   │
+│                                      │
+│  [편집된 이미지]                     │
+│                                      │
+│  #조용해요 #불멍최고 #가족캠핑       │
+│                                      │
+│  [SNS 공유] [저장하기]               │
+└──────────────────────────────────────┘
+```
+
+### 3-C. 찜 기능 (~4시간)
+
+#### [NEW] `src/components/planlock/FavoriteButton.tsx`
+
+- ❤️ 토글 버튼
+- 찜 수 표시
+
+#### [NEW] `src/app/(mobile)/myspace/favorites/page.tsx`
+
+```
+┌──────────────────────────────────────┐
+│  "여기서 다음 캠핑장소를 골라볼까요?"│
+│  ────────────────────────────────── │
+│  [찜한 캠핑장 1]                     │
+│  [찜한 캠핑장 2]                     │
+│  ...                                 │
+└──────────────────────────────────────┘
+```
+
+### 3-D. 준비 알림 (~8시간)
+
+#### 알림 스케줄 (오전 9시 고정)
+
+| 시점 | 제목 | 내용 |
+|------|------|------|
+| **D-4** | 🏕️ 캠핑 준비 시작! | 날씨: 맑음 12°C / 핵심 장비: 담요, 핫팩, 따뜻한 옷 |
+| **D-1** | 🍳 내일 메뉴 추천 | [금 저녁] 삼겹살 / [토 아침] 베이컨에그 / [토 점심] 라면 / ... |
+| **D-0** | ⛺ 오늘 캠핑 출발! | 날씨: 맑음 15°C / 준비물: 장작, 물 / 주변행사: 없음 / 조심히 운전하세요! |
+
+#### [NEW] `supabase/functions/camping-notifications/index.ts`
+
+```typescript
+// Supabase Edge Function + pg_cron
+// 매일 오전 9시 실행
+// 1. D-4, D-1, D-0 일정 조회
+// 2. 각 일정에 대해 날씨/메뉴/행사 조회
+// 3. FCM 푸시 발송
+```
+
+#### 메뉴 추천 로직 (기존 재활용)
+
+```typescript
+// usePersonalizedRecommendation 로직 활용
+// 차이점: 현재 날씨 → 캠핑 당일 날씨 예보 사용
+async function getMenuRecommendations(schedule) {
+  const days = getDaysBetween(schedule.check_in, schedule.check_out);
+  const menus = [];
+  
+  for (const day of days) {
+    const weather = await getForecastForDate(schedule.lat, schedule.lng, day);
+    menus.push({
+      date: day,
+      breakfast: recommendMeal('breakfast', weather, userProfile),
+      lunch: recommendMeal('lunch', weather, userProfile),
+      dinner: recommendMeal('dinner', weather, userProfile),
+    });
+  }
+  return menus;
+}
+```
+
+---
+
+## 파일 목록 요약
+
+### 신규 파일 (18개)
+
+| Phase | 파일 | 설명 |
+|-------|------|------|
+| DB | `migrations/20260130_camping_ajiit_full.sql` | 전체 스키마 |
+| 1 | `components/planlock/ModeSelector.tsx` | 모드 선택 |
+| 1 | `components/planlock/ToggleSelector.tsx` | 토글 선택 |
+| 1 | `components/planlock/PlanLockCard.tsx` | 홈 카드 |
+| 1 | `components/planlock/RecommendationCard.tsx` | 추천 카드 |
+| 1 | `app/(mobile)/planlock/page.tsx` | Plan Lock 페이지 |
+| 1 | `lib/campground-recommendation.ts` | 추천 로직 |
+| 2 | `lib/gocamping-api.ts` | 고캠핑 API |
+| 2 | `lib/auto-tagging.ts` | 자동 태깅 |
+| 3 | `app/(mobile)/myspace/schedule/page.tsx` | 일정 관리 |
+| 3 | `components/myspace/ScheduleCard.tsx` | 일정 카드 |
+| 3 | `components/record/QuickRecordForm.tsx` | 1분 기록 폼 |
+| 3 | `components/record/ImageEditor.tsx` | **TOAST UI 편집기** |
+| 3 | `components/record/AjiitCard.tsx` | 아지트 카드 |
+| 3 | `components/planlock/FavoriteButton.tsx` | 찜 버튼 |
+| 3 | `app/(mobile)/myspace/favorites/page.tsx` | 찜 목록 |
+| 3 | `supabase/functions/camping-notifications/index.ts` | 알림 함수 |
+| 3 | `lib/meal-recommendation.ts` | 메뉴 추천 |
+
+### 수정 파일 (5개)
+
+| 파일 | 변경 내용 |
+|------|----------|
+| [components/home/BeginnerHome.tsx](file:///c:/Users/USER/Desktop/RAON.I/src/components/home/BeginnerHome.tsx) | PlanLockCard, ScheduleCard 추가 |
+| `app/(mobile)/myspace/page.tsx` | ScheduleCard 위젯 추가 |
+| [hooks/usePersonalizedRecommendation.ts](file:///c:/Users/USER/Desktop/RAON.I/src/hooks/usePersonalizedRecommendation.ts) | 메뉴 추천 로직 모듈화 |
+| `lib/supabase-client.ts` | 새 테이블 타입 추가 |
+| [components/myspace/MyMapModal.tsx](file:///c:/Users/USER/Desktop/RAON.I/src/components/myspace/MyMapModal.tsx) | 일정 등록 모드 추가 |
+
+---
+
+## 구현 순서
+
+```
+Phase 1 (~16시간)
+├── 1. DB 스키마 생성
+├── 2. 모드/토글 UI
+├── 3. Plan Lock 페이지
+├── 4. 추천 로직
+├── 5. 추천 카드 UI
+└── 6. 홈 카드 연동
+
+Phase 2 (~8시간)
+├── 7. 고캠핑 API 연동
+└── 8. 자동 태깅
+
+Phase 3 (~30시간)
+├── 3-A. 캠핑 일정 + 지도 연동 (6h)
+│   ├── 9. 일정 페이지/카드
+│   ├── 10. 라온아이 예약 자동 등록
+│   └── 11. MyMapModal 연동 (지도에서 찾기)
+├── 3-B. 1분 기록 + TOAST UI 편집기 (12h)
+│   ├── 12. TOAST UI 설치/통합
+│   ├── 13. ImageEditor 컴포넌트 (한국어 테마)
+│   ├── 14. QuickRecordForm (태그 선택)
+│   └── 15. AjiitCard 발행
+├── 3-C. 찜 기능 (4h)
+│   ├── 16. FavoriteButton
+│   └── 17. 찜 목록 페이지
+└── 3-D. 준비 알림 (8h)
+    ├── 18. Edge Function (크론)
+    └── 19. 메뉴 추천 모듈화
+
+총 예상: ~54시간
+```
+
+---
+
+## Phase 4: 복합 편집 기능 (~31시간) [분리 진행]
+
+> ⚠️ **외부 검색 가능 시 추가 리서치로 기능 풍부화 예정**
+
+### 4-A. 기본 복합 편집 (~11시간)
+
+| 기능 | 설명 | 시간 |
+|------|------|------|
+| 계절별 모아보기 | 봄/여름/가을/겨울 자동 분류 | 4h |
+| 타임라인 보기 | 기존 MyTimeline 확장 | 3h |
+| 사진 갤러리 | Masonry + 라이트박스 | 4h |
+
+**추천 라이브러리**: react-photo-album, yet-another-react-lightbox
+
+### 4-B. 고급 복합 편집 (~20시간)
+
+| 기능 | 설명 | 시간 |
+|------|------|------|
+| 감정 캘린더 | 날짜별 감정/태그 표시 | 6h |
+| 책으로 보기 | 포토북 넘기기 효과 | 6h |
+| 콜라주 만들기 | 여러 사진 조합 | 8h |
+
+**추천 라이브러리**: react-pageflip, Fabric.js
+
+---
+
+## 검증 계획
+
+### Phase 1~3
+
+- [ ] 모드 선택 → 토글 기본값 자동 세팅
+- [ ] 토글 3개 선택 제한
+- [ ] Top 3 추천 결과 정확도
+- [ ] 카카오맵/길찾기/예약 원탭 이동
+- [ ] 라온아이 예약 → 일정 자동 등록
+- [ ] 타 캠핑장 일정 → 지도에서 찾기 연동
+- [ ] 동일 장소 재방문 → 자동 넘버링 (캠핑장명 1, 2)
+- [ ] TOAST UI 편집기 → 텍스트/필터/크롭/도형
+- [ ] 아지트 카드 발행 및 SNS 공유
+- [ ] 찜 버튼 토글 및 찜 수 표시
+- [ ] D-4/D-1/D-0 알림 발송 (오전 9시)
+
+### Phase 4
+
+- [ ] 계절별 분류 정확도
+- [ ] 갤러리 라이트박스 작동
+- [ ] 포토북 페이지 넘기기
+- [ ] 콜라주 이미지 저장
+
+---
+
+## 📊 전체 구현 시간 요약
+
+| Phase | 내용 | 시간 |
+|-------|------|------|
+| 1 | 모드/토글/Plan Lock | 16h |
+| 2 | 고캠핑 API + 태깅 | 8h |
+| 3 | 일정/기록/찜/알림 | 30h |
+| **소계** | **핵심 기능** | **54h** |
+| 4-A | 기본 복합 편집 | 11h |
+| 4-B | 고급 복합 편집 | 20h |
+| **5** | **프라이빗 커뮤니티 (캠핑 노트)** | **16h** |
+| **총계** | | **101h** |
+
+---
+
+## Phase 5: 프라이빗 커뮤니티 (~16시간) [분리 진행]
+
+> **컨셉**: 기존 소모임 → "캠핑 노트" 방식으로 업그레이드
+> **원칙**: 운영비 최소화 (실시간 채팅 제외, 메모/푸시 방식)
+
+### 5-A. 핵심 컨셉
+
+**실시간 채팅 대신 "공유 캠핑 노트"**
+
+```
+┌────────────────────────────────────┐
+│  📓 우리 가족 캠핑 노트            │
+├────────────────────────────────────┤
+│  [📅 다음 캠핑] 일정 + 날씨 연동   │
+│  [📋 할 일] 역할 분담 체크리스트   │
+│  [💬 메모] 비동기 소통             │
+│  [📸 앨범] 캠핑별 사진 정리        │
+└────────────────────────────────────┘
+```
+
+**장점**:
+- 카카오톡과 경쟁 ❌ → 차별화 ✅
+- 실시간 DB 비용 ❌ → 일반 DB (저렴)
+- 새 글 → 푸시 알림으로 실시간 느낌
+
+### 5-B. 기능 상세
+
+| 기능 | 설명 | 시간 |
+|------|------|------|
+| 그룹 타입 확장 | `groups.type = 'private'` 추가 | 2h |
+| 캠핑 일정 공유 | 그룹 내 일정 등록/확인 | 4h |
+| 할 일 체크리스트 | 멤버별 역할 분담 | 4h |
+| 메모 기능 | 비동기 소통 (댓글 확장) | 2h |
+| 그룹 앨범 | 캠핑별 사진 자동 그룹화 | 4h |
+
+### 5-C. DB 스키마
+
+```sql
+-- 그룹 타입 확장
+ALTER TABLE groups ADD COLUMN type TEXT DEFAULT 'public';
+-- type: 'public' (기존 소모임), 'private' (프라이빗)
+
+-- 그룹 캠핑 일정
+CREATE TABLE group_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE,
+  location TEXT,
+  weather_info JSONB,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 그룹 할 일
+CREATE TABLE group_tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+  schedule_id UUID REFERENCES group_schedules(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  assignee_id UUID REFERENCES auth.users(id),
+  is_completed BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 5-D. 파일 목록
+
+| 파일 | 설명 |
+|------|------|
+| `components/community/PrivateGroupNote.tsx` | 캠핑 노트 메인 UI |
+| `components/community/GroupScheduleCard.tsx` | 공유 일정 카드 |
+| `components/community/GroupTaskList.tsx` | 할 일 체크리스트 |
+| `components/community/GroupMemoSection.tsx` | 메모 섹션 |
+| `store/usePrivateGroupStore.ts` | 프라이빗 그룹 상태 |
+
+### 5-E. 소통 흐름
+
+```
+[캠핑 전]
+멤버A: 일정 등록 → 푸시 알림 📱 → 멤버들 확인
+멤버B: 할 일에 "식재료" 추가 → 푸시 📱
+멤버C: 메모 "고기는 내가!" → 푸시 📱
+
+[캠핑 후]
+멤버A: 사진 업로드 → 그룹 앨범 자동 정리
+      → "다음 캠핑은?" 메모로 논의
+```
+
+### 5-F. 카카오톡 vs 라온아이
+
+| 기능 | 카카오톡 | 캠핑 노트 |
+|------|---------|----------|
+| 실시간 채팅 | ⭐⭐⭐⭐⭐ | ❌ |
+| 캠핑 일정 + 날씨 | ❌ | ⭐⭐⭐⭐⭐ |
+| 할 일 분담 | ❌ | ⭐⭐⭐⭐⭐ |
+| 준비물 연동 | ❌ | ⭐⭐⭐⭐⭐ |
+| 사진 앨범 정리 | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+---
+
+## 검증 계획
+
+### Phase 1~3
+
+- [ ] 모드 선택 → 토글 기본값 자동 세팅
+- [ ] 토글 3개 선택 제한
+- [ ] Top 3 추천 결과 정확도
+- [ ] 카카오맵/길찾기/예약 원탭 이동
+- [ ] 라온아이 예약 → 일정 자동 등록
+- [ ] 타 캠핑장 일정 → 지도에서 찾기 연동
+- [ ] 동일 장소 재방문 → 자동 넘버링 (캠핑장명 1, 2)
+- [ ] TOAST UI 편집기 → 텍스트/필터/크롭/도형
+- [ ] 아지트 카드 발행 및 SNS 공유
+- [ ] 찜 버튼 토글 및 찜 수 표시
+- [ ] D-4/D-1/D-0 알림 발송 (오전 9시)
+
+### Phase 4
+
+- [ ] 계절별 분류 정확도
+- [ ] 갤러리 라이트박스 작동
+- [ ] 포토북 페이지 넘기기
+- [ ] 콜라주 이미지 저장
+
+### Phase 5
+
+- [ ] 프라이빗 그룹 생성/초대
+- [ ] 공유 일정 등록 → 멤버 알림
+- [ ] 할 일 체크 → 실시간 반영
+- [ ] 메모 추가 → 푸시 알림
+- [ ] 그룹 앨범 사진 정렬
+
+---
+
+> **Phase 1~3 승인 후 순차 구현, Phase 4~5는 분리 진행합니다.**

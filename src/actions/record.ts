@@ -74,7 +74,7 @@ export async function createRecord(input: CreateRecordInput): Promise<{ success:
 
         if (error) {
             console.error('Create record error:', error);
-            return { success: false, error: '기록 저장에 실패했어요' };
+            return { success: false, error: error.message || '기록 저장에 실패했어요' };
         }
 
         revalidatePath('/myspace');
@@ -306,7 +306,8 @@ export async function hasUnwrittenScheduleRecord(): Promise<{
             .from('user_schedules')
             .select('id, start_date, end_date')
             .eq('user_id', user.id)
-            .lte('start_date', today.toISOString());
+            .lte('start_date', today.toISOString())
+            .order('start_date', { ascending: false });
 
         if (!schedules || schedules.length === 0) {
             return { hasUnwritten: false, scheduleIds: [] };

@@ -35,13 +35,13 @@ export function ContentCard({ content }: ContentCardProps) {
 
     return (
         <Link href={`/community/content/${content.id}`} className="block group">
-            <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-gray-100 shadow-sm border border-gray-100">
+            <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-gray-900 shadow-sm border border-gray-800">
                 {content.cover_image_url ? (
                     <Image
                         src={content.cover_image_url}
                         alt={content.title}
                         fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="object-contain transition-transform duration-500 group-hover:scale-105"
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">

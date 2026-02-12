@@ -20,6 +20,11 @@ const ImageEditorModal = dynamic(
     { ssr: false }
 );
 
+const MyMapModal = dynamic(
+    () => import('./MyMapModal'),
+    { ssr: false }
+);
+
 interface ScheduleInfo {
     id: string;
     title: string;
@@ -96,6 +101,10 @@ export default function QuickRecordForm({
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // New State for Map
+    const [isMapOpen, setIsMapOpen] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+
     // 일정 정보 로드 및 자동완성
     useEffect(() => {
         if (scheduleId && isOpen) {
@@ -107,6 +116,11 @@ export default function QuickRecordForm({
                     const baseAddr = info.campgroundAddress || '';
 
                     setAddress(baseAddr);
+
+                    // 좌표 설정
+                    if (info.latitude && info.longitude) {
+                        setSelectedLocation({ lat: info.latitude, lng: info.longitude });
+                    }
 
                     // 방문 횟수 체크 (동일 이름)
                     if (baseName) {
@@ -130,6 +144,7 @@ export default function QuickRecordForm({
             setScheduleInfo(null);
             setName('');
             setAddress('');
+            setSelectedLocation(null);
         }
     }, [scheduleId, isOpen]);
 
@@ -217,6 +232,14 @@ export default function QuickRecordForm({
         }
     };
 
+    // 장소 선택 핸들러
+    const handlePlaceSelect = (place: { name: string; address: string; lat: number; lng: number }) => {
+        setName(place.name);
+        setAddress(place.address);
+        setSelectedLocation({ lat: place.lat, lng: place.lng });
+        setIsMapOpen(false);
+    };
+
     // 제출
     const handleSubmit = async () => {
         if (!content.trim() && !photoUrl && selectedTags.length === 0) {
@@ -235,8 +258,8 @@ export default function QuickRecordForm({
                 campgroundType: scheduleInfo?.isRaonai ? 'raonai' : 'external',
                 campgroundName: name, // User input name
                 campgroundAddress: address, // User input address
-                latitude: scheduleInfo?.latitude,
-                longitude: scheduleInfo?.longitude,
+                latitude: selectedLocation?.lat || scheduleInfo?.latitude,
+                longitude: selectedLocation?.lng || scheduleInfo?.longitude,
             });
 
             if (result.success) {
@@ -266,6 +289,7 @@ export default function QuickRecordForm({
         setSelectedTags([]);
         setIsPublic(false);
         setScheduleInfo(null);
+        setIsMapOpen(false);
         onClose();
     };
 
@@ -276,14 +300,13 @@ export default function QuickRecordForm({
                     side="bottom"
                     className="rounded-t-3xl max-h-[85vh] overflow-y-auto"
                     onInteractOutside={(e) => {
-                        // 이미지 에디터가 열려있을 때 외부 클릭으로 Sheet 닫히는 것 방지
-                        if (isEditorOpen) {
+                        // 이미지 에디터나 지도가 열려있을 때 외부 클릭 방지
+                        if (isEditorOpen || isMapOpen) {
                             e.preventDefault();
                         }
                     }}
                     onPointerDownOutside={(e) => {
-                        // 이미지 에디터가 열려있을 때 포인터 다운으로 Sheet 닫히는 것 방지
-                        if (isEditorOpen) {
+                        if (isEditorOpen || isMapOpen) {
                             e.preventDefault();
                         }
                     }}
@@ -297,7 +320,7 @@ export default function QuickRecordForm({
 
                     <div className="py-4 space-y-4">
                         {/* 일정 정보 표시 */}
-                        {/* 일정 정보 입력 필드 (Auto-filled but editable) */}
+                        {/* 일정 정보 입력 필드 (Auto-filled but editable via Map) */}
                         <div className="space-y-3 bg-stone-50 p-3 rounded-xl border border-stone-100">
                             <div>
                                 <label className="text-xs font-semibold text-stone-500 mb-1 block flex items-center gap-1">
@@ -305,9 +328,10 @@ export default function QuickRecordForm({
                                 </label>
                                 <Input
                                     value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="캠핑장 이름"
-                                    className="bg-white h-9 text-sm font-medium text-[#224732]"
+                                    placeholder="터치하여 캠핑장 검색"
+                                    className="bg-white h-9 text-sm font-medium text-[#224732] cursor-pointer hover:bg-stone-50"
+                                    readOnly
+                                    onClick={() => setIsMapOpen(true)}
                                 />
                             </div>
                             <div>
@@ -316,9 +340,10 @@ export default function QuickRecordForm({
                                 </label>
                                 <Input
                                     value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
                                     placeholder="캠핑장 주소"
-                                    className="bg-white h-9 text-xs text-stone-600 truncate"
+                                    className="bg-white h-9 text-xs text-stone-600 truncate cursor-pointer hover:bg-stone-50"
+                                    readOnly
+                                    onClick={() => setIsMapOpen(true)}
                                 />
                             </div>
 
@@ -479,6 +504,15 @@ export default function QuickRecordForm({
                     onSave={handleEditedImageSave}
                 />
             )}
+
+            {/* 지도 선택 모달 */}
+            <MyMapModal
+                isOpen={isMapOpen}
+                onClose={() => setIsMapOpen(false)}
+                mode="schedule"
+                autoSearch={true}
+                onPlaceSelect={handlePlaceSelect}
+            />
         </>
     );
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useMissionStore } from '@/store/useMissionStore';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,13 @@ export default function MissionDetailPage() {
     // State for file
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+    // Editor State
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+
+    // Dynamic Import
+    const ImageEditorModal = dynamic(() => import('@/components/record/ImageEditorModal'), { ssr: false });
+
     // State for Deletion Dialog
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedParticipationIdForDelete, setSelectedParticipationIdForDelete] = useState<string | null>(null);
@@ -60,13 +68,32 @@ export default function MissionDetailPage() {
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            // Check size
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error("이미지 크기는 5MB 이하여야 합니다.");
+                return;
+            }
+
+            const url = URL.createObjectURL(file);
+            setTempImage(url);
+            setIsEditorOpen(true);
+
+            // Clear input so same file can be selected again
+            e.target.value = '';
         }
+    };
+
+    const handleEditorSave = async (dataUrl: string) => {
+        setPreview(dataUrl);
+
+        // Convert Data URL to File for upload
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], "mission_proof.png", { type: "image/png" });
+        setSelectedFile(file);
+
+        setIsEditorOpen(false);
+        setTempImage(null);
     };
 
     const handleJoin = async () => {
@@ -351,6 +378,18 @@ export default function MissionDetailPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+
+            {/* Image Editor Modal */}
+            {
+                tempImage && isEditorOpen && (
+                    <ImageEditorModal
+                        isOpen={isEditorOpen}
+                        onClose={() => setIsEditorOpen(false)}
+                        imagePath={tempImage}
+                        onSave={handleEditorSave}
+                    />
+                )
+            }
+        </div >
     );
 }

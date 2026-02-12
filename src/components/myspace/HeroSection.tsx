@@ -5,6 +5,7 @@ import { Camera, Flag, Flame, Loader2 } from "lucide-react";
 import { useMissionStore } from "@/store/useMissionStore";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { createClient } from "@/lib/supabase-client";
 import { toast } from "sonner";
@@ -19,9 +20,16 @@ export default function HeroSection() {
     const { currentMission, fetchCurrentMission } = useMissionStore();
     const { heroImage, fetchProfile, setHeroImage } = useMySpaceStore();
 
+    // Editor State
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
     // Upload State
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Dynamic Import
+    const ImageEditorModal = dynamic(() => import('@/components/record/ImageEditorModal'), { ssr: false });
 
     // Ember Stats State
     const [emberStats, setEmberStats] = useState<EmberStats | null>(null);
@@ -47,7 +55,7 @@ export default function HeroSection() {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -57,6 +65,22 @@ export default function HeroSection() {
             return;
         }
 
+        // Preview for Editor
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result as string;
+            if (result) {
+                setSelectedImage(result);
+                setIsEditorOpen(true);
+            }
+        };
+        reader.readAsDataURL(file);
+
+        // Reset input to allow re-selection
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const handleEditorSave = async (dataUrl: string) => {
         setIsUploading(true);
         const supabase = createClient();
 
@@ -64,7 +88,12 @@ export default function HeroSection() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("로그인이 필요합니다.");
 
-            const fileExt = file.name.split('.').pop();
+            // Convert Data URL to File
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const file = new File([blob], "hero_image.png", { type: "image/png" });
+
+            const fileExt = "png";
             const fileName = `${user.id}-${Date.now()}.${fileExt}`;
             const filePath = `hero/${fileName}`;
 
@@ -98,8 +127,8 @@ export default function HeroSection() {
             toast.error(`이미지 변경 실패: ${error.message || '알 수 없는 오류'}`);
         } finally {
             setIsUploading(false);
-            // Reset input
-            if (fileInputRef.current) fileInputRef.current.value = '';
+            setIsEditorOpen(false);
+            setSelectedImage(null);
         }
     };
 
@@ -186,6 +215,18 @@ export default function HeroSection() {
                     </button>
                 </div>
             </div>
-        </div>
+
+            {/* Image Editor Modal */}
+            {
+                selectedImage && isEditorOpen && (
+                    <ImageEditorModal
+                        isOpen={isEditorOpen}
+                        onClose={() => setIsEditorOpen(false)}
+                        imagePath={selectedImage}
+                        onSave={handleEditorSave}
+                    />
+                )
+            }
+        </div >
     );
 }

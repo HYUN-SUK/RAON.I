@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { BoardType, useCommunityStore } from '@/store/useCommunityStore';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +36,8 @@ const postSchema = z.object({
         .max(5, '사진은 최대 5장까지 업로드 가능합니다.'),
 });
 
+import ImageEditorModal from '@/components/record/ImageEditorModal';
+
 export default function CommunityWriteForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -65,6 +68,11 @@ export default function CommunityWriteForm() {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
+    // Editor State
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+
     const isLoading = storeLoading || localLoading;
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,6 +102,35 @@ export default function CommunityWriteForm() {
     const removeImage = (index: number) => {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
         setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleEditClick = (index: number) => {
+        setTempImage(previewUrls[index]);
+        setEditingIndex(index);
+        setIsEditorOpen(true);
+    };
+
+    const handleEditorSave = async (dataUrl: string) => {
+        if (editingIndex === null) return;
+
+        // Convert Data URL to File
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const originalFile = selectedFiles[editingIndex];
+        const file = new File([blob], originalFile.name, { type: "image/png" });
+
+        // Update State
+        const newFiles = [...selectedFiles];
+        newFiles[editingIndex] = file;
+        setSelectedFiles(newFiles);
+
+        const newUrls = [...previewUrls];
+        newUrls[editingIndex] = dataUrl;
+        setPreviewUrls(newUrls);
+
+        setIsEditorOpen(false);
+        setEditingIndex(null);
+        setTempImage(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -235,15 +272,29 @@ export default function CommunityWriteForm() {
                 {previewUrls.length > 0 && (
                     <div className="flex gap-3 overflow-x-auto pb-2">
                         {previewUrls.map((url, index) => (
-                            <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-gray-100">
-                                <img src={url} alt="preview" className="w-full h-full object-cover" />
+                            <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-border">
+                                <img
+                                    src={url}
+                                    alt={`Preview ${index}`}
+                                    className="w-full h-full object-cover cursor-pointer"
+                                    onClick={() => handleEditClick(index)}
+                                />
                                 <button
                                     type="button"
-                                    onClick={() => removeImage(index)}
-                                    className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeImage(index);
+                                    }}
+                                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70 transition-colors"
                                 >
-                                    <X className="w-3 h-3" />
+                                    <X size={14} />
                                 </button>
+                                {/* Edit Hint Overlay */}
+                                <div
+                                    className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none"
+                                >
+                                    <span className="text-white text-xs font-medium bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">편집</span>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -275,6 +326,15 @@ export default function CommunityWriteForm() {
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '올리기'}
                 </Button>
             </div>
+            {/* Image Editor Modal */}
+            {tempImage && isEditorOpen && (
+                <ImageEditorModal
+                    isOpen={isEditorOpen}
+                    onClose={() => setIsEditorOpen(false)}
+                    imagePath={tempImage}
+                    onSave={handleEditorSave}
+                />
+            )}
         </div>
     );
 }

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Loader2, Upload, Youtube, BookOpen, Image as ImageIcon, Music, AlignLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,17 +30,38 @@ export function ContentWriteForm() {
     const [webtoonFiles, setWebtoonFiles] = useState<File[]>([]);
     const [webtoonLink, setWebtoonLink] = useState('');
 
+    // Editor State
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+
+    // Dynamic Import
+    const ImageEditorModal = dynamic(() => import('@/components/record/ImageEditorModal'), { ssr: false });
+
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setCoverFile(file);
-            // Preview
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                setCoverImage(ev.target?.result as string);
-            };
-            reader.readAsDataURL(file);
+
+            // Open Editor
+            const url = URL.createObjectURL(file);
+            setTempImage(url);
+            setIsEditorOpen(true);
+
+            // Clear input
+            e.target.value = '';
         }
+    };
+
+    const handleEditorSave = async (dataUrl: string) => {
+        setCoverImage(dataUrl);
+
+        // Convert Data URL to File
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], "cover_image.png", { type: "image/png" });
+        setCoverFile(file);
+
+        setIsEditorOpen(false);
+        setTempImage(null);
     };
 
     const getTypeIcon = (t: CreatorContentType) => {

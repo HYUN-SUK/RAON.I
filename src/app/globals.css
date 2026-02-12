@@ -284,3 +284,73 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* === TUI Image Editor V2 Refined Styles === */
+
+/* 1. Layout Shift Prevention */
+/* 이미지 에디터가 열려있을 때 body의 스크롤과 패딩을 고정하여 밀림 방지 */
+body.image-editor-open {
+  padding-right: var(--scrollbar-width, 0px) !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+html:has(body.image-editor-open) {
+  overflow: hidden !important;
+  padding-right: var(--scrollbar-width, 0px) !important;
+}
+
+/* 2. Color Picker Z-Index Fix */
+/* 컬러피커가 팝업될 때 서브메뉴나 모달에 가리지 않도록 최상위로 올림 */
+.tui-colorpicker-container {
+  z-index: 200000 !important;
+  /* 모달(99999)보다 높게 */
+  position: fixed !important;
+  /* 화면 기준 위치 */
+  top: auto !important;
+  bottom: 160px !important;
+  /* 서브메뉴(80px) + 여유공간 */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+/* 서브메뉴에 overflow가 있으면 팝업이 잘리므로 해제 */
+/* 중요: display: flex !important 제거 (겹침 원인) */
+.tui-image-editor-submenu {
+  overflow: visible !important;
+  white-space: nowrap !important;
+  /* Active submenu control handled by JS or specific selectors */
+}
+
+/* 하단 메뉴 컨테이너도 overflow 해제 */
+.tui-image-editor-main-container {
+  overflow: visible !important;
+}
+
+/* 3. Submenu Visibility Control (V7 Fix) */
+/* 활성화 클래스가 없는 모든 서브메뉴 자식(div, ul 등)을 무조건 숨김 */
+.tui-image-editor-submenu>*:not(.active-submenu-container) {
+  display: none !important;
+}
+
+/* JS로 활성화 클래스를 붙인 요소만 보여줌 */
+.tui-image-editor-submenu>.active-submenu-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+/* 텍스트 배경색 버튼 스타일 */
+.tui-image-editor-submenu .custom-text-bg-btn {
+  /* 텍스트 메뉴 안으로 이동되므로 부모(active-submenu)가 보이면 같이 보임 */
+  align-items: center !important;
+}
+
+/* 4. Text Tool Improvements */
+/* 텍스트 슬라이더를 왼쪽으로 배치 */
+.tui-image-editor-submenu-item .tui-image-editor-range-wrap {
+  order: -1 !important;
+  margin-right: 12px !important;
+}

@@ -249,6 +249,11 @@
             *   [x] **Admin Operations**: Mission Deletion & Bulk Import fully fixed (Server Actions).
             *   [x] **UI Polish**: Recommendation Colors & Layout finalized.
             *   [x] **Status**: **100% Done**
+            *   **Phase 1: Image Editor 2.0 (Mobile Optimized)**
+  - [x] UI/UX Overhaul for Mobile (Bottom Sheet, Touch-friendly)
+  - [x] Text Tool Improvements (Double-click edit, Background toggle)
+  - [x] Filter Presets & Drawing Tool
+  - [x] **Global Integration**: "Leave Record" & "1-Minute Record" (Completed)sts, Comments.
         *   [x] **8.6 Weekly Mission Ranking & Ember Support** ✅ (2026-01-10):
             *   [x] **Mission Ranking**: GitHub Actions cron (Sundays 21:00 KST) + API Route + Admin UI.
             *   [x] **Ember Support (불씨)**: Token-based "quiet support" system (10 tokens).
@@ -527,7 +532,7 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 *   [x] **1분 기록 (MyAjiit)** ✅:
     *   [x] **DB**: `camping_records` 스키마 및 RLS.
     *   [x] **UI**: `QuickRecordForm`, `RecordList`, `AjiitCard`.
-    *   [x] **Photo**: Image Editor (TUI), Storage 업로드, 편집(Crop/Filter) 구현.
+    *   [x] **Photo**: Image Editor V3.1 (Crop/Filter/Text/Draw) + Safe Save Logic.
     *   [x] **Map**: `MyMapList` (지도) 연동 완료.
     *   [x] **Review**: `ReviewBoard` 탭 분리 (RaonAI vs Camper) 구현 완료.
 *   [ ] **찜 기능**: 캠핑장 찜하기

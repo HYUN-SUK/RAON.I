@@ -16,6 +16,7 @@ import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
 import PlanLockCard from '@/components/planlock/PlanLockCard';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
+import RecipeDetailSheet, { RecipeData } from '@/components/common/RecipeDetailSheet';
 
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
@@ -102,6 +103,10 @@ export default function BeginnerHome() {
     const [weatherSheetOpen, setWeatherSheetOpen] = useState(false);
     const [detailData, setDetailData] = useState<HomeDetailData | null>(null);
 
+    // Recipe Sheet State
+    const [recipeSheetOpen, setRecipeSheetOpen] = useState(false);
+    const [recipeData, setRecipeData] = useState<RecipeData | null>(null);
+
     // Nearby LBS Sheet State (Real-time Events)
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
     const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
@@ -117,14 +122,6 @@ export default function BeginnerHome() {
     // Dynamic Chip Data
     const chips = useMemo(() => {
         if (!config) return [];
-
-        // Fixed 6 Chips per User Request:
-        // 1. Wayfinding (Address)
-        // 2. Contact (Phone)
-        // 3. Rules (Manners)
-        // 4. Facilities (Map + Images)
-        // 5. Nearby Places (LBS - Fixed relative to Campsite for Chip)
-        // 6. Price Guide
 
         return [
             {
@@ -188,23 +185,6 @@ export default function BeginnerHome() {
             },
         ];
     }, [config]);
-
-    // Generic Icon Mapping
-    const getIconComponent = (iconName: string) => {
-        switch (iconName) {
-            case 'Tent': return <Tent className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Clock': return <Clock className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Map': return <Map className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Wifi': return <Wifi className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'ShoppingBag': return <ShoppingBag className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Siren': return <Siren className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'MapPin': return <MapPin className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Navigation': return <Navigation className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Phone': return <Phone className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            case 'Mountain': return <Mountain className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-            default: return <Tag className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />;
-        }
-    };
 
     // Auth Protection Hook
     const { withAuth } = useRequireAuth();
@@ -305,6 +285,27 @@ export default function BeginnerHome() {
                 return;
             }
 
+            // Cooking Category -> RecipeDetailSheet
+            if (item.category === 'cooking') {
+                // Map RecommendationItem to RecipeData
+                setRecipeData({
+                    id: (item as any).id || 'unknown',
+                    title: item.title,
+                    description: item.description || undefined,
+                    category: 'cooking',
+                    image_url: item.image_url || undefined,
+                    ingredients: item.ingredients as any,
+                    steps: item.process_steps as any || item.steps as any,
+                    tips: item.tips || undefined,
+                    time_required: item.time_required || undefined,
+                    difficulty: item.difficulty || undefined,
+                    servings: item.servings || undefined,
+                    calories: item.calories || undefined,
+                });
+                setRecipeSheetOpen(true);
+                return;
+            }
+
             setDetailData({
                 title: item.title,
                 description: item.description || "이 활동은 라온아이에서 추천하는 특별한 경험입니다.",
@@ -349,10 +350,6 @@ export default function BeginnerHome() {
                     <NotificationBadge variant="hero" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
-
-                        {/* Always show content, use default values during loading */}
-
-                        {/* Weather/Greeting Badge */}
                         <Badge
                             variant="secondary"
                             className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1 cursor-pointer transition-colors"
@@ -365,7 +362,6 @@ export default function BeginnerHome() {
                         </Badge>
                         <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
 
-                        {/* Title - Immediate Render */}
                         <h1 className="text-responsive-hero-title font-bold leading-tight">
                             {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
                                 recData.context?.time === 'night' ? '고요한 밤,\n' :
@@ -373,7 +369,6 @@ export default function BeginnerHome() {
                                         '반가워요,\n'}
                         </h1>
 
-                        {/* Subtitle - Immediate Render */}
                         <p className="text-responsive-hero-sub font-semibold text-white/95 drop-shadow-md">
                             두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
                             라온아이에서 불편은 덜고, 추억은 쌓으세요.
@@ -381,7 +376,7 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
-                {/* 2. Info Chips (3x2 Grid) */}
+                {/* 2. Info Chips */}
                 <section className="px-4 -mt-8 relative z-30 mb-8">
                     <div className="grid grid-cols-3 gap-3">
                         {chips.map((chip, idx) => {
@@ -481,6 +476,12 @@ export default function BeginnerHome() {
                 onShuffle={shuffle}
             />
 
+            <RecipeDetailSheet
+                isOpen={recipeSheetOpen}
+                onClose={() => setRecipeSheetOpen(false)}
+                initialData={recipeData}
+            />
+
             {
                 weather && (
                     <WeatherDetailSheet
@@ -491,7 +492,7 @@ export default function BeginnerHome() {
                 )
             }
 
-            {/* Live LBS Events Sheet (Contextual Recommendation) */}
+            {/* Live LBS Events Sheet */}
             <NearbyDetailSheet
                 isOpen={nearbySheetOpen}
                 onClose={() => setNearbySheetOpen(false)}

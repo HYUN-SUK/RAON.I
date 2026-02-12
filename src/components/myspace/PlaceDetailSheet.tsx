@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { X, Star, Heart, Camera, MapPin, Calendar, Edit2 } from 'lucide-react';
 import { useMySpaceStore, MapItem } from '@/store/useMySpaceStore';
 
@@ -23,6 +24,14 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
     const [address, setAddress] = useState('');
     const [visitedDate, setVisitedDate] = useState('');
     const [photos, setPhotos] = useState<string[]>([]);
+
+    // Editor State
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+
+    // Dynamic Import
+    const ImageEditorModal = dynamic(() => import('@/components/record/ImageEditorModal'), { ssr: false });
 
     // Reset state when item changes
     useEffect(() => {
@@ -49,6 +58,25 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
             setIsEditing(isNew); // Reset to new/view mode based on context
         }
     }, [item, isNew]);
+
+    const handleEditClick = (index: number) => {
+        if (!isEditing) return; // Only allow editing in edit mode
+        setTempImage(photos[index]);
+        setEditingIndex(index);
+        setIsEditorOpen(true);
+    };
+
+    const handleEditorSave = (dataUrl: string) => {
+        if (editingIndex === null) return;
+
+        const newPhotos = [...photos];
+        newPhotos[editingIndex] = dataUrl;
+        setPhotos(newPhotos);
+
+        setIsEditorOpen(false);
+        setEditingIndex(null);
+        setTempImage(null);
+    };
 
     const handleSave = () => {
         if (!item) return;
@@ -255,14 +283,30 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                         {photos.length > 0 ? (
                             photos.map((photo, index) => (
                                 <div key={index} className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
-                                    <img src={photo} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
+                                    <img
+                                        src={photo}
+                                        alt={`Gallery ${index}`}
+                                        className={`w-full h-full object-cover ${isEditing ? 'cursor-pointer' : ''}`}
+                                        onClick={() => handleEditClick(index)}
+                                    />
                                     {isEditing && (
-                                        <button
-                                            onClick={() => setPhotos(prev => prev.filter((_, i) => i !== index))}
-                                            className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X size={12} />
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPhotos(prev => prev.filter((_, i) => i !== index));
+                                                }}
+                                                className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                            {/* Edit Hint Overlay */}
+                                            <div
+                                                className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none"
+                                            >
+                                                <span className="text-white text-xs font-medium">편집</span>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             ))
@@ -295,6 +339,16 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                         저장하기
                     </button>
                 </div>
+            )}
+
+            {/* Image Editor Modal */}
+            {tempImage && isEditorOpen && (
+                <ImageEditorModal
+                    isOpen={isEditorOpen}
+                    onClose={() => setIsEditorOpen(false)}
+                    imagePath={tempImage}
+                    onSave={handleEditorSave}
+                />
             )}
         </div>
     );

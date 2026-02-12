@@ -1,597 +1,768 @@
-'use client';
+"use client";
 
-import { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import Cropper from 'react-easy-crop';
+import { Point, Area } from 'react-easy-crop';
+import { Stage, Layer, Image as KonvaImage, Text as KonvaText, Line as KonvaLine, Transformer, Group, Label, Tag } from 'react-konva';
+import useImage from 'use-image';
+import Konva from 'konva';
+import {
+    X, Crop as CropIcon, Type, Wand2, Check, RotateCcw, ZoomIn, Plus, Minus,
+    Palette, Pencil, Eraser, Undo, Redo, Trash2, Maximize, Save,
+    AlignLeft, AlignCenter, AlignRight, Bold, Type as FontIcon
+} from 'lucide-react';
+import getCroppedImg from '@/utils/canvasUtils';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea'; // V3.5
+import { cn } from '@/lib/utils';
 
-// 모바일 친화적 커스텀 테마 (캠핑 감성)
-const campingTheme = {
-    // 브랜드 이미지 숨김
-    'common.bi.image': '',
-    'common.bisize.width': '0px',
-    'common.bisize.height': '0px',
-    'common.backgroundImage': 'none',
-    'common.backgroundColor': '#f5f5f5',
-    'common.border': '0px',
 
-    // 헤더 숨김 (우리가 직접 관리)
-    'header.backgroundImage': 'none',
-    'header.backgroundColor': 'transparent',
-    'header.border': '0px',
-    'header.display': 'none',
 
-    // 하단 메뉴 - 더 크고 터치 친화적으로
-    'menu.normalIcon.color': '#666',
-    'menu.activeIcon.color': '#224732',
-    'menu.disabledIcon.color': '#ccc',
-    'menu.hoverIcon.color': '#1a3626',
-    'menu.iconSize.width': '28px',
-    'menu.iconSize.height': '28px',
-    'menu.backgroundColor': '#ffffff',
+// ----------------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------------
 
-    // 서브메뉴 - 깔끔하게
-    'submenu.backgroundColor': '#ffffff',
-    'submenu.partition.color': '#e5e5e5',
-    'submenu.normalIcon.color': '#666',
-    'submenu.activeIcon.color': '#224732',
-    'submenu.normalLabel.color': '#666',
-    'submenu.activeLabel.color': '#224732',
-
-    // 범위 슬라이더 - 브랜드 색상
-    'range.pointer.color': '#224732',
-    'range.bar.color': '#e0e0e0',
-    'range.subbar.color': '#224732',
-
-    // 색상 선택기
-    'colorpicker.button.border': '1px solid #224732',
-    'colorpicker.title.color': '#333',
-};
-
-// 한국어 로케일
-const locale = {
-    Crop: '자르기',
-    Draw: '그리기',
-    Shape: '도형',
-    Text: '텍스트',
-    Filter: '필터',
-    Bold: '굵게',
-    Italic: '기울임',
-    Apply: '적용',
-    Cancel: '취소',
-    Custom: '사용자 정의',
-    Square: '정사각형',
-    Circle: '원',
-    Triangle: '삼각형',
-    Rectangle: '직사각형',
-    Free: '자유형',
-    Straight: '직선',
-    Color: '색상',
-    Range: '범위',
-    Grayscale: '흑백',
-    Blur: '흐리게',
-    Sharpen: '선명하게',
-    Emboss: '엠보싱',
-    Sepia: '세피아',
-    Invert: '반전',
-    'Load Mask Image': '마스크 불러오기',
-    'Delete-all': '모두 삭제',
-    'Delete': '삭제',
-    'Undo': '실행취소',
-    'Redo': '다시실행',
-    'Reset': '초기화',
-    'Flip': '뒤집기',
-    'Flip X': '좌우 뒤집기',
-    'Flip Y': '상하 뒤집기',
-    'Rotate': '회전',
-};
-
-// TUI 에디터 스타일 오버라이드 (불필요한 UI 숨기고 터치 친화적으로)
-const editorStyleOverride = `
-    /* === 헤더 영역 완전 숨김 (로드/다운로드/로고) === */
-    .tui-image-editor-header-buttons,
-    .tui-image-editor-header-logo,
-    .tui-image-editor-header {
-        display: none !important;
-        height: 0 !important;
-        overflow: hidden !important;
-    }
-
-    /* === 상단 헬퍼 메뉴 숨김 (줌/손/되돌리기 등 - controls는 숨기지 않음) === */
-    .tui-image-editor-controls-logo,
-    .tui-image-editor-controls-buttons,
-    .tui-image-editor-help-menu {
-        display: none !important;
-        height: 0 !important;
-        visibility: hidden !important;
-    }
-
-    /* === 전체 컨테이너 레이아웃 === */
-    .tui-image-editor-container {
-        height: 100% !important;
-        position: relative !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    /* 메인 컨테이너 - 이미지 영역 (서브메뉴 + 메뉴 공간 제외) */
-    .tui-image-editor-main-container {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 220px !important; /* 서브메뉴(150px) + 메뉴(70px) 공간 */
-        overflow: hidden !important;
-    }
-
-    .tui-image-editor-main {
-        top: 0 !important;
-        bottom: 0 !important;
-        height: 100% !important;
-    }
-
-    /* === 핵심: controls 컨테이너 강제 표시 (메뉴의 부모 요소) === */
-    .tui-image-editor-controls {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        position: absolute !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        height: 70px !important;
-        min-height: 70px !important;
-        z-index: 100 !important;
-        background: #ffffff !important;
-        border-top: 1px solid #e0e0e0 !important;
-    }
-
-    /* === 하단 메뉴 - 절대적 강제 표시 === */
-    .tui-image-editor-menu,
-    ul.tui-image-editor-menu {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        position: absolute !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        height: 70px !important;
-        min-height: 70px !important;
-        max-height: 70px !important;
-        background: #ffffff !important;
-        padding: 10px 16px !important;
-        border-top: 1px solid #e0e0e0 !important;
-        justify-content: center !important;
-        align-items: center !important;
-        gap: 8px !important;
-        box-sizing: border-box !important;
-        z-index: 100 !important;
-        list-style: none !important;
-        margin: 0 !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-    }
-
-    /* === 메뉴 아이템 - 강제 표시 === */
-    .tui-image-editor-menu > li,
-    .tui-image-editor-menu > .tui-image-editor-item,
-    .tui-image-editor-menu > li.tui-image-editor-item {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        width: 48px !important;
-        height: 48px !important;
-        min-width: 48px !important;
-        min-height: 48px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border-radius: 12px !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: #f0f0f0 !important;
-        border: 1px solid transparent !important;
-        cursor: pointer !important;
-        flex-shrink: 0 !important;
-        list-style: none !important;
-    }
-
-    .tui-image-editor-menu > li:hover,
-    .tui-image-editor-menu > .tui-image-editor-item:hover {
-        background: rgba(34, 71, 50, 0.12) !important;
-        border-color: rgba(34, 71, 50, 0.3) !important;
-    }
-
-    .tui-image-editor-menu > li.active,
-    .tui-image-editor-menu > .tui-image-editor-item.active {
-        background: rgba(34, 71, 50, 0.2) !important;
-        border-color: #224732 !important;
-    }
-
-    /* === 메뉴 아이콘 색상 강제 === */
-    .tui-image-editor-menu svg,
-    .tui-image-editor-menu .svg_ic-menu,
-    .tui-image-editor-menu use,
-    .tui-image-editor-item svg,
-    .tui-image-editor-item use {
-        display: block !important;
-        visibility: visible !important;
-        pointer-events: none !important;
-        width: 22px !important;
-        height: 22px !important;
-        fill: #555 !important;
-        stroke: #555 !important;
-    }
-
-    .tui-image-editor-menu li.active svg,
-    .tui-image-editor-menu li.active use,
-    .tui-image-editor-item.active svg,
-    .tui-image-editor-item.active use {
-        fill: #224732 !important;
-        stroke: #224732 !important;
-    }
-
-    /* === 서브메뉴 영역 - 가로 스크롤, 높이 충분히 === */
-    .tui-image-editor-submenu {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 12px !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        background: #ffffff !important;
-        border-top: 1px solid #e5e5e5 !important;
-        padding: 12px 16px !important;
-        position: fixed !important;
-        bottom: 70px !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 100 !important;
-        height: 80px !important;
-        max-height: 80px !important;
-        min-height: 80px !important;
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
-        box-sizing: border-box !important;
-        -webkit-overflow-scrolling: touch !important;
-    }
-
-    .tui-image-editor-submenu-item {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        flex-shrink: 0 !important;
-        align-items: center !important;
-        gap: 10px !important;
-        padding: 6px !important;
-        pointer-events: auto !important;
-        height: 100% !important;
-    }
-
-    /* === 서브메뉴 버튼 스타일 - 모두 가로로 정렬 === */
-    .tui-image-editor-submenu .tui-image-editor-button {
-        padding: 6px 10px !important;
-        border-radius: 6px !important;
-        min-height: 36px !important;
-        min-width: 50px !important;
-        font-size: 11px !important;
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 4px !important;
-        flex-shrink: 0 !important;
-        white-space: nowrap !important;
-    }
-
-    .tui-image-editor-submenu .tui-image-editor-button label {
-        font-size: 11px !important;
-        margin: 0 !important;
-        white-space: nowrap !important;
-    }
-
-    .tui-image-editor-submenu .tui-image-editor-button svg {
-        width: 16px !important;
-        height: 16px !important;
-        flex-shrink: 0 !important;
-    }
-
-    /* === 서브메뉴 내부 버튼 그룹 - 반드시 가로 배치 === */
-    .tui-image-editor-submenu-item > div,
-    .tui-image-editor-submenu-item > ul,
-    .tui-image-editor-submenu-item > .tui-image-editor-button-group,
-    .tui-image-editor-submenu-item > *:not(label):not(input) {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        gap: 8px !important;
-    }
-
-    /* === 체크박스/라벨 가독성 === */
-    .tui-image-editor-submenu-item label {
-        font-size: 11px !important;
-        color: #333 !important;
-        font-weight: 500 !important;
-        white-space: nowrap !important;
-    }
-
-    /* === 레인지 슬라이더 스타일링 (TUI 기본 슬라이더 유지) === */
-    .tui-image-editor-range-wrap {
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        flex-shrink: 0 !important;
-    }
-
-    .tui-image-editor-range {
-        position: relative !important;
-        width: 80px !important;
-        height: 16px !important;
-        cursor: pointer !important;
-        background: #e5e5e5 !important;
-        border-radius: 3px !important;
-    }
-
-    /* 슬라이더 핸들/포인터 스타일 */
-    .tui-image-editor-virtual-range-pointer {
-        display: block !important;
-        visibility: visible !important;
-        width: 12px !important;
-        height: 12px !important;
-        background: #224732 !important;
-        border-radius: 50% !important;
-        cursor: grab !important;
-        position: absolute !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        z-index: 10 !important;
-    }
-
-    .tui-image-editor-virtual-range-bar {
-        display: block !important;
-        visibility: visible !important;
-        height: 4px !important;
-        background: #224732 !important;
-        border-radius: 2px !important;
-    }
-
-    .tui-image-editor-virtual-range-subbar {
-        display: block !important;
-        visibility: visible !important;
-        height: 4px !important;
-        background: #e5e5e5 !important;
-        border-radius: 2px !important;
-    }
-
-    .tui-image-editor-range-value {
-        display: inline-block !important;
-        min-width: 30px !important;
-        text-align: center !important;
-        font-size: 12px !important;
-    }
-
-    /* === 캔버스 영역 === */
-    .tui-image-editor-canvas-container {
-        margin: 0 auto !important;
-    }
-
-    .tui-image-editor-wrap {
-        height: 100% !important;
-        overflow: hidden !important;
-    }
-
-    /* === 색상 선택기 개선 === */
-    .tui-colorpicker-palette-button {
-        width: 24px !important;
-        height: 24px !important;
-        border-radius: 4px !important;
-        cursor: pointer !important;
-    }
-`;
-
-export interface ImageEditorRef {
-    getEditedImage: () => Promise<string | null>;
-    reset: () => void;
+interface TextNode {
+    id: string;
+    text: string;
+    x: number;
+    y: number;
+    fontSize: number;
+    fill: string;
+    rotation: number;
+    scaleX: number;
+    scaleY: number;
+    background: 'none' | 'black' | 'white';
+    align: 'left' | 'center' | 'right';
+    fontFamily: string;
+    fontWeight: 'normal' | 'bold';
 }
 
-interface CampingImageEditorProps {
-    imagePath: string;
-    width?: number;
-    height?: number;
+interface LineNode {
+    id: string;
+    tool: 'pen' | 'eraser';
+    points: number[];
+    stroke: string;
+    strokeWidth: number;
 }
 
-const CampingImageEditor = forwardRef<ImageEditorRef, CampingImageEditorProps>(
-    ({ imagePath, width = 400, height = 500 }, ref) => {
-        const containerRef = useRef<HTMLDivElement>(null);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const instanceRef = useRef<any>(null);
-        const styleRef = useRef<HTMLStyleElement | null>(null);
+interface ImageEditorProps {
+    imageFile: File;
+    onSave: (file: File) => void;
+    onClose: () => void;
+}
 
-        useImperativeHandle(ref, () => ({
-            getEditedImage: async () => {
-                if (!instanceRef.current) return null;
-                try {
-                    return instanceRef.current.toDataURL();
-                } catch {
-                    return null;
-                }
-            },
-            reset: () => {
-                if (instanceRef.current) {
-                    try {
-                        instanceRef.current.clearObjects();
-                    } catch {
-                        // ignore
-                    }
-                }
-            },
-        }));
+const FILTER_PRESETS = [
+    { name: 'Normal', type: 'normal' },
+    { name: 'Gray', type: 'grayscale' },
+    { name: 'Sepia', type: 'sepia' },
+    { name: 'Invert', type: 'invert' },
+    { name: 'Blur', type: 'blur' },
+    { name: 'Bright', type: 'brighten' },
+    { name: 'Contrast', type: 'contrast' },
+    { name: 'Solar', type: 'solarize' },
+    { name: 'Poster', type: 'posterize' },
+    { name: 'Noise', type: 'noise' },
+    { name: 'Pixel', type: 'pixelate' },
+];
 
-        useEffect(() => {
-            let destroyed = false;
+const PALETTE_COLORS = [
+    '#ffffff', '#000000', '#df4b26', '#facc15', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899',
+    '#9ca3af', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#818cf8', '#a78bfa', '#f472b6'
+];
 
-            // 커스텀 스타일 삽입
-            if (!styleRef.current && typeof document !== 'undefined') {
-                styleRef.current = document.createElement('style');
-                styleRef.current.textContent = editorStyleOverride;
-                document.head.appendChild(styleRef.current);
+const FONT_OPTIONS = [
+    { name: '기본 (고딕)', value: 'Pretendard' },
+    { name: '나눔명조', value: 'Nanum Myeongjo' },
+    { name: '나눔손글씨', value: 'Nanum Pen Script' },
+];
+
+// ----------------------------------------------------------------------
+// Sub Component: CanvasImage
+// ----------------------------------------------------------------------
+
+const CanvasImage = ({ src, filterType, width, height }: { src: string, filterType: string, width: number, height: number }) => {
+    // IMPORTANT: Enable CORS to prevent tainted canvas issues
+    const [image] = useImage(src, 'anonymous');
+    const imageRef = useRef<Konva.Image>(null);
+
+    useEffect(() => {
+        if (image && imageRef.current && width > 0 && height > 0) {
+            imageRef.current.cache();
+        }
+    }, [image, width, height]);
+
+    useEffect(() => {
+        if (imageRef.current) {
+            const node = imageRef.current;
+            node.filters([]);
+
+            switch (filterType) {
+                case 'grayscale': node.filters([Konva.Filters.Grayscale]); break;
+                case 'sepia': node.filters([Konva.Filters.Sepia]); break;
+                case 'invert': node.filters([Konva.Filters.Invert]); break;
+                case 'blur':
+                    node.filters([Konva.Filters.Blur]);
+                    node.blurRadius(4);
+                    break;
+                case 'brighten':
+                    node.filters([Konva.Filters.Brighten]);
+                    node.brightness(0.3);
+                    break;
+                case 'contrast':
+                    node.filters([Konva.Filters.Contrast]);
+                    node.contrast(20);
+                    break;
+                case 'solarize': node.filters([Konva.Filters.Solarize]); break;
+                case 'posterize':
+                    node.filters([Konva.Filters.Posterize]);
+                    node.levels(0.5);
+                    break;
+                case 'noise':
+                    node.filters([Konva.Filters.Noise]);
+                    node.noise(0.8);
+                    break;
+                case 'pixelate':
+                    node.filters([Konva.Filters.Pixelate]);
+                    node.pixelSize(8);
+                    break;
+                default: node.filters([]);
             }
+            node.cache();
+            node.getLayer()?.batchDraw();
+        }
+    }, [filterType, image]);
 
-            const initEditor = async () => {
-                if (!containerRef.current) return;
+    // Force image to scale to canvas size
+    return <KonvaImage ref={imageRef} image={image} x={0} y={0} width={width} height={height} />;
+};
 
-                // Vanilla JS Library Dynamic Import
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const TuiImageEditor = (await import('tui-image-editor')).default;
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
 
-                if (destroyed) return;
+export default function ImageEditor({ imageFile, onSave, onClose }: ImageEditorProps) {
+    const [mode, setMode] = useState<'crop' | 'filter' | 'text' | 'draw' | 'none'>('none');
 
-                // 에디터 영역 높이 계산
-                const editorHeight = height;
+    // Core State
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+    const [filterType, setFilterType] = useState<string>('normal');
 
-                instanceRef.current = new TuiImageEditor(containerRef.current, {
-                    includeUI: {
-                        loadImage: {
-                            path: imagePath,
-                            name: 'CampingImage',
-                        },
-                        theme: campingTheme,
-                        menu: ['crop', 'draw', 'shape', 'text', 'filter'],
-                        initMenu: 'crop', // 초기 메뉴 설정하여 도구 표시
-                        uiSize: {
-                            width: `${width}px`,
-                            height: `${editorHeight}px`,
-                        },
-                        menuBarPosition: 'bottom',
-                    },
-                    cssMaxHeight: editorHeight - 150, // 메뉴바 + 서브메뉴 공간
-                    cssMaxWidth: width - 20,
-                    selectionStyle: {
-                        cornerSize: 12,
-                        rotatingPointOffset: 50,
-                    },
-                    usageStatistics: false,
+    // Crop State
+    const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [aspect, setAspect] = useState<number | undefined>(undefined);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+    const [forceResetKey, setForceResetKey] = useState(0); // Force re-render key
+
+    // Text State
+    const [texts, setTexts] = useState<TextNode[]>([]);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [inputText, setInputText] = useState(""); // 실시간 텍스트 입력
+
+    // Drawing State
+    const [lines, setLines] = useState<LineNode[]>([]);
+    const isDrawing = useRef(false);
+    const [strokeColor, setStrokeColor] = useState('#df4b26');
+    const [strokeWidth, setStrokeWidth] = useState(5);
+
+    // Refs
+    const stageRef = useRef<Konva.Stage>(null);
+    const transformerRef = useRef<Konva.Transformer>(null);
+
+    // Init Logic
+    useEffect(() => {
+        if (imageFile) {
+            const url = URL.createObjectURL(imageFile);
+            setImageUrl(url);
+            return () => URL.revokeObjectURL(url);
+        }
+    }, [imageFile]);
+
+    // Update Canvas Size when Image Loads
+    useEffect(() => {
+        if (imageUrl) {
+            const img = new Image();
+            img.src = imageUrl;
+            // IMPORTANT: CrossOrigin here for the initial load check too
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const maxWidth = window.innerWidth;
+                const maxHeight = window.innerHeight * 0.55;
+                const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+
+                setCanvasSize({
+                    width: img.width * scale,
+                    height: img.height * scale
                 });
 
-                // 메뉴 강제 표시 (TUI 에디터 초기화 후)
-                setTimeout(() => {
-                    if (destroyed) return;
-                    const menu = containerRef.current?.querySelector('.tui-image-editor-menu') as HTMLElement;
-                    if (menu) {
-                        menu.style.height = '70px';
-                        menu.style.minHeight = '70px';
-                        menu.style.display = 'flex';
-                        menu.style.visibility = 'visible';
-                        menu.style.opacity = '1';
-
-                        // 메뉴 아이템들도 강제 표시
-                        const items = menu.querySelectorAll('li');
-                        items.forEach((item) => {
-                            (item as HTMLElement).style.display = 'flex';
-                            (item as HTMLElement).style.visibility = 'visible';
-                            (item as HTMLElement).style.width = '48px';
-                            (item as HTMLElement).style.height = '48px';
-                        });
-                    }
-
-                    // 서브메뉴 위치 강제 조정 (이미지 아래, 메뉴 위에 고정)
-                    const fixSubmenuPosition = () => {
-                        const submenu = containerRef.current?.querySelector('.tui-image-editor-submenu') as HTMLElement;
-                        const controls = containerRef.current?.querySelector('.tui-image-editor-controls') as HTMLElement;
-                        const mainContainer = containerRef.current?.querySelector('.tui-image-editor-main-container') as HTMLElement;
-
-                        if (submenu) {
-                            // 서브메뉴를 하단에 고정 (가로 스크롤, 높이 80px)
-                            submenu.style.cssText = `
-                                position: fixed !important;
-                                bottom: 70px !important;
-                                left: 0 !important;
-                                right: 0 !important;
-                                top: auto !important;
-                                z-index: 100 !important;
-                                background: #ffffff !important;
-                                height: 80px !important;
-                                max-height: 80px !important;
-                                min-height: 80px !important;
-                                overflow-x: auto !important;
-                                overflow-y: hidden !important;
-                                border-top: 1px solid #e5e5e5 !important;
-                                pointer-events: auto !important;
-                                display: flex !important;
-                                align-items: center !important;
-                                flex-wrap: nowrap !important;
-                                gap: 12px !important;
-                                padding: 12px 16px !important;
-                                -webkit-overflow-scrolling: touch !important;
-                            `;
-                        }
-
-                        if (mainContainer) {
-                            // 이미지 영역을 서브메뉴 위까지만 표시 (서브메뉴 80px + 메뉴 70px = 150px)
-                            mainContainer.style.cssText = `
-                                position: absolute !important;
-                                top: 0 !important;
-                                left: 0 !important;
-                                right: 0 !important;
-                                bottom: 150px !important;
-                                overflow: hidden !important;
-                                pointer-events: auto !important;
-                            `;
-                        }
-                    };
-
-                    // 초기 실행만 (MutationObserver 제거 - 무한 루프 방지)
-                    fixSubmenuPosition();
-
-                    // 메뉴 클릭 시에만 위치 재조정
-                    const menuItems = containerRef.current?.querySelectorAll('.tui-image-editor-menu li');
-                    menuItems?.forEach((item) => {
-                        item.addEventListener('click', () => {
-                            setTimeout(fixSubmenuPosition, 50);
-                        });
-                    });
-
-                    // 주의: TUI 에디터의 기본 이벤트 핸들링을 방해하지 않음
-                    // TUI 에디터가 자체 이벤트 시스템으로 정상 작동하도록 함
-                    // (커스텀 핸들러 없이 TUI 기본 동작 사용)
-                }, 500);
+                // Force reset crop state just in case
+                setCrop({ x: 0, y: 0 });
+                setZoom(1);
             };
+            img.onerror = (e) => {
+                console.error('[ImageEditor] Failed to load image:', e);
+            }
+        }
+    }, [imageUrl]);
 
-            initEditor();
+    // Sync Input Text with Selected Text Node
+    useEffect(() => {
+        if (selectedId) {
+            const selectedText = texts.find(t => t.id === selectedId);
+            if (selectedText) {
+                setInputText(selectedText.text);
+            }
+        } else {
+            setInputText("");
+        }
+    }, [selectedId, texts]);
 
-            return () => {
-                destroyed = true;
-                if (instanceRef.current) {
-                    instanceRef.current.destroy();
-                    instanceRef.current = null;
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newVal = e.target.value;
+        setInputText(newVal);
+        if (selectedId) {
+            setTexts(texts.map(t => t.id === selectedId ? { ...t, text: newVal } : t));
+        }
+    };
+
+    const handleTextColorChange = (color: string) => {
+        if (selectedId) {
+            setTexts(texts.map(t => t.id === selectedId ? { ...t, fill: color } : t));
+        }
+    };
+
+    const handleCropConfirm = async () => {
+        if (!imageUrl || !croppedAreaPixels) return;
+        try {
+            const croppedImageBlobUrl = await getCroppedImg(imageUrl, croppedAreaPixels, rotation);
+            if (croppedImageBlobUrl) {
+                setMode('none');
+                setZoom(1);
+                setRotation(0);
+                setAspect(undefined);
+                setImageUrl(croppedImageBlobUrl); // This triggers useEffect to resize canvas
+                setForceResetKey(prev => prev + 1); // Force re-mount of cropper if needed
+            }
+        } catch (e) {
+            console.error('Crop error:', e);
+            alert('자르기에 실패했습니다.');
+        }
+    };
+
+    const handleApplyMode = () => {
+        setMode('none');
+        setSelectedId(null);
+    };
+
+    const handleSave = async () => {
+        if (!stageRef.current) return;
+
+        try {
+            setSelectedId(null);
+            setTimeout(async () => {
+                if (!stageRef.current) return;
+                try {
+                    // Safe pixelRatio to avoid memory issues on mobile
+                    // Reduced from 2 to 1.5 for better stability
+                    const dataUrl = stageRef.current.toDataURL({ pixelRatio: 1.5 });
+                    const res = await fetch(dataUrl);
+                    const blob = await res.blob();
+                    const file = new File([blob], `edited_${Date.now()}.png`, { type: "image/png" });
+                    onSave(file);
+                } catch (saveErr) {
+                    console.error("Canvas export failed:", saveErr);
+                    alert("이미지 저장에 실패했습니다. (Canvas Error)");
                 }
-                // 스타일 정리
-                if (styleRef.current && styleRef.current.parentNode) {
-                    styleRef.current.parentNode.removeChild(styleRef.current);
-                    styleRef.current = null;
-                }
-            };
-        }, [imagePath, width, height]);
+            }, 100);
+        } catch (e) {
+            console.error("Save handler error:", e);
+            alert("저장 중 오류가 발생했습니다.");
+        }
+    };
 
-        return (
-            <div className="relative w-full h-full">
-                <link
-                    rel="stylesheet"
-                    href="https://uicdn.toast.com/tui-image-editor/v3.15.3/tui-image-editor.min.css"
-                />
-                <div
-                    ref={containerRef}
-                    className="w-full h-full overflow-hidden rounded-lg"
-                />
+    // Text Handlers
+    const addText = () => {
+        const newText: TextNode = {
+            id: `text-${Date.now()}`,
+            text: '', // V3.2: Start empty
+            x: canvasSize.width / 2,
+            y: canvasSize.height / 2,
+            fontSize: 24,
+            fill: '#ffffff',
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            background: 'none',
+            align: 'center', // V3.4 Init
+            fontFamily: 'Pretendard', // V3.4 Init
+            fontWeight: 'normal' // V3.4 Init
+        };
+        setTexts([...texts, newText]);
+        setSelectedId(newText.id);
+    };
+
+    const toggleTextBackground = () => {
+        if (!selectedId) return;
+        setTexts(texts.map(t => {
+            if (t.id === selectedId) {
+                // V3.2: Cycle None -> Black -> White -> None
+                const nextBg = t.background === 'none' ? 'black' : t.background === 'black' ? 'white' : 'none';
+                return { ...t, background: nextBg };
+            }
+            return t;
+        }));
+    };
+
+    // V3.4 Text Feature Handlers
+    const handleTextAlign = (align: 'left' | 'center' | 'right') => {
+        if (!selectedId) return;
+        setTexts(texts.map(t => t.id === selectedId ? { ...t, align } : t));
+    };
+
+    const handleFontFamily = (fontFamily: string) => {
+        if (!selectedId) return;
+        setTexts(texts.map(t => t.id === selectedId ? { ...t, fontFamily } : t));
+    };
+
+    const toggleBold = () => {
+        if (!selectedId) return;
+        setTexts(texts.map(t => {
+            if (t.id === selectedId) {
+                return { ...t, fontWeight: t.fontWeight === 'bold' ? 'normal' : 'bold' };
+            }
+            return t;
+        }));
+    };
+
+    const deleteSelected = () => {
+        if (!selectedId) return;
+        setTexts(texts.filter(t => t.id !== selectedId));
+        setSelectedId(null);
+    };
+
+    // Drawing Handlers
+    const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+        if (mode === 'text' || mode === 'none') {
+            const clickedOnEmpty = e.target === e.target.getStage();
+            if (clickedOnEmpty) setSelectedId(null);
+            return;
+        }
+
+        if (mode !== 'draw') return;
+
+        isDrawing.current = true;
+        const pos = e.target.getStage()?.getPointerPosition();
+        if (!pos) return;
+
+        setLines([...lines, {
+            id: `line-${Date.now()}`,
+            tool: 'pen',
+            points: [pos.x, pos.y],
+            stroke: strokeColor,
+            strokeWidth: strokeWidth
+        }]);
+    };
+
+    const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+        if (mode !== 'draw' || !isDrawing.current) return;
+
+        const stage = e.target.getStage();
+        const point = stage?.getPointerPosition();
+        if (!point) return;
+
+        const lastLine = lines[lines.length - 1];
+        lastLine.points = lastLine.points.concat([point.x, point.y]);
+        lines.splice(lines.length - 1, 1, lastLine);
+        setLines(lines.concat());
+    };
+
+    const handleMouseUp = () => {
+        isDrawing.current = false;
+    };
+
+    // Transformer Update
+    useEffect(() => {
+        if (selectedId && transformerRef.current && stageRef.current && mode === 'text') {
+            const node = stageRef.current.findOne('#' + selectedId);
+            if (node) {
+                transformerRef.current.nodes([node]);
+                transformerRef.current.getLayer()?.batchDraw();
+            }
+        }
+    }, [selectedId, texts, mode]);
+
+    if (!imageUrl) return null;
+
+    return (
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-between text-white safe-area-padding">
+            {/* Top Bar */}
+            <header className="w-full flex justify-between items-center px-4 py-4 z-50 bg-black/50 backdrop-blur-sm">
+                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-gray-300">
+                    <X className="w-6 h-6" />
+                </button>
+
+                <span className="font-semibold text-sm text-gray-200">
+                    {mode === 'crop' ? '자르기 & 회전' : mode === 'filter' ? '필터 효과' : mode === 'text' ? '텍스트 추가' : mode === 'draw' ? '그리기' : '이미지 편집'}
+                </span>
+
+                <div className="flex gap-2">
+                    {/* Top Save Button is ONLY for final file save */}
+                    <button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-1 active:scale-95 transition-transform">
+                        <Save className="w-4 h-4" /> 저장
+                    </button>
+                </div>
+            </header>
+
+            {/* Main Canvas Area */}
+            <div className={`relative w-full flex-1 bg-black flex items-center justify-center overflow-hidden p-4`}>
+                {/* V3.3: Vertical Text Size Slider Overlay */}
+                {mode === 'text' && selectedId && (
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 h-44 bg-black/60 backdrop-blur-md rounded-full py-4 w-10 flex flex-col items-center justify-between animate-in fade-in zoom-in duration-300 z-[70] border border-white/10 shadow-xl">
+                        <Plus className="w-4 h-4 text-white/80" />
+
+                        {/* Wrapper for rotation to ensure layout stability */}
+                        <div className="h-24 w-40 flex items-center justify-center -my-6">
+                            <Slider
+                                defaultValue={[24]}
+                                min={12}
+                                max={100}
+                                step={1}
+                                value={[texts.find(t => t.id === selectedId)?.fontSize || 24]}
+                                onValueChange={(v) => {
+                                    if (selectedId) {
+                                        setTexts(texts.map(t => t.id === selectedId ? { ...t, fontSize: v[0] } : t));
+                                    }
+                                }}
+                                className="w-32 -rotate-90 hover:cursor-ns-resize m-0"
+                            />
+                        </div>
+
+                        <Minus className="w-4 h-4 text-white/80" />
+                    </div>
+                )}
+
+                {mode === 'crop' ? (
+                    <div className="relative w-full h-full bg-black" key={forceResetKey}>
+                        <Cropper
+                            image={imageUrl}
+                            crop={crop}
+                            zoom={zoom}
+                            rotation={rotation}
+                            aspect={aspect}
+                            onCropChange={setCrop}
+                            onCropComplete={(area, pixels) => setCroppedAreaPixels(pixels)}
+                            onZoomChange={setZoom}
+                            onRotationChange={setRotation}
+                            showGrid={true}
+                            classes={{ containerClassName: 'bg-black' }}
+                        />
+                    </div>
+                ) : (
+                    <div className="relative shadow-2xl overflow-hidden" style={{ width: canvasSize.width, height: canvasSize.height }}>
+                        <Stage
+                            width={canvasSize.width}
+                            height={canvasSize.height}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onTouchStart={handleMouseDown}
+                            onTouchMove={handleMouseMove}
+                            onTouchEnd={handleMouseUp}
+                            ref={stageRef}
+                        >
+                            <Layer>
+                                {/* Pass width/height to CanvasImage to force fit */}
+                                <CanvasImage src={imageUrl} filterType={filterType} width={canvasSize.width} height={canvasSize.height} />
+
+                                {lines.map((line, i) => (
+                                    <KonvaLine
+                                        key={line.id}
+                                        points={line.points}
+                                        stroke={line.stroke}
+                                        strokeWidth={line.strokeWidth}
+                                        tension={0.5}
+                                        lineCap="round"
+                                        lineJoin="round"
+                                    />
+                                ))}
+
+                                {/* Texts with Label/Tag for background */}
+                                {texts.map((text, i) => (
+                                    <Label
+                                        key={text.id}
+                                        id={text.id}
+                                        x={text.x}
+                                        y={text.y}
+                                        draggable={mode === 'text'}
+                                        rotation={text.rotation}
+                                        scaleX={text.scaleX}
+                                        scaleY={text.scaleY}
+                                        onClick={() => mode === 'text' && setSelectedId(text.id)}
+                                        onTap={() => mode === 'text' && setSelectedId(text.id)}
+                                        onDragEnd={(e) => {
+                                            const newTexts = [...texts];
+                                            const idx = texts.findIndex(t => t.id === text.id);
+                                            if (idx >= 0) {
+                                                newTexts[idx] = { ...newTexts[idx], x: e.target.x(), y: e.target.y() };
+                                                setTexts(newTexts);
+                                            }
+                                        }}
+                                        onTransformEnd={(e) => {
+                                            const node = e.target;
+                                            const newTexts = [...texts];
+                                            const idx = texts.findIndex(t => t.id === text.id);
+                                            if (idx >= 0) {
+                                                newTexts[idx] = {
+                                                    ...newTexts[idx],
+                                                    x: node.x(), y: node.y(), rotation: node.rotation(), scaleX: node.scaleX(), scaleY: node.scaleY(),
+                                                };
+                                                setTexts(newTexts);
+                                            }
+                                        }}
+                                    >
+                                        {/* Tag must be first child of Label for background */}
+                                        {text.background !== 'none' && (
+                                            <Tag
+                                                fill={text.background === 'black' ? '#000000' : '#ffffff'}
+                                                opacity={0.6}
+                                                cornerRadius={4}
+                                            />
+                                        )}
+                                        <KonvaText
+                                            text={text.text || "텍스트 입력"} // Placeholder on canvas
+                                            fontSize={text.fontSize}
+                                            fill={text.text ? text.fill : 'rgba(255,255,255,0.5)'} // Dim if placeholder
+                                            padding={10}
+                                            align={text.align} // V3.4
+                                            fontFamily={text.fontFamily}
+                                            // Actual CSS var logic needs to be solved.Konva reads Font Family name from available/loaded fonts.
+                                            // Since we use CSS variable for font, we need to map variable to font family name if possible.
+                                            // Actually, next/font creates a classname usually, but we exposed it as variable.
+                                            // We need to use the actual font family name string that the browser sees.
+                                            // For Google Fonts with next/font, the font family is usually constructed from the import function.
+                                            // But for Konva, it needs a valid CSS Font Family string.
+                                            // To make it simple: We use the CSS variable in a style prop and hope valid name? 
+                                            // No, Konva needs direct name.
+                                            // WORKAROUND: For 'Pretendard', it's standard. For Nanum, we might need to rely on the fact they are loaded
+                                            // via the CSS variable injection into BODY. The font-family name is usually 'Nanum Pen Script' if imported correctly.
+                                            // Let's assume the names are 'Nanum Pen Script' and 'Nanum Myeongjo' as they are standard web font names.
+                                            // The next/font injects them. 
+
+                                            fontStyle={text.fontWeight} // V3.4 Bold
+                                        />
+                                    </Label>
+                                ))}
+
+                                {selectedId && mode === 'text' && (
+                                    <Transformer
+                                        ref={transformerRef}
+                                        boundBoxFunc={(oldBox, newBox) => {
+                                            if (newBox.width < 5 || newBox.height < 5) return oldBox;
+                                            return newBox;
+                                        }}
+                                    />
+                                )}
+                            </Layer>
+                        </Stage>
+                    </div>
+                )}
             </div>
-        );
-    }
+
+            {/* Bottom Toolbar */}
+            <footer className="w-full bg-black/90 backdrop-blur-xl border-t border-white/10 z-50 pb-safe">
+                {mode === 'none' && (
+                    <div className="flex justify-around items-center p-6 pb-10">
+                        <MenuButton icon={CropIcon} label="자르기" onClick={() => setMode('crop')} />
+                        <MenuButton icon={Wand2} label="필터" onClick={() => setMode('filter')} />
+                        <MenuButton icon={Type} label="텍스트" onClick={() => setMode('text')} />
+                        <MenuButton icon={Pencil} label="그리기" onClick={() => setMode('draw')} />
+                    </div>
+                )}
+
+                {/* --- CROP MODE --- */}
+                {mode === 'crop' && (
+                    <div className="flex flex-col gap-4 p-4 pb-8 animate-in slide-in-from-bottom duration-200">
+                        <div className="flex items-center justify-between px-2">
+                            <span className="text-xs text-gray-400">회전</span>
+                            <Slider defaultValue={[0]} min={0} max={360} step={1} value={[rotation]} onValueChange={(val) => setRotation(val[0])} className="w-3/4" />
+                        </div>
+                        <div className="flex justify-between items-center overflow-x-auto gap-2 no-scrollbar py-2">
+                            <RatioBtn label="자유형" active={!aspect} onClick={() => setAspect(undefined)} />
+                            <RatioBtn label="1:1" active={aspect === 1} onClick={() => setAspect(1)} />
+                            <RatioBtn label="4:3" active={aspect === 4 / 3} onClick={() => setAspect(4 / 3)} />
+                            <RatioBtn label="16:9" active={aspect === 16 / 9} onClick={() => setAspect(16 / 9)} />
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                            <Button variant="secondary" onClick={() => setMode('none')} className="flex-1">취소</Button>
+                            <Button onClick={handleCropConfirm} className="flex-1 bg-white text-black font-bold">적용</Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- FILTER MODE --- */}
+                {mode === 'filter' && (
+                    <div className="flex flex-col gap-2 p-4 pb-8 animate-in slide-in-from-bottom duration-200">
+                        <div className="flex overflow-x-auto gap-3 py-2 no-scrollbar">
+                            {FILTER_PRESETS.map((f) => (
+                                <FilterBtn
+                                    key={f.type} name={f.name} active={filterType === f.type}
+                                    onClick={() => setFilterType(f.type)} imageUrl={imageUrl!} type={f.type}
+                                />
+                            ))}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                            <Button variant="secondary" onClick={() => setMode('none')} className="flex-1">취소</Button>
+                            <Button onClick={handleApplyMode} className="flex-1 bg-white text-black font-bold">적용</Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- TEXT MODE v3.2 & v3.4 Implemented --- */}
+                {mode === 'text' && (
+                    <div className="flex flex-col gap-4 p-4 pb-8 items-center animate-in slide-in-from-bottom duration-200">
+                        {selectedId ? (
+                            <div className="w-full space-y-3">
+                                <div className="flex gap-2 items-center">
+                                    <Textarea
+                                        value={inputText}
+                                        onChange={handleTextChange}
+                                        placeholder="텍스트 입력 (엔터로 줄바꿈)"
+                                        className="bg-gray-800 border-gray-700 text-white flex-1 min-h-[60px] text-sm resize-none"
+                                        autoFocus
+                                    />
+                                    {/* Bold Toggle V3.4 */}
+                                    <Button onClick={toggleBold}
+                                        variant="secondary" size="icon" className={`h-9 w-9 ${texts.find(t => t.id === selectedId)?.fontWeight === 'bold' ? 'bg-white text-black' : 'bg-gray-800 text-white'}`}
+                                    >
+                                        <Bold className="w-4 h-4" />
+                                    </Button>
+
+                                    {/* Background Toggle */}
+                                    <Button onClick={toggleTextBackground}
+                                        variant="secondary" size="icon" className={`h-9 w-9 ${texts.find(t => t.id === selectedId)?.background !== 'none' ? "bg-white text-black relative" : "bg-gray-800 text-white relative"}`}
+                                    >
+                                        <Maximize className="w-4 h-4" />
+                                        {texts.find(t => t.id === selectedId)?.background === 'white' && (
+                                            <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-black border border-white" />
+                                        )}
+                                    </Button>
+
+                                    <Button onClick={deleteSelected} variant="destructive" size="icon" className="h-9 w-9">
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+
+                                {/* Row 2: Alignment & Font Family V3.4 */}
+                                <div className="flex gap-2 items-center justify-between w-full">
+                                    {/* Alignment Group */}
+                                    <div className="flex bg-gray-900 rounded-lg p-1 border border-white/10">
+                                        <button onClick={() => handleTextAlign('left')} className={`p-1.5 rounded ${texts.find(t => t.id === selectedId)?.align === 'left' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>
+                                            <AlignLeft className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleTextAlign('center')} className={`p-1.5 rounded ${texts.find(t => t.id === selectedId)?.align === 'center' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>
+                                            <AlignCenter className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleTextAlign('right')} className={`p-1.5 rounded ${texts.find(t => t.id === selectedId)?.align === 'right' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>
+                                            <AlignRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    {/* Font Selector - Horizontal List V3.5 */}
+                                    <div className="flex-1 overflow-x-auto no-scrollbar mx-2">
+                                        <div className="flex gap-2">
+                                            {FONT_OPTIONS.map(f => (
+                                                <button
+                                                    key={f.value}
+                                                    onClick={() => handleFontFamily(f.value)}
+                                                    className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all ${texts.find(t => t.id === selectedId)?.fontFamily === f.value
+                                                        ? 'bg-white text-black border-white font-bold'
+                                                        : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                                                        }`}
+                                                    style={{ fontFamily: f.value.replace('var(', '').replace(')', '') }}
+                                                >
+                                                    {f.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Color Picker */}
+                                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1 w-full px-1">
+                                    {PALETTE_COLORS.map(c => (
+                                        <button key={c} onClick={() => handleTextColorChange(c)}
+                                            className={`w-7 h-7 rounded-full border border-white/20 shadow-sm shrink-0 ${texts.find(t => t.id === selectedId)?.fill === c ? 'scale-110 border-2 border-white' : ''}`}
+                                            style={{ backgroundColor: c }} />
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <Button onClick={addText} variant="outline" className="w-full border-white/20 text-white hover:bg-white/10 py-6">
+                                <Plus className="w-4 h-4 mr-2" /> 텍스트 추가
+                            </Button>
+                        )}
+                        <div className="flex gap-2 w-full mt-2">
+                            <Button variant="secondary" onClick={() => setMode('none')} className="flex-1">취소</Button>
+                            <Button onClick={handleApplyMode} className="flex-1 bg-white text-black font-bold">적용</Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- DRAW MODE --- */}
+                {mode === 'draw' && (
+                    <div className="flex flex-col gap-4 p-4 pb-8 items-center animate-in slide-in-from-bottom duration-200">
+                        {/* V3.2: Expanded Drawing Palette */}
+                        <div className="flex items-center gap-4 w-full px-2 overflow-x-auto no-scrollbar">
+                            {PALETTE_COLORS.map(c => (
+                                <button key={c} onClick={() => setStrokeColor(c)}
+                                    className={`w-8 h-8 rounded-full border-2 shrink-0 ${strokeColor === c ? 'border-white scale-110' : 'border-transparent'}`}
+                                    style={{ backgroundColor: c }} />
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-2 w-full px-4">
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                            <Slider min={1} max={20} step={1} value={[strokeWidth]} onValueChange={(v) => setStrokeWidth(v[0])} className="flex-1" />
+                            <div className="w-6 h-6 rounded-full bg-white" />
+                        </div>
+                        <div className="flex gap-2 w-full mt-2">
+                            <Button variant="secondary" onClick={() => setMode('none')} className="flex-1">취소</Button>
+                            <Button onClick={handleApplyMode} className="flex-1 bg-white text-black font-bold">적용</Button>
+                        </div>
+                    </div>
+                )}
+            </footer>
+        </div>
+    );
+}
+
+// --- Helpers ---
+const MenuButton = ({ icon: Icon, label, onClick }: any) => (
+    <button onClick={onClick} className="flex flex-col items-center gap-2 text-gray-400 hover:text-white transition-all active:scale-95 group">
+        <div className="p-3.5 rounded-full bg-gray-900 group-hover:bg-gray-800 border border-white/5 transition-colors">
+            <Icon className="w-5 h-5" />
+        </div>
+        <span className="text-xs font-medium">{label}</span>
+    </button>
 );
 
-CampingImageEditor.displayName = 'CampingImageEditor';
+const RatioBtn = ({ label, active, onClick }: any) => (
+    <button onClick={onClick} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${active ? 'bg-white text-black' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
+        {label}
+    </button>
+);
 
-export default CampingImageEditor;
+const FilterBtn = ({ name, active, onClick, imageUrl, type }: any) => (
+    <button onClick={onClick} className={`flex flex-col items-center gap-2 min-w-[60px] cursor-pointer transition-transform active:scale-95`}>
+        <div className={`w-14 h-14 rounded-lg border-2 ${active ? 'border-primary' : 'border-gray-700'} bg-gray-900 overflow-hidden relative`}>
+            <div className={`w-full h-full bg-cover bg-center absolute inset-0 
+                ${type === 'grayscale' ? 'grayscale' : type === 'sepia' ? 'sepia' : type === 'invert' ? 'invert' : type === 'blur' ? 'blur-[2px]' : ''}`}
+                style={{ backgroundImage: `url(${imageUrl})` }} />
+        </div>
+        <span className={`text-[10px] uppercase font-bold tracking-wider ${active ? 'text-white' : 'text-gray-500'}`}>{name}</span>
+    </button>
+);

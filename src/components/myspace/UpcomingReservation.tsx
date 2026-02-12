@@ -141,8 +141,36 @@ export default function UpcomingReservation() {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleDetailClick = () => {
-        router.push('/reservation/complete');
+    const handleDetailClick = async () => {
+        if (!mainReservation) return;
+
+        // PENDING 상태면 예약 페이지로
+        if (mainReservation.status === 'PENDING') {
+            router.push('/reservation/complete');
+            return;
+        }
+
+        // CONFIRMED 상태 등은 일정 페이지로 (Lazy Creation)
+        try {
+            const { ensureScheduleFromReservation } = await import('@/actions/schedule');
+
+            // 로딩 표시 (Toast 사용, 또는 UI state 추가 권장)
+            toast.loading('일정 정보를 불러오는 중...');
+
+            const result = await ensureScheduleFromReservation(mainReservation.id);
+            toast.dismiss();
+
+            if (result.success && result.scheduleId) {
+                router.push(`/myspace/schedule/${result.scheduleId}`);
+            } else {
+                console.error('Failed to ensure schedule:', result.error);
+                router.push('/reservation/complete');
+            }
+        } catch (e) {
+            console.error('Navigation error:', e);
+            toast.dismiss();
+            router.push('/reservation/complete');
+        }
     };
 
     const handleCancelClick = (e: React.MouseEvent) => {

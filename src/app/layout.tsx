@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Inter } from "next/font/google";
+import { Inter, Nanum_Pen_Script, Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import LoginRequestDialog from "@/components/auth/LoginRequestDialog";
@@ -8,6 +8,8 @@ import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import DeepLinkHandler from "@/components/pwa/DeepLinkHandler";
 
 const inter = Inter({ subsets: ["latin"] });
+const nanumPen = Nanum_Pen_Script({ weight: "400", subsets: ["latin"], variable: "--font-nanum-pen" });
+const nanumMyeongjo = Nanum_Myeongjo({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-nanum-myeongjo" });
 
 export const metadata: Metadata = {
   title: "라온아이 | 예산군 오토캠핑장",
@@ -47,7 +49,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
+      <body className={`${inter.className} ${nanumPen.variable} ${nanumMyeongjo.variable} antialiased`} suppressHydrationWarning>
+        <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet" />
         {children}
         <Toaster position="top-center" />
         <LoginRequestDialog />
