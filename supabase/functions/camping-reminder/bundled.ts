@@ -9,13 +9,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 // KMA Coordinate Conversion
 export function dfs_xy_conv(code: string, v1: number, v2: number) {
     const RE = 6371.00877; // 地球半径(km)
-    const GRID = 5.0; // 格子間隔(km)
-    const SLAT1 = 30.0; // 投射緯度1(degree)
-    const SLAT2 = 60.0; // 投射緯度2(degree)
-    const OLON = 126.0; // 基準点経度(degree)
-    const OLAT = 38.0; // 基準点緯度(degree)
-    const XO = 43; // 基準点X座標(GRID)
-    const YO = 136; // 基準点Y座標(GRID)
+    const GRID = 5.0; // 格子间距(km)
+    const SLAT1 = 30.0; // 投射纬度1(degree)
+    const SLAT2 = 60.0; // 投射纬度2(degree)
+    const OLON = 126.0; // 基准点经度(degree)
+    const OLAT = 38.0; // 基准点纬度(degree)
+    const XO = 43; // 基准点X坐标(GRID)
+    const YO = 136; // 基准点Y坐标(GRID)
 
     const DEGRAD = Math.PI / 180.0;
     const RADDEG = 180.0 / Math.PI;
@@ -59,7 +59,6 @@ export function dfs_xy_conv(code: string, v1: number, v2: number) {
 // Fetch Weather (Simplified)
 export async function getForecast(lat: number, lng: number, dateStr: string) {
     const KMA_KEY = "03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2";
-    // if (!KMA_KEY) return null; // Relaxed for bundled version to allow testing without keys
 
     // Convert Lat/Lng to Grid
     const grid = dfs_xy_conv("toXY", lat, lng);
@@ -74,14 +73,6 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
     };
 }
 
-// Fetch Nearby Events
-export async function getNearbyEvents(lat: number, lng: number, dateStr: string) {
-    const TOUR_KEY = "03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2";
-    if (!TOUR_KEY) return [];
-    return [];
-}
-
-// Recommend Meals
 // Recommend Meals
 export async function recommendMeals(supabase: any, context: { season?: string, weather: string, temp?: number, memberCount: number, dateStr?: string }) {
     // 1. Determine Season
@@ -104,14 +95,13 @@ export async function recommendMeals(supabase: any, context: { season?: string, 
 
     let filtered = pool;
 
-    // 3. Filter by Season
-    if (season) {
-        const seasonMatches = filtered.filter((item: any) => {
-            if (!item.metadata || !item.metadata.season) return true;
-            return item.metadata.season.includes(season);
-        });
-        if (seasonMatches.length > 0) filtered = seasonMatches;
-    }
+    // Helper for safe tag checking
+    const hasTag = (item: any, tag: string) => {
+        if (!item?.tags) return false;
+        if (Array.isArray(item.tags)) return item.tags.includes(tag);
+        if (typeof item.tags === 'string') return item.tags.includes(tag);
+        return false;
+    };
 
     // 4. Filter by Weather & Temperature
     const isRainy = context.weather.toLowerCase().includes('rain') || context.weather.toLowerCase().includes('cloud') || context.weather.toLowerCase().includes('snow');
@@ -121,10 +111,10 @@ export async function recommendMeals(supabase: any, context: { season?: string, 
     if (isRainy || isCold) {
         const warmFood = filtered.filter((item: any) =>
             (item.metadata?.weather && item.metadata.weather.includes('rainy')) ||
-            item.tags?.includes('#국물') ||
-            item.tags?.includes('#따뜻한') ||
-            item.tags?.includes('#전골') ||
-            item.tags?.includes('#찌개')
+            hasTag(item, '#국물') ||
+            hasTag(item, '#따뜻한') ||
+            hasTag(item, '#전골') ||
+            hasTag(item, '#찌개')
         );
         if (warmFood.length > 0) {
             // Mix warm food with others, but give warm food higher chance
@@ -133,27 +123,26 @@ export async function recommendMeals(supabase: any, context: { season?: string, 
         }
     } else if (isHot) {
         const coolFood = filtered.filter((item: any) =>
-            item.tags?.includes('#이열치열') ||
-            !item.tags?.includes('#국물')
+            hasTag(item, '#이열치열') ||
+            !hasTag(item, '#국물')
         );
         if (coolFood.length > 0) filtered = coolFood;
     }
 
     // 5. Filter by User Characteristics (Member Count)
-    // Group/Family (>2) vs Solo/Couple (<=2)
     if (context.memberCount > 2) {
         const groupFood = filtered.filter((item: any) =>
-            item.tags?.includes('#파티') ||
-            item.tags?.includes('#전골') ||
-            item.tags?.includes('#메인요리') ||
+            hasTag(item, '#파티') ||
+            hasTag(item, '#전골') ||
+            hasTag(item, '#메인요리') ||
             parseInt(item.servings) >= 3
         );
         if (groupFood.length > 0) filtered = groupFood;
     } else {
         const soloFood = filtered.filter((item: any) =>
-            item.tags?.includes('#간단') ||
-            item.tags?.includes('#안주') ||
-            item.tags?.includes('#분위기') ||
+            hasTag(item, '#간단') ||
+            hasTag(item, '#안주') ||
+            hasTag(item, '#분위기') ||
             parseInt(item.servings) <= 2
         );
         if (soloFood.length > 0) filtered = soloFood;
@@ -165,7 +154,6 @@ export async function recommendMeals(supabase: any, context: { season?: string, 
 
     const count = context.memberCount || 3;
     const shuffled = filtered.sort(() => 0.5 - Math.random());
-    // Ensure unique items if we duplicated for weight
     const unique = Array.from(new Set(shuffled));
     return unique.slice(0, count);
 }
@@ -206,7 +194,10 @@ serve(async (req) => {
         d4Date.setDate(d4Date.getDate() + 4);
         const d4 = d4Date.toISOString().split('T')[0];
 
+        console.log(`[Camping Reminder] Dates - Today: ${today}, Tomorrow: ${tomorrow}, D4: ${d4}`);
+
         // 2. Query Schedules (Added check_out, member_count)
+        // Production logic: Filter by status='scheduled' and check_in dates
         const { data: schedules, error } = await supabase
             .from('user_schedules')
             .select('id, user_id, campground_name, check_in, check_out, campground_lat, campground_lng, notification_d0_sent, notification_d1_sent, notification_d4_sent, member_count')
@@ -214,6 +205,8 @@ serve(async (req) => {
             .in('check_in', [today, tomorrow, d4]);
 
         if (error) throw error;
+
+        console.log(`[Camping Reminder] Found ${schedules?.length || 0} schedules matching criteria.`);
 
         const notifications = [];
         const updateIdsD0: string[] = [];
@@ -231,7 +224,8 @@ serve(async (req) => {
 
                 notifications.push({
                     user_id: schedule.user_id,
-                    type: 'schedule',
+                    category: 'schedule',
+                    event_type: 'schedule_reminder',
                     title: `오늘이 캠핑 떠나는 날! ⛺ ${weatherStr}`,
                     body: `즐거운 캠핑 되세요! '${schedule.campground_name}'에서의 추억을 기대할게요. 안전운전하세요!`,
                     data: { route: `/myspace/schedule/${schedule.id}` },
@@ -243,14 +237,14 @@ serve(async (req) => {
             else if (schedule.check_in === tomorrow && !schedule.notification_d1_sent) {
                 const weather = await getForecast(lat, lng, tomorrow);
 
-                // Calculate Duration (Days)
+                // Calculate Duration
                 const start = new Date(schedule.check_in);
                 const end = new Date(schedule.check_out);
                 const diffTime = Math.abs(end.getTime() - start.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                const tripDuration = diffDays + 1; // 1박2일 = 2일치, 2박3일 = 3일치
+                const tripDuration = diffDays + 1;
 
-                // Recommend Meals (1 per day)
+                // Recommend Meals
                 const meals = await recommendMeals(supabase, { season: undefined, weather: weather?.sky || 'Clear', temp: weather?.temp_max, memberCount: tripDuration, dateStr: tomorrow });
 
                 // Format: [1일차] 메뉴A / [2일차] 메뉴B ...
@@ -260,7 +254,8 @@ serve(async (req) => {
 
                 notifications.push({
                     user_id: schedule.user_id,
-                    type: 'schedule',
+                    category: 'schedule',
+                    event_type: 'schedule_reminder',
                     title: `내일 캠핑, 식사 메뉴 추천! (${tripDuration}일)`,
                     body: `날씨: ${weather?.sky || '맑음'}. 추천: ${menuStr}`,
                     data: { route: `/myspace/schedule/${schedule.id}?tab=checklist&recipeId=${meals[0]?.id}`, recipeId: meals[0]?.id },
@@ -278,7 +273,8 @@ serve(async (req) => {
 
                 notifications.push({
                     user_id: schedule.user_id,
-                    type: 'schedule',
+                    category: 'schedule',
+                    event_type: 'schedule_reminder',
                     title: `캠핑 4일 전! ${isRainy ? '우비 챙기셨나요?' : '준비를 시작해볼까요?'}`,
                     body: `'${schedule.campground_name}' 여행 가기 전, ${msg}`,
                     data: { route: `/myspace/schedule/${schedule.id}?tab=checklist` },
@@ -290,19 +286,33 @@ serve(async (req) => {
 
         // 3. Batch Insert Notifications & Update Flags
         if (notifications.length > 0) {
-            await supabase.from('notifications').insert(notifications);
+            // CRITICAL: Throw error if insert fails
+            const { error: insertError } = await supabase.from('notifications').insert(notifications);
+            if (insertError) throw insertError;
 
             if (updateIdsD0.length > 0) await supabase.from('user_schedules').update({ notification_d0_sent: true }).in('id', updateIdsD0);
             if (updateIdsD1.length > 0) await supabase.from('user_schedules').update({ notification_d1_sent: true }).in('id', updateIdsD1);
             if (updateIdsD4.length > 0) await supabase.from('user_schedules').update({ notification_d4_sent: true }).in('id', updateIdsD4);
         }
 
-        return new Response(JSON.stringify({ success: true, count: notifications.length }), {
+        // SUCCESS RESPONSE
+        return new Response(JSON.stringify({
+            success: true,
+            count: notifications.length,
+            debug: {
+                today, tomorrow, d4,
+                processedIds: [...updateIdsD0, ...updateIdsD1, ...updateIdsD4]
+            }
+        }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
 
     } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), {
+        console.error("Critical Error:", err);
+        return new Response(JSON.stringify({
+            error: err.message,
+            stack: err.stack
+        }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit, Search, PlusCircle, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Search, PlusCircle, Sparkles, Loader2, Grid, Calendar, List } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { communityService } from '@/services/communityService';
 import { Post } from '@/store/useCommunityStore';
@@ -137,6 +137,21 @@ export default function MyRecordsPage() {
                 </div>
 
                 <div className="flex items-center gap-1">
+                    {/* View Switcher (Only visible in Records Tab) */}
+                    {activeTab === 'records' && (
+                        <div className="flex bg-stone-200/50 rounded-lg p-0.5 mr-2">
+                            <button className="p-1.5 bg-white text-[#1C4526] shadow-sm rounded-md" aria-label="List View">
+                                <List className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => router.push('/myspace/records/seasonal')} className="p-1.5 text-stone-400 hover:text-stone-600 transition-colors" aria-label="Seasonal View">
+                                <Grid className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => router.push('/myspace/records/timeline')} className="p-1.5 text-stone-400 hover:text-stone-600 transition-colors" aria-label="Timeline View">
+                                <Calendar className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+
                     <button
                         onClick={() => setIsSearchOpen(!isSearchOpen)}
                         className={`p-2 rounded-full transition-colors ${isSearchOpen ? 'text-[#1C4526] bg-stone-200/50' : 'text-stone-600'}`}

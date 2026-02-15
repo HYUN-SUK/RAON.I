@@ -1,0 +1,227 @@
+﻿
+> raon-app@0.1.0 build
+> next build
+
+npm : [baseline-brow
+ser-mapping] The dat
+a in this module is 
+over two months old.
+  To ensure accurate
+ Baseline data, plea
+se update: `npm i ba
+seline-browser-mappi
+ng@latest -D`
+위치 줄:1 문자:1
++ npm run build 2>&1
+ | Out-File -FilePat
+h _build_log3.txt -E
+ncoding utf ...
++ ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo  
+            : NotSpe
+cified: ([ba    seli
+ne-brows...ping@la  
+  test -D`:String) [
+], R    emoteExcepti
+on
+    + FullyQualified
+ErrorI    d : Native
+CommandError
+ 
+??`eslint` configura
+tion in next.config.
+ts is no longer supp
+orted. See more info
+ here: https://nextj
+s.org/docs/app/api-r
+eference/cli/next#ne
+xt-lint-options
+??Invalid next.confi
+g.ts options detecte
+d: 
+??    Unrecognized k
+ey(s) in object: 'es
+lint'
+??See more info here
+: https://nextjs.org
+/docs/messages/inval
+id-next-config
+??Warning: Next.js i
+nferred your workspa
+ce root, but it may 
+not be correct.
+ We detected multipl
+e lockfiles and sele
+cted the directory o
+f C:\Users\USER\pack
+age-lock.json as the
+ root directory.
+ To silence this war
+ning, set `turbopack
+.root` in your Next.
+js config, or consid
+er removing one of t
+he lockfiles if it's
+ not needed.
+   See https://nextj
+s.org/docs/app/api-r
+eference/config/next
+-config-js/turbopack
+#root-directory for 
+more information.
+ Detected additional
+ lockfiles: 
+   * C:\Users\USER\D
+esktop\RAON.I\packag
+e-lock.json
+
+??Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+??The "middleware" f
+ile convention is de
+precated. Please use
+ "proxy" instead. Le
+arn more: https://ne
+xtjs.org/docs/messag
+es/middleware-to-pro
+xy
+  Creating an optimized production build ...
+[baseline-browser-ma
+pping] The data in t
+his module is over t
+wo months old.  To e
+nsure accurate Basel
+ine data, please upd
+ate: `npm i baseline
+-browser-mapping@lat
+est -D`
+??Compiled successfully in 18.0s
+  Running TypeScript ...
+  Collecting page data using 5 workers ...
+[baseline-browser-ma
+pping] The data in t
+his module is over t
+wo months old.  To e
+nsure accurate Basel
+ine data, please upd
+ate: `npm i baseline
+-browser-mapping@lat
+est -D`
+[baseline-browser-ma
+pping] The data in t
+his module is over t
+wo months old.  To e
+nsure accurate Basel
+ine data, please upd
+ate: `npm i baseline
+-browser-mapping@lat
+est -D`
+[baseline-browser-ma
+pping] The data in t
+his module is over t
+wo months old.  To e
+nsure accurate Basel
+ine data, please upd
+ate: `npm i baseline
+-browser-mapping@lat
+est -D`
+[baseline-browser-ma
+pping] The data in t
+his module is over t
+wo months old.  To e
+nsure accurate Basel
+ine data, please upd
+ate: `npm i baseline
+-browser-mapping@lat
+est -D`
+[baseline-browser-ma
+pping] The data in t
+his module is over t
+wo months old.  To e
+nsure accurate Basel
+ine data, please upd
+ate: `npm i baseline
+-browser-mapping@lat
+est -D`
+  Generating static pages using 5 workers (0/11) ...
+  Generating static pages using 5 workers (2/11) 
+  Generating static pages using 5 workers (5/11) 
+  Generating static pages using 5 workers (8/11) 
+??Generating static pages using 5 workers (11/11) in 335.9ms
+  Finalizing page optimization ...
+
+Route (app)
+??? /
+??? /_not-found
+??? /admin
+??? /admin/block
+??? /admin/community
+??? /admin/content
+??? /admin/content/[id]
+??? /admin/groups
+??? /admin/login
+??? /admin/market
+??? /admin/market/[id]
+??? /admin/market/new
+??? /admin/mission
+??? /admin/mission/[id]
+??? /admin/mission/create
+??? /admin/notice
+??? /admin/notice/[id]
+??? /admin/notice/create
+??? /admin/operations
+??? /admin/payments
+??? /admin/push
+??? /admin/rate
+??? /admin/recommendations
+??? /admin/reservations
+??? /admin/settings
+??? /admin/sites
+??? /admin/sites/[id]
+??? /api/admin/campgrounds/sync
+??? /api/admin/operations
+??? /api/cron/mission-ranking
+??? /api/holidays
+??? /api/nearby-activities
+??? /api/nearby-events
+??? /api/nearby-facilities
+??? /api/weather
+??? /auth/callback
+??? /community
+??? /community/[id]
+??? /community/content
+??? /community/content/[id]
+??? /community/content/create
+??? /community/groups/[id]
+??? /community/groups/new
+??? /community/write
+??? /login
+??? /market
+??? /market/cart
+??? /market/checkout
+??? /market/orders
+??? /market/products/[id]
+??? /mission
+??? /mission/[id]
+??? /myspace
+??? /myspace/album
+??? /myspace/embers
+??? /myspace/favorites
+??? /myspace/history
+??? /myspace/records
+??? /myspace/reservations
+??? /myspace/schedule
+??? /myspace/schedule/[id]
+??? /myspace/wallet
+??? /notifications
+??? /planlock
+??? /reservation
+??? /reservation/[id]
+??? /reservation/complete
+
+
+? Proxy (Middleware)
+
+?  (Dynamic)  server-rendered on demand
+

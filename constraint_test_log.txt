@@ -1,0 +1,5 @@
+Testing 'posts' constraint...
+Insert 'story' result: Could not find the 'body' column of 'posts' in the schema cache
+Details: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'body' column of 'posts' in the schema cache"}
+Insert 'STORY' result: Could not find the 'body' column of 'posts' in the schema cache
+Details: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'body' column of 'posts' in the schema cache"}

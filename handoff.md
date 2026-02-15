@@ -1,46 +1,53 @@
-# Handoff: Phase 12.3 - 1분 기록 & 이미지 에디터 구현 완료
+# Handoff — 2026-02-14 Session
 
-## 1. 현재 상태 요약 (Current Status)
-- **Phase 12.3 (1-Minute Record)** 구현을 완료했습니다.
-- 사용자는 자신의 캠핑 일정(`schedules`)에 기반하여 사진과 짧은 글을 남길 수 있습니다.
-- **이미지 에디터(Image Editor)** 기능이 탑재되어, 사진 업로드 전 자르기/필터/텍스트 편집이 가능합니다.
-- 작성된 기록은 **내 공간(My Space)**과 **커뮤니티(Review Board)**에 즉시 연동됩니다.
+## 🚀 완료된 작업 (Accomplished)
 
-## 2. 주요 구현 내용 (Key Deliverables)
-### A. 1분 기록 (MyAjiit Record)
-- **DB**: `camping_records` 테이블 생성 및 RLS 정책 적용.
-- **UI**: `QuickRecordForm` (작성/수정), `AjiitCard` (카드형 뷰).
-- **Auto-fill**: 일정 선택 시 캠핑장 이름/주소 자동 입력 + 방문 횟수(N번째) 카운팅 로직.
-- **연동**: `MyMapList` (지도) 마커 병합 및 커뮤니티(리뷰) 노출.
+### 1. Migration Push 완전 해결 ✅
+- **60+ 마이그레이션 파일** 전부 원격 DB에 적용 완료.
+- 14가지 에러 유형 (정책 중복, 테이블 중복, 함수 시그니처, 인코딩 등) 해결.
+- `fix_idempotency.js` 스크립트를 통해 `CASCADE` 등 멱등성 보장 로직 추가.
+- 관련 커밋: `d1db4cb`
 
-### B. 이미지 에디터 (Image Editor)
-- **라이브러리**: `@toast-ui/react-image-editor` 사용.
-- **트러블슈팅 및 해결**:
-  1. **CSS 누락**: CDN(`uicdn.toast.com`) 링크 주입으로 스타일 복구.
-  2. **Focus Trap**: Radix Sheet와 TUI Editor 간의 키보드 충돌 해결을 위해 **React Portal 기반 Custom Modal**로 교체.
-  3. **SSR 에러**: `window` 객체 접근 방어 코드(`useEffect`) 추가.
-  4. **Z-Index**: Portal을 사용하여 최상위 레이어(`document.body`)에서 렌더링.
-  5. **React 19 호환성**: `react-image-editor` Wrapper 라이브러리의 호환성 문제로 인해, Wrapper를 제거하고 **Vanilla JS (`tui-image-editor`)**를 직접 연동하는 방식으로 재구축하여 안정성을 확보했습니다.
+### 2. Push Trigger UUID→bigint 수정 ✅
+- `handle_new_notification()` 트리거의 `request_id` 타입 불일치 해결.
+- `pg_net.http_post()`가 `bigint`를 반환하므로, 변수 타입을 `uuid`에서 `bigint`로 변경.
+- Migration: `20260214000007_fix_push_trigger_type.sql`
 
-### C. 커뮤니티 (Review Board)
-- **탭 분리**: 'RaonAI 후기' (예약 시스템 연동) vs '캠퍼 후기' (외부/1분 기록) 분리.
-- **필터링**: `campground_type` (`raonai` | `external`) 컬럼 기준 조회 로직 분리.
+### 3. camping-reminder Edge Function 전면 개편 ✅
+- **Real KMA API**: 실제 기상청 단기예보 연동 (Mock 제거). 일자별 최저/최고 기온 반영.
+- **Tour API**: 반경 30km 주변 행사/축제 정보 연동 (D-Day 알림).
+- **감성 메뉴 추천**: 날씨/계절/일차/시간대 기반의 4-Slot 문학적 추천 사유 생성기 구현.
+- **장비 추천**: 기온(5도 미만 등) 및 강수 여부에 따른 맞춤 장비(핫팩, 우비 등) 추천 (D-4 알림).
+- **배포**: Supabase Edge Function 배포 완료 및 정상 작동 검증.
 
-## 3. 기술적 결정 사항 (Technical Decisions)
-- **Portal & Custom Modal**: 기존 `Sheet` 컴포넌트는 접근성(Focus Trap) 제어가 강력하여, TUI Image Editor 같은 Canvas 기반 외부 라이브러리와 충돌이 발생했습니다. 이를 우회하기 위해 순수 React Portal과 Div Overlay를 사용하여 편집 모달을 독립적으로 구현했습니다.
-- **Vanilla JS Rewrite**: `react-image-editor`가 React 최신 버전(Next.js 15) 환경에서 불안정한 동작을 보여, 의존성을 제거하고 useEffect 내에서 순수 JS 인스턴스를 관리하는 방식으로 전환했습니다.
-- **CDN for CSS**: Next.js App Router와 TUI Editor의 Webpack 로더 충돌(이미지 경로)을 피하기 위해, CSS를 로컬 import 대신 CDN 링크로 로드하는 방식으로 변경했습니다.
+### 4. Vercel 빌드/배포 에러 해결 (Hotfix) ✅
+- **TypeScript Error**: `MealRecommendationWidget.tsx`에서 `meal.difficulty` 타입 캐스팅(`Number()`) 추가.
+- **Dependency Conflict**: React 19와 `@toast-ui` 간 충돌 해결을 위해 `.npmrc` (`legacy-peer-deps=true`) 추가.
+- 관련 커밋: `48db907`
 
-## 4. 다음 작업 가이드 (Next Steps)
-`RAON_MASTER_ROADMAP_v3.md`의 **Phase 12.3 잔여 항목**부터 진행하면됩니다.
+---
 
-1. **찜 기능 (Wishlist)**:
-   - 외부 캠핑장(`camping_ajiit_db`) 및 내부 캠핑장 찜하기 기능 통합.
-   - `bookmarks` 테이블 확장 또는 신규 매핑 테이블 필요.
-2. **준비 알림 (Notifications)**:
-   - 일정 기반 D-Day 알림 (D-4, D-1) 스케줄러 구현 (Cron).
-   - 푸시 알림 연동.
+## 🛠️ 기술적 결정 사항 (Technical Decisions)
 
-## 5. 알려진 이슈 (Known Issues)
-- **Image Editor Icons**: TUI Editor 기본 아이콘을 사용 중입니다. 더 나은 디자인을 위해 추후 커스텀 아이콘셋 적용을 고려할 수 있습니다.
-- **Network Dependency**: 이미지 에디터 스타일이 CDN에 의존하므로, 오프라인 환경에서는 스타일이 깨질 수 있습니다. (현재 웹앱 특성상 큰 문제는 아님).
+- **Edge Function vs DB Trigger**: 알림 발송 트리거는 DB(`notifications` insert)에서 하되, 알림 *내용 생성*은 Edge Function(`camping-reminder` Cron)에서 전담하도록 분리.
+- **API Key 관리**: `KMA_SERVICE_KEY`, `TOUR_API_KEY` 등은 Supabase Edge Function Secrets로 관리.
+- **Vercel Build**: `@toast-ui/react-image-editor`가 React 19를 공식 지원하지 않아 `legacy-peer-deps`를 사용하여 강제 호환시킴.
+
+---
+
+## 📅 다음 세션 작업 가이드 (Next Steps)
+
+1. **알림 콘텐츠 세부 튜닝**:
+   - D-4, D-1, D-Day 알림의 문구 톤앤매너 미세 조정.
+   - 실제 캠핑장 좌표로 Tour API 데이터가 풍부하게 나오는지 추가 확인.
+2. **KMA API 안정성 모니터링**:
+   - `base_time` 자동 선택 로직이 새벽/심야 시간대에도 잘 작동하는지 확인.
+3. **Phase 12.4 복합 편집 (Complex Editing)**:
+   - 계절별/타임라인 뷰 구현 시작.
+
+---
+
+## ⚠️ 주의 사항 (Caveats)
+
+- **.npmrc 파일**: Vercel 배포를 위해 필수적이므로 삭제하지 마십시오.
+- **API Quota**: KMA 및 Tour API는 공공데이터포털의 트래픽 제한이 있으므로, 과도한 호출 테스트 시 주의 필요.

@@ -1,0 +1,88 @@
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 17.8s
+  Running TypeScript ...
+  Collecting page data using 5 workers ...
+  Generating static pages using 5 workers (0/11) ...
+  Generating static pages using 5 workers (2/11) 
+  Generating static pages using 5 workers (5/11) 
+  Generating static pages using 5 workers (8/11) 
+✓ Generating static pages using 5 workers (11/11) in 223.2ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /admin
+├ ƒ /admin/block
+├ ƒ /admin/community
+├ ƒ /admin/content
+├ ƒ /admin/content/[id]
+├ ƒ /admin/groups
+├ ƒ /admin/login
+├ ƒ /admin/market
+├ ƒ /admin/market/[id]
+├ ƒ /admin/market/new
+├ ƒ /admin/mission
+├ ƒ /admin/mission/[id]
+├ ƒ /admin/mission/create
+├ ƒ /admin/notice
+├ ƒ /admin/notice/[id]
+├ ƒ /admin/notice/create
+├ ƒ /admin/operations
+├ ƒ /admin/payments
+├ ƒ /admin/push
+├ ƒ /admin/rate
+├ ƒ /admin/recommendations
+├ ƒ /admin/reservations
+├ ƒ /admin/settings
+├ ƒ /admin/sites
+├ ƒ /admin/sites/[id]
+├ ƒ /api/admin/campgrounds/sync
+├ ƒ /api/admin/operations
+├ ƒ /api/cron/mission-ranking
+├ ƒ /api/holidays
+├ ƒ /api/nearby-activities
+├ ƒ /api/nearby-events
+├ ƒ /api/nearby-facilities
+├ ƒ /api/weather
+├ ƒ /auth/callback
+├ ƒ /community
+├ ƒ /community/[id]
+├ ƒ /community/content
+├ ƒ /community/content/[id]
+├ ƒ /community/content/create
+├ ƒ /community/groups/[id]
+├ ƒ /community/groups/new
+├ ƒ /community/write
+├ ƒ /login
+├ ƒ /market
+├ ƒ /market/cart
+├ ƒ /market/checkout
+├ ƒ /market/orders
+├ ƒ /market/products/[id]
+├ ƒ /mission
+├ ƒ /mission/[id]
+├ ƒ /myspace
+├ ƒ /myspace/album
+├ ƒ /myspace/embers
+├ ƒ /myspace/favorites
+├ ƒ /myspace/history
+├ ƒ /myspace/records
+├ ƒ /myspace/reservations
+├ ƒ /myspace/schedule
+├ ƒ /myspace/schedule/[id]
+├ ƒ /myspace/wallet
+├ ƒ /notifications
+├ ƒ /planlock
+├ ƒ /reservation
+├ ƒ /reservation/[id]
+└ ƒ /reservation/complete
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+

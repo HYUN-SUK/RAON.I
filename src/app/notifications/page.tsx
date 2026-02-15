@@ -105,7 +105,13 @@ export default function NotificationsPage() {
                     notifications.map((noti) => (
                         <div
                             key={noti.id}
-                            className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 relative overflow-hidden active:scale-[0.98] transition-transform duration-200"
+                            onClick={() => {
+                                if (noti.data?.route) {
+                                    console.log('Navigating to:', noti.data.route);
+                                    router.push(noti.data.route);
+                                }
+                            }}
+                            className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 relative overflow-hidden active:scale-[0.98] transition-transform duration-200 cursor-pointer"
                         >
                             {/* Paper/Note Texture Effect (Optional) */}
                             <div className="absolute top-0 left-0 w-1 h-full bg-[#1C4526] opacity-80" />
@@ -119,10 +125,17 @@ export default function NotificationsPage() {
                                         <h3 className="text-base font-bold text-stone-800 dark:text-stone-100 leading-tight">
                                             {noti.title}
                                         </h3>
-                                        <span className="text-[10px] text-stone-400 whitespace-nowrap ml-2 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            {format(new Date(noti.created_at), 'MM.dd HH:mm', { locale: ko })}
-                                        </span>
+                                        <div className="flex flex-col items-end ml-2">
+                                            <span className="text-[10px] text-stone-400 whitespace-nowrap flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {format(new Date(noti.created_at), 'MM.dd HH:mm', { locale: ko })}
+                                            </span>
+                                            {noti.data?.route && (
+                                                <span className="text-[10px] text-[#1C4526] mt-1 font-medium bg-green-50 px-1.5 py-0.5 rounded-md">
+                                                    바로가기 Available
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed whitespace-pre-wrap">
                                         {noti.body}

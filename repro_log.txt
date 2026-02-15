@@ -1,0 +1,14 @@
+Attempting to reproduce UUID error...
+Using User ID: c191ffa7-56e4-4be6-85b2-e5678dece820
+
+--- Test 1: Integer 82 ---
+Test 1 Failed: invalid input syntax for type uuid: "84" (Code: 22P02)
+
+--- Test 2: String '82' ---
+Test 2 Failed: invalid input syntax for type uuid: "85"
+
+--- Test 3: No recipeId ---
+Test 3 Failed: invalid input syntax for type uuid: "86"
+
+--- Test 4: UUID recipeId ---
+Test 4 Failed: invalid input syntax for type uuid: "87"

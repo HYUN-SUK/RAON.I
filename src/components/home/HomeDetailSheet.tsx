@@ -266,7 +266,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                                     onClick={handleShuffle}
                                 >
                                     <Dices size={18} />
-                                    다른 추천 뽑기
+                                    다른 메뉴 추천
                                 </Button>
                             </div>
                         )}

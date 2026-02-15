@@ -1,0 +1,27 @@
+Columns: id, user_id, category, title, body, link, status, error_message, created_at, read_at, event_type, quiet_hours_override, data, sent_at, is_read
+Sample Row: {
+  "id": "d3080611-a377-467a-8ae3-171fa2cd0183",
+  "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+  "category": "reservation",
+  "title": "예약 신청 완료",
+  "body": "입금이 확인되면 예약이 최종 확정됩니다.\n\n▶ 입금 대기 중\n입금 계좌: 국민은행 458701-04-539380\n예금주: 정현석\n입금 금액: 40,000원\n입금 기한: 1월 19일 오후 10:49 까지\n* 기한 내 미입금 시 자동 취소됩니다.\n\n일정: 2026. 2. 23. - 2026. 2. 24.\n사이트: 석이네",
+  "link": null,
+  "status": "queued",
+  "error_message": null,
+  "created_at": "2026-01-19T07:49:05.400025+00:00",
+  "read_at": null,
+  "event_type": "reservation_submitted",
+  "quiet_hours_override": true,
+  "data": {
+    "checkIn": "2026. 2. 23.",
+    "bankName": "국민은행",
+    "checkOut": "2026. 2. 24.",
+    "deadline": "1월 19일 오후 10:49",
+    "siteName": "석이네",
+    "bankHolder": "정현석",
+    "totalPrice": "40,000",
+    "bankAccount": "458701-04-539380"
+  },
+  "sent_at": null,
+  "is_read": true
+}

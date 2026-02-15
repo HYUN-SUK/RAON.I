@@ -1,0 +1,6 @@
+Querying for: [2026-02-13, 2026-02-14, 2026-02-17]
+Found 4 schedules.
+- 철수네 (2026-02-14)
+- [TEST] D-Day Camping (2026-02-13)
+- [TEST] D-1 Camping (2026-02-14)
+- [TEST] D-4 Camping (2026-02-17)

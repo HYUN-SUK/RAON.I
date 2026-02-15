@@ -1,13 +1,13 @@
 'use client';
 
 import { Utensils, RotateCw } from 'lucide-react';
-import { MealRecommend } from '@/lib/meal-recommendation';
+import { MealRecommendation } from '@/lib/meal-recommendation';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import RecipeDetailSheet from '@/components/common/RecipeDetailSheet';
 
 interface MealRecommendationWidgetProps {
-    recommendations: MealRecommend[];
+    recommendations: MealRecommendation[];
     className?: string;
     initialRecipeId?: string | null;
     onRefresh?: () => void;
@@ -67,20 +67,13 @@ export default function MealRecommendationWidget({
                     >
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-bold text-gray-800">{meal.name}</h4>
-                                <span className={cn(
-                                    "px-2 py-1 rounded-full text-xs font-medium",
-                                    // Map number to colors if needed, or just use a generic one
-                                    "bg-yellow-100 text-yellow-700"
-                                )}>
-                                    {'⭐'.repeat(Number(meal.difficulty) || 1)}
-                                </span>
+                                <h4 className="font-bold text-gray-800">{meal.title}</h4>
                             </div>
                             <p className="text-sm text-gray-500 line-clamp-1 mb-2">
                                 {meal.description}
                             </p>
                             <div className="flex flex-wrap gap-1">
-                                {meal.tags && Array.isArray(meal.tags) && meal.tags.map((tag, idx) => (
+                                {meal.tags && Array.isArray(meal.tags) && meal.tags.map((tag: string, idx: number) => (
                                     <span key={idx} className="text-xs text-stone-500 bg-stone-50 px-1.5 py-0.5 rounded">
                                         {tag}
                                     </span>

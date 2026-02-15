@@ -47,7 +47,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import MealRecommendationWidget from '@/components/myspace/MealRecommendationWidget';
-import { getRandomRecommendations } from '@/actions/recommendation';
+import { getPersonalizedRecommendations, RecipeSearchResult } from '@/actions/recommendation';
 
 
 const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
@@ -73,6 +73,7 @@ export default function ScheduleDetailPage() {
 
     // Meal Recommendations State
     const [mealRecommendations, setMealRecommendations] = useState<any[]>([]);
+    const [recommendationRationale, setRecommendationRationale] = useState('');
 
     // 수정/삭제 상태
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
@@ -99,22 +100,73 @@ export default function ScheduleDetailPage() {
     }, [schedule]);
 
     // Fetch Recommendations
-    useEffect(() => {
-        const fetchRecs = async () => {
-            const recs = await getRandomRecommendations(3);
+    const fetchRecs = useCallback(async (isRefresh = false) => {
+        if (!schedule) return;
 
-            const mappedRecs = recs.map(r => ({
-                id: r.id,
-                name: r.title,
-                description: r.description || '',
-                tags: r.tags || [],
-                difficulty: r.difficulty || 1, // Pass number directly
-                season: []
-            }));
-            setMealRecommendations(mappedRecs as any);
-        };
+        // If refreshing, we ignore the initialRecipeId to give fresh results
+        const targetInitialId = isRefresh ? null : initialRecipeId;
+
+        // 1. Fetch Personalized Logic (Randomized context-aware)
+        // returns { recommendations, rationale }
+        const { recommendations: recs, rationale } = await getPersonalizedRecommendations(3, {
+            lat: schedule.campground_lat,
+            lng: schedule.campground_lng,
+            dateStr: schedule.check_in,
+            memberCount: schedule.member_count
+        });
+
+        setRecommendationRationale(rationale);
+
+        // 2. If Notification Deep Link exists, ensure it's in the list (prepend)
+        // Only do this on first load (not refresh)
+        let finalRecs = [...recs];
+
+        if (targetInitialId) {
+            // Check if already in list
+            const exists = finalRecs.find(r => r.id === targetInitialId);
+            if (!exists) {
+                // Fetch specific recipe
+                const { getRecipeById } = await import('@/actions/recommendation');
+                const targetRecipe = await getRecipeById(targetInitialId);
+
+                if (targetRecipe) {
+                    // Map loosely to RecipeSearchResult
+                    const mappedTarget: any = { // TODO: sanitize type
+                        id: targetRecipe.id,
+                        title: targetRecipe.title,
+                        description: targetRecipe.description,
+                        category: targetRecipe.category,
+                        image_url: targetRecipe.image_url,
+                        difficulty: targetRecipe.difficulty || targetRecipe.metadata?.difficulty,
+                        tags: targetRecipe.tags
+                    };
+                    // Prepend and keep max 3
+                    finalRecs = [mappedTarget, ...finalRecs].slice(0, 3);
+                }
+            } else {
+                // If exists, move to top?
+                finalRecs = [exists, ...finalRecs.filter(r => r.id !== targetInitialId)];
+            }
+        }
+
+        const mappedRecs = finalRecs.map((r: any) => ({
+            id: r.id,
+            name: r.title,
+            description: r.description || '',
+            tags: r.tags || [],
+            difficulty: r.difficulty || 1,
+            season: []
+        }));
+        setMealRecommendations(mappedRecs as any);
+    }, [schedule, initialRecipeId]);
+
+    useEffect(() => {
         fetchRecs();
-    }, []);
+    }, [fetchRecs]);
+
+    const handleRefreshRecommendations = () => {
+        fetchRecs(true);
+    };
 
     // 일정 수정
     const handleUpdate = async () => {
@@ -474,21 +526,17 @@ export default function ScheduleDetailPage() {
                 <MealRecommendationWidget
                     recommendations={mealRecommendations}
                     initialRecipeId={initialRecipeId}
+                    onRefresh={handleRefreshRecommendations}
+                    rationale={recommendationRationale}
                 />
+
+                {/* 하단 여백 (버튼이 있을 경우) */}
+                {schedule.status === 'scheduled' && daysUntil <= 0 && (
+                    <div className="h-20" />
+                )}
             </div>
 
-            {/* 하단 버튼 */}
-            {schedule.status === 'scheduled' && daysUntil <= 0 && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
-                    <Button
-                        onClick={handleComplete}
-                        className="w-full bg-[#224732] hover:bg-[#1a3626] h-12 text-base"
-                    >
-                        <Check className="w-5 h-5 mr-2" />
-                        캠핑 완료하기
-                    </Button>
-                </div>
-            )}
+
 
             {/* 수정 Sheet */}
             <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>

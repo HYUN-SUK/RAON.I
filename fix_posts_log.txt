@@ -1,0 +1,87 @@
+Checking for invalid 'type' values...
+Found 28 invalid rows out of 28 total.
+Invalid Types Found: NOTICE, STORY, GROUP, REVIEW
+Fixing post b30f165a-d3df-4a8a-ba96-f1b053628772 (type: NOTICE) -> 'story'
+Failed to update post b30f165a-d3df-4a8a-ba96-f1b053628772: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (b30f165a-d3df-4a8a-ba96-f1b053628772, story, 안녕하세요! 실험단계입니다., 실험중입니다., c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {}, 6, 0, 0, f, {\"status\": \"OPEN\", \"visibility\": \"PUBLIC\"}, 2026-01-11 15:00:58.848644+00, 13, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 1d520463-5515-4c6a-84a3-ff11f1b41d77 (type: STORY) -> 'story'
+Failed to update post 1d520463-5515-4c6a-84a3-ff11f1b41d77: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (1d520463-5515-4c6a-84a3-ff11f1b41d77, story, SDFASDF, ASDFAF, null, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 04:27:26.313386+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 4d718962-f1f3-4afc-8f67-3669b1b5b97e (type: STORY) -> 'story'
+Failed to update post 4d718962-f1f3-4afc-8f67-3669b1b5b97e: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (4d718962-f1f3-4afc-8f67-3669b1b5b97e, story, Group Post, ㄴㅇㄹ, null, admin, {}, 1, 1, 0, f, {}, 2025-12-19 12:55:33.178219+00, 10, 9249f7ad-9960-44a0-a947-0b9f5e02ef40).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post e6ace2cf-97df-49b8-b4d7-7fa5fc0aff43 (type: STORY) -> 'story'
+Failed to update post e6ace2cf-97df-49b8-b4d7-7fa5fc0aff43: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (e6ace2cf-97df-49b8-b4d7-7fa5fc0aff43, story, [금주의 미션] ✍️ 올해 나에게 해주고 싶은 말, 2026년을 시작하며 지금의 나에게 해주고 싶은 말..., null, 라온아이, {}, 0, 0, 0, f, {\"status\": \"OPEN\", \"is_mission\": true, \"visibility\": \"PUBLIC\"}, 2026-01-19 00:31:24.533522+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 65aca083-2252-4b87-99c9-cf9e55011df0 (type: STORY) -> 'story'
+Failed to update post 65aca083-2252-4b87-99c9-cf9e55011df0: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (65aca083-2252-4b87-99c9-cf9e55011df0, story, [금주의 미션] 🪟 창밖을 오래 보게 된 순간, 오늘 창밖을 유난히 오래 바라보게 되었던 순간..., null, 라온아이, {}, 0, 0, 0, f, {\"status\": \"OPEN\", \"is_mission\": true, \"visibility\": \"PUBLIC\"}, 2026-02-02 02:15:43.369258+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post b1a5e92d-f75d-4e6c-afba-e819228898a5 (type: STORY) -> 'story'
+Failed to update post b1a5e92d-f75d-4e6c-afba-e819228898a5: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (b1a5e92d-f75d-4e6c-afba-e819228898a5, story, ddd, aaaaa, 4730be31-30b5-4594-a993-d8f5a7a5e26c, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-31 09:36:55.631043+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 5812fbb4-07ab-4cf1-a008-de4e40dd1b23 (type: STORY) -> 'story'
+Failed to update post 5812fbb4-07ab-4cf1-a008-de4e40dd1b23: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (5812fbb4-07ab-4cf1-a008-de4e40dd1b23, story, 하이, 하이, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {https://khqiqwtoyvesxahsjukk.supabase.co/storage/v1/object/publ..., 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2026-02-12 05:35:00.981176+00, 2, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 362fa26e-1a67-4350-ae14-26bf4bd3da9d (type: STORY) -> 'story'
+Failed to update post 362fa26e-1a67-4350-ae14-26bf4bd3da9d: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (362fa26e-1a67-4350-ae14-26bf4bd3da9d, story, SDAFDF, ASDFAF, null, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 04:27:52.965749+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 3111abfe-a3e6-4708-b156-6e950ce79306 (type: STORY) -> 'story'
+Failed to update post 3111abfe-a3e6-4708-b156-6e950ce79306: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (3111abfe-a3e6-4708-b156-6e950ce79306, story, Interaction Test Post, Testing likes and comments., null, Current User, {}, 2, 3, 0, f, {}, 2025-12-16 04:02:14.410852+00, 19, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post d2c714fd-2799-4f66-8a91-412a187cc9d2 (type: STORY) -> 'story'
+Failed to update post d2c714fd-2799-4f66-8a91-412a187cc9d2: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (d2c714fd-2799-4f66-8a91-412a187cc9d2, story, ASGAS, SDFGDFG, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 05:11:51.813942+00, 2, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post ffb4c0c1-acaa-4a9b-8f77-d40a01ec7941 (type: STORY) -> 'story'
+Failed to update post ffb4c0c1-acaa-4a9b-8f77-d40a01ec7941: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (ffb4c0c1-acaa-4a9b-8f77-d40a01ec7941, story, Test Private Post Title, This is a test private post content. It should only appear in My..., null, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 04:54:00.368721+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 6f807a6a-86d3-48d7-be48-6f4e45b2677d (type: STORY) -> 'story'
+Failed to update post 6f807a6a-86d3-48d7-be48-6f4e45b2677d: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (6f807a6a-86d3-48d7-be48-6f4e45b2677d, story, Private Final Test, This is a private test post for verification., null, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 05:02:11.378109+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 3b1f14e3-6972-4976-9851-275ffc974f41 (type: STORY) -> 'story'
+Failed to update post 3b1f14e3-6972-4976-9851-275ffc974f41: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (3b1f14e3-6972-4976-9851-275ffc974f41, story, Test Title 2, Test Content 2, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 07:30:54.387928+00, 2, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 2720fd0f-58ce-44ac-89fe-145f8c7e024b (type: STORY) -> 'story'
+Failed to update post 2720fd0f-58ce-44ac-89fe-145f8c7e024b: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (2720fd0f-58ce-44ac-89fe-145f8c7e024b, story, ASDFA, ASDFAF, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 05:22:51.013696+00, 4, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 2bc35676-0c5a-4437-97f4-e823efbc0eb4 (type: STORY) -> 'story'
+Failed to update post 2bc35676-0c5a-4437-97f4-e823efbc0eb4: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (2bc35676-0c5a-4437-97f4-e823efbc0eb4, story, SDFG, SDFGSDFH, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 05:24:08.630911+00, 4, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 2ba55afd-d856-4bf2-84a7-e9d6d8688fea (type: STORY) -> 'story'
+Failed to update post 2ba55afd-d856-4bf2-84a7-e9d6d8688fea: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (2ba55afd-d856-4bf2-84a7-e9d6d8688fea, story, [금주의 미션] 🕯 조용히 머물렀던 시간, 오늘 특별한 일 없이 조용히 머물렀던 시간을 사..., null, 라온아이, {}, 0, 0, 0, f, {\"status\": \"OPEN\", \"is_mission\": true, \"visibility\": \"PUBLIC\"}, 2026-01-27 10:52:22.088039+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 3266fbc7-8a8b-48ca-a002-63666df9db89 (type: STORY) -> 'story'
+Failed to update post 3266fbc7-8a8b-48ca-a002-63666df9db89: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (3266fbc7-8a8b-48ca-a002-63666df9db89, story, [금주의 미션] ✍️ 요즘 나의 속도, 요즘의 내가 어떤 속도로 살고 있는지 글로 남겨..., null, 라온아이, {}, 0, 0, 0, f, {\"status\": \"OPEN\", \"is_mission\": true, \"visibility\": \"PUBLIC\"}, 2026-02-09 07:32:45.687264+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 2b312045-c4c4-436a-a8f5-e8a12128aef7 (type: GROUP) -> 'story'
+Failed to update post 2b312045-c4c4-436a-a8f5-e8a12128aef7: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (2b312045-c4c4-436a-a8f5-e8a12128aef7, story, 으잉, 오잉, null, 홍길동, {}, 0, 0, 0, f, {\"group_name\": \"찰칵\", \"visibility\": \"PUBLIC\"}, 2025-12-19 09:52:39.919777+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 92740b28-5fa4-4a9d-8266-53a2f8fd9b77 (type: STORY) -> 'story'
+Failed to update post 92740b28-5fa4-4a9d-8266-53a2f8fd9b77: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (92740b28-5fa4-4a9d-8266-53a2f8fd9b77, story, ㅁㄴㅇㄹ, ㅁㄴㅇㄹㅁㄴㅇㄹ, null, Current User, {}, 1, 1, 0, f, {}, 2025-12-16 05:37:13.540338+00, 11, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 5fb730df-c5ef-4637-9f99-7bdf78c6191b (type: REVIEW) -> 'story'
+Failed to update post 5fb730df-c5ef-4637-9f99-7bdf78c6191b: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (5fb730df-c5ef-4637-9f99-7bdf78c6191b, story, 느므느므 좋음, 좋아요~!, null, Current User, {}, 1, 0, 0, f, {}, 2025-12-16 03:40:42.866164+00, 15, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 1f5966d1-db2d-49fe-ae21-725895e41f85 (type: STORY) -> 'story'
+Failed to update post 1f5966d1-db2d-49fe-ae21-725895e41f85: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (1f5966d1-db2d-49fe-ae21-725895e41f85, story, ㄴㅇㄹㅎㄴ, ㄹㅎㄴㅎ, null, Current User, {https://khqiqwtoyvesxahsjukk.supabase.co/storage/v1/object/publ..., 1, 1, 0, f, {}, 2025-12-16 06:25:13.93326+00, 2, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post a328c26f-4e3a-42e2-88a8-3f167ed8cd72 (type: NOTICE) -> 'story'
+Failed to update post a328c26f-4e3a-42e2-88a8-3f167ed8cd72: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (a328c26f-4e3a-42e2-88a8-3f167ed8cd72, story, 시스템 점검 안내, 시스템 점검이 예정되어 있습니다., null, 홍길동, {}, 0, 2, 0, f, {\"status\": \"OPEN\"}, 2025-12-17 10:21:47.256206+00, 39, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 7f2221f2-72d6-421f-9e92-cfd615e34266 (type: STORY) -> 'story'
+Failed to update post 7f2221f2-72d6-421f-9e92-cfd615e34266: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (7f2221f2-72d6-421f-9e92-cfd615e34266, story, RLS Test Post 2, Testing again to be sure., null, Current User, {}, 0, 0, 0, f, {}, 2025-12-16 03:22:03.44698+00, 6, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 2e217e99-767a-4f62-b3de-cce32c866f86 (type: STORY) -> 'story'
+Failed to update post 2e217e99-767a-4f62-b3de-cce32c866f86: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (2e217e99-767a-4f62-b3de-cce32c866f86, story, ssss, gggggg, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 07:37:03.498702+00, 0, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 8b117c65-eaa9-41ff-b335-a04822404e6f (type: STORY) -> 'story'
+Failed to update post 8b117c65-eaa9-41ff-b335-a04822404e6f: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (8b117c65-eaa9-41ff-b335-a04822404e6f, story, 안녕?, 실험중이야, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {https://khqiqwtoyvesxahsjukk.supabase.co/storage/v1/object/publ..., 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2026-02-12 05:32:22.395035+00, 2, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post 66b5bc0d-4310-498f-aaca-b9f18b891bcd (type: STORY) -> 'story'
+Failed to update post 66b5bc0d-4310-498f-aaca-b9f18b891bcd: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (66b5bc0d-4310-498f-aaca-b9f18b891bcd, story, ㅇ로ㅗ, ㄹㄹㄹㄹ, c191ffa7-56e4-4be6-85b2-e5678dece820, 홍길동, {}, 0, 0, 0, f, {\"visibility\": \"PRIVATE\"}, 2025-12-30 07:58:41.843802+00, 8, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post f210341b-e75f-45be-ae3f-e45026dc0109 (type: STORY) -> 'story'
+Failed to update post f210341b-e75f-45be-ae3f-e45026dc0109: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (f210341b-e75f-45be-ae3f-e45026dc0109, story, [금주의 미션] ❄️ 오늘 나를 가장 따뜻하게 만..., 오늘 하루 중 마음이나 몸이 가장 따뜻해졌던 순..., null, 라온아이, {}, 0, 0, 0, f, {\"status\": \"OPEN\", \"is_mission\": true, \"visibility\": \"PUBLIC\"}, 2026-01-09 14:01:48.074223+00, 6, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}
+Fixing post a8b7a6a3-cf77-4a89-b137-b06c942b2bc0 (type: STORY) -> 'story'
+Failed to update post a8b7a6a3-cf77-4a89-b137-b06c942b2bc0: new row for relation "posts" violates check constraint "posts_type_check" (Code: 23514)
+Details: {"code":"23514","details":"Failing row contains (a8b7a6a3-cf77-4a89-b137-b06c942b2bc0, story, [금주의 미션] ☕ 요즘 자주 손이 가는 것, 요즘 유독 자주 찾게 되는 물건이나 행동을 사진..., null, 라온아이, {}, 0, 0, 0, f, {\"status\": \"OPEN\", \"is_mission\": true, \"visibility\": \"PUBLIC\"}, 2026-01-12 05:27:20.170612+00, 4, null).","hint":null,"message":"new row for relation \"posts\" violates check constraint \"posts_type_check\""}

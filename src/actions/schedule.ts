@@ -37,6 +37,7 @@ export interface Schedule {
     status: 'scheduled' | 'completed' | 'cancelled';
     record_written: boolean;
     memo?: string;
+    member_count?: number;
     created_at: string;
     updated_at: string;
 }
@@ -132,6 +133,23 @@ export async function getScheduleById(scheduleId: string): Promise<Schedule | nu
     if (error) {
         console.error('Fetch schedule error:', error);
         return null;
+    }
+
+    if (!data) return null;
+
+    // 만료 체크 및 자동 완료 처리
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkOutDate = new Date(data.check_out);
+
+    // 퇴실일이 지났고(어제 이전), 상태가 scheduled라면 완료 처리
+    if (data.status === 'scheduled' && checkOutDate < today) {
+        await supabase
+            .from('user_schedules')
+            .update({ status: 'completed' })
+            .eq('id', scheduleId);
+
+        return { ...data, status: 'completed' };
     }
 
     return data;

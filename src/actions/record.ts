@@ -21,6 +21,10 @@ export interface CampingRecord {
     latitude?: number;
     longitude?: number;
     created_at: string;
+    // Extended fields (Mapped from relation or calculated)
+    start_date: string;
+    end_date: string;
+    nights: number;
 }
 
 export interface CreateRecordInput {
@@ -94,9 +98,16 @@ export async function getMyRecords(limit = 20, offset = 0): Promise<CampingRecor
 
         if (!user) return [];
 
+        // Join user_schedules to get start_date, end_date
         const { data, error } = await supabase
             .from('camping_records')
-            .select('*')
+            .select(`
+                *,
+                user_schedules (
+                    start_date,
+                    end_date
+                )
+            `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
@@ -106,7 +117,30 @@ export async function getMyRecords(limit = 20, offset = 0): Promise<CampingRecor
             return [];
         }
 
-        return data || [];
+        // Map data to include flattened start_date/end_date/nights
+        return (data || []).map((record: any) => {
+            const schedule = record.user_schedules; // Can be null if array or single object depending on relation type, assuming One-to-One or Many-to-One
+            // Supabase returns object if foreign key is unique or single relation. Assuming schedule_id is FK to user_schedules.id
+
+            const startDate = schedule?.start_date || record.created_at;
+            const endDate = schedule?.end_date || record.created_at;
+
+            let nights = 0;
+            if (schedule?.start_date && schedule?.end_date) {
+                const start = new Date(schedule.start_date);
+                const end = new Date(schedule.end_date);
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                nights = diffDays;
+            }
+
+            return {
+                ...record,
+                start_date: startDate,
+                end_date: endDate,
+                nights: nights
+            } as CampingRecord;
+        });
     } catch (error) {
         console.error('Get records error:', error);
         return [];
@@ -259,7 +293,13 @@ export async function getPublicRecords(
 
         let query = supabase
             .from('camping_records')
-            .select('*')
+            .select(`
+                *,
+                user_schedules (
+                    start_date,
+                    end_date
+                )
+            `)
             .eq('is_public', true)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
@@ -275,7 +315,28 @@ export async function getPublicRecords(
             return [];
         }
 
-        return data || [];
+        // Map data to include flattened start_date/end_date/nights - SAME LOGIC as getMyRecords
+        return (data || []).map((record: any) => {
+            const schedule = record.user_schedules;
+
+            const startDate = schedule?.start_date || record.created_at;
+            const endDate = schedule?.end_date || record.created_at;
+
+            let nights = 0;
+            if (schedule?.start_date && schedule?.end_date) {
+                const start = new Date(schedule.start_date);
+                const end = new Date(schedule.end_date);
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+
+            return {
+                ...record,
+                start_date: startDate,
+                end_date: endDate,
+                nights: nights
+            } as CampingRecord;
+        });
     } catch (error) {
         console.error('Get public records error:', error);
         return [];

@@ -1,0 +1,157 @@
+﻿
+> raon-app@0.1.0 build
+> next build
+
+npm : [baseline-brow
+ser-mapping] The dat
+a in this module is 
+over two months old.
+  To ensure accurate
+ Baseline data, plea
+se update: `npm i ba
+seline-browser-mappi
+ng@latest -D`
+위치 줄:1 문자:1
++ npm run build 2>&1
+ | Out-File -FilePat
+h _build_log.txt -En
+coding utf8
++ ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo  
+            : NotS  
+  pecified: ([bas   
+ eline-brows...p    
+ing@latest -D`:    S
+tring) [], Rem    ot
+eException
+    + FullyQualifie 
+   dErrorId : Nati  
+  veCommandError
+ 
+??`eslint` configura
+tion in next.config.
+ts is no longer supp
+orted. See more info
+ here: https://nextj
+s.org/docs/app/api-r
+eference/cli/next#ne
+xt-lint-options
+??Invalid next.confi
+g.ts options detecte
+d: 
+??    Unrecognized k
+ey(s) in object: 'es
+lint'
+??See more info here
+: https://nextjs.org
+/docs/messages/inval
+id-next-config
+??Warning: Next.js i
+nferred your workspa
+ce root, but it may 
+not be correct.
+ We detected multipl
+e lockfiles and sele
+cted the directory o
+f C:\Users\USER\pack
+age-lock.json as the
+ root directory.
+ To silence this war
+ning, set `turbopack
+.root` in your Next.
+js config, or consid
+er removing one of t
+he lockfiles if it's
+ not needed.
+   See https://nextj
+s.org/docs/app/api-r
+eference/config/next
+-config-js/turbopack
+#root-directory for 
+more information.
+ Detected additional
+ lockfiles: 
+   * C:\Users\USER\D
+esktop\RAON.I\packag
+e-lock.json
+
+??Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+??The "middleware" f
+ile convention is de
+precated. Please use
+ "proxy" instead. Le
+arn more: https://ne
+xtjs.org/docs/messag
+es/middleware-to-pro
+xy
+  Creating an optimized production build ...
+[baseline-browser-ma
+pping] The data in t
+his module is over t
+wo months old.  To e
+nsure accurate Basel
+ine data, please upd
+ate: `npm i baseline
+-browser-mapping@lat
+est -D`
+??Compiled successfully in 16.7s
+  Running TypeScript ...
+Failed to compile.
+
+./src/components/mys
+pace/MealRecommendat
+ionWidget.tsx:76:49
+Type error: Argument
+ of type 'string' is
+ not assignable to p
+arameter of type 'nu
+mber'.
+  Type 'string' is n
+ot assignable to typ
+e 'number'.
+
+[0m [90m 74 |[39m
+                    
+                 [3
+2m"bg-yellow-100 tex
+t-yellow-700"[39m
+ [90m 75 |[39m    
+                    
+         )}[33m>[3
+9m
+[31m[1m>[22m[39m
+[90m 76 |[39m     
+                    
+            {[32m'狩
+?[39m[33m.[39mrep
+eat(meal[33m.[39md
+ifficulty [33m||[3
+9m [35m1[39m)}
+ [90m    |[39m    
+                    
+                    
+     [31m[1m^[22m
+[39m
+ [90m 77 |[39m    
+                    
+         [33m<[39m
+[33m/[39m[33mspan
+[39m[33m>[39m
+ [90m 78 |[39m    
+                    
+     [33m<[39m[33
+m/[39m[33mdiv[39m
+[33m>[39m
+ [90m 79 |[39m    
+                    
+     [33m<[39m[33
+mp[39m className[3
+3m=[39m[32m"text-s
+m text-gray-500 line
+-clamp-1 mb-2"[39m
+[33m>[39m[0m
+Next.js build worker
+ exited with code: 1
+ and signal: null

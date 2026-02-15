@@ -477,18 +477,27 @@
 - [x] **빌드 검증**: npm run build 통과
 - [x] **MyMapModal 연동**: 일정 등록 모드 + 홈 위젯 추가
 - [x] **1분 기록 폼**: `QuickRecordForm.tsx` + `actions/record.ts` + FAB 버튼 + 표준 태그 20개 + TOAST UI `ImageEditor.tsx` + `AjiitCard.tsx`
-- [ ] **찜 목록 페이지**: `app/(mobile)/myspace/favorites/page.tsx`
-- [ ] **준비 알림 Edge Function**: `camping-notifications/index.ts`
-- [ ] **메뉴 추천 모듈**: `lib/meal-recommendation.ts`
+- [x] **찜 목록 페이지**: `app/(mobile)/myspace/favorites/page.tsx` (Verified)
+- [x] **준비 알림 Edge Function**: `camping-notifications/index.ts` (Phase 12.3 Completed)
+- [x] **메뉴 추천 모듈**: `lib/meal-recommendation.ts` (Phase 12.3 Completed)
 
+### Phase 12.2.5: Infrastructure - Hybrid Caching (Prioritized)
+- [x] **DB Schema**: `20260214_hybrid_caching.sql` (nearby_cache, weather_cache optimization)
+- [x] **Tourism Caching**: `nearby-events/route.ts` - Nationwide Prefetch Logic (Implemented)
+- [x] **Weather Caching**: `weather/route.ts` - On-demand Lazy Caching (Implemented)
+- [x] **Verification**: API Response Time & DB Hit rate (Partially Verified via Build & Logic Test)
 
-### Phase 4: 복합 편집 기능 (~31시간) [분리 진행]
-- [ ] **4-A 기본**: 계절별 모아보기, 타임라인, 사진 갤러리
-- [ ] **4-B 고급**: 감정 캘린더, 책으로 보기, 콜라주
+### Phase 12.3: Logic & Content Polish (~8시간)
+- [x] **Meal Recommendation**: `lib/meal-recommendation.ts` (Rule-based)
+- [x] **Emotional Notification**: `camping-reminder/index.ts` (Tone & Manner)
+- [x] **Favorites Page**: `myspace/favorites/page.tsx` (Completed)
 
-### Phase 5: 프라이빗 커뮤니티 (~16시간) [분리 진행]
-- [ ] **그룹 타입 확장**: `groups.type = 'private'`
-- [ ] **캠핑 노트 UI**: `PrivateGroupNote.tsx`
-- [ ] **공유 일정**: `GroupScheduleCard.tsx`
-- [ ] **할 일 체크리스트**: `GroupTaskList.tsx`
-- [ ] **그룹 앨범**: 캠핑별 사진 자동 그룹화
+### Phase 12.4: Complex Editing (~31시간)
+- [x] **Seasonal View**: `myspace/records/seasonal/page.tsx`
+- [x] **Timeline View**: `myspace/records/timeline/page.tsx`
+- [x] **Components**: `SeasonalGrid`, `TimelineList` (Implemented as pages)
+
+### Phase 12.5: Private Community (Postponed)
+- [ ] **Group Type**: `groups.type = 'private'`
+- [ ] **Camping Note UI**: `PrivateGroupNote.tsx`
+- [ ] **Group Album**: Auto-grouping logic

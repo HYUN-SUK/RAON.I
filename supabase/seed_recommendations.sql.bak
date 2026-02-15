@@ -1,0 +1,54 @@
+
+-- Seeding Recommendation Pool Data (Update Tags Only)
+-- ID is bigint and we don't know the IDs in the remote DB. 
+-- We update by 'title' which is unique per category (and practically unique).
+
+DO $$
+BEGIN
+
+    -- 1. 솥뚜껑 삼겹살
+    UPDATE public.recommendation_pool
+    SET tags = '["#고기", "#저녁", "#술안주", "#바비큐", "#메인요리", "#파티", "#헤비"]'::jsonb
+    WHERE title = '솥뚜껑 삼겹살';
+
+    -- 2. 꼬치 어묵탕
+    UPDATE public.recommendation_pool
+    SET tags = '["#국물", "#따뜻한", "#겨울철", "#안주", "#야식", "#탕", "#소주"]'::jsonb
+    WHERE title = '꼬치 어묵탕';
+
+    -- 3. 모듬 꼬치구이
+    UPDATE public.recommendation_pool
+    SET tags = '["#꼬치", "#안주", "#간식", "#야식", "#맥주", "#간단", "#핑거푸드"]'::jsonb
+    WHERE title = '모듬 꼬치구이';
+
+    -- 4. 돼지고기 김치찌개
+    UPDATE public.recommendation_pool
+    SET tags = '["#찌개", "#한식", "#얼큰한", "#국물", "#해장", "#아침", "#저녁", "#메인요리"]'::jsonb
+    WHERE title = '돼지고기 김치찌개';
+
+    -- 5. 감바스 알 아히요
+    UPDATE public.recommendation_pool
+    SET tags = '["#양식", "#분위기", "#와인", "#안주", "#저녁", "#파티", "#브런치"]'::jsonb
+    WHERE title = '감바스 알 아히요';
+
+    -- 6. 해물 라면
+    UPDATE public.recommendation_pool
+    SET tags = '["#면요리", "#야식", "#간단", "#국물", "#해장", "#얼큰한"]'::jsonb
+    WHERE title = '해물 라면';
+
+    -- 7. 춘천 닭갈비
+    UPDATE public.recommendation_pool
+    SET tags = '["#닭고기", "#볶음밥", "#메인요리", "#저녁", "#점심", "#매콤한", "#술안주"]'::jsonb
+    WHERE title = '춘천 닭갈비';
+
+    -- 8. 밀푀유 나베
+    UPDATE public.recommendation_pool
+    SET tags = '["#전골", "#손님초대", "#비주얼", "#국물", "#따뜻한", "#저녁", "#건강식"]'::jsonb
+    WHERE title = '밀푀유 나베';
+
+    -- 9. 콘치즈
+    UPDATE public.recommendation_pool
+    SET tags = '["#간식", "#아이들", "#치즈", "#야식", "#맥주", "#간단", "#달콤한"]'::jsonb
+    WHERE title = '콘치즈';
+
+END $$;

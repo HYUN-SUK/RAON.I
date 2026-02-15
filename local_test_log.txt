@@ -1,0 +1,4 @@
+Generated Notifications:
+- Type: D-Day, Title: 오늘이 캠핑 떠나는 날!
+- Type: D-1, Title: 내일 캠핑 식사 추천
+- Type: D-4, Title: 캠핑 4일 전

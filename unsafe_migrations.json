@@ -1,0 +1,250 @@
+[
+  {
+    "file": "20251221_market_reviews.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Reviews are viewable by everyone\"",
+      "CREATE POLICY without DROP: \"Users can create reviews\"",
+      "CREATE POLICY without DROP: \"Users can update their own reviews\"",
+      "CREATE POLICY without DROP: \"Users can delete their own reviews\""
+    ]
+  },
+  {
+    "file": "20251221_market_system.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Active products are viewable by everyone\"",
+      "CREATE POLICY without DROP: \"Users can view their own cart\"",
+      "CREATE POLICY without DROP: \"Users can insert into their own cart\"",
+      "CREATE POLICY without DROP: \"Users can update their own cart\"",
+      "CREATE POLICY without DROP: \"Users can delete from their own cart\"",
+      "CREATE POLICY without DROP: \"Users can view their own orders\"",
+      "CREATE POLICY without DROP: \"Users can create orders\""
+    ]
+  },
+  {
+    "file": "20251221_mission_test_rls.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Allow public select user_missions\"",
+      "CREATE POLICY without DROP: \"Allow public insert user_missions\"",
+      "CREATE POLICY without DROP: \"Allow public update user_missions\""
+    ]
+  },
+  {
+    "file": "20251223_community_comment_likes.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users can like comments\"",
+      "CREATE POLICY without DROP: \"Everyone can see comment likes\""
+    ]
+  },
+  {
+    "file": "20251223_mission_ranking_system.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users can view all likes\"",
+      "CREATE POLICY without DROP: \"Users can like missions\"",
+      "CREATE POLICY without DROP: \"Users can unlike missions\""
+    ]
+  },
+  {
+    "file": "20251225_full_personalization_setup.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Allow public read access\"",
+      "CREATE POLICY without DROP: \"Allow admin update access\"",
+      "CREATE POLICY without DROP: \"Public read recommendation_pool\"",
+      "CREATE POLICY without DROP: \"Admin all recommendation_pool\"",
+      "CREATE POLICY without DROP: \"Public read nearby_events\"",
+      "CREATE POLICY without DROP: \"Admin all nearby_events\""
+    ]
+  },
+  {
+    "file": "20251225_recommendation_engine.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Public read recommendation_pool\"",
+      "CREATE POLICY without DROP: \"Admin all recommendation_pool\"",
+      "CREATE POLICY without DROP: \"Public read nearby_events\"",
+      "CREATE POLICY without DROP: \"Admin all nearby_events\""
+    ]
+  },
+  {
+    "file": "20251225_site_config.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Allow public read access\"",
+      "CREATE POLICY without DROP: \"Allow admin update access\""
+    ]
+  },
+  {
+    "file": "20251230_unlocked_features.sql",
+    "reasons": [
+      "CREATE TABLE without IF NOT EXISTS: for"
+    ]
+  },
+  {
+    "file": "20260101_create_open_day_rules.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Public can read active rules\"",
+      "CREATE POLICY without DROP: \"Admins can do everything\""
+    ]
+  },
+  {
+    "file": "20260102_create_weather_cache.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Allow public read of weather cache\""
+    ]
+  },
+  {
+    "file": "20260104_admin_overhaul_phase1.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Public sites are viewable by everyone\"",
+      "CREATE POLICY without DROP: \"Admins can update sites\"",
+      "CREATE POLICY without DROP: \"Admins can insert sites\""
+    ]
+  },
+  {
+    "file": "20260104_blocked_dates.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Public can view blocked dates\"",
+      "CREATE POLICY without DROP: \"Admins can manage blocked dates\""
+    ]
+  },
+  {
+    "file": "20260105_push_notifications.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users can view their own tokens\"",
+      "CREATE POLICY without DROP: \"Users can insert/update their own tokens\"",
+      "CREATE POLICY without DROP: \"Users can view their own notifications\"",
+      "CREATE POLICY without DROP: \"Admins can view all notifications\"",
+      "CREATE POLICY without DROP: \"Admins can insert notifications\""
+    ]
+  },
+  {
+    "file": "20260106_in_app_badges.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users can view own badges\"",
+      "CREATE POLICY without DROP: \"Users can update own badges\"",
+      "CREATE POLICY without DROP: \"Service can insert badges\""
+    ]
+  },
+  {
+    "file": "20260106_waitlist.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users can view own waitlist\"",
+      "CREATE POLICY without DROP: \"Users can insert own waitlist\"",
+      "CREATE POLICY without DROP: \"Users can delete own waitlist\"",
+      "CREATE POLICY without DROP: \"Admins can view all waitlist\""
+    ]
+  },
+  {
+    "file": "20260109_mission_rls.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Enable read access for all users\"",
+      "CREATE POLICY without DROP: \"Enable insert for authenticated users\"",
+      "CREATE POLICY without DROP: \"Enable update for authenticated users\"",
+      "CREATE POLICY without DROP: \"Enable delete for authenticated users\""
+    ]
+  },
+  {
+    "file": "20260110_create_profile_images_bucket.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Public Access Profile Images\"",
+      "CREATE POLICY without DROP: \"Authenticated Upload Profile Images\"",
+      "CREATE POLICY without DROP: \"Authenticated Update Profile Images\"",
+      "CREATE POLICY without DROP: \"Authenticated Delete Profile Images\""
+    ]
+  },
+  {
+    "file": "20260112_market_complete_fix.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Public Read Access for product_images\"",
+      "CREATE POLICY without DROP: \"Authenticated Upload for product_images\""
+    ]
+  },
+  {
+    "file": "20260112_product_images_storage.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Public Read Access for product_images\"",
+      "CREATE POLICY without DROP: \"Authenticated Upload for product_images\"",
+      "CREATE POLICY without DROP: \"Authenticated Delete for product_images\""
+    ]
+  },
+  {
+    "file": "20260116_user_permission_consents.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users can view their own consents\"",
+      "CREATE POLICY without DROP: \"Users can upsert their own consents\"",
+      "CREATE POLICY without DROP: \"Admins can view all consents\""
+    ]
+  },
+  {
+    "file": "20260117_final_rls_fix.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Allow Insert Notifications\""
+    ]
+  },
+  {
+    "file": "20260117_fix_admin_rls.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users and Admins view reservations\"",
+      "CREATE POLICY without DROP: \"Users and Admins view notifications\""
+    ]
+  },
+  {
+    "file": "20260117_nuclear_rls_reset.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"policy_reservations_select_v3\"",
+      "CREATE POLICY without DROP: \"policy_reservations_insert_v3\"",
+      "CREATE POLICY without DROP: \"policy_reservations_update_v3\"",
+      "CREATE POLICY without DROP: \"policy_notifications_select_v3\"",
+      "CREATE POLICY without DROP: \"policy_notifications_insert_v3\"",
+      "CREATE POLICY without DROP: \"policy_notifications_update_v3\""
+    ]
+  },
+  {
+    "file": "20260202_camping_ajiit_full.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"campgrounds_read_all\"",
+      "CREATE POLICY without DROP: \"user_camping_modes_select\"",
+      "CREATE POLICY without DROP: \"user_camping_modes_insert\"",
+      "CREATE POLICY without DROP: \"user_camping_modes_update\"",
+      "CREATE POLICY without DROP: \"user_camping_modes_delete\"",
+      "CREATE POLICY without DROP: \"user_plan_locks_select\"",
+      "CREATE POLICY without DROP: \"user_plan_locks_insert\"",
+      "CREATE POLICY without DROP: \"user_plan_locks_update\"",
+      "CREATE POLICY without DROP: \"user_plan_locks_delete\"",
+      "CREATE POLICY without DROP: \"user_favorites_select\"",
+      "CREATE POLICY without DROP: \"user_favorites_insert\"",
+      "CREATE POLICY without DROP: \"user_favorites_delete\"",
+      "CREATE POLICY without DROP: \"user_camping_schedules_select\"",
+      "CREATE POLICY without DROP: \"user_camping_schedules_insert\"",
+      "CREATE POLICY without DROP: \"user_camping_schedules_update\"",
+      "CREATE POLICY without DROP: \"user_camping_schedules_delete\"",
+      "CREATE POLICY without DROP: \"record_tags_select\"",
+      "CREATE POLICY without DROP: \"record_tags_insert\"",
+      "CREATE POLICY without DROP: \"record_tags_delete\"",
+      "CREATE POLICY without DROP: \"campground_user_tags_select\"",
+      "CREATE POLICY without DROP: \"campground_user_tags_insert\"",
+      "CREATE POLICY without DROP: \"campground_user_tags_update\"",
+      "CREATE POLICY without DROP: \"campground_user_tags_delete\""
+    ]
+  },
+  {
+    "file": "20260206_camping_records.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Users can CRUD own records\""
+    ]
+  },
+  {
+    "file": "20260214000001_fix_notifications_schema.sql",
+    "reasons": [
+      "CREATE TABLE without IF NOT EXISTS: public.notifications",
+      "CREATE POLICY without DROP: \"Users can view their own notifications\"",
+      "CREATE POLICY without DROP: \"Users can insert their own notifications\""
+    ]
+  },
+  {
+    "file": "20260214000005_enable_rls_v1.sql",
+    "reasons": [
+      "CREATE POLICY without DROP: \"Read Access Policy\"",
+      "CREATE POLICY without DROP: \"Insert Access Policy\"",
+      "CREATE POLICY without DROP: \"Update Access Policy\"",
+      "CREATE POLICY without DROP: \"Delete Access Policy\""
+    ]
+  }
+]

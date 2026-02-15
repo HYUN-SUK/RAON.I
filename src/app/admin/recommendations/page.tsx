@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Upload, Copy } from 'lucide-react';
+import { Plus, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Upload, Copy, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import type { Database } from '@/types/supabase';
@@ -358,6 +358,72 @@ export default function RecommendationAdminPage() {
         toast.success("AI 요청 양식이 클립보드에 복사되었습니다!");
     };
 
+    const handleCopyJson = () => {
+        const itemsToExport = selectedIds.size > 0
+            ? recItems.filter(item => selectedIds.has(item.id))
+            : recItems;
+
+        if (itemsToExport.length === 0) {
+            toast.error("복사할 데이터가 없습니다.");
+            return;
+        }
+
+        const jsonStr = JSON.stringify(itemsToExport, null, 2);
+        navigator.clipboard.writeText(jsonStr).then(() => {
+            toast.success(`${itemsToExport.length}개 항목(JSON)이 복사되었습니다! 채팅창에 붙여넣어주세요.`);
+        }).catch(() => {
+            toast.error("클립보드 복사에 실패했습니다.");
+        });
+    };
+
+    const handleBulkExport = () => {
+        const itemsToExport = selectedIds.size > 0
+            ? recItems.filter(item => selectedIds.has(item.id))
+            : recItems;
+
+        if (itemsToExport.length === 0) {
+            toast.error("다운로드할 데이터가 없습니다.");
+            return;
+        }
+
+        // CSV Header
+        const headers = ['id', 'category', 'title', 'description', 'tags', 'difficulty', 'time_required', 'ingredients', 'image_url'];
+        const csvRows = [headers.join(',')];
+
+        // CSV Body
+        for (const item of itemsToExport) {
+            const tags = item.tags ? JSON.stringify(item.tags).replace(/"/g, '""') : '';
+            const ingredients = item.ingredients ? JSON.stringify(item.ingredients).replace(/"/g, '""') : '';
+            const description = item.description ? item.description.replace(/"/g, '""').replace(/\n/g, ' ') : '';
+            const title = item.title.replace(/"/g, '""');
+
+            const row = [
+                item.id,
+                item.category,
+                `"${title}"`,
+                `"${description}"`,
+                `"${tags}"`,
+                item.difficulty,
+                item.time_required,
+                `"${ingredients}"`,
+                item.image_url
+            ];
+            csvRows.push(row.join(','));
+        }
+
+        // BOM for Excel Korean support
+        const bom = '\uFEFF';
+        const csvString = bom + csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `recommendations_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
 
     const openRecSheet = (item?: RecItem) => {
         if (item) {
@@ -552,6 +618,14 @@ export default function RecommendationAdminPage() {
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
+
+                            <Button onClick={handleCopyJson} variant="outline" className="gap-2 border-stone-200 text-stone-700 hover:bg-stone-50">
+                                <Copy size={16} /> JSON 복사
+                            </Button>
+
+                            <Button onClick={handleBulkExport} variant="outline" className="gap-2 border-green-200 text-green-700 hover:bg-green-50">
+                                <Download size={16} /> CSV 다운로드
+                            </Button>
 
                             <JsonImportButton onImport={handleBulkJsonImport} isLoading={bulkLoading} />
 

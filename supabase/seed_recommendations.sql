@@ -1,162 +1,1037 @@
-
--- Seeding Recommendation Pool Data based on src/lib/meal-recommendation.ts
-
-INSERT INTO public.recommendation_pool (id, title, description, category, tags, metadata, image_url, ingredients, process_steps, tips, difficulty, time_required, servings, calories)
+TRUNCATE TABLE recommendation_pool;
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
 VALUES
-(
-    'pork-belly',
-    '솥뚜껑 삼겹살',
-    '캠핑의 국룰! 김치와 함께 구워먹는 삼겹살 파티',
-    'cooking',
-    ARRAY['#고기', '#저녁', '#술안주'],
-    '{"season": ["spring", "summer", "autumn", "winter"]}',
-    'https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["삼겹살 600g", "묵은지 1포기", "마늘", "쌈장", "상추", "버섯"]',
-    '["솥뚜껑을 달군 후 비계로 기름칠을 합니다.", "삼겹살을 올리고 아래쪽에 김치를 둡니다.", "노릇하게 구워지면 먹기 좋게 자릅니다.", "마지막에 김치와 밥을 볶아 드세요!"]',
-    '솥뚜껑 중앙에 기름이 모이니 김치를 거기 두세요.',
-    1,
-    30,
-    '2-3',
-    800
-),
-(
-    'oden-soup',
-    '꼬치 어묵탕',
-    '쌀쌀한 날씨에 딱! 따끈한 국물과 쫄깃한 어묵',
-    'cooking',
-    ARRAY['#국물', '#따뜻한', '#겨울철'],
-    '{"season": ["autumn", "winter"], "weather": ["rainy", "snowy", "cloudy"]}',
-    'https://images.unsplash.com/photo-1610970881699-44a5587cabec?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["꼬치어묵 10개", "무 1/4개", "대파 1대", "청양고추 2개", "멸치육수 팩"]',
-    '["물 1.5L에 육수팩과 무를 넣고 끓입니다.", "육수가 우러나면 어묵 꼬치를 넣습니다.", "대파와 고추를 넣고 한소끔 더 끓입니다.", "간장으로 간을 맞춥니다."]',
-    '무를 얇게 썰면 빨리 익고 국물이 시원해집니다.',
-    1,
-    20,
-    '3-4',
-    400
-),
-(
-    'grilled-skewers',
-    '모듬 꼬치구이',
-    '맥주 안주로 최고! 하나씩 빼먹는 재미가 있어요',
-    'cooking',
-    ARRAY['#꼬치', '#안주', '#간식'],
-    '{"season": ["spring", "summer", "autumn"]}',
-    'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["닭다리살 300g", "대파 2대", "파프리카 1개", "소떡소떡 세트", "데리야끼 소스"]',
-    '["재료를 한입 크기로 썹니다.", "꼬치에 재료를 번갈아 끼웁니다.", "숯불이나 팬에 노릇하게 굽습니다.", "소스를 발라가며 한번 더 굽습니다."]',
-    '꼬치를 물에 불려두면 탈지 않습니다.',
-    2,
-    40,
-    '2',
-    500
-),
-(
-    'kimchi-stew',
-    '돼지고기 김치찌개',
-    '한국인의 소울푸드, 해장으로도 그만이죠',
-    'cooking',
-    ARRAY['#찌개', '#한식', '#얼큰한'],
-    '{"season": ["spring", "summer", "autumn", "winter"]}',
-    'https://images.unsplash.com/photo-1583562479633-87a3cbdd5112?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["돼지고기(목살) 300g", "김치 1/4포기", "두부 1모", "대파", "다진마늘"]',
-    '["돼지고기랑 김치를 먼저 볶습니다.", "물을 붓고 푹 끓입니다.", "두부와 대파를 넣고 마무리합니다."]',
-    '쌀뜨물을 사용하면 국물이 더 진해집니다.',
-    2,
-    30,
-    '3',
-    600
-),
-(
-    'gambas',
-    '감바스 알 아히요',
-    '와인 한 잔과 함께 즐기는 스페인 요리',
-    'cooking',
-    ARRAY['#양식', '#분위기', '#와인'],
-    '{"season": ["spring", "summer", "autumn", "winter"]}',
-    'https://images.unsplash.com/photo-1565557623262-b51c2513a641?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["칵테일 새우 15마리", "통마늘 10개", "페페론치노", "올리브유", "바게트"]',
-    '["팬에 올리브유를 넉넉히 두릅니다.", "편마늘을 넣고 약불에 튀기듯 볶습니다.", "새우와 페페론치노를 넣고 익힙니다.", "바게트를 곁들여 냅니다."]',
-    '기름이 끓을 때 새우 물기를 제거하고 넣어야 튀지 않아요.',
-    1,
-    15,
-    '2',
-    700
-),
-(
-    'ramen',
-    '해물 라면',
-    '신선한 해물을 넣어 끓인 최고의 야식',
-    'cooking',
-    ARRAY['#면요리', '#야식', '#간단'],
-    '{"season": ["spring", "summer", "autumn", "winter"]}',
-    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["라면 2봉지", "새우 2마리", "오징어무", "대파", "고춧가루"]',
-    '["물을 끓일 때 해물을 먼저 넣습니다.", "물이 끓으면 스프와 면을 넣습니다.", "마지막에 대파와 고춧가루를 뿌립니다."]',
-    '스프를 먼저 넣으면 끓는점이 높아져 면이 꼬들해집니다.',
-    1,
-    10,
-    '2',
-    500
-),
-(
-    'dakgalbi',
-    '춘천 닭갈비',
-    '매콤달콤한 양념에 볶음밥까지 완벽한 코스',
-    'cooking',
-    ARRAY['#닭고기', '#볶음밥', '#메인요리'],
-    '{"season": ["spring", "summer", "autumn", "winter"]}',
-    'https://images.unsplash.com/photo-1628268878950-80d859b4344d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["닭갈비 밀키트", "양배추", "고구마", "떡사리", "우동사리"]',
-    '["팬을 달구고 닭고기를 껍질부터 익힙니다.", "채소를 넣고 같이 볶습니다.", "마지막에 사리를 추가합니다.", "남은 양념에 밥을 볶습니다."]',
-    '고구마가 익으면 다 익은 것입니다.',
-    2,
-    30,
-    '3-4',
-    700
-),
-(
-    'shabu',
-    '밀푀유 나베',
-    '보기에도 예쁘고 맛도 좋은 따뜻한 전골 요리',
-    'cooking',
-    ARRAY['#전골', '#손님초대', '#비주얼'],
-    '{"season": ["autumn", "winter"]}',
-    'https://images.unsplash.com/photo-1547592180-85f173990554?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["소고기(샤브용)", "배추", "깻잎", "표고버섯", "육수"]',
-    '["배추-깻잎-고기 순으로 겹겹이 쌓습니다.", "냄비 높이에 맞춰 자릅니다.", "냄비에 빈틈없이 채워 담습니다.", "육수를 붓고 끓입니다."]',
-    '칠리소스와 폰즈소스를 곁들이면 더 맛있습니다.',
-    2,
-    40,
-    '3',
-    400
-),
-(
-    'corn-cheese',
-    '콘치즈',
-    '아이들도 좋아하는 달달하고 고소한 간식',
-    'cooking',
-    ARRAY['#간식', '#아이들', '#치즈'],
-    '{"season": ["spring", "summer", "autumn", "winter"]}',
-    'https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-    '["옥수수 통조림 1캔", "모짜렐라 치즈", "마요네즈", "설탕", "버터"]',
-    '["옥수수 물기를 뺍니다.", "마요네즈와 설탕을 섞습니다.", "팬에 버터를 녹이고 옥수수를 볶습니다.", "치즈를 올리고 뚜껑을 덮어 녹입니다."]',
-    '파슬리 가루를 뿌리면 더 먹음직스럽습니다.',
-    1,
-    10,
-    '2',
-    300
-)
-ON CONFLICT (id) DO UPDATE SET
-    title = EXCLUDED.title,
-    description = EXCLUDED.description,
-    tags = EXCLUDED.tags,
-    metadata = EXCLUDED.metadata,
-    image_url = EXCLUDED.image_url,
-    ingredients = EXCLUDED.ingredients,
-    process_steps = EXCLUDED.process_steps,
-    tips = EXCLUDED.tips,
-    difficulty = EXCLUDED.difficulty,
-    time_required = EXCLUDED.time_required,
-    servings = EXCLUDED.servings,
-    calories = EXCLUDED.calories;
+('cooking', '김치 수제비 (변주: 캠핑용 간단 어묵 수제비)', '반죽 대신 시판 냉동 수제비와 어묵을 넣어 시간을 단축한 실속 변주입니다.', NULL, '["#간단", "#죽", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "냉동 수제비 사리", "amount": "1봉"}, {"name": "어묵", "amount": "2장"}, {"name": "신김치", "amount": "1줌"}]'::jsonb, '["멸치 육수가 없으면 어묵을 넣어 국물 맛을 대신한다", "김치 국물을 넉넉히 넣고 시판 수제비 사리를 바로 넣는다", "어묵에서 나오는 감칠맛이 수제비와 어우러져 별도 간 없이도 맛이 훌륭하다", "조리 과정이 간편해 캠핑 아침 식사로도 적합하다"]'::jsonb, '김치 수제비 기본에서 조리 공정을 단순화하고 재료를 변형한 변주입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '불막창 볶음 (기본)', '시판 양념 막창을 활용해 불향과 매콤함을 극대화한 스트레스 해소용 안주입니다.', NULL, '["#저녁", "#안주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 15, 1, 10, '[]'::jsonb, '[{"name": "양념 막창(시판)", "amount": "1팩"}, {"name": "양파/대파", "amount": "적당량"}, {"name": "깻잎", "amount": "5장"}]'::jsonb, '["팬을 아주 뜨겁게 달군 뒤 양념 막창을 넣고 센 불에서 볶는다", "막창에서 기름이 나오면 양파와 대파를 넣어 함께 볶는다", "토치로 막창 겉면을 그을려 불맛을 확실히 입히는 것이 핵심이다", "마지막에 깻잎을 채 썰어 올리고 마요네즈 소스를 곁들인다"]'::jsonb, '막창을 바싹 익혀야 잡내가 사라지고 쫄깃함이 살아나는 기본 레시피입니다', '2인분', 950, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '번데기 탕 (변주: 김치 번데기 찌개)', '신김치를 넣어 시원함을 더하고 양을 늘려 든든하게 만든 변주 레시피입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#야식", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "번데기 탕 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1줌"}]'::jsonb, '["냄비에 김치를 먼저 넣고 살짝 볶다가 번데기 통조림을 붓는다", "물을 반 컵 정도 추가해 국물을 넉넉히 잡는다", "김치의 산미가 번데기의 고소함과 만나 더욱 풍부한 국물 맛을 낸다", "소주 안주로 제격이며 밥을 말아 먹어도 별미다"]'::jsonb, '번데기 탕 기본에 김치를 더해 한식 찌개 느낌을 낸 변주입니다', '2인분', 280, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '번데기 탕 (기본)', '준비가 매우 간편하며 짭조름하고 고소한 맛으로 캠퍼들에게 사랑받는 안주입니다.', NULL, '["#국물", "#안주", "#추운날", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "번데기 통조림", "amount": "1캔"}, {"name": "청양고추", "amount": "1개"}, {"name": "다진 마늘", "amount": "0.5큰술"}]'::jsonb, '["냄비에 번데기 통조림 국물까지 모두 붓는다", "송송 썬 청양고추와 다진 마늘을 넣어 칼칼한 맛을 입힌다", "강불에서 팔팔 끓기 시작하면 중불로 줄여 국물이 조금 졸아들게 한다", "고춧가루를 한 꼬집 뿌려 색감을 내면 완성이다"]'::jsonb, '통조림 국물을 그대로 사용해야 특유의 감칠맛이 유지되는 기본 레시피입니다', '2인분', 250, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오코노미야끼 (변주: 캠핑용 김치 오코노미야끼)', '양배추 대신 김치를 활용해 한국적인 매콤함을 더한 ''김치전'' 느낌의 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "오코노미야끼 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1줌"}]'::jsonb, '["반죽에 잘게 썬 김치를 섞어 베이스를 만든다", "기본 조리법대로 굽되 소스를 뿌리기 전 전의 바삭함을 먼저 즐긴다", "마요네즈와 김치의 궁합이 의외로 좋아 안주로 아주 훌륭하다", "가쓰오부시 대신 김가루를 뿌려 마무리해도 맛있다"]'::jsonb, '오코노미야끼 기본에 김치를 더해 퓨전 스타일로 변형한 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오코노미야끼 (기본)', '양배추와 베이컨을 이용해 집에서도 쉽게 즐길 수 있는 이색 캠핑 안주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아이들"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "양배추", "amount": "1/4통"}, {"name": "베이컨/해물", "amount": "1줌"}, {"name": "부침가루", "amount": "1컵"}, {"name": "마요네즈/데리야끼", "amount": "적당량"}]'::jsonb, '["양배추를 가늘게 채 썰고 부침가루와 계란, 물을 넣어 뻑뻑한 반죽을 만든다", "팬에 기름을 두르고 반죽을 도톰하게 올린 뒤 베이컨을 위에 얹는다", "약불에서 뚜껑을 덮고 속까지 충분히 익힌 뒤 앞뒤로 노릇하게 굽는다", "돈가스 소스와 마요네즈를 지그재그로 뿌리고 가쓰오부시를 올려 완성한다"]'::jsonb, '양배추를 듬뿍 넣어야 아삭한 식감과 달콤한 맛이 살아나는 기본 레시피입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소시지 김치찌개 (변주: 햄 김치 순두부찌개)', '순두부를 추가해 부드러운 식감을 더하고 아침 해장용으로 최적화한 변주입니다.', NULL, '["#저녁", "#점심", "#추운날", "#해장", "#혼밥", "#파티", "#야식", "#아침", "#아이들", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "소시지 김치찌개 재료", "amount": "1세트"}, {"name": "순두부", "amount": "1봉"}]'::jsonb, '["기본 소시지 김치찌개가 완성되기 3분 전에 순두부를 넣는다", "순두부를 큼직하게 으깨어 국물과 함께 어우러지게 한다", "순두부에서 물이 나오므로 국물 간을 평소보다 조금 세게 한다", "계란 하나를 톡 터뜨려 넣으면 영양가도 만점인 아침 식사가 된다"]'::jsonb, '소시지 김치찌개 기본에 순두부를 넣어 해장 기능을 더한 변주입니다', '2인분', 680, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소시지 김치찌개 (기본)', '부대찌개보다 간단하고 김치찌개보다 고소한, 캠핑장 아침의 베스트셀러입니다.', NULL, '["#국물", "#간단", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#야식", "#아침", "#아이들", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "소시지/햄", "amount": "200g"}, {"name": "신김치", "amount": "1공기"}, {"name": "사골 육수", "amount": "500ml"}]'::jsonb, '["냄비에 김치와 소시지를 넣고 설탕 0.3큰술과 함께 달달 볶는다", "김치가 익으면 사골 육수를 붓고 센 불에서 끓인다", "국물이 끓어오르면 두부나 대파를 넣고 5분간 더 끓여 완성한다", "육수가 없다면 맹물에 액젓 1큰술을 넣어도 깊은 맛이 난다"]'::jsonb, '소시지를 넉넉히 넣어야 국물에서 햄의 기름진 감칠맛이 우러나는 기본 레시피입니다', '2인분', 620, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '계란 볶음밥 (변주: 마요네즈 계란 볶음밥)', '볶음밥에 마요네즈를 섞어 고소함과 부드러움을 극대화한 아이용 변주입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "계란 볶음밥 재료", "amount": "1세트"}, {"name": "마요네즈", "amount": "2큰술"}]'::jsonb, '["기본 계란 볶음밥이 완성될 무렵 마요네즈 2큰술을 넣는다", "마요네즈가 녹아 밥알에 코팅되도록 약불에서 가볍게 섞어준다", "매운맛이 필요하다면 고추장 한 꼬집을 넣어 핑크빛 볶음밥으로 만든다", "부드러운 식감 덕분에 어린아이들이 아주 잘 먹는 메뉴다"]'::jsonb, '계란 볶음밥 기본에 유제품의 고소함을 더한 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '계란 볶음밥 (기본)', '재료가 정말 없을 때, 고소한 기름 향과 계란만으로 만드는 든든한 한 끼입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "공깃밥", "amount": "2공기"}, {"name": "계란", "amount": "3개"}, {"name": "진간장", "amount": "1큰술"}, {"name": "대파", "amount": "1/2대"}]'::jsonb, '["팬에 기름을 넉넉히 두르고 대파를 볶아 향을 충분히 낸다", "계란을 깨뜨려 넣고 스크램블을 만든 뒤 팬 한쪽으로 밀어둔다", "빈 공간에 간장을 넣고 끓여 향을 낸 뒤 밥을 넣는다", "모든 재료를 강불에서 빠르게 볶아 고슬고슬하게 마무리한다"]'::jsonb, '간장을 팬에서 살짝 태우듯 끓여야 감칠맛이 폭발하는 기본 레시피입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '삼겹살 김치찜 (변주: 캠핑장 삼겹살 김치 말이)', '삼겹살로 김치를 돌돌 말아 조리 시간을 단축하고 비주얼을 살린 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "대패/얇은 삼겹살", "amount": "400g"}, {"name": "김치 잎", "amount": "10장"}]'::jsonb, '["김치 잎을 펼치고 고기 한 점을 올려 돌돌 말아준다", "냄비에 말이들을 차곡차곡 세워서 담고 물을 자작하게 붓는다", "기본 찜 방식보다 얇은 고기를 사용해 20분 만에 완성이 가능하다", "하나씩 집어 먹기 편해 술안주나 밥반찬으로 인기가 많다"]'::jsonb, '삼겹살 김치찜 기본을 한입 크기로 정돈한 센스 있는 변주입니다', '2인분', 1100, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '삼겹살 김치찜 (기본)', '통삼겹살과 묵은지를 뭉근하게 졸여 고기가 입안에서 녹는 최고의 메인 요리입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 3, 50, 1, 10, '[]'::jsonb, '[{"name": "통삼겹살", "amount": "600g"}, {"name": "묵은지", "amount": "1/2포기"}, {"name": "설탕/고춧가루", "amount": "약간"}]'::jsonb, '["냄비 바닥에 묵은지를 깔고 그 위에 통삼겹살을 올린다", "재료가 잠길 정도로 물을 붓고 설탕 1큰술을 넣어 신맛을 조절한다", "강불로 끓이다가 끓어오르면 가장 약불로 줄여 40분 이상 푹 끓인다", "김치가 흐물흐물해지고 고기가 부드럽게 익으면 가위로 잘라 먹는다"]'::jsonb, '시간이 맛을 만드는 요리이므로 여유 있는 저녁에 조리하는 것이 기본입니다', '2인분', 1600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치 수제비 (기본)', '비 오는 날이나 쌀쌀한 밤, 직접 반죽을 떼어 넣는 재미와 시원한 국물 맛이 일품입니다.', NULL, '["#국물", "#저녁", "#죽", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 35, 1, 10, '[]'::jsonb, '[{"name": "밀가루/부침가루", "amount": "2컵"}, {"name": "신김치", "amount": "1줌"}, {"name": "멸치 육수", "amount": "1리터"}]'::jsonb, '["밀가루와 물을 섞어 반죽을 한 뒤 비닐봉지에 넣어 20분간 숙성시킨다", "육수에 김치를 썰어 넣고 김치가 투명해질 때까지 푹 끓인다", "반죽을 최대한 얇게 펴서 끓는 국물에 한입 크기로 떼어 넣는다", "수제비가 떠오르면 국간장으로 간을 하고 대파를 넣어 마무리한다"]'::jsonb, '반죽에 식용유 한 방울을 넣으면 손에 덜 붙고 훨씬 쫄깃한 기본 레시피입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '새우 볶음밥 (변주: 파인애플 새우 볶음밥)', '파인애플 통조림을 넣어 달콤하고 이국적인 맛을 낸 동남아풍 변주입니다.', NULL, '["#점심", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "새우 볶음밥 재료", "amount": "1세트"}, {"name": "파인애플 통조림", "amount": "2슬라이스"}, {"name": "카레 가루", "amount": "0.5큰술"}]'::jsonb, '["기본 새우 볶음밥 공정에 깍둑썰기한 파인애플을 추가한다", "카레 가루 0.5큰술을 넣어 노란 색감과 향을 입힌다", "파인애플의 수분이 날아갈 때까지 센 불에서 빠르게 볶는다", "단맛과 짠맛의 조화가 좋아 아이들이 특히 좋아하는 메뉴다"]'::jsonb, '새우 볶음밥 기본에 과일과 향신료를 더해 테마를 바꾼 변주입니다', '2인분', 620, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '새우 볶음밥 (기본)', '냉동 새우의 톡톡 터지는 식감이 일품인, 온 가족이 즐기는 깔끔한 볶음밥입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "자숙 새우", "amount": "10마리"}, {"name": "공깃밥", "amount": "2공기"}, {"name": "계란", "amount": "2개"}, {"name": "굴소스", "amount": "1큰술"}]'::jsonb, '["팬에 기름을 두르고 스크램블 에그를 만들어 따로 덜어둔다", "팬에 다시 기름을 두르고 파를 볶다가 새우를 넣어 익힌다", "밥을 넣고 새우와 함께 볶다가 굴소스로 간을 한다", "미리 만들어둔 계란을 섞어 고슬고슬하게 볶아 마무리한다"]'::jsonb, '굴소스를 너무 많이 넣으면 색이 검어지니 주의하는 것이 기본입니다', '2인분', 580, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치 전 (변주: 참치 깻잎전)', '깻잎 사이에 참치 반죽을 넣어 향긋함을 더한 고급스러운 변주입니다.', NULL, '["#저녁", "#죽", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "참치 전 반죽", "amount": "1세트"}, {"name": "깻잎", "amount": "10장"}]'::jsonb, '["깻잎 반쪽에 참치 반죽을 올리고 반으로 접어 고정한다", "깻잎 겉면에 부침가루를 살짝 묻히고 계란물을 입힌다", "팬에서 중불로 깻잎 향이 올라올 때까지 노릇하게 굽는다", "명절 음식 같은 정성이 느껴져 캠핑 손님 접대용으로 아주 좋다"]'::jsonb, '참치 전 기본을 깻잎으로 감싸 풍미와 비주얼을 바꾼 변주입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치 전 (기본)', '캔 참치와 계란만 있으면 5분 만에 완성되는 실패 없는 반찬 겸 안주입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "참치캔", "amount": "1캔"}, {"name": "계란", "amount": "2개"}, {"name": "양파/대파", "amount": "약간"}]'::jsonb, '["참치는 기름기를 완전히 제거하고 볼에 담아 으깬다", "잘게 다진 양파, 대파와 계란 2개를 넣고 골고루 섞는다", "팬에 기름을 두르고 한 숟가락씩 올려 노릇하게 굽는다", "아이들은 케첩에, 어른들은 초간장에 찍어 먹는다"]'::jsonb, '참치 기름을 확실히 빼야 전이 부서지지 않고 담백한 기본 레시피입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 전 (변주: 골뱅이 부추전)', '향긋한 부추를 듬뿍 넣어 풍미와 식감을 한층 업그레이드한 건강한 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 전 재료", "amount": "1세트"}, {"name": "부추", "amount": "1줌"}]'::jsonb, '["부추를 3cm 길이로 썰어 반죽물에 먼저 섞는다", "기본 골뱅이 전 방식대로 골뱅이를 넣고 크게 한 판으로 부쳐낸다", "부추의 향긋함이 골뱅이의 해산물 향을 잡아주어 더욱 조화롭다", "비 오는 날 막걸리와 함께하기에 더할 나위 없는 안주다"]'::jsonb, '골뱅이 전 기본에 채소 풍미를 더해 요리의 격을 높인 변주입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 전 (기본)', '무침으로만 먹던 골뱅이를 전으로 구워 쫄깃한 식감과 고소함을 극대화한 이색 안주입니다.', NULL, '["#저녁", "#안주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 통조림", "amount": "1캔"}, {"name": "부침가루", "amount": "1컵"}, {"name": "청양고추", "amount": "2개"}]'::jsonb, '["골뱅이는 국물을 빼고 가로로 얇게 저며 썬다", "부침가루 반죽에 다진 청양고추와 골뱅이를 듬뿍 넣는다", "팬에 기름을 넉넉히 두르고 한입 크기로 반죽을 떠 넣는다", "골뱅이가 톡톡 튀는 소리가 날 때까지 앞뒤로 바삭하게 굽는다"]'::jsonb, '골뱅이 자체에 간이 있어 간장을 찍지 않아도 맛있는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자 고추장 조림 (변주: 스팸 감자 조림)', '스팸을 넣어 아이들이 더 좋아하고 감칠맛이 폭발하는 풍성한 변주입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "감자 고추장 조림 재료", "amount": "1세트"}, {"name": "스팸", "amount": "1/2캔"}]'::jsonb, '["감자와 비슷한 크기로 스팸을 썰어 준비한다", "감자를 볶을 때 스팸도 함께 넣어 노릇하게 구워준다", "양념장을 붓고 햄에서 맛이 우러나오도록 뭉근하게 졸인다", "밥 위에 감자와 스팸을 으깨서 비벼 먹으면 밥도둑이 따로 없다"]'::jsonb, '감자 고추장 조림 기본에 가공육의 맛을 더해 아이들 맞춤형으로 만든 변주입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자 고추장 조림 (기본)', '포슬포슬한 감자에 매콤달콤한 소스가 배어든 최고의 밥반찬 메뉴입니다.', NULL, '["#아이들", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "2개"}, {"name": "고추장", "amount": "1큰술"}, {"name": "진간장", "amount": "1큰술"}, {"name": "물엿/설탕", "amount": "1큰술"}]'::jsonb, '["감자를 한입 크기로 깍둑썰기하여 물에 살짝 헹궈 전분기를 뺀다", "팬에 식용유를 두르고 감자를 먼저 볶아 겉면을 코팅한다", "물 반 컵과 고추장, 간장, 설탕을 섞은 양념장을 붓는다", "국물이 거의 졸아들고 감자가 부드럽게 익을 때까지 약불에서 졸인다"]'::jsonb, '감자를 먼저 기름에 볶아야 조릴 때 부서지지 않는 기본 레시피입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순대 볶음 (변주: 신림동식 백순대 볶음)', '고추장 없이 들기름으로만 볶아 담백하고 고소함을 강조한 별미 변주입니다.', NULL, '["#야식", "#파티", "#아침", "#혼밥"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "순대", "amount": "500g"}, {"name": "쫄면 사리", "amount": "1줌"}, {"name": "들기름", "amount": "4큰술"}]'::jsonb, '["팬에 들기름을 넉넉히 두르고 순대와 야채, 쫄면 사리를 한꺼번에 넣는다", "소금과 후추로만 간을 하고 재료들이 노릇하고 바삭해질 때까지 볶는다", "양념 고추장은 찍어 먹을 수 있게 별도로 준비한다", "쫄면이 바닥에 눌어붙어 바삭해질 때가 가장 맛있다"]'::jsonb, '순대 볶음 기본에서 고추장을 빼고 고소한 기름 풍미를 살린 변주입니다', '2인분', 900, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순대 볶음 (기본)', '시판 순대를 활용해 들깨가루의 고소함과 매콤한 양념으로 볶아낸 최고급 술안주입니다.', NULL, '["#저녁", "#안주", "#혼밥", "#파티", "#야식"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "순대", "amount": "500g"}, {"name": "양배추", "amount": "1/4통"}, {"name": "들깨가루", "amount": "3큰술"}, {"name": "고추장 양념", "amount": "3큰술"}]'::jsonb, '["순대는 터지지 않게 큼직하게 썰고 양배추와 깻잎을 준비한다", "팬에 기름을 두르고 양배추와 양파를 먼저 볶아 채수를 낸다", "순대와 고추장 양념을 넣고 중불에서 양념이 배도록 부드럽게 볶는다", "불을 끄기 전 들깨가루를 듬뿍 넣어 고소한 풍미를 입히고 깻잎을 올린다"]'::jsonb, '순대가 너무 익어 풀어지지 않도록 야채가 익은 뒤 마지막에 넣는 것이 기본입니다', '2인분', 850, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콩나물국 (변주: 얼큰 김치 콩나물국)', '신김치를 넣어 더욱 칼칼하고 시원하게 끓여낸 숙취 해소 전용 변주입니다.', NULL, '["#추운날", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "콩나물국 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1줌"}, {"name": "고춧가루", "amount": "1큰술"}]'::jsonb, '["물에 잘게 썬 신김치와 김치 국물을 먼저 넣고 5분간 끓인다", "콩나물을 넣고 끓어오를 때 고춧가루 1큰술을 넣어 매콤한 색과 맛을 낸다", "국물이 충분히 우러나면 마지막에 대파를 듬뿍 넣어 시원함을 더한다", "밥을 말아 국밥처럼 먹으면 속이 확 풀리는 캠핑 아침 식사가 된다"]'::jsonb, '콩나물국 기본에 김치의 산미를 더해 해장 기능을 극대화한 변주입니다', '2인분', 80, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콩나물국 (기본)', '캠핑장의 차가운 아침 공기를 녹여줄 가장 맑고 시원한 해장용 국물 요리입니다.', NULL, '["#국물", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "콩나물", "amount": "1/2봉지"}, {"name": "다진 마늘", "amount": "0.5큰술"}, {"name": "대파", "amount": "1/2대"}, {"name": "새우젓/소금", "amount": "약간"}]'::jsonb, '["냄비에 물 1리터를 붓고 깨끗이 씻은 콩나물을 처음부터 넣어 끓인다", "콩나물 비린내가 나지 않도록 뚜껑을 열고 끓이는 것이 포인트다", "물이 끓어오르면 다진 마늘과 송송 썬 대파를 넣고 5분간 더 끓인다", "새우젓으로 간을 하면 국물 맛이 훨씬 깊고 시원해진다"]'::jsonb, '콩나물의 아삭함을 위해 너무 오래 끓이지 않는 것이 기본입니다', '2인분', 50, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '가래떡 구이 (변주: 베이컨 떡말이 꼬치)', '가래떡에 베이컨을 말아 구워 안주로서의 가치를 높인 짭조름한 변주입니다.', NULL, '["#저녁", "#안주", "#구이", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "가래떡", "amount": "2가닥"}, {"name": "베이컨", "amount": "1팩"}, {"name": "꼬치", "amount": "적당량"}]'::jsonb, '["말랑한 가래떡을 베이컨 폭에 맞춰 자른다", "베이컨으로 떡을 돌돌 말아 꼬치에 고정한다", "팬이나 그릴 위에서 베이컨이 바삭해질 때까지 굴려가며 굽는다", "별도의 양념 없이도 베이컨의 간이 떡에 배어 훌륭한 안주가 된다"]'::jsonb, '가래떡 구이 기본에 육류를 조합해 식감과 맛을 업그레이드한 변주입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '마시멜로 스모어 (기본)', '구운 마시멜로를 비스킷 사이에 끼워 먹는, 캠핑의 낭만이 가득한 디저트입니다.', NULL, '["#아이들", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "마시멜로", "amount": "1봉지"}, {"name": "초코 비스킷", "amount": "1팩"}]'::jsonb, '["긴 꼬치에 마시멜로를 끼워 화로대 불 위에서 노릇하게 굽는다", "비스킷 위에 구워진 마시멜로를 올리고 다른 비스킷으로 덮는다", "마시멜로의 뜨거운 열기에 초코 비스킷의 초콜릿이 녹을 때까지 살짝 누른다", "달콤하고 폭신한 맛을 한입에 즐긴다"]'::jsonb, '직접적인 불꽃보다는 은근한 열기로 굽는 것이 타지 않는 비결인 기본 레시피입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '훈제오리 볶음 (변주: 훈제오리 월남쌈)', '구운 오리를 신선한 야채와 라이스페이퍼에 싸 먹는 산뜻한 변주 레시피입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "훈제오리 볶음", "amount": "1세트"}, {"name": "라이스페이퍼", "amount": "10장"}, {"name": "깻잎/파프리카", "amount": "적당량"}]'::jsonb, '["훈제오리를 바싹하게 구워 기름기를 뺀 뒤 따로 담아둔다", "준비한 채소들을 얇게 채 썰어 접시에 정갈하게 담는다", "따뜻한 물에 적신 라이스페이퍼에 오리와 야채를 올리고 돌돌 만다", "땅콩 소스나 칠리 소스에 찍어 먹으면 캠핑장에서도 브런치를 즐길 수 있다"]'::jsonb, '훈제오리 볶음 기본을 월남쌈 형태로 변경해 상큼함을 강조한 변주입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '훈제오리 볶음 (기본)', '간편함과 맛을 동시에 잡은 요리로, 부추와 함께 볶아 건강까지 챙긴 메뉴입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "훈제오리", "amount": "400g"}, {"name": "부추", "amount": "1줌"}, {"name": "마늘", "amount": "5알"}]'::jsonb, '["팬을 달궈 훈제오리와 편마늘을 먼저 넣고 볶는다", "오리에서 기름이 충분히 나오면 기름을 적당히 닦아내며 노릇하게 굽는다", "불을 끄기 직전 5cm 길이로 썬 부추를 넣고 잔열로 가볍게 볶는다", "허니 머스터드 소스를 곁들여 찍어 먹는다"]'::jsonb, '부추는 마지막에 넣어야 향이 살고 식감이 질겨지지 않는 기본 레시피입니다', '2인분', 820, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 감자 짜글이 (변주: 부대 짜글이)', '소시지와 김치를 추가해 부대찌개 느낌을 낸 더욱 푸짐한 변주입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#야식", "#아이들", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 25, 1, 10, '[]'::jsonb, '[{"name": "스팸 감자 짜글이 재료", "amount": "1세트"}, {"name": "소시지", "amount": "5개"}, {"name": "신김치", "amount": "1줌"}]'::jsonb, '["기본 짜글이 재료에 소시지와 김치를 추가로 넣는다", "김치 국물을 한 국자 넣어 국물의 깊이를 더한다", "마지막에 라면 사리를 넣어 비벼 먹듯 끓이면 최고의 식사가 된다", "여럿이 함께하는 캠핑에서 메인 메뉴로 내놓기 아주 좋다"]'::jsonb, '스팸 감자 짜글이 기본을 부대찌개 스타일로 확장시킨 변주입니다', '2인분', 850, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 감자 짜글이 (기본)', '감자와 햄을 으깨 넣어 걸쭉하게 끓인, 밥도둑의 대명사 캠핑 요리입니다.', NULL, '["#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 1, 25, 1, 10, '[]'::jsonb, '[{"name": "스팸", "amount": "1캔"}, {"name": "감자", "amount": "2개"}, {"name": "양파", "amount": "1개"}, {"name": "고추장", "amount": "2큰술"}]'::jsonb, '["감자와 양파는 도톰하게 썰고, 스팸은 비닐봉지에 넣어 마구 으깨준다", "냄비에 모든 재료를 넣고 물을 자작하게 붓는다", "고추장, 간장, 고춧가루, 설탕을 섞은 양념장을 넣고 끓인다", "국물이 꾸덕해질 때까지 15분 이상 충분히 졸여 완성한다"]'::jsonb, '스팸을 완전히 으깨야 국물에 햄 맛이 진하게 배어 나오는 기본 레시피입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콘치즈 (변주: 매운 청양 콘치즈)', '청양고추를 넣어 느끼함을 잡고 중독성 있는 매운맛을 낸 안주 변주입니다.', NULL, '["#안주", "#추운날", "#매콤한", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "콘치즈 재료", "amount": "1세트"}, {"name": "청양고추", "amount": "2개"}]'::jsonb, '["마요네즈에 버무린 옥수수에 다진 청양고추를 섞는다", "기본 방식대로 치즈를 올려 굽는다", "매콤한 맛이 더해져 맥주 안주로 훨씬 훌륭해진다", "핫소스를 마지막에 뿌려 먹어도 별미다"]'::jsonb, '콘치즈 기본에 매콤한 맛을 더해 어른용 안주로 변형시킨 변주입니다', '2인분', 430, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콘치즈 (기본)', '달콤한 옥수수와 짭조름한 치즈가 어우러져 누구나 좋아하는 캠핑 사이드 메뉴입니다.', NULL, '["#국물", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "옥수수 캔", "amount": "1캔"}, {"name": "마요네즈", "amount": "3큰술"}, {"name": "모짜렐라 치즈", "amount": "100g"}, {"name": "설탕", "amount": "0.5큰술"}]'::jsonb, '["옥수수는 물기를 완전히 제거한 뒤 볼에 담는다", "마요네즈와 설탕을 넣고 골고루 버무린다", "그리들이나 호일 용기에 옮겨 담고 치즈를 듬뿍 뿌린다", "뚜껑을 덮고 약불에서 치즈가 녹을 때까지 5분간 가열한다"]'::jsonb, '물기를 완벽히 제거해야 국물이 생기지 않고 쫀득해지는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 비빔라면 (변주: 열무 골뱅이 비빔면)', '열무김치를 더해 여름철 극강의 시원함을 선사하는 별미 변주입니다.', NULL, '["#점심", "#혼밥", "#파티", "#야식", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 비빔라면 재료", "amount": "1세트"}, {"name": "열무김치", "amount": "1공기"}]'::jsonb, '["기본 비빔면에 잘 익은 열무김치를 듬뿍 넣는다", "김치 국물을 2큰술 정도 섞어 촉촉한 상태로 비빈다", "골뱅이의 쫄깃함과 열무의 아삭함이 만나 식감이 아주 풍부해진다", "더운 낮 시간에 점심 메뉴로 먹기에 이보다 더 시원할 수 없다"]'::jsonb, '골뱅이 비빔라면 기본에 김치를 추가해 계절감을 살린 변주입니다', '2인분', 920, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 비빔라면 (기본)', '시판 비빔면과 골뱅이 통조림을 조합해 5분 만에 만드는 캠핑 필수 안주입니다.', NULL, '["#국물", "#안주", "#점심", "#혼밥", "#파티", "#야식", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "비빔면", "amount": "2봉지"}, {"name": "골뱅이 캔", "amount": "1캔"}, {"name": "오이", "amount": "1/4개"}]'::jsonb, '["면을 삶아 찬물에 헹궈 물기를 꽉 짠다", "골뱅이는 국물을 덜어내고 먹기 좋게 자른다", "비빔 소스에 골뱅이를 넣고 가볍게 버무린 뒤 면과 섞는다", "오이채를 올려 아삭함을 더하고 마지막에 골뱅이 국물 1큰술을 뿌린다"]'::jsonb, '골뱅이 국물이 천연 조미료 역할을 하여 감칠맛을 살려주는 기본 레시피입니다', '2인분', 950, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순두부 라면 (변주: 순두부 짬뽕 라면)', '고춧가루와 마늘을 볶아 불향을 내고 해물을 더한 럭셔리 변주입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 15, 1, 10, '[]'::jsonb, '[{"name": "순두부 라면 재료", "amount": "1세트"}, {"name": "해물 믹스", "amount": "1줌"}, {"name": "고춧가루", "amount": "1큰술"}]'::jsonb, '["냄비에 기름을 두르고 다진 마늘과 고춧가루를 타지 않게 볶는다", "해물을 넣어 볶다가 물을 붓고 기본 순두부 라면 방식으로 끓인다", "마지막에 대파를 길게 채 썰어 올리면 전문점 짬뽕 부럽지 않은 맛이 난다", "해장의 끝판왕이라 불릴 만큼 시원하고 묵직한 국물 맛이 일품이다"]'::jsonb, '순두부 라면 기본에 볶음 공정과 해물을 더해 요리 수준을 높인 변주입니다', '2인분', 750, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순두부 라면 (기본)', '라면의 자극적인 맛을 순두부가 중화시켜주어 아침 해장용으로 인기 만점입니다.', NULL, '["#점심", "#추운날", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "라면", "amount": "1봉지"}, {"name": "순두부", "amount": "1/2봉"}, {"name": "물", "amount": "350ml"}, {"name": "후추", "amount": "약간"}]'::jsonb, '["물 350ml(평소보다 적게)를 붓고 스프를 넣어 끓인다", "물이 끓으면 면을 넣고 2분간 끓인다", "순두부를 통째로 넣고 숟가락으로 큼직하게 으깬 뒤 후추를 뿌린다", "순두부에서 수분이 나오므로 국물이 졸아들 때까지 1분만 더 끓인다"]'::jsonb, '순두부 자체의 수분 때문에 물 양을 줄이는 것이 핵심인 기본 레시피입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '가래떡 구이 (기본)', '모닥불 잔불에 천천히 구워 겉은 바삭하고 속은 말랑한 캠핑의 고전 디저트입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "가래떡", "amount": "3가닥"}, {"name": "조청/꿀", "amount": "2큰술"}]'::jsonb, '["가래떡을 한입 크기나 긴 막대 모양으로 준비한다", "화로대 그릴 위나 약불의 팬에 떡을 올리고 돌려가며 굽는다", "떡 표면이 노릇하게 부풀어 오르고 만졌을 때 말랑해지면 꺼낸다", "따뜻할 때 조청이나 꿀을 듬뿍 찍어 먹는다"]'::jsonb, '불이 너무 세면 겉만 타고 속은 딱딱하니 은근한 불에서 굽는 것이 기본입니다', '2인분', 300, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치 마요 덮밥 (변주: 불참치 마요 비빔밥)', '고추장이나 매운 소스를 더해 느끼함을 잡고 중독성을 높인 어른용 변주입니다.', NULL, '["#점심", "#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "참치 마요 재료", "amount": "1세트"}, {"name": "고추장", "amount": "1큰술"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["기본 참치 마요 구성에 고추장과 다진 청양고추를 추가한다", "마요네즈 양을 살짝 줄이고 매운맛과 조화롭게 비빈다", "상추나 깻잎이 있다면 뜯어 넣어 아삭한 식감을 살린다", "캠핑 중 나른한 점심시간에 입맛을 깨워주기 좋은 메뉴다"]'::jsonb, '참치 마요 덮밥 기본에 매운맛 포인트를 주어 질리지 않게 만든 변주입니다', '2인분', 680, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치 마요 덮밥 (기본)', '아이들이 가장 좋아하는 메뉴로, 불 없이도 훌륭한 한 끼가 되는 초간단 요리입니다.', NULL, '["#간단", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "참치캔", "amount": "1캔"}, {"name": "공깃밥", "amount": "2공기"}, {"name": "마요네즈", "amount": "4큰술"}, {"name": "김가루", "amount": "듬뿍"}]'::jsonb, '["참치는 기름기를 꽉 짜서 준비한다", "따뜻한 밥 위에 참치를 소복하게 올린다", "마요네즈를 지그재그로 예쁘게 뿌리고 김가루를 얹는다", "간장 1큰술과 설탕 0.5큰술을 섞은 소스를 뿌려 비벼 먹는다"]'::jsonb, '참치 기름을 잘 짜야 느끼하지 않고 고소한 맛이 극대화되는 기본 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '해물 파전 (변주: 캠핑용 김치 파전)', '신김치를 넣어 파전의 느끼함을 잡고 한국적인 매콤함을 살린 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#파전", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "해물 파전 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1줌"}]'::jsonb, '["반죽물에 잘게 썬 김치를 섞어 베이스를 만든다", "기본 파전 방식대로 쪽파와 해물을 올려 굽는다", "김치의 아삭함과 해물의 쫄깃함이 어우러져 간장 없이도 맛이 좋다", "고춧가루를 한 큰술 넣으면 더욱 먹음직스러운 붉은색이 난다"]'::jsonb, '해물 파전 기본에 김치의 감칠맛을 더한 입맛 돋우는 변주입니다', '2인분', 620, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '해물 파전 (기본)', '비 오는 날 캠핑장의 빗소리를 반주 삼아 먹는 최고의 부침개 요리입니다.', NULL, '["#저녁", "#죽", "#혼밥", "#파티", "#파전", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "부침가루", "amount": "1.5컵"}, {"name": "쪽파", "amount": "1줌"}, {"name": "모둠 해물", "amount": "200g"}, {"name": "달걀", "amount": "1개"}]'::jsonb, '["부침가루와 물을 1:1 비율로 섞어 반죽을 만든다", "팬에 기름을 넉넉히 두르고 쪽파를 나란히 깐 뒤 반죽물을 붓는다", "해물을 골고루 올리고 위에 달걀물을 풀어 펴 바른다", "바닥이 바삭해지면 뒤집어 노릇하게 구워 마무리한다"]'::jsonb, '반죽을 너무 두껍지 않게 펴야 바삭한 식감을 살릴 수 있는 기본 레시피입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 버섯볶음 (변주: 베이컨 버섯 파스타)', '볶은 재료에 면과 면수를 더해 훌륭한 브런치 파스타로 변형한 변주입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "베이컨 버섯볶음 재료", "amount": "1세트"}, {"name": "스파게티 면", "amount": "200g"}, {"name": "올리브유", "amount": "2큰술"}]'::jsonb, '["파스타 면을 소금물에 알단테로 삶는다", "기본 버섯볶음을 하던 팬에 삶은 면과 면수 반 국자를 넣는다", "올리브유와 소금을 추가해 면에 맛이 배도록 2분간 볶는다", "파마산 치즈가루를 뿌리면 레스토랑급 풍미가 완성된다"]'::jsonb, '베이컨 버섯볶음 기본 재료를 활용해 면 요리로 완성한 변주입니다', '2인분', 780, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 버섯볶음 (기본)', '베이컨의 짭짤함과 버섯의 쫄깃한 식감이 어우러진 초간단 사이드 메뉴입니다.', NULL, '["#간단", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "새송이버섯", "amount": "2개"}, {"name": "베이컨", "amount": "4줄"}, {"name": "허브솔트", "amount": "약간"}]'::jsonb, '["버섯은 한입 크기로 썰고 베이컨은 3cm 너비로 자른다", "팬에 기름 없이 베이컨을 먼저 볶아 기름을 낸다", "버섯을 넣고 베이컨 기름에 코팅하듯 중불에서 3분간 볶는다", "버섯 숨이 죽으면 허브솔트로 간을 맞추고 마무리한다"]'::jsonb, '베이컨 자체의 간이 강하므로 간은 마지막에 하는 것이 기본입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 청경채 볶음 (변주: 소고기 청경채 덮밥)', '전분물을 풀어 걸쭉한 소스로 만들어 밥 위에 얹어 먹는 한 그릇 변주입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "소고기 청경채 볶음 재료", "amount": "1세트"}, {"name": "전분 가루", "amount": "1큰술"}, {"name": "공깃밥", "amount": "2공기"}]'::jsonb, '["기본 볶음 공정에서 물 반 컵을 추가해 소스를 넉넉히 만든다", "전분과 물을 1:1로 섞어 팬에 조금씩 부으며 걸쭉하게 농도를 맞춘다", "따뜻한 밥 위에 볶음 소스를 듬뿍 끼얹는다", "중식 스타일의 든든한 점심 메뉴로 캠핑장에서 인기가 좋다"]'::jsonb, '소고기 청경채 볶음 기본을 식사 중심의 덮밥 형태로 변경한 변주입니다', '2인분', 620, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 청경채 볶음 (기본)', '굴소스로 빠르게 볶아내어 아삭한 식감이 살아있는 영양 만점 반찬입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "소고기(불고기용)", "amount": "200g"}, {"name": "청경채", "amount": "3포기"}, {"name": "굴소스", "amount": "2큰술"}, {"name": "다진 마늘", "amount": "0.5큰술"}]'::jsonb, '["청경채는 밑동을 자르고 가닥가닥 떼어 씻는다", "팬에 기름을 두르고 마늘을 볶다가 소고기를 넣어 핏물이 없어질 때까지 볶는다", "청경채를 넣고 센 불에서 숨이 살짝 죽을 때까지만 1분간 빠르게 볶는다", "굴소스를 넣고 고루 섞어준 뒤 바로 불을 끄고 후추를 뿌린다"]'::jsonb, '청경채에서 물이 나오기 전에 강불로 짧게 끝내는 것이 기본입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '도토리묵 무침 (변주: 묵사발 - 물국수 스타일)', '무침에 시판 냉면 육수를 부어 시원하게 들이켜는 국물형 변주입니다.', NULL, '["#국물", "#점심", "#혼밥", "#파티", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "도토리묵 무침 재료", "amount": "1세트"}, {"name": "냉면 육수", "amount": "1팩"}, {"name": "김가루", "amount": "약간"}]'::jsonb, '["그릇에 채 썬 묵과 채소를 담는다", "차갑게 보관한 냉면 육수를 자작하게 붓는다", "김가루와 깨를 듬뿍 올리고 식초 한 방울을 더한다", "무더운 여름 점심이나 고기 먹은 뒤 입가심용으로 강력 추천한다"]'::jsonb, '도토리묵 무침 기본을 여름철 냉요리로 확장시킨 변주입니다', '2인분', 300, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '도토리묵 무침 (기본)', '여름 캠핑의 시원한 숲속 바람과 잘 어울리는 산뜻한 야채 무침입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "도토리묵", "amount": "1팩"}, {"name": "상추/오이/양파", "amount": "적당량"}, {"name": "간장 양념장", "amount": "3큰술"}]'::jsonb, '["도토리묵을 한입 크기로 썰고 채소들도 먹기 좋게 썬다", "간장 3, 고춧가루 1, 설탕 1, 참기름 1 비율로 양념장을 만든다", "넓은 볼에 묵과 채소를 담고 양념장을 부어 살살 버무린다", "묵이 으깨지지 않도록 가볍게 손으로 뒤섞어 완성한다"]'::jsonb, '묵을 끓는 물에 살짝 데쳐 사용하면 훨씬 탱글탱글해지는 기본 레시피입니다', '2인분', 250, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '두부 김치 (변주: 두부 치즈 김치 그라탱)', '볶은 김치 위에 두부와 치즈를 올려 서양식 느낌으로 구워낸 퓨전 변주입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#야식"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "두부 김치 재료", "amount": "1세트"}, {"name": "모짜렐라 치즈", "amount": "100g"}]'::jsonb, '["그리들이나 호일 그릇에 볶은 김치를 깔고 그 위에 깍둑썰기한 두부를 올린다", "모짜렐라 치즈를 듬뿍 뿌리고 뚜껑을 덮어 약불에서 치즈를 녹인다", "치즈가 녹으면 핫소스를 살짝 뿌려 매콤함을 더한다", "아이들도 잘 먹는 고소하고 부드러운 맛의 이색 안주다"]'::jsonb, '두부 김치 기본을 오븐 구이 스타일로 재해석한 변주입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '두부 김치 (기본)', '막걸리 한 잔이 생각나는 밤, 가장 간단하면서도 든든한 한국형 안주입니다.', NULL, '["#간단", "#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "두부", "amount": "1모"}, {"name": "신김치", "amount": "1/4포기"}, {"name": "설탕", "amount": "0.5큰술"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["두부는 끓는 물에 데워 따뜻하게 준비한 뒤 도톰하게 썬다", "팬에 기름을 두르고 신김치를 설탕과 함께 충분히 볶는다", "접시 가장자리에 두부를 두르고 중앙에 볶은 김치를 담는다", "통깨와 참기름을 뿌려 고소한 풍미를 더한다"]'::jsonb, '김치를 볶을 때 삼겹살 자투리를 넣으면 더욱 맛이 진해지는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '황태채 버터구이 (기본)', '모닥불 앞에서 가볍게 즐기는 최고의 맥주 안주로, 고소하고 바삭한 맛이 일품입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "황태채", "amount": "1줌"}, {"name": "버터", "amount": "30g"}, {"name": "설탕", "amount": "1큰술"}]'::jsonb, '["황태채는 먹기 좋은 크기로 찢어 가시를 제거한다", "팬에 버터를 녹인 뒤 황태채를 넣고 중불에서 노릇하게 볶는다", "황태채가 바삭해지면 설탕을 뿌려 결정이 생기도록 코팅하듯 볶는다", "마요네즈와 청양고추를 섞은 소스를 곁들여 찍어 먹는다"]'::jsonb, '버터가 타지 않도록 중불에서 은근하게 볶아야 바삭함이 살아나는 기본 레시피입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '호일 옥수수 치즈구이 (변주: 베이컨 치즈 옥수수)', '잘게 썬 베이컨을 추가해 짭조름한 풍미를 더한 맥주 안주용 변주입니다.', NULL, '["#저녁", "#안주", "#맥주", "#구이", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "호일 옥수수 재료", "amount": "1세트"}, {"name": "베이컨", "amount": "2줄"}]'::jsonb, '["베이컨을 아주 잘게 다지듯 썰어 치즈와 함께 섞는다", "마요네즈 바른 옥수수 위에 베이컨 치즈를 얹고 호일로 감싼다", "잔불에서 익히면 베이컨의 훈연 향이 옥수수에 배어 더욱 맛있다", "마지막에 파마산 치즈가루를 더 뿌려 풍미를 극대화한다"]'::jsonb, '호일 옥수수 구이 기본에 육류의 고소함을 더한 변주입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '호일 옥수수 치즈구이 (기본)', '옥수수와 치즈를 호일에 싸서 직화로 구워내는 고소함 끝판왕 메뉴입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "찐 옥수수", "amount": "2개"}, {"name": "모짜렐라 치즈", "amount": "100g"}, {"name": "마요네즈", "amount": "2큰술"}]'::jsonb, '["옥수수에 마요네즈를 골고루 펴 바른다", "알루미늄 호일 위에 옥수수를 올리고 치즈를 듬뿍 뿌려 감싼다", "화로대 잔불 위에 올려 치즈가 녹을 때까지 10분간 둔다", "호일을 열어 치즈가 노릇하게 녹은 상태로 뜨겁게 즐긴다"]'::jsonb, '호일을 밀봉해야 열기가 갇혀 치즈가 골고루 잘 녹는 기본 레시피입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자 짜글이 (변주: 캠핑용 참치 감자 짜글이)', '참치캔을 통째로 넣어 더욱 진한 국물 맛을 낸 실속형 변주입니다.', NULL, '["#국물", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "감자 짜글이 재료", "amount": "1세트"}, {"name": "참치캔", "amount": "1캔"}]'::jsonb, '["감자 짜글이를 끓일 때 처음부터 참치 기름과 살코기를 함께 넣는다", "참치 살이 국물에 녹아들어 더욱 걸쭉한 맛이 난다", "참치 자체가 조미되어 있으므로 간장 양을 약간 줄여 조절한다", "캠핑 마지막 날 남은 재료를 털어 넣기 가장 좋은 메뉴다"]'::jsonb, '감자 짜글이 기본에 상비 식품인 참치를 더해 감칠맛을 올린 변주입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자 짜글이 (기본)', '고기 없이도 감자와 양파만으로 입에 착 감기는 감칠맛을 내는 찌개입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 25, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "3개"}, {"name": "양파", "amount": "1개"}, {"name": "고추장", "amount": "1큰술"}, {"name": "진간장", "amount": "2큰술"}]'::jsonb, '["감자와 양파를 굵게 채 썰거나 깍둑썰기한다", "냄비에 모든 재료를 넣고 물을 자작하게(재료가 반쯤 잠기게) 붓는다", "고추장, 간장, 설탕, 고춧가루를 넣고 양념을 푼다", "국물이 꾸덕꾸덕해지고 감자가 으깨질 때까지 15분간 졸여 완성한다"]'::jsonb, '감자를 으깨서 밥에 비벼 먹을 때 가장 맛있는 기본 레시피입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 초밥 (변주: 와사비 마요 스팸 초밥)', '와사비 마요 소스를 더해 어른들도 맥주 안주로 즐기기 좋게 만든 변주입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "스팸 초밥 재료", "amount": "1세트"}, {"name": "와사비", "amount": "0.5작은술"}, {"name": "마요네즈", "amount": "1큰술"}]'::jsonb, '["마요네즈와 와사비를 섞어 와사비 마요 소스를 만든다", "밥과 스팸 사이에 소스를 살짝 찍어 바른다", "스팸 위에도 소스를 한 방울 얹어 장식한다", "와사비의 톡 쏘는 맛이 스팸의 기름기를 잡아주어 조화롭다"]'::jsonb, '스팸 초밥 기본에 소스 하나로 맛의 포인트를 준 변주입니다', '2인분', 470, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 초밥 (기본)', '아이들이 좋아하는 스팸을 이용해 만드는, 도시락 느낌의 귀여운 요리입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "스팸", "amount": "1/2캔"}, {"name": "공깃밥", "amount": "1공기"}, {"name": "김밥용 김", "amount": "1장"}, {"name": "단촛물(식초/설탕)", "amount": "약간"}]'::jsonb, '["스팸을 0.5cm 두께로 썰어 팬에 노릇하게 굽는다", "밥에 식초, 설탕, 소금을 섞은 단촛물을 넣어 살살 버무린다", "밥을 스팸 크기에 맞춰 타원형으로 뭉친다", "밥 위에 스팸을 올리고 김을 길게 잘라 띠처럼 둘러 고정한다"]'::jsonb, '스팸의 짠맛 때문에 밥에는 간을 약하게 하는 것이 기본입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '돼지고기 생강구이 (변주: 생강구이 샌드위치)', '볶은 고기를 빵 사이에 넣어 든든한 아침 샌드위치로 활용한 변주입니다.', NULL, '["#저녁", "#샌드위치", "#점심", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "생강구이 고기", "amount": "150g"}, {"name": "모닝빵/식빵", "amount": "2개"}, {"name": "마요네즈", "amount": "약간"}]'::jsonb, '["빵을 반으로 갈라 안쪽 면을 팬에 살짝 굽는다", "빵 양면에 마요네즈를 바르고 상추 한 장을 깐다", "미리 볶아둔 생강구이 고기를 듬뿍 넣고 덮는다", "생강의 향이 고기 버거 같은 느낌을 주어 캠핑 점심 도시락으로 좋다"]'::jsonb, '돼지고기 생강구이 기본을 빵 요리에 접목시킨 실속 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '돼지고기 생강구이 (기본)', '생강의 향긋함이 돼지고기의 잡내를 잡아주는 깔끔한 일본식 반찬 요리입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "돼지고기 뒷다리살", "amount": "300g"}, {"name": "다진 생강/생강청", "amount": "1큰술"}, {"name": "간장", "amount": "2큰술"}, {"name": "양파", "amount": "1/2개"}]'::jsonb, '["돼지고기는 얇게 썰어 생강, 간장, 맛술로 밑간을 하여 10분간 둔다", "팬에 기름을 두르고 양파를 먼저 볶아 향을 낸다", "양념된 고기를 넣고 센 불에서 수분이 날아갈 때까지 노릇하게 볶는다", "채 썬 양배추와 함께 곁들여 먹으면 더욱 담백하다"]'::jsonb, '생강을 너무 많이 넣으면 써질 수 있으니 적당량을 지키는 것이 기본입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵 김밥 (변주: 매운 어묵 꼬마김밥)', '청양고추와 고춧가루를 더해 화끈한 맛을 낸, 중독성 강한 변주 레시피입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "어묵 김밥 재료", "amount": "1세트"}, {"name": "고춧가루", "amount": "1큰술"}, {"name": "청양고추", "amount": "2개"}]'::jsonb, '["어묵을 볶을 때 고춧가루와 다진 청양고추를 넣어 매콤하게 조린다", "김을 4등분 하여 꼬마김밥 형태로 작게 말아준다", "매운맛이 강하므로 마요네즈를 소스로 곁들여 찍어 먹으면 궁합이 좋다", "캠핑 중 입맛이 없을 때 별미 안주로도 훌륭하다"]'::jsonb, '어묵 김밥 기본에 매운 양념을 가미해 한입 크기로 변형한 변주입니다', '2인분', 530, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵 김밥 (기본)', '속 재료를 최소화하면서도 어묵의 짭조름한 맛으로 승부하는 캠핑 별미 김밥입니다.', NULL, '["#점심", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "김밥용 김", "amount": "4장"}, {"name": "사각 어묵", "amount": "4장"}, {"name": "단무지", "amount": "4줄"}, {"name": "간장/올리고당", "amount": "각 1큰술"}]'::jsonb, '["어묵을 가늘게 채 썰어 팬에 간장, 올리고당과 함께 짭조름하게 볶는다", "밥에 참기름과 소금으로 밑간을 하고 한김 식힌다", "김 위에 밥을 얇게 펴고 볶은 어묵을 듬뿍, 단무지 한 줄을 올린다", "단단하게 말아 먹기 좋은 크기로 썰어낸다"]'::jsonb, '어묵을 가득 넣을수록 식감이 좋고 간이 잘 맞는 기본 레시피입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '냉모밀 (변주: 들기름 막국수 스타일)', '국물 없이 들기름과 김가루로 고소하게 비벼 먹는 요즘 유행하는 변주 메뉴입니다.', NULL, '["#국물", "#점심", "#혼밥", "#파티", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "메밀면", "amount": "2줌"}, {"name": "들기름", "amount": "3큰술"}, {"name": "김가루/깨", "amount": "듬뿍"}, {"name": "진간장", "amount": "1큰술"}]'::jsonb, '["삶은 메밀면의 물기를 완전히 제거하고 볼에 담는다", "들기름, 진간장, 설탕 0.5큰술을 넣고 가볍게 버무린다", "접시에 담은 뒤 조미 김가루와 깨를 면이 안 보일 정도로 듬뿍 뿌린다", "자극적이지 않고 고소한 맛이 일품이라 아침 식사로도 좋다"]'::jsonb, '냉모밀 기본 면을 활용해 비빔 형태로 변형한 트렌디한 변주입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '냉모밀 (기본)', '여름 캠핑의 더위를 한 방에 날려줄 시원하고 깔끔한 면 요리입니다.', NULL, '["#혼밥", "#파티", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "메밀국수 면", "amount": "2줌"}, {"name": "시판 장국/쯔유", "amount": "100ml"}, {"name": "무", "amount": "약간"}, {"name": "와사비", "amount": "적당량"}]'::jsonb, '["시판 장국을 물과 1:3 비율로 섞어 아이스박스에 넣어 차갑게 준비한다", "메밀면을 끓는 물에 삶아 찬물에 여러 번 헹궈 얼음물에 담가둔다", "무는 강판에 갈거나 아주 잘게 다져 즙을 낸다", "그릇에 면을 담고 차가운 육수를 부은 뒤 간 무와 와사비를 얹는다"]'::jsonb, '면을 삶은 뒤 얼음물에 헹궈야 메밀 특유의 쫄깃함이 살아나는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '바나나 구이 (변주: 누텔라 초코 바나나)', '구운 바나나에 초코 잼을 더해 아이들이 열광하는 맛을 낸 파티용 변주입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "바나나 구이 재료", "amount": "1세트"}, {"name": "누텔라/초코시럽", "amount": "1큰술"}, {"name": "견과류", "amount": "약간"}]'::jsonb, '["기본 바나나 구이 칼집 사이에 초코 잼을 듬뿍 채워 넣는다", "잼이 녹아내릴 때까지 약 2분간 더 구워준다", "그 위에 다진 견과류를 뿌려 고소한 식감을 더한다", "마시멜로를 함께 구워 올리면 완벽한 캠핑 디저트가 된다"]'::jsonb, '바나나 구이 기본에 초콜릿 소스를 더해 중독성을 높인 변주입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '바나나 구이 (기본)', '캠핑 모닥불의 열기를 이용해 만드는 달콤하고 부드러운 천연 디저트입니다.', NULL, '["#간단", "#저녁", "#구이", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "바나나", "amount": "2개"}, {"name": "시나몬 가루", "amount": "약간"}]'::jsonb, '["바나나는 껍질째 깨끗이 씻어 준비한다", "껍질의 한쪽 면에 길게 칼집을 내고 살짝 벌린다", "그릴 위나 잔불 위에 바나나를 올리고 껍질이 까맣게 변할 때까지 굽는다", "속살이 흐물흐물해지면 시나몬 가루를 뿌려 숟가락으로 떠먹는다"]'::jsonb, '열을 가하면 바나나의 당도가 극대화되는 아주 간단한 기본 레시피입니다', '2인분', 200, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '떡국 (변주: 캠핑용 만두 떡국)', '냉동 만두를 넣어 더욱 푸짐하게 즐기는 한 끼 식사 변주 레시피입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "떡국 재료", "amount": "1세트"}, {"name": "냉동 만두", "amount": "6개"}]'::jsonb, '["사골육수가 끓으면 만두를 먼저 넣고 3분간 익힌다", "만두가 어느 정도 익었을 때 불린 떡을 넣어 함께 끓인다", "떡과 만두가 모두 익으면 대파를 듬뿍 넣어 풍미를 더한다", "반찬으로 김치 하나만 있으면 충분한 든든한 아침이 된다"]'::jsonb, '떡국 기본에 만두를 추가해 포만감을 높인 변주입니다', '2인분', 820, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '떡국 (기본)', '새해 캠핑뿐만 아니라 평소에도 아침 식사로 든든하게 먹기 좋은 메뉴입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "떡국 떡", "amount": "2공기"}, {"name": "사골육수 팩", "amount": "500ml"}, {"name": "달걀", "amount": "1개"}, {"name": "국간장", "amount": "1큰술"}]'::jsonb, '["떡국 떡은 찬물에 10분 정도 담가 불려둔다", "냄비에 사골육수와 물 200ml를 섞어 붓고 팔팔 끓인다", "물이 끓으면 떡을 넣고 떡이 위로 떠오를 때까지 끓인다", "계란을 풀어 줄을 그리듯 붓고, 김가루를 올려 마무리한다"]'::jsonb, '사골육수를 사용하면 별도의 육수 없이도 깊은 맛이 나는 기본 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '황태채 버터구이 (변주: 허니버터 아몬드 황태채)', '견과류와 꿀을 더해 아이들도 과자처럼 먹을 수 있게 만든 달콤 고소한 변주입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "황태채 버터구이 재료", "amount": "1세트"}, {"name": "아몬드/땅콩", "amount": "1줌"}, {"name": "꿀", "amount": "1큰술"}]'::jsonb, '["버터에 볶은 황태채에 아몬드나 견과류를 함께 넣어 볶는다", "마지막에 설탕 대신 꿀을 넣어 윤기가 흐르도록 잘 버무린다", "불을 끄고 넓게 펼쳐 한김 식히면 훨씬 바삭한 식감이 된다", "캠핑장에서 간식으로도, 맥주 안주로도 손색없는 메뉴다"]'::jsonb, '황태채 버터구이 기본에 견과류와 꿀을 추가해 풍미를 높인 변주입니다', '2인분', 400, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '대패삼겹 덮밥 (변주: 불맛 고추장 대패덮밥)', '데리야끼 대신 매콤한 고추장 양념을 입혀 한국인의 입맛을 사로잡은 변주입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "대패삼겹 덮밥 재료", "amount": "1세트"}, {"name": "고추장", "amount": "1.5큰술"}, {"name": "고춧가루", "amount": "1큰술"}]'::jsonb, '["팬에 대패삼겹살을 볶다가 고추장과 고춧가루, 설탕을 넣고 강불에서 빠르게 볶는다", "토치가 있다면 겉면을 살짝 그을려 불향을 입히면 더욱 맛있다", "밥 위에 매콤한 고기를 얹고 상추 채를 곁들여 비벼 먹는다", "느끼함을 잡아주는 청양고추를 송송 썰어 넣으면 더욱 좋다"]'::jsonb, '대패삼겹 덮밥 기본에 매콤한 양념을 더해 입맛을 돋우는 변주입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '대패삼겹 덮밥 (기본)', '반찬 만들기 귀찮은 캠핑 점심, 고기와 밥을 한 번에 해결하는 든든한 일품요리입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "대패삼겹살", "amount": "200g"}, {"name": "공깃밥", "amount": "1공기"}, {"name": "양파", "amount": "1/2개"}, {"name": "데리야끼 소스", "amount": "3큰술"}]'::jsonb, '["팬에 대패삼겹살을 먼저 볶아 기름을 내고, 채 썬 양파를 넣어 함께 볶는다", "양파가 투명해지면 데리야끼 소스를 넣고 고기에 윤기가 날 때까지 졸인다", "그릇에 밥을 담고 그 위에 소스에 졸여진 고기를 듬뿍 얹는다", "기호에 따라 노른자나 쪽파를 고명으로 올려 마무리한다"]'::jsonb, '단짠단짠한 소스가 밥알에 배어들도록 소스를 넉넉히 졸이는 것이 기본입니다', '2인분', 750, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '염통 꼬치 구이 (기본)', '포장마차의 추억을 캠핑장으로 가져온 메뉴로, 하나씩 쏙쏙 빼먹는 재미가 있는 안주입니다.', NULL, '["#저녁", "#안주", "#구이", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "닭 염통 꼬치", "amount": "10개"}, {"name": "데리야끼 소스", "amount": "3큰술"}, {"name": "허브솔트", "amount": "약간"}]'::jsonb, '["해동된 염통 꼬치의 핏물을 키친타월로 닦아내고 허브솔트를 살짝 뿌린다", "그리들이나 팬을 달구어 기름을 두르고 꼬치를 올린다", "중불에서 고기가 앞뒤로 갈색이 될 때까지 충분히 익힌다", "마지막에 데리야끼 소스를 붓으로 골고루 발라 1분간 더 구워 불맛을 입힌다"]'::jsonb, '염통은 충분히 익혀야 잡내 없이 쫄깃한 식감을 즐길 수 있는 기본 레시피입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '애호박 고추장찌개 (변주: 캠핑용 참치 호박찌개)', '고기 대신 참치캔을 활용해 기름기를 줄이고 감칠맛을 높인 초간단 변주입니다.', NULL, '["#간단", "#저녁", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "애호박 고추장찌개 재료", "amount": "1세트"}, {"name": "참치캔", "amount": "1캔"}]'::jsonb, '["고기 대신 참치 기름을 냄비에 붓고 고추장을 먼저 볶는다", "물을 붓고 호박이 익을 때까지 보글보글 끓인다", "마지막 단계에서 참치 살코기를 넣고 한소끔 더 끓여 마무리한다", "고기가 없을 때 상비 품목인 참치로 깊은 맛을 내기 좋은 메뉴다"]'::jsonb, '애호박 고추장찌개 기본에서 재료를 참치로 바꿔 조리법을 단순화한 변주입니다', '2인분', 390, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '애호박 고추장찌개 (기본)', '여름 애호박의 달큰한 맛과 고추장의 얼큰함이 만나 밥 두 그릇을 부르는 마법의 찌개입니다.', NULL, '["#국물", "#저녁", "#추운날", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "애호박", "amount": "1개"}, {"name": "돼지고기 찌개용", "amount": "150g"}, {"name": "고추장", "amount": "2큰술"}, {"name": "국간장", "amount": "1큰술"}]'::jsonb, '["냄비에 식용유 1큰술과 고추장을 넣고 약불에서 타지 않게 볶는다 (고추기름 효과)", "돼지고기를 넣고 볶다가 핏물이 사라지면 물 800ml를 붓는다", "반달 모양으로 썬 애호박과 양파를 넣고 강불에서 끓인다", "국물이 걸쭉해지면 국간장으로 최종 간을 하고 5분간 더 끓인다"]'::jsonb, '호박이 뭉근하게 익어 국물이 달큰해질 때까지 끓이는 것이 기본입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 볶음밥 (변주: 스팸 카레 볶음밥)', '볶음밥에 카레 가루를 더해 이국적인 향과 노란 색감을 입힌 변주 레시피입니다.', NULL, '["#점심", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "스팸 볶음밥 재료", "amount": "1세트"}, {"name": "카레 가루", "amount": "1.5큰술"}]'::jsonb, '["기본 스팸 볶음밥 공정과 동일하게 진행하되 간장 대신 카레 가루를 넣는다", "카레 가루가 뭉치지 않도록 밥 전체에 골고루 뿌려가며 볶는다", "카레 향이 배어 풍미가 깊어지며 아이들이 특히 좋아한다", "기호에 따라 케첩을 살짝 곁들여 먹어도 맛있다"]'::jsonb, '스팸 볶음밥 기본에 양념 베이스만 카레로 바꾼 손쉬운 변주입니다', '2인분', 740, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 볶음밥 (기본)', '재료가 없을 때 가장 만만하게 만들 수 있는, 하지만 가장 맛있는 한 끼 식사입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "스팸", "amount": "1/2캔"}, {"name": "공깃밥", "amount": "2공기"}, {"name": "대파", "amount": "1/2대"}, {"name": "간장", "amount": "1큰술"}]'::jsonb, '["스팸을 작은 정육면체 모양으로 썰고 대파는 송송 썬다", "팬에 기름을 두르고 파를 볶아 파기름을 낸 뒤 스팸을 넣어 노릇하게 볶는다", "팬 한쪽으로 재료를 밀고 빈 공간에 간장을 부어 보글보글 끓여 향을 낸다", "밥을 넣고 양념이 골고루 배도록 고슬고슬하게 볶아 마무리한다"]'::jsonb, '간장을 팬 바닥에서 살짝 태우듯 눌려야 불맛이 살아나는 기본 레시피입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '햄 치즈 카나페 (변주: 과일 크림치즈 카나페)', '햄 대신 크림치즈와 제철 과일을 올려 달콤하게 즐기는 디저트용 변주입니다.', NULL, '["#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "크래커", "amount": "1봉지"}, {"name": "크림치즈", "amount": "2큰술"}, {"name": "딸기/포도", "amount": "약간"}]'::jsonb, '["크래커 위에 크림치즈를 넉넉히 바른다", "딸기를 반으로 자르거나 포도를 올려 색감을 살린다", "꿀이나 메이플 시럽을 살짝 뿌리면 풍미가 더욱 좋아진다", "캠핑장에서 커피와 함께 디저트로 즐기기에도 아주 좋다"]'::jsonb, '햄 치즈 카나페 기본에서 재료를 과일과 치즈로 변경한 변주입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '햄 치즈 카나페 (기본)', '불 없이 만드는 초간단 와인 안주로, 아이들과 함께 만들기도 좋습니다.', NULL, '["#간단", "#와인", "#안주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "크래커", "amount": "1봉지"}, {"name": "슬라이스 햄/치즈", "amount": "각 3장"}, {"name": "참치 마요", "amount": "약간"}]'::jsonb, '["슬라이스 햄과 치즈를 크래커 크기에 맞춰 4등분으로 썬다", "크래커 위에 햄, 치즈 순으로 올린다", "그 위에 참치 마요나 마요네즈 한 방울을 얹어 고정한다", "기호에 따라 방울토마토 조각이나 파슬리를 고명으로 올린다"]'::jsonb, '재료를 작게 썰어 한입에 쏙 들어가게 만드는 것이 기본인 핑거푸드입니다', '2인분', 300, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵 우동 (변주: 김치 우동 나베)', '투니버스 만화처럼 김치를 넣어 시원하고 칼칼하게 만든 해장용 변주입니다.', NULL, '["#점심", "#해장", "#파티", "#혼밥", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "어묵 우동 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1줌"}, {"name": "고춧가루", "amount": "1큰술"}]'::jsonb, '["물에 김치와 고춧가루를 먼저 넣고 김치가 익을 때까지 끓인다", "김치 국물을 1국자 섞으면 더욱 진한 맛의 육수가 된다", "기본 어묵 우동 조리법대로 어묵과 면을 넣고 끓여낸다", "청양고추를 추가해 칼칼함을 살리면 아침 해장으로 완벽하다"]'::jsonb, '어묵 우동 기본에 김치를 추가해 시원한 맛을 강조한 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵 우동 (기본)', '추운 밤 텐트 안에서 호로록 먹기 좋은, 속이 뜨끈해지는 간편 요리입니다.', NULL, '["#국물", "#점심", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "우동 사리", "amount": "2개"}, {"name": "사각 어묵", "amount": "2장"}, {"name": "쯔유/우동스프", "amount": "적당량"}]'::jsonb, '["냄비에 물 800ml를 붓고 쯔유로 국물 간을 맞춘다", "어묵을 먹기 좋게 썰어 넣고 국물이 우러나도록 5분간 끓인다", "우동 면을 넣고 면발이 풀릴 때까지 2~3분간 더 끓인다", "대파와 튀김가루(텐카스)가 있다면 고명으로 올린다"]'::jsonb, '어묵을 먼저 끓여 국물에 감칠맛이 배어 나오게 하는 것이 기본입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '치즈 닭갈비 (변주: 닭갈비 파스타)', '닭갈비를 먹고 남은 양념에 면을 넣어 볶음면 스타일로 즐기는 변주입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "남은 닭갈비 양념", "amount": "1국자"}, {"name": "파스타/우동 면", "amount": "1개"}, {"name": "김가루", "amount": "약간"}]'::jsonb, '["면을 미리 삶거나 데쳐서 준비한다", "닭갈비 팬에 면을 넣고 남은 양념과 잘 섞이도록 볶는다", "양념이 부족하면 간장 0.5큰술이나 고추장을 살짝 더한다", "마지막에 김가루와 참기름을 뿌려 한국식 파스타로 완성한다"]'::jsonb, '치즈 닭갈비 기본을 탄수화물 식사 메뉴로 연결한 실속 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '치즈 닭갈비 (기본)', '매콤한 닭갈비에 고소한 치즈가 녹아들어 남녀노소 사랑받는 캠핑 요리입니다.', NULL, '["#저녁", "#야식", "#파티", "#혼밥"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "양념 닭갈비(시판)", "amount": "500g"}, {"name": "모짜렐라 치즈", "amount": "150g"}, {"name": "깻잎", "amount": "10장"}]'::jsonb, '["그리들이나 팬을 달구고 양념 닭갈비를 넣어 중불에서 볶는다", "고기가 거의 다 익으면 한쪽으로 밀어두고 가운데 길을 만든다", "가운데 빈 공간에 치즈를 듬뿍 뿌리고 뚜껑을 덮어 약불에서 녹인다", "치즈가 다 녹으면 깻잎을 채 썰어 올리고 닭고기를 치즈에 찍어 먹는다"]'::jsonb, '치즈가 바닥에 타지 않도록 고기 위에 뿌리기보다 빈 공간에 녹이는 것이 기본입니다', '2인분', 1150, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 청경채 볶음 (변주: 해산물 청경채 볶음)', '고기 대신 새우나 해물을 넣어 더욱 가볍고 산뜻하게 즐기는 변주입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "청경채", "amount": "3포기"}, {"name": "자숙 새우/오징어", "amount": "150g"}, {"name": "전분가루", "amount": "0.5큰술"}]'::jsonb, '["팬에 마늘과 대파를 볶아 기름을 낸 뒤 해물을 먼저 볶는다", "청경채를 넣고 숨이 죽으면 굴소스와 물 2큰술을 섞어 붓는다", "전분물(전분 0.5+물 1)을 살짝 풀어 국물을 걸쭉하게 만든다", "중식 요리 같은 느낌으로 밥 위에 얹어 덮밥으로 먹어도 좋다"]'::jsonb, '소고기 청경채 볶음 기본에서 단백질원을 해산물로 변경한 변주입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 청경채 볶음 (기본)', '굴소스로 맛을 내 실패 확률이 적고 영양 균형이 훌륭한 저녁 메뉴입니다.', NULL, '["#혼밥", "#파티", "#아침", "#죽"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "소고기 불고기감", "amount": "200g"}, {"name": "청경채", "amount": "3포기"}, {"name": "굴소스", "amount": "1.5큰술"}, {"name": "마늘", "amount": "5알"}]'::jsonb, '["청경채는 밑동을 자르고 가닥가닥 떼어 씻어둔다", "팬에 기름을 두르고 편마늘을 볶다가 소고기를 넣어 핏물이 사라질 때까지 볶는다", "청경채를 넣고 센 불에서 빠르게 숨이 죽을 때까지 볶는다", "굴소스를 두르고 골고루 섞어준 뒤 바로 불을 끈다"]'::jsonb, '청경채는 아삭한 식감이 중요하므로 숨이 죽자마자 불을 끄는 것이 기본입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오이 무침 (변주: 캠핑장 오이 탕탕이)', '오이를 두드려 깨뜨려 양념이 더 잘 배게 만든, 중식 스타일의 시원한 변주입니다.', NULL, '["#간단", "#추운날", "#혼밥", "#파티", "#아침", "#시원한", "#더운날"]'::jsonb, '{}'::jsonb, 1, 5, 1, 10, '[]'::jsonb, '[{"name": "오이", "amount": "1개"}, {"name": "다진 마늘", "amount": "1큰술"}, {"name": "설탕/식초", "amount": "각 1.5큰술"}, {"name": "소금", "amount": "약간"}]'::jsonb, '["오이를 비닐봉지에 넣고 밀대나 소주병으로 탕탕 두드려 불규칙하게 조각낸다", "거칠게 부서진 오리에 마늘, 설탕, 식초, 소금을 넣는다", "봉지째로 가볍게 흔들어 섞으면 양념이 틈새로 쏙쏙 밴다", "차갑게 보관했다 먹으면 갈증 해소에 최고다"]'::jsonb, '오이 무침 기본에서 썰기 방식을 ''깨뜨리기''로 바꾼 초간단 변주입니다', '2인분', 70, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오이 무침 (기본)', '고기 요리와 곁들이기 좋은 즉석 반찬으로, 입안을 상큼하게 청소해 줍니다.', NULL, '["#혼밥", "#파티", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "오이", "amount": "1개"}, {"name": "양파", "amount": "1/4개"}, {"name": "고춧가루", "amount": "1.5큰술"}, {"name": "식초/설탕", "amount": "각 1큰술"}]'::jsonb, '["오이를 동그랗거나 어슷하게 썰고 양파는 얇게 채 썬다", "볼에 오이와 양파를 담고 모든 양념 재료를 넣는다", "오이에서 물이 나오기 전 신속하게 버무려 아삭함을 살린다", "마지막에 통깨를 뿌려 마무리한다"]'::jsonb, '먹기 직전에 버무려야 오이 식감이 살아있는 신선한 기본 레시피입니다', '2인분', 80, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 두부말이 (변주: 김치 두부 베이컨 말이)', '두부와 베이컨 사이에 씻은 김치를 끼워 아삭함을 더한 별미 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "베이컨 두부말이 재료", "amount": "1세트"}, {"name": "씻은 신김치", "amount": "4잎"}]'::jsonb, '["신김치를 물에 헹궈 물기를 꽉 짠 뒤 두부 크기에 맞춰 자른다", "베이컨 위에 김치 한 장, 두부 한 조각을 순서대로 올리고 만다", "팬에서 노릇하게 구워내면 김치의 산미가 느끼함을 완벽히 잡아준다", "초간장이나 머스터드 소스에 찍어 먹으면 술안주로 좋다"]'::jsonb, '베이컨 두부말이 기본에 김치를 더해 한식 느낌을 강화한 변주입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 두부말이 (기본)', '두부의 담백함과 베이컨의 짭조름함이 만나 아이들 영양 간식으로 훌륭한 메뉴입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "두부", "amount": "1/2모"}, {"name": "베이컨", "amount": "1팩"}, {"name": "전분가루", "amount": "약간"}]'::jsonb, '["두부를 베이컨 폭에 맞춰 직사각형으로 썰고 키친타월로 물기를 닦는다", "두부에 베이컨을 돌돌 말아 끝부분이 바닥으로 가게 둔다", "팬에 기름을 아주 살짝 두르고 이음새 부분부터 중불에서 굽는다", "베이컨이 사방으로 노릇하게 익을 때까지 돌려가며 익힌다"]'::jsonb, '두부의 물기를 잘 제거해야 베이컨이 풀리지 않고 잘 달라붙는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '명란 크림 파스타 (변주: 매콤 투움바풍 명란 파스타)', '고춧가루와 케첩을 더해 느끼함을 잡고 한국적인 매콤함을 더한 변주입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "명란 크림 파스타 재료", "amount": "1세트"}, {"name": "고춧가루", "amount": "1큰술"}, {"name": "케첩", "amount": "1큰술"}]'::jsonb, '["크림 소스를 끓일 때 고춧가루와 케첩을 넣어 주황빛 소스를 만든다", "명란과 함께 청양고추 1개를 송송 썰어 넣어 매운맛을 강조한다", "기본 레시피보다 조금 더 꾸덕하게 졸여 진한 맛을 낸다", "구운 새우가 있다면 고명으로 올리면 훨씬 풍성해진다"]'::jsonb, '명란 크림 파스타 기본에 매운 양념을 더해 질리지 않게 만든 변주입니다', '2인분', 820, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '명란 크림 파스타 (기본)', '고소한 우유/생크림에 명란의 감칠맛이 어우러진 고급스러운 캠핑 브런치입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "파스타 면", "amount": "200g"}, {"name": "명란젓", "amount": "2줄"}, {"name": "우유/생크림", "amount": "300ml"}, {"name": "편마늘", "amount": "5알"}]'::jsonb, '["면을 소금물에 알단테로 삶아 건져둔다 (면수는 반 컵 남긴다)", "팬에 기름을 두르고 마늘을 볶다가 우유와 생크림을 붓고 끓인다", "소스가 끓어오르면 면과 껍질을 제거한 명란 알을 넣는다", "국물이 걸쭉해질 때까지 저어가며 끓이고 소금으로 간을 마무리한다"]'::jsonb, '명란 자체가 짜므로 소금 간은 마지막에 맛을 보고 결정하는 것이 기본입니다', '2인분', 780, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '염통 꼬치 구이 (변주: 매콤 양념 불염통)', '고추장 소스를 덧발라 스트레스 풀리는 매운맛으로 재탄생시킨 변주입니다.', NULL, '["#저녁", "#안주", "#구이", "#추운날", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "염통 꼬치", "amount": "10개"}, {"name": "불닭소스/고추장", "amount": "1.5큰술"}, {"name": "다진 마늘", "amount": "0.5큰술"}]'::jsonb, '["기본 염통 꼬치 방식대로 고기를 먼저 90% 이상 익힌다", "고추장, 올리고당, 마늘을 섞은 양념을 꼬치 앞뒤로 듬뿍 바른다", "양념이 보글보글 끓으며 고기에 배어들 때까지 약불에서 살짝 더 굽는다", "마지막에 청양고추 가루나 통깨를 뿌려 매운 향을 살린다"]'::jsonb, '염통 꼬치 기본에 매운 소스를 입혀 안주 기능을 극대화한 변주입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 감자국 (기본)', '포슬포슬한 감자와 짭조름한 스팸이 만나 별도 육수 없이도 깊은 맛을 내는 아침 국물 요리입니다.', NULL, '["#국물", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "스팸", "amount": "1/2캔"}, {"name": "감자", "amount": "2개"}, {"name": "대파", "amount": "1/2대"}, {"name": "국간장", "amount": "1큰술"}]'::jsonb, '["감자는 나박 썰고 스팸은 작은 정육면체 모양으로 썬다", "냄비에 물 800ml를 붓고 감자를 먼저 넣어 끓인다", "감자가 반쯤 익으면 스팸을 넣고 10분간 더 끓여 햄의 맛을 우려낸다", "국간장과 소금으로 간을 하고 송송 썬 대파를 넣어 마무리한다"]'::jsonb, '스팸을 끓일수록 국물에서 감칠맛이 나오므로 충분히 끓여주는 것이 기본입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '버섯 전골 (변주: 소고기 버섯 만두전골)', '만두와 소고기를 추가해 온 가족이 든든하게 먹을 수 있는 풍성한 변주입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#전골", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "버섯 전골 재료", "amount": "1세트"}, {"name": "냉동 만두", "amount": "6개"}, {"name": "소고기 불고기감", "amount": "150g"}]'::jsonb, '["기본 버섯 전골 세팅 중앙에 냉동 만두와 소고기를 올린다", "육수를 붓고 모든 재료가 충분히 익을 때까지 보글보글 끓인다", "고기에서 나오는 기름기가 국물에 배어 훨씬 진하고 고소한 맛이 난다", "남은 국물에 칼국수 면을 넣어 마무리해도 좋다"]'::jsonb, '버섯 전골 기본에 단백질과 탄수화물을 보강해 메인 식사로 만든 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '버섯 전골 (기본)', '다양한 버섯을 듬뿍 넣어 건강하고 담백하게 즐기는 뜨끈한 전골입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#전골", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "모둠 버섯", "amount": "300g"}, {"name": "배추", "amount": "3잎"}, {"name": "국간장/마늘", "amount": "약간"}, {"name": "코인육수", "amount": "1개"}]'::jsonb, '["냄비 바닥에 배추를 깔고 그 위에 버섯들을 종류별로 정갈하게 담는다", "물 800ml와 코인육수, 국간장을 섞은 육수를 붓는다", "강불에서 끓이다가 버섯 숨이 죽으면 중불로 줄여 5분간 더 끓인다", "버섯 특유의 향을 즐기기 위해 자극적인 양념은 피한다"]'::jsonb, '자연의 맛을 살리는 것이 중요하므로 최소한의 간만 하는 것이 기본입니다', '2인분', 150, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '해물 라면 (변주: 짬뽕 라면 스타일)', '고춧가루와 마늘을 기름에 볶아 불향을 낸 진한 짬뽕풍 변주입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 15, 1, 10, '[]'::jsonb, '[{"name": "해물 라면 재료", "amount": "1세트"}, {"name": "고춧가루", "amount": "1큰술"}, {"name": "다진 마늘", "amount": "0.5큰술"}]'::jsonb, '["냄비에 기름을 두르고 다진 마늘과 고춧가루를 볶아 고추기름을 내는 것이 핵심이다", "해물을 넣고 고추기름에 살짝 볶다가 물을 붓고 끓인다", "라면과 스프를 넣고 평소처럼 끓여 불맛을 살린다", "양파나 양배추를 추가하면 중화요리 짬뽕과 더욱 흡사한 맛이 난다"]'::jsonb, '해물 라면 기본에 볶음 공정을 추가해 깊은 풍미를 낸 변주입니다', '2인분', 1100, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '해물 라면 (기본)', '냉동 해물을 넣어 국물 맛을 시원하게 끌어올린 럭셔리 캠핑 라면입니다.', NULL, '["#국물", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "라면", "amount": "2봉지"}, {"name": "냉동 모둠해물", "amount": "150g"}, {"name": "대파", "amount": "1/2대"}]'::jsonb, '["냄비에 물을 평소보다 50ml 더 붓고 해물을 먼저 넣어 끓인다", "해물 육수가 충분히 우러나면 라면 스프와 면을 넣는다", "강불에서 면을 들었다 놨다 하며 탱글하게 익힌다", "송송 썬 대파를 넣고 30초만 더 끓여 마무리한다"]'::jsonb, '해물에서 감칠맛이 나오므로 별도의 육수 없이도 훌륭한 맛이 나는 기본 레시피입니다', '2인분', 1050, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순두부 스튜 (변주: 치즈 오븐 순두부 그라탱)', '스튜 위에 모짜렐라 치즈를 듬뿍 올려 고소함을 극대화한 변주 레시피입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "순두부 스튜", "amount": "1세트"}, {"name": "모짜렐라 치즈", "amount": "100g"}]'::jsonb, '["준비된 순두부 스튜를 그리들이나 내열 용기에 담는다", "위에 모짜렐라 치즈를 넉넉히 뿌린다", "뚜껑을 덮거나 토치를 사용해 치즈를 노릇하게 녹인다", "늘어나는 치즈와 부드러운 순두부를 함께 떠먹는 재미가 있다"]'::jsonb, '순두부 스튜 기본에 치즈를 더해 파티 요리 분위기를 낸 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순부두 스튜 (기본)', '서양식 토마토 소스와 한국의 순두부가 만나 부드럽고 가볍게 즐기는 아침 메뉴입니다.', NULL, '["#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "순두부", "amount": "1봉"}, {"name": "시판 토마토 소스", "amount": "1/2병"}, {"name": "양파/베이컨", "amount": "약간"}]'::jsonb, '["팬에 잘게 썬 베이컨과 양파를 볶아 향을 낸다", "토마토 소스를 붓고 보글보글 끓으면 순두부를 큼직하게 썰어 넣는다", "순두부 속까지 열기가 전달되도록 중불에서 5분간 뭉근히 끓인다", "기호에 따라 후추나 파슬리 가루를 뿌려 완성한다"]'::jsonb, '자극적이지 않아 빵을 찍어 먹기에도 매우 훌륭한 기본 레시피입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '돼지고기 숙주전 (변주: 숙주 삼겹살 뒤집기)', '반죽 대신 삼겹살 위에 숙주를 듬뿍 쌓아 그대로 구워 뒤집어 먹는 이색 변주입니다.', NULL, '["#저녁", "#죽", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "대패삼겹살", "amount": "200g"}, {"name": "숙주", "amount": "1봉지"}, {"name": "달걀물", "amount": "1개분"}]'::jsonb, '["팬에 대패삼겹살을 빈틈없이 펼쳐 한쪽 면을 굽는다", "고기 위에 숙주를 산처럼 쌓고 그 위에 달걀물을 부어 접착 역할을 하게 한다", "바닥의 고기가 익으면 통째로 뒤집어 숙주가 바닥으로 가게 한다", "숙주 숨이 죽으면 접시에 담아 데리야끼 소스를 뿌려 먹는다"]'::jsonb, '돼지고기 숙주전 기본 재료를 오코노미야끼 스타일로 변형한 변주입니다', '2인분', 580, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '돼지고기 숙주전 (기본)', '다진 돼지고기와 숙주의 식감이 어우러져 영양가 높고 든든한 전 요리입니다.', NULL, '["#저녁", "#죽", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "다진 돼지고기", "amount": "150g"}, {"name": "숙주", "amount": "1줌"}, {"name": "부침가루", "amount": "1컵"}]'::jsonb, '["볼에 다진 돼지고기와 씻은 숙주, 부침가루, 물을 섞어 반죽을 만든다", "숙주가 길면 가위로 두어 번 잘라 반죽이 잘 뭉치게 한다", "팬에 기름을 넉넉히 두르고 반죽을 한입 크기로 떠서 올린다", "중불에서 고기가 속까지 완전히 익도록 앞뒤로 3~4분간 굽는다"]'::jsonb, '숙주의 수분 때문에 반죽이 질어질 수 있으니 물은 조금씩 넣는 것이 기본입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '군옥수수 (변주: 마약 옥수수 - 멕시칸 스타일)', '치즈가루와 고춧가루를 뿌려 중독적인 맛을 낸 인기 길거리 간식 스타일 변주입니다.', NULL, '["#야식", "#파티", "#혼밥"]'::jsonb, '{}'::jsonb, 1, 25, 1, 10, '[]'::jsonb, '[{"name": "군옥수수", "amount": "1세트"}, {"name": "파마산 치즈가루", "amount": "2큰술"}, {"name": "고춧가루", "amount": "0.3큰술"}, {"name": "연유/꿀", "amount": "1큰술"}]'::jsonb, '["버터에 잘 구워진 따뜻한 옥수수 전체에 연유를 골고루 바른다", "넓은 접시에 치즈가루와 고춧가루를 섞어 둔다", "옥수수를 가루 위에 굴려가며 듬뿍 묻힌다", "달콤하고 짭짤하며 매콤한 맛이 어우러져 맥주 안주로 환상적이다"]'::jsonb, '군옥수수 기본에 시즈닝을 더해 화려한 맛으로 업그레이드한 변주입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '군옥수수 (기본)', '바비큐 후 남은 잔불을 이용해 달콤하고 고소하게 구워 먹는 최고의 캠핑 디저트입니다.', NULL, '["#바비큐", "#저녁", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "찐 옥수수", "amount": "2개"}, {"name": "버터", "amount": "20g"}]'::jsonb, '["찐 옥수수에 버터를 골고루 바른다", "화로대 그릴 위나 약불의 팬에 옥수수를 올린다", "옥수수를 돌려가며 모든 면이 노릇하고 살짝 그을릴 때까지 굽는다", "버터 향이 옥수수 알 사이사이에 배어들면 완성이다"]'::jsonb, '이미 익은 옥수수를 사용해야 짧은 시간에 겉바속촉하게 구워지는 기본 레시피입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 숙주나물 (변주: 동남아풍 피쉬소스 숙주볶음)', '피쉬소스나 액젓을 넣어 이국적인 풍미를 살린 변주 레시피입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "베이컨 숙주나물 재료", "amount": "1세트"}, {"name": "멸치액젓/피쉬소스", "amount": "1큰술"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["베이컨과 고추를 먼저 볶다가 숙주를 넣는다", "양념 단계에서 액젓과 설탕 한 꼬집을 넣어 감칠맛을 폭발시킨다", "센 불에서 빠르게 볶아내어 동남아 볶음 요리 같은 향을 낸다", "맥주 안주로 특히 궁합이 좋다"]'::jsonb, '베이컨 숙주나물 기본에 액젓 풍미를 더해 요리의 개성을 살린 변주입니다', '2인분', 290, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 숙주나물 (기본)', '고기와 채소를 균형 있게 섭취할 수 있으며, 조리 시간이 5분 내외인 초간편 메뉴입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "베이컨", "amount": "4줄"}, {"name": "숙주", "amount": "1/2봉지"}, {"name": "다진 마늘", "amount": "0.5큰술"}, {"name": "후추", "amount": "약간"}]'::jsonb, '["팬에 베이컨을 먼저 볶아 기름을 내고 다진 마늘을 넣어 향을 입힌다", "깨끗이 씻은 숙주를 넣고 센 불에서 빠르게 30초~1분간 볶는다", "숙주가 투명해지기 시작하면 바로 불을 끄고 후추를 뿌린다", "베이컨의 간만으로 충분하지만 싱거우면 소금을 살짝 추가한다"]'::jsonb, '숙주의 아삭함을 위해 예열된 팬에서 아주 짧게 볶는 것이 기본입니다', '2인분', 280, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치죽 (변주: 김치 참치 해장죽)', '다진 김치를 넣어 칼칼하고 개운하게 끓여낸 해장 전용 죽 변주입니다.', NULL, '["#죽", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "참치죽 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1/2공기"}]'::jsonb, '["김치를 가위로 아주 잘게 다져 참기름에 밥과 함께 먼저 볶는다", "물을 붓고 밥이 퍼질 때까지 끓인 뒤 참치를 넣는다", "김치 국물을 1~2큰술 추가하면 국물색과 맛이 더욱 깊어진다", "김치의 아삭함과 참치의 고소함이 만나 질리지 않는 맛을 낸다"]'::jsonb, '참치죽 기본에 김치의 산미를 더해 해장 기능을 강화한 변주입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치죽 (기본)', '전날 과음했거나 아침 입맛이 없을 때 부드럽게 넘기기 좋은 영양 가득한 죽입니다.', NULL, '["#혼밥", "#파티", "#아침", "#죽"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "공깃밥", "amount": "1공기"}, {"name": "참치캔", "amount": "1/2캔"}, {"name": "계란", "amount": "1개"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["냄비에 참기름을 두르고 찬밥을 넣어 가볍게 볶다가 물 3컵을 붓는다", "밥알이 푹 퍼지도록 중불에서 저어가며 끓인다", "밥이 부드러워지면 기름을 뺀 참치를 넣고 잘 섞는다", "계란을 풀어 넣고 소금으로 간을 한 뒤 한소끔 더 끓여 마무리한다"]'::jsonb, '밥을 먼저 참기름에 볶아야 훨씬 고소한 맛이 살아나는 기본 레시피입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소시지 김치볶음 (변주: 소시지 김치 덮밥)', '볶은 재료에 전분물이나 소스를 더해 밥 위에 끼얹어 먹는 한 그릇 식사 변주입니다.', NULL, '["#점심", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 18, 1, 10, '[]'::jsonb, '[{"name": "소시지 김치볶음 재료", "amount": "1세트"}, {"name": "계란", "amount": "2개"}, {"name": "굴소스", "amount": "0.5큰술"}]'::jsonb, '["기본 소시지 김치볶음을 만들 때 굴소스를 추가해 간을 조금 더 진하게 한다", "그릇에 따뜻한 밥을 넉넉히 담고 볶은 소시지 김치를 한쪽에 올린다", "팬에 계란 프라이를 반숙으로 구워 위에 얹는다", "노른자를 터뜨려 김치볶음과 함께 비벼 먹으면 한 끼로 완벽하다"]'::jsonb, '소시지 김치볶음 기본을 밥과 조화시킨 덮밥 형태의 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소시지 김치볶음 (기본)', '캠핑의 고전 메뉴인 김치볶음에 소시지를 듬뿍 넣어 아이들도 좋아하는 반찬 겸 안주입니다.', NULL, '["#안주", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "비엔나 소시지", "amount": "15개"}, {"name": "신김치", "amount": "1/2공기"}, {"name": "설탕", "amount": "0.5큰술"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["소시지에 칼집을 내고 신김치는 한입 크기로 썬다", "팬에 기름을 두르고 소시지를 먼저 볶아 모양을 낸 뒤 김치를 넣는다", "김치의 신맛을 잡기 위해 설탕을 넣고 김치가 나른해질 때까지 볶는다", "마지막에 불을 끄고 참기름을 둘러 고소한 향을 입힌다"]'::jsonb, '김치를 먼저 충분히 볶아야 소시지의 고소함과 김치의 감칠맛이 잘 어우러지는 기본 레시피입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 감자국 (변주: 얼큰 스팸 감자 고추장국)', '고추장을 풀어 칼칼함을 더한, 해장용으로 손색없는 얼큰한 변주 레시피입니다.', NULL, '["#추운날", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "스팸 감자국 재료", "amount": "1세트"}, {"name": "고추장", "amount": "1.5큰술"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["기본 감자국 조리 시 물에 고추장을 먼저 풀어 끓인다", "감자와 스팸을 넣고 고추장 양념이 재료에 잘 배도록 보글보글 끓인다", "청양고추를 넣어 칼칼한 맛을 극대화한다", "밥을 말아 국밥처럼 먹으면 아침 속 풀이에 아주 좋다"]'::jsonb, '스팸 감자국 기본에 장류를 추가해 묵직하고 매콤하게 변형한 변주입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '대패삼겹 비빔밥 (기본)', '빨리 익는 대패삼겹살과 신선한 쌈채소를 활용해 순식간에 만드는 든든한 점심입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "대패삼겹살", "amount": "200g"}, {"name": "공깃밥", "amount": "2공기"}, {"name": "상추/깻잎", "amount": "10장"}, {"name": "비빔양념장", "amount": "2큰술"}]'::jsonb, '["팬을 예열하고 대패삼겹살을 허브솔트로 밑간하여 바삭하게 굽는다", "구워진 고기는 기름을 살짝 빼고 가위로 적당히 자른다", "그릇에 따뜻한 밥을 담고 깨끗이 씻은 쌈채소를 손으로 뜯어 올린다", "고기와 양념장, 참기름을 올리고 골고루 비벼 마무리한다"]'::jsonb, '고기 기름을 너무 많이 닦지 않아야 밥이 고소하고 부드럽게 비벼지는 기본 레시피입니다', '2인분', 780, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '대패삼겹 비빔밥 (변주: 대패삼겹 고추장 쌈밥)', '비비는 대신 쌈밥 형태로 만들어 하나씩 집어 먹기 좋게 만든 나들이용 변주입니다.', NULL, '["#점심", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "대패삼겹살", "amount": "200g"}, {"name": "상추/깻잎", "amount": "넉넉히"}, {"name": "쌈장", "amount": "2큰술"}]'::jsonb, '["대패삼겹살을 구울 때 고추장 1큰술과 설탕 0.5큰술을 넣어 매콤하게 볶는다", "한입 크기로 뭉친 밥을 상추나 깻잎 위에 하나씩 올린다", "밥 위에 볶은 고기를 적당량 얹고 쌈장을 살짝 찍어 올린다", "접시에 정갈하게 담아내어 핑거푸드처럼 즐긴다"]'::jsonb, '대패삼겹 비빔밥 기본 재료를 활용해 깔끔하게 먹을 수 있도록 변형한 변주입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '애호박전 (변주: 새우 채전)', '호박을 채 썰고 건새우나 자숙새우를 넣어 고소함과 바삭함을 극대화한 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "애호박", "amount": "1개"}, {"name": "자숙새우", "amount": "10마리"}, {"name": "전분가루", "amount": "3큰술"}]'::jsonb, '["애호박을 얇게 채 썰고 소금에 살짝 절인 뒤 나오는 수분은 그대로 둔다", "채 썬 호박에 새우와 전분가루를 넣고 날가루가 안 보일 정도로만 버무린다", "팬에 기름을 넉넉히 두르고 반죽을 얇게 펴서 튀기듯 굽는다", "새우의 감칠맛이 호박과 어우러져 간장 없이도 맛이 훌륭하다"]'::jsonb, '애호박전 기본에서 조리법을 ''채썰기''로 바꾸어 바삭한 식감을 강조한 변주입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 탕 (변주: 얼큰 골뱅이 소면 전골)', '골뱅이 탕에 고춧가루 양념과 소면을 넣어 전골처럼 푸짐하게 즐기는 변주입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#야식", "#전골", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 탕 재료", "amount": "1세트"}, {"name": "소면", "amount": "1줌"}, {"name": "고춧가루/마늘", "amount": "각 1큰술"}]'::jsonb, '["기본 골뱅이 탕에 고춧가루와 다진 마늘을 풀어 빨간 국물을 만든다", "어느 정도 끓으면 삶아둔 소면을 전골 냄비 한쪽에 넣는다", "면이 국물을 머금으면 고추장 찌개처럼 진한 맛의 전골이 된다", "끓이면서 면을 건져 먹고 남은 국물에 밥을 비벼도 좋다"]'::jsonb, '골뱅이 탕 기본에 면과 매운 양념을 더해 메인 요리급으로 키운 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 탕 (기본)', '통통한 골뱅이와 칼칼한 국물이 어우러져 밤새 술안주로 즐기기 좋은 요리입니다.', NULL, '["#국물", "#안주", "#추운날", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "골뱅이캔", "amount": "1캔"}, {"name": "무", "amount": "1/8개"}, {"name": "청양고추", "amount": "2개"}, {"name": "어묵", "amount": "2장"}]'::jsonb, '["냄비에 물 800ml와 무를 넣고 끓여 시원한 베이스 육수를 만든다", "물이 끓으면 골뱅이와 캔 국물을 1/3 정도만 넣어 감칠맛을 낸다", "어묵을 먹기 좋게 썰어 넣고 청양고추를 넣어 칼칼함을 더한다", "소금으로 부족한 간을 맞추고 국물이 우러나도록 10분간 더 끓인다"]'::jsonb, '골뱅이 캔 국물을 너무 많이 넣으면 지나치게 달 수 있으니 주의하는 것이 기본입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '명란 구이 (변주: 명란 마요 아보카도 덮밥)', '구운 명란을 아보카도와 함께 밥 위에 올려 든든한 한 끼로 즐기는 변주입니다.', NULL, '["#저녁", "#점심", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "명란젓", "amount": "1줄"}, {"name": "아보카도", "amount": "1/2개"}, {"name": "공깃밥", "amount": "1공기"}]'::jsonb, '["명란을 팬에 살짝 구워 잘게 다지거나 썰어둔다", "밥 위에 슬라이스한 아보카도와 구운 명란을 정갈하게 올린다", "마요네즈와 간장을 약간씩 뿌리고 기호에 따라 수란이나 프라이를 얹는다", "명란의 짠맛과 아보카도의 부드러움이 조화로운 캠핑 브런치 메뉴다"]'::jsonb, '명란 구이 기본을 식사 메뉴로 확장한 영양 가득한 변주입니다', '2인분', 580, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '명란 구이 (기본)', '간단하지만 고급스러운 맥주/사케 안주로, 짭조름하고 고소한 맛이 일품입니다.', NULL, '["#간단", "#저녁", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "명란젓", "amount": "2줄"}, {"name": "오이", "amount": "1/2개"}, {"name": "마요네즈", "amount": "2큰술"}]'::jsonb, '["팬에 기름을 아주 살짝 두르거나 버터를 녹인다", "명란젓을 올리고 약불에서 겉면이 하얗게 익을 때까지 굴려가며 굽는다", "명란 속이 살짝 덜 익은 미디엄 상태일 때 꺼내어 한입 크기로 썬다", "얇게 썬 오이 위에 구운 명란을 올리고 마요네즈를 곁들여 먹는다"]'::jsonb, '너무 오래 구우면 퍽퍽해지니 겉은 바삭하고 속은 촉촉하게 굽는 것이 기본입니다', '2인분', 220, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '비빔국수 (변주: 김치말이 비빔국수)', '잘 익은 김치를 썰어 넣어 아삭한 식감과 깊은 풍미를 더한 변주 레시피입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "비빔국수 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1/2공기"}]'::jsonb, '["신김치를 가위로 잘게 다지듯 썰어 설탕 0.5큰술과 버무려둔다", "기본 비빔국수 양념장에 준비한 김치를 넣고 섞는다", "삶은 소면을 김치 양념에 넣고 비빈 뒤 김가루를 듬뿍 뿌린다", "김치 국물을 1~2큰술 추가하면 훨씬 시원한 맛이 난다"]'::jsonb, '비빔국수 기본에 김치의 산미를 더해 맛을 풍성하게 만든 변주입니다', '2인분', 510, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '비빔국수 (기본)', '더운 여름 낮, 입맛을 확 살려주는 매콤하고 새콤한 면 요리입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "소면", "amount": "2줌"}, {"name": "고추장", "amount": "2큰술"}, {"name": "식초/설탕", "amount": "각 2큰술"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["소면을 끓는 물에 3분 30초간 삶아 찬물에 박박 치대며 헹궈 물기를 뺀다", "고추장, 식초, 설탕, 간장을 섞어 양념장을 만든다", "볼에 소면과 양념장을 넣고 간이 골고루 배도록 비빈다", "마지막에 오이채와 삶은 계란을 올려 마무리한다"]'::jsonb, '면을 찬물에 충분히 헹궈 전분기를 없애야 면발이 탱글탱글한 기본 레시피입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 샤브샤브 (변주: 밀푀유나베)', '배추와 고기를 겹겹이 쌓아 비주얼을 극대화한, 캠핑장 감성 가득한 변주 요리입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 3, 40, 1, 10, '[]'::jsonb, '[{"name": "소고기 샤브샤브 재료", "amount": "1세트"}, {"name": "깻잎", "amount": "1봉지"}]'::jsonb, '["배추잎-깻잎-소고기 순으로 3~4번 겹쳐 쌓은 뒤 냄비 깊이에 맞춰 썬다", "냄비 바닥에 숙주를 깔고 썰어둔 재료를 가장자리부터 빽빽하게 채운다", "육수를 재료가 절반 정도 잠길 만큼 붓고 보글보글 끓인다", "중앙에 표고버섯을 올려 비주얼을 완성하고 고기가 익으면 바로 먹는다"]'::jsonb, '소고기 샤브샤브 기본을 정갈한 담음새로 변형한 사진 찍기 좋은 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 샤브샤브 (기본)', '신선한 채소와 얇은 고기를 담백한 육수에 데쳐 먹는 깔끔한 저녁 요리입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "샤브용 소고기", "amount": "300g"}, {"name": "배추/숙주/버섯", "amount": "넉넉히"}, {"name": "쯔유/간장", "amount": "3큰술"}]'::jsonb, '["냄비에 물 1리터와 쯔유를 넣어 담백한 육수를 끓인다", "배추, 청경채, 버섯 등 준비한 채소를 듬뿍 넣고 숨이 죽을 때까지 기다린다", "육수가 끓으면 소고기를 한 점씩 살짝 데쳐 채소와 함께 건져 먹는다", "와사비 간장이나 칠리 소스를 곁들여 먹는다"]'::jsonb, '고기를 한꺼번에 넣지 말고 먹을 만큼씩 데쳐야 부드러운 맛을 유지하는 기본 레시피입니다', '2인분', 500, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치 짜글이 (변주: 스팸 김치 짜글이)', '생고기 대신 통조림 햄을 숟가락으로 으깨 넣어 더욱 걸쭉하고 진한 맛을 낸 변주입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "스팸", "amount": "1캔"}, {"name": "신김치", "amount": "1줌"}, {"name": "고추장", "amount": "1큰술"}]'::jsonb, '["비닐봉투에 스팸을 넣고 손으로 마구 으깨어 준비한다", "냄비에 으깬 스팸과 김치를 넣고 기름 없이 3분간 볶는다", "물 1컵과 고추장을 넣고 센 불에서 국물이 꾸덕해질 때까지 끓인다", "으깨진 햄이 국물에 녹아들어 밥 비벼 먹기에 최적화된 맛이 난다"]'::jsonb, '김치 짜글이 기본에서 고기를 스팸으로 대체해 시간을 단축한 변주입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치 짜글이 (기본)', '찌개보다 국물을 적게 잡아 밥에 슥슥 비벼 먹기 좋은 강한 감칠맛의 요리입니다.', NULL, '["#국물", "#저녁", "#추운날", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "돼지고기 목살", "amount": "300g"}, {"name": "신김치", "amount": "1/4포기"}, {"name": "고춧가루/다진마늘", "amount": "각 1큰술"}]'::jsonb, '["고기와 김치를 잘게 썰어 팬에 넣고 설탕 0.5큰술과 함께 달달 볶는다", "재료가 잠길 정도로만 물을 자작하게 붓고 고춧가루, 마늘을 넣는다", "약불에서 국물이 거의 없어질 때까지 20분간 뭉근하게 졸인다", "대파와 청양고추를 넣어 마무리하고 밥 위에 듬뿍 올려 비벼 먹는다"]'::jsonb, '물을 적게 잡고 오래 졸여야 김치와 고기의 맛이 응축되는 기본 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 버섯볶음 (변주: 버섯 들깨 볶음)', '베이컨 대신 들기름과 들깨가루를 넣어 어르신들도 좋아하는 구수한 채식형 변주입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "새송이/느타리버섯", "amount": "1봉지"}, {"name": "들기름", "amount": "2큰술"}, {"name": "들깨가루", "amount": "2큰술"}]'::jsonb, '["버섯을 먹기 좋게 찢거나 썬 뒤 팬에 들기름을 두르고 볶는다", "버섯에서 수분이 나오기 시작하면 들깨가루를 넣고 가볍게 섞는다", "부족한 간은 국간장이나 소금으로 맞춰 고소함을 살린다", "아침 식사 반찬으로 속이 편안하고 아주 좋다"]'::jsonb, '베이컨 버섯볶음 기본에서 재료를 한국적인 들깨로 바꾼 건강식 변주입니다', '2인분', 280, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 버섯볶음 (기본)', '쫄깃한 버섯과 베이컨의 고소함이 만나 간단하지만 근사한 브런치 반찬이 됩니다.', NULL, '["#간단", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "새송이버섯", "amount": "2개"}, {"name": "베이컨", "amount": "4줄"}, {"name": "허브솔트", "amount": "약간"}]'::jsonb, '["버섯은 한입 크기로 썰고 베이컨은 3cm 폭으로 썬다", "팬에 기름 없이 베이컨을 먼저 볶아 기름을 낸다", "버섯을 넣고 베이컨 기름에 코팅되듯 중불에서 볶는다", "버섯 숨이 죽으면 허브솔트로 부족한 간을 맞추고 마무리한다"]'::jsonb, '베이컨 자체의 간이 강하므로 소금을 조금씩 넣으며 간을 보는 것이 기본입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '캠핑 토스트 (변주: 스팸 치즈 토스트)', '양배추 대신 스팸과 치즈를 넣어 더욱 짭조름하고 묵직하게 즐기는 변주입니다.', NULL, '["#야식", "#파티", "#아침", "#혼밥"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "식빵", "amount": "4장"}, {"name": "스팸", "amount": "4슬라이스"}, {"name": "체다치즈", "amount": "2장"}]'::jsonb, '["식빵을 팬에 버터로 노릇하게 굽고, 스팸도 앞뒤로 구워 준비한다", "구워진 빵 위에 뜨거운 스팸을 올리고 바로 치즈를 얹어 잔열로 녹인다", "취향에 따라 딸기잼을 한 면에 바르면 '단짠' 맛이 극대화된다", "철수 전 남은 햄을 활용하기 아주 좋은 메뉴다"]'::jsonb, '캠핑 토스트 기본에서 속 재료를 햄과 치즈로 변경한 실속 변주입니다', '2인분', 680, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '캠핑 토스트 (기본)', '옛날 시장에서 먹던 맛 그대로, 양배추 계란 부침이 들어간 든든한 아침 메뉴입니다.', NULL, '["#추운날", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "식빵", "amount": "4장"}, {"name": "양배추", "amount": "2줌"}, {"name": "달걀", "amount": "2개"}, {"name": "설탕/케첩", "amount": "적당량"}]'::jsonb, '["양배추를 가늘게 채 썰어 달걀, 소금 약간과 섞어 반죽을 만든다", "팬에 버터를 두르고 식빵을 앞뒤로 노릇하게 굽는다", "양배추 달걀 반죽을 식빵 크기에 맞춰 사각형으로 두툼하게 부친다", "빵 위에 부침을 올리고 설탕을 솔솔 뿌린 뒤 케첩을 발라 덮는다"]'::jsonb, '설탕을 뿌려야 추억의 맛이 완성되는 달콤 고소한 기본 레시피입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '훈제삼겹 볶음 (변주: 훈제삼겹 비빔면)', '구운 훈제 삼겹살을 비빔면 위에 올려 ''단짠''의 조화를 극대화한 별미 변주입니다.', NULL, '["#간단", "#저녁", "#혼밥", "#파티", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "훈제삼겹살", "amount": "200g"}, {"name": "비빔면", "amount": "2봉지"}]'::jsonb, '["훈제 삼겹살을 팬에 바싹하게 구워 기름기를 뺀 뒤 따로 둔다", "비빔면을 삶아 찬물에 헹궈 비빔 소스에 골고루 버무린다", "그릇에 비빔면을 담고 그 위에 구워둔 따뜻한 훈제 삼겹살을 올린다", "고기의 훈연 향과 비빔면의 매콤함이 어우러져 환상적인 맛을 낸다"]'::jsonb, '훈제삼겹 볶음 기본 고기를 비빔면 고명으로 활용한 초간단 변주입니다', '2인분', 1100, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '훈제삼겹 볶음 (기본)', '이미 익혀진 훈제 삼겹살을 활용해 아주 빠르고 고급스럽게 완성하는 안주 요리입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "훈제삼겹살", "amount": "400g"}, {"name": "마늘종/마늘", "amount": "1줌"}, {"name": "굴소스", "amount": "1큰술"}]'::jsonb, '["훈제 삼겹살을 한입 크기로 썬 뒤 달궈진 팬에 넣는다", "고기에서 기름이 나오기 시작하면 편마늘과 마늘종을 넣고 볶는다", "굴소스 1큰술을 넣어 감칠맛을 입히고 고기가 노릇해질 때까지 볶는다", "마지막에 통깨를 뿌려 고소하게 마무리한다"]'::jsonb, '훈제 고기는 이미 간이 되어 있으므로 굴소스를 과하게 넣지 않는 것이 기본입니다', '2인분', 900, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵탕 (변주: 얼큰 칼칼 김치 어묵탕)', '신김치를 넣어 시원하고 칼칼하게 끓여낸, 아침 해장에 특화된 변주 레시피입니다.', NULL, '["#추운날", "#해장", "#파티", "#혼밥", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "어묵탕 재료", "amount": "1세트"}, {"name": "신김치", "amount": "1줌"}, {"name": "고춧가루", "amount": "1큰술"}]'::jsonb, '["기본 어묵탕 육수에 잘게 썬 신김치와 김치 국물 2큰술을 넣고 끓인다", "김치가 투명해지기 시작하면 어묵을 넣고 함께 보글보글 끓인다", "고춧가루 1큰술을 추가해 칼칼한 색과 맛을 낸다", "소주 안주로도 좋고 캠핑 다음 날 속 풀이용으로 강력 추천한다"]'::jsonb, '어묵탕 기본에 김치를 추가해 한국적인 개운함을 강조한 변주입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵탕 (기본)', '모닥불 앞에서 후후 불며 마시는 국물 맛이 일품인 동절기 캠핑 필수 메뉴입니다.', NULL, '["#국물", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "모둠어묵", "amount": "1봉지"}, {"name": "무", "amount": "1/8개"}, {"name": "대파", "amount": "1/2대"}, {"name": "멸치장국", "amount": "2큰술"}]'::jsonb, '["냄비에 물 1리터와 나박하게 썬 무를 넣고 시원한 맛이 날 때까지 끓인다", "어묵을 꼬치에 끼우거나 먹기 좋은 크기로 썰어 넣는다", "멸치장국이나 국간장으로 간을 하고 어묵이 통통하게 불 때까지 끓인다", "마지막에 대파와 후추를 넣어 풍미를 더한다"]'::jsonb, '무를 먼저 충분히 익혀야 국물에 시원한 맛이 깊게 배어 나오는 기본 레시피입니다', '2인분', 400, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '애호박전 (기본)', '달큰한 애호박의 맛을 그대로 살린, 막걸리 한 잔이 생각나는 담백한 전 요리입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "애호박", "amount": "1개"}, {"name": "부침가루", "amount": "1/2컵"}, {"name": "달걀", "amount": "1개"}]'::jsonb, '["애호박을 0.5cm 두께로 동그랗게 썬 뒤 소금을 살짝 뿌려 밑간을 한다", "비닐봉투에 부침가루와 호박을 넣고 흔들어 가루를 얇게 입힌다", "풀어놓은 달걀물에 호박을 담갔다가 기름 두른 팬에 올린다", "중불에서 앞뒤로 노릇노릇하게 익혀 따뜻할 때 서빙한다"]'::jsonb, '호박을 너무 오래 익히면 식감이 흐물거리니 아삭함이 남을 정도로만 굽는 것이 기본입니다', '2인분', 250, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '바지락 술찜 (기본)', '바다의 시원함을 그대로 담아 술안주와 해장에 모두 좋은 깔끔한 요리입니다.', NULL, '["#저녁", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "바지락", "amount": "500g"}, {"name": "마늘", "amount": "7알"}, {"name": "소주/청주", "amount": "1/2컵"}, {"name": "버터", "amount": "15g"}]'::jsonb, '["팬에 버터를 녹이고 편으로 썬 마늘과 건고추를 넣어 향을 낸다", "해감된 바지락을 넣고 센 불에서 조개가 기름을 머금도록 1분간 볶는다", "소주를 붓고 알코올 향이 날아가도록 잠시 끓이다가 뚜껑을 덮는다", "바지락이 입을 모두 벌리면 불을 끄고 쪽파를 뿌려 완성한다"]'::jsonb, '오래 끓이면 바지락 살이 질겨지고 작아지니 입을 벌리면 즉시 불을 끄는 것이 기본입니다', '2인분', 280, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순두부 라면 (변주: 들깨 순두부 라면)', '들깨가루를 넣어 고소함과 건강함을 더한 순한 맛 변주입니다.', NULL, '["#점심", "#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "순두부 라면 재료", "amount": "1세트"}, {"name": "들깨가루", "amount": "2큰술"}]'::jsonb, '["기본 순두부 라면 조리법과 동일하게 끓인다", "마지막 단계에서 들깨가루 2큰술을 넣고 잘 섞어준다", "국물이 걸쭉해지면서 보양식 같은 느낌을 준다", "매운 스프 양을 조금 줄이면 훨씬 담백하고 고소하다"]'::jsonb, '순두부 라면 기본에 들깨가루를 추가해 영양과 풍미를 높인 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순두부 라면 (기본)', '라면의 자극적인 맛을 순두부가 중화시켜주는 캠핑 최고의 아침 해장 메뉴입니다.', NULL, '["#점심", "#추운날", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "라면", "amount": "1봉지"}, {"name": "순두부", "amount": "1/2봉"}, {"name": "물", "amount": "350ml"}]'::jsonb, '["물 350ml(평소보다 적게)를 붓고 스프를 먼저 넣어 끓인다", "물이 끓으면 면을 넣고 2분간 끓인다", "순두부를 큼직하게 덩어리째 넣고 숟가락으로 3~4번만 으깬다", "순두부에서 수분이 나오므로 1분만 더 끓여 마무리한다"]'::jsonb, '순두부의 수분을 고려해 물 양을 적게 잡는 것이 핵심인 기본 레시피입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵 볶이 (변주: 어묵 치즈 라볶이)', '라면 사리와 치즈를 추가해 푸짐한 한 끼 식사로 업그레이드한 변주입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "어묵 볶이 재료", "amount": "1세트"}, {"name": "라면 사리", "amount": "1개"}, {"name": "모짜렐라 치즈", "amount": "100g"}]'::jsonb, '["냄비에 물을 넉넉히 잡고 어묵 볶이 양념을 풀어 끓인다", "라면 사리와 어묵을 넣고 면이 익을 때까지 보글보글 끓인다", "면이 다 익으면 위에 치즈를 듬뿍 뿌리고 뚜껑을 덮어 녹인다", "고소한 치즈가 매운맛을 잡아주어 누구나 즐기기 좋다"]'::jsonb, '어묵 볶이 기본에 면과 치즈를 더해 포만감을 높인 변주입니다', '2인분', 850, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵 볶이 (기본)', '떡 대신 어묵을 주인공으로 하여 가볍고 빠르게 즐기는 매콤 간식입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "사각어묵", "amount": "5장"}, {"name": "고추장", "amount": "2큰술"}, {"name": "설탕", "amount": "1.5큰술"}, {"name": "물", "amount": "1컵"}]'::jsonb, '["어묵을 길쭉하고 얇게 채 썬다 (면 같은 식감 유도)", "팬에 물과 고추장, 설탕을 넣고 끓여 양념 국물을 만든다", "채 썬 어묵을 넣고 국물이 졸아들 때까지 5분간 볶듯 끓인다", "마지막에 대파를 길게 채 썰어 올리면 파채와 어우러진 맛이 일품이다"]'::jsonb, '어묵을 채 썰어 면처럼 즐기는 것이 포인트인 기본 레시피입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 팽이버섯 말이 (변주: 매콤 양념 말이 구이)', '고추장 소스를 발라 구워 안주로서의 매력을 극대화한 변주 레시피입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "베이컨 팽이버섯 말이", "amount": "1세트"}, {"name": "고추장 양념장", "amount": "2큰술"}]'::jsonb, '["기본 베이컨 말이 조리법대로 팬에서 80% 정도 굽는다", "고추장, 올리고당, 다진 마늘을 섞은 양념장을 붓으로 골고루 바른다", "양념이 타지 않게 약불에서 앞뒤로 30초씩만 더 구워낸다", "매콤달콤한 맛이 더해져 밥반찬이나 소주 안주로 훌륭하다"]'::jsonb, '베이컨 말이 기본에 매콤한 소스를 가미해 맛을 확장한 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '베이컨 팽이버섯 말이 (기본)', '한입에 쏙 들어가는 크기로 모양도 예쁘고 만들기도 간편한 인기 구이입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "베이컨", "amount": "1팩"}, {"name": "팽이버섯", "amount": "1봉지"}, {"name": "허브솔트", "amount": "약간"}]'::jsonb, '["팽이버섯은 밑동을 자르고 적당한 굵기로 나눈다", "베이컨 위에 버섯을 올리고 단단하게 돌돌 만다", "팬에 베이컨의 이음새 부분이 바닥으로 가게 먼저 올린다 (풀림 방지)", "중불에서 베이컨이 노릇해지고 버섯 숨이 죽을 때까지 굴려가며 굽는다"]'::jsonb, '이음새를 먼저 익혀야 고정이 되어 모양이 예쁘게 유지되는 기본 레시피입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자 베이컨 볶음 (변주: 카레 감자 볶음)', '카레 가루를 더해 이색적인 향과 노란 색감을 살린 아이용 반찬 변주입니다.', NULL, '["#아이들", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "감자 베이컨 볶음 재료", "amount": "1세트"}, {"name": "카레 가루", "amount": "1큰술"}]'::jsonb, '["기본 감자 볶음 조리법대로 재료를 볶는다", "감자가 다 익었을 때 카레 가루를 골고루 뿌린다", "카레 가루가 뭉치지 않게 빠르게 섞어주며 1분간 더 볶는다", "별도의 소금 간 없이도 짭조름하고 향긋한 맛이 난다"]'::jsonb, '감자 베이컨 볶음 기본에 카레 향을 입혀 풍미를 바꾼 변주입니다', '2인분', 430, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자 베이컨 볶음 (기본)', '캠핑장 아침 반찬이나 가벼운 안주로 즐기기 좋은 담백한 볶음 요리입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "2개"}, {"name": "베이컨", "amount": "4줄"}, {"name": "양파", "amount": "1/2개"}]'::jsonb, '["감자는 채 썰어 물에 담가 전분기를 뺀 뒤 물기를 닦는다", "팬에 기름을 두르고 감자를 먼저 넣어 80% 정도 익을 때까지 볶는다", "베이컨과 양파를 넣고 감자가 투명하게 완전히 익을 때까지 함께 볶는다", "소금과 후추로 간을 맞추고 마무리한다"]'::jsonb, '전분기를 빼야 감자가 팬에 달라붙지 않고 깔끔하게 볶아지는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치 마요 덮밥 (변주: 불닭 참치 마요)', '매운 소스를 추가해 느끼함을 잡고 중독성을 높인 어른용 덮밥 변주입니다.', NULL, '["#점심", "#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "참치 마요 재료", "amount": "1세트"}, {"name": "불닭소스/고추장", "amount": "1큰술"}]'::jsonb, '["기본 참치 마요 구성에 매운 소스를 밥 위에 먼저 뿌린다", "참치와 마요네즈를 올린 뒤 전체적으로 비벼 먹는다", "스크램블 에그를 만들어 곁들이면 매운맛이 중화되어 더욱 맛있다", "스트레스 풀리는 매콤한 맛으로 캠핑 점심 메뉴에 적합하다"]'::jsonb, '참치 마요 덮밥 기본에 매운맛을 가미해 입맛을 돋우는 변주입니다', '2인분', 680, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '참치 마요 덮밥 (기본)', '불 사용을 최소화하며 아이들이 가장 맛있게 먹을 수 있는 초간단 덮밥입니다.', NULL, '["#간단", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "참치캔", "amount": "1캔"}, {"name": "공깃밥", "amount": "2공기"}, {"name": "마요네즈", "amount": "4큰술"}, {"name": "김가루", "amount": "적당량"}]'::jsonb, '["참치는 기름기를 꽉 짜서 볼에 담는다", "밥 위에 참치를 올리고 마요네즈를 예쁘게 뿌린다", "김가루와 깨를 듬뿍 올려 고소함을 극대화한다", "간장 1큰술과 설탕 0.5큰술을 섞은 소스를 곁들이면 더 맛있다"]'::jsonb, '참치 기름을 잘 제거해야 느끼하지 않고 담백한 기본 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '마늘빵 (변주: 명란 마늘 토스트)', '명란젓을 섞어 짭조름한 맛을 더한 맥주 안주용 변주 레시피입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "마늘빵 재료", "amount": "1세트"}, {"name": "명란젓", "amount": "1줄"}]'::jsonb, '["기본 마늘 소스에 껍질을 제거한 명란 알을 섞는다", "빵에 명란 마늘 소스를 펴 바르고 팬에 굽는다", "치즈가 있다면 위에 살짝 뿌려 녹여주면 풍미가 배가된다", "커피뿐만 아니라 시원한 맥주와도 잘 어울리는 맛이다"]'::jsonb, '마늘빵 기본에 명란의 감칠맛을 더해 안주로 변형한 변주입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '마늘빵 (기본)', '남은 식빵이나 바게트로 만드는 달콤하고 고소한 캠핑 간식입니다.', NULL, '["#아이들", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "식빵/바게트", "amount": "4쪽"}, {"name": "다진 마늘", "amount": "1큰술"}, {"name": "버터", "amount": "2큰술"}, {"name": "꿀/설탕", "amount": "1큰술"}]'::jsonb, '["실온에 둔 버터에 다진 마늘과 꿀을 섞어 마늘 소스를 만든다", "빵의 한쪽 면에 소스를 듬뿍 바른다", "약불로 달군 팬에 소스 바른 면이 바닥으로 가게 올린다", "노릇하게 익으면 뒤집어 반대쪽도 바삭하게 굽는다"]'::jsonb, '마늘은 금방 타기 때문에 반드시 아주 약한 불에서 조리하는 것이 기본입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '계란국 (변주: 황태 계란 북어국)', '황태채를 넣어 구수함과 해장 기능을 업그레이드한 아침용 변주입니다.', NULL, '["#해장", "#파티", "#아침", "#혼밥"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "계란국 재료", "amount": "1세트"}, {"name": "황태채", "amount": "1줌"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["냄비에 참기름을 두르고 물에 불린 황태채를 달달 볶는다", "뽀얀 국물이 올라오면 물을 붓고 끓인다", "기본 계란국 방식대로 계란물을 풀어 넣는다", "다진 마늘을 반 큰술 넣으면 풍미가 더욱 깊어진다"]'::jsonb, '계란국 기본에 황태의 깊은 맛을 더해 영양을 높인 변주입니다', '2인분', 250, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '계란국 (기본)', '바쁜 캠핑 아침, 자극 없이 따뜻하게 속을 채워주는 간단 국물 요리입니다.', NULL, '["#국물", "#간단", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "계란", "amount": "3개"}, {"name": "대파", "amount": "1/2대"}, {"name": "국간장", "amount": "1큰술"}, {"name": "코인육수", "amount": "1개"}]'::jsonb, '["물 800ml에 코인육수를 넣고 끓여 육수를 만든다", "계란은 볼에 담아 가볍게 풀어둔다", "육수가 팔팔 끓을 때 계란물을 원을 그리듯 천천히 붓는다", "바로 젓지 말고 10초 뒤 가볍게 저어야 국물이 맑고 몽글몽글해진다"]'::jsonb, '계란물을 붓고 바로 저으면 국물이 탁해지니 주의해야 하는 기본 레시피입니다', '2인분', 180, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '대패삼겹 숙주볶음 (변주: 매콤 주꾸미 대패볶음)', '주꾸미를 더해 육해공의 맛을 한 번에 느낄 수 있는 매콤한 변주 레시피입니다.', NULL, '["#저녁", "#추운날", "#매콤한", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "대패삼겹살", "amount": "200g"}, {"name": "손질 주꾸미", "amount": "200g"}, {"name": "고추장 양념", "amount": "3큰술"}]'::jsonb, '["팬에 대패삼겹살을 먼저 볶아 기름을 낸다", "주꾸미와 양념장을 넣고 주꾸미가 쫄깃해질 때까지 3분간 볶는다", "마지막에 숙주를 넣고 가볍게 버무리듯 볶아 아삭함을 더한다", "남은 양념에 밥을 볶아 먹으면 완벽한 한 끼가 된다"]'::jsonb, '대패삼겹 숙주볶음 기본에 해산물과 매운맛을 입힌 확장 변주입니다', '2인분', 700, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '대패삼겹 숙주볶음 (기본)', '얇은 대패삼겹살과 아삭한 숙주를 센 불에 빠르게 볶아낸 최고의 안주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "대패삼겹살", "amount": "300g"}, {"name": "숙주", "amount": "1봉지"}, {"name": "굴소스", "amount": "2큰술"}, {"name": "마늘", "amount": "5알"}]'::jsonb, '["팬에 기름 없이 대패삼겹살과 편마늘을 넣고 먼저 볶는다", "고기 기름이 나오며 바삭해지면 굴소스를 넣고 섞는다", "깨끗이 씻은 숙주를 넣고 강불에서 1분간만 빠르게 볶는다", "숙주 숨이 살짝만 죽었을 때 불을 끄고 후추를 뿌린다"]'::jsonb, '숙주에서 물이 나오기 전에 강불에서 신속하게 볶아내는 것이 기본입니다', '2인분', 620, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 비빔면 (변주: 골뱅이 물비빔면)', '냉면 육수를 추가해 시원한 국물과 함께 즐기는 여름용 변주 레시피입니다.', NULL, '["#국물", "#혼밥", "#파티", "#야식", "#아침", "#시원한", "#더운날"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 비빔면 재료", "amount": "1세트"}, {"name": "시판 냉면육수", "amount": "1팩"}]'::jsonb, '["기본 골뱅이 비빔면을 만든 뒤 그릇에 담는다", "살짝 얼린 차가운 냉면 육수를 자작하게 붓는다", "식초와 겨자를 취향껏 추가해 새콤달콤함을 살린다", "더운 낮 시간에 점심 메뉴로 먹기에 아주 시원하고 좋다"]'::jsonb, '골뱅이 비빔면 기본을 국물 요리 형태로 바꿔 시원함을 강조한 변주입니다', '2인분', 880, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 비빔면 (기본)', '시판 비빔면과 통조림 골뱅이의 만남으로 5분 만에 만드는 캠핑 필수 간식입니다.', NULL, '["#국물", "#혼밥", "#파티", "#야식", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "비빔라면", "amount": "2봉"}, {"name": "골뱅이캔", "amount": "1캔"}, {"name": "오이", "amount": "1/4개"}]'::jsonb, '["면을 삶아 찬물에 헹궈 물기를 꽉 짠다", "골뱅이는 국물을 덜어내고 먹기 좋게 자른다", "비빔 소스에 골뱅이 국물 1큰술을 섞어 농도를 조절한다", "면과 소스, 골뱅이를 함께 비빈 뒤 오이채를 올려 마무리한다"]'::jsonb, '비빔 소스에 골뱅이 국물을 약간 섞는 것이 감칠맛의 비결인 기본 레시피입니다', '2인분', 950, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '바지락 술찜 (변주: 술찜 봉골레 파스타)', '남은 술찜 국물에 파스타 면을 넣어 한 끼 식사로 훌륭하게 변신시킨 변주입니다.', NULL, '["#점심", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "바지락 술찜", "amount": "남은 것"}, {"name": "파스타 면", "amount": "1인분"}, {"name": "올리브유", "amount": "2큰술"}]'::jsonb, '["파스타 면을 소금물에 8분간 삶아 준비한다", "남은 술찜 국물에 삶은 면과 면수 반 국자를 넣는다", "면이 국물을 흡수하도록 중불에서 2분간 저으며 볶는다", "마지막에 올리브유를 두르고 후추를 뿌려 풍미를 살린다"]'::jsonb, '바지락 술찜 기본 국물의 감칠맛을 면에 입히는 효율적인 변주 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '알리오 올리오 (변주: 캠핑용 원팬 해산물 파스타)', '설거지를 줄이기 위해 한 냄비에 모든 재료를 넣고 끓여내는 변주 레시피입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "파스타 면", "amount": "200g"}, {"name": "냉동 모둠해물", "amount": "150g"}, {"name": "토마토 소스", "amount": "1/2병"}]'::jsonb, '["팬에 면이 잠길 정도의 물(약 500ml)과 모든 재료를 한꺼번에 넣는다", "강불에서 끓이다가 물이 반 정도 줄어들면 면을 저어가며 익힌다", "면이 익고 소스가 자작해지면 올리브유 한 큰술을 둘러 마무리한다", "해물에서 나오는 육수가 면에 배어 감칠맛이 깊다"]'::jsonb, '알리오 올리오 기본에서 조리 공정을 단순화한 캠핑 특화형 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '군만두 (변주: 만두 전골)', '구워 먹다 남은 만두를 국물에 넣어 든든한 찌개로 만든 변주입니다.', NULL, '["#국물", "#저녁", "#따뜻한", "#추운날", "#혼밥", "#파티", "#전골", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "냉동 만두", "amount": "6개"}, {"name": "사골 육수", "amount": "500ml"}, {"name": "배추/버섯", "amount": "약간"}]'::jsonb, '["냄비에 사골 육수와 물을 섞어 붓고 배추, 버섯을 넣어 끓인다", "육수가 끓으면 만두를 넣고 만두피가 투명해질 때까지 익힌다", "국물 간은 국간장이나 소금으로 맞추고 청양고추를 넣어 칼칼함을 더한다", "샤브샤브 느낌으로 고기를 추가해 먹으면 더욱 맛있다"]'::jsonb, '군만두 기본 재료를 활용해 따뜻한 국물 요리로 확장한 변주입니다', '2인분', 580, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '군만두 (기본)', '냉동 만두 하나면 충분한, 실패 없는 최고의 맥주 안주입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "냉동 만두", "amount": "10개"}, {"name": "식용유", "amount": "3큰술"}]'::jsonb, '["팬에 기름을 두르고 중불에서 만두를 올린다", "만두의 모든 면이 골고루 노릇해지도록 굴려가며 굽는다", "냉동 상태라면 뚜껑을 덮어 속까지 열기가 전달되게 한다", "간장에 식초와 고춧가루를 섞은 초간장을 곁들인다"]'::jsonb, '기름을 넉넉히 둘러 튀기듯이 구워야 바삭함이 오래가는 기본 레시피입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '카레 라이스 (변주: 카레 우동)', '남은 카레에 우동 면을 넣어 새로운 느낌의 일식으로 즐기는 변주입니다.', NULL, '["#점심", "#혼밥", "#파티", "#아침", "#아이들", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "남은 카레", "amount": "2국자"}, {"name": "우동 사리", "amount": "1개"}, {"name": "우유", "amount": "50ml"}]'::jsonb, '["냄비에 남은 카레와 우유를 넣고 약불에서 끓인다 (우유가 부드러운 맛을 더함)", "우동 사리는 끓는 물에 살짝 데쳐 면발을 푼다", "카레 소스에 우동 면을 넣고 소스가 면에 배어들도록 2분간 저으며 끓인다", "위에 대파 송송 썬 것과 고춧가루를 살짝 뿌린다"]'::jsonb, '카레 라이스 기본을 면 요리로 변형해 다음 날 점심으로 먹기 좋은 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '카레 라이스 (기본)', '한 솥 가득 끓여 온 가족이 든든하게 먹을 수 있는 캠핑장 스테디셀러입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아이들"]'::jsonb, '{}'::jsonb, 1, 30, 1, 10, '[]'::jsonb, '[{"name": "카레 가루", "amount": "1봉"}, {"name": "돼지고기/소고기", "amount": "200g"}, {"name": "감자/당근/양파", "amount": "적당량"}]'::jsonb, '["고기와 모든 채소를 한입 크기로 깍둑썰기한다", "냄비에 식용유를 두르고 고기를 볶다가 채소를 넣어 함께 볶는다", "물 700ml를 붓고 채소가 완전히 익을 때까지 보글보글 끓인다", "불을 약하게 줄이고 카레 가루를 조금씩 넣으며 덩어리지지 않게 푼다"]'::jsonb, '채소를 볶을 때 버터 한 조각을 넣으면 풍미가 훨씬 고급스러워지는 기본 레시피입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오리 훈제 볶음 (변주: 캠핑장 오리 무쌈말이)', '볶은 오리를 무쌈에 싸서 손님 접대용 핑거푸드로 변형한 상큼한 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "훈제오리 볶음", "amount": "1세트"}, {"name": "쌈무", "amount": "1팩"}, {"name": "무순", "amount": "약간"}]'::jsonb, '["훈제오리는 길게 채 썰어 팬에 바싹하게 굽는다", "쌈무 한 장을 펼치고 구운 오리, 무순, 파프리카를 올린다", "무쌈을 돌돌 말아 끝이 풀리지 않게 접시에 담는다", "머스터드 소스나 땅콩 소스를 곁들여 한입에 먹는다"]'::jsonb, '오리 훈제 볶음 기본을 비주얼 중심의 파티 요리로 바꾼 변주입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오리 훈제 볶음 (기본)', '준비가 간편하고 남녀노소 호불호가 없는 영양 만점 메뉴입니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "훈제오리", "amount": "400g"}, {"name": "부추", "amount": "1줌"}, {"name": "양파", "amount": "1/2개"}]'::jsonb, '["팬에 훈제오리를 넣고 중불에서 기름이 나올 때까지 볶는다", "양파를 넣고 오리 기름에 투명해질 때까지 함께 볶는다", "오리가 노릇해지면 불을 끄고 부추를 넣어 가볍게 섞는다", "부추 숨이 너무 죽지 않도록 신속하게 서빙한다"]'::jsonb, '오리 기름은 몸에 좋지만 너무 많으면 느끼하니 적당히 닦아내며 볶는 것이 기본입니다', '2인분', 820, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '두부 김치 (변주: 대패삼겹 두부김치)', '김치를 볶을 때 대패삼겹살을 함께 넣어 훨씬 든든하게 만든 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "두부 김치 재료", "amount": "1세트"}, {"name": "대패삼겹살", "amount": "150g"}]'::jsonb, '["팬에 대패삼겹살을 먼저 볶아 고기 기름을 낸다", "고기 기름에 김치를 넣고 함께 달달 볶아 풍미를 극대화한다", "데운 두부 위에 고기 김치 볶음을 듬뿍 올려 먹는다", "고기가 들어가 풍성한 저녁 메인 요리로도 손색없다"]'::jsonb, '두부 김치 기본에 고기 단백질을 추가해 맛의 균형을 맞춘 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '두부 김치 (기본)', '캠핑장 마트에서 쉽게 구할 수 있는 재료로 만드는 실패 없는 막걸리 안주입니다.', NULL, '["#국물", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "두부", "amount": "1모"}, {"name": "신김치", "amount": "1/4포기"}, {"name": "설탕", "amount": "1큰술"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["냄비에 물을 끓여 두부를 통째로 넣고 5분간 따뜻하게 데운다", "팬에 기름을 두르고 김치를 설탕과 함께 충분히 볶는다", "두부는 먹기 좋은 크기로 썰어 접시 가장자리에 담는다", "중앙에 볶은 김치를 올리고 참기름과 깨를 뿌린다"]'::jsonb, '김치를 볶을 때 김치 국물을 살짝 넣어야 훨씬 촉촉하고 맛있는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '토마토 스튜 (변주: 매콤 해물 빼쉐)', '토마토 스튜에 해산물과 청양고추를 넣어 칼칼하게 즐기는 이탈리아식 변주입니다.', NULL, '["#추운날", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "토마토 스튜 베이스", "amount": "1세트"}, {"name": "모둠 해물", "amount": "150g"}, {"name": "청양고추", "amount": "2개"}]'::jsonb, '["팬에 마늘과 고추를 볶아 매운 향을 낸 뒤 해물을 넣는다", "토마토 소스를 붓고 해물이 익을 때까지 빠르게 끓인다", "국물을 조금 넉넉히 잡아 짬뽕처럼 얼큰하게 만든다", "해장용으로 좋으며 마지막에 밥을 말아 먹어도 별미다"]'::jsonb, '토마토 스튜 기본에서 재료를 해물로 바꿔 시원함을 강조한 변주입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '토마토 스튜 (기본)', '추운 겨울 캠핑 시 따뜻하게 몸을 데워주는 이국적인 국물 요리입니다.', NULL, '["#국물", "#저녁", "#추운날", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 35, 1, 10, '[]'::jsonb, '[{"name": "소고기/돼지고기", "amount": "200g"}, {"name": "감자/당근", "amount": "각 1/2개"}, {"name": "토마토 홀/소스", "amount": "1캔"}]'::jsonb, '["고기와 채소를 깍둑썰기하여 팬에서 기름에 달달 볶는다", "토마토 홀을 으깨어 넣고 물 1컵과 함께 끓인다", "월계수 잎이 있다면 한 장 넣어 향을 더하고 중불에서 20분간 졸인다", "국물이 걸쭉해지면 소금, 후추로 간을 한다"]'::jsonb, '오래 끓일수록 채소의 단맛이 우러나 깊은 맛이 나는 기본 레시피입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 무침 (변주: 맥주 안주 대패삼겹 골뱅이)', '대패삼겹살을 구워 골뱅이 무침과 함께 싸 먹는 육해공 안주 변주입니다.', NULL, '["#저녁", "#안주", "#맥주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 무침", "amount": "1세트"}, {"name": "대패삼겹살", "amount": "200g"}]'::jsonb, '["팬에 대패삼겹살을 허브솔트로 간하며 바싹하게 굽는다", "접시 중앙에 골뱅이 무침을 소복하게 담는다", "무침 주변으로 잘 구워진 대패삼겹살을 동그랗게 두른다", "고기 한 점에 골뱅이와 파채를 올려 함께 먹는다"]'::jsonb, '골뱅이 무침 기본에 고기의 고소함을 더해 만족도를 높인 변주입니다', '2인분', 750, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 무침 (기본)', '새콤달콤한 양념에 쫄깃한 골뱅이가 어우러진 캠핑장 야식의 제왕입니다.', NULL, '["#국물", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 통조림", "amount": "1캔"}, {"name": "오이/양파", "amount": "각 1/2개"}, {"name": "고추장", "amount": "2큰술"}, {"name": "식초", "amount": "3큰술"}]'::jsonb, '["골뱅이는 국물을 뺀 뒤 반으로 자르고, 채소는 먹기 좋게 썬다", "고추장, 고춧가루, 설탕, 식초를 섞어 양념장을 만든다", "볼에 모든 재료를 넣고 양념이 뭉치지 않게 조물조물 버무린다", "마지막에 참기름과 통깨를 뿌려 고소함을 더한다"]'::jsonb, '양념장에 골뱅이 국물을 1~2큰술 넣으면 감칠맛이 살아나는 기본 레시피입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 무국 (변주: 경상도식 얼큰 소고기국)', '고춧가루와 콩나물을 듬뿍 넣어 시원하고 매콤하게 즐기는 변주입니다.', NULL, '["#추운날", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "소고기 무국 재료", "amount": "1세트"}, {"name": "고춧가루", "amount": "2큰술"}, {"name": "콩나물", "amount": "1줌"}]'::jsonb, '["냄비에 기름을 두르고 소고기, 무와 함께 고춧가루를 볶아 고추기름을 낸다", "물을 붓고 끓으면 콩나물과 대파를 듬뿍 넣는다", "고춧가루가 국물에 충분히 배어들 때까지 20분 이상 푹 끓인다", "해장용으로 아주 훌륭하며 밥을 말아 먹기 좋다"]'::jsonb, '소고기 무국 기본에 매운맛과 식감을 더해 어른 취향에 맞춘 변주입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소고기 무국 (기본)', '추운 아침, 아이들도 부담 없이 밥 한 그릇 뚝딱 비울 수 있는 맑은 국물 요리입니다.', NULL, '["#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 1, 25, 1, 10, '[]'::jsonb, '[{"name": "소고기 국거리", "amount": "150g"}, {"name": "무", "amount": "1/4개"}, {"name": "다진 마늘", "amount": "0.5큰술"}, {"name": "국간장", "amount": "1큰술"}]'::jsonb, '["냄비에 참기름을 두르고 소고기와 나박하게 썬 무를 함께 볶는다", "고기 겉면이 익으면 물 1리터를 붓고 강불에서 끓인다", "떠오르는 거품을 걷어내야 국물이 맑고 깔끔해진다", "중불에서 무가 투명해질 때까지 15분간 끓인 뒤 소금으로 간을 맞춘다"]'::jsonb, '거품을 잘 걷어내는 것이 맑은 국물맛의 핵심인 기본 레시피입니다', '2인분', 250, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '돼지 수육 (변주: 겉바속촉 통삼겹 차슈 구이)', '삶은 수육을 간장 소스에 다시 한번 구워 불맛과 감칠맛을 입힌 변주입니다.', NULL, '["#구이", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 3, 70, 1, 10, '[]'::jsonb, '[{"name": "삶은 수육", "amount": "600g"}, {"name": "진간장", "amount": "4큰술"}, {"name": "설탕", "amount": "2큰술"}]'::jsonb, '["기본 수육 조리법대로 고기를 80% 정도 삶아낸다", "팬에 간장, 설탕, 물 약간을 넣고 소스가 끓으면 통고기를 넣는다", "소스가 고기 겉면에 까맣게 코팅될 때까지 굴려가며 졸인다", "토치로 겉면을 살짝 그을려 불향을 입히면 더욱 좋다"]'::jsonb, '돼지 수육 기본에서 구이 과정을 추가해 안주 기능을 강화한 변주입니다', '2인분', 1600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '돼지 수육 (기본)', '화로대 옆에서 뭉근하게 삶아내어 소주 한잔과 즐기기 좋은 저녁 메인 요리입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 60, 1, 10, '[]'::jsonb, '[{"name": "통삼겹살/사태", "amount": "600g"}, {"name": "대파/마늘/생강", "amount": "적당량"}, {"name": "된장", "amount": "2큰술"}, {"name": "커피가루", "amount": "1작은술"}]'::jsonb, '["냄비에 고기가 잠길 정도의 물을 붓고 대파, 마늘, 된장, 커피가루를 넣는다", "물이 끓기 시작하면 통고기를 넣고 강불에서 10분, 중불에서 40분간 삶는다", "젓가락으로 찔렀을 때 핏물이 나오지 않으면 꺼내어 한김 식힌다", "최대한 얇게 썰어 준비한 쌈채소와 곁들인다"]'::jsonb, '커피가루와 된장이 고기의 잡내를 완벽히 잡아주는 기본 레시피입니다', '2인분', 1500, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '알리오 올리오 (기본)', '마늘과 올리브유만으로 풍미를 내는, 캠핑장에서 가장 만들기 쉬운 파스타입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "스파게티 면", "amount": "200g"}, {"name": "마늘", "amount": "10알"}, {"name": "올리브유", "amount": "1/2컵"}, {"name": "페페론치노", "amount": "4개"}]'::jsonb, '["끓는 물에 소금을 넉넉히 넣고 파스타 면을 8분간 삶는다", "팬에 올리브유를 붓고 편마늘을 넣어 약불에서 황금색이 될 때까지 볶는다", "삶은 면과 면수 1국자를 팬에 넣고 소금으로 간을 한다", "기름과 면수가 잘 섞여 소스처럼 걸쭉해질 때까지 1분간 빠르게 볶는다"]'::jsonb, '마늘 기름을 낼 때 불이 세면 마늘이 써지므로 주의해야 하는 기본 레시피입니다', '2인분', 700, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자전 (변주: 스위스식 감자채전 로스티)', '감자를 갈지 않고 얇게 채 썰어 베이컨, 치즈와 함께 굽는 서양식 변주입니다.', NULL, '["#야식", "#파티", "#아침", "#혼밥"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "2개"}, {"name": "베이컨", "amount": "3줄"}, {"name": "체다치즈", "amount": "2장"}]'::jsonb, '["감자를 아주 얇게 채 썬 뒤 소금에 살짝 절여 물기를 꽉 짠다", "팬에 기름을 두르고 감자채와 잘게 썬 베이컨을 섞어 얇게 편다", "앞뒤로 바삭하게 구운 뒤 마지막에 치즈를 올려 녹인다", "케첩이나 사워크림을 곁들이면 맥주 안주로 최고다"]'::jsonb, '감자전 기본에서 조리 방식을 ''채썰기''로 변형해 식감을 살린 변주입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감자전 (기본)', '강원도 캠핑장의 정취를 느낄 수 있는, 겉바속촉의 대명사 감자전입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "3개"}, {"name": "소금", "amount": "0.5작은술"}, {"name": "식용유", "amount": "넉넉히"}]'::jsonb, '["감자는 껍질을 벗기고 강판에 갈거나 믹서로 곱게 간다", "갈아놓은 감자를 체에 걸러 수분을 빼고, 가라앉은 전분 앙금만 다시 섞는다", "팬에 기름을 충분히 두르고 반죽을 한입 크기로 올려 중불에서 굽는다", "가장자리가 투명해지고 바삭해질 때 뒤집어 노릇하게 완성한다"]'::jsonb, '밀가루 없이 감자 전분만으로 구워야 훨씬 쫀득한 맛이 살아나는 기본 레시피입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '훈제오리 부추볶음 (변주: 훈제오리 월남쌈)', '구운 훈제오리를 신선한 채소와 함께 라이스페이퍼에 싸 먹는 산뜻한 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "훈제오리", "amount": "200g"}, {"name": "라이스페이퍼", "amount": "10장"}, {"name": "파프리카/깻잎", "amount": "적당량"}]'::jsonb, '["훈제오리를 팬에 바싹하게 구워 기름기를 살짝 제거한다", "파프리카, 깻잎, 양파 등 채소를 가늘게 채 썰어 준비한다", "따뜻한 물에 라이스페이퍼를 담가 적신 뒤 접시에 펼친다", "준비한 채소와 오리구이를 올리고 돌돌 말아 땅콩소스에 찍어 먹는다"]'::jsonb, '훈제오리 볶음 기본에서 먹는 방식을 변경해 캠핑 브런치로 격상시킨 변주입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순두부 찌개 (변주: 들깨 순두부 백탕)', '매운 양념 대신 들깨가루를 넣어 고소하고 담백하게 끓인 아이용 변주입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "순두부", "amount": "1봉"}, {"name": "들깨가루", "amount": "3큰술"}, {"name": "버섯", "amount": "약간"}]'::jsonb, '["냄비에 물 2컵과 코인 육수 또는 멸치 장국을 넣어 끓인다", "순두부와 버섯을 넣고 끓어오르면 들깨가루를 듬뿍 넣는다", "부족한 간은 국간장이나 소금으로 아주 심심하게 맞춘다", "자극적이지 않아 아침 식사용으로 매우 훌륭하다"]'::jsonb, '순두부 찌개 기본에서 매운맛을 빼고 고소함을 극대화한 변주입니다', '2인분', 300, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '순두부 찌개 (기본)', '부드러운 식감과 얼큰한 국물로 아침 해장이나 저녁 안주 모두에 좋습니다.', NULL, '["#국물", "#저녁", "#추운날", "#해장", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "순두부", "amount": "1봉"}, {"name": "바지락", "amount": "1줌"}, {"name": "고추기름", "amount": "2큰술"}, {"name": "달걀", "amount": "1개"}]'::jsonb, '["냄비에 고추기름을 두르고 다진 마늘과 파를 볶아 향을 낸다", "바지락을 넣고 볶다가 물 1컵과 순두부를 통째로 넣는다", "순두부를 숟가락으로 큼직하게 으깨고 보글보글 끓인다", "국물이 끓어오를 때 달걀 하나를 톡 깨뜨려 넣고 30초 후 불을 끈다"]'::jsonb, '고추기름을 내어 볶는 공정이 중식풍의 깊은 맛을 내는 비결인 기본 레시피입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치볶음밥 (변주: 캠핑장 그리들 삼겹살 볶음밥)', '삼겹살을 구운 그리들에 남은 고기와 기름으로 볶아 고소함의 끝을 보여주는 변주입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "남은 삼겹살", "amount": "3~4점"}, {"name": "김치볶음밥 재료", "amount": "1세트"}, {"name": "김가루", "amount": "1줌"}]'::jsonb, '["삼겹살을 구운 그리들에 기름을 적당량 남기고 남은 고기를 잘게 자른다", "자른 고기와 김치를 그리들 중앙에서 달달 볶는다", "밥을 넣고 넓게 펴서 바닥이 살짝 눌어붙을 때까지 기다린다", "불을 끄고 김가루와 상추를 뜯어 넣어 비비듯 섞는다"]'::jsonb, '김치볶음밥 기본을 고기 기름과 그리들 장비에 맞춰 변형한 변주입니다', '2인분', 820, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치볶음밥 (기본)', '캠핑장에서 남은 김치와 밥으로 만드는 가장 대중적인 한 끼 식사입니다.', NULL, '["#점심", "#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "신김치", "amount": "1공기"}, {"name": "공깃밥", "amount": "2공기"}, {"name": "스팸/베이컨", "amount": "약간"}, {"name": "간장", "amount": "1큰술"}]'::jsonb, '["팬에 기름을 두르고 다진 햄과 김치를 충분히 볶는다", "김치가 나른해지면 팬 한쪽으로 밀고 빈 공간에 간장을 눌려 향을 낸다", "밥을 넣고 주걱으로 자르듯 볶아 양념이 골고루 배게 한다", "마지막에 참기름을 두르고 계란 프라이를 올려 완성한다"]'::jsonb, '김치를 설탕 약간과 함께 충분히 볶아야 신맛이 맛있는 감칠맛으로 변하는 기본 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '무지개 꼬치구이 (변주: 소시지 소떡소떡)', '고기 대신 소시지와 떡을 끼워 아이들이 가장 좋아하는 간식으로 변형한 메뉴입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "비엔나 소시지", "amount": "10개"}, {"name": "떡볶이 떡", "amount": "10개"}, {"name": "양념치킨 소스", "amount": "3큰술"}]'::jsonb, '["떡이 딱딱하다면 끓는 물에 살짝 데쳐 말랑하게 만든다", "꼬치에 소시지-떡-소시지-떡 순으로 번갈아 끼운다", "팬에 기름을 두르고 소떡소떡을 앞뒤로 튀기듯 굽는다", "양념 소스를 앞뒤로 골고루 발라 마무리한다"]'::jsonb, '꼬치구이 기본에서 재료를 분식 스타일로 바꾼 간식형 변주입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '무지개 꼬치구이 (기본)', '다양한 채소와 고기를 끼워 구워 먹는 캠핑 바비큐의 비주얼 담당 메뉴입니다.', NULL, '["#바비큐", "#저녁", "#구이", "#혼밥", "#파티", "#야식"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "닭다리살/돼지고기", "amount": "300g"}, {"name": "파프리카/대파", "amount": "적당량"}, {"name": "데리야끼 소스", "amount": "3큰술"}]'::jsonb, '["고기와 채소를 비슷한 크기의 정사각형으로 썬다", "긴 꼬치에 고기-대파-고기-파프리카 순으로 색깔을 맞춰 끼운다", "그릴이나 팬에 올리고 소금을 살짝 뿌려 앞뒤로 노릇하게 굽는다", "거의 다 익었을 때 데리야끼 소스를 붓으로 발라가며 1분간 더 굽는다"]'::jsonb, '고기가 두꺼우면 채소만 탈 수 있으니 고기를 얇게 썰어 끼우는 것이 기본입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콘치즈 (변주: 청양 나초 콘치즈)', '매콤한 청양고추를 더해 나초칩과 함께 즐기는 안주 특화형 변주입니다.', NULL, '["#안주", "#추운날", "#매콤한", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "콘치즈 재료", "amount": "1세트"}, {"name": "청양고추", "amount": "2개"}, {"name": "나초칩", "amount": "1봉지"}]'::jsonb, '["기본 콘치즈 반죽에 송송 썬 청양고추를 섞는다", "치즈를 뿌려 익힌 뒤, 완성된 콘치즈를 나초칩 위에 올려 먹는다", "매콤하고 고소한 맛이 맥주와 환상적인 궁합을 자랑한다", "베이컨 칩이 있다면 위에 뿌려 풍미를 더한다"]'::jsonb, '콘치즈 기본에 매운맛과 바삭한 식감을 추가한 안주형 변주입니다', '2인분', 580, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콘치즈 (기본)', '고소하고 달콤한 맛으로 남녀노소 누구나 좋아하는 사이드 메뉴입니다.', NULL, '["#국물", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "옥수수 통조림", "amount": "1캔"}, {"name": "마요네즈", "amount": "3큰술"}, {"name": "모짜렐라 치즈", "amount": "100g"}, {"name": "설탕", "amount": "0.5큰술"}]'::jsonb, '["옥수수는 채에 받쳐 물기를 완전히 제거하는 것이 중요하다", "볼에 옥수수, 마요네즈, 설탕을 넣고 골고루 섞는다", "그리들이나 호일 용기에 내용물을 담고 치즈를 듬뿍 뿌린다", "뚜껑을 덮고 약불에서 치즈가 완전히 녹을 때까지 3~5분간 굽는다"]'::jsonb, '물기를 잘 제거해야 국물 없는 쫀득한 콘치즈가 되는 기본 레시피입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '고추장찌개 (변주: 캠핑용 부대 고추장찌개)', '고기 대신 햄과 소시지를 넣어 부대찌개 느낌을 낸 초간단 변주입니다.', NULL, '["#간단", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#야식", "#아침", "#아이들", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "고추장찌개 양념", "amount": "1세트"}, {"name": "모둠햄/소시지", "amount": "200g"}]'::jsonb, '["냄비에 햄과 소시지를 썰어 넣고 감자와 함께 볶는다", "고추장 베이스 육수를 붓고 햄에서 감칠맛이 나올 때까지 끓인다", "라면 사리를 넣어 먹으면 더욱 든든하게 즐길 수 있다", "햄 자체에 간이 있으므로 고추장 양을 살짝 조절한다"]'::jsonb, '고추장찌개 기본에서 주재료를 햄으로 바꿔 조리 시간을 단축한 변주입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '고추장찌개 (기본)', '돼지고기와 감자를 듬뿍 넣어 칼칼하고 걸쭉하게 즐기는 캠핑 정석 찌개입니다.', NULL, '["#국물", "#저녁", "#추운날", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "돼지고기 찌개용", "amount": "200g"}, {"name": "감자", "amount": "2개"}, {"name": "고추장", "amount": "3큰술"}, {"name": "고춧가루", "amount": "1큰술"}]'::jsonb, '["냄비에 식용유를 두르고 고기와 감자를 고추장 1큰술과 함께 볶는다", "감자 겉면이 살짝 익으면 물을 붓고 남은 고추장과 고춧가루를 푼다", "중불에서 감자가 포슬포슬하게 익을 때까지 15분 이상 충분히 끓인다", "마지막에 애호박과 대파를 넣어 한소끔 더 끓여 완성한다"]'::jsonb, '고추장을 기름에 먼저 볶아야 텁텁함이 사라지고 국물이 진해지는 기본 레시피입니다', '2인분', 580, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '누룽지탕 (변주: 해물 누룽지탕 스타일)', '냉동 해물을 넣어 걸쭉하게 끓여낸 중식 풍의 고급 안주 변주입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "누룽지", "amount": "2장"}, {"name": "냉동 모둠해물", "amount": "150g"}, {"name": "전분 가루", "amount": "1큰술"}]'::jsonb, '["팬에 기름을 두르고 해물과 채소를 굴소스로 볶는다", "물을 붓고 누룽지를 넣어 끓이다가 전분물을 풀어 걸쭉하게 만든다", "누룽지가 살짝 바삭한 기운이 남았을 때 소스를 끼얹어 먹는다", "청경채가 있다면 마지막에 넣어 색감을 살린다"]'::jsonb, '누룽지탕 기본에서 조리법을 중식 스타일로 바꾼 안주형 변주입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '누룽지탕 (기본)', '과음한 다음 날 아침, 자극 없이 속을 편안하게 달래주는 메뉴입니다.', NULL, '["#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "시판 누룽지", "amount": "2장"}, {"name": "물", "amount": "800ml"}, {"name": "젓갈/김치", "amount": "약간"}]'::jsonb, '["냄비에 물을 붓고 시판 누룽지를 잘게 조각 내어 넣는다", "처음에는 강불로 끓이다가 끓어오르면 약불로 줄인다", "누룽지 알이 푹 퍼져 국물이 뽀얗게 변할 때까지 10분 정도 뭉근히 끓인다", "오징어젓갈이나 잘 익은 김치를 곁들여 먹는다"]'::jsonb, '물 양을 넉넉히 잡아야 식었을 때 뻑뻑해지지 않는 기본 아침 레시피입니다', '2인분', 280, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '차돌박이 숙주볶음 (변주: 차돌 된장 전골)', '볶음 재료에 된장과 육수를 더해 뜨끈한 국물 요리로 즐기는 변주입니다.', NULL, '["#국물", "#저녁", "#추운날", "#혼밥", "#파티", "#전골", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "차돌박이", "amount": "150g"}, {"name": "숙주/배추", "amount": "적당량"}, {"name": "된장", "amount": "2큰술"}]'::jsonb, '["냄비에 된장을 풀고 사골 육수나 물을 넣어 끓인다", "육수가 끓으면 배추와 버섯 등 단단한 채소를 먼저 넣는다", "차돌박이를 한 장씩 넣어 익히고, 마지막에 숙주를 올려 한소끔 끓인다", "와사비 간장 소스를 곁들여 고기와 채소를 찍어 먹는다"]'::jsonb, '차돌박이 숙주볶음 기본 재료를 국물 요리로 변형한 든든한 변주입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '차돌박이 숙주볶음 (기본)', '짧은 조리 시간 대비 맛과 비주얼이 훌륭해 술안주로 인기가 높습니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "차돌박이", "amount": "250g"}, {"name": "숙주", "amount": "1봉지"}, {"name": "굴소스", "amount": "2큰술"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["달궈진 팬에 차돌박이를 먼저 넣고 센 불에서 빠르게 볶는다", "고기가 갈색으로 변하면 깨끗이 씻은 숙주를 듬뿍 올린다", "굴소스를 두르고 숙주 숨이 살짝 죽을 때까지만 1~2분간 더 볶는다", "마지막에 송송 썬 청양고추와 후추를 뿌려 완성한다"]'::jsonb, '숙주를 넣은 뒤에는 오래 볶지 않아야 아삭함이 살아나는 기본 레시피입니다', '2인분', 620, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 소면 (변주: 골뱅이 냉파스타)', '소면 대신 파스타 면을 사용해 이국적이고 세련된 맛을 낸 냉요리 변주입니다.', NULL, '["#점심", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "골뱅이캔", "amount": "1캔"}, {"name": "푸실리/펜네 면", "amount": "200g"}, {"name": "오리엔탈 드레싱", "amount": "5큰술"}]'::jsonb, '["파스타 면을 소금물에 평소보다 1분 더 삶아 찬물에 헹군다", "골뱅이와 방울토마토, 어린잎 채소를 볼에 담는다", "오리엔탈 드레싱에 고춧가루를 한 꼬집 섞어 한국적인 매콤함을 더한다", "모든 재료와 면을 드레싱에 버무려 차갑게 서빙한다"]'::jsonb, '골뱅이 소면 기본을 양식 스타일로 재해석한 시원한 변주입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 소면 (기본)', '여름밤 야외에서 즐기는 매콤새콤한 술안주의 정석입니다.', NULL, '["#국물", "#안주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "골뱅이캔", "amount": "1캔"}, {"name": "소면", "amount": "2줌"}, {"name": "오이/양파", "amount": "각 1/4개"}, {"name": "진미채", "amount": "1줌"}]'::jsonb, '["골뱅이는 국물을 뺀 뒤 먹기 좋게 자르고, 채소는 얇게 채 썬다", "고추장 2, 고춧가루 2, 설탕 2, 식초 3 비율로 양념장을 만든다", "소면을 삶아 찬물에 전분기가 없도록 헹군 뒤 물기를 꽉 짠다", "양념장에 골뱅이, 채소, 진미채를 먼저 무치고 소면을 곁들여 낸다"]'::jsonb, '진미채를 넣으면 골뱅이 국물을 흡수해 쫄깃한 식감이 배가되는 기본 레시피입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '훈제오리 부추볶음 (기본)', '준비가 간편하고 건강에도 좋은 메뉴로, 어르신들과 함께하는 캠핑에 강력 추천합니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "훈제오리", "amount": "400g"}, {"name": "부추", "amount": "1줌"}, {"name": "머스터드 소스", "amount": "2큰술"}, {"name": "마늘", "amount": "5알"}]'::jsonb, '["팬을 예열한 뒤 훈제오리를 먼저 넣고 중불에서 기름이 나올 때까지 충분히 볶는다", "오리 기름이 나오면 편으로 썬 마늘을 넣어 향을 입히며 볶는다", "오리가 노릇하게 익으면 불을 끄고 5cm 길이로 썬 부추를 넣는다", "잔열로 부추 숨이 살짝 죽을 때까지만 가볍게 버무려 완성한다"]'::jsonb, '부추를 마지막에 잔열로 익혀야 질겨지지 않고 향이 살아나는 기본 레시피입니다', '2인분', 850, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '짜파게티 (변주: 채끝 짜파구리)', '소고기 채끝살을 곁들여 영화 속 주인공처럼 즐기는 고급스러운 변주 메뉴입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "짜장라면/매운라면", "amount": "각 1봉"}, {"name": "소고기 채끝살", "amount": "200g"}, {"name": "버터", "amount": "10g"}]'::jsonb, '["소고기 채끝살을 한입 크기로 썰어 소금, 후추로 밑간한 뒤 버터에 굽는다", "두 종류의 라면 면과 건더기를 한 냄비에 넣고 함께 삶는다", "물을 남기고 버린 뒤 짜장 스프 1봉과 매운 스프 1/2봉을 섞어 비빈다", "그 위에 미리 구워둔 채끝 스테이크를 듬뿍 올려 완성한다"]'::jsonb, '짜장라면 기본에 매운 라면과 스테이크를 조합한 럭셔리 변주입니다', '2인분', 1450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '짜파게티 (기본)', '아이들의 영원한 1순위 캠핑 요리이자, 간단한 점심으로 최고의 선택입니다.', NULL, '["#간단", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 12, 1, 10, '[]'::jsonb, '[{"name": "짜장라면", "amount": "2봉지"}, {"name": "물", "amount": "800ml"}, {"name": "오이/계란", "amount": "약간"}]'::jsonb, '["냄비에 물을 넉넉히 붓고 건더기 스프와 면을 넣어 4분간 끓인다", "물 8~10큰술 정도만 남기고 나머지는 모두 버린다", "분말 스프와 올리브유를 넣고 약불에서 30초간 빠르게 비비듯 볶아준다", "그릇에 담고 오이채나 계란 프라이를 올려 마무리한다"]'::jsonb, '물을 버린 후 약불에서 살짝 볶아야 소스가 면에 착 달라붙는 기본 레시피입니다', '2인분', 1100, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '라면 (기본)', '캠핑장에서 가장 자주 먹는 국민 메뉴입니다. 화력이 강한 버너에서 끓여 면발이 살아있습니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "라면", "amount": "2봉지"}, {"name": "물", "amount": "1000ml"}, {"name": "대파", "amount": "1/2대"}]'::jsonb, '["냄비에 물을 붓고 강불에서 팔팔 끓기 시작할 때 건더기 스프와 분말 스프를 먼저 넣는다", "면을 넣고 젓가락으로 면을 공기 중에 들었다 놨다 하며 3분간 끓인다", "면이 거의 익었을 때 대파를 송송 썰어 넣고 30초만 더 끓여 마무리한다", "불을 끄기 직전 식초를 세 방울 넣으면 면발이 더 탱글해진다"]'::jsonb, '캠핑 요리의 시작과 끝이라 할 수 있는 가장 기초적인 레시피입니다', '2인분', 1000, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '모둠 소시지 구이 (기본)', '화로대 그릴 위에서 불향을 입히며 굽는 가장 간단한 바비큐 안주입니다.', NULL, '["#바비큐", "#간단", "#저녁", "#안주", "#구이", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "모둠 소시지", "amount": "1봉지"}, {"name": "머스터드 소스", "amount": "2큰술"}]'::jsonb, '["각 소시지에 촘촘하게 사선으로 칼집을 넣는다", "화로대 그릴 위나 팬에 소시지를 올리고 중불에서 굴려가며 굽는다", "칼집이 선명하게 벌어지고 육즙이 배어 나올 때까지 익힌다", "머스터드나 케첩을 곁들여 따뜻할 때 먹는다"]'::jsonb, '단순하지만 불맛이 더해지면 최고의 맛을 내는 바비큐 기본 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치전 (변주: 베이컨 치즈 김치전)', '서양 식재료인 베이컨과 치즈를 더해 고소함을 극대화한 퓨전 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#야식", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "김치전 반죽", "amount": "1세트"}, {"name": "베이컨", "amount": "3줄"}, {"name": "모짜렐라 치즈", "amount": "50g"}]'::jsonb, '["팬에 김치전 반죽을 올리고 그 위에 베이컨을 적당한 크기로 잘라 올린다", "전을 뒤집어 베이컨이 바삭하게 익도록 굽는다", "다시 뒤집어 베이컨이 위로 오게 한 뒤 치즈를 뿌리고 뚜껑을 잠시 덮는다", "치즈가 녹으면 접시에 담아 서빙한다"]'::jsonb, '김치전 기본에 짭조름한 풍미를 더해 아이들도 좋아하는 변주입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치전 (기본)', '비 오는 캠핑장, 타닥타닥 빗소리와 함께 즐기는 최고의 별미입니다.', NULL, '["#국물", "#저녁", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "신김치", "amount": "1/4포기"}, {"name": "부침가루", "amount": "1.5컵"}, {"name": "설탕", "amount": "0.5큰술"}]'::jsonb, '["김치를 가위로 잘게 썰고 볼에 담아 부침가루, 물과 섞는다", "김치의 신맛을 잡기 위해 설탕을 반 큰술 넣고 잘 섞어 반죽을 만든다", "팬에 기름을 넉넉히 두르고 반죽을 얇게 펴서 올린다", "가장자리가 바삭해지면 뒤집어서 반대쪽도 노릇하게 굽는다"]'::jsonb, '김치 국물을 한 국자 넣으면 색과 맛이 훨씬 진해지는 기본 레시피입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '마시멜로 구이 (변주: 악마의 간식 스모어)', '구운 마시멜로를 초콜릿과 함께 비스킷 사이에 끼워 먹는 중독성 강한 변주입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "마시멜로", "amount": "4개"}, {"name": "빈츠/다이제", "amount": "8개"}, {"name": "판초콜릿", "amount": "1개"}]'::jsonb, '["마시멜로를 노릇하게 구워 뜨거운 상태로 준비한다", "비스킷 위에 초콜릿 한 조각을 올리고 그 위에 구운 마시멜로를 얹는다", "다른 비스킷으로 덮어 마시멜로의 열기로 초콜릿이 살짝 녹게 꾹 누른다", "초콜릿이 녹아내릴 때 한입에 베어 먹는다"]'::jsonb, '마시멜로 구이 기본을 서양식 캠핑 간식으로 변형한 인기 변주입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '마시멜로 구이 (기본)', '아이들이 가장 좋아하는 캠핑의 필수 코스, 달콤하고 폭신한 간식입니다.', NULL, '["#저녁", "#구이", "#혼밥", "#파티", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 5, 1, 10, '[]'::jsonb, '[{"name": "마시멜로", "amount": "1봉지"}, {"name": "긴 꼬치", "amount": "적당량"}]'::jsonb, '["마시멜로를 꼬치 끝에 단단히 끼운다", "불꽃에 직접 닿지 않게 불 위에서 10cm 정도 거리를 두고 천천히 돌려가며 굽는다", "겉면이 노릇한 갈색으로 변하고 살짝 부풀어 오를 때까지 굽는다", "겉면의 바삭한 껍질만 쏙 빼먹고 남은 부분을 다시 구워 먹는 재미가 있다"]'::jsonb, '타기 쉬우므로 잠시도 멈추지 않고 돌려주는 것이 핵심인 기본 레시피입니다', '2인분', 250, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '군고구마 (변주: 아웃백 스타일 허니버터 고구마)', '잘 익은 군고구마에 버터와 꿀을 더해 고급스러운 맛을 낸 디저트 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 45, 1, 10, '[]'::jsonb, '[{"name": "군고구마", "amount": "2개"}, {"name": "무염 버터", "amount": "20g"}, {"name": "꿀/올리고당", "amount": "1큰술"}, {"name": "시나몬 가루", "amount": "약간"}]'::jsonb, '["잘 익은 뜨거운 군고구마의 가운데에 칼집을 깊게 내어 벌린다", "고구마 속에 버터 한 조각을 넣고 열기로 녹인다", "그 위에 꿀을 넉넉히 뿌리고 시나몬 가루를 톡톡 뿌린다", "치즈가 있다면 추가로 넣어 잔열에 녹여 먹어도 맛있다"]'::jsonb, '군고구마 기본에 토핑을 추가해 요리 수준으로 업그레이드한 변주입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '군고구마/감자 (기본)', '모닥불 잔불 속에 넣어두고 기다리는 캠핑의 낭만 가득한 디저트입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아이들"]'::jsonb, '{}'::jsonb, 1, 40, 1, 10, '[]'::jsonb, '[{"name": "고구마/감자", "amount": "4개"}, {"name": "알루미늄 호일", "amount": "적당량"}]'::jsonb, '["고구마와 감자를 깨끗이 씻어 물기를 닦는다", "호일로 빈틈없이 2중으로 꼼꼼하게 감싼다", "모닥불의 활활 타는 불이 아닌, 빨갛게 남은 잔불 사이에 깊숙이 넣는다", "20~30분 뒤 젓가락으로 찔러 쑥 들어가면 꺼낸다"]'::jsonb, '직화보다는 잔열로 익혀야 타지 않고 속까지 달콤하게 익는 기본 레시피입니다', '2인분', 300, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소시지 야채볶음 (변주: 맥주 도둑 핫소스 쏘야)', '케첩 대신 핫소스와 고추장을 섞어 어른들의 입맛에 맞춘 매콤한 변주입니다.', NULL, '["#안주", "#맥주", "#매콤한", "#추운날", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "소시지 야채볶음 재료", "amount": "1세트"}, {"name": "핫소스", "amount": "1큰술"}, {"name": "고추장", "amount": "0.5큰술"}]'::jsonb, '["기본 쏘야 공정에서 양념을 케첩 2, 핫소스 1, 고추장 0.5 비율로 배합한다", "팬에 다진 마늘을 먼저 볶아 기름을 낸 뒤 소시지를 넣는다", "매콤한 양념장을 붓고 수분이 날아갈 때까지 볶아 불향을 입힌다", "후추를 넉넉히 뿌려 마무리한다"]'::jsonb, '소시지 야채볶음 기본에 매운맛 소스를 조합한 안주 특화형 변주입니다', '2인분', 540, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '소시지 야채볶음 (기본)', '비엔나 소시지의 귀여운 모양과 아삭한 채소가 어우러진 인기 안주입니다.', NULL, '["#안주", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "비엔나 소시지", "amount": "20개"}, {"name": "파프리카", "amount": "1/2개"}, {"name": "케첩", "amount": "3큰술"}, {"name": "올리고당", "amount": "1큰술"}]'::jsonb, '["소시지에 칼집을 내고 파프리카와 양파를 한입 크기로 썬다", "팬에 기름을 두르고 소시지가 벌어질 때까지 충분히 볶는다", "채소를 넣고 가볍게 볶은 뒤 케첩과 올리고당을 섞어 붓는다", "양념이 고루 코팅되도록 센 불에서 1분간 더 볶아 마무리한다"]'::jsonb, '소시지에 깊게 칼집을 내야 양념이 잘 배어드는 기본 레시피입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오뎅볶음 (변주: 매콤 어묵볶음)', '고춧가루를 더해 칼칼한 맛을 살린 성인용 술안주 반찬 변주입니다.', NULL, '["#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "오뎅볶음 재료", "amount": "1세트"}, {"name": "고춧가루", "amount": "1큰술"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["기본 어묵볶음과 동일하게 볶다가 양념 단계에서 고춧가루를 넣는다", "고춧가루가 타지 않도록 물을 한 큰술 추가하여 촉촉하게 볶는다", "송송 썬 청양고추를 넣어 매운맛을 극대화한다", "마늘을 편 썰어 함께 볶으면 풍미가 더 좋아진다"]'::jsonb, '오뎅볶음 기본에 매운맛을 입혀 입맛을 돋우는 변주입니다', '2인분', 400, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '오뎅볶음 (기본)', '아이들 반찬으로도 좋고, 간단한 밑반찬으로 미리 만들어두기 좋은 메뉴입니다.', NULL, '["#간단", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "사각어묵", "amount": "4장"}, {"name": "양파", "amount": "1/2개"}, {"name": "간장", "amount": "2큰술"}, {"name": "물엿", "amount": "1큰술"}]'::jsonb, '["어묵과 양파를 길쭉한 모양으로 채 썬다", "팬에 기름을 두르고 양파를 먼저 볶아 향을 낸 뒤 어묵을 넣는다", "어묵이 노릇해지면 간장과 물엿을 넣고 빠르게 볶아낸다", "마지막에 통깨를 뿌려 마무리한다"]'::jsonb, '타지 않게 중불에서 빠르게 볶는 것이 포인트인 기본 반찬 레시피입니다', '2인분', 380, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 무침 (변주: 을지로식 소면 무침)', '소면을 넉넉히 넣어 식사 대용으로도 가능하게 만든 을지로 스타일 변주입니다.', NULL, '["#저녁", "#야식", "#파티", "#혼밥"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 무침 재료", "amount": "1세트"}, {"name": "소면", "amount": "2줌"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["소면을 끓는 물에 삶아 찬물에 여러 번 헹궈 물기를 꽉 짠다", "골뱅이 무침 양념을 평소보다 진하게 하여 골뱅이와 채소를 먼저 무친다", "삶은 소면에 참기름을 발라 접시 옆에 동그랗게 말아 올린다", "먹기 직전 소면과 무침을 골고루 섞어 먹는다"]'::jsonb, '골뱅이 무침 기본을 면 요리로 확장한 든든한 변주입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 무침 (기본)', '저녁 식사 후 간단하게 맥주 한잔할 때 가장 먼저 생각나는 안주입니다.', NULL, '["#간단", "#안주", "#맥주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 통조림", "amount": "1캔"}, {"name": "대파", "amount": "2대"}, {"name": "고춧가루", "amount": "2큰술"}, {"name": "식초", "amount": "2큰술"}]'::jsonb, '["대파는 가늘게 채 썰어 찬물에 담가 매운기를 뺀 뒤 물기를 제거한다", "골뱅이는 국물을 반 정도 버리고 큰 것은 한입 크기로 자른다", "볼에 골뱅이, 파채, 고춧가루, 식초, 설탕을 넣고 가볍게 버무린다", "골뱅이 통조림 국물을 한 큰술 추가하면 감칠맛이 살아난다"]'::jsonb, '파채의 아삭함과 골뱅이의 쫄깃함이 어우러진 안주의 정석 레시피입니다', '2인분', 350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '프렌치 토스트 (변주: 캠핑용 몬테크리스토)', '식빵 사이에 햄과 치즈를 넣어 단짠단짠의 정석을 보여주는 든든한 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "식빵", "amount": "4장"}, {"name": "슬라이스 햄", "amount": "2장"}, {"name": "체다치즈", "amount": "2장"}, {"name": "딸기잼", "amount": "2큰술"}]'::jsonb, '["식빵 한쪽 면에 딸기잼을 바르고 햄과 치즈를 끼워 샌드위치를 만든다", "만들어진 샌드위치 전체를 달걀물에 골고루 적신다", "팬에 기름을 넉넉히 두르고 샌드위치 사방을 돌려가며 노릇하게 굽는다", "치즈가 녹으면 대각선으로 잘라 서빙한다"]'::jsonb, '프렌치 토스트 기본에 햄과 치즈를 더해 포만감을 높인 변주입니다', '2인분', 750, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '프렌치 토스트 (기본)', '자연 속에서 여유롭게 즐기는 달콤한 아침 브런치 메뉴입니다.', NULL, '["#아이들", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "식빵", "amount": "4장"}, {"name": "달걀", "amount": "2개"}, {"name": "우유", "amount": "100ml"}, {"name": "설탕", "amount": "1큰술"}]'::jsonb, '["넓은 그릇에 달걀, 우유, 설탕을 넣고 멍울이 없게 잘 푼다", "식빵을 달걀물에 앞뒤로 충분히 적신다", "팬에 버터나 식용유를 두르고 약불에서 식빵을 노릇하게 굽는다", "기호에 따라 시럽이나 잼을 곁들여 먹는다"]'::jsonb, '불 조절이 생명이며 약불에서 서서히 익혀야 타지 않는 기본 레시피입니다', '2인분', 500, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 무스비 (변주: 볶음김치 무스비)', '느끼할 수 있는 햄 사이에 매콤한 볶음김치를 넣어 한국인의 입맛을 사로잡은 변주입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "스팸 무스비 재료", "amount": "1세트"}, {"name": "볶음김치", "amount": "3큰술"}]'::jsonb, '["햄 캔 속에 밥을 먼저 깔고 볶음김치를 얇고 평평하게 올린다", "그 위에 구운 햄을 올리고 다시 밥으로 덮어 꾹 눌러준다", "캔에서 꺼내어 김으로 고정한 뒤 한입 크기로 썬다", "참기름을 밥에 미리 버무려두면 더욱 고소하다"]'::jsonb, '스팸 무스비 기본에 김치를 추가해 맛의 밸런스를 잡은 변주입니다', '2인분', 820, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '스팸 무스비 (기본)', '철수하는 날 아침이나 이동 중에 먹기 편한 든든한 주먹밥입니다.', NULL, '["#아이들", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "통조림 햄", "amount": "1캔"}, {"name": "공깃밥", "amount": "2공기"}, {"name": "김밥용 김", "amount": "2장"}]'::jsonb, '["통조림 햄을 가로로 얇게 썰어 팬에 노릇하게 굽는다", "빈 햄 캔 속에 비닐 랩을 깔고 밥, 구운 햄, 다시 밥 순으로 꾹꾹 눌러 담는다", "캔에서 랩을 당겨 내용물을 뺀 뒤 일정한 크기로 썬다", "김을 길게 잘라 밥 중간을 띠처럼 둘러 고정한다"]'::jsonb, '별도의 틀 없이 햄 캔을 활용하는 캠핑 맞춤형 기본 레시피입니다', '2인분', 800, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '라면 (변주: 순두부 열라면 스타일)', '강렬한 매운맛에 부드러운 순두부를 더해 한 끼 식사로도 훌륭한 변주입니다.', NULL, '["#점심", "#추운날", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "매운 라면", "amount": "1봉지"}, {"name": "순두부", "amount": "1봉"}, {"name": "후추", "amount": "약간"}]'::jsonb, '["평소 라면 물의 2/3(약 350ml)만 넣고 스프를 먼저 풀어 끓인다", "물이 끓으면 순두부를 큼직하게 듬성듬성 썰어 넣는다", "면을 넣고 익을 때까지 끓인 뒤 후추를 넉넉하게 뿌린다", "순두부에서 수분이 나오므로 물 양 조절이 핵심이다"]'::jsonb, '라면 기본에서 물 양을 줄이고 부재료를 추가해 풍성함을 더한 변주입니다', '2인분', 750, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '라면 (변주: 해장용 황태라면)', '전날 마신 술을 깨끗이 씻어내 줄 시원하고 담백한 아침 해장용 변주입니다.', NULL, '["#국물", "#점심", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "라면", "amount": "2봉지"}, {"name": "황태채", "amount": "1줌"}, {"name": "콩나물", "amount": "1줌"}]'::jsonb, '["냄비에 참기름을 살짝 두르고 물에 불린 황태채를 달달 볶는다", "황태에서 뽀얀 국물이 나오면 물을 붓고 콩나물을 넣어 함께 끓인다", "물이 끓으면 라면 스프는 평소보다 2/3만 넣고 면을 넣어 익힌다", "마지막에 청양고추를 넣어 칼칼하게 마무리한다"]'::jsonb, '라면 기본 레시피에 건어물을 더해 국물 맛을 시원하게 바꾼 변주입니다', '2인분', 1050, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '비프 스테이크 (기본)', '특별한 기념일이나 분위기를 내고 싶은 밤에 추천하는 고급 캠핑 요리입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 3, 25, 1, 10, '[]'::jsonb, '[{"name": "소고기 등심/채끝", "amount": "400g"}, {"name": "올리브유", "amount": "3큰술"}, {"name": "버터", "amount": "20g"}, {"name": "로즈마리", "amount": "1줄기"}]'::jsonb, '["고기는 키친타월로 핏물을 닦고 소금, 후추, 올리브유를 발라 마리네이드한다", "팬을 연기가 날 정도로 아주 뜨겁게 달군 뒤 고기를 올린다", "한 면당 2분씩 튀기듯 굽고, 마지막에 버터와 로즈마리를 넣어 향을 입힌다", "구워진 고기는 도마 위에서 5분간 레스팅(뜸 들이기) 후 잘라야 육즙이 보존된다"]'::jsonb, '레스팅 과정이 고기 맛을 결정하는 스테이크의 정석 레시피입니다', '2인분', 900, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '비빔밥 (변주: 뜨끈한 그리들 돌솥비빔밥)', '그리들 잔열로 밥을 눌려 고소함을 극대화한 캠핑 스타일 변주입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "비빔밥 재료", "amount": "1세트"}, {"name": "버터/식용유", "amount": "1큰술"}]'::jsonb, '["그리들에 버터나 기름을 바르고 비빔밥을 올린다", "중불에서 밥 바닥이 '탁탁' 소리가 날 때까지 3~4분간 그대로 둔다", "누룽지가 생기면 전체적으로 한번 섞어준 뒤 다시 펴서 눌린다", "기호에 따라 김가루를 듬뿍 뿌려 고소하게 즐긴다"]'::jsonb, '비빔밥 기본을 그리들 장비를 활용해 업그레이드한 변주 레시피입니다', '2인분', 620, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '비빔밥 (기본)', '남은 쌈채소와 나물을 처리하기 좋으며 한국인의 입맛에 딱 맞는 한 끼입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "공깃밥", "amount": "2공기"}, {"name": "상추/깻잎", "amount": "10장"}, {"name": "고추장", "amount": "2큰술"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["그릇에 따뜻한 밥을 담고 쌈채소를 손으로 툭툭 끊어 넣는다", "고추장과 참기름, 깨를 넣고 밥알이 뭉개지지 않게 젓가락으로 비빈다", "계란 프라이가 가능하다면 하나 올려 풍미를 더한다", "남은 고기 구이가 있다면 잘게 잘라 함께 비벼도 좋다"]'::jsonb, '남은 재료를 가장 맛있게 소진할 수 있는 캠핑 아침의 기본 레시피입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '해물파전 (변주: 김치 치즈전)', '파 대신 신김치를 넣고 치즈를 듬뿍 올려 퓨전 스타일로 즐기는 변주입니다.', NULL, '["#혼밥", "#파티", "#파전", "#야식", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "김치", "amount": "1/4포기"}, {"name": "부침가루", "amount": "1컵"}, {"name": "피자치즈", "amount": "100g"}]'::jsonb, '["잘게 썬 김치와 반죽물을 섞어 팬에 얇게 편다", "전을 앞뒤로 바삭하게 구운 뒤, 한쪽 면에 치즈를 듬뿍 뿌린다", "반으로 접어 치즈가 녹을 때까지 약불에서 1분간 기다린다", "겉은 바삭하고 속은 치즈가 흘러나오는 상태로 즐긴다"]'::jsonb, '해물파전 기본에서 재료를 김치와 치즈로 바꾼 대중적인 변주입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '해물파전 (기본)', '비 오는 날 캠핑장에서 지글지글 구워 먹는 최고의 간식이자 막걸리 친구입니다.', NULL, '["#저녁", "#죽", "#혼밥", "#파티", "#파전", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "부침가루", "amount": "1컵"}, {"name": "쪽파", "amount": "1줌"}, {"name": "모둠 해물", "amount": "150g"}, {"name": "달걀", "amount": "1개"}]'::jsonb, '["부침가루와 물을 1:1 비율로 섞어 반죽을 만든다", "달궈진 팬에 기름을 넉넉히 두르고 쪽파를 나란히 깐 뒤 반죽물을 붓는다", "그 위에 해물을 듬뿍 올리고 달걀 하나를 풀어 골고루 펴 바른다", "바닥이 바삭해지면 딱 한 번만 뒤집어 노릇하게 구워낸다"]'::jsonb, '반죽은 차갑게, 팬은 뜨겁게 해야 바삭한 전이 되는 기본 레시피입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '바지락 술찜 (변주: 봉골레 파스타 확장)', '술찜 국물에 파스타 면을 넣어 한 끼 식사로 훌륭하게 변신시킨 메뉴입니다.', NULL, '["#점심", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "바지락 술찜", "amount": "1세트"}, {"name": "스파게티 면", "amount": "1인분"}]'::jsonb, '["냄비에 소금을 넣은 물에 파스타 면을 알단테(심지가 씹히는 정도)로 삶는다", "완성된 바지락 술찜에 삶아진 면과 면수 2큰술을 넣는다", "국물이 면에 배어들도록 중불에서 2분간 빠르게 볶아낸다", "올리브유를 한 바퀴 둘러 윤기를 더한다"]'::jsonb, '바지락 술찜 기본을 식사로 연결한 효율적인 변주 레시피입니다', '2인분', 680, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '바지락 술찜 (기본)', '별다른 양념 없이 바지락 자체의 시원한 국물로 승부하는 깔끔한 안주입니다.', NULL, '["#국물", "#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "바지락", "amount": "500g"}, {"name": "청주/소주", "amount": "1/2컵"}, {"name": "마늘", "amount": "5알"}, {"name": "버터", "amount": "10g"}]'::jsonb, '["팬에 버터를 녹이고 편마늘과 건고추를 넣어 향을 낸다", "해감된 바지락을 넣고 센 불에서 1분간 볶다가 술을 붓는다", "뚜껑을 덮고 바지락이 입을 벌릴 때까지 5분 정도 끓인다", "마지막에 쪽파를 송송 썰어 올려 향긋하게 마무리한다"]'::jsonb, '바지락 입이 벌어지면 바로 불을 꺼야 살이 질겨지지 않는 기본 레시피입니다', '2인분', 300, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '호일 생선구이 (변주: 버터 연어 스테이크)', '고소한 버터 향이 배어든 부드러운 연어로 와인과 잘 어울리는 고급 변주입니다.', NULL, '["#구이", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "연어 필렛", "amount": "300g"}, {"name": "무염 버터", "amount": "20g"}, {"name": "아스파라거스", "amount": "3대"}]'::jsonb, '["호일 위에 연어와 아스파라거스를 올리고 버터 한 조각을 얹는다", "호일을 사탕 모양으로 양 끝을 묶어 밀봉한다", "중불의 팬이나 잔불 위에서 15분간 익힌다", "호일을 열었을 때 나오는 고소한 버터 육즙을 소스처럼 찍어 먹는다"]'::jsonb, '생선구이 기본에서 재료를 연어로 바꾸고 풍미를 극대화한 변주입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '호일 생선구이 (기본)', '연기와 냄새 걱정 없이 숯불 잔불을 이용해 담백하게 익히는 건강식입니다.', NULL, '["#구이", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "고등어/삼치", "amount": "1마리"}, {"name": "레몬", "amount": "1/2개"}, {"name": "로즈마리", "amount": "약간"}]'::jsonb, '["생선 겉면에 소금을 뿌리고 레몬 슬라이스와 로즈마리를 올린다", "두꺼운 알루미늄 호일로 생선을 2~3중으로 빈틈없이 감싼다", "화로대의 잔불이나 그릴 끝자락에 두고 20분간 은근하게 익힌다", "호일을 열어 생선 살이 하얗게 익었는지 확인 후 레몬즙을 뿌려 마무리한다"]'::jsonb, '숯불의 열기로 찌듯이 익혀 살이 촉촉한 것이 특징인 기본 레시피입니다', '2인분', 400, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '제육볶음 (변주: 제육 퀘사디아)', '남은 제육볶음을 또띠아 사이에 넣어 치즈와 구워낸 이색적인 변주 간식입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 15, 1, 10, '[]'::jsonb, '[{"name": "남은 제육볶음", "amount": "1공기"}, {"name": "또띠아", "amount": "2장"}, {"name": "피자치즈", "amount": "100g"}]'::jsonb, '["남은 제육볶음을 가위로 아주 잘게 다져 팬에서 데운다", "마른 팬에 또띠아 한 장을 올리고 그 위에 치즈와 다진 제육을 골고루 펴준다", "나머지 또띠아 한 장을 덮고 치즈가 녹을 때까지 앞뒤로 노릇하게 굽는다", "피자처럼 잘라 요거트 소스나 쌈장을 곁들여 먹는다"]'::jsonb, '제육볶음 기본의 남은 음식을 서양식으로 재해석한 변주 레시피입니다', '2인분', 850, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '제육볶음 (변주: 불맛 가득 주꾸미 제육)', '고기와 해산물의 환상적인 만남으로 손님 접대용으로도 훌륭한 변주 메뉴입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "제육볶음 재료", "amount": "1세트"}, {"name": "손질 주꾸미", "amount": "200g"}]'::jsonb, '["제육볶음 고기를 먼저 팬에서 80% 정도 익힌다", "손질된 주꾸미를 넣고 강불에서 2~3분간 빠르게 볶아 질겨지지 않게 한다", "주꾸미에서 나오는 수분이 양념과 어우러지도록 잘 섞어준다", "마지막에 콩나물을 살짝 데쳐 곁들이면 더욱 좋다"]'::jsonb, '제육볶음 기본에 해산물을 더해 풍미와 식감을 높인 변주입니다', '2인분', 720, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '제육볶음 (기본)', '점심 식사로 든든하게 먹기 좋으며 쌈채소와 가장 잘 어울리는 메뉴입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "돼지고기 앞다리살", "amount": "400g"}, {"name": "양파", "amount": "1/2개"}, {"name": "고추장 양념", "amount": "4큰술"}, {"name": "대파", "amount": "1대"}]'::jsonb, '["돼지고기는 키친타월로 핏물을 닦고 양념장에 재워둔다", "팬을 강불로 예열한 뒤 고기를 넣고 수분이 날아갈 때까지 빠르게 볶는다", "고기가 익으면 양파와 대파를 넣고 중불에서 채소 숨이 죽을 때까지 볶는다", "마지막에 불을 세게 해 불향을 살짝 입혀준다"]'::jsonb, '팬을 충분히 예열해야 고기 누린내가 나지 않는 기본 레시피입니다', '2인분', 750, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 소면 (변주: 골뱅이 비빔라면)', '소면을 삶기 번거로울 때 시판 비빔면을 활용해 5분 만에 만드는 초간단 변주입니다.', NULL, '["#간단", "#점심", "#혼밥", "#파티", "#야식", "#아침", "#더운날"]'::jsonb, '{}'::jsonb, 1, 7, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 통조림", "amount": "1/2캔"}, {"name": "비빔면", "amount": "2봉지"}]'::jsonb, '["비빔면의 면을 삶아 찬물에 헹궈 준비한다", "비빔 소스에 골뱅이를 먼저 넣고 가볍게 섞는다", "준비된 면과 소스를 비빈 뒤 참기름을 한 방울 추가한다", "남은 골뱅이 국물을 소량 넣어 촉촉하게 만든다"]'::jsonb, '골뱅이 소면 기본의 번거로운 소면 과정을 비빔면으로 대체한 실속 변주입니다', '2인분', 800, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '골뱅이 소면 (기본)', '여름 캠핑 밤, 매콤새콤한 양념으로 입맛을 돋워주는 최고의 야식 안주입니다.', NULL, '["#국물", "#안주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "골뱅이 통조림", "amount": "1캔"}, {"name": "소면", "amount": "2줌"}, {"name": "오이", "amount": "1/2개"}, {"name": "진미채", "amount": "1줌"}]'::jsonb, '["골뱅이는 국물을 덜어내고 먹기 좋은 크기로 반을 자른다", "고추장, 고춧가루, 식초, 설탕을 섞은 양념장에 골뱅이와 채소를 버무린다", "소면은 끓는 물에 3분간 삶아 찬물에 헹궈 물기를 꽉 짠다", "접시에 소면과 양념된 골뱅이를 담고 깨를 뿌려 마무리한다"]'::jsonb, '골뱅이 통조림 국물을 양념에 1~2큰술 넣으면 감칠맛이 폭발합니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '에그인헬 (변주: 순두부 토마토 스튜)', '달걀 대신 부드러운 순두부를 넣어 해장용으로도 손색없는 건강한 변주 레시피입니다.', NULL, '["#추운날", "#해장", "#파티", "#혼밥", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "토마토 소스", "amount": "1/2병"}, {"name": "순두부", "amount": "1봉"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["팬에 토마토 소스와 물 1/2컵을 섞어 끓인다", "순두부를 큼직하게 썰어 소스에 넣고 으깨지지 않게 살살 젓는다", "칼칼한 맛을 위해 청양고추를 송송 썰어 넣는다", "순두부 속까지 뜨거워지면 후추를 뿌려 마무리한다"]'::jsonb, '에그인헬 기본에서 주재료를 순두부로 바꿔 가벼운 아침용으로 만든 변주입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '에그인헬 (기본)', '토마토 소스에 달걀이 퐁당 빠진 비주얼로 아침 브런치나 와인 안주에 적합합니다.', NULL, '["#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "토마토 파스타 소스", "amount": "1병"}, {"name": "달걀", "amount": "3개"}, {"name": "소시지", "amount": "5개"}, {"name": "치즈", "amount": "50g"}]'::jsonb, '["팬에 소시지와 양파를 넣고 노릇하게 볶는다", "토마토 소스를 붓고 소스가 보글보글 끓을 때까지 중불에서 가열한다", "소스 위에 달걀을 조심스럽게 깨뜨려 올리고 치즈를 뿌린다", "뚜껑을 덮고 약불에서 달걀 흰자가 익을 때까지만 3분 더 익힌다"]'::jsonb, '바게트나 식빵을 소스에 찍어 먹으면 완벽한 한 끼가 되는 기본 레시피입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵탕 (변주: 매운 빨간 어묵)', '스트레스 풀리는 매콤한 맛으로 술안주에 최적화된 빨간 국물의 변주 레시피입니다.', NULL, '["#국물", "#저녁", "#추운날", "#매콤한", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "어묵탕 재료", "amount": "1세트"}, {"name": "고추장", "amount": "1.5큰술"}, {"name": "고춧가루", "amount": "2큰술"}, {"name": "마늘", "amount": "1큰술"}]'::jsonb, '["기본 어묵탕 육수에 고추장, 고춧가루, 다진 마늘을 풀어 양념 육수를 만든다", "어묵을 나무 꼬치에 끼워 준비하면 분위기가 더욱 산다", "양념이 어묵 속까지 잘 배도록 중불에서 15분간 뭉근하게 끓여낸다", "마지막에 쑥갓이나 콩나물을 추가하면 식감이 더 좋아진다"]'::jsonb, '어묵탕 기본 레시피에 매운맛 양념을 추가한 안주형 변주입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '어묵탕 (기본)', '추운 겨울 밤, 모닥불 앞에서 즐기는 최고의 야식 메뉴입니다.', NULL, '["#국물", "#추운날", "#해장", "#파티", "#혼밥", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "모둠어묵", "amount": "1봉지"}, {"name": "무", "amount": "1/6개"}, {"name": "대파", "amount": "1대"}, {"name": "국간장", "amount": "2큰술"}]'::jsonb, '["무는 나박 썰고 대파는 크게 썰어 물 1리터와 함께 끓여 육수를 낸다", "물이 끓으면 어묵을 넣고 국간장과 소금으로 간을 맞춘다", "어묵이 통통하게 불어날 때까지 중불에서 10분 정도 충분히 우려낸다", "기호에 따라 청양고추를 넣어 칼칼함을 더한다"]'::jsonb, '캠핑 야식과 해장의 정석인 국물 요리 기본 레시피입니다', '2인분', 450, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '비프 스테이크 (변주: 캠핑용 규카츠 스타일)', '겉면만 살짝 튀기듯 익힌 고기를 화로대 미니 불판에 조금씩 구워 먹는 재미가 있는 메뉴입니다.', NULL, '["#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "소고기 채끝", "amount": "400g"}, {"name": "빵가루", "amount": "1/2공기"}, {"name": "계란", "amount": "1개"}]'::jsonb, '["통고기 겉면에 밀가루, 계란물, 빵가루 순으로 얇게 튀김옷을 입힌다", "팬에 기름을 넉넉히 두르고 겉면만 1분씩 빠르게 사방을 튀겨낸다", "튀겨진 고기를 얇게 썰어 개인 화로나 그리들에 취향껏 더 구워 먹는다", "고추냉이(와사비)를 곁들이면 느끼함 없이 즐길 수 있다"]'::jsonb, '비프 스테이크 기본에서 조리 방식과 재미 요소를 더한 변주입니다', '2인분', 950, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '비프 스테이크 (변주: 찹스테이크 한입 요리)', '아이들이 있거나 여럿이 안주로 나누어 먹기 편하도록 채소와 볶아낸 변주 메뉴입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "소고기", "amount": "400g"}, {"name": "파프리카", "amount": "1개"}, {"name": "스테이크 소스", "amount": "4큰술"}, {"name": "굴소스", "amount": "1큰술"}]'::jsonb, '["소고기와 파프리카를 한입 크기 정육면체로 썬다", "팬을 달궈 고기를 먼저 넣고 센 불에서 빠르게 겉면만 익힌다", "채소를 넣고 1분간 더 볶다가 스테이크 소스와 굴소스를 붓고 섞는다", "소스가 재료에 골고루 묻으면 즉시 불을 꺼 채소의 아삭함을 살린다"]'::jsonb, '비프 스테이크 기본 재료를 활용한 간편 안주형 변주입니다', '2인분', 820, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '된장찌개 (기본)', '고기 구워 먹을 때 빠질 수 없는 구수하고 담백한 한국의 맛입니다.', NULL, '["#국물", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "된장", "amount": "2큰술"}, {"name": "무", "amount": "1/8개"}, {"name": "애호박", "amount": "1/4개"}, {"name": "두부", "amount": "1/2모"}]'::jsonb, '["냄비에 물을 붓고 얇게 썬 무를 넣어 먼저 끓인다", "물이 끓으면 된장을 풀고 애호박과 두부를 먹기 좋게 썰어 넣는다", "중불에서 10분 정도 채소의 단맛이 국물에 우러나도록 끓인다", "마지막에 대파를 넣어 한소끔 더 끓여 완성한다"]'::jsonb, '어떤 캠핑 요리와도 잘 어울리는 국물 요리의 기본입니다', '2인분', 320, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '떡볶이 (변주: 로제 떡볶이)', '우유와 치즈를 더해 부드럽고 트렌디한 맛을 낸 고소한 떡볶이입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "떡볶이 재료", "amount": "1세트"}, {"name": "우유", "amount": "200ml"}, {"name": "체다치즈", "amount": "2장"}]'::jsonb, '["물 대신 우유와 고추장을 섞어 양념 베이스를 만든다", "떡과 어묵을 넣고 끓이다가 소스가 졸아들면 체다치즈 2장을 넣는다", "치즈가 녹아 국물이 크리미해질 때까지 약불에서 살살 젓는다", "베이컨이나 비엔나 소시지를 추가하면 더욱 풍성하다"]'::jsonb, '떡볶이 기본에 유제품을 더해 풍미를 바꾼 변주 레시피입니다', '2인분', 850, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '떡볶이 (기본)', '출출한 오후 야외에서 간편하게 즐길 수 있는 국민 간식입니다.', NULL, '["#점심", "#혼밥", "#아침", "#파티"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "떡볶이 떡", "amount": "300g"}, {"name": "사각어묵", "amount": "2장"}, {"name": "고추장", "amount": "2큰술"}, {"name": "설탕", "amount": "2큰술"}]'::jsonb, '["팬에 물 2컵을 붓고 고추장과 설탕을 잘 풀어 끓인다", "물이 끓으면 떡과 어묵을 넣고 중불에서 익힌다", "떡이 말랑해지고 국물이 걸쭉해질 때까지 5~7분간 저어가며 졸인다", "마지막에 대파를 올려 마무리한다"]'::jsonb, '가장 표준적인 맛을 내는 떡볶이 기본 레시피입니다', '2인분', 700, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콘치즈 (변주: 불닭 콘치즈)', '매콤한 불닭 소스를 섞어 느끼함을 잡고 중독성을 높인 안주 레시피입니다.', NULL, '["#안주", "#추운날", "#매콤한", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "콘치즈 재료", "amount": "1세트"}, {"name": "매운 불닭소스", "amount": "1큰술"}]'::jsonb, '["물기를 뺀 옥수수에 마요네즈와 함께 불닭소스를 한 큰술 넣는다", "매운맛이 골고루 퍼지도록 잘 섞은 뒤 치즈를 올린다", "치즈가 녹으면서 매운맛을 부드럽게 감싸줄 때까지 가열한다", "매운 것을 잘 못 먹는다면 소스 양을 조절한다"]'::jsonb, '콘치즈 기본에 매운 소스를 가미한 성인 안주용 변주입니다', '2인분', 420, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '콘치즈 (기본)', '화로대 옆에서 가볍게 만들어 먹는 최고의 맥주 안주이자 아이들 간식입니다.', NULL, '["#안주", "#맥주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "옥수수 통조림", "amount": "1캔"}, {"name": "마요네즈", "amount": "3큰술"}, {"name": "모짜렐라 치즈", "amount": "100g"}, {"name": "설탕", "amount": "0.5큰술"}]'::jsonb, '["옥수수는 채에 걸러 물기를 완전히 제거한다", "그릇에 옥수수, 마요네즈, 설탕을 넣고 잘 버무린다", "그리들이나 호일 그릇에 옮겨 담고 위에 치즈를 듬뿍 뿌린다", "뚜껑을 덮고 약불에서 치즈가 녹을 때까지 3~5분간 가열한다"]'::jsonb, '누구나 좋아하는 캠핑 사이드 메뉴의 정석입니다', '2인분', 400, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '닭갈비 (변주: 캠핑용 닭갈비 볶음밥)', '닭갈비를 조금 남겨 김가루와 함께 볶아 먹는 캠핑의 완벽한 마무리입니다.', NULL, '["#저녁", "#점심", "#혼밥", "#파티", "#아침"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "남은 닭갈비", "amount": "약간"}, {"name": "공깃밥", "amount": "1공기"}, {"name": "김가루", "amount": "1줌"}, {"name": "참기름", "amount": "1큰술"}]'::jsonb, '["팬에 남은 닭갈비와 채소를 가위로 잘게 자른다", "밥 1공기를 넣고 양념이 골고루 배도록 강불에서 빠르게 볶는다", "바닥에 밥을 얇게 펴서 살짝 눌어붙게 만든다", "불을 끄고 김가루와 참기름을 뿌려 잘 섞어 먹는다"]'::jsonb, '닭갈비 기본 레시피 후 즐기는 필수 코스 변주입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '닭갈비 (변주: 치즈 폭탄 닭갈비)', '매운맛을 중화시키고 고소함을 더한 비주얼 최고의 변주 레시피입니다.', NULL, '["#저녁", "#추운날", "#혼밥", "#파티", "#야식"]'::jsonb, '{}'::jsonb, 1, 35, 1, 10, '[]'::jsonb, '[{"name": "닭갈비 재료", "amount": "1세트"}, {"name": "모짜렐라 치즈", "amount": "200g"}]'::jsonb, '["기본 닭갈비 조리법과 동일하게 고기와 채소를 완벽히 익힌다", "익은 닭갈비를 팬 가쪽으로 밀고 가운데 공간을 만든다", "가운데 공간에 모짜렐라 치즈를 듬뿍 붓고 뚜껑을 덮어 약불에서 녹인다", "치즈가 녹으면 닭고기를 치즈에 찍어 먹는다"]'::jsonb, '닭갈비 기본에 치즈를 더해 파티 분위기를 낸 변주입니다', '2인분', 1150, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '닭갈비 (기본)', '매콤달콤한 양념으로 입맛을 돋우는 저녁 메인 요리입니다.', NULL, '["#저녁", "#혼밥", "#파티", "#아이들"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "닭다리살", "amount": "500g"}, {"name": "양배추", "amount": "1/8통"}, {"name": "고구마", "amount": "1개"}, {"name": "닭갈비 양념장", "amount": "1/2컵"}]'::jsonb, '["닭다리살은 한입 크기로 썰어 양념장에 10분간 미리 재워둔다", "그리들이나 큰 팬을 달군 뒤 양념된 닭고기를 먼저 볶는다", "고기가 절반쯤 익으면 양배추와 고구마를 넣고 채수가 나올 때까지 함께 볶는다", "고구마가 완전히 익으면 깻잎을 올려 마무리한다"]'::jsonb, '그리들에 볶으면 불맛이 더해져 더욱 맛있는 기본 레시피입니다', '2인분', 950, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '된장찌개 (변주: 캠핑장 술밥 스타일)', '남은 찌개에 밥을 말아 걸쭉하게 끓여 먹는 캠핑 최고의 소주 안주입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "된장찌개", "amount": "남은 국물"}, {"name": "공깃밥", "amount": "1공기"}, {"name": "달걀", "amount": "1개"}]'::jsonb, '["끓고 있는 된장찌개 국물에 밥 1공기를 넣는다", "밥알이 국물을 머금어 통통해질 때까지 약불에서 저어가며 끓인다", "국물이 거의 졸아들면 달걀을 하나 풀어 부드럽게 섞는다", "참기름 한 방울을 떨어뜨려 풍미를 극대화한다"]'::jsonb, '된장찌개 기본 레시피를 식사 및 안주용으로 변형한 변주입니다', '2인분', 550, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '된장찌개 (변주: 차돌박이 된장찌개)', '기름지고 고소한 차돌박이를 넣어 한 끼 식사로도 손색없는 든든한 변주입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 20, 1, 10, '[]'::jsonb, '[{"name": "된장찌개 재료", "amount": "1세트"}, {"name": "차돌박이", "amount": "100g"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["냄비에 차돌박이를 먼저 볶아 고기 기름을 낸다", "고기가 익으면 된장찌개 기본 육수를 붓고 된장을 푼다", "나머지 채소를 넣고 차돌박이의 고소한 맛이 국물에 배도록 끓인다", "청양고추를 넣어 느끼함을 잡아준다"]'::jsonb, '된장찌개 기본에 고기를 추가해 메인 요리급으로 격상시킨 변주입니다', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '삼겹살 구이 (변주: 우천 시 미나리 삼겹살)', '비 오는 날 텐트 안에서 향긋한 미나리와 함께 구워 먹는 별미 메뉴입니다.', NULL, '["#구이", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 1, 25, 1, 10, '[]'::jsonb, '[{"name": "삼겹살", "amount": "600g"}, {"name": "미나리", "amount": "150g"}, {"name": "쌈장", "amount": "2큰술"}]'::jsonb, '["미나리는 깨끗이 씻어 5cm 길이로 썰어 준비한다", "강불로 예열된 팬에 삼겹살을 먼저 바싹하게 굽는다", "고기가 다 익으면 불을 끄고 잔열이 남은 상태에서 고기 위에 미나리를 올린다", "미나리 숨이 살짝 죽을 때까지 30초간만 그대로 두었다가 고기와 함께 집어 먹는다"]'::jsonb, '삼겹살 구이 기본 레시피에 미나리를 추가하여 풍미를 높인 변주입니다', '2인분', 1250, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '부대찌개 (기본)', '쌀쌀한 저녁이나 겨울 캠핑에 가장 선호되는 뜨끈한 국물 요리입니다.', NULL, '["#국물", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 20, 1, 10, '[]'::jsonb, '[{"name": "모둠햄/소시지", "amount": "300g"}, {"name": "사골육수 팩", "amount": "500ml"}, {"name": "김치", "amount": "1/4공기"}, {"name": "라면사리", "amount": "1개"}]'::jsonb, '["냄비에 썰어둔 햄, 소시지, 김치를 차곡차곡 예쁘게 담는다", "사골육수를 붓고 강불에서 끓기 시작할 때까지 기다린다", "육수가 팔팔 끓으면 라면사리를 넣고 면이 익을 때까지 약 3분간 더 끓인다", "국물이 너무 졸아들면 물을 소량 보충하며 간을 맞춘다"]'::jsonb, '누구나 실패 없이 만들 수 있는 국물 요리의 기준 레시피입니다', '2인분', 850, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '부대찌개 (변주: 철수 전 냉장고 털이)', '캠핑 마지막 날, 남은 쌈채소와 자투리 채소를 모두 넣어 만드는 실속 메뉴입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "남은 햄/고기", "amount": "200g"}, {"name": "남은 쌈채소", "amount": "1줌"}, {"name": "고추장", "amount": "1큰술"}, {"name": "라면", "amount": "1봉지"}]'::jsonb, '["냄비에 라면 물을 평소보다 100ml 더 붓고 고추장을 풀어 끓인다", "물이 끓으면 남은 고기나 햄, 라면 스프를 먼저 넣는다", "라면 면발과 함께 냉장고에 남은 깻잎, 상추, 양파 등을 모두 넣고 끓인다", "채소의 숨이 죽고 면이 익으면 즉시 불을 끄고 마무리한다"]'::jsonb, '부대찌개 기본에서 잔반 활용을 극대화한 변주 레시피입니다', '2인분', 780, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치찌개 (기본)', '한국인의 소울푸드이자 캠핑 둘째 날 아침 메뉴로 가장 인기 있는 찌개입니다.', NULL, '["#국물", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 25, 1, 10, '[]'::jsonb, '[{"name": "익은 김치", "amount": "1/4포기"}, {"name": "돼지고기 목살", "amount": "200g"}, {"name": "두부", "amount": "1/2모"}, {"name": "대파", "amount": "1/2대"}]'::jsonb, '["냄비에 식용유를 약간 두르고 돼지고기를 넣어 겉면이 하얗게 익을 때까지 볶는다", "김치를 넣고 고기 기름에 김치가 나른해질 때까지 3분간 더 볶는다", "물을 붓고 강불에서 끓이다가 끓어오르면 약불로 줄여 10분간 푹 끓인다", "두부와 대파를 넣고 2분간 더 끓여 마무리한다"]'::jsonb, '오래 끓일수록 깊은 맛이 나는 캠핑 국물 요리의 기본입니다', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치찌개 (변주: 10분 초간단 참치찌개)', '고기가 없거나 시간이 없을 때 통조림 참치를 활용해 빠르게 만드는 변주 레시피입니다.', NULL, '["#간단", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "김치", "amount": "1공기"}, {"name": "참치 통조림", "amount": "1캔"}, {"name": "청양고추", "amount": "1개"}]'::jsonb, '["냄비에 참치 캔의 기름만 먼저 붓고 김치를 넣어 2분간 볶는다", "물을 붓고 참치 살코기와 송송 썬 청양고추를 모두 넣는다", "센 불에서 5분간 팔팔 끓여 국물이 김치에 배어들게 한다", "부족한 간은 참치액젓이나 소금으로 살짝 조절한다"]'::jsonb, '김치찌개 기본에서 재료를 통조림으로 대체해 시간을 단축한 변주입니다', '2인분', 400, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치찌개 (변주: 캠핑장 꽁치 김치찜 스타일)', '비 오는 날 소주 안주로 제격인 꽁치 통조림을 활용한 묵직한 변주 레시피입니다.', NULL, '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "묵은지", "amount": "1/4포기"}, {"name": "꽁치 통조림", "amount": "1캔"}, {"name": "고춧가루", "amount": "1큰술"}, {"name": "설탕", "amount": "0.5큰술"}]'::jsonb, '["냄비 바닥에 묵은지를 넓게 깔고 그 위에 꽁치를 올린다", "통조림 국물을 절반 정도 붓고 고춧가루와 설탕을 뿌려 비린내를 잡는다", "중불에서 국물이 자작해질 때까지 20분간 뭉근하게 졸인다", "김치가 부드럽게 찢어질 때까지 익혀 꽁치 살과 함께 먹는다"]'::jsonb, '김치찌개 기본에서 조리 시간을 늘려 찜 형태로 변형한 변주입니다', '2인분', 580, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감바스 알 아히요 (기본)', '맥주나 와인 안주로 훌륭하며 조리 과정이 매우 간단한 인기 메뉴입니다.', NULL, '["#간단", "#와인", "#안주", "#맥주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "자숙새우", "amount": "15마리"}, {"name": "올리브유", "amount": "1컵"}, {"name": "마늘", "amount": "15알"}, {"name": "페페론치노", "amount": "5개"}]'::jsonb, '["팬에 올리브유를 붓고 편으로 썬 마늘과 페페론치노를 넣는다", "약불에서 마늘이 노릇해지고 향이 기름에 밸 때까지 천천히 끓인다", "새우를 넣고 색이 변할 때까지 약 3분간 더 익힌다", "마지막에 소금과 후추로 간을 하고 바게트 빵을 곁들인다"]'::jsonb, '올리브유 향을 살리기 위해 약불에서 조리하는 것이 핵심인 기본 레시피입니다', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '감바스 알 아히요 (변주: 명란 감바스)', '짭조름한 명란의 감칠맛이 더해져 빵과 곁들였을 때 최고의 궁합을 자랑합니다.', NULL, '["#저녁", "#안주", "#혼밥", "#파티", "#야식", "#아침"]'::jsonb, '{}'::jsonb, 2, 15, 1, 10, '[]'::jsonb, '[{"name": "감바스 재료", "amount": "1세트"}, {"name": "명란젓", "amount": "1줄"}]'::jsonb, '["기본 감바스 조리법과 동일하게 마늘 기름을 먼저 낸다", "명란젓은 껍질을 제거하고 알만 발라내어 준비한다", "새우가 익을 무렵 명란을 넣고 기름에 골고루 퍼지도록 섞어준다", "명란 자체가 짜므로 소금 간은 생략하거나 아주 조금만 한다"]'::jsonb, '감바스 기본에 명란의 감칠맛을 더한 고급 안주 변주입니다', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '삼겹살 구이 (기본)', '캠핑의 첫날 저녁, 가장 클래식하고 실패 없는 메인 메뉴입니다. 화로대나 그리들 어디든 적합합니다.', NULL, '["#바비큐", "#저녁", "#구이", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 2, 30, 1, 10, '[]'::jsonb, '[{"name": "통삼겹살", "amount": "600g"}, {"name": "허브솔트", "amount": "1큰술"}, {"name": "마늘", "amount": "10알"}, {"name": "양파", "amount": "1개"}]'::jsonb, '["삼겹살은 굽기 20분 전에 미리 상온에 꺼내어 냉기를 빼고 허브솔트로 밑간을 한다", "그리들이나 팬을 강불로 예열하여 연기가 살짝 올라올 때 고기를 올린다", "고기 겉면이 황금색으로 변하면 중불로 줄이고 양파와 마늘을 기름이 나오는 곳에 배치한다", "고기를 먹기 좋은 크기로 자른 뒤, 속까지 완전히 익도록 2~3분간 더 뒤집어가며 굽는다"]'::jsonb, '캠핑 바비큐의 기준이 되는 기본 레시피입니다', '2인분', 1200, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '삼겹살 구이 (변주: 아이 동반 간장 양념)', '매운 것을 못 먹는 아이들을 위해 달콤 짭짤한 간장 소스를 덧발라 굽는 변주 레시피입니다.', NULL, '["#저녁", "#구이", "#추운날", "#혼밥", "#파티", "#아이들"]'::jsonb, '{}'::jsonb, 2, 35, 1, 10, '[]'::jsonb, '[{"name": "삼겹살", "amount": "600g"}, {"name": "진간장", "amount": "3큰술"}, {"name": "올리고당", "amount": "2큰술"}, {"name": "다진마늘", "amount": "0.5큰술"}]'::jsonb, '["분량의 간장, 올리고당, 다진마늘을 섞어 양념장을 미리 준비한다", "팬에 삼겹살을 먼저 80% 정도 익을 때까지 중불에서 앞뒤로 굽는다", "키친타월로 과도한 기름을 살짝 닦아낸 뒤 준비한 양념장을 붓는다", "양념이 타지 않도록 약불로 줄이고 고기에 소스가 꾸덕하게 배어들 때까지 졸이며 굽는다"]'::jsonb, '삼겹살 구이 기본 레시피에서 양념 공정을 추가한 어린이 맞춤형 변주입니다', '2인분', 1350, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치찌개 (기본)', '버너 1구와 코펠만 있으면 가능한 캠핑 대표 국물요리. 고기와 김치만으로 깊은 맛을 낸다.', 'https://example.com/kimchi-stew-base.jpg', '["#국물", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#비오는날"]'::jsonb, '{}'::jsonb, 2, 25, 1, 10, '[]'::jsonb, '[{"name": "김치", "amount": "200g"}, {"name": "돼지고기", "amount": "150g"}, {"name": "두부", "amount": "1/2모"}, {"name": "고춧가루", "amount": "1큰술"}]'::jsonb, '["고기를 볶아 기름을 낸다", "김치를 넣고 함께 볶는다", "물을 붓고 끓인 뒤 두부를 넣는다"]'::jsonb, '기본 레시피. 이후 변주 레시피의 기준이 되는 김치찌개.', '2인분', 520, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치찌개 (변주: 통조림 참치)', '아이스박스 없이도 가능한 김치찌개 변주. 통조림 참치로 간편하게 만든다.', 'https://example.com/kimchi-stew-tuna.jpg', '["#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "김치", "amount": "200g"}, {"name": "참치 통조림", "amount": "1캔"}, {"name": "두부", "amount": "1/2모"}]'::jsonb, '["김치를 볶는다", "참치를 넣고 물을 붓는다", "두부를 넣고 한소끔 끓인다"]'::jsonb, '김치찌개 기본 레시피의 고기 대체 변주.', '2인분', 430, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '김치찌개 (변주: 10분 초간단)', '밤늦은 캠핑이나 철수 전 빠르게 완성하는 김치찌개.', 'https://example.com/kimchi-stew-quick.jpg', '["#간단", "#저녁", "#점심", "#추운날", "#혼밥", "#파티", "#아침", "#비오는날"]'::jsonb, '{}'::jsonb, 1, 10, 1, 10, '[]'::jsonb, '[{"name": "김치", "amount": "200g"}, {"name": "햄", "amount": "100g"}]'::jsonb, '["김치와 햄을 바로 끓인다", "간을 맞추고 완성한다"]'::jsonb, '김치찌개 기본 레시피의 시간 단축 변주.', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '원팟 소시지 볶음밥 (기본)', '설거지를 최소화한 원팟 캠핑 볶음밥. 남은 재료 활용에 적합하다.', 'https://example.com/sausage-rice-base.jpg', '["#점심", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "밥", "amount": "2공기"}, {"name": "소시지", "amount": "2개"}, {"name": "양파", "amount": "1/2개"}]'::jsonb, '["재료를 한 팬에 볶는다", "밥을 넣고 함께 볶는다"]'::jsonb, '원팟 볶음밥의 기준 레시피.', '2인분', 600, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '원팟 소시지 볶음밥 (변주: 아이용 순한맛)', '양념을 줄여 아이와 함께 먹기 좋은 볶음밥.', 'https://example.com/sausage-rice-kids.jpg', '["#점심", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 1, 15, 1, 10, '[]'::jsonb, '[{"name": "밥", "amount": "2공기"}, {"name": "소시지", "amount": "2개"}]'::jsonb, '["소시지를 볶는다", "밥을 넣고 약불로 볶는다"]'::jsonb, '원팟 소시지 볶음밥 기본 레시피의 아이 동반 변주.', '2인분', 560, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '원팟 소시지 볶음밥 (변주: 매운 캠핑버전)', '캠핑 밤에 어울리는 매콤한 볶음밥.', 'https://example.com/sausage-rice-spicy.jpg', '["#저녁", "#점심", "#추운날", "#매콤한", "#혼밥", "#파티", "#야식", "#아침", "#아이들"]'::jsonb, '{}'::jsonb, 2, 15, 1, 10, '[]'::jsonb, '[{"name": "밥", "amount": "2공기"}, {"name": "소시지", "amount": "2개"}, {"name": "고추장", "amount": "1큰술"}]'::jsonb, '["소시지를 볶는다", "고추장과 밥을 넣고 볶는다"]'::jsonb, '원팟 소시지 볶음밥 기본 레시피의 성인 취향 변주.', '2인분', 650, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '호일 감자구이 (기본)', '화로에서 천천히 익혀 먹는 캠핑 간식.', 'https://example.com/foil-potato-base.jpg', '["#구이", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 1, 30, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "3개"}, {"name": "버터", "amount": "20g"}]'::jsonb, '["감자를 호일에 싼다", "화로에 올려 굽는다"]'::jsonb, '화로 간식의 기준 레시피.', '2인분', 400, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '호일 감자구이 (변주: 치즈 추가)', '아이와 어른 모두 좋아하는 치즈 감자.', 'https://example.com/foil-potato-cheese.jpg', '["#저녁", "#구이", "#혼밥", "#파티", "#야식"]'::jsonb, '{}'::jsonb, 1, 30, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "3개"}, {"name": "치즈", "amount": "50g"}]'::jsonb, '["감자를 구운다", "마지막에 치즈를 얹는다"]'::jsonb, '호일 감자구이 기본 레시피의 재료 확장 변주.', '2인분', 480, '', '', true);
+INSERT INTO "public"."recommendation_pool" 
+("category", "title", "description", "image_url", "tags", "metadata", "difficulty", "time_required", "min_participants", "max_participants", "materials", "ingredients", "process_steps", "tips", "servings", "calories", "age_group", "location_type", "is_active")
+VALUES
+('cooking', '호일 감자구이 (변주: 마늘버터)', '향을 더한 성인 취향 감자구이.', 'https://example.com/foil-potato-garlic.jpg', '["#구이", "#저녁", "#혼밥", "#파티"]'::jsonb, '{}'::jsonb, 1, 30, 1, 10, '[]'::jsonb, '[{"name": "감자", "amount": "3개"}, {"name": "마늘", "amount": "2쪽"}, {"name": "버터", "amount": "20g"}]'::jsonb, '["감자를 굽는다", "마늘버터를 얹어 마무리한다"]'::jsonb, '호일 감자구이 기본 레시피의 풍미 강화 변주.', '2인분', 450, '', '', true);

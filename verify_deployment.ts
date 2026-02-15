@@ -13,8 +13,11 @@ async function verify() {
             }
         });
         console.log("Status:", res.status);
-        const text = await res.text();
-        console.log("Body:", text);
+        const data = await res.json();
+        console.log("Response:", JSON.stringify(data, null, 2));
+
+        const fs = require('fs');
+        fs.writeFileSync('deployment_debug.json', JSON.stringify(data, null, 2), 'utf8');
     } catch (e) {
         console.error("Error invoking function:", e);
     }
