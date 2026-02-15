@@ -119,7 +119,7 @@ export const missionService = {
         // 2. Fetch Mission Reward Info
         const { data: mission } = await supabase
             .from('missions')
-            .select('reward_xp, reward_point, community_post_id')
+            .select('title, reward_xp, reward_point, community_post_id')
             .eq('id', missionId)
             .single();
 
@@ -160,6 +160,24 @@ export const missionService = {
                 } catch (e) {
                     console.error("Auto comment failed", e);
                 }
+            }
+
+            // 5. Auto-Create Personal Record (Story Post) - PRIVATE
+            try {
+                const { data: profile } = await supabase.from('profiles').select('nickname').eq('id', userId).single();
+
+                await communityService.createPost({
+                    type: 'STORY',
+                    title: `[미션 성공] ${mission.title || '미션'}`,
+                    content: content || "미션 인증을 완료했습니다!",
+                    author: profile?.nickname || '나',
+                    images: imageUrl ? [imageUrl] : [],
+                    visibility: 'PRIVATE', // Explicitly set to PRIVATE as requested
+                    status: 'OPEN'
+                });
+            } catch (e) {
+                console.error("Auto post creation failed", e);
+                // Don't fail the whole transaction just because auto-post failed
             }
         }
 

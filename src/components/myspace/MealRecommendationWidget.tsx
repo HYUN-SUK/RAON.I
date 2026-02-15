@@ -67,9 +67,9 @@ export default function MealRecommendationWidget({
                     >
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-bold text-gray-800">{meal.title}</h4>
+                                <h4 className="font-bold text-gray-900 leading-tight">{meal.title}</h4>
                             </div>
-                            <p className="text-sm text-gray-500 line-clamp-1 mb-2">
+                            <p className="text-sm text-gray-700 line-clamp-2 mb-2 leading-relaxed">
                                 {meal.description}
                             </p>
                             <div className="flex flex-wrap gap-1">

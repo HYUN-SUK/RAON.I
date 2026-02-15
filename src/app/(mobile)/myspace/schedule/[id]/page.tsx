@@ -151,7 +151,7 @@ export default function ScheduleDetailPage() {
 
         const mappedRecs = finalRecs.map((r: any) => ({
             id: r.id,
-            name: r.title,
+            title: r.title,
             description: r.description || '',
             tags: r.tags || [],
             difficulty: r.difficulty || 1,

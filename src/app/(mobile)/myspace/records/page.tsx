@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Edit, Search, PlusCircle, Sparkles, Loader2, Grid, Calendar, List } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { communityService } from '@/services/communityService';
@@ -18,8 +18,10 @@ type TabType = 'posts' | 'records';
 export default function MyRecordsPage() {
     const router = useRouter();
 
-    // Tab State
-    const [activeTab, setActiveTab] = useState<TabType>('posts');
+    // Tab State - URL Param Support
+    const searchParams = useSearchParams();
+    const initialTab = searchParams.get('tab') as TabType;
+    const [activeTab, setActiveTab] = useState<TabType>(initialTab === 'records' ? 'records' : 'posts');
 
     // Posts State
     const [posts, setPosts] = useState<Post[]>([]);

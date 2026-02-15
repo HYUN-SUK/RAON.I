@@ -238,6 +238,25 @@ export default function PlanLockPage() {
                             selectedMode={selectedMode}
                             onSelect={handleModeSelect}
                         />
+
+                        {/* My Wishlist Card */}
+                        <div className="mt-6">
+                            <button
+                                onClick={() => router.push('/myspace/wishlist')}
+                                className="w-full bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all active:scale-[0.98]"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-brand-1/10 flex items-center justify-center text-brand-1">
+                                        <Heart className="w-5 h-5 fill-brand-1/20" />
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="font-bold text-gray-900">나의 위시리스트</h3>
+                                        <p className="text-xs text-gray-500">찜해둔 캠핑장을 확인해보세요</p>
+                                    </div>
+                                </div>
+                                <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
+                            </button>
+                        </div>
                     </div>
                 )}
 
