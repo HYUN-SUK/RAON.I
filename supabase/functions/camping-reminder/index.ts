@@ -350,7 +350,7 @@ serve(async (req) => {
                     event_type: 'schedule_reminder',
                     title: `🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?`,
                     body: `📍 ${s.campground_name}\n${weatherLine}\n설레는 발걸음, 안전하게 다녀오세요!`,
-                    data: { route: `/myspace/schedule/${s.id}` },
+                    data: { link: `/myspace/schedule/${s.id}` },
                     is_read: false
                 });
                 updateIdsD0.push(s.id);
@@ -373,7 +373,7 @@ serve(async (req) => {
                     event_type: 'schedule_reminder',
                     title: `🍳 내일 뭐 먹을지 고민되시나요?`,
                     body: `날씨에 딱 맞는 메뉴를 골라봤어요!\n\n${menuText}`,
-                    data: { route: `/myspace/schedule/${s.id}` },
+                    data: { link: `/myspace/schedule/${s.id}` },
                     is_read: false
                 });
                 updateIdsD1.push(s.id);
@@ -393,7 +393,7 @@ serve(async (req) => {
                     event_type: 'schedule_reminder',
                     title: `🎒 캠핑이 4일 남았어요!`,
                     body: `📍 ${s.campground_name}\n${weatherLine}\n💡 ${tip}\n빠트린 물건이 없는지 체크리스트를 확인해보세요!`,
-                    data: { route: `/myspace/schedule/${s.id}?tab=checklist` },
+                    data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
                     is_read: false
                 });
                 updateIdsD4.push(s.id);

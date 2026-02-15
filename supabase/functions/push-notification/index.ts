@@ -137,8 +137,8 @@ serve(async (req) => {
                         body: body,
                     },
                     data: {
+                        link: data.link || "https://raon-i.vercel.app/notifications",
                         ...data,
-                        link: "https://raon-i.vercel.app/notifications",
                     },
                     // webpush & android click_action REMOVED
                     // to force Service Worker to handle the click event
