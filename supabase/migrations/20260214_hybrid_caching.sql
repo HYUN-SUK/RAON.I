@@ -36,20 +36,24 @@ ALTER TABLE public.nearby_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.weather_cache ENABLE ROW LEVEL SECURITY;
 
 -- Policies for Nearby Cache
+DROP POLICY IF EXISTS "Public read nearby cache" ON public.nearby_cache;
 CREATE POLICY "Public read nearby cache"
 ON public.nearby_cache FOR SELECT
 USING (true);
 
+DROP POLICY IF EXISTS "Service role insert/update nearby cache" ON public.nearby_cache;
 CREATE POLICY "Service role insert/update nearby cache"
 ON public.nearby_cache FOR ALL
 USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
 
 -- Policies for Weather Cache
+DROP POLICY IF EXISTS "Public read weather cache" ON public.weather_cache;
 CREATE POLICY "Public read weather cache"
 ON public.weather_cache FOR SELECT
 USING (true);
 
+DROP POLICY IF EXISTS "Service role insert/update weather cache" ON public.weather_cache;
 CREATE POLICY "Service role insert/update weather cache"
 ON public.weather_cache FOR ALL
 USING (auth.role() = 'service_role')

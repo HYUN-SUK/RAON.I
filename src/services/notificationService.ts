@@ -114,8 +114,9 @@ export class NotificationService {
                 return { success: false, message: error.message };
             }
 
-            // 2. Edge Function 직접 호출 (DB Webhook 누락 방지용 명시적 호출)
-            // 배포 환경에서 Webhook이 작동하지 않는 경우가 있어 코드 레벨에서 직접 호출합니다.
+            // 2. Edge Function 직접 호출 제거 (DB Trigger와 중복 발생 방지)
+            // if (funcError) { ... }
+            /* 
             const { error: funcError } = await this.supabase.functions.invoke('push-notification', {
                 body: {
                     record: insertedData,
@@ -127,8 +128,8 @@ export class NotificationService {
 
             if (funcError) {
                 console.warn('[NotificationService] Edge Function invoke warning:', funcError);
-                // 펑션 호출 실패가 DB Insert 실패는 아니므로 success: true 반환
             }
+            */
 
             return { success: true };
         } catch (err) {
