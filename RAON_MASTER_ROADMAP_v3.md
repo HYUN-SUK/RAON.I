@@ -536,7 +536,7 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
     *   [x] **Map**: `MyMapList` (지도) 연동 완료.
     *   [x] **Review**: `ReviewBoard` 탭 분리 (RaonAI vs Camper) 구현 완료.
 *   [ ] **찜 기능**: 캠핑장 찜하기
-*   [x] **준비 알림**: D-4(장비), D-1(메뉴), D-0(행사) 알림 구현 완료 (Edge Function V2)
+*   [x] **준비 알림**: D-4(장비), D-1(메뉴), D-0(행사) 알림 구현 및 고도화 완료 (Edge Function V2) ✅ (2026-02-17)
 
 ### Phase 12.4: 복합 편집 (~31시간)
 *   [x] **뷰 스위처 (View Switcher)**: `1분 기록` 탭에서 리스트/그리드/캘린더 뷰 전환 UI 구현 완료.
