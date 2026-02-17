@@ -5,11 +5,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 // ==========================================
 // CONFIG
 // ==========================================
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('RAON_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const KMA_KEY = Deno.env.get('KMA_SERVICE_KEY') || '';
-// Tour Key is not strictly needed if we reuse check-in logic, but good to have.
 const TOUR_KEY = Deno.env.get('TOUR_API_KEY') || '';
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const corsHeaders = {
@@ -18,144 +21,130 @@ const corsHeaders = {
 };
 
 // ==========================================
-// STATIC RULE-BASED MEAL RECOMMENDATION
-// (Copied from src/lib/meal-recommendation.ts for Deno compatibility)
+// DB-BASED SCORING MEAL RECOMMENDATION
 // ==========================================
-interface MealRecommendation {
+interface Recipe {
     id: string;
     title: string;
     description: string;
-    reason: string;
     tags: string[];
+    servings: string;
+    metadata: any;
+    _score?: number;
 }
 
-function getMealRecommendation(
-    weather: { temp: number; weatherCode: string },
+async function getScoredMenuRecommendations(
+    userId: string,
+    weather: { tempMin: number; tempMax: number; isRainy: boolean; weatherLabel: string },
     memberCount: number,
-    withKids: boolean = false
-): MealRecommendation[] {
-    const recommendations: MealRecommendation[] = [];
+    count: number = 2
+): Promise<Recipe[]> {
+    try {
+        const { data: pool, error } = await supabase
+            .from('recommendation_pool')
+            .select('id, title, description, tags, servings, metadata')
+            .eq('category', 'cooking');
 
-    // 1. Weather Based Rules
-    if (weather.weatherCode === 'rainy') {
-        recommendations.push({
-            id: 'rain-1',
-            title: '부대찌개',
-            description: '소세지와 햄을 듬뿍 넣은 얼큰한 국물',
-            reason: '비 오는 날, 텐트 안에서 듣는 빗소리와 따뜻한 국물은 낭만 그 자체죠.',
-            tags: ['국물', '따뜻함', '소주한잔']
+        if (error || !pool || pool.length === 0) return [];
+
+        const isCold = weather.tempMin < 10;
+        const isHot = weather.tempMax > 28;
+        const isRainy = weather.isRainy;
+
+        const month = new Date().getMonth() + 1;
+
+        const scored = pool.map(item => {
+            let score = 0;
+            const tags = item.tags || [];
+
+            if (isRainy && tags.includes('#비오는날')) score += 50;
+            if (isCold && (tags.includes('#추운날') || tags.includes('#겨울') || tags.includes('#국물'))) score += 40;
+            if (isHot && (tags.includes('#더운날') || tags.includes('#여름') || tags.includes('#시원한'))) score += 40;
+
+            if (memberCount >= 4 && (tags.includes('#파티') || tags.includes('#대용량'))) score += 30;
+            if (memberCount <= 2 && (tags.includes('#혼밥') || tags.includes('#커플'))) score += 30;
+
+            if (tags.includes('#저녁')) score += 10;
+
+            score += Math.random() * 10;
+            return { ...item, _score: score };
         });
-        recommendations.push({
-            id: 'rain-2',
-            title: '해물파전 & 막걸리',
-            description: '바삭한 파전과 시원한 막걸리 한 잔',
-            reason: '타닥타닥 빗소리가 부침개 굽는 소리와 닮았대요.',
-            tags: ['별미', '전', '감성']
-        });
-    } else if (weather.weatherCode === 'snowy' || weather.temp < 5) {
-        recommendations.push({
-            id: 'winter-1',
-            title: '어묵탕',
-            description: '김이 모락모락 나는 꼬치 어묵',
-            reason: '추운 날 호호 불어가며 먹는 어묵 국물만큼 따뜻한 게 없죠.',
-            tags: ['국물', '겨울', '따뜻함']
-        });
-        recommendations.push({
-            id: 'winter-2',
-            title: '군고구마 & 코코아',
-            description: '난로 위에서 구운 달콤한 고구마',
-            reason: '겨울 캠핑의 하이라이트는 역시 난로 간식이죠.',
-            tags: ['간식', '겨울', '달콤함']
-        });
-    } else if (weather.temp > 28) {
-        recommendations.push({
-            id: 'summer-1',
-            title: '냉모밀',
-            description: '살얼음 동동 띄운 시원한 육수',
-            reason: '더위에 지친 입맛을 살려줄 시원한 한 끼가 필요해요.',
-            tags: ['시원함', '여름', '점심']
-        });
-        recommendations.push({
-            id: 'summer-2',
-            title: '수박 화채',
-            description: '달콤한 수박과 탄산수의 만남',
-            reason: '여름 캠핑의 무더위를 한방에 날려버릴 디저트!',
-            tags: ['디저트', '시원함', '여름']
-        });
-    } else {
-        // Normal Weather (Sunny/Cloudy)
-        recommendations.push({
-            id: 'normal-1',
-            title: '바베큐 (삼겹살/목살)',
-            description: '숯불 향 가득한 캠핑의 정석',
-            reason: '캠핑의 꽃은 역시 숯불에 구워 먹는 고기죠!',
-            tags: ['고기', '저녁', '필수']
-        });
-        recommendations.push({
-            id: 'normal-2',
-            title: '닭꼬치 구이',
-            description: '숯불 위에서 돌려가며 익혀먹는 재미',
-            reason: '맥주 한 캔 들고 불멍하며 하나씩 빼먹는 맛이 일품이에요.',
-            tags: ['안주', '저녁', '간편']
-        });
+
+        return scored
+            .sort((a, b) => (b._score || 0) - (a._score || 0))
+            .slice(0, count);
+
+    } catch (err) {
+        console.error("[Menu Scoring] Error:", err);
+        return [];
     }
-
-    // 2. Kid Friendly (Top Priority if kids)
-    if (withKids) {
-        recommendations.unshift({
-            id: 'kids-1',
-            title: '소떡소떡',
-            description: '휴게소보다 더 맛있는 엄마표 간식',
-            reason: '아이들이 엄지 척! 들어올릴 인기 만점 간식이에요.',
-            tags: ['간식', '아이들', '쉬운요리']
-        });
-        recommendations.unshift({
-            id: 'kids-2',
-            title: '카레라이스',
-            description: '야채를 듬뿍 넣은 영양 만점 카레',
-            reason: '신나게 뛰어놀고 밥 한 그릇 뚝딱! 아이들이 정말 좋아해요.',
-            tags: ['밥', '아이들', '든든함']
-        });
-    }
-
-    // 3. Group Size
-    if (memberCount >= 6) {
-        recommendations.push({
-            id: 'group-1',
-            title: '닭볶음탕',
-            description: '큰 냄비에 끓여 다 같이 나눠먹는 맛',
-            reason: '여럿이 둘러앉아 먹기에 이만한 메뉴가 없죠.',
-            tags: ['단체', '메인요리', '칼칼함']
-        });
-    } else if (memberCount <= 2 && !withKids) {
-        recommendations.push({
-            id: 'couple-1',
-            title: '감바스 알 아히요',
-            description: '마늘 향 가득한 오일과 바게트',
-            reason: '와인 한 잔 곁들이며 분위기 내기 딱 좋은 메뉴예요.',
-            tags: ['안주', '커플', '분위기']
-        });
-    }
-
-    // Default Fallback
-    if (recommendations.length < 3) {
-        recommendations.push({
-            id: 'default-1',
-            title: '라면',
-            description: '밖에서 먹으면 10배 더 맛있는 라면',
-            reason: '설명이 필요 없는 캠핑 요리의 진리.',
-            tags: ['간단', '국물', '야식']
-        });
-    }
-
-    return recommendations.slice(0, 3);
 }
 
 // ==========================================
-// WEATHER & HELPER FUNCTIONS
+// TOURISM API / EVENT DISCOVERY
+// ==========================================
+async function getNearbyEvents(lat: number, lng: number, radiusKm: number = 30): Promise<any[]> {
+    if (!TOUR_KEY) return [];
+
+    try {
+        const today = new Date();
+        const kstDate = new Date(today.getTime() + 9 * 3600000);
+        const todayStr = kstDate.toISOString().split('T')[0].replace(/-/g, '');
+
+        const { data: cacheHit } = await supabase
+            .from('nearby_cache')
+            .select('data')
+            .eq('region_code', 'ALL')
+            .eq('base_date', todayStr)
+            .single();
+
+        let allEvents: any[] = [];
+        if (cacheHit?.data && Array.isArray(cacheHit.data)) {
+            allEvents = cacheHit.data;
+        } else {
+            const apiUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${TOUR_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=1000&arrange=A&eventStartDate=${todayStr}`;
+            const res = await fetch(apiUrl);
+            const json = await res.json();
+            const items = json?.response?.body?.items?.item;
+            const itemList = Array.isArray(items) ? items : (items ? [items] : []);
+
+            allEvents = itemList.map((item: any) => ({
+                title: item.title,
+                addr: item.addr1,
+                lat: parseFloat(item.mapy),
+                lng: parseFloat(item.mapx)
+            }));
+
+            supabase.from('nearby_cache').upsert({ region_code: 'ALL', base_date: todayStr, data: allEvents }).then();
+        }
+
+        return allEvents.map(e => {
+            const dist = calculateDistance(lat, lng, e.lat, e.lng);
+            return { ...e, dist };
+        }).filter(e => e.dist <= radiusKm)
+            .sort((a, b) => a.dist - b.dist);
+
+    } catch (err) {
+        console.error("[Events] Error:", err);
+        return [];
+    }
+}
+
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+// ==========================================
+// WEATHER HELPERS
 // ==========================================
 function dfs_xy_conv(code: string, v1: number, v2: number) {
-    // ... (Existing KMA Grid Logic)
     const RE = 6371.00877, GRID = 5.0, SLAT1 = 30.0, SLAT2 = 60.0;
     const OLON = 126.0, OLAT = 38.0, XO = 43, YO = 136;
     const DEGRAD = Math.PI / 180.0;
@@ -200,15 +189,6 @@ const EMOJI_MAP: Record<string, string> = {
     '맑음': '☀️', '구름많음': '⛅', '흐림': '☁️',
     '비': '🌧️', '비/눈': '🌨️', '눈': '❄️', '소나기': '🌦️'
 };
-
-function mockForecast(dateStr: string): DayForecast {
-    const d = new Date(dateStr + 'T00:00:00+09:00');
-    return {
-        date: dateStr, dayOfWeek: DAY_NAMES[d.getDay()],
-        weatherLabel: '정보없음', weatherEmoji: '🌤',
-        tempMin: 0, tempMax: 0, pop: 0, isRainy: false
-    };
-}
 
 async function getMultiDayForecast(lat: number, lng: number, dates: string[]): Promise<DayForecast[]> {
     if (!KMA_KEY) return dates.map(d => mockForecast(d));
@@ -260,14 +240,13 @@ async function getMultiDayForecast(lat: number, lng: number, dates: string[]): P
                 if (cat === 'SKY' && t >= '1200' && t <= '1500') skyAfternoon = val;
                 if (cat === 'PTY' && val !== '0') ptyAny = val;
             }
-            if (tmn === 999) tmn = tmx > -999 ? tmx - 8 : 10;
-            if (tmx === -999) tmx = tmn < 999 ? tmn + 8 : 20;
+            if (tmn === 999) tmn = 15;
+            if (tmx === -999) tmx = 25;
 
             const weatherLabel = ptyAny !== '0' ? (PTY_MAP[ptyAny] || '비') : (SKY_MAP[skyAfternoon] || '맑음');
-            const d = new Date(dateStr + 'T00:00:00+09:00');
             return {
                 date: dateStr,
-                dayOfWeek: DAY_NAMES[d.getDay()],
+                dayOfWeek: DAY_NAMES[new Date(dateStr).getDay()],
                 weatherLabel,
                 weatherEmoji: EMOJI_MAP[weatherLabel] || '🌤',
                 tempMin: Math.round(tmn),
@@ -282,139 +261,127 @@ async function getMultiDayForecast(lat: number, lng: number, dates: string[]): P
     }
 }
 
-function formatWeatherEmotional(forecasts: DayForecast[]): string {
-    const f = forecasts[0];
-    if (!f) return '';
-    return `${f.weatherEmoji} ${f.tempMin}°/${f.tempMax}° ${f.isRainy ? '(우산 챙기세요!)' : '(맑음)'}`;
+function mockForecast(dateStr: string): DayForecast {
+    return {
+        date: dateStr, dayOfWeek: '', weatherLabel: '맑음', weatherEmoji: '☀️',
+        tempMin: 10, tempMax: 20, pop: 0, isRainy: false
+    };
 }
 
 // ==========================================
-// MAIN
+// SERVE
 // ==========================================
 serve(async (req) => {
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders });
-    }
+    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
-        console.log("[Camping Reminder] Starting...");
+        console.log("[Camping Reminder] Starting execution...");
         const now = new Date();
         const kst = new Date(now.getTime() + 9 * 3600000);
         const today = kst.toISOString().split('T')[0];
+
         const tomorrowDate = new Date(kst); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
         const tomorrow = tomorrowDate.toISOString().split('T')[0];
+
         const d4Date = new Date(kst); d4Date.setDate(d4Date.getDate() + 4);
         const d4 = d4Date.toISOString().split('T')[0];
 
         const { data: schedules, error } = await supabase
             .from('user_schedules')
-            .select('*') // Select all for simplicity
-            .in('status', ['scheduled'])
+            .select('*')
             .in('check_in', [today, tomorrow, d4]);
 
         if (error) throw error;
-        console.log(`[Query] Found ${schedules?.length || 0} matching schedules`);
+        console.log(`[Query] Found ${schedules?.length || 0} schedules`);
 
         const notifications: any[] = [];
-        const updateIdsD0: string[] = [];
-        const updateIdsD1: string[] = [];
-        const updateIdsD4: string[] = [];
+        const updateIds: Record<string, string[]> = { d0: [], d1: [], d4: [] };
 
         for (const s of schedules || []) {
             const lat = s.campground_lat || 37.5665;
             const lng = s.campground_lng || 126.9780;
+            const dates = [s.check_in];
+            const forecasts = await getMultiDayForecast(lat, lng, dates);
+            const f = forecasts[0];
+            const weatherLine = `${f.weatherEmoji} ${f.tempMin}°/${f.tempMax}° ${f.weatherLabel}`;
 
-            // Calc Trip Dates
-            const dates: string[] = [];
-            let cur = new Date(s.check_in + 'T00:00:00+09:00');
-            const end = new Date((s.check_out || s.check_in) + 'T00:00:00+09:00');
-            console.log("Trip Range:", s.check_in, s.check_out);
-            // Safety
-            if (cur > end) { dates.push(s.check_in); }
-            else {
-                while (cur <= end) {
-                    dates.push(cur.toISOString().split('T')[0]);
-                    cur.setDate(cur.getDate() + 1);
+            // D-0: Today is the day! (Added Event Discovery)
+            if (s.check_in === today && !s.notification_d0_sent) {
+                const events = await getNearbyEvents(lat, lng, 30);
+                let eventText = "주변에 예정된 행사가 없어요~ 조용한 캠핑을 즐겨보세요!";
+                if (events.length > 0) {
+                    eventText = `근처에서 행사가 열리고 있어요!\n` +
+                        events.slice(0, 2).map(e => `🎈 ${e.title} (${e.dist}km)`).join('\n');
+                }
+
+                notifications.push({
+                    user_id: s.user_id,
+                    category: 'reservation',
+                    event_type: 'upcoming_stay_today',
+                    title: `🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?`,
+                    body: `📍 ${s.campground_name}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
+                    data: { link: `/myspace/schedule/${s.id}` },
+                    status: 'processing'
+                });
+                updateIds.d0.push(s.id);
+            }
+            // D-1: Meal Recommendations (Enhanced with DB Scoring)
+            else if (s.check_in === tomorrow && !s.notification_d1_sent) {
+                const meals = await getScoredMenuRecommendations(s.user_id, f, s.member_count || 2);
+                const menuText = meals.length > 0
+                    ? meals.map(m => `🍽️ ${m.title}`).join(', ')
+                    : "캠핑장에서 즐기기 좋은 맛있는 요리";
+
+                notifications.push({
+                    user_id: s.user_id,
+                    category: 'reservation',
+                    event_type: 'upcoming_stay_d1',
+                    title: `🍳 내일 뭐 먹을지 고민되시나요?`,
+                    body: `날씨에 딱 맞는 메뉴를 골라봤어요!\n\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
+                    data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
+                    status: 'processing'
+                });
+                updateIds.d1.push(s.id);
+            }
+            // D-4: Gear Check (Weather-based Tips)
+            else if (s.check_in === d4 && !s.notification_d4_sent) {
+                let tip = '평범한 날씨네요! 가볍게 떠나보세요.';
+                if (f.isRainy) tip = '비 소식이 있어요 ☔ 우비와 타프 꼭 챙기세요!';
+                else if (f.tempMin < 10) tip = '밤에는 쌀쌀해요 🧣 따뜻한 침낭과 핫팩 잊지 마세요.';
+
+                notifications.push({
+                    user_id: s.user_id,
+                    category: 'reservation',
+                    event_type: 'upcoming_stay_d1',
+                    title: `🎒 캠핑이 4일 남았어요!`,
+                    body: `📍 ${s.campground_name}\n${weatherLine}\n💡 ${tip}\n\n빠트린 물건이 없는지 체크리스트를 확인해보세요!`,
+                    data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
+                    status: 'processing'
+                });
+                updateIds.d4.push(s.id);
+            }
+        }
+
+        // Finalize
+        if (notifications.length > 0) {
+            const { data: inserted } = await supabase.from('notifications').insert(notifications).select();
+            if (inserted) {
+                const projectRef = SUPABASE_URL.match(/https:\/\/([^.]+)\./)?.[1];
+                for (const record of inserted) {
+                    fetch(`https://${projectRef}.supabase.co/functions/v1/push-notification`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+                        body: JSON.stringify({ record })
+                    }).catch(console.error);
                 }
             }
-
-            const forecasts = await getMultiDayForecast(lat, lng, dates);
-            const weatherLine = formatWeatherEmotional(forecasts);
-            const memberCount = s.member_count || 4; // Default
-
-            // D-0: Today is the day!
-            if (s.check_in === today && !s.notification_d0_sent) {
-                notifications.push({
-                    user_id: s.user_id,
-                    category: 'schedule',
-                    event_type: 'schedule_reminder',
-                    title: `🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?`,
-                    body: `📍 ${s.campground_name}\n${weatherLine}\n설레는 발걸음, 안전하게 다녀오세요!`,
-                    data: { link: `/myspace/schedule/${s.id}` },
-                    is_read: false
-                });
-                updateIdsD0.push(s.id);
-            }
-            // D-1: Meal Recommendations
-            else if (s.check_in === tomorrow && !s.notification_d1_sent) {
-                // Determine weather simple code for logic
-                let wCode = 'sunny';
-                if (forecasts[0]?.isRainy) wCode = 'rainy';
-                else if (forecasts[0]?.tempMin < 5) wCode = 'snowy'; // cold
-
-                const weatherContext = { temp: forecasts[0]?.tempMax || 20, weatherCode: wCode };
-                const meals = getMealRecommendation(weatherContext, memberCount, false); // Assuming no kids info in schedule yet, default false
-
-                const menuText = meals.map(m => `🍽️ ${m.title}: ${m.reason}`).join('\n');
-
-                notifications.push({
-                    user_id: s.user_id,
-                    category: 'schedule',
-                    event_type: 'schedule_reminder',
-                    title: `🍳 내일 뭐 먹을지 고민되시나요?`,
-                    body: `날씨에 딱 맞는 메뉴를 골라봤어요!\n\n${menuText}`,
-                    data: { link: `/myspace/schedule/${s.id}` },
-                    is_read: false
-                });
-                updateIdsD1.push(s.id);
-            }
-            // D-4: Gear Check
-            else if (s.check_in === d4 && !s.notification_d4_sent) {
-                const hasRain = forecasts.some(f => f.isRainy);
-                const hasCold = forecasts.some(f => f.tempMin < 10);
-
-                let tip = '평범한 날씨네요! 가볍게 떠나보세요.';
-                if (hasRain) tip = '비 소식이 있어요 ☔ 우비와 타프 꼭 챙기세요!';
-                else if (hasCold) tip = '밤에는 쌀쌀해요 🧣 따뜻한 침낭과 핫팩 잊지 마세요.';
-
-                notifications.push({
-                    user_id: s.user_id,
-                    category: 'schedule',
-                    event_type: 'schedule_reminder',
-                    title: `🎒 캠핑이 4일 남았어요!`,
-                    body: `📍 ${s.campground_name}\n${weatherLine}\n💡 ${tip}\n빠트린 물건이 없는지 체크리스트를 확인해보세요!`,
-                    data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
-                    is_read: false
-                });
-                updateIdsD4.push(s.id);
-            }
         }
 
-        // Batch Insert
-        if (notifications.length > 0) {
-            const { error: insertError } = await supabase.from('notifications').insert(notifications);
-            if (insertError) throw insertError;
+        if (updateIds.d0.length > 0) await supabase.from('user_schedules').update({ notification_d0_sent: true }).in('id', updateIds.d0);
+        if (updateIds.d1.length > 0) await supabase.from('user_schedules').update({ notification_d1_sent: true }).in('id', updateIds.d1);
+        if (updateIds.d4.length > 0) await supabase.from('user_schedules').update({ notification_d4_sent: true }).in('id', updateIds.d4);
 
-            if (updateIdsD0.length > 0) await supabase.from('user_schedules').update({ notification_d0_sent: true }).in('id', updateIdsD0);
-            if (updateIdsD1.length > 0) await supabase.from('user_schedules').update({ notification_d1_sent: true }).in('id', updateIdsD1);
-            if (updateIdsD4.length > 0) await supabase.from('user_schedules').update({ notification_d4_sent: true }).in('id', updateIdsD4);
-        }
-
-        return new Response(JSON.stringify({
-            success: true,
-            count: notifications.length,
-            debug: { today, tomorrow, d4 }
-        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ success: true, count: notifications.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     } catch (err: any) {
         console.error("Critical Error:", err);

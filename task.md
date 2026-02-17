@@ -432,6 +432,11 @@
 
 ---
 
+## 🩹 Phase 7.1: Hotfixes (2026-02-16)
+- [x] **Push Notification Reliability**: Fixed silent failure by bypassing DB Trigger.
+  - [x] **Logic**: `camping-reminder` directly calls `push-notification`.
+  - [x] **Cleanup**: Removed unreliable `trigger_push_notification`.
+
 ## 🏕️ 캠핑 아지트 구현 (2026-02-02~) 🔄
 
 ### Phase 1: 모드/토글/Plan Lock (~16시간) ✅
