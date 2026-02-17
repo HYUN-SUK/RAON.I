@@ -765,7 +765,7 @@ export const useReservationStore = create<ReservationState>()(
                         siteName,
                         checkIn: targetReservation.checkInDate.toLocaleDateString(),
                         checkOut: targetReservation.checkOutDate.toLocaleDateString(),
-                        reason: cancelReason || '관리자 취소'
+                        reason: cancelReason || (status === 'CONFIRMED' ? '입금 확인' : '관리자 취소')
                     };
 
                     // A. 예약 확정 (CONFIRMED)
