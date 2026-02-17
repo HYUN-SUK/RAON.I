@@ -79,6 +79,7 @@ export default function RecipeDetailSheet({ isOpen, onClose, initialData, recipe
                 // Map DB response to RecipeData if needed
                 setData({
                     ...recipe,
+                    steps: recipe.process_steps || recipe.steps,
                     // Ensure compatibility mapping if DB fields differ
                 });
             } else {
