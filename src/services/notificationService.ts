@@ -104,7 +104,8 @@ export class NotificationService {
                     body,
                     data,
                     quiet_hours_override: config.quiet_hours_override,
-                    status: 'queued',
+                    // 'processing'으로 설정하여 DB Trigger(handle_new_notification)가 실행되지 않도록 함 (직접 호출 사용)
+                    status: 'processing',
                 })
                 .select()
                 .single();
@@ -114,9 +115,7 @@ export class NotificationService {
                 return { success: false, message: error.message };
             }
 
-            // 2. Edge Function 직접 호출 제거 (DB Trigger와 중복 발생 방지)
-            // if (funcError) { ... }
-            /* 
+            // 2. Edge Function 직접 호출 (DB Trigger 실패 대비 복구)
             const { error: funcError } = await this.supabase.functions.invoke('push-notification', {
                 body: {
                     record: insertedData,
@@ -129,7 +128,6 @@ export class NotificationService {
             if (funcError) {
                 console.warn('[NotificationService] Edge Function invoke warning:', funcError);
             }
-            */
 
             return { success: true };
         } catch (err) {
