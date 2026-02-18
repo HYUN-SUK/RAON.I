@@ -18,6 +18,13 @@ import {
 export class NotificationService {
     private supabase = createClient();
 
+    /**
+     * 서버 사이드에서 Admin 권한(Service Role)으로 발송하기 위한 메서드
+     */
+    setAdminClient(adminClient: any) {
+        this.supabase = adminClient;
+    }
+
     // ========================================
     // 조용시간 체크 (22:00 ~ 08:00 KST)
     // ========================================

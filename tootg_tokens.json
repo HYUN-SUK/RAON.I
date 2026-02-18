@@ -1,0 +1,18 @@
+[
+  {
+    "token": "cMc1VSgydY5v23rthMu54l:APA91bG4TWb-OaS5TZynCECCqNyHPhSc-fm5PfxHhEVtgxrrh6OEXnnSe67aHS_8P64Ls0XyT6O_ArJffOJFRhw9fvcwP3hkOLbt1CnU2gJ5TNXfOc13-LE",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "device_type": "web",
+    "is_active": true,
+    "created_at": "2026-01-16T12:47:07.596731+00:00",
+    "last_updated_at": "2026-02-17T05:34:12.46+00:00"
+  },
+  {
+    "token": "eJ7xrSsxtf3HclphqVMfJP:APA91bEOY1fk9lezZk9jF13GSAg1k73JyBaAqESaOZ6sIi-LBvZq0Fb5PeaBsDs7QItHYHRMaav_9hpXEYv7RAtB-9RiRR4o50QQ0WBTCzpMOINEFbpEnlI",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "device_type": "web",
+    "is_active": false,
+    "created_at": "2026-01-18T07:25:43.862336+00:00",
+    "last_updated_at": "2026-01-18T07:25:43.727+00:00"
+  }
+]

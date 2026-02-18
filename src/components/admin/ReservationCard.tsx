@@ -26,10 +26,18 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
 
     const handleConfirmClick = async () => {
         if (confirmStep === 'CONFIRMING') {
-            updateReservationStatus(reservation.id, 'CONFIRMED');
-            // Award XP and Points
-            addXp(100);
-            addToken(100);
+            const { updateReservationStatusAction } = await import('@/actions/reservation');
+            const result = await updateReservationStatusAction(reservation.id, 'CONFIRMED');
+
+            if (result.success) {
+                toast.success('예약이 확정되었습니다');
+                // Award XP and Points (Optional: move to server if needed)
+                addXp(100);
+                addToken(100);
+            } else {
+                toast.error(result.error || '확정 처리 실패');
+            }
+
             setConfirmStep('IDLE');
         } else {
             setConfirmStep('CONFIRMING');
@@ -39,7 +47,15 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
 
     const handleCancelClick = async () => {
         if (confirmStep === 'CANCELLING') {
-            updateReservationStatus(reservation.id, 'CANCELLED');
+            const { updateReservationStatusAction } = await import('@/actions/reservation');
+            const result = await updateReservationStatusAction(reservation.id, 'CANCELLED');
+
+            if (result.success) {
+                toast.success('예약이 취소되었습니다');
+            } else {
+                toast.error(result.error || '취소 처리 실패');
+            }
+
             setConfirmStep('IDLE');
         } else {
             setConfirmStep('CANCELLING');

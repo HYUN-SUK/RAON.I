@@ -770,21 +770,28 @@ export const useReservationStore = create<ReservationState>()(
 
                     // A. 예약 확정 (CONFIRMED)
                     if (status === 'CONFIRMED') {
+                        // Server Action (updateReservationStatusAction)에서 이미 발송하므로 
+                        // 중복 발송 방지를 위해 클라이언트측 발송은 비활성화합니다.
+                        /*
                         notificationService.dispatchNotification(
                             NotificationEventType.RESERVATION_CONFIRMED,
                             targetReservation.userId,
                             payload,
                             id
                         ).catch(err => console.error('[Store] Reservation Confirmed Notification Failed:', err));
+                        */
                     }
                     // B. 예약 취소 (CANCELLED)
                     else if (status === 'CANCELLED') {
+                        // Server Action에서 처리하므로 비활성화
+                        /*
                         notificationService.dispatchNotification(
                             NotificationEventType.RESERVATION_CANCELLED,
                             targetReservation.userId,
                             payload,
                             id
                         ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
+                        */
 
                         // 빈자리 알림 발송 (Server Action 호출)
                         const checkInDateStr = targetReservation.checkInDate.toISOString().split('T')[0];

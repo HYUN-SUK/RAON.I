@@ -1,0 +1,72 @@
+[
+  {
+    "id": "96c0bb9d-6c64-4791-b7ac-50e67c4e857b",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "category": "reservation",
+    "title": "예약 신청 완료",
+    "body": "입금이 확인되면 예약이 최종 확정됩니다.\n\n▶ 입금 대기 중\n입금 계좌: 국민은행 458701-04-539380\n예금주: 정현석\n입금 금액: 70,000원\n입금 기한: 2월 17일 오후 08:34 까지\n* 기한 내 미입금 시 자동 취소됩니다.\n\n일정: 2026. 2. 22. - 2026. 2. 23.\n사이트: 영희네",
+    "link": null,
+    "status": "processing",
+    "error_message": null,
+    "event_type": "reservation_submitted",
+    "quiet_hours_override": true,
+    "data": {
+      "checkIn": "2026. 2. 22.",
+      "bankName": "국민은행",
+      "checkOut": "2026. 2. 23.",
+      "deadline": "2월 17일 오후 08:34",
+      "siteName": "영희네",
+      "bankHolder": "정현석",
+      "totalPrice": "70,000",
+      "bankAccount": "458701-04-539380"
+    },
+    "sent_at": null,
+    "read_at": null,
+    "is_read": false,
+    "created_at": "2026-02-17T05:34:05.979533+00:00"
+  },
+  {
+    "id": "682c648a-a497-4e61-9531-1d85f128454d",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "category": "reservation",
+    "title": "예약 확정",
+    "body": "예약이 확정되었습니다.\n\n▶ 이용 안내\n입실 시간: 14:00\n퇴실 시간: 12:00\n매너 타임: 22:00 ~ 07:00 (조용히 부탁드려요)\n\n일정: 2026. 2. 22. - 2026. 2. 23.\n사이트: 영희네",
+    "link": null,
+    "status": "processing",
+    "error_message": null,
+    "event_type": "reservation_confirmed",
+    "quiet_hours_override": true,
+    "data": {
+      "reason": "입금 확인",
+      "checkIn": "2026. 2. 22.",
+      "checkOut": "2026. 2. 23.",
+      "siteName": "영희네"
+    },
+    "sent_at": null,
+    "read_at": null,
+    "is_read": false,
+    "created_at": "2026-02-17T05:37:11.298834+00:00"
+  },
+  {
+    "id": "2d3200b7-a275-441a-9217-d2163d4171ae",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "category": "reservation",
+    "title": "예약 취소",
+    "body": "예약이 취소되었습니다.\n\n취소 사유: 시설 보수 및 안전 점검\n\n일정: 2026. 2. 22. - 2026. 2. 23.\n사이트: 철수네",
+    "link": null,
+    "status": "processing",
+    "error_message": null,
+    "event_type": "reservation_cancelled",
+    "quiet_hours_override": true,
+    "data": {
+      "reason": "시설 보수 및 안전 점검",
+      "checkIn": "2026. 2. 22.",
+      "checkOut": "2026. 2. 23.",
+      "siteName": "철수네"
+    },
+    "sent_at": null,
+    "read_at": null,
+    "is_read": false,
+    "created_at": "2026-02-17T05:37:55.56011+00:00"
+  }
+]

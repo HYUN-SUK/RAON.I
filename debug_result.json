@@ -1,0 +1,46 @@
+{
+  "success": true,
+  "count": 2,
+  "pushResults": [
+    {
+      "id": "a710a6f4-1293-40d6-8137-c14618d6a027",
+      "status": 200,
+      "body": "{\"success\":true,\"results\":[{\"token\":\"cDec8Lzak2vzdmNLpAHFM5:APA91bHQPfYnacy9ssT8ccyfJvAXeygMRuh54pfnF2lI12UhIQw1DlL7u7Bl4UZ2nig_sa7hsKoEwIQn0elu9Hznb6RwkCp4xxRAGctlmR-fBLYQLdVH3uA\",\"status\":200,\"body\":{\"name\":\"projects/raon-i-push/messages/ab9c08c3-b00f-4195-99c8-70dc1fa8cfb5\"}},{\"token\":\"chhTm3aD8xuPsJAwMlZoEO:APA91bGOFjoOLOaiXSqEamJEVMMdIWBu0T2hnexb4HD79kN7shFYBPcawYstLcycUYypSCjr55gHyEnRfHnD3rNnM_m2SCafff2l0smlFC92v_OmcS8pMkM\",\"status\":200,\"body\":{\"name\":\"projects/raon-i-push/messages/9d033cf9-18f3-4a9a-aa1e-e74b554c5aa9\"}}],\"cleaned\":0}"
+    },
+    {
+      "id": "2424ce92-f7a1-4f5b-a447-8490dd979a10",
+      "status": 200,
+      "body": "{\"success\":true,\"results\":[{\"token\":\"eJ7xrSsxtf3HclphqVMfJP:APA91bEOY1fk9lezZk9jF13GSAg1k73JyBaAqESaOZ6sIi-LBvZq0Fb5PeaBsDs7QItHYHRMaav_9hpXEYv7RAtB-9RiRR4o50QQ0WBTCzpMOINEFbpEnlI\",\"status\":200,\"body\":{\"name\":\"projects/raon-i-push/messages/45ca9321-4626-48e8-8a31-8c4c47c2f322\"}},{\"token\":\"cMc1VSgydY5v23rthMu54l:APA91bG4TWb-OaS5TZynCECCqNyHPhSc-fm5PfxHhEVtgxrrh6OEXnnSe67aHS_8P64Ls0XyT6O_ArJffOJFRhw9fvcwP3hkOLbt1CnU2gJ5TNXfOc13-LE\",\"status\":200,\"body\":{\"name\":\"projects/raon-i-push/messages/2c42751c-53b5-42b2-8f0c-df5ebb60cf31\"}}],\"cleaned\":0}"
+    }
+  ],
+  "debug": {
+    "key_hint": "...1inHI",
+    "url_hint": "https://khqiqwtoyvesxahsjukk.supabase.co",
+    "today": "2026-02-17",
+    "tomorrow": "2026-02-18",
+    "d4": "2026-02-21",
+    "schedules_found": [
+      {
+        "id": "94097cce-e6dd-4e9f-b209-da44647b986d",
+        "check_in": "2026-02-17",
+        "status": "scheduled",
+        "d0": true,
+        "d1": true
+      },
+      {
+        "id": "d9039580-e95d-4a6a-b3dc-b4f2385393e9",
+        "check_in": "2026-02-17",
+        "status": "scheduled",
+        "d0": false,
+        "d1": false
+      },
+      {
+        "id": "d0a41c95-2866-47e7-a5ab-8c6783a54777",
+        "check_in": "2026-02-18",
+        "status": "scheduled",
+        "d0": false,
+        "d1": false
+      }
+    ]
+  }
+}

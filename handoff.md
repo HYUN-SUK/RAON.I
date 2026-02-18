@@ -1,35 +1,34 @@
 # RAON.I Session Handoff (2026-02-17)
 
 ## 🎯 Summary of Work Completed
-This session focused on upgrading the **Camping Reminder Notifications** and fixing UI/UX issues in the **Recipe Detail** view.
+This session focused on upgrading the **Camping Reminder Notifications**, fixing UI/UX issues in the **Recipe Detail** view, and designing the **Smart Camping Plan Suggestion** (Guided Journey) feature.
 
-1.  **Camping Reminder Logic Upgrade (D-0, D-1, D-4)**
-    - **D-4 (Gear Check)**: Integrated real-time weather data for the campsite to provide tailored tips (e.g., rain gear, warm sleeping bags).
-    - **D-1 (Menu Recommendation)**: Implemented a DB-driven scoring system that recommends meals from the `recommendation_pool` based on weather conditions, participant count, and personal tags.
-    - **D-0 (Check-in Day)**: Added nearby event/festival discovery using the Tourism API (TourAPI), with a hybrid caching strategy.
-    - **Content Merge**: All new features were added to the existing notification templates to preserve the "warm and helpful" tone of the app.
+1.  **Smart Camping Plan Suggestion (Design Complete V5)** 🌟
+    - **Concept**: A "Digital Planner" within the Schedule Detail page.
+    - **Logic (Phase 1)**: "Circular Curated Pool" (3-5 sets of Top-3 recommendations) to minimize decision fatigue.
+    - **AI Integration (Phase 2)**: Gemini 1.5 Flash (Free Tier) for concise, real-time personalized summaries (3-5 lines).
+    - **Scopes**: En-route restaurants (Kakao Map), Tourist spots (TourAPI), Weather-based menus, and Regional festivals.
+    - **Persistence**: Editable itinerary structure for fine-tuning by the user.
 
-2.  **Recipe Detail Fix**
-    - Resolved an issue where cooking steps were missing in the `RecipeDetailSheet`.
-    - Fixed the mapping between the database column `process_steps` and the UI state field `steps`.
-    - Verified consistent display across both the home recommendation grid and the schedule detail widget.
+2.  **Camping Reminder Logic Upgrade (D-0, D-1, D-4)**
+    - **D-4 (Gear Check)**: Weather-tailored gear tips.
+    - **D-1 (Menu Recommendation)**: DB-driven scoring (`recommendation_pool`).
+    - **D-0 (Check-in Day)**: Nearby event discovery with hybrid caching.
 
-3.  **System Stability**
-    - Performed a full production build (`npm run build`) which passed successfully.
-    - Cleaned up debug scripts and verified Git status.
+3.  **Recipe Detail Fix**
+    - Resolved missing cooking steps in `RecipeDetailSheet` by fixing `process_steps` mapping.
 
 ## ⚙️ Technical Decisions
-- **Hybrid Event Caching**: To avoid excessive API calls to the Tourism API, nationwide event data is fetched once a day, cached in the `nearby_cache` table, and then filtered by distance in-memory for each user.
-- **Additive Content Policy**: Instead of replacing old notification text, new data snippets are injected into the existing template structure to maintain UX continuity.
+- **Curated Selection**: Limiting the total pool to 15 items per category to ensure quality and circular refresh logic.
+- **AI-Post Processing**: Using AI as a narrator for data already scored by our internal logic, ensuring both emotion and accuracy.
 
 ## 🚀 Next Session Action Items
-1.  **Deploy Edge Function**: Run `npx supabase functions deploy camping-reminder` to apply the new logic to the production environment.
-2.  **Push Changes**: Run `git push` to synchronize the committed changes with the remote repository.
-3.  **End-to-End Verification**:
-    - Trigger a test notification for D-4, D-1, and D-0 to confirm the final content format on actual mobile devices.
-    - Double-check the 30km radius filtering for events in low-density areas.
+1.  **Implement Smart Plan Phase 1**:
+    - Build `smartPlan.ts` with scoring and circular logic.
+    - Create `SmartPlanProposal.tsx` UI component.
+2.  **Deploy Edge Function**: `npx supabase functions deploy camping-reminder`.
+3.  **End-to-End Verification**: Test the new Guided Journey UI flow.
 
 ## ⚠️ Notes & Caveats
-- **Service Role Key**: The Edge Function requires `RAON_SERVICE_ROLE_KEY` to be set in Supabase Secrets for database access.
-- **Tour API Key**: Ensure the `TOUR_API_KEY` is valid and has sufficient quota.
-- **Database Schema**: The `recommendation_pool` table must have correct tags (e.g., `#비오는날`, `#국물`, `#파티`) for the D-1 scoring logic to work effectively.
+- **Gemini API Key**: Requires `GOOGLE_GENERATIVE_AI_API_KEY` for Phase 2.
+- **Tour API Quota**: Monitor usage as we add "Tourist Spots" to the search.

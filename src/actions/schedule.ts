@@ -471,7 +471,7 @@ export async function ensureScheduleFromReservation(reservationId: string): Prom
         .single();
 
     if (existing) {
-        return { success: true, scheduleId: existing.id };
+        return { success: true, scheduleId: (existing as any).id };
     }
 
     // 2. 예약 정보 조회
@@ -507,6 +507,63 @@ export async function ensureScheduleFromReservation(reservationId: string): Prom
 
     if (createError) {
         console.error('Auto-create schedule error:', createError);
+        return { success: false, error: createError.message };
+    }
+
+    revalidatePath('/myspace/schedule');
+    return { success: true, scheduleId: newScheduleId };
+}
+
+/**
+ * [Admin] 예약 ID로 일정 강제 생성/동기화
+ */
+export async function ensureScheduleFromReservationAdmin(reservationId: string, userId: string): Promise<{ success: boolean; scheduleId?: string; error?: string }> {
+    const { createAdminClient } = await import('@/lib/supabase-admin');
+    const supabase = createAdminClient();
+
+    // 1. 이미 존재하는지 확인
+    const { data: existing } = await supabase
+        .from('user_schedules')
+        .select('id')
+        .eq('reservation_id', reservationId)
+        .eq('user_id', userId)
+        .single();
+
+    if (existing) {
+        return { success: true, scheduleId: (existing as any).id };
+    }
+
+    // 2. 예약 정보 조회
+    const { data: reservation, error: resError } = await (supabase
+        .from('reservations') as any)
+        .select('*')
+        .eq('id', reservationId)
+        .eq('user_id', userId)
+        .single();
+
+    if (resError || !reservation) {
+        return { success: false, error: '예약 정보를 찾을 수 없습니다' };
+    }
+
+    // 3. 일정 생성
+    const siteName = SITES.find(s => s.id === (reservation as any).site_id)?.name || (reservation as any).site_id;
+
+    const { data: newScheduleId, error: createError } = await supabase.rpc('upsert_schedule', {
+        p_user_id: userId,
+        p_source: 'raonai',
+        p_campground_name: siteName,
+        p_campground_address: null,
+        p_campground_lat: null,
+        p_campground_lng: null,
+        p_check_in: (reservation as any).check_in_date,
+        p_check_out: (reservation as any).check_out_date,
+        p_memo: null,
+        p_campground_id: null,
+        p_reservation_id: reservationId,
+    } as any);
+
+    if (createError) {
+        console.error('[Admin] Auto-create schedule error:', createError);
         return { success: false, error: createError.message };
     }
 
