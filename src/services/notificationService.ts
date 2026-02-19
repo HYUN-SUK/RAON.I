@@ -122,7 +122,9 @@ export class NotificationService {
                 return { success: false, message: error.message };
             }
 
-            // 2. Edge Function 직접 호출 (DB Trigger 실패 대비 복구)
+            // 2. Edge Function 직접 호출 (DB Trigger 실패 대비 복구) -> 중복 발송 원인으로 주석 처리
+            // DB Webhook Trigger가 정상 작동하므로 수동 호출은 제거합니다.
+            /*
             const { error: funcError } = await this.supabase.functions.invoke('push-notification', {
                 body: {
                     record: insertedData,
@@ -135,6 +137,7 @@ export class NotificationService {
             if (funcError) {
                 console.warn('[NotificationService] Edge Function invoke warning:', funcError);
             }
+            */
 
             return { success: true };
         } catch (err) {
