@@ -321,7 +321,7 @@ serve(async (req) => {
                     title: `🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?`,
                     body: `📍 ${s.campground_name}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
                     data: { link: `/myspace/schedule/${s.id}` },
-                    status: 'processing'
+                    status: 'queued'
                 });
                 updateIds.d0.push(s.id);
             }
@@ -339,7 +339,7 @@ serve(async (req) => {
                     title: `🍳 내일 뭐 먹을지 고민되시나요?`,
                     body: `날씨에 딱 맞는 메뉴를 골라봤어요!\n\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
                     data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
-                    status: 'processing'
+                    status: 'queued'
                 });
                 updateIds.d1.push(s.id);
             }
@@ -352,11 +352,11 @@ serve(async (req) => {
                 notifications.push({
                     user_id: s.user_id,
                     category: 'reservation',
-                    event_type: 'upcoming_stay_d1',
+                    event_type: 'upcoming_stay_d4', // Fixed type
                     title: `🎒 캠핑이 4일 남았어요!`,
                     body: `📍 ${s.campground_name}\n${weatherLine}\n💡 ${tip}\n\n빠트린 물건이 없는지 체크리스트를 확인해보세요!`,
                     data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
-                    status: 'processing'
+                    status: 'queued' // Fixed status
                 });
                 updateIds.d4.push(s.id);
             }
@@ -364,16 +364,13 @@ serve(async (req) => {
 
         // Finalize
         if (notifications.length > 0) {
-            const { data: inserted } = await supabase.from('notifications').insert(notifications).select();
-            if (inserted) {
-                const projectRef = SUPABASE_URL.match(/https:\/\/([^.]+)\./)?.[1];
-                for (const record of inserted) {
-                    fetch(`https://${projectRef}.supabase.co/functions/v1/push-notification`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
-                        body: JSON.stringify({ record })
-                    }).catch(console.error);
-                }
+            // DB Trigger가 있으므로 insert만 하면 됨
+            const { data: inserted, error: insertError } = await supabase.from('notifications').insert(notifications).select();
+
+            if (insertError) {
+                console.error("Failed to insert notifications:", insertError);
+            } else {
+                console.log(`Successfully queued ${notifications.length} notifications.`);
             }
         }
 

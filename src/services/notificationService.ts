@@ -111,8 +111,8 @@ export class NotificationService {
                     body,
                     data,
                     quiet_hours_override: config.quiet_hours_override,
-                    // 'processing'으로 설정하여 DB Trigger(handle_new_notification)가 실행되지 않도록 함 (직접 호출 사용)
-                    status: 'processing',
+                    // 'queued'로 설정하여 DB Trigger(handle_new_notification)가 실행되도록 함
+                    status: 'queued',
                 })
                 .select()
                 .single();

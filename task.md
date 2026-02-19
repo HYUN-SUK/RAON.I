@@ -451,6 +451,23 @@
 - [x] **빌드 검증**: npm run build 통과
 - [x] **라이브 검증**: 브라우저 테스트 완료
 
+### Phase 12.5: 프라이빗 커뮤니티 (~16시간)
+*   [ ] **캠핑 노트 방식**: 실시간 채팅 대신 게시판형
+*   [ ] **그룹 타입 확장**
+
+### Phase 13: Notification System Reorganization (DB-Centric) [x]
+- [x] Analyze current notification issues & Manual alignment report [x]
+- [x] Restore DB Trigger (`20260219_restore_push_trigger.sql`) [x]
+- [x] Update `NotificationEventType` with `UPCOMING_STAY_D4` [x]
+- [x] Standardize `NotificationService` default status to `'queued'` [x]
+- [x] Normalize `camping-reminder` Edge Function (Remove direct fetch) [x]
+- [x] Verify End-to-End flow via simulation script [x]
+- [x] Update documentation (`walkthrough.md`, `implementation_plan_notification.md`) [x]
+Cancelled
+    - [x] D-4, D-1, D-Day Reminders
+    - [x] Admin actions
+- [ ] **Verification**: Live test of the reorganized system.
+
 ### Phase 2: 캠핑장 DB 구축 (~8시간) 🔄
 - [x] **고캠핑 API 연동**: `lib/gocamping-api.ts`
   - [x] API 타입 정의 (GoCampingResponse, GoCampingItem)

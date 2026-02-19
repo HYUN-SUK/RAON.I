@@ -14,6 +14,7 @@ export enum NotificationEventType {
     RESERVATION_CHANGED = 'reservation_changed',
     DEPOSIT_CONFIRMED = 'deposit_confirmed',
     UPCOMING_STAY_D1 = 'upcoming_stay_d1',
+    UPCOMING_STAY_D4 = 'upcoming_stay_d4',
     UPCOMING_STAY_TODAY = 'upcoming_stay_today',
 
     // 빈자리 알림 (사용자 명시적 요청, 푸시 허용)
@@ -174,6 +175,15 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         badge_target: 'reservation',
         title_template: '오늘 캠핑 날이에요!',
         body_template: '{{siteName}}에서 즐거운 시간 보내세요. 입실 시간은 {{checkInTime}}입니다.',
+    },
+    [NotificationEventType.UPCOMING_STAY_D4]: {
+        type: NotificationEventType.UPCOMING_STAY_D4,
+        requires_push: true,
+        quiet_hours_override: true,
+        fallback_badge: true,
+        badge_target: 'reservation',
+        title_template: '캠핑이 4일 남았어요!',
+        body_template: '{{siteName}} 여행 준비는 잘 되어가시나요? 체크리스트를 확인해보세요.',
     },
 
     // ===== 빈자리 알림 (사용자 요청, 푸시 O) =====
