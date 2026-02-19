@@ -24,21 +24,28 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
     const site = SITES.find(s => s.id === reservation.siteId);
     const [confirmStep, setConfirmStep] = useState<'IDLE' | 'CONFIRMING' | 'CANCELLING'>('IDLE');
 
+    const [isProcessing, setIsProcessing] = useState(false);
+
     const handleConfirmClick = async () => {
         if (confirmStep === 'CONFIRMING') {
-            const { updateReservationStatusAction } = await import('@/actions/reservation');
-            const result = await updateReservationStatusAction(reservation.id, 'CONFIRMED');
+            if (isProcessing) return;
+            setIsProcessing(true);
 
-            if (result.success) {
+            try {
+                // Use store action to update both DB and local state
+                await updateReservationStatus(reservation.id, 'CONFIRMED');
+
                 toast.success('예약이 확정되었습니다');
                 // Award XP and Points (Optional: move to server if needed)
                 addXp(100);
                 addToken(100);
-            } else {
-                toast.error(result.error || '확정 처리 실패');
+            } catch (e) {
+                console.error(e);
+                toast.error('오류가 발생했습니다');
+            } finally {
+                setIsProcessing(false);
+                setConfirmStep('IDLE');
             }
-
-            setConfirmStep('IDLE');
         } else {
             setConfirmStep('CONFIRMING');
             setTimeout(() => setConfirmStep('IDLE'), 3000); // Reset after 3s
@@ -165,13 +172,16 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                 {reservation.status === 'PENDING' && (
                     <button
                         onClick={handleConfirmClick}
+                        disabled={isProcessing}
                         className={`flex items-center space-x-1 px-3 py-2 rounded text-sm font-medium transition-colors ${confirmStep === 'CONFIRMING'
                             ? 'bg-green-600 hover:bg-green-700 text-white'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
-                            }`}
+                            } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        <CheckCircle size={16} />
-                        <span>{confirmStep === 'CONFIRMING' ? '정말 확정할까요?' : '입금 확인'}</span>
+                        {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                        <span>
+                            {isProcessing ? '처리중...' : (confirmStep === 'CONFIRMING' ? '정말 확정할까요?' : '입금 확인')}
+                        </span>
                     </button>
                 )}
                 {reservation.status === 'REFUND_PENDING' && (
