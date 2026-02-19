@@ -716,27 +716,21 @@ export const useReservationStore = create<ReservationState>()(
 
             // 예약 상태 변경 (DB + 로컬 동기화)
             updateReservationStatus: async (id, status, cancelReason) => {
-                // CONFIRMED 상태 변경은 Server Action을 통해 처리 (알림/일정 동기화 보장)
-                if (status === 'CONFIRMED') {
+                // CONFIRMED 또는 CANCELLED 상태 변경은 Server Action을 통해 처리 (알림/일정 동기화 보장)
+                if (status === 'CONFIRMED' || status === 'CANCELLED') {
                     const { updateReservationStatusAction } = await import('@/actions/reservation');
-                    const result = await updateReservationStatusAction(id, status);
+                    const result = await updateReservationStatusAction(id, status, cancelReason);
 
                     if (!result.success) {
-                        console.error('Failed to confirm reservation via Server Action:', result.error);
-                        throw new Error(result.error || '확정 처리 실패');
+                        console.error(`Failed to update reservation to ${status} via Server Action:`, result.error);
+                        throw new Error(result.error || `${status} 처리 실패`);
                     }
                 } else {
-                    // 그 외 상태(취소 등)는 기존 로직 유지 (또는 추후 Server Action으로 통합 가능)
+                    // 그 외 상태는 기존 로직 유지
                     const { createClient } = await import('@/lib/supabase-client');
                     const supabase = createClient();
 
-                    // DB 업데이트 (취소 사유가 있으면 함께 업데이트)
                     const updateData: any = { status, updated_at: new Date().toISOString() };
-                    if (status === 'CANCELLED' && cancelReason) {
-                        updateData.cancel_reason = cancelReason;
-                        updateData.cancelled_at = new Date().toISOString();
-                    }
-
                     const { error } = await supabase
                         .from('reservations')
                         .update(updateData)
@@ -745,20 +739,6 @@ export const useReservationStore = create<ReservationState>()(
                     if (error) {
                         console.error('Failed to update reservation status:', error);
                         return;
-                    }
-
-                    // A. 예약 취소 (CANCELLED) - 빈자리 알림 등 후속 처리
-                    if (status === 'CANCELLED') {
-                        // 로컬 스토어에서 찾고, 없으면 DB에서 직접 조회
-                        let targetReservation = get().reservations.find(r => r.id === id);
-                        // ... (Code omitted for brevity, logic remains similar for CANCELLED side effects if needed locally)
-                        if (targetReservation) {
-                            const checkInDateStr = targetReservation.checkInDate.toISOString().split('T')[0];
-                            import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
-                                notifyWaitlistUsers(checkInDateStr, targetReservation.siteId)
-                                    .catch(err => console.error('[Store] Waitlist Notify Failed:', err));
-                            });
-                        }
                     }
                 }
 

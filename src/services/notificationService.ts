@@ -16,7 +16,16 @@ import {
 // 알림 서비스 클래스
 // ========================================
 export class NotificationService {
-    private supabase = createClient();
+    private supabase: any;
+
+    constructor() {
+        try {
+            this.supabase = createClient();
+        } catch (e) {
+            // Node environment or missing env vars
+            console.warn('[NotificationService] Default client initialization failed (expected in non-browser env)');
+        }
+    }
 
     /**
      * 서버 사이드에서 Admin 권한(Service Role)으로 발송하기 위한 메서드
@@ -67,7 +76,23 @@ export class NotificationService {
             return { success: true, method: 'badge', message: 'Quiet hours - badge fallback' };
         }
 
-        // 3. 푸시 발송 시도
+        // 3. 중복 알림 체크 (Idempotency)
+        if (relatedId) {
+            const { data: existing } = await this.supabase
+                .from('notifications')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('event_type', eventType)
+                .eq('related_id', relatedId)
+                .maybeSingle();
+
+            if (existing) {
+                console.log(`[NotificationService] Duplicate notification blocked: ${eventType} for ${relatedId}`);
+                return { success: true, method: 'none', message: 'Duplicate notification blocked' };
+            }
+        }
+
+        // 4. 푸시 발송 시도
         // userId가 UUID 형식이 아닌 경우(게스트) 푸시 발송 스킵
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (!uuidRegex.test(userId)) {
@@ -75,9 +100,9 @@ export class NotificationService {
             return { success: false, method: 'none', message: 'Guest user (No UUID)' };
         }
 
-        const pushResult = await this.sendPush(userId, config, title, body, data);
+        const pushResult = await this.sendPush(userId, config, title, body, data, relatedId);
 
-        // 4. 푸시 성공 여부와 관계없이 fallback 배지 생성
+        // 5. 푸시 성공 여부와 관계없이 fallback 배지 생성
         if (config.fallback_badge) {
             await this.createInAppBadge(userId, config.badge_target, eventType, title, body, relatedId);
         }
@@ -97,7 +122,8 @@ export class NotificationService {
         config: NotificationEventConfig,
         title: string,
         body: string,
-        data: Record<string, string>
+        data: Record<string, string>,
+        relatedId?: string
     ): Promise<{ success: boolean; message?: string }> {
         try {
             // 1. DB Insert (Queue)
@@ -110,6 +136,7 @@ export class NotificationService {
                     title,
                     body,
                     data,
+                    related_id: relatedId,
                     quiet_hours_override: config.quiet_hours_override,
                     // 'queued'로 설정하여 DB Trigger(handle_new_notification)가 실행되도록 함
                     status: 'queued',

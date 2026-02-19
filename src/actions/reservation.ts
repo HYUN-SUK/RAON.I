@@ -17,6 +17,18 @@ export async function updateReservationStatusAction(
 ) {
     const supabase = createAdminClient();
 
+    // 0. 현재 상태 확인 (중복 처리 방지)
+    const { data: currentRes } = await supabase
+        .from('reservations')
+        .select('status')
+        .eq('id', id)
+        .single();
+
+    if ((currentRes as any)?.status === status) {
+        console.log(`[Action] Status for ${id} is already ${status}. Skipping.`);
+        return { success: true, message: 'Already in target status' };
+    }
+
     // 1. 상태 업데이트
     const updateData: any = {
         status,
