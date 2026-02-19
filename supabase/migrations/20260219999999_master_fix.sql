@@ -1,0 +1,85 @@
+-- ==========================================================
+-- RAON.I Notification & Schedule System Master Fix
+-- ==========================================================
+
+-- 1. [notifications] 관련 정리
+-- ----------------------------------------------------------
+
+-- related_id 컬럼 추가 (Idempotency 지원)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'notifications' AND column_name = 'related_id') THEN
+        ALTER TABLE public.notifications ADD COLUMN related_id TEXT;
+    END IF;
+END $$;
+
+-- 인덱스 추가 (중복 체크 최적화)
+CREATE INDEX IF NOT EXISTS idx_notifications_related_type ON public.notifications(user_id, event_type, related_id);
+
+-- 레거시 트리거 완전 삭제 (중복 발송의 원인)
+DROP TRIGGER IF EXISTS on_notification_insert ON public.notifications;
+DROP TRIGGER IF EXISTS handle_new_notification_trigger ON public.notifications;
+
+-- 2. [in_app_badges] 관련 정리
+-- ----------------------------------------------------------
+
+-- related_id 컬럼 타입을 TEXT로 변경 (UUID 외 데이터 지원)
+DO $$
+BEGIN
+    IF (SELECT data_type FROM information_schema.columns WHERE table_name = 'in_app_badges' AND column_name = 'related_id') = 'uuid' THEN
+        ALTER TABLE public.in_app_badges ALTER COLUMN related_id TYPE TEXT;
+    END IF;
+END $$;
+
+-- 3. [reservations] 관련 정리
+-- ----------------------------------------------------------
+
+-- 예약 상태 변경 시 중복 알림을 발생시킬 수 있는 수동 트리거 일체 삭제
+-- (주의: 아래 이름들은 추정치이나 일반적인 명명 규칙을 따름)
+DROP TRIGGER IF EXISTS trigger_reservation_notification ON public.reservations;
+DROP TRIGGER IF EXISTS on_status_confirmed_notify ON public.reservations;
+DROP TRIGGER IF EXISTS handle_reservation_status_change ON public.reservations;
+
+-- 4. [user_schedules] 관련 정리
+-- ----------------------------------------------------------
+
+-- reservation_id 인덱스 추가 (조회 최적화)
+CREATE INDEX IF NOT EXISTS idx_user_schedules_reservation_id ON public.user_schedules(reservation_id);
+
+-- 5. 푸시 트리거 복구/강제 업데이트
+-- ----------------------------------------------------------
+
+-- 최신 push-notification 에지 function 호출 로직
+CREATE OR REPLACE FUNCTION public.handle_new_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+    project_url text := 'https://khqiqwtoyvesxahsjukk.supabase.co/functions/v1/push-notification';
+    service_key text := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtocWlxd3RveXZlc3hhaHNqdWtrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTgzOTYwNSwiZXhwIjoyMDgxNDE1NjA1fQ.EKpyz8NvGZLbmTPn4m_-PZNeDD4GgcpzlqPDdY1inHI';
+    request_id uuid;
+BEGIN
+    IF NEW.status = 'queued' THEN
+        SELECT INTO request_id
+            net.http_post(
+                url := project_url,
+                headers := jsonb_build_object(
+                    'Content-Type', 'application/json',
+                    'Authorization', 'Bearer ' || service_key
+                ),
+                body := jsonb_build_object(
+                    'record', row_to_json(NEW)
+                )
+            );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 트리거 재설정 (확실하게 하나만 남김)
+DROP TRIGGER IF EXISTS trigger_push_notification ON public.notifications;
+CREATE TRIGGER trigger_push_notification
+AFTER INSERT ON public.notifications
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_new_notification();
+
+-- 성공 메시지 기록
+DO $$ BEGIN RAISE NOTICE 'RAON.I DB Master Fix applied successfully.'; END $$;

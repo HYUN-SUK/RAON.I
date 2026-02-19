@@ -78,7 +78,8 @@ export class NotificationService {
 
         // 3. 중복 알림 체크 (Idempotency)
         if (relatedId) {
-            const { data: existing } = await this.supabase
+            console.log(`[NotificationService] Checking idempotency for ${eventType} / ${relatedId}`);
+            const { data: existing, error: checkError } = await this.supabase
                 .from('notifications')
                 .select('id')
                 .eq('user_id', userId)
@@ -86,7 +87,9 @@ export class NotificationService {
                 .eq('related_id', relatedId)
                 .maybeSingle();
 
-            if (existing) {
+            if (checkError) {
+                console.warn('[NotificationService] Idempotency check error (continuing):', checkError);
+            } else if (existing) {
                 console.log(`[NotificationService] Duplicate notification blocked: ${eventType} for ${relatedId}`);
                 return { success: true, method: 'none', message: 'Duplicate notification blocked' };
             }

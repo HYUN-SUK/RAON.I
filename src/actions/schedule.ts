@@ -546,7 +546,12 @@ export async function ensureScheduleFromReservationAdmin(reservationId: string, 
     }
 
     // 3. 일정 생성
-    const siteName = SITES.find(s => s.id === (reservation as any).site_id)?.name || (reservation as any).site_id;
+    const r = reservation as any;
+    const siteId = r.site_id || r.siteId;
+    const checkIn = r.check_in_date || r.checkInDate;
+    const checkOut = r.check_out_date || r.checkOutDate;
+
+    const siteName = SITES.find(s => s.id === siteId)?.name || siteId;
 
     const { data: newScheduleId, error: createError } = await supabase.rpc('upsert_schedule', {
         p_user_id: userId,
@@ -555,8 +560,8 @@ export async function ensureScheduleFromReservationAdmin(reservationId: string, 
         p_campground_address: null,
         p_campground_lat: null,
         p_campground_lng: null,
-        p_check_in: (reservation as any).check_in_date,
-        p_check_out: (reservation as any).check_out_date,
+        p_check_in: checkIn,
+        p_check_out: checkOut,
         p_memo: null,
         p_campground_id: null,
         p_reservation_id: reservationId,
