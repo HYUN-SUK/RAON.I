@@ -54,16 +54,25 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
 
     const handleCancelClick = async () => {
         if (confirmStep === 'CANCELLING') {
-            const { updateReservationStatusAction } = await import('@/actions/reservation');
-            const result = await updateReservationStatusAction(reservation.id, 'CANCELLED');
+            if (isProcessing) return;
+            setIsProcessing(true);
 
-            if (result.success) {
-                toast.success('예약이 취소되었습니다');
-            } else {
-                toast.error(result.error || '취소 처리 실패');
+            try {
+                const { updateReservationStatusAction } = await import('@/actions/reservation');
+                const result = await updateReservationStatusAction(reservation.id, 'CANCELLED');
+
+                if (result.success) {
+                    toast.success('예약이 취소되었습니다');
+                } else {
+                    toast.error(result.error || '취소 처리 실패');
+                }
+            } catch (e) {
+                console.error(e);
+                toast.error('오류가 발생했습니다');
+            } finally {
+                setIsProcessing(false);
+                setConfirmStep('IDLE');
             }
-
-            setConfirmStep('IDLE');
         } else {
             setConfirmStep('CANCELLING');
             setTimeout(() => setConfirmStep('IDLE'), 3000);

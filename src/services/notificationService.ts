@@ -148,6 +148,11 @@ export class NotificationService {
                 .single();
 
             if (error) {
+                // Unique Constraint (23505) 위반은 중복 발송 방지 성공으로 간주
+                if ((error as any).code === '23505') {
+                    console.log(`[NotificationService] Duplicate push blocked by DB Unique Constraint: ${relatedId}`);
+                    return { success: true, message: 'Duplicate blocked by DB' };
+                }
                 console.error('[NotificationService] Push queue error:', error);
                 return { success: false, message: error.message };
             }
@@ -201,6 +206,10 @@ export class NotificationService {
             });
 
             if (error) {
+                if ((error as any).code === '23505') {
+                    console.log(`[NotificationService] Duplicate badge blocked by DB Unique Constraint: ${relatedId}`);
+                    return true; // 성공으로 간주
+                }
                 console.error('[NotificationService] Badge creation error:', error);
                 return false;
             }
