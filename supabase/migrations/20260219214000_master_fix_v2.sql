@@ -14,9 +14,11 @@ WHERE n1.created_at < n2.created_at
   AND n1.related_id = n2.related_id
   AND n1.related_id IS NOT NULL;
 
--- 기존 인덱스 삭제 후 유니크 인덱스로 변경
+-- 기존 인덱스 삭제 후 유니크 인덱스로 변경 (강제 재생성)
 DROP INDEX IF EXISTS idx_notifications_related_type;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique_related ON public.notifications(user_id, event_type, related_id) WHERE related_id IS NOT NULL;
+DROP INDEX IF EXISTS idx_notifications_unique_related;
+DROP INDEX IF EXISTS idx_notifications_unique_related_v2;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_unique_related_v2 ON public.notifications(user_id, event_type, related_id) WHERE related_id IS NOT NULL;
 
 -- 2. [user_schedules] 중복 데이터 정리 및 유니크 제약 조건 추가
 -- ----------------------------------------------------------
@@ -28,8 +30,10 @@ WHERE s1.created_at < s2.created_at
   AND s1.reservation_id = s2.reservation_id
   AND s1.reservation_id IS NOT NULL;
 
--- 유니크 인덱스 추가 (예약당 일정은 하나만)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_user_schedules_unique_reservation ON public.user_schedules(reservation_id) WHERE reservation_id IS NOT NULL;
+-- 유니크 인덱스 추가 (예약당 일정은 하나만 - 강제 재생성)
+DROP INDEX IF EXISTS idx_user_schedules_unique_reservation;
+DROP INDEX IF EXISTS idx_user_schedules_unique_reservation_v2;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_schedules_unique_reservation_v2 ON public.user_schedules(reservation_id) WHERE reservation_id IS NOT NULL;
 
 -- 3. [user_schedules] 상태 동기화 트리거 (취소 반영용)
 -- ----------------------------------------------------------
