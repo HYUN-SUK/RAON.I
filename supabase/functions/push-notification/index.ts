@@ -88,15 +88,17 @@ serve(async (req) => {
             throw new Error("Invalid payload format. Expected 'record' from DB Webhook.");
         }
 
-        const { id, user_id, title, body, data } = record;
+        const { id, user_id, title, body, data, event_type, related_id } = record;
 
         console.log(`[STEP 1] Processing notification ${id} for user ${user_id}`);
 
-        // 2. Fetch User's Push Tokens
+        // 2. Fetch User's Push Tokens (Sorted by latest activity)
         const { data: tokens, error: tokenError } = await supabase
             .from('push_tokens')
-            .select('token')
-            .eq('user_id', user_id);
+            .select('token, last_updated_at')
+            .eq('user_id', user_id)
+            .eq('is_active', true)
+            .order('last_updated_at', { ascending: false });
 
         if (tokenError) {
             console.error('[STEP 2-ERR] Token fetch error:', tokenError);
@@ -123,10 +125,13 @@ serve(async (req) => {
             })
             .filter((t): t is { token: string } => !!t);
 
-        // 4. Send to All Tokens
-        console.log(`[STEP 4] Sending to ${uniqueTokens.length} unique token(s)...`);
+        // [FIX] SINGLE DELIVERY POLICY
+        // To prevent duplicate pings on the same device, we only send to the most RECENTLY updated token.
+        // Even if multiple tokens exist, the latest one is prioritized.
+        const deliveryTokens = uniqueTokens.slice(0, 1);
+        console.log(`[STEP 4] Single-delivery policy: Sending to the latest 1 of ${uniqueTokens.length} unique token(s)...`);
 
-        const results = await Promise.all(uniqueTokens.map(async (t, idx) => {
+        const results = await Promise.all(deliveryTokens.map(async (t, idx) => {
             console.log(`[STEP 4-${idx}] Preparing message for token ${t.token.slice(0, 20)}...`);
 
             const message = {
@@ -140,10 +145,13 @@ serve(async (req) => {
                         link: data.link || "https://raon-i.vercel.app/notifications",
                         ...data,
                     },
-                    // webpush & android click_action REMOVED
-                    // to force Service Worker to handle the click event
-                    // and apply ?push_redirect= logic.
+                    android: {
+                        collapse_key: `${event_type || 'default'}_${related_id || 'general'}`,
+                    },
                     apns: {
+                        headers: {
+                            'apns-collapse-id': `${event_type || 'default'}_${related_id || 'general'}`,
+                        },
                         payload: {
                             aps: {
                                 category: "NEW_MESSAGE"
