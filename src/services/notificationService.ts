@@ -23,7 +23,6 @@ export class NotificationService {
             this.supabase = createClient();
         } catch (e) {
             // Node environment or missing env vars
-            console.warn('[NotificationService] Default client initialization failed (expected in non-browser env)');
         }
     }
 
@@ -78,7 +77,6 @@ export class NotificationService {
 
         // 3. 중복 알림 체크 (Idempotency)
         if (relatedId) {
-            console.log(`[NotificationService] Checking idempotency for ${eventType} / ${relatedId}`);
             const { data: existing, error: checkError } = await this.supabase
                 .from('notifications')
                 .select('id')
@@ -87,10 +85,7 @@ export class NotificationService {
                 .eq('related_id', relatedId)
                 .maybeSingle();
 
-            if (checkError) {
-                console.warn('[NotificationService] Idempotency check error (continuing):', checkError);
-            } else if (existing) {
-                console.log(`[NotificationService] Duplicate notification blocked: ${eventType} for ${relatedId}`);
+            if (!checkError && existing) {
                 return { success: true, method: 'none', message: 'Duplicate notification blocked' };
             }
         }
@@ -150,7 +145,6 @@ export class NotificationService {
             if (error) {
                 // Unique Constraint (23505) 위반은 중복 발송 방지 성공으로 간주
                 if ((error as any).code === '23505') {
-                    console.log(`[NotificationService] Duplicate push blocked by DB Unique Constraint: ${relatedId}`);
                     return { success: true, message: 'Duplicate blocked by DB' };
                 }
                 console.error('[NotificationService] Push queue error:', error);
@@ -207,7 +201,6 @@ export class NotificationService {
 
             if (error) {
                 if ((error as any).code === '23505') {
-                    console.log(`[NotificationService] Duplicate badge blocked by DB Unique Constraint: ${relatedId}`);
                     return true; // 성공으로 간주
                 }
                 console.error('[NotificationService] Badge creation error:', error);

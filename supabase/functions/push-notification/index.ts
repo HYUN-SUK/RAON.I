@@ -27,12 +27,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
  * Get Google Access Token for FCM HTTP v1 API
  */
 async function getAccessToken() {
-    console.log('[AUTH] Checking Firebase credentials...');
-    console.log('[AUTH] PROJECT_ID:', FIREBASE_PROJECT_ID || 'MISSING');
-    console.log('[AUTH] CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL || 'MISSING');
-    console.log('[AUTH] PRIVATE_KEY exists:', !!FIREBASE_PRIVATE_KEY);
-    console.log('[AUTH] PRIVATE_KEY starts with:', FIREBASE_PRIVATE_KEY?.slice(0, 30) || 'N/A');
-
     if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
         throw new Error("Missing Firebase Credentials");
     }
@@ -48,7 +42,6 @@ async function getAccessToken() {
             .setExpirationTime("1h")
             .sign(await jose.importPKCS8(FIREBASE_PRIVATE_KEY, "RS256"));
 
-        console.log('[AUTH] JWT created successfully');
 
         const response = await fetch("https://oauth2.googleapis.com/token", {
             method: "POST",
@@ -90,7 +83,7 @@ serve(async (req) => {
 
         const { id, user_id, title, body, data, event_type, related_id } = record;
 
-        console.log(`[STEP 1] Processing notification ${id} for user ${user_id}`);
+        console.log(`Processing notification ${id} for user ${user_id}`);
 
         // 2. Fetch User's Push Tokens (Sorted by latest activity)
         const { data: tokens, error: tokenError } = await supabase
@@ -105,7 +98,7 @@ serve(async (req) => {
             throw tokenError;
         }
 
-        console.log(`[STEP 2] Found ${tokens?.length || 0} tokens for user`);
+        console.log(`Found ${tokens?.length || 0} tokens for user`);
 
         if (!tokens || tokens.length === 0) {
             console.log(`[STEP 2-SKIP] No tokens found for user ${user_id}`);
@@ -114,9 +107,7 @@ serve(async (req) => {
         }
 
         // 3. Get FCM Access Token
-        console.log('[STEP 3] Getting FCM access token...');
         const accessToken = await getAccessToken();
-        console.log('[STEP 3] FCM access token obtained successfully');
 
         // Deduplicate tokens
         const uniqueTokens = Array.from(new Set(tokens.map(t => t.token)))
@@ -129,7 +120,7 @@ serve(async (req) => {
         // To prevent duplicate pings on the same device, we only send to the most RECENTLY updated token.
         // Even if multiple tokens exist, the latest one is prioritized.
         const deliveryTokens = uniqueTokens.slice(0, 1);
-        console.log(`[STEP 4] Single-delivery policy: Sending to the latest 1 of ${uniqueTokens.length} unique token(s)...`);
+        console.log(`Sending to the latest 1 of ${uniqueTokens.length} unique token(s)...`);
 
         const results = await Promise.all(deliveryTokens.map(async (t, idx) => {
             console.log(`[STEP 4-${idx}] Preparing message for token ${t.token.slice(0, 20)}...`);
@@ -161,11 +152,6 @@ serve(async (req) => {
                 }
             };
 
-            // Critical Debug Log: Check if webpush is really gone
-            console.log(`[STEP 4-${idx}] Outgoing Payload:`, JSON.stringify(message, null, 2));
-
-            console.log(`[STEP 4-${idx}] Calling FCM API...`);
-
             const res = await fetch(
                 `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
                 {
@@ -184,7 +170,7 @@ serve(async (req) => {
             return { token: t.token, status: res.status, body: resBody };
         }));
 
-        console.log(`[STEP 5] All FCM calls completed. Success: ${results.filter(r => r.status === 200).length}`);
+        console.log(`All FCM calls completed. Success: ${results.filter(r => r.status === 200).length}`);
 
         // 5. Cleanup Invalid Tokens & Update Status
         const successCount = results.filter(r => r.status === 200).length;

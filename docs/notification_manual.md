@@ -1,4 +1,4 @@
-# 🔔 알림 시스템 구축 및 운영 매뉴얼 (Notification System Manual)
+# 🔔 알림 시스템 구축 및 운영 핸드북 (v2.0)
 
 본 문서는 RAON.I의 알림 시스템(푸시/인앱 배지)의 아키텍처, 작동 원리, 그리고 새로운 알림을 추가하는 표준 절차를 정의합니다.
 
@@ -11,9 +11,10 @@
 
 ### 🔄 데이터 흐름도
 1. **Trigger (발생)**: 예약 확정, 댓글 작성 등 이벤트 발생
-2. **Record (기록)**: `notifications` 테이블에 `INSERT` (Status: `queued`)
-3. **Dispatch (발송)**: DB Trigger(`trigger_push_notification`)가 Edge Function 호출
-4. **Delivery (전송)**: Edge Function이 FCM을 통해 사용자 기기로 푸시 전송 + 결과 업데이트
+2. **Record (기록)**: `notifications` 테이블에 `INSERT`. 이때 `related_id`를 필수로 넣어야 중복 발송이 차단됩니다. (Status: `queued`)
+3. **Dispatch (발송)**: DB Webhook/Trigger가 Edge Function(`push-notification`) 호출
+4. **Delivery (전송)**: Edge Function이 사용자 기기로 전송. **중요: 가장 최근에 활성화된 토큰 1개로만 전송합니다.**
+5. **Result (결과)**: `result` 컬럼에 FCM 응답 로그가 JSON 형식으로 기록됩니다.
 
 ---
 
@@ -88,13 +89,39 @@ await notificationService.dispatchNotification(
     - **Yes (status='failed')**: `result` 컬럼의 에러 메시지를 확인하세요. (토큰 만료 등)
     - **Yes (status='sent')**: 발송은 성공했습니다. 사용자 기기의 알림 설정이나 네트워크 문제입니다.
 
-### Q. 알림이 두 번 와요!
-- 코드 어딘가에서 `dispatchNotification`을 두 번 호출했거나,
-- **(중요)** 과거의 레거시 코드(`fetch` 로 직접 Edge Function 호출)가 남아있는지 확인하세요. 무조건 DB Insert로만 통일해야 합니다.
+### Q. 알림이 두 번 와요! (중복 발송 문제 해결책)
+1. **DB 레코드 중복**: `notifications` 테이블에 같은 `related_id`를 가진 레코드가 2개인지 확인하세요.
+    - **해결**: `idx_notifications_unique_related` 유니크 인덱스가 이를 물리적으로 막습니다.
+2. **기기 핑 중복**: DB 레코드는 1개인데 폰이 2번 울릴 때.
+    - **원인**: 사용자의 푸티 토큰(`push_tokens`)이 여러 개 등록되어 있기 때문입니다.
+    - **해결**: Edge Function(`push-notification`)의 **'Single-Delivery Policy'**가 적용되어 있습니다. (`last_updated_at` 기준 가장 최근 토큰 1개만 선택)
+    - **보완**: FCM 페이로드에 `collapse_key`와 `apns-collapse-id`를 적용하여 OS 수준에서 알림을 병합합니다.
 
 ---
 
-## 5. 시스템 안정성 유지 수칙
+## 5. 정기 자동 알림 (Camping Reminders)
+
+사용자의 입실 1일 전(D-1), 4일 전(D-4)에 나가는 리마인드 알림은 `pg_cron` 시스템을 사용합니다.
+
+- **스케줄러**: `invoke-camping-reminder` (매일 오전 09:00 KST 실행)
+- **로직**: `camping-reminder` Edge Function이 실행되어 당일 기준 D-1/D-4 예약자를 찾아 `notifications`에 알림을 등록합니다.
+- **점검 방법**: `cron.job_run_details` 테이블을 조회하여 실행 성공 여부를 확인하세요.
+
+---
+
+## 6. 시스템 안정성 유지 수칙
 1. **Never Click-Send**: 클라이언트(브라우저)에서 알림 요청을 보내지 마세요. 해킹의 위험이 있고 신뢰할 수 없습니다.
-2. **Idempotency**: 서버 로직 재시도 시 알림이 중복 생성되지 않도록, 가능한 경우 `related_id` 등을 활용해 중복 체크를 하세요.
-3. **Log & Clean**: `notifications` 테이블은 계속 쌓입니다. 주기적인 백업/삭제 정책(예: 3개월 지난 로그 삭제)이 필요합니다.
+2. **Idempotency**: 알림 생성 시 반드시 `related_id`(예: 주문번호)를 포함하여 DB 유니크 제약 조건이 작동하게 하세요.
+3. **Token Management**: 사용자가 앱을 방문할 때마다 `push_tokens`의 `last_updated_at`을 갱신하여, 가장 "싱싱한" 토큰으로 알림이 가도록 유지해야 합니다.
+
+---
+
+## 7. 알림 브랜딩 및 가시성 고도화 (Branding)
+알림의 신뢰도와 브랜딩을 강화하기 위해 다음 필드를 활용할 수 있습니다.
+
+1.  **`icon`**: 알림 본문에 표시되는 앱 로고 (192x192 권장).
+2.  **`badge`**: 안드로이드 상태바에 뜨는 작은 단색 아이콘. 로고의 형태(Shape)만 추출하여 사용.
+3.  **`image`**: 알림 하단에 크게 노출되는 이미지. 캠핑장 전경이나 미션 성공 사진 등에 활용 가능.
+4.  **관련 인프라**:
+    - **PWA**: 홈 화면 설치 시 알림 제목 옆에 브라우저 이름 대신 웹앱 이름이 표시됨.
+    - **TWA (Google Play Store)**: 완전한 앱 자격을 갖게 되어 알림 영역에서 '삼성 인터넷' 등의 흔적을 완전히 제거 가능.

@@ -190,17 +190,33 @@ const EMOJI_MAP: Record<string, string> = {
     '비': '🌧️', '비/눈': '🌨️', '눈': '❄️', '소나기': '🌦️'
 };
 
-async function getMultiDayForecast(lat: number, lng: number, dates: string[]): Promise<DayForecast[]> {
-    if (!KMA_KEY) return dates.map(d => mockForecast(d));
+async function getMultiDayForecast(lat: number, lng: number): Promise<DayForecast[]> {
+    if (!KMA_KEY) return [mockForecast(new Date().toISOString().split('T')[0])];
     try {
         const grid = dfs_xy_conv("toXY", lat, lng);
-        if (!grid.x || !grid.y) return dates.map(d => mockForecast(d));
+        if (!grid.x || !grid.y) return [mockForecast(new Date().toISOString().split('T')[0])];
 
         const now = new Date();
         const kst = new Date(now.getTime() + 9 * 3600000);
         const baseDate = kst.toISOString().split('T')[0].replace(/-/g, '');
         const hour = kst.getHours();
 
+        // 1. Check Cache
+        const { data: cacheHit } = await supabase
+            .from('weather_cache')
+            .select('data, updated_at')
+            .eq('nx', grid.x)
+            .eq('ny', grid.y)
+            .single();
+
+        // Cache is valid if updated within the last 6 hours
+        const isCacheValid = cacheHit && (now.getTime() - new Date(cacheHit.updated_at).getTime() < 6 * 3600000);
+
+        if (isCacheValid && cacheHit?.data && Array.isArray(cacheHit.data)) {
+            return cacheHit.data;
+        }
+
+        // 2. Fetch from KMA
         const baseTimes = ['2300', '2000', '1700', '1400', '1100', '0800', '0500', '0200'];
         const hourNums = [23, 20, 17, 14, 11, 8, 5, 2];
         let baseTime = '0200';
@@ -209,10 +225,29 @@ async function getMultiDayForecast(lat: number, lng: number, dates: string[]): P
         }
 
         const url = `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${encodeURIComponent(KMA_KEY)}&numOfRows=1000&pageNo=1&dataType=JSON&base_date=${baseDate}&base_time=${baseTime}&nx=${grid.x}&ny=${grid.y}`;
-        const resp = await fetch(url);
+
+        // Timeout AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per API call
+
+        let resp;
+        try {
+            resp = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+        } catch (fetchErr) {
+            clearTimeout(timeoutId);
+            console.warn(`[Weather] Fetch timeout/error for grid ${grid.x},${grid.y}. Falling back to old cache or mock.`);
+            if (cacheHit?.data && Array.isArray(cacheHit.data)) return cacheHit.data;
+            return [mockForecast(kst.toISOString().split('T')[0])];
+        }
+
         const data = await resp.json();
         const items = data?.response?.body?.items?.item;
-        if (!items || !Array.isArray(items)) return dates.map(d => mockForecast(d));
+
+        if (!items || !Array.isArray(items)) {
+            if (cacheHit?.data && Array.isArray(cacheHit.data)) return cacheHit.data;
+            return [mockForecast(kst.toISOString().split('T')[0])];
+        }
 
         const byDate: Record<string, any[]> = {};
         for (const item of items) {
@@ -221,10 +256,9 @@ async function getMultiDayForecast(lat: number, lng: number, dates: string[]): P
             byDate[fd].push(item);
         }
 
-        return dates.map(dateStr => {
-            const dateKey = dateStr.replace(/-/g, '');
+        const dayForecasts: DayForecast[] = Object.keys(byDate).map(dateKey => {
             const dayItems = byDate[dateKey];
-            if (!dayItems) return mockForecast(dateStr);
+            const dateStr = `${dateKey.substring(0, 4)}-${dateKey.substring(4, 6)}-${dateKey.substring(6, 8)}`;
 
             let tmn = 999, tmx = -999, maxPop = 0, ptyAny = '0', skyAfternoon = '1';
             for (const item of dayItems) {
@@ -255,9 +289,21 @@ async function getMultiDayForecast(lat: number, lng: number, dates: string[]): P
                 isRainy: ptyAny !== '0' || maxPop > 60
             };
         });
+
+        // 3. Save to Cache
+        if (dayForecasts.length > 0) {
+            await supabase.from('weather_cache').upsert({
+                nx: grid.x,
+                ny: grid.y,
+                data: dayForecasts,
+                updated_at: now.toISOString()
+            });
+        }
+
+        return dayForecasts;
     } catch (err) {
         console.error("[Weather] Error:", err);
-        return dates.map(d => mockForecast(d));
+        return [mockForecast(new Date().toISOString().split('T')[0])];
     }
 }
 
@@ -275,7 +321,10 @@ serve(async (req) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
-        console.log("[Camping Reminder] Starting execution...");
+        const url = new URL(req.url);
+        const mode = url.searchParams.get('mode') || 'dispatch';
+
+        console.log(`[Camping Reminder] Starting execution... Mode: ${mode}`);
         const now = new Date();
         const kst = new Date(now.getTime() + 9 * 3600000);
         const today = kst.toISOString().split('T')[0];
@@ -294,18 +343,56 @@ serve(async (req) => {
         if (error) throw error;
         console.log(`[Query] Found ${schedules?.length || 0} schedules`);
 
+        if (!schedules || schedules.length === 0) {
+            return new Response(JSON.stringify({ success: true, message: "No schedules found" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // ==========================================
+        // PREFETCH MODE (Cache Populating)
+        // ==========================================
+        if (mode === 'prefetch') {
+            // Extract unique locations
+            const locations = new Map<string, { lat: number, lng: number }>();
+            schedules.forEach(s => {
+                const lat = s.campground_lat || 37.5665;
+                const lng = s.campground_lng || 126.9780;
+                locations.set(`${lat},${lng}`, { lat, lng });
+            });
+
+            console.log(`[Prefetch] Fetching APIs for ${locations.size} unique locations...`);
+
+            // Prefetch nearby events (It's nationwide anyway, so doing it once)
+            await getNearbyEvents(37.5665, 126.9780, 30); // Caches ALL
+
+            // Prefetch weather in parallel but with small 3-chunk limits to be safe
+            const locArray = Array.from(locations.values());
+            const chunkSize = 3;
+            for (let i = 0; i < locArray.length; i += chunkSize) {
+                const chunk = locArray.slice(i, i + chunkSize);
+                await Promise.all(chunk.map(c => getMultiDayForecast(c.lat, c.lng)));
+            }
+
+            console.log("[Prefetch] Done.");
+            return new Response(JSON.stringify({ success: true, mode: 'prefetch', locations: locations.size }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // ==========================================
+        // DISPATCH MODE (Queueing Notifications)
+        // ==========================================
         const notifications: any[] = [];
         const updateIds: Record<string, string[]> = { d0: [], d1: [], d4: [] };
 
-        for (const s of schedules || []) {
+        for (const s of schedules) {
             const lat = s.campground_lat || 37.5665;
             const lng = s.campground_lng || 126.9780;
-            const dates = [s.check_in];
-            const forecasts = await getMultiDayForecast(lat, lng, dates);
-            const f = forecasts[0];
+
+            // Gets from cache mostly, fast
+            const forecasts = await getMultiDayForecast(lat, lng);
+            // Default fallback if date not found in 7-day forecast
+            const f = forecasts.find(x => x.date === s.check_in) || mockForecast(s.check_in);
             const weatherLine = `${f.weatherEmoji} ${f.tempMin}°/${f.tempMax}° ${f.weatherLabel}`;
 
-            // D-0: Today is the day! (Added Event Discovery)
+            // D-0: Today is the day!
             if (s.check_in === today && !s.notification_d0_sent) {
                 const events = await getNearbyEvents(lat, lng, 30);
                 let eventText = "주변에 예정된 행사가 없어요~ 조용한 캠핑을 즐겨보세요!";
@@ -325,7 +412,7 @@ serve(async (req) => {
                 });
                 updateIds.d0.push(s.id);
             }
-            // D-1: Meal Recommendations (Enhanced with DB Scoring)
+            // D-1: Meal Recommendations
             else if (s.check_in === tomorrow && !s.notification_d1_sent) {
                 const meals = await getScoredMenuRecommendations(s.user_id, f, s.member_count || 2);
                 const menuText = meals.length > 0
@@ -343,7 +430,7 @@ serve(async (req) => {
                 });
                 updateIds.d1.push(s.id);
             }
-            // D-4: Gear Check (Weather-based Tips)
+            // D-4: Gear Check
             else if (s.check_in === d4 && !s.notification_d4_sent) {
                 let tip = '평범한 날씨네요! 가볍게 떠나보세요.';
                 if (f.isRainy) tip = '비 소식이 있어요 ☔ 우비와 타프 꼭 챙기세요!';
@@ -364,9 +451,7 @@ serve(async (req) => {
 
         // Finalize
         if (notifications.length > 0) {
-            // DB Trigger가 있으므로 insert만 하면 됨
-            const { data: inserted, error: insertError } = await supabase.from('notifications').insert(notifications).select();
-
+            const { error: insertError } = await supabase.from('notifications').insert(notifications);
             if (insertError) {
                 console.error("Failed to insert notifications:", insertError);
             } else {
@@ -378,7 +463,7 @@ serve(async (req) => {
         if (updateIds.d1.length > 0) await supabase.from('user_schedules').update({ notification_d1_sent: true }).in('id', updateIds.d1);
         if (updateIds.d4.length > 0) await supabase.from('user_schedules').update({ notification_d4_sent: true }).in('id', updateIds.d4);
 
-        return new Response(JSON.stringify({ success: true, count: notifications.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ success: true, mode: 'dispatch', count: notifications.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     } catch (err: any) {
         console.error("Critical Error:", err);

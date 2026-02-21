@@ -353,11 +353,21 @@
     *   [x] 메타 태그 추가 (`layout.tsx`) - 한국어 SEO 및 OG 태그 적용
     *   [x] "홈 화면에 추가" 기능 테스트 완료
     *   [ ] (선택) TWA로 플레이스토어 등록
-*   **9.6 빌드 오류 수정 및 타입 동기화** ✅ (2026-01-13):
+*   [x] **9.6 빌드 오류 수정 및 타입 동기화** ✅ (2026-01-13):
     *   [x] **Supabase Types**: `site_config`, `posts`, `sites`, `nearby_events` 정의 현행화.
     *   [x] **Code Corrections**: `BeginnerHome`(이벤트 타입), `ReservationStore`(사이트/예약 타입), `CommunityService`(글/댓글 타입) 수정.
     *   [x] **Build Verification**: `npm run build` 성공 (Exit code: 0).
     *   [x] **Deployment**: ✅ Vercel 배포 완료 (`https://raon-i.vercel.app`)
+*   [x] **9.7 Notification Reliability Upgrade** ✅ (2026-02-20):
+    *   [x] **Duplicate Fix**: Implemented DB Unique Constraint + Edge Function Single-Delivery Policy + FCM Collapse Keys.
+    *   [x] **Camping Reminders**: Scheduled `pg_cron` job for `invoke-camping-reminder`, caught up missed notifications.
+    *   [x] **Handbook v2.0**: Updated `docs/notification_manual.md` with full specs and troubleshooting guide.
+    *   [x] **Verification**: Zero duplicates confirmed in logs, reminder execution verified.
+*   [x] **9.8 Camping Reminder Cron & Timeout Fix** ✅ (2026-02-21):
+    *   [x] **Timeouts Avoided**: Implemented `mode=prefetch` (10-min preemptive API caching) and `mode=dispatch` (DB-only quick send) in Edge Function.
+    *   [x] **Cron Migration**: Disabled unreliable `pg_cron` and replaced with free GitHub Actions scheduler.
+    *   [x] **Verification**: Dispatched 7 missing notifications successfully; user checking tomorrow.
+
 
 
 ---
