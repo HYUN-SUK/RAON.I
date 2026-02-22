@@ -41,11 +41,11 @@ jobs:
             fi
           fi
 
-      - name: Trigger Supabase Edge Function
+      - name: Trigger Next.js Cron Proxy
         run: |
           echo "Executing mode: ${{ env.mode }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/functions/v1/camping-reminder?mode=${{ env.mode }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.APP_URL }}/api/cron/camping-reminder?mode=${{ env.mode }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json")
           
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
@@ -55,6 +55,6 @@ jobs:
           echo "HTTP Status: $HTTP_STATUS"
           
           if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "Failed to invoke Edge Function with status $HTTP_STATUS"
+            echo "Failed to invoke Cron Proxy with status $HTTP_STATUS"
             exit 1
           fi
