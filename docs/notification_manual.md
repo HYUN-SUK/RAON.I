@@ -99,13 +99,33 @@ await notificationService.dispatchNotification(
 
 ---
 
-## 5. 정기 자동 알림 (Camping Reminders)
+## 5. 정기 자동 알림 (Camping Reminders - 🏕️ 2026-02-22 업데이트)
 
-사용자의 입실 1일 전(D-1), 4일 전(D-4)에 나가는 리마인드 알림은 `pg_cron` 시스템을 사용합니다.
+기존의 불안정했던 DB 내부 스케줄러(`pg_cron`)를 폐기하고, 비용이 발생하지 않으면서도 100% 신뢰성을 보장하는 **GitHub Actions Cron + API Proxy 라우트** 아키텍처로 개편되었습니다.
+또한, Serverless Edge Function 특유의 무거운 외부 API 통신 시 10초 타임아웃(Timeout) 한계를 극복하기 위해 작업을 두 단계로 분리(Prefetch / Dispatch)하여 운영합니다.
 
-- **스케줄러**: `invoke-camping-reminder` (매일 오전 09:00 KST 실행)
-- **로직**: `camping-reminder` Edge Function이 실행되어 당일 기준 D-1/D-4 예약자를 찾아 `notifications`에 알림을 등록합니다.
-- **점검 방법**: `cron.job_run_details` 테이블을 조회하여 실행 성공 여부를 확인하세요.
+### ⏳ 스케줄링 및 타임아웃 극복 구조
+- **스케줄러**: `.github/workflows/camping-reminder-cron.yml`
+- **보안 라우트**: `src/app/api/cron/camping-reminder/route.ts` (Next.js Proxy API)
+  - Github 측에 Supabase Root 키를 노출하지 않고, 기존에 사용 중이던 `CRON_SECRET`만을 이용해 Vercel 내부에서 인증을 통과한 뒤 Edge Function을 대리 호출합니다.
+
+#### 🔄 2단계 분할 작동 원리
+1. **[단계 1] 캐시 프리페치 (08:50 AM KST)**
+   - `?mode=prefetch` 파라미터로 호출됩니다.
+   - 알림 대상자들의 위치 정보를 바탕으로, 기상청(KMA) 날씨 및 행사(TourAPI) 목록만 미리 `weather_cache`, `nearby_cache` DB로 긁어옵니다.
+   - `Promise.all` 처리를 통해 통신하며 만약 10초 이상 지연되면 Abort 시키고 빠른 Fallback 데이터('맑음' 등)로 대체합니다. 알림은 발송되지 않습니다.
+2. **[단계 2] 초고속 발송 (09:00 AM KST)**
+   - `?mode=dispatch` 파라미터로 호출됩니다.
+   - 외부 API 통신을 **전혀** 하지 않고, 10분 전에 쌓아둔 로컬 DB 캐시 데이터만 눈 깜짝할 새에 읽어와 `user_schedules`의 D-1/D-4 예약건 대상 푸시 알림을 조립하여 `notifications` 테이블에 Insert합니다.
+
+### 🛠️ 점검 및 수동 복구 방법
+- **로그인/권한 문제**: Github Actions 콘솔(`Actions` 탭 -> `Camping Reminder Cron`)에서 에러 로그를 가장 빠르고 직관적으로 확인할 수 있습니다.
+- **수동 지연 발송(Catch-up)**: 시스템 다운 등으로 아침 알림이 누락되었다면, 아래 명령어로 터미널에서 즉시 강제 발송이 가능합니다.
+  ```bash
+  curl -X POST -H "Authorization: Bearer YOUR_CRON_SECRET" "https://your-domain.com/api/cron/camping-reminder?mode=prefetch"
+  sleep 10
+  curl -X POST -H "Authorization: Bearer YOUR_CRON_SECRET" "https://your-domain.com/api/cron/camping-reminder?mode=dispatch"
+  ```
 
 ---
 
