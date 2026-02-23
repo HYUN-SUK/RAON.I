@@ -348,6 +348,10 @@
     *   [ ] 지도 렌더링 기능 구현 (선택)
 *   **9.5 PWA 구현** ✅ (2026-01-13):
     *   [x] `manifest.json` 작성 (앱 이름, 아이콘, 테마 색상)
+*   **9.6 스마트 캠핑 플랜 (Guided Journey \u0026 Persona) 🚀 (Next Target)**:
+    *   [ ] **1단계: 엔진 구축 (`smartPlan.ts`)**: UI 독립적인 순수 추천 로직 및 하이브리드 캐싱 파이프라인 완성. (임시 Mock 페르소나 데이터로 검증)
+    *   [ ] **2단계: 태그 매핑 시스템 (`persona.ts`)**: `docs/action_tag_mapping_manual.md`를 기반으로 사용자 행동 트리거 및 마스터 태그 지갑 DB 연동.
+    *   [ ] **3단계: 최종 연동 (Integration)**: 스마트 플랜 엔진에 실제 사용자 태그 데이터를 주입하여 개인화된 AI 서사 및 완벽한 큐레이션 제공.
     *   [x] 앱 아이콘 준비 (192x192, 512x512, 180x180) - 원본 로고 활용
     *   [x] Service Worker 확장 (Next.js PWA 기본 지원)
     *   [x] 메타 태그 추가 (`layout.tsx`) - 한국어 SEO 및 OG 태그 적용

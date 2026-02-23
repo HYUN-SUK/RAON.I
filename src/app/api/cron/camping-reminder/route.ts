@@ -7,6 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+export const maxDuration = 60; // Max allowed for Vercel Hobby plan
+
 export async function POST(request: NextRequest) {
     // 1. Verify cron secret for security (Same as mission-ranking)
     const authHeader = request.headers.get('authorization');
@@ -23,8 +25,9 @@ export async function POST(request: NextRequest) {
 
         console.log(`[Cron Proxy] Invoking camping-reminder Edge Function in ${mode} mode...`);
 
-        // 3. Call the Edge Function using the secure service role key
-        const response = await fetch(`${supabaseUrl}/functions/v1/camping-reminder?mode=${mode}`, {
+        // 3. Fire-and-Forget: Call Edge Function WITHOUT waiting (await) 
+        // This prevents Vercel's strict 10s-15s Hobby plan timeout from killing the long-running prefetch process.
+        fetch(`${supabaseUrl}/functions/v1/camping-reminder?mode=${mode}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${supabaseServiceKey}`,
@@ -32,35 +35,13 @@ export async function POST(request: NextRequest) {
             },
             // Prevent Next.js from aggressively caching this fetch request
             cache: 'no-store'
-        });
+        }).catch(err => console.error(`[Cron Proxy - Background Error] Edge Function fetch failed:`, err));
 
-        const status = response.status;
-        const bodyText = await response.text();
-
-        console.log(`[Cron Proxy] Edge Function returned status: ${status}`);
-
-        let jsonBody;
-        try {
-            jsonBody = JSON.parse(bodyText);
-        } catch {
-            jsonBody = { raw_response: bodyText };
-        }
-
-        if (!response.ok) {
-            console.error(`[Cron Proxy] Edge Function failed:`, jsonBody);
-            return NextResponse.json({
-                error: 'Edge Function invocation failed',
-                status,
-                details: jsonBody
-            }, { status: 500 });
-        }
-
-        // 4. Return success
+        // 4. Return success immediately (1초 내 응답)
         return NextResponse.json({
             success: true,
             proxy_status: 'ok',
-            edge_function_status: status,
-            result: jsonBody
+            message: `Edge Function background task dispatched successfully (${mode} mode)`
         });
 
     } catch (error) {
