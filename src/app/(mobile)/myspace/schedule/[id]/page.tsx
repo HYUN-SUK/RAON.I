@@ -48,6 +48,8 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import MealRecommendationWidget from '@/components/myspace/MealRecommendationWidget';
 import { getPersonalizedRecommendations, RecipeSearchResult } from '@/actions/recommendation';
+import SmartPlanProposal from '@/components/plan/SmartPlanProposal';
+import { createClient } from '@/lib/supabase-client';
 
 
 const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
@@ -64,6 +66,19 @@ export default function ScheduleDetailPage() {
     const searchParams = useSearchParams();
     const scheduleId = params.id as string;
     const initialRecipeId = searchParams.get('recipeId');
+
+    const [userId, setUserId] = useState<string>();
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.id) {
+                setUserId(session.user.id);
+            }
+        };
+        fetchUser();
+    }, []);
 
     const [schedule, setSchedule] = useState<Schedule | null>(null);
     const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -534,6 +549,18 @@ export default function ScheduleDetailPage() {
                 {schedule.status === 'scheduled' && daysUntil <= 0 && (
                     <div className="h-20" />
                 )}
+
+                {/* 스마트 캠핑 플랜 UI (Phase 3) */}
+                <div className="mt-6 mb-4">
+                    <SmartPlanProposal
+                        userId={userId}
+                        location={{
+                            lat: schedule.campground_lat || 37.5665,
+                            lng: schedule.campground_lng || 126.9780
+                        }}
+                        date={new Date(schedule.check_in)}
+                    />
+                </div>
             </div>
 
 

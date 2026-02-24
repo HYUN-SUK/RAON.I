@@ -13,6 +13,8 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 import { toast } from "sonner";
+import { createClient } from '@/lib/supabase-client';
+import { dispatchPersonaAction } from '@/lib/persona';
 import {
     Dialog,
     DialogContent,
@@ -98,6 +100,17 @@ export default function MissionDetailPage() {
 
     const handleJoin = async () => {
         await joinMission();
+
+        // --- [Phase 3.5] Progressive Trigger Injection: Gamification (Missions) ---
+        if (currentMission?.title?.includes('LNT') || currentMission?.title?.includes('환경')) {
+            (async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await dispatchPersonaAction(user.id, 'MISSION_LNT_START');
+                }
+            })();
+        }
     };
 
     const handleComplete = async () => {

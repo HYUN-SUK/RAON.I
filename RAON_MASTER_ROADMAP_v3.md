@@ -139,6 +139,24 @@
 *   **5.6 마켓 고도화 (Market 2.0) - 2026-01-12** ✅:
     *   [x] **데이터 최적화**: YouTube/Shorts 임베드(비용 0원) 및 상품 배지(Benefit Badges) 구현.
     *   [x] **이미지 업로드**: Supabase Storage 연동 및 Drag & Drop UI.
+
+### Phase 5.5: 스마트 캠핑 플랜 (Smart Camping Plan) - 🚀 IN PROGRESS
+**"초개인화된 여정 안내 시스템 (Guided Journey)"**
+*   **5.5.1 Headless Engine (`smartPlan.ts`)** ✅:
+    *   [x] Zero-Cost High-Fidelity 필터링 (공공데이터 + 볼륨).
+    *   [x] Stateless AI Narration (Gemini 1.5 Flash 연동).
+    *   [x] Schema.org 기반 수익화 호환 JSON 팩트 리스트 반환 구조 마련.
+*   **5.5.2 Action-to-Tag Systemization (`persona.ts`)** ✅:
+    *   [x] 50개 마스터 태그 및 로직 세팅 (`user_personas`, `add_user_tag`).
+    *   [x] 엔진 결합 (`generatePersonalizedSmartPlan`).
+*   **5.5.3 [Priority] 점진적 프론트엔드 트리거 주입 (Progressive Injection)** ✅:
+    *   [x] **예약 폼 (`ReservationForm.tsx`)**: 결제/확정 시 강력한 취향 시그널 발송.
+    *   [x] **게시판 (`Feed`, `Post`)**: 사진/키워드 분석 및 좋아요/불씨 후원.
+    *   [x] **내 공간 (`LBS`, `Record`)**: 키워드 기록 및 위치 탐색 시그널.
+    *   [x] **마켓 & 마이스페이스 (`Market`)**: 감성 장비 클릭 및 LNT 미션 시그널.
+*   **5.5.4 UI Component (`SmartPlanProposal.tsx`)** ✅:
+    *   [x] Citational UI (서사 + 팩트 카드) 및 교체 상호작용 개발.
+    *   [x] `Fallback Mock Data` 주입 로직 탑재 (미연결 또는 API Key 부재 시 무중단 렌더링).
     *   [x] **동적 카테고리**: 관리자 설정 페이지에서 카테고리 추가/순서변경 기능 구현.
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)

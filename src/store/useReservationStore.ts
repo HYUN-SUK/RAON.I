@@ -40,6 +40,14 @@ interface ReservationState {
         guestName: string;
         guestPhone: string;
         requests?: string;
+        guestDetails?: {
+            adults: number;
+            kids: {
+                preschool: number;
+                elementary: number;
+                teen: number;
+            };
+        };
     }) => Promise<{ success: boolean; reservationId?: string; error?: string; message?: string }>;
     updateReservationStatus: (id: string, status: ReservationStatus, cancelReason?: string) => Promise<void>;
     updateReservation: (id: string, updates: {
@@ -420,7 +428,8 @@ export const useReservationStore = create<ReservationState>()(
                     p_total_price: params.totalPrice,
                     p_guest_name: params.guestName,
                     p_guest_phone: params.guestPhone,
-                    p_requests: params.requests || null
+                    p_requests: params.requests || null,
+                    p_guest_details: params.guestDetails || null
                 });
 
                 if (error) {
@@ -450,6 +459,7 @@ export const useReservationStore = create<ReservationState>()(
                         totalPrice: params.totalPrice,
                         status: 'PENDING',
                         requests: params.requests || '',
+                        guestDetails: params.guestDetails,
                         createdAt: new Date()
                     };
 
@@ -512,6 +522,7 @@ export const useReservationStore = create<ReservationState>()(
                     totalPrice: r.total_price || 0,
                     status: r.status,
                     requests: r.requests || '',
+                    guestDetails: r.guest_details,
                     createdAt: new Date(r.created_at),
                     // 환불 관련 필드
                     refundBank: r.refund_bank,
@@ -560,6 +571,7 @@ export const useReservationStore = create<ReservationState>()(
                     guestName: r.guest_name, // Guest Name Mapping
                     guestPhone: r.guest_phone,
                     requests: r.requests || '',
+                    guestDetails: r.guest_details,
                     createdAt: new Date(r.created_at),
                     // 환불 관련 필드
                     refundBank: r.refund_bank,

@@ -30,6 +30,8 @@ import { useReservationStore } from '@/store/useReservationStore';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import { Database } from '@/types/supabase';
+import { dispatchPersonaAction } from '@/lib/persona';
+import { createClient } from '@/lib/supabase-client';
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
@@ -282,6 +284,15 @@ export default function BeginnerHome() {
                 setSearchLocation(lbs.location || undefined); // Use User Location
                 setNearbyDescription("주변 반경 30km의 레포츠,관광지,편의시설,행사를 확인하세요");
                 setNearbySheetOpen(true);
+
+                // --- [Phase 3.5] Progressive Trigger Injection: LBS (Nearby Check) ---
+                (async () => {
+                    const supabase = createClient();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        await dispatchPersonaAction(user.id, 'LBS_NEARBY_CLICK');
+                    }
+                })();
                 return;
             }
 
@@ -353,7 +364,19 @@ export default function BeginnerHome() {
                         <Badge
                             variant="secondary"
                             className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1 cursor-pointer transition-colors"
-                            onClick={() => weather && setWeatherSheetOpen(true)}
+                            onClick={() => {
+                                if (weather) {
+                                    setWeatherSheetOpen(true);
+                                    // --- [Phase 3.5] Progressive Trigger Injection: LBS (Weather Check) ---
+                                    (async () => {
+                                        const supabase = createClient();
+                                        const { data: { user } } = await supabase.auth.getUser();
+                                        if (user) {
+                                            await dispatchPersonaAction(user.id, 'LBS_WEATHER_CLICK');
+                                        }
+                                    })();
+                                }
+                            }}
                         >
                             {recData.context?.weather && recData.context?.weather !== 'unknown'
                                 ? `${recData.context.temp !== null ? Math.round(recData.context.temp) + '°C ' : ''}${recData.context.greeting}`

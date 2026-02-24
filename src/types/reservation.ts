@@ -24,6 +24,14 @@ export interface Reservation {
     visitorCount: number; // SSOT: 방문객 수
     vehicleCount: number; // SSOT: 차량 수
     guests: number; // 총 인원 (가족 구성원 + 방문객)
+    guestDetails?: { // [Phase 1: Smart Camping Plan] 세분화된 인원 구조
+        adults: number;
+        kids: {
+            preschool: number;
+            elementary: number;
+            teen: number;
+        };
+    };
     totalPrice: number;
     status: ReservationStatus;
     requests: string; // SSOT: 요청사항

@@ -23,6 +23,8 @@ import NotificationBadge from '@/components/common/NotificationBadge';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import PlanLockCard from '@/components/planlock/PlanLockCard';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
+import { dispatchPersonaAction } from '@/lib/persona';
+import { createClient } from '@/lib/supabase-client';
 
 
 
@@ -94,6 +96,15 @@ export default function ReturningHome() {
         if (item.type === 'nearby_lbs') {
             setNearbyEvents(item.events || []);
             setNearbySheetOpen(true);
+
+            // --- [Phase 3.5] Progressive Trigger Injection: LBS (Nearby Check) ---
+            (async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await dispatchPersonaAction(user.id, 'LBS_NEARBY_CLICK');
+                }
+            })();
             return;
         }
 
@@ -144,7 +155,19 @@ export default function ReturningHome() {
                     <div className="relative z-10 mt-4">
                         {recData ? (
                             <>
-                                <Badge variant="outline" className="text-white/80 border-white/20 mb-2 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => weather && setWeatherSheetOpen(true)}>
+                                <Badge variant="outline" className="text-white/80 border-white/20 mb-2 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => {
+                                    if (weather) {
+                                        setWeatherSheetOpen(true);
+                                        // --- [Phase 3.5] Progressive Trigger Injection: LBS (Weather Check) ---
+                                        (async () => {
+                                            const supabase = createClient();
+                                            const { data: { user } } = await supabase.auth.getUser();
+                                            if (user) {
+                                                await dispatchPersonaAction(user.id, 'LBS_WEATHER_CLICK');
+                                            }
+                                        })();
+                                    }
+                                }}>
                                     {weather?.temp !== null && weather?.temp !== undefined ? `${Math.round(weather.temp)}°C ` :
                                         recData.context?.temp !== null && recData.context?.temp !== undefined ? `${Math.round(recData.context.temp)}°C ` : ''}
                                     {recData.context?.weather === 'sunny' ? '☀️ 맑음' :

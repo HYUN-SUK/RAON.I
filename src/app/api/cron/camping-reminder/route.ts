@@ -7,9 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-export const maxDuration = 60; // Max allowed for Vercel Hobby plan
+export const runtime = 'edge'; // Switch to Edge Runtime to use waitUntil
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, context: any) {
     // 1. Verify cron secret for security (Same as mission-ranking)
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
 
         console.log(`[Cron Proxy] Invoking camping-reminder Edge Function in ${mode} mode...`);
 
-        // 3. Fire-and-Forget: Call Edge Function WITHOUT waiting (await) 
-        // This prevents Vercel's strict 10s-15s Hobby plan timeout from killing the long-running prefetch process.
-        fetch(`${supabaseUrl}/functions/v1/camping-reminder?mode=${mode}`, {
+        // 3. Edge Runtime waitUntil: Tell Vercel to keep the worker alive until this promise finishes
+        // This prevents the runtime from being frozen as soon as NextResponse is returned.
+        const edgePromise = fetch(`${supabaseUrl}/functions/v1/camping-reminder?mode=${mode}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${supabaseServiceKey}`,
@@ -37,11 +37,14 @@ export async function POST(request: NextRequest) {
             cache: 'no-store'
         }).catch(err => console.error(`[Cron Proxy - Background Error] Edge Function fetch failed:`, err));
 
-        // 4. Return success immediately (1초 내 응답)
+        // Use standard wait until API provided by Next.js Edge Runtime
+        context.waitUntil(edgePromise);
+
+        // 4. Return success immediately
         return NextResponse.json({
             success: true,
             proxy_status: 'ok',
-            message: `Edge Function background task dispatched successfully (${mode} mode)`
+            message: `Edge Function background task dispatched and guaranteed by waitUntil (${mode} mode)`
         });
 
     } catch (error) {

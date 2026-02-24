@@ -12,6 +12,7 @@ import { useCartUIStore } from '@/store/useCartUIStore';
 import { useCartStore } from '@/store/useCartStore';
 
 import { createClient } from '@/lib/supabase-client';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 // 기본 카테고리 (폴백)
 const DEFAULT_CATEGORIES = [
@@ -95,7 +96,20 @@ export default function MarketPage() {
                     {categories.map(cat => (
                         <button
                             key={cat.id}
-                            onClick={() => setSelectedCategory(cat.id)}
+                            onClick={() => {
+                                setSelectedCategory(cat.id);
+                                // --- [Phase 3.5] Progressive Trigger Injection: Market (Gamification) ---
+                                (async () => {
+                                    if (cat.id === 'lantern' || cat.id === 'tent') {
+                                        const supabase = createClient();
+                                        const { data: { user } } = await supabase.auth.getUser();
+                                        if (user) {
+                                            if (cat.id === 'lantern') await dispatchPersonaAction(user.id, 'MARKET_CLICK_LANTERN');
+                                            if (cat.id === 'tent') await dispatchPersonaAction(user.id, 'MARKET_CLICK_TENT'); // Assuming 'tent' exists in data
+                                        }
+                                    }
+                                })();
+                            }}
                             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors
                                 ${selectedCategory === cat.id
                                     ? 'bg-[#1C4526] text-white'

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Site } from '@/types/reservation';
 import TermsAgreementDialog from './TermsAgreementDialog';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { dispatchPersonaAction } from '@/lib/persona';
+import { createClient } from '@/lib/supabase-client';
 
 interface ReservationFormProps {
     site: Site;
@@ -20,6 +22,13 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const [familyCount, setFamilyCount] = useState(1);
     const [visitorCount, setVisitorCount] = useState(0);
     const [vehicleCount, setVehicleCount] = useState(1);
+
+    // [Phase 1: Smart Camping Plan] 세분화된 인원
+    const [adults, setAdults] = useState(2);
+    const [kidsPreschool, setKidsPreschool] = useState(0);
+    const [kidsElementary, setKidsElementary] = useState(0);
+    const [kidsTeen, setKidsTeen] = useState(0);
+
     const [requests, setRequests] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -110,10 +119,50 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 totalPrice,
                 guestName: name,
                 guestPhone: phone,
-                requests: requests || undefined
+                requests: requests || undefined,
+                guestDetails: {
+                    adults,
+                    kids: {
+                        preschool: kidsPreschool,
+                        elementary: kidsElementary,
+                        teen: kidsTeen,
+                    }
+                }
             });
 
             if (result.success) {
+                // [Phase 2] Dispatch Persona Actions safely in the background
+                try {
+                    const supabase = createClient();
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const userId = session?.user?.id;
+                    if (userId) {
+                        if (kidsPreschool > 0 || kidsElementary > 0) {
+                            dispatchPersonaAction(userId, 'RESERVATION_KIDS_INCLUDED').catch(console.error);
+                        }
+                        if (familyCount > 1) {
+                            dispatchPersonaAction(userId, 'RESERVATION_FAMILY_ADDED').catch(console.error);
+                        }
+                        if (nights >= 2) {
+                            dispatchPersonaAction(userId, 'RESERVATION_MULTIPLE_NIGHTS').catch(console.error);
+                        }
+                        if (adults === 1 && kidsPreschool === 0 && kidsElementary === 0 && kidsTeen === 0 && familyCount === 1) {
+                            dispatchPersonaAction(userId, 'RESERVATION_SOLO_CAMPER').catch(console.error);
+                        }
+                        const dayOfWeekIn = fromDate.getDay();
+                        const dayOfWeekOut = toDate.getDay();
+                        // 주말 판단: 금(5), 토(6), 일(0)
+                        const isWeekend = dayOfWeekIn === 5 || dayOfWeekIn === 6 || dayOfWeekOut === 6 || dayOfWeekOut === 0;
+                        if (isWeekend) {
+                            dispatchPersonaAction(userId, 'RESERVATION_WEEKEND_PEAK').catch(console.error);
+                        } else {
+                            dispatchPersonaAction(userId, 'RESERVATION_WEEKDAY_LEISURE').catch(console.error);
+                        }
+                    }
+                } catch (err) {
+                    console.error('[Persona] Failed to dispatch reservation actions', err);
+                }
+
                 router.push('/reservation/complete');
             } else {
                 // 동시성 충돌 또는 중복 예약
@@ -213,6 +262,46 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         >
                             {[1, 2, 3, 4].map(n => <option key={n} value={n} className="text-black">{n}대</option>)}
                         </select>
+                    </div>
+                </div>
+
+                {/* [Phase 1: Smart Camping Plan] 세분화된 인원 정보 */}
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                    <h4 className="text-sm font-bold text-white mb-2">상세 인원 구성 <span className="text-xs font-normal text-white/50">(스마트 추천용)</span></h4>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs text-white/70 mb-1">성인</label>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setAdults(Math.max(0, adults - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
+                                <span className="text-white flex-1 text-center">{adults}명</span>
+                                <button type="button" onClick={() => setAdults(adults + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-white/70 mb-1">미취학 아동</label>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setKidsPreschool(Math.max(0, kidsPreschool - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
+                                <span className="text-white flex-1 text-center">{kidsPreschool}명</span>
+                                <button type="button" onClick={() => setKidsPreschool(kidsPreschool + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-white/70 mb-1">초등학생</label>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setKidsElementary(Math.max(0, kidsElementary - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
+                                <span className="text-white flex-1 text-center">{kidsElementary}명</span>
+                                <button type="button" onClick={() => setKidsElementary(kidsElementary + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-white/70 mb-1">청소년</label>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setKidsTeen(Math.max(0, kidsTeen - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
+                                <span className="text-white flex-1 text-center">{kidsTeen}명</span>
+                                <button type="button" onClick={() => setKidsTeen(kidsTeen + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Loader2, Camera, X } from 'lucide-react';
 import { communityService } from '@/services/communityService';
 import { z } from 'zod';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 const CATEGORIES: { id: BoardType; label: string }[] = [
     // NOTICE removed (Admin only)
@@ -172,7 +173,37 @@ export default function CommunityWriteForm() {
                 visibility: visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
             });
 
-            // Go back to list
+            // --- [Phase 3.5] Progressive Trigger Injection: Community Posting ---
+            if (currentUser?.id) {
+                const combinedText = `${title} ${content}`.toLowerCase();
+
+                // Keyword analysis for Persona Tags
+                if (combinedText.includes('불멍') || combinedText.includes('장작') || combinedText.includes('화로')) {
+                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_FIRE');
+                }
+                if (combinedText.includes('요리') || combinedText.includes('바베큐') || combinedText.includes('밀키트') || combinedText.includes('먹방')) {
+                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_FOOD');
+                }
+                if (combinedText.includes('별') || combinedText.includes('밤하늘') || combinedText.includes('은하수')) {
+                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_STAR');
+                }
+                if (combinedText.includes('우중') || combinedText.includes('비오는')) {
+                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_RAIN');
+                }
+                if (combinedText.includes('설중') || combinedText.includes('눈오는') || combinedText.includes('눈싸움')) {
+                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_SNOW');
+                }
+
+                // Group / Market related intent from Community feed
+                if (type === 'GROUP' || combinedText.includes('나눔')) {
+                    if (combinedText.includes('장비') || combinedText.includes('텐트') || combinedText.includes('랜턴')) {
+                        await dispatchPersonaAction(currentUser.id, 'FEED_DONATE_GEAR');
+                    } else if (combinedText.includes('나눔') || combinedText.includes('음식')) {
+                        await dispatchPersonaAction(currentUser.id, 'FEED_DONATE_FOOD');
+                    }
+                }
+            }
+
             // Go back to list
             router.back();
         } catch (error) {

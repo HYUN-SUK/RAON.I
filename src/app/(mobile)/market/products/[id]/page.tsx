@@ -13,6 +13,8 @@ import { ArrowLeft, ShoppingCart, Share2, Plus, Minus, ChevronRight, Heart } fro
 import Image from 'next/image';
 import { ProductReviews } from '@/app/(mobile)/market/components/ProductReviews';
 import VideoEmbed from '@/components/market/VideoEmbed';
+import { createClient } from '@/lib/supabase-client';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 // 배지 아이콘 맵
 const BADGE_MAP: Record<ProductBadge, { label: string; icon: string; color: string }> = {
@@ -53,6 +55,18 @@ export default function ProductDetailPage() {
             try {
                 const data = await marketService.getProductById(id);
                 setProduct(data);
+
+                // --- [Phase 3.5] Progressive Trigger Injection: Market (View Action) ---
+                if (data.category === 'tent' || data.name.includes('텐트') || data.name.includes('타프')) {
+                    (async () => {
+                        const supabase = createClient();
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                            await dispatchPersonaAction(user.id, 'MARKET_CLICK_TENT');
+                        }
+                    })();
+                }
+
             } catch (e: any) {
                 console.error('Fetch Error:', e);
                 alert(`상품을 불러오지 못했습니다: ${e.message}`);
@@ -295,7 +309,19 @@ export default function ProductDetailPage() {
                 {product.type === 'EXTERNAL' && product.link ? (
                     <Button
                         className="flex-1 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl h-12 text-base font-bold flex items-center justify-center gap-2"
-                        onClick={() => window.open(product.link!, '_blank')}
+                        onClick={() => {
+                            // --- [Phase 3.5] Progressive Trigger Injection: Market (Link Click) ---
+                            if (product.name.includes('매트') || product.name.includes('안락함')) {
+                                (async () => {
+                                    const supabase = createClient();
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (user) {
+                                        await dispatchPersonaAction(user.id, 'MARKET_CLICK_MAT');
+                                    }
+                                })();
+                            }
+                            window.open(product.link!, '_blank');
+                        }}
                     >
                         🔗 구매처로 이동
                     </Button>

@@ -12,6 +12,7 @@ import { Comment, communityService, supabase } from '@/services/communityService
 import { compressImage } from '@/utils/imageUtils';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { EmberButton } from '@/components/mission/EmberButton';
+import { dispatchPersonaAction } from '@/lib/persona';
 import {
 
     Dialog,
@@ -124,6 +125,21 @@ export default function CommentSection({ postId, onCommentChange }: CommentSecti
                 const created = await addComment(postId, newComment, 'My User', imageUrl);
                 setComments(prev => [...prev, created]);
                 onCommentChange?.(comments.length + 1);
+
+                // --- [Phase 3.5] Progressive Trigger Injection: Community Feeding (Replies) ---
+                if (currentUserId) {
+                    const text = newComment.toLowerCase();
+                    if (text.includes('해산물') || text.includes('회') || text.includes('초밥') || text.includes('조개')) {
+                        await dispatchPersonaAction(currentUserId, 'FEED_REPLY_SEAFOOD');
+                    }
+                    if (text.includes('비건') || text.includes('채식') || text.includes('샐러드')) {
+                        await dispatchPersonaAction(currentUserId, 'FEED_REPLY_VEGAN');
+                    }
+
+                    // General social activity tag
+                    await dispatchPersonaAction(currentUserId, 'FEED_STAY_LONG');
+                }
+
                 setNewComment('');
                 clearImage();
                 setErrorMsg(null);

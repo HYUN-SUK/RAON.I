@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import LikeButton from './LikeButton';
 import { EmberButton } from '@/components/mission/EmberButton';
 import CommentSection from './CommentSection';
+import { dispatchPersonaAction } from '@/lib/persona';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -240,8 +241,26 @@ export default function PostDetailView() {
                         likeCount={post.likeCount}
                         initialIsLiked={false}
                         className="text-[#4D4D4D]"
-                        onLikeChange={(newCount) => {
+                        onLikeChange={(newCount, isLiked) => {
                             setPost((prev) => prev ? { ...prev, likeCount: newCount } : null);
+
+                            // --- [Phase 3.5] Progressive Trigger Injection: Community Liking ---
+                            if (isLiked && currentUserId && post) {
+                                // Background fire-and-forget
+                                (async () => {
+                                    const text = `${post.title} ${post.content}`.toLowerCase();
+
+                                    if (text.includes('장비') || text.includes('텐트') || text.includes('랜턴') || text.includes('기어')) {
+                                        await dispatchPersonaAction(currentUserId, 'FEED_LIKE_GEAR');
+                                    }
+                                    if (text.includes('미니멀') || text.includes('차박') || text.includes('노지') || text.includes('간편')) {
+                                        await dispatchPersonaAction(currentUserId, 'FEED_LIKE_MINIMAL');
+                                    }
+
+                                    // General social activity tag
+                                    await dispatchPersonaAction(currentUserId, 'FEED_STAY_LONG');
+                                })();
+                            }
                         }}
                     />
 
