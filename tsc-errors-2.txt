@@ -1,0 +1,17 @@
+﻿src/components/plan/SmartPlanProposal.tsx(170,40): error TS1127: Invalid character.
+src/components/plan/SmartPlanProposal.tsx(170,186): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/plan/SmartPlanProposal.tsx(172,25): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/components/plan/SmartPlanProposal.tsx(219,19): error TS17002: Expected corresponding JSX closing tag for 'div'.
+src/components/plan/SmartPlanProposal.tsx(220,23): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/plan/SmartPlanProposal.tsx(224,13): error TS1005: ')' expected.
+src/components/plan/SmartPlanProposal.tsx(242,40): error TS1127: Invalid character.
+src/components/plan/SmartPlanProposal.tsx(242,223): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/plan/SmartPlanProposal.tsx(244,33): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/components/plan/SmartPlanProposal.tsx(271,15): error TS17002: Expected corresponding JSX closing tag for 'div'.
+src/components/plan/SmartPlanProposal.tsx(273,25): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/plan/SmartPlanProposal.tsx(273,27): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/plan/SmartPlanProposal.tsx(274,11): error TS17002: Expected corresponding JSX closing tag for 'SheetContent'.
+src/components/plan/SmartPlanProposal.tsx(275,7): error TS17002: Expected corresponding JSX closing tag for 'Sheet'.
+src/components/plan/SmartPlanProposal.tsx(276,13): error TS1128: Declaration or statement expected.
+src/components/plan/SmartPlanProposal.tsx(277,9): error TS1109: Expression expected.
+src/components/plan/SmartPlanProposal.tsx(278,5): error TS1109: Expression expected.

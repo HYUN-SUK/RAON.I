@@ -68,6 +68,7 @@ export default function ScheduleDetailPage() {
     const initialRecipeId = searchParams.get('recipeId');
 
     const [userId, setUserId] = useState<string>();
+    const [showSmartPlan, setShowSmartPlan] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -428,6 +429,28 @@ export default function ScheduleDetailPage() {
                     </div>
                 </div>
 
+                {/* 스마트 캠핑 플랜 UI (Gap 1: Trigger UI) */}
+                <div className="mt-6 mb-4">
+                    {!showSmartPlan ? (
+                        <Button
+                            onClick={() => setShowSmartPlan(true)}
+                            className="w-full h-14 bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white rounded-2xl shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] text-base font-semibold transition-all hover:scale-[1.02]"
+                        >
+                            <span className="mr-2 text-xl">✨</span> 이번 캠핑계획 자동 완성하기
+                        </Button>
+                    ) : (
+                        <SmartPlanProposal
+                            userId={userId}
+                            location={{
+                                lat: schedule.campground_lat || 37.5665,
+                                lng: schedule.campground_lng || 126.9780
+                            }}
+                            startDate={new Date(schedule.check_in)}
+                            endDate={new Date(schedule.check_out)}
+                        />
+                    )}
+                </div>
+
                 {/* 메모 */}
                 {schedule.memo && (
                     <div className="bg-white rounded-2xl p-4 shadow-sm">
@@ -549,18 +572,6 @@ export default function ScheduleDetailPage() {
                 {schedule.status === 'scheduled' && daysUntil <= 0 && (
                     <div className="h-20" />
                 )}
-
-                {/* 스마트 캠핑 플랜 UI (Phase 3) */}
-                <div className="mt-6 mb-4">
-                    <SmartPlanProposal
-                        userId={userId}
-                        location={{
-                            lat: schedule.campground_lat || 37.5665,
-                            lng: schedule.campground_lng || 126.9780
-                        }}
-                        date={new Date(schedule.check_in)}
-                    />
-                </div>
             </div>
 
 

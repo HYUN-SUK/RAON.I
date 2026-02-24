@@ -9,13 +9,14 @@ export interface StandardizedPlanJSON {
     "@context": "https://schema.org",
     "@type": "ItemList",
     narration: string;         // AI Generated emotional guide narrative
-    itemListElement: FactCard[]; // The highly curated 3-5 facts
+    itemListElement: FactCard[]; // The highly curated 5 facts (Active ones)
+    alternatives: Record<string, FactCard[]>; // The 2 remaining alternatives for each category
 }
 
 export interface FactCard {
-    "@type": string; // 'Hospital', 'Store', 'Restaurant', 'TouristAttraction', 'Festival'
+    "@type": string; // 'Hospital', 'Store', 'Restaurant', 'TouristAttraction', 'Festival', 'Cafe', 'Route'
     id: string;
-    category: 'HOSPITAL' | 'MART' | 'RESTAURANT' | 'SPOT' | 'FESTIVAL';
+    category: 'ROUTE_CAFE' | 'MART_HOSPITAL' | 'RESTAURANT' | 'SPOT' | 'FESTIVAL';
     name: string;
     description: string;
     trustScore: number;      // Raon Trust Score
@@ -27,64 +28,107 @@ export interface FactCard {
     };
 }
 
-// Mocking the DB fetch for Phase 1 testing
-// In Phase 3, this will call Supabase `rpc('get_high_trust_facilities', { lat, lng })`
 async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactCard[]> {
+    // Generate 3 mock facts for each of the 5 categories (Total 15 Facts)
     return [
+        // Category 1: ROUTE_CAFE (왕복 경로상의 들르기 좋은 카페/휴게소)
         {
-            "@type": "Store",
-            id: 'mart-1',
-            category: 'MART',
-            name: "하나로마트 예산농협본점",
-            description: "신선한 지역 특산물과 좋은 품질의 고기를 구할 수 있는 대형 마트입니다. 장작과 얼음도 상시 구비되어 있습니다.",
-            trustScore: 95,
-            distanceKm: 4.5,
-            metadata: { hasFirewood: true, hasIce: true },
-            provenance: { sourceName: "PublicDataPortal" }
+            "@type": "Cafe", id: 'route-1', category: 'ROUTE_CAFE',
+            name: "호수정원 카페", description: "캠핑장 가는 길, 창밖으로 호수가 보이는 따뜻한 분위기의 베이커리 카페입니다.",
+            trustScore: 92, distanceKm: 15.2, metadata: { isScenic: true },
+            provenance: { sourceName: "카카오 로컬 큐레이션" }
         },
         {
-            "@type": "Hospital",
-            id: 'hosp-1',
-            category: 'HOSPITAL',
-            name: "예산종합병원 (지역응급의료기관)",
-            description: "캠핑장 인근에서 가장 가까운 24시간 응급실 운영 병원입니다.",
-            trustScore: 99,
-            distanceKm: 8.2,
-            metadata: { isEmergency: true, hasPediatrics: true },
-            provenance: { sourceName: "Ministry of Health and Welfare" }
+            "@type": "Cafe", id: 'route-2', category: 'ROUTE_CAFE',
+            name: "산나물 로스터리", description: "캠핑장 진입로 입구에서 직접 로스팅한 신선한 원두 커피를 테이크아웃 할 수 있습니다.",
+            trustScore: 88, distanceKm: 8.5, metadata: { isTakeout: true },
+            provenance: { sourceName: "지역 추천 명소" }
         },
         {
-            "@type": "Restaurant",
-            id: 'rest-1',
-            category: 'RESTAURANT',
-            name: "소복갈비",
-            description: "80년 전통의 백년가게 인증을 받은 숯불갈비 전문점입니다. 캠핑 후 철수하는 날 들르기 좋습니다.",
-            trustScore: 92,
-            distanceKm: 6.1,
-            metadata: { certType: "백년가게", kakaoReviewVolume: 1250 },
-            provenance: { sourceName: "Small Enterprise and Market Service" }
+            "@type": "Cafe", id: 'route-3', category: 'ROUTE_CAFE',
+            name: "고개마루 쉼터", description: "잠시 차를 세우고 풍경을 보며 쉬어갈 수 있는 드라이브 코스 상의 쉼터 겸 찻집입니다.",
+            trustScore: 85, distanceKm: 22.0, metadata: { isScenic: true },
+            provenance: { sourceName: "한국관광공사" }
+        },
+
+        // Category 2: MART_HOSPITAL (마트/병원/편의점)
+        {
+            "@type": "Store", id: 'mart-1', category: 'MART_HOSPITAL',
+            name: "하나로마트 예산농협본점", description: "신선한 지역 특산물과 좋은 품질의 고기, 장작과 얼음이 상시 구비되어 있습니다.",
+            trustScore: 95, distanceKm: 4.5, metadata: { hasFirewood: true, hasIce: true },
+            provenance: { sourceName: "공공데이터포털" }
         },
         {
-            "@type": "TouristAttraction",
-            id: 'spot-1',
-            category: 'SPOT',
-            name: "예당호 출렁다리",
-            description: "국내 최장 규모의 출렁다리로, 밤에는 아름다운 미디어 아트가 펼쳐집니다.",
-            trustScore: 88,
-            distanceKm: 12.5,
-            metadata: { hasNightView: true, kakaoReviewVolume: 3420 },
+            "@type": "Hospital", id: 'hosp-1', category: 'MART_HOSPITAL',
+            name: "예산종합병원 (지역응급의료기관)", description: "캠핑장 인근에서 가장 가까운 24시간 응급실 운영 병원으로 소아과 진료가 가능합니다.",
+            trustScore: 99, distanceKm: 8.2, metadata: { isEmergency: true, hasPediatrics: true },
+            provenance: { sourceName: "보건복지부" }
+        },
+        {
+            "@type": "Store", id: 'mart-2', category: 'MART_HOSPITAL',
+            name: "이마트24 예산아지트점", description: "늦은 밤에도 언제든 급한 물품이나 간식을 구할 수 있는 24시간 편의점입니다.",
+            trustScore: 89, distanceKm: 2.1, metadata: { is24Hours: true },
+            provenance: { sourceName: "로컬 데이터" }
+        },
+
+        // Category 3: RESTAURANT (주변 식당)
+        {
+            "@type": "Restaurant", id: 'rest-1', category: 'RESTAURANT',
+            name: "소복갈비", description: "80년 전통의 백년가게 인증을 받은 숯불갈비 전문점입니다. 캠핑 후 철수하는 날 들르기 좋습니다.",
+            trustScore: 92, distanceKm: 6.1, metadata: { certType: "백년가게", kakaoReviewVolume: 1250 },
+            provenance: { sourceName: "소상공인시장진흥공단" }
+        },
+        {
+            "@type": "Restaurant", id: 'rest-2', category: 'RESTAURANT',
+            name: "황토집 된장마을", description: "직접 담근 장으로 만든 건강하고 정갈한 시골 백반을 맛볼 수 있는 로컬 맛집입니다.",
+            trustScore: 94, distanceKm: 5.3, metadata: { certType: "안심식당", kakaoReviewVolume: 450 },
+            provenance: { sourceName: "지자체 로컬 맛집" }
+        },
+        {
+            "@type": "Restaurant", id: 'rest-3', category: 'RESTAURANT',
+            name: "캠퍼스 바베큐 하우스", description: "캠핑장 근처에서 텍사스 스타일의 정통 바비큐와 밀키트를 포장해 갈 수 있는 식당입니다.",
+            trustScore: 88, distanceKm: 3.2, metadata: { isTakeout: true, hasMilkit: true },
+            provenance: { sourceName: "카카오 로컬 큐레이션" }
+        },
+
+        // Category 4: SPOT (주변 명소)
+        {
+            "@type": "TouristAttraction", id: 'spot-1', category: 'SPOT',
+            name: "예당호 출렁다리", description: "국내 최장 규모의 출렁다리로, 밤에는 아름다운 미디어 아트가 펼쳐집니다.",
+            trustScore: 88, distanceKm: 12.5, metadata: { hasNightView: true, kakaoReviewVolume: 3420 },
             provenance: { sourceName: "TourAPI" }
         },
         {
-            "@type": "Festival",
-            id: 'fest-1',
-            category: 'FESTIVAL',
-            name: "예산 장날 (오일장)",
-            description: "마침 캠핑 일정에 예산 오일장(5, 10일)이 열립니다. 활기찬 시골 장터의 정취를 느껴보세요.",
-            trustScore: 85,
-            distanceKm: 5.0,
-            metadata: { isMarketDay: true },
-            provenance: { sourceName: "LocalGov" }
+            "@type": "TouristAttraction", id: 'spot-2', category: 'SPOT',
+            name: "수덕사 계곡길", description: "조용하고 맑은 물가에서 가벼운 산책과 피톤치드를 즐길 수 있는 힐링 명소입니다.",
+            trustScore: 91, distanceKm: 9.0, metadata: { isNatureWalk: true },
+            provenance: { sourceName: "산림청" }
+        },
+        {
+            "@type": "TouristAttraction", id: 'spot-3', category: 'SPOT',
+            name: "은하수 언덕", description: "시야가 탁 트여있어 맑은 날 밤하늘의 별을 관측하기 좋은 숨겨진 장소입니다.",
+            trustScore: 85, distanceKm: 4.8, metadata: { isNightSky: true },
+            provenance: { sourceName: "한국천문연구원 추천" }
+        },
+
+        // Category 5: FESTIVAL (행사/축제)
+        {
+            "@type": "Festival", id: 'fest-1', category: 'FESTIVAL',
+            name: "예산 장날 (오일장)", description: "오일장(5, 10일)이 열리는 날입니다. 활기찬 시골 장터의 정취와 먹거리를 즐겨보세요.",
+            trustScore: 85, distanceKm: 5.0, metadata: { isMarketDay: true },
+            provenance: { sourceName: "로컬 지자체" }
+        },
+        {
+            "@type": "Festival", id: 'fest-2', category: 'FESTIVAL',
+            name: "반딧불이 야간 탐험", description: "아이들과 함께 캠핑장 주변의 숲에서 청정자연의 반딧불이를 찾아보는 작은 생태 프로그램입니다.",
+            trustScore: 90, distanceKm: 0.5, metadata: { isFamilyFriendly: true },
+            provenance: { sourceName: "생태관광공사" }
+        },
+        {
+            "@type": "Festival", id: 'fest-3', category: 'FESTIVAL',
+            name: "어쿠스틱 캠프 콘서트", description: "이번 주말, 인근 야외 공연장에서 잔잔한 어쿠스틱 음악 공연이 소규모로 열립니다.",
+            trustScore: 82, distanceKm: 6.5, metadata: { isMusic: true },
+            provenance: { sourceName: "지역 문화재단" }
         }
     ];
 }
@@ -96,16 +140,28 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
 export async function generateSmartPlan(
     context: UserPersona,
     location: { lat: number; lng: number },
-    date: Date,
+    startDate: Date,
+    endDate: Date,
     weatherContext?: string // "비 오는 날", "맑고 화창한 날" 등
 ): Promise<StandardizedPlanJSON> {
 
     // 1. Pool Generation (Zero-Cost High-Fidelity 팩트 추출)
     const candidates = await fetchHighTrustCandidates(location.lat, location.lng);
 
-    // 2. Circular Selection (임시로 상위 3개 고정, 실제로는 랜덤/순환 추출 로직 적용)
-    // "식당은 1개, 명소 1개, 마트 1개" 식으로 Rule-based 배합
-    const selectedFacts = candidates.slice(0, 3);
+    // 2. Select 1 active and up to 2 alternatives per category
+    const categories = ['ROUTE_CAFE', 'MART_HOSPITAL', 'RESTAURANT', 'SPOT', 'FESTIVAL'] as const;
+    const activeFacts: FactCard[] = [];
+    const alternatives: Record<string, FactCard[]> = {};
+
+    categories.forEach(cat => {
+        const catFacts = candidates.filter(c => c.category === cat);
+        if (catFacts.length > 0) {
+            // Randomize selection
+            const shuffled = catFacts.sort(() => 0.5 - Math.random());
+            activeFacts.push(shuffled[0]);
+            alternatives[cat] = shuffled.slice(1);
+        }
+    });
 
     // 3. AI Narration (1 Call to LLM)
     let narration = "";
@@ -118,10 +174,11 @@ export async function generateSmartPlan(
 
         const ai = new GoogleGenAI({ apiKey });
 
-        // 프롬프트 엔지니어링: 페르소나와 팩트를 결합하여 감성적인 스토리를 요구
+        // 프롬프트 엔지니어링: 페르소나와 15개 풀 중 선택된 대표 팩트 5개를 결합
         const prompt = `
-당신은 라온아이 앱의 감성적인 '스마트 캠핑 가이드'입니다.
-다음 캠퍼의 페르소나와 주변 추천 장소(팩트)를 바탕으로, 이번 캠핑 여정에 대한 따뜻하고 개인화된 안내 서사를 3문장 내외로 작성해주세요.
+당신은 '라온아이' 앱의 감성적인 '20년차 전문 스마트 캠핑 플래너'입니다.
+다음 캠퍼의 페르소나와 이번 여정을 위해 엄선된 5개의 대표 장소를 바탕으로, 
+왕복 경로, 식사, 명소 탐방이 자연스럽게 이어지는 하나의 따뜻하고 아름다운 여행 서사를 작성해주세요.
 
 [캠퍼 페르소나]
 - 특징: ${context.description}
@@ -130,21 +187,25 @@ export async function generateSmartPlan(
 
 [환경 정보]
 - 날씨: ${weatherContext || '화창함'}
-- 일정: ${date.toLocaleDateString()}
+- 전체 일정: ${startDate.toLocaleDateString()} ~ ${endDate.toLocaleDateString()}
 
-[선택된 추천 장소 팩트]
-${selectedFacts.map(f => `- ${f.name} (${f.description})`).join('\n')}
+[선택된 여정 팩트 플랜 (반드시 이 5개를 서사에 모두 포함시킬 것)]
+${activeFacts.map(f => `- ID: ${f.id} | 카테고리: ${f.category} | 이름: ${f.name} | 설명: ${f.description}`).join('\n')}
 
-[작성 가이드]
-- "안녕하세요!" 같은 뻔한 인사는 생략하세요.
-- 캠퍼의 인원 구성(예: 아이들과 함께라면)과 선호 태그를 문맥에 부드럽게 녹여내세요.
-- 선택된 장소들을 억지로 모두 나열하지 말고, 여정의 흐름(장보기 -> 캠핑 -> 퇴실 등)처럼 자연스럽게 이어지듯 표현하세요.
-- 따뜻하고 정중한 '해요체'를 사용하세요.
+[작성 가이드 - 매우 중요]
+1. "안녕하세요!" 같은 뻔한 인사는 제외하세요.
+2. 서사 안에 장소를 언급할 때, 단순한 이름이 아니라 장소가 가진 [설명] 부분의 감성적인 특징을 자연스럽게 녹여서 문맥에 맞게 서술하세요.
+3. 캠퍼의 인원 구성과 선호 태그를 강하게 반영하여 개인화된 느낌을 극대화하세요.
+4. 존댓말('~해요', '~해보세요', '~어떨까요')의 따뜻하고 감성적인 여행 에세이 톤을 유지하세요.
+5. **[가장 중요한 규칙]** 서사 문장 내에서 특정 장소(설명+이름)를 지칭할 때는, 반드시 그 장소를 아래와 같은 특수 태그 형식으로 래핑해서 출력해야 합니다! 앱에서 이를 파싱하여 클릭 가능한 버튼으로 만듭니다.
+   - 태그 형식: ||팩트ID|장소이름||
+   - 작성 예시: "가는 길에 잠시 ||route-1|창밖으로 호수가 보이는 따뜻한 분위기의 베이커리 카페인 호수정원 카페||를 들려 여유를 즐기시고, 캠핑장 주변의 ||mart-1|신선한 고기와 장작이 상시 구비되어 있는 하나로마트 예산농협본점||에서 장을 보시면 되겠네요. 외식을 원하시면 ||rest-2|직접 담근 장으로 만든 건강하고 정갈한 시골 백반을 맛볼 수 있는 황토집 된장마을||을 추천해요."
+6. 절대로 마크다운 볼드(**)나 글머리 기호 형태를 쓰지 말고, 연속된 문단의 텍스트로만 반환하세요.
 `;
 
-        // Generate Content (Gemini 1.5 Flash - 빠르고 저렴함)
+        // Generate Content (Gemini 2.5 Flash Lite - 경제적/최신 경량화 모델)
         const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.5-flash-lite',
             contents: prompt,
         });
 
@@ -152,16 +213,16 @@ ${selectedFacts.map(f => `- ${f.name} (${f.description})`).join('\n')}
 
     } catch (error) {
         console.error("AI Narration Failed:", error);
-        // Fallback Narration
-        narration = `이번 캠핑을 더 편안하게 만들어줄 주변 추천 장소들을 모아봤습니다. 안전하고 즐거운 캠핑 되세요!`;
+        // Fallback Narration (API 키가 없거나 실패하더라도 UI 테스트가 가능하도록 풍부한 태그 포함)
+        narration = "가는 길에 잠시 ||route-1|창밖으로 호수가 보이는 따뜻한 베이커리 카페인 호수정원카페||를 들려 여유를 즐기시고, 캠핑장 주변의 ||mart-1|신선한 고기가 구비된 하나로마트||에서 장을 보시면 되겠네요. 외식을 원하시면 ||rest-2|건강하고 정갈한 시골 백반을 맛볼 수 있는 황토집 된장마을||을 추천해요. 밤에는 ||spot-3|탁 트인 시야로 별을 보기 좋은 은하수 언덕||을 들리셔서 인생샷을 남기셔도 좋을 것 같네요. 캠핑을 여유있게 즐기시다가 오시는 길에는 ||rest-1|80년 전통의 소복갈비||에 들려서 식사를 하시면서 즐거운 귀가를 하시면 또다시 우리들의 추억이 생길 것 같아요.";
     }
 
     // 4. Return Output
     return {
         "@context": "https://schema.org",
         "@type": "ItemList",
-        narration,
-        itemListElement: selectedFacts.length > 0 ? selectedFacts : [{
+        narration: narration.trim(),
+        itemListElement: activeFacts.length > 0 ? activeFacts : [{
             "@type": "ListItem",
             id: 'mock-1',
             category: 'SPOT',
@@ -171,7 +232,8 @@ ${selectedFacts.map(f => `- ${f.name} (${f.description})`).join('\n')}
             trustScore: 99,
             provenance: { sourceName: '라온아이 자체 추천 시스템', sourceUrl: 'https://raon.ai' },
             metadata: { isNatureWalk: true }
-        }]
+        }],
+        alternatives
     };
 }
 
@@ -182,7 +244,8 @@ ${selectedFacts.map(f => `- ${f.name} (${f.description})`).join('\n')}
 export async function generatePersonalizedSmartPlan(
     userId: string | undefined,
     location: { lat: number; lng: number },
-    date: Date,
+    startDate: Date,
+    endDate: Date,
     weatherContext?: string
 ): Promise<StandardizedPlanJSON> {
     try {
@@ -190,14 +253,15 @@ export async function generatePersonalizedSmartPlan(
         const persona = await extractUserPersona(userId);
 
         // 2. Headless Engine 구동
-        return await generateSmartPlan(persona, location, date, weatherContext);
+        return await generateSmartPlan(persona, location, startDate, endDate, weatherContext);
     } catch (err) {
         console.error("Headless Engine wrapper failed:", err);
         return {
             "@context": "https://schema.org",
             "@type": "ItemList",
             narration: "주변 추천 정보를 불러오는데 잠시 문제가 생겼어요. 곧 복구할게요!",
-            itemListElement: []
+            itemListElement: [],
+            alternatives: {}
         };
     }
 }

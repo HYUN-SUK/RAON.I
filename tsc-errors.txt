@@ -1,0 +1,3 @@
+﻿src/components/plan/SmartPlanProposal.tsx(63,13): error TS2367: This comparison appears to be unintentional because the types '"ROUTE_CAFE" | "MART_HOSPITAL" | "RESTAURANT" | "SPOT" | "FESTIVAL"' and '"MART"' have no overlap.
+src/components/plan/SmartPlanProposal.tsx(147,46): error TS2367: This comparison appears to be unintentional because the types '"ROUTE_CAFE" | "MART_HOSPITAL" | "RESTAURANT" | "SPOT" | "FESTIVAL"' and '"MART"' have no overlap.
+src/components/plan/SmartPlanProposal.tsx(150,46): error TS2367: This comparison appears to be unintentional because the types '"ROUTE_CAFE" | "MART_HOSPITAL" | "RESTAURANT" | "SPOT" | "FESTIVAL"' and '"HOSPITAL"' have no overlap.
