@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Navigation, Map as MapIcon, RefreshCw, ExternalLink, ShieldCheck, Heart } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart } from 'lucide-react';
 import { generatePersonalizedSmartPlan, StandardizedPlanJSON, FactCard } from '@/lib/smartPlan';
 import { dispatchPersonaAction } from '@/lib/persona';
 
@@ -116,7 +116,7 @@ export default function SmartPlanProposal({
                     </div>
 
                     <p className="text-lg leading-relaxed font-medium text-foreground tracking-tight">
-                        "{plan.narration}"
+                        &quot;{plan.narration}&quot;
                     </p>
                 </div>
             </div>
@@ -135,8 +135,8 @@ export default function SmartPlanProposal({
                             <Card
                                 key={card.id}
                                 className={`overflow-hidden transition-all duration-300 cursor-pointer ${isActive
-                                        ? 'ring-2 ring-primary shadow-md border-primary/50'
-                                        : 'hover:border-primary/30 hover:shadow-sm opacity-90'
+                                    ? 'ring-2 ring-primary shadow-md border-primary/50'
+                                    : 'hover:border-primary/30 hover:shadow-sm opacity-90'
                                     }`}
                                 onClick={() => handleCardClick(card)}
                             >

@@ -410,11 +410,7 @@ export const useReservationStore = create<ReservationState>()(
                 const { data: { user } } = await supabase.auth.getUser();
                 const userId = user?.id || '00000000-0000-0000-0000-000000000000'; // Guest UUID
 
-                console.log('[createReservationSafe] Call RPC with:', {
-                    site_id: params.siteId,
-                    check_in: formatLocalDate(params.checkIn),
-                    check_out: formatLocalDate(params.checkOut)
-                });
+
 
                 // RPC 호출
                 const { data, error } = await supabase.rpc('create_reservation_safe', {
