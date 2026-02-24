@@ -108,7 +108,7 @@ await notificationService.dispatchNotification(
 - **스케줄러**: `.github/workflows/camping-reminder-cron.yml`
 - **보안 라우트**: `src/app/api/cron/camping-reminder/route.ts` (Next.js Proxy API)
   - Github 측에 Supabase Root 키를 노출하지 않고, 기존에 사용 중이던 `CRON_SECRET`만을 이용해 Vercel 내부에서 인증을 통과한 뒤 Edge Function을 대리 호출합니다.
-  - ⚠️ **[중요] Vercel Hobby Timeout 회피**: Vercel 무료(Hobby) 요금제는 모든 API의 구동 시간을 10~15초(`maxDuration`)로 강제 종료시킵니다. 따라서 이 Proxy 라우트는 `await fetch()`를 쓰지 않고 **Fire-and-Forget(비동기 백그라운드 던져놓기)** 패턴으로 Edge Function을 찌른 뒤 즉시 응답(200 OK)을 반환하여 타임아웃을 원천 차단합니다.
+  - ⚠️ **[중요] Vercel Hobby Timeout 회피**: Vercel 무료(Hobby) 요금제는 기본 Node.js 런타임에서 API 구동 시간을 10~15초 사이로 강제 종료시킵니다. 이를 완벽히 회피하기 위해 Proxy 라우트는 **Edge Runtime**으로 동작하며, `context.waitUntil()`을 사용해 백그라운드 무거운 작업(Edge Function 호출)의 완료를 끝까지 보장받으면서도, 깃허브에는 즉시 "200 OK"를 반환하여 연결 타임아웃을 차단합니다.
 
 #### 🔄 2단계 분할 작동 원리
 1. **[단계 1] 캐시 프리페치 (08:50 AM KST)**
