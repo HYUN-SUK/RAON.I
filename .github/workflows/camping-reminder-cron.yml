@@ -41,11 +41,11 @@ jobs:
             fi
           fi
 
-      - name: Trigger Next.js Cron Proxy
+      - name: Trigger Supabase Edge Function
         run: |
           echo "Executing mode: ${{ env.mode }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.APP_URL }}/api/cron/camping-reminder?mode=${{ env.mode }}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ vars.NEXT_PUBLIC_SUPABASE_URL }}/functions/v1/camping-reminder?mode=${{ env.mode }}" \
+            -H "Authorization: Bearer ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json")
           
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
