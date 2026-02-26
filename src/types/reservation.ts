@@ -31,6 +31,7 @@ export interface Reservation {
             elementary: number;
             teen: number;
         };
+        hasPet?: boolean; // 반려견 동반 여부
     };
     totalPrice: number;
     status: ReservationStatus;

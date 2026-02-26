@@ -37,16 +37,43 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // 1. PostGIS 반경 검색 (15km = 15000m)
-        const { data: facts, error } = await supabase.rpc('get_smart_plan_facts_in_radius', {
-            center_lat: lat,
-            center_lng: lng,
-            radius_meters: 15000
-        });
+        let currentRadius = 15000;
+        let facts: any[] = [];
 
-        if (error) {
-            console.error("Supabase RPC Error:", error);
-            throw error;
+        // 1. PostGIS 반경 검색 (15km 검색 후 부족한 카테고리만 20>25>30km 순차 확장)
+        while (currentRadius <= 30000) {
+            const { data, error } = await supabase.rpc('get_smart_plan_facts_in_radius', {
+                center_lat: lat,
+                center_lng: lng,
+                radius_meters: currentRadius
+            });
+
+            if (error) {
+                console.error("Supabase RPC Error:", error);
+                throw error;
+            }
+
+            if (currentRadius === 15000) {
+                facts = data || [];
+            } else {
+                // 반경 확장 시, 15km 이내에 이미 충분히 검색된 카테고리(병원, 마트, 식당 등)는 제외하고 
+                // 검색되지 않았던 카테고리(예: 축제)만 추가 편입
+                const existingCategories = new Set(facts.map(f => f.category));
+                const newFacts = (data || []).filter((f: any) => !existingCategories.has(f.category));
+                facts = [...facts, ...newFacts];
+            }
+
+            // 필수 카테고리가 모두 존재하는지 확인
+            const presentCategories = new Set(facts.map(f => f.category));
+            const hasAllRequired = presentCategories.has('MART_HOSPITAL') &&
+                presentCategories.has('RESTAURANT') &&
+                presentCategories.has('FESTIVAL');
+
+            if (hasAllRequired) {
+                break; // 모든 필수 카테고리를 찾았으면 탐색 중단
+            }
+
+            currentRadius += 5000; // 15km -> 20km -> 25km -> 30km
         }
 
         if (!facts || facts.length === 0) {
@@ -343,8 +370,15 @@ ${activeFacts.map(f => `- ID: ${f.id} | 카테고리: ${f.category} | 이름: ${
 
     } catch (error) {
         console.error("AI Narration Failed:", error);
-        // Fallback Narration (API 키가 없거나 실패하더라도 UI 테스트가 가능하도록 풍부한 태그 포함)
-        narration = "가는 길에 잠시 ||route-1|창밖으로 호수가 보이는 따뜻한 베이커리 카페인 호수정원카페||를 들려 여유를 즐기시고, 캠핑장 주변의 ||mart-1|신선한 고기가 구비된 하나로마트||에서 장을 보시면 되겠네요. 외식을 원하시면 ||rest-2|건강하고 정갈한 시골 백반을 맛볼 수 있는 황토집 된장마을||을 추천해요. 밤에는 ||spot-3|탁 트인 시야로 별을 보기 좋은 은하수 언덕||을 들리셔서 인생샷을 남기셔도 좋을 것 같네요. 캠핑을 여유있게 즐기시다가 오시는 길에는 ||rest-1|80년 전통의 소복갈비||에 들려서 식사를 하시면서 즐거운 귀가를 하시면 또다시 우리들의 추억이 생길 것 같아요.";
+        // Fallback Narration: 동적으로 activeFacts의 실제 UUID를 매핑하여 클릭 가능한 태그 생성
+        narration = "캠핑장 오시는 길에 여유를 즐기시고, 주변의 훌륭한 로컬 명소들을 방문해 보세요. ";
+        if (activeFacts.length > 0) {
+            narration += "이번 캠핑에서 추천드리는 장소는 다음과 같습니다: " +
+                activeFacts.map(f => `||${f.id}|${f.name}||`).join(', ') +
+                " 입니다. 클릭해서 자세한 정보를 확인해보세요!";
+        } else {
+            narration += "현재 데이터망 사정으로 구체적인 주변 정보를 불러오지 못했습니다.";
+        }
     }
 
     // 4. Return Output

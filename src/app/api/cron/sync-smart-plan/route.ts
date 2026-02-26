@@ -52,8 +52,8 @@ export async function POST(request: Request) {
                         name: item.dutyName || '응급의료기관',
                         description: '응급실 가동 응급의료기관',
                         address: item.dutyAddr || '주소 정보 없음',
-                        lat: parseFloat(item.wgs84Lat) || 37.5665,
-                        lng: parseFloat(item.wgs84Lon) || 126.9780,
+                        lat: parseFloat(item.wgs84Lat) || 36.67,
+                        lng: parseFloat(item.wgs84Lon) || 126.84,
                         trust_score: score,
                         raw_data: item
                     };
@@ -94,8 +94,8 @@ export async function POST(request: Request) {
                     api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
                     name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당',
                     address: item.RELAX_ADD1,
-                    // 안심식당 API는 위경도 제공을 안 할 경우 주소 지오코딩이 필요하지만 MVP에서는 임의 기본값 할당
-                    lat: 36.5, lng: 127.5,
+                    // 안심식당 API는 위경도 제공을 안 할 경우 주소 지오코딩이 필요하지만 MVP에서는 예산군 중심부 임의 할당
+                    lat: 36.67, lng: 126.84,
                     trust_score: 50, raw_data: item
                 }));
                 allFacts = [...allFacts, ...safeFacts];
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
                         api_source: 'GOOD_RESTAURANT', category: 'RESTAURANT',
                         name: item.bplcNm, description: '지자체 인증 위생 모범음식점',
                         address: item.rdnwhlAddr || item.sitewhlAddr,
-                        lat: parseFloat(item.y) || 36.5, lng: parseFloat(item.x) || 127.5,
+                        lat: parseFloat(item.y) || 36.67, lng: parseFloat(item.x) || 126.84,
                         trust_score: 60, raw_data: item
                     }));
                 allFacts = [...allFacts, ...goodFacts];
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
                         id: item.bizesId || crypto.randomUUID(),
                         api_source: 'ADMIN_MART', category: 'MART_HOSPITAL',
                         name: item.bizesNm, description: '바베큐/장작 수급 가능한 대형마트',
-                        address: item.lnoAdr || item.rdnmAdr, lat: parseFloat(item.lat) || 36.5, lng: parseFloat(item.lon) || 127.5,
+                        address: item.lnoAdr || item.rdnmAdr, lat: parseFloat(item.lat) || 36.67, lng: parseFloat(item.lon) || 126.84,
                         trust_score: item.bizesNm?.includes('하나로마트') ? 80 : 60, // 하나로마트 휴무일 프리패스 가중치
                         raw_data: item
                     }));
@@ -163,8 +163,8 @@ export async function POST(request: Request) {
                     api_source: 'OPINET', category: 'MART_HOSPITAL',
                     name: item.OS_NM, description: '난방용 실내등유(팬히터용) 취급 주유소',
                     address: '위치 좌표 기반 주유소',
-                    // 오피넷은 KATEC 좌표계를 사용하므로 WGS84 변환이 필요하지만 MVP에서는 임의 기본값
-                    lat: 36.5, lng: 127.5,
+                    // 오피넷은 KATEC 좌표계를 사용하므로 WGS84 변환이 필요하지만 MVP에서는 예산군 중심부 기본값 할당
+                    lat: 36.67, lng: 126.84,
                     trust_score: 95, // 동계 생존 필수 가중치
                     raw_data: item
                 }));
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
                     id: item.contentid || crypto.randomUUID(),
                     api_source: 'TOUR_API', category: 'FESTIVAL',
                     name: item.title, description: '지역 축제 및 행사',
-                    address: item.addr1, lat: parseFloat(item.mapy) || 37.5, lng: parseFloat(item.mapx) || 127.0,
+                    address: item.addr1, lat: parseFloat(item.mapy) || 36.67, lng: parseFloat(item.mapx) || 126.84,
                     trust_score: 30, raw_data: item
                 }));
                 allFacts = [...allFacts, ...tourFacts];
@@ -201,15 +201,23 @@ export async function POST(request: Request) {
         // =========================================================================
         console.log(`Loading ${allFacts.length} facts into Supabase \`smart_plan_facts\` table...`);
 
-        // DB Insert (Upsert/Merge conflict on ID uuid)
+        // DB Insert (Delete all existing ones and insert new)
         if (allFacts.length > 0) {
-            // 기존 데이터를 안전하게 덮어쓰기 (upsert)
+            // 모든 기존 데이터를 삭제 (cron 주기마다 전체 갱신)
+            await supabase.from('smart_plan_facts').delete().not('id', 'is', null);
+
+            // 전부 새 UUID 발급 후 Insert
+            const finalFacts = allFacts.map(fact => ({
+                ...fact,
+                id: crypto.randomUUID()
+            }));
+
             const { error } = await supabase
                 .from('smart_plan_facts')
-                .upsert(allFacts, { onConflict: 'id' });
+                .insert(finalFacts);
 
             if (error) {
-                console.error("Supabase Upsert Error:", error);
+                console.error("Supabase Insert Error:", error);
                 throw new Error(`DB Insert Failed: ${error.message}`);
             }
         }

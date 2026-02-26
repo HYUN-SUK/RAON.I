@@ -28,6 +28,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const [kidsPreschool, setKidsPreschool] = useState(0);
     const [kidsElementary, setKidsElementary] = useState(0);
     const [kidsTeen, setKidsTeen] = useState(0);
+    const [hasPet, setHasPet] = useState(false);
 
     const [requests, setRequests] = useState('');
     const [agreed, setAgreed] = useState(false);
@@ -47,6 +48,13 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             setVehicleCount(rebookData.vehicleCount);
             if (rebookData.guestName) setName(rebookData.guestName);
             if (rebookData.guestPhone) setPhone(rebookData.guestPhone);
+            if (rebookData.guestDetails) {
+                setAdults(rebookData.guestDetails.adults ?? 2);
+                setKidsPreschool(rebookData.guestDetails.kids?.preschool ?? 0);
+                setKidsElementary(rebookData.guestDetails.kids?.elementary ?? 0);
+                setKidsTeen(rebookData.guestDetails.kids?.teen ?? 0);
+                setHasPet(rebookData.guestDetails.hasPet ?? false);
+            }
         } else {
             // rebookData가 없으면(새 예약), 최근 예약 기록에서 이름/연락처만이라도 가져오기
             fetchUserContactInfo();
@@ -126,7 +134,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         preschool: kidsPreschool,
                         elementary: kidsElementary,
                         teen: kidsTeen,
-                    }
+                    },
+                    hasPet
                 }
             });
 
@@ -302,6 +311,19 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                                 <button type="button" onClick={() => setKidsTeen(kidsTeen + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-4 bg-white/5 p-3 rounded-lg border border-white/10">
+                        <input
+                            type="checkbox"
+                            id="hasPet"
+                            checked={hasPet}
+                            onChange={(e) => setHasPet(e.target.checked)}
+                            className="w-4 h-4 rounded border-gray-300 text-[#2F5233] focus:ring-[#2F5233] cursor-pointer"
+                        />
+                        <label htmlFor="hasPet" className="text-sm text-white/80 cursor-pointer select-none">
+                            🐾 반려견과 함께 방문합니다. <span className="text-xs text-white/50 ml-1">(현재 사이트 규정에 따름)</span>
+                        </label>
                     </div>
                 </div>
 

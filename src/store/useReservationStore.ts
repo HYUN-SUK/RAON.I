@@ -47,6 +47,7 @@ interface ReservationState {
                 elementary: number;
                 teen: number;
             };
+            hasPet?: boolean;
         };
     }) => Promise<{ success: boolean; reservationId?: string; error?: string; message?: string }>;
     updateReservationStatus: (id: string, status: ReservationStatus, cancelReason?: string) => Promise<void>;
@@ -80,7 +81,7 @@ interface ReservationState {
     getOverdueReservations: () => { overdue: Reservation[], warning: Reservation[] };
     cancelOverdueReservations: () => void;
     validateReservation: (siteId: string, checkIn: Date, checkOut: Date) => string | null;
-    initRebook: (siteId: string, familyCount?: number, visitorCount?: number, vehicleCount?: number, guestName?: string, guestPhone?: string) => void;
+    initRebook: (siteId: string, familyCount?: number, visitorCount?: number, vehicleCount?: number, guestName?: string, guestPhone?: string, guestDetails?: Reservation['guestDetails']) => void;
 
     // Last Reservation (for Smart Re-book)
     lastReservation: {
@@ -92,6 +93,7 @@ interface ReservationState {
         checkInDate: Date;
         guestName?: string;
         guestPhone?: string;
+        guestDetails?: Reservation['guestDetails'];
     } | null;
     fetchLastReservation: () => Promise<void>;
 
@@ -103,6 +105,7 @@ interface ReservationState {
         vehicleCount: number;
         guestName?: string;
         guestPhone?: string;
+        guestDetails?: Reservation['guestDetails'];
     } | null;
     clearRebookData: () => void;
 
@@ -971,7 +974,8 @@ export const useReservationStore = create<ReservationState>()(
                         vehicle_count,
                         check_in_date,
                         guest_name,
-                        guest_phone
+                        guest_phone,
+                        guest_details
                     `)
                     .eq('user_id', user.id)
                     .in('status', ['CONFIRMED', 'COMPLETED'])
@@ -1004,12 +1008,13 @@ export const useReservationStore = create<ReservationState>()(
                         vehicleCount: data.vehicle_count || 1,
                         checkInDate: new Date(data.check_in_date),
                         guestName: data.guest_name || undefined,
-                        guestPhone: data.guest_phone || undefined
+                        guestPhone: data.guest_phone || undefined,
+                        guestDetails: data.guest_details || undefined
                     }
                 });
             },
 
-            initRebook: (siteId, familyCount, visitorCount, vehicleCount, guestName, guestPhone) => {
+            initRebook: (siteId, familyCount, visitorCount, vehicleCount, guestName, guestPhone, guestDetails) => {
                 // 사이트 선택
                 const { sites, lastReservation } = get();
                 const site = sites.find(s => s.id === siteId);
@@ -1025,7 +1030,8 @@ export const useReservationStore = create<ReservationState>()(
                         visitorCount: visitorCount ?? lastReservation?.visitorCount ?? 0,
                         vehicleCount: vehicleCount ?? lastReservation?.vehicleCount ?? 1,
                         guestName: guestName ?? lastReservation?.guestName,
-                        guestPhone: guestPhone ?? lastReservation?.guestPhone
+                        guestPhone: guestPhone ?? lastReservation?.guestPhone,
+                        guestDetails: guestDetails ?? lastReservation?.guestDetails
                     }
                 });
             },

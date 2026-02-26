@@ -442,8 +442,8 @@ export default function ScheduleDetailPage() {
                         <SmartPlanProposal
                             userId={userId}
                             location={{
-                                lat: schedule.campground_lat || 37.5665,
-                                lng: schedule.campground_lng || 126.9780
+                                lat: schedule.campground_lat || 36.67,
+                                lng: schedule.campground_lng || 126.84
                             }}
                             startDate={new Date(schedule.check_in)}
                             endDate={new Date(schedule.check_out)}
