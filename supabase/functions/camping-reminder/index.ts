@@ -21,6 +21,37 @@ const corsHeaders = {
 };
 
 // ==========================================
+// FIREBASE / FCM CONFIG
+// ==========================================
+const FIREBASE_PROJECT_ID = Deno.env.get('FIREBASE_PROJECT_ID');
+const FIREBASE_CLIENT_EMAIL = Deno.env.get('FIREBASE_CLIENT_EMAIL');
+const FIREBASE_PRIVATE_KEY = Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+
+// Import jose for JWT signing
+import * as jose from "https://deno.land/x/jose@v4.14.4/index.ts";
+
+async function getFcmAccessToken() {
+    if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) throw new Error("Missing Firebase Credentials");
+    const jwt = await new jose.SignJWT({
+        iss: FIREBASE_CLIENT_EMAIL,
+        scope: "https://www.googleapis.com/auth/firebase.messaging",
+        aud: "https://oauth2.googleapis.com/token",
+    })
+        .setProtectedHeader({ alg: "RS256" })
+        .setIssuedAt()
+        .setExpirationTime("1h")
+        .sign(await jose.importPKCS8(FIREBASE_PRIVATE_KEY, "RS256"));
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt }),
+    });
+    const data = await response.json();
+    return data.access_token;
+}
+
+// ==========================================
 // DB-BASED SCORING MEAL RECOMMENDATION
 // ==========================================
 interface Recipe {
@@ -314,6 +345,76 @@ function mockForecast(dateStr: string): DayForecast {
     };
 }
 
+async function sendBulkPush(notifications: any[]) {
+    if (notifications.length === 0) return;
+
+    console.log(`[Push] Starting bulk dispatch for ${notifications.length} notifications...`);
+    const accessToken = await getFcmAccessToken();
+
+    // Chunking: Process 5 users at a time to stay safe with concurrency and rate limits
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < notifications.length; i += CHUNK_SIZE) {
+        const chunk = notifications.slice(i, i + CHUNK_SIZE);
+        await Promise.all(chunk.map(async (notif) => {
+            try {
+                // 1. Fetch user's push tokens
+                const { data: tokens } = await supabase
+                    .from('push_tokens')
+                    .select('token')
+                    .eq('user_id', notif.user_id)
+                    .eq('is_active', true)
+                    .order('last_updated_at', { ascending: false })
+                    .limit(1);
+
+                if (!tokens || tokens.length === 0) {
+                    await supabase.from('notifications').update({ status: 'failed', error_message: 'No tokens found' }).eq('user_id', notif.user_id).eq('event_type', notif.event_type).order('created_at', { ascending: false }).limit(1);
+                    return;
+                }
+
+                const token = tokens[0].token;
+                const message = {
+                    message: {
+                        token: token,
+                        notification: { title: notif.title, body: notif.body },
+                        data: { link: notif.data.link, ...notif.data },
+                        android: { collapse_key: notif.event_type },
+                        apns: { headers: { 'apns-collapse-id': notif.event_type } }
+                    }
+                };
+
+                const res = await fetch(`https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(message),
+                });
+
+                if (res.status === 200) {
+                    // Update the specific record (we need to be careful with ID, but in this context we'll query for the latest for that user/type)
+                    await supabase.from('notifications')
+                        .update({ status: 'sent', sent_at: new Date().toISOString() })
+                        .eq('user_id', notif.user_id)
+                        .eq('event_type', notif.event_type)
+                        .eq('status', 'queued') // Only update if still queued
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+                } else {
+                    const err = await res.json();
+                    await supabase.from('notifications')
+                        .update({ status: 'failed', error_message: JSON.stringify(err) })
+                        .eq('user_id', notif.user_id)
+                        .eq('event_type', notif.event_type)
+                        .eq('status', 'queued')
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+                }
+            } catch (err) {
+                console.error(`[Push Error] User ${notif.user_id}:`, err);
+            }
+        }));
+    }
+    console.log("[Push] Bulk dispatch finished.");
+}
+
 // ==========================================
 // SERVE
 // ==========================================
@@ -456,6 +557,8 @@ serve(async (req) => {
                 console.error("Failed to insert notifications:", insertError);
             } else {
                 console.log(`Successfully queued ${notifications.length} notifications.`);
+                // Trigger direct dispatch for these notifications
+                sendBulkPush(notifications).then(); // Run in background
             }
         }
 

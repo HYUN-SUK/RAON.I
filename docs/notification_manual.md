@@ -12,9 +12,11 @@
 ### 🔄 데이터 흐름도
 1. **Trigger (발생)**: 예약 확정, 댓글 작성 등 이벤트 발생
 2. **Record (기록)**: `notifications` 테이블에 `INSERT`. 이때 `related_id`를 필수로 넣어야 중복 발송이 차단됩니다. (Status: `queued`)
-3. **Dispatch (발송)**: DB Webhook/Trigger가 Edge Function(`push-notification`) 호출
-4. **Delivery (전송)**: Edge Function이 사용자 기기로 전송. **중요: 가장 최근에 활성화된 토큰 1개로만 전송합니다.**
-5. **Result (결과)**: `result` 컬럼에 FCM 응답 로그가 JSON 형식으로 기록됩니다.
+3. **Direct Dispatch (직접 발송)**: 
+   - **1:1 알림 (예약 등)**: 애플리케이션 코드가 직접 Edge Function(`push-notification`)을 호출하여 1~2초 내 즉각 도달을 보장합니다.
+   - **대량 알림 (리마인더)**: `camping-reminder` 함수가 직접 FCM 서버로 **병렬 덩어리(Parallel Chunking)** 발송을 수행합니다.
+4. **Delivery (전송)**: Edge Function 또는 발송 엔진이 사용자 기기로 전송. **중요: 가장 최근에 활성화된 토큰 1개로만 전송합니다.**
+5. **Result (결과)**: 발송 성공 시 `status='sent'`, 에러 발생 시 `error_message` 컬럼에 로그를 기록합니다. (이전의 `result` 컬럼은 폐기됨)
 
 ---
 
@@ -85,8 +87,8 @@ await notificationService.dispatchNotification(
 ### Q. 알림이 안 와요!
 1. **DB 확인**: `notifications` 테이블에 데이터가 들어갔나요?
     - **No**: 비즈니스 로직(Step 3)이 실행되지 않았습니다. (트랜잭션 롤백 등 확인)
-    - **Yes (status='queued')**: Edge Function이 호출되지 않았거나 지연 중입니다.
-    - **Yes (status='failed')**: `result` 컬럼의 에러 메시지를 확인하세요. (토큰 만료 등)
+    - **Yes (status='queued')**: 발송 엔진이 호출되지 않았거나 지연 중입니다. (Direct Invocation 코드 확인)
+    - **Yes (status='failed')**: `error_message` 컬럼의 에러 메시지를 확인하세요. (토큰 만료 등)
     - **Yes (status='sent')**: 발송은 성공했습니다. 사용자 기기의 알림 설정이나 네트워크 문제입니다.
 
 ### Q. 알림이 두 번 와요! (중복 발송 문제 해결책)
@@ -110,14 +112,13 @@ await notificationService.dispatchNotification(
   - Vercel과 같은 Serverless 호스팅의 짧은 타임아웃(10~30초) 병목을 원천적으로 회피하기 위해, **GitHub Actions 서버에서 Supabase Edge Function을 직접 호출(Direct Call)**하는 구조를 채택했습니다.
   - GitHub 환경변수(Variables)에 등록된 프론트엔드 공개용 키(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)만을 사용하여 안전하게 통신하며, GitHub Actions 자체의 타임아웃은 6시간이므로 외부 날씨 API 연동과 같은 장기 대기 쓰레드도 100% 안정적으로 완료됩니다.
 
-#### 🔄 2단계 분할 작동 원리
-1. **[단계 1] 캐시 프리페치 (08:50 AM KST)**
-   - `?mode=prefetch` 파라미터로 호출됩니다.
-   - 알림 대상자들의 위치 정보를 바탕으로, 기상청(KMA) 날씨 및 행사(TourAPI) 목록만 미리 `weather_cache`, `nearby_cache` DB로 긁어옵니다.
-   - `Promise.all` 처리를 통해 통신하며 만약 10초 이상 지연되면 Abort 시키고 빠른 Fallback 데이터('맑음' 등)로 대체합니다. 알림은 발송되지 않습니다.
-2. **[단계 2] 초고속 발송 (09:00 AM KST)**
-   - `?mode=dispatch` 파라미터로 호출됩니다.
-   - 외부 API 통신을 **전혀** 하지 않고, 10분 전에 쌓아둔 로컬 DB 캐시 데이터만 눈 깜짝할 새에 읽어와 `user_schedules`의 D-1/D-4 예약건 대상 푸시 알림을 조립하여 `notifications` 테이블에 Insert합니다.
+#### 🔄 고성능 발송 프로세스 (Direct FCM + Chunking)
+1. **[단계 1] 캐시 프리페치 (08:50 AM KST)**: 날씨 및 행사 정보를 미리 DB로 긁어옵니다.
+2. **[단계 2] 초고속 병렬 발송 (09:00 AM KST)**:
+   - 외부 API 통신 없이 DB 캐시만 사용하여 메시지를 조립합니다.
+   - **Direct FCM**: `push-notification` 함수를 거치지 않고 직접 FCM 서버와 통신하여 오버헤드를 최소화합니다.
+   - **Parallel Chunking**: 5~10건씩 묶어 병렬로 발송하여 수천 건도 수초 내에 완포합니다.
+   - **Token Reuse**: 1회의 인증으로 전체 배치 알림을 발송하는 효율적인 토큰 재사용 정책을 따릅니다.
 
 ### 🛠️ 점검 및 수동 복구 방법
 - **로그인/권한 문제**: Github Actions 콘솔(`Actions` 탭 -> `Camping Reminder Cron`)에서 에러 로그를 가장 빠르고 직관적으로 확인할 수 있습니다.
@@ -146,3 +147,18 @@ await notificationService.dispatchNotification(
 4.  **관련 인프라**:
     - **PWA**: 홈 화면 설치 시 알림 제목 옆에 브라우저 이름 대신 웹앱 이름이 표시됨.
     - **TWA (Google Play Store)**: 완전한 앱 자격을 갖게 되어 알림 영역에서 '삼성 인터넷' 등의 흔적을 완전히 제거 가능.
+
+---
+
+## 8. 에지 함수 배포 가이드 (Deployment)
+
+로컬 환경에 Docker가 설치되어 있지 않거나, 빌드 오류가 발생할 경우 Supabase 서버의 리소스를 사용하는 **서버사이드 빌드** 방식을 권장합니다.
+
+```bash
+# Docker 없이 서버사이드 빌드로 배포하는 표준 명령어
+npx supabase functions deploy push-notification --use-api
+npx supabase functions deploy camping-reminder --use-api
+```
+
+> [!TIP]
+> **성능 최적화**: 대량 발송 로직이 포함된 `camping-reminder` 함수는 배포 시 반드시 `--use-api` 플래그를 사용하여 의존성 관계가 깨지지 않도록 주의하십시오.

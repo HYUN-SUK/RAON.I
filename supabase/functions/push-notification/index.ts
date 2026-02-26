@@ -206,7 +206,7 @@ serve(async (req) => {
 });
 
 async function updateNotificationStatus(id: string, status: string, result: string) {
-    const updateData: any = { status, result };
+    const updateData: any = { status, error_message: result };
     if (status === 'sent') {
         updateData.sent_at = new Date().toISOString();
     }

@@ -1,0 +1,21 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?뫁 sync secrets across teammates & machines: https://dotenvx.com/ops
+=== Testing push-notification Edge Function directly ===
+Found queued notification: 64e14a3e-53b1-43b2-8a0e-6f81cf4a93e2 ?덉빟 ?좎껌 ?꾨즺
+Push-notification result: {
+  "success": true,
+  "results": [
+    {
+      "token": "cMc1VSgydY5v23rthMu54l:APA91bG4TWb-OaS5TZynCECCqNyHPhSc-fm5PfxHhEVtgxrrh6OEXnnSe67aHS_8P64Ls0XyT6O_ArJffOJFRhw9fvcwP3hkOLbt1CnU2gJ5TNXfOc13-LE",
+      "status": 200,
+      "body": {
+        "name": "projects/raon-i-push/messages/7e35c19b-a246-4481-b868-ae23709395b0"
+      }
+    }
+  ],
+  "cleaned": 0
+}
+Push-notification error: null
+
+pg_net _http_response table check: Error: Could not find the table 'public.net._http_response' in the schema cache
+
+=== Check Supabase Dashboard > Edge Functions > push-notification > Logs for errors ===
