@@ -1,37 +1,45 @@
 // public/firebase-messaging-sw.js
 // Firebase Cloud Messaging Service Worker
 
-// Firebase 설정 (실제 프로젝트 설정)
+// 쿼리스트링 파싱 유틸리티 함수
+const qs = new URLSearchParams(self.location.search);
+
+// 1. URL 파라미터에서 환경변수 로딩 (동적 주입 - 하드코딩 제거)
 const firebaseConfig = {
-  apiKey: "AIzaSyA90jRL_O7EKQi3dZ4nC3of5dPGwADMni4",
-  authDomain: "raon-i-push.firebaseapp.com",
-  projectId: "raon-i-push",
-  storageBucket: "raon-i-push.firebasestorage.app",
-  messagingSenderId: "202794116394",
-  appId: "1:202794116394:web:b76f61e403cd35d0332a53"
+  apiKey: qs.get('apiKey'),
+  authDomain: qs.get('authDomain'),
+  projectId: qs.get('projectId'),
+  storageBucket: qs.get('storageBucket'),
+  messagingSenderId: qs.get('messagingSenderId'),
+  appId: qs.get('appId')
 };
 
-// Firebase SDK import 및 초기화
-importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
+// 필수 값이 없다면 Firebase SDK 초기화 중지
+if (!firebaseConfig.apiKey) {
+  console.error('[Service Worker] Missing Firebase config parameters. SDK will not initialize.');
+} else {
+  // 2. Firebase SDK import 및 초기화 (최상단)
+  importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+  importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
 
-firebase.initializeApp(firebaseConfig);
-const messaging = firebase.messaging();
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
 
-// 백그라운드 메시지 수신 핸들러 (Firebase SDK 표준 방식)
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  // 백그라운드 메시지 수신 핸들러 (Firebase SDK 표준 방식)
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-  const title = payload.notification?.title || 'RAON.I 알림';
-  const options = {
-    body: payload.notification?.body || '',
-    icon: '/images/logo.png',
-    badge: '/images/logo.png', // 단색 아이콘 권장
-    data: payload.data || {}
-  };
+    const title = payload.notification?.title || 'RAON.I 알림';
+    const options = {
+      body: payload.notification?.body || '',
+      icon: '/images/logo.png',
+      badge: '/images/logo.png', // 단색 아이콘 권장
+      data: payload.data || {}
+    };
 
-  return self.registration.showNotification(title, options);
-});
+    return self.registration.showNotification(title, options);
+  });
+}
 
 // 서비스 워커 설치 이벤트
 self.addEventListener('install', (event) => {
