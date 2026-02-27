@@ -37,17 +37,15 @@ export default function ServiceWorkerRegister() {
             };
             navigator.serviceWorker.addEventListener('message', handleMessage);
 
-            // 3. Foreground Message Listener (Firebase SDK) - DISABLED by User Request 
-            // The user requested to hide "New Alarms" (toasts) when the app is open.
-            // Since we kept the listener above (#2), clicking a SYSTEM notification will still work.
-            /*
+            // 3. Foreground Message Listener (Firebase SDK) - ENABLED
+            // Displays a Toast notification when the app is focused (foreground).
             const initForegroundMessage = async () => {
                 const messaging = await getMessagingInstance();
                 if (messaging) {
                     onMessage(messaging, (payload) => {
                         console.log('[App] Foreground Message received:', payload);
                         const { title, body } = payload.notification || {};
-                        
+
                         // Show Toast
                         toast.info(title || '새 알림', {
                             description: body,
@@ -57,13 +55,12 @@ export default function ServiceWorkerRegister() {
                                     window.location.href = '/notifications';
                                 }
                             },
-                            duration: Infinity, 
+                            duration: Infinity,
                         });
                     });
                 }
             };
             initForegroundMessage();
-            */
 
             return () => {
                 navigator.serviceWorker.removeEventListener('message', handleMessage);
