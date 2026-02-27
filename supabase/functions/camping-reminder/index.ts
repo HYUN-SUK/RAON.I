@@ -378,7 +378,12 @@ async function sendBulkPush(notifications: any[]) {
                         notification: { title: notif.title, body: notif.body },
                         data: { link: notif.data.link, ...notif.data },
                         android: { collapse_key: notif.event_type },
-                        apns: { headers: { 'apns-collapse-id': notif.event_type } }
+                        apns: { headers: { 'apns-collapse-id': notif.event_type } },
+                        webpush: {
+                            fcm_options: {
+                                link: notif.data.link
+                            }
+                        }
                     }
                 };
 

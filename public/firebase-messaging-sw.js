@@ -18,8 +18,26 @@ importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js')
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// 배경 메시지 처리는 Firebase SDK에 위임하여 브라우저 기본 기능(2일 전 상태)으로 작동하게 함
-// (messaging.onBackgroundMessage 핸들러를 제거하여 SDK가 notification 필드를 읽어 직접 팝업하게 함)
+// 3. 백그라운드 메시지 수신 핸들러 (명시적 알림 띄우기)
+// Foreground(토스트)는 이미 성공했으므로, Background(시스템 알림)를 더 확실하게 띄우도록 보강합니다.
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+
+  const title = payload.notification?.title || payload.data?.title || 'RAON.I 알림';
+  const notificationOptions = {
+    body: payload.notification?.body || payload.data?.body || '',
+    icon: '/images/logo.png',
+    badge: '/images/logo.png',
+    tag: payload.data?.event_type || 'default', // 같은 유형 알림 묶기
+    renotify: true, // 새 알림 시 다시 진동/소리
+    data: {
+      link: payload.data?.link || '/notifications',
+      ...payload.data
+    }
+  };
+
+  return self.registration.showNotification(title, notificationOptions);
+});
 
 // 서비스 워커 설치 이벤트
 self.addEventListener('install', (event) => {

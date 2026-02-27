@@ -148,7 +148,12 @@ serve(async (req) => {
                     data: stringData,
                     // Remove collapse_key to avoid OS-level suppression during debugging
                     android: {},
-                    apns: {}
+                    apns: {},
+                    webpush: {
+                        fcm_options: {
+                            link: stringData.link
+                        }
+                    }
                 }
             };
 
