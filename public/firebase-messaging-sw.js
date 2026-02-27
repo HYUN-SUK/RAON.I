@@ -18,10 +18,19 @@ importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js')
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// 백그라운드 메시지 수신 핸들러 (로깅만, 알림 표시는 push 이벤트에서 처리)
+// 백그라운드 메시지 수신 핸들러 (Firebase SDK 표준 방식)
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  // showNotification은 push 이벤트 핸들러에서만 처리 (중복 방지)
+
+  const title = payload.notification?.title || 'RAON.I 알림';
+  const options = {
+    body: payload.notification?.body || '',
+    icon: '/images/logo.png',
+    badge: '/images/logo.png', // 단색 아이콘 권장
+    data: payload.data || {}
+  };
+
+  return self.registration.showNotification(title, options);
 });
 
 // 서비스 워커 설치 이벤트
@@ -81,32 +90,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// 푸시 이벤트 핸들러 (브라우저 시스템 알림 표시)
-self.addEventListener('push', function (event) {
-  if (!event.data) return;
-
-  try {
-    const payload = event.data.json();
-    const title = payload.notification?.title || 'RAON.I 알림';
-    const options = {
-      body: payload.notification?.body || '',
-      icon: '/images/logo.png',
-      badge: '/images/logo.png',
-      data: payload.data || {}
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (e) {
-    // JSON 파싱 실패 시 텍스트로 처리
-    const title = 'RAON.I 알림';
-    const options = {
-      body: event.data.text(),
-      icon: '/images/logo.png',
-      badge: '/images/logo.png'
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-  }
-});
+// (수동 푸시 이벤트 핸들러 삭제됨 - Firebase SDK(onBackgroundMessage)에 팝업 처리를 위임하여 충돌 방지)
 
 // PWA Install Criteria: Must have a fetch handler
 self.addEventListener('fetch', (event) => {

@@ -148,6 +148,18 @@ serve(async (req) => {
                                 category: "NEW_MESSAGE"
                             }
                         }
+                    },
+                    webpush: {
+                        headers: {
+                            Topic: `${event_type || 'default'}_${related_id || 'general'}`
+                        },
+                        notification: {
+                            icon: "/images/logo.png",
+                            badge: "/images/logo.png"
+                        },
+                        fcm_options: {
+                            link: data.link || "https://raon-i.vercel.app/notifications"
+                        }
                     }
                 }
             };
