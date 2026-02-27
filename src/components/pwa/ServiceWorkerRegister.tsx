@@ -11,25 +11,15 @@ export default function ServiceWorkerRegister() {
         if ('serviceWorker' in navigator) {
             const registerSW = async () => {
                 try {
-                    // 환경변수를 URL 파라미터로 주입하여 보안 강화 (하드코딩 방지)
-                    const swUrl = new URL('/firebase-messaging-sw.js', window.location.origin);
-                    swUrl.searchParams.set('apiKey', process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '');
-                    swUrl.searchParams.set('authDomain', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '');
-                    swUrl.searchParams.set('projectId', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '');
-                    swUrl.searchParams.set('storageBucket', process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '');
-                    swUrl.searchParams.set('messagingSenderId', process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '');
-                    swUrl.searchParams.set('appId', process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '');
-
-                    await navigator.serviceWorker.register(swUrl.href);
+                    // Revert to plain URL (Remove URL params to rule out registration confusion)
+                    await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                 } catch (err) {
                     console.log('Service Worker registration failed:', err);
                 }
             };
             registerSW();
 
-            // 2. Message Listener (Service Worker -> Client, e.g. Deep Link Fallback)
-            // CRITICAL: This handles navigation requests from the SW when the app is open.
-            // DO NOT REMOVE THIS even if foreground toasts are disabled.
+            // 2. Message Listener (Service Worker -> Client)
             const handleMessage = (event: MessageEvent) => {
                 if (event.data && event.data.type === 'NOTIFICATION_CLICK' && event.data.url) {
                     window.location.href = event.data.url;
@@ -38,7 +28,6 @@ export default function ServiceWorkerRegister() {
             navigator.serviceWorker.addEventListener('message', handleMessage);
 
             // 3. Foreground Message Listener (Firebase SDK) - ENABLED
-            // Displays a Toast notification when the app is focused (foreground).
             const initForegroundMessage = async () => {
                 const messaging = await getMessagingInstance();
                 if (messaging) {

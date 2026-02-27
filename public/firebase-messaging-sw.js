@@ -1,45 +1,25 @@
 // public/firebase-messaging-sw.js
 // Firebase Cloud Messaging Service Worker
 
-// 쿼리스트링 파싱 유틸리티 함수
-const qs = new URLSearchParams(self.location.search);
-
-// 1. URL 파라미터에서 환경변수 로딩 (동적 주입 - 하드코딩 제거)
+// 1. Firebase Config (Hardcoded for stability)
 const firebaseConfig = {
-  apiKey: qs.get('apiKey'),
-  authDomain: qs.get('authDomain'),
-  projectId: qs.get('projectId'),
-  storageBucket: qs.get('storageBucket'),
-  messagingSenderId: qs.get('messagingSenderId'),
-  appId: qs.get('appId')
+  apiKey: "AIzaSyCXW3gnlflXMvLEy8E4ETNBi3W-J7U6T7A",
+  authDomain: "raon-i.firebaseapp.com",
+  projectId: "raon-i-push",
+  storageBucket: "raon-i.appspot.com",
+  messagingSenderId: "367175222047",
+  appId: "1:367175222047:web:86eeb9b79878207908c69c"
 };
 
-// 필수 값이 없다면 Firebase SDK 초기화 중지
-if (!firebaseConfig.apiKey) {
-  console.error('[Service Worker] Missing Firebase config parameters. SDK will not initialize.');
-} else {
-  // 2. Firebase SDK import 및 초기화 (최상단)
-  importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
-  importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
+// 2. Firebase SDK import 및 초기화
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
 
-  firebase.initializeApp(firebaseConfig);
-  const messaging = firebase.messaging();
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
 
-  // 백그라운드 메시지 수신 핸들러 (Firebase SDK 표준 방식)
-  messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
-    const title = payload.notification?.title || 'RAON.I 알림';
-    const options = {
-      body: payload.notification?.body || '',
-      icon: '/images/logo.png',
-      badge: '/images/logo.png', // 단색 아이콘 권장
-      data: payload.data || {}
-    };
-
-    return self.registration.showNotification(title, options);
-  });
-}
+// 배경 메시지 처리는 Firebase SDK에 위임하여 브라우저 기본 기능(2일 전 상태)으로 작동하게 함
+// (messaging.onBackgroundMessage 핸들러를 제거하여 SDK가 notification 필드를 읽어 직접 팝업하게 함)
 
 // 서비스 워커 설치 이벤트
 self.addEventListener('install', (event) => {

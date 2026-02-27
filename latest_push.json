@@ -1,0 +1,42 @@
+[
+  {
+    "id": "0635ffbe-c235-4534-917d-a3adcc3edd35",
+    "title": "예약 신청 완료",
+    "event_type": "reservation_submitted",
+    "status": "sent",
+    "error_message": "[{\"status\":200}]",
+    "created_at": "2026-02-27T02:10:37.836178+00:00"
+  },
+  {
+    "id": "2adb18b5-4bf7-4c83-b46c-2bb369d6e666",
+    "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "error_message": null,
+    "created_at": "2026-02-27T00:01:16.82789+00:00"
+  },
+  {
+    "id": "6f4745bd-7bdd-46a5-97e1-e7c82995a2e8",
+    "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "error_message": null,
+    "created_at": "2026-02-27T00:01:16.82789+00:00"
+  },
+  {
+    "id": "d423d087-ebf5-4ea8-9fd8-c8f331cf0fbf",
+    "title": "🎒 캠핑이 4일 남았어요!",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "error_message": null,
+    "created_at": "2026-02-27T00:01:16.82789+00:00"
+  },
+  {
+    "id": "dfab8c1b-afbb-4113-a982-cc06f3913a13",
+    "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "error_message": null,
+    "created_at": "2026-02-27T00:01:16.82789+00:00"
+  }
+]

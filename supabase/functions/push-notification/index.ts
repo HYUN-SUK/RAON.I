@@ -125,42 +125,30 @@ serve(async (req) => {
         const results = await Promise.all(deliveryTokens.map(async (t, idx) => {
             console.log(`[STEP 4-${idx}] Preparing message for token ${t.token.slice(0, 20)}...`);
 
+            // Ensure all data fields are strings (FCM v1 requirement)
+            const stringData: Record<string, string> = {
+                link: String(data?.link || "https://raon-i.vercel.app/notifications"),
+                event_type: String(event_type || 'default'),
+                related_id: String(related_id || 'general')
+            };
+
+            if (data && typeof data === 'object') {
+                Object.entries(data).forEach(([key, value]) => {
+                    stringData[key] = String(value);
+                });
+            }
+
             const message = {
                 message: {
                     token: t.token,
                     notification: {
-                        title: title,
-                        body: body,
+                        title: String(title),
+                        body: String(body),
                     },
-                    data: {
-                        link: data.link || "https://raon-i.vercel.app/notifications",
-                        ...data,
-                    },
-                    android: {
-                        collapse_key: `${event_type || 'default'}_${related_id || 'general'}`,
-                    },
-                    apns: {
-                        headers: {
-                            'apns-collapse-id': `${event_type || 'default'}_${related_id || 'general'}`,
-                        },
-                        payload: {
-                            aps: {
-                                category: "NEW_MESSAGE"
-                            }
-                        }
-                    },
-                    webpush: {
-                        headers: {
-                            Topic: `${event_type || 'default'}_${related_id || 'general'}`
-                        },
-                        notification: {
-                            icon: "/images/logo.png",
-                            badge: "/images/logo.png"
-                        },
-                        fcm_options: {
-                            link: data.link || "https://raon-i.vercel.app/notifications"
-                        }
-                    }
+                    data: stringData,
+                    // Remove collapse_key to avoid OS-level suppression during debugging
+                    android: {},
+                    apns: {}
                 }
             };
 
@@ -179,7 +167,7 @@ serve(async (req) => {
             const resBody = await res.json();
             console.log(`[STEP 4-${idx}] FCM Response: ${res.status}`, JSON.stringify(resBody));
 
-            return { token: t.token, status: res.status, body: resBody };
+            return { token: t.token, status: res.status, resBody };
         }));
 
         console.log(`All FCM calls completed. Success: ${results.filter(r => r.status === 200).length}`);
@@ -190,7 +178,7 @@ serve(async (req) => {
 
         // Cleanup: Delete invalid tokens
         const invalidTokens = results
-            .filter(r => r.status === 400 || r.status === 404 || (r.body.error && (r.body.error.code === 404 || r.body.error.status === 'UNREGISTERED' || r.body.error.status === 'INVALID_ARGUMENT')))
+            .filter(r => r.status === 400 || r.status === 404 || (r.resBody.error && (r.resBody.error.code === 404 || r.resBody.error.status === 'UNREGISTERED' || r.resBody.error.status === 'INVALID_ARGUMENT')))
             .map(r => r.token);
 
         if (invalidTokens.length > 0) {
@@ -200,7 +188,7 @@ serve(async (req) => {
 
         // Determine final status
         const finalStatus = successCount > 0 ? 'sent' : 'failed';
-        const resultSummary = JSON.stringify(results.map(r => ({ status: r.status, err: r.body.error?.message })));
+        const resultSummary = JSON.stringify(results.map(r => ({ status: r.status, err: r.resBody.error?.message, full: r.resBody })));
 
         await updateNotificationStatus(id, finalStatus, resultSummary); // Update sent_at if success
 
