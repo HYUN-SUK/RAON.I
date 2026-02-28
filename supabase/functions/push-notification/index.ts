@@ -116,11 +116,11 @@ serve(async (req) => {
             })
             .filter((t): t is { token: string } => !!t);
 
-        // [FIX] SINGLE DELIVERY POLICY
-        // To prevent duplicate pings on the same device, we only send to the most RECENTLY updated token.
-        // Even if multiple tokens exist, the latest one is prioritized.
-        const deliveryTokens = uniqueTokens.slice(0, 1);
-        console.log(`Sending to the latest 1 of ${uniqueTokens.length} unique token(s)...`);
+        // [FIX] BROADCAST DELIVERY POLICY
+        // To ensure delivery across multiple sessions or devices, we send to ALL active unique tokens.
+        // FCM dedupes at the device level if it's the exact same registration.
+        const deliveryTokens = uniqueTokens;
+        console.log(`Sending to all ${deliveryTokens.length} unique token(s)...`);
 
         const results = await Promise.all(deliveryTokens.map(async (t, idx) => {
             console.log(`[STEP 4-${idx}] Preparing message for token ${t.token.slice(0, 20)}...`);
@@ -180,13 +180,19 @@ serve(async (req) => {
         const successCount = results.filter(r => r.status === 200).length;
         const failureCount = results.length - successCount;
 
-        // Cleanup: Delete invalid tokens
+        // Cleanup: Delete invalid tokens (Fires RPC or direct delete)
         const invalidTokens = results
-            .filter(r => r.status === 400 || r.status === 404 || (r.resBody.error && (r.resBody.error.code === 404 || r.resBody.error.status === 'UNREGISTERED' || r.resBody.error.status === 'INVALID_ARGUMENT')))
+            .filter(r => {
+                const isError = r.status === 400 || r.status === 404;
+                const errCode = r.resBody?.error?.details?.[0]?.errorCode;
+                const status = r.resBody?.error?.status;
+                return isError || status === 'UNREGISTERED' || status === 'NOT_FOUND' || errCode === 'UNREGISTERED';
+            })
             .map(r => r.token);
 
         if (invalidTokens.length > 0) {
-            console.log(`[CLEANUP] Found ${invalidTokens.length} invalid tokens. Deleting...`);
+            console.log(`[CLEANUP] Found ${invalidTokens.length} invalid tokens. Pruning...`);
+            // Use RPC for atomic precision or direct delete
             await supabase.from('push_tokens').delete().in('token', invalidTokens);
         }
 

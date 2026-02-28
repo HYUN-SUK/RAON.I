@@ -32,13 +32,21 @@ export function usePushNotification() {
                 const { data: { user } } = await supabase.auth.getUser();
 
                 if (user) {
-                    await supabase.from('push_tokens').upsert({
-                        token,
-                        user_id: user.id,
-                        device_type: 'web',
-                        is_active: true,
-                        last_updated_at: new Date().toISOString()
-                    });
+                    // [SYNC GUARD] Prevent redundant writes if token hasn't changed
+                    const lastToken = localStorage.getItem('last_synced_fcm_token');
+                    if (lastToken === token) {
+                        console.log('[Push] Token already synced. Skipping...');
+                    } else {
+                        await supabase.from('push_tokens').upsert({
+                            token,
+                            user_id: user.id,
+                            device_type: 'web',
+                            is_active: true,
+                            last_updated_at: new Date().toISOString()
+                        });
+                        localStorage.setItem('last_synced_fcm_token', token);
+                        console.log('[Push] Token synced to Supabase');
+                    }
                 }
 
                 // Silent success (User requested to hide toast on every visit)

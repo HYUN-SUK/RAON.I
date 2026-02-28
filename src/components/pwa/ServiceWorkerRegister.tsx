@@ -11,18 +11,29 @@ export default function ServiceWorkerRegister() {
         if ('serviceWorker' in navigator) {
             const registerSW = async () => {
                 try {
-                    // [1-1] Hard Reset: Unregister ALL existing workers to clear query-param collisions
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    for (let registration of registrations) {
-                        await registration.unregister();
-                        console.log('[SW] Existing worker unregistered');
+                    // Check if already registered
+                    const existingRegs = await navigator.serviceWorker.getRegistrations();
+                    const isAlreadyRegistered = existingRegs.some(reg => reg.active && reg.active.scriptURL.includes('firebase-messaging-sw.js'));
+
+                    if (isAlreadyRegistered) {
+                        console.log('[SW] Already registered and active. Skipping...');
+                        return;
                     }
+
+                    // [1-1] Optional Versioned Reset (Uncomment if substantial SW changes occur)
+                    /*
+                    const SW_VERSION = 'v1.1';
+                    if (localStorage.getItem('sw_version') !== SW_VERSION) {
+                        for (let reg of existingRegs) await reg.unregister();
+                        localStorage.setItem('sw_version', SW_VERSION);
+                    }
+                    */
 
                     // [1-2] Clean Registration
                     await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                     console.log('[SW] Clean worker registered');
                 } catch (err) {
-                    console.log('Service Worker registration failed:', err);
+                    console.error('[SW] Registration failed:', err);
                 }
             };
             registerSW();

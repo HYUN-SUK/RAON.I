@@ -1,57 +1,49 @@
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: '.env.local' });
 const fs = require('fs');
+require('dotenv').config({ path: '.env.local' });
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function runDiagnosis() {
-    const result = {};
-    const todayKST = new Date(new Date().getTime() + 9 * 3600000);
-    const todayStr = todayKST.toISOString().split('T')[0];
+async function diagnose() {
+    console.log('--- Gathering Data ---');
+    const { data: profiles } = await supabase.from('profiles').select('id, email');
+    const emailMap = {};
+    profiles.forEach(p => emailMap[p.id] = p.email);
 
-    result.timestamp = new Date().toISOString();
-    result.targetDateKST = todayStr;
+    const { data: notifications } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
 
-    try {
-        // 1. Check Caches (Did Prefetch run?)
-        const { data: weatherCache } = await supabase.from('weather_cache').select('nx, ny, updated_at').order('updated_at', { ascending: false }).limit(5);
-        const { data: nearbyCache } = await supabase.from('nearby_cache').select('region_code, base_date, updated_at').order('updated_at', { ascending: false }).limit(5);
+    const { data: allTokens } = await supabase
+        .from('push_tokens')
+        .select('*')
+        .order('last_updated_at', { ascending: false });
 
-        result.cacheStatus = {
-            weather: weatherCache,
-            nearby: nearbyCache
-        };
+    const report = {
+        timestamp: new Date().toISOString(),
+        recent_notifications: notifications.map(n => ({
+            ...n,
+            user_email: emailMap[n.user_id] || 'Unknown'
+        })),
+        token_stats: {},
+        all_tokens: allTokens.map(t => ({
+            ...t,
+            user_email: emailMap[t.user_id] || 'Unknown'
+        }))
+    };
 
-        // 2. Check Notifications (Did Dispatch run and insert anything?)
-        const { data: recentNotifs } = await supabase.from('notifications')
-            .select('*')
-            .eq('category', 'reservation')
-            .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-            .order('created_at', { ascending: false });
+    allTokens.forEach(t => {
+        const email = emailMap[t.user_id] || t.user_id;
+        if (!report.token_stats[email]) report.token_stats[email] = 0;
+        report.token_stats[email]++;
+    });
 
-        result.recentNotifications = recentNotifs;
-
-        // 3. Check User Schedules for tootg@naver.com
-        const { data: profile } = await supabase.from('profiles').select('id').eq('email', 'tootg@naver.com').single();
-        if (profile) {
-            const { data: userSchedules } = await supabase.from('user_schedules')
-                .select('*')
-                .eq('user_id', profile.id)
-                .gte('check_in', todayStr)
-                .order('check_in', { ascending: true });
-
-            result.schedules = userSchedules;
-        }
-
-        fs.writeFileSync('diag_result.json', JSON.stringify(result, null, 2));
-        console.log("Diagnosis complete. Results saved to diag_result.json");
-
-    } catch (err) {
-        console.error("Diagnosis failed:", err);
-    }
+    fs.writeFileSync('diag_result.json', JSON.stringify(report, null, 2));
+    console.log('Results written to diag_result.json');
 }
 
-runDiagnosis();
+diagnose();

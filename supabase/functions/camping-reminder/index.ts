@@ -357,64 +357,78 @@ async function sendBulkPush(notifications: any[]) {
         const chunk = notifications.slice(i, i + CHUNK_SIZE);
         await Promise.all(chunk.map(async (notif) => {
             try {
-                // 1. Fetch user's push tokens
+                // 1. Fetch ALL user's push tokens
                 const { data: tokens } = await supabase
                     .from('push_tokens')
                     .select('token')
                     .eq('user_id', notif.user_id)
                     .eq('is_active', true)
-                    .order('last_updated_at', { ascending: false })
-                    .limit(1);
+                    .order('last_updated_at', { ascending: false });
 
                 if (!tokens || tokens.length === 0) {
-                    await supabase.from('notifications').update({ status: 'failed', error_message: 'No tokens found' }).eq('user_id', notif.user_id).eq('event_type', notif.event_type).order('created_at', { ascending: false }).limit(1);
+                    await supabase.from('notifications')
+                        .update({ status: 'failed', error_message: 'No tokens found' })
+                        .eq('id', notif.id);
                     return;
                 }
 
-                const token = tokens[0].token;
-                const message = {
-                    message: {
-                        token: token,
-                        notification: { title: notif.title, body: notif.body },
-                        data: {
-                            title: notif.title,
-                            body: notif.body,
-                            link: notif.data.link,
-                            ...notif.data
-                        },
-                        webpush: {
-                            fcm_options: {
-                                link: notif.data.link
+                console.log(`[Push] Sending to ${tokens.length} tokens for user ${notif.user_id}...`);
+
+                const results = await Promise.all(tokens.map(async (t) => {
+                    const message = {
+                        message: {
+                            token: t.token,
+                            notification: { title: notif.title, body: notif.body },
+                            data: {
+                                title: notif.title,
+                                body: notif.body,
+                                link: notif.data.link,
+                                ...notif.data
+                            },
+                            webpush: {
+                                fcm_options: {
+                                    link: notif.data.link
+                                }
                             }
                         }
-                    }
-                };
+                    };
 
-                const res = await fetch(`https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`, {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-                    body: JSON.stringify(message),
-                });
+                    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`, {
+                        method: "POST",
+                        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+                        body: JSON.stringify(message),
+                    });
 
-                if (res.status === 200) {
-                    // Update the specific record (we need to be careful with ID, but in this context we'll query for the latest for that user/type)
-                    await supabase.from('notifications')
-                        .update({ status: 'sent', sent_at: new Date().toISOString() })
-                        .eq('user_id', notif.user_id)
-                        .eq('event_type', notif.event_type)
-                        .eq('status', 'queued') // Only update if still queued
-                        .order('created_at', { ascending: false })
-                        .limit(1);
-                } else {
-                    const err = await res.json();
-                    await supabase.from('notifications')
-                        .update({ status: 'failed', error_message: JSON.stringify(err) })
-                        .eq('user_id', notif.user_id)
-                        .eq('event_type', notif.event_type)
-                        .eq('status', 'queued')
-                        .order('created_at', { ascending: false })
-                        .limit(1);
+                    const resBody = await res.json();
+                    return { token: t.token, status: res.status, resBody };
+                }));
+
+                // Cleanup invalid tokens
+                const invalidTokens = results
+                    .filter(r => {
+                        const isError = r.status === 400 || r.status === 404;
+                        const errCode = r.resBody?.error?.details?.[0]?.errorCode;
+                        const status = r.resBody?.error?.status;
+                        return isError || status === 'UNREGISTERED' || status === 'NOT_FOUND' || errCode === 'UNREGISTERED';
+                    })
+                    .map(r => r.token);
+
+                if (invalidTokens.length > 0) {
+                    console.log(`[CLEANUP] Pruning ${invalidTokens.length} stale tokens for user ${notif.user_id}`);
+                    await supabase.from('push_tokens').delete().in('token', invalidTokens);
                 }
+
+                const successCount = results.filter(r => r.status === 200).length;
+                const finalStatus = successCount > 0 ? 'sent' : 'failed';
+                const resultSummary = JSON.stringify(results.map(r => ({ status: r.status, err: r.resBody?.error?.message })));
+
+                await supabase.from('notifications')
+                    .update({
+                        status: finalStatus,
+                        error_message: resultSummary,
+                        sent_at: successCount > 0 ? new Date().toISOString() : null
+                    })
+                    .eq('id', notif.id);
             } catch (err) {
                 console.error(`[Push Error] User ${notif.user_id}:`, err);
             }
@@ -560,13 +574,17 @@ serve(async (req) => {
 
         // Finalize
         if (notifications.length > 0) {
-            const { error: insertError } = await supabase.from('notifications').insert(notifications);
+            const { data: inserted, error: insertError } = await supabase
+                .from('notifications')
+                .insert(notifications)
+                .select();
+
             if (insertError) {
                 console.error("Failed to insert notifications:", insertError);
-            } else {
-                console.log(`Successfully queued ${notifications.length} notifications.`);
+            } else if (inserted) {
+                console.log(`Successfully queued ${inserted.length} notifications.`);
                 // Trigger direct dispatch for these notifications
-                sendBulkPush(notifications).then(); // Run in background
+                sendBulkPush(inserted).then(); // Run in background
             }
         }
 
