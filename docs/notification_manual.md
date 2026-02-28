@@ -1,4 +1,4 @@
-# 🔔 알림 시스템 구축 및 운영 핸드북 (v2.0)
+# 🔔 알림 시스템 구축 및 운영 핸드북 (v2.1 - 2026-02-28 업데이트)
 
 본 문서는 RAON.I의 알림 시스템(푸시/인앱 배지)의 아키텍처, 작동 원리, 그리고 새로운 알림을 추가하는 표준 절차를 정의합니다.
 
@@ -15,8 +15,9 @@
 3. **Direct Dispatch (직접 발송)**: 
    - **1:1 알림 (예약 등)**: 애플리케이션 코드가 직접 Edge Function(`push-notification`)을 호출하여 1~2초 내 즉각 도달을 보장합니다.
    - **대량 알림 (리마인더)**: `camping-reminder` 함수가 직접 FCM 서버로 **병렬 덩어리(Parallel Chunking)** 발송을 수행합니다.
-4. **Delivery (전송)**: Edge Function 또는 발송 엔진이 사용자 기기로 전송. **중요: 가장 최근에 활성화된 토큰 1개로만 전송합니다.**
-5. **Result (결과)**: 발송 성공 시 `status='sent'`, 에러 발생 시 `error_message` 컬럼에 로그를 기록합니다. (이전의 `result` 컬럼은 폐기됨)
+4. **Delivery (전송)**: Edge Function이 사용자의 **모든 살아있는 토큰(통로)으로 동시에 발송**합니다. (Broadcast Strategy)
+5. **Pruning (청소)**: 발송 중 FCM에서 `UNREGISTERED` 또는 `NOT_FOUND` 에러를 반환하면, 서버는 해당 토큰을 DB에서 **즉시 삭제**하여 유령 토큰을 박멸합니다.
+6. **Result (결과)**: 최소 하나 이상의 전송이 성공하면 `status='sent'`, 모든 전송이 실패하거나 토큰이 없으면 `status='failed'`로 기록합니다.
 
 ---
 
@@ -95,9 +96,14 @@ await notificationService.dispatchNotification(
 1. **DB 레코드 중복**: `notifications` 테이블에 같은 `related_id`를 가진 레코드가 2개인지 확인하세요.
     - **해결**: `idx_notifications_unique_related` 유니크 인덱스가 이를 물리적으로 막습니다.
 2. **기기 핑 중복**: DB 레코드는 1개인데 폰이 2번 울릴 때.
-    - **원인**: 사용자의 푸티 토큰(`push_tokens`)이 여러 개 등록되어 있기 때문입니다.
-    - **해결**: Edge Function(`push-notification`)의 **'Single-Delivery Policy'**가 적용되어 있습니다. (`last_updated_at` 기준 가장 최근 토큰 1개만 선택)
-    - **보완**: FCM 페이로드에 `collapse_key`와 `apns-collapse-id`를 적용하여 OS 수준에서 알림을 병합합니다.
+    - **원인**: 사용자가 여러 브라우저/기기를 사용 중이거나, 토큰이 중복 등록된 경우입니다.
+    - **대응**: 현재 **'Broadcast Policy'**에 따라 모든 기기에 알림이 가는 것이 정상이지만, 같은 기기에서 중복을 피하기 위해 `collapse_key`를 사용합니다.
+
+### Q. 알림이 간헐적으로 안 와요! (2026-02-28 해결)
+1. **문제**: 한 사용자에게 여러 개의 토큰이 중복 등록되어 있고, 서버가 그 중 "죽은 통로"에만 보냈을 때 발생했습니다.
+2. **해결 (Broadcast & Prune)**:
+    - **전방위 발송**: 이제 서버는 사용자에게 할당된 모든 토큰으로 동시에 쏩니다.
+    - **자동 청소**: 발송 실패 시 해당 토큰을 즉시 DB에서 삭제하여 다음 발송의 정확도를 높입니다.
 
 ---
 
@@ -134,7 +140,8 @@ await notificationService.dispatchNotification(
 ## 6. 시스템 안정성 유지 수칙
 1. **Never Click-Send**: 클라이언트(브라우저)에서 알림 요청을 보내지 마세요. 해킹의 위험이 있고 신뢰할 수 없습니다.
 2. **Idempotency**: 알림 생성 시 반드시 `related_id`(예: 주문번호)를 포함하여 DB 유니크 제약 조건이 작동하게 하세요.
-3. **Token Management**: 사용자가 앱을 방문할 때마다 `push_tokens`의 `last_updated_at`을 갱신하여, 가장 "싱싱한" 토큰으로 알림이 가도록 유지해야 합니다.
+3. **Registration Guard (SW)**: `ServiceWorkerRegister.tsx`에서 서비스 워커를 매번 재등록하지 마세요. 이미 활성화된 워커가 있다면 재등록을 건너뛰어 토큰 변동성(Churn)을 최소화해야 합니다.
+4. **Token Sync Guard**: 클라이언트에서 토큰 동기화 시 `localStorage`를 활용하여 서버로의 무분별한 `upsert` 요청을 차단하세요.
 
 ---
 
