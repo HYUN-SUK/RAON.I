@@ -11,8 +11,16 @@ export default function ServiceWorkerRegister() {
         if ('serviceWorker' in navigator) {
             const registerSW = async () => {
                 try {
-                    // Revert to plain URL (Remove URL params to rule out registration confusion)
+                    // [1-1] Hard Reset: Unregister ALL existing workers to clear query-param collisions
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        console.log('[SW] Existing worker unregistered');
+                    }
+
+                    // [1-2] Clean Registration
                     await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    console.log('[SW] Clean worker registered');
                 } catch (err) {
                     console.log('Service Worker registration failed:', err);
                 }

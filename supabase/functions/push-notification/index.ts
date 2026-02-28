@@ -127,6 +127,8 @@ serve(async (req) => {
 
             // Ensure all data fields are strings (FCM v1 requirement)
             const stringData: Record<string, string> = {
+                title: String(title),
+                body: String(body),
                 link: String(data?.link || "https://raon-i.vercel.app/notifications"),
                 event_type: String(event_type || 'default'),
                 related_id: String(related_id || 'general')
@@ -146,9 +148,6 @@ serve(async (req) => {
                         body: String(body),
                     },
                     data: stringData,
-                    // Remove collapse_key to avoid OS-level suppression during debugging
-                    android: {},
-                    apns: {},
                     webpush: {
                         fcm_options: {
                             link: stringData.link

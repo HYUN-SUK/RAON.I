@@ -1,4 +1,5 @@
 // public/firebase-messaging-sw.js
+// Version: 2.1 (Force Update)
 // Firebase Cloud Messaging Service Worker
 
 // 1. Firebase Config (Hardcoded for stability)
@@ -21,20 +22,27 @@ const messaging = firebase.messaging();
 // 3. 백그라운드 메시지 수신 핸들러 (명시적 알림 띄우기)
 // Foreground(토스트)는 이미 성공했으므로, Background(시스템 알림)를 더 확실하게 띄우도록 보강합니다.
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  console.log('[SW] Background Message:', payload);
 
-  const title = payload.notification?.title || payload.data?.title || 'RAON.I 알림';
+  const title = payload.data?.title || payload.notification?.title || 'RAON.I 알림';
+  const body = payload.data?.body || payload.notification?.body || '';
+
   const notificationOptions = {
-    body: payload.notification?.body || payload.data?.body || '',
+    body: body,
     icon: '/images/logo.png',
     badge: '/images/logo.png',
-    tag: payload.data?.event_type || 'default', // 같은 유형 알림 묶기
-    renotify: true, // 새 알림 시 다시 진동/소리
+    tag: payload.data?.event_type || 'raoni-notification',
+    renotify: true,
     data: {
       link: payload.data?.link || '/notifications',
       ...payload.data
     }
   };
+
+  // Vibration for Samsung/Galaxy
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200]);
+  }
 
   return self.registration.showNotification(title, notificationOptions);
 });

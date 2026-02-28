@@ -244,6 +244,16 @@ export default function MyReservationsPage() {
     const renderScheduleCard = (schedule: Schedule) => {
         const checkIn = parseISO(schedule.check_in);
         const checkOut = parseISO(schedule.check_out);
+
+        // 날짜 유효성 체크 가드
+        if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+            return (
+                <div key={`schedule-err-${schedule.id}`} className="p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600">
+                    잘못된 날짜 형식이 포함된 일정입니다. (ID: {schedule.id})
+                </div>
+            );
+        }
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const isPast = checkOut <= today;

@@ -1,23 +1,48 @@
-# RAON.I Handoff Document
-**Date**: 2026-02-24
-**Session Focus**: Phase 5.5 스마트 캠핑 플랜 고도화 및 예약 버그 픽스
+# Session Handoff Document (Session v10 -> v11)
 
-## 1. 현재 상태 요약 (What We Achieved)
-이번 세션에서는 주로 '스마트 캠핑 플랜'의 UI 통합 및 안정화, 그리고 예약 과정에서 발생한 버그를 수정하는 작업을 완료했습니다.
-- **예약 버그 픽스**: DB RPC(`create_reservation_safe`)의 파라미터 불일치로 인한 예약 멈춤 현상을 SQL 마이그레이션을 통해 해결했습니다.
-- **사이트 설명 복구**: 누락되었던 캠핑장 사이트들의 감성적인 설명과 태그들을 DB에 재위치시키는 Node 동기화 스크립트(`sync_sites.js`)를 작성하고 성공적으로 실행했습니다.
-- **Phase 5.5 마무리**: `SmartPlanProposal.tsx` 내의 미사용/안티패턴 코드(console.log, lint 에러)들을 모두 정리(Sanitization)하였습니다. 
+**작성일**: 2026-02-27
+**목적**: 스마트 캠핑 플랜(Guided Journey) 엔진 감사를 완료하고, 대규모 수정 세션을 앞두고 안전하게 인수인계하기 위함.
 
-## 2. 기술적 결정 사항 (Technical Decisions)
-- **Direct DB Querying vs Migration File**: `guest_details` 파라미터 추가에 대한 마이그레이션이 필요했는데, 프로덕션 이슈를 위해 직접 SQL 쿼리를 대시보드에서 실행하는 방식을 채택하여 즉시 문제를 해결했습니다. 
-- **Code Cleanup**: `npm run lint` 결과를 바탕으로, 본 세션에서 가장 큰 작업이었던 `SmartPlanProposal.tsx` 컴포넌트의 타입 에러와 낡은 문법들을 깔끔하게 수정했습니다. 전체 프로젝트에는 여전히 Lint 에러가 다수 존재하나(이전 레거시), 이번 세션 건에 대해서는 100% Cleanup을 진행했습니다.
+---
 
-## 3. 다음 작업 가이드 (Next Steps)
-새로운 세션에서는 **E2E 검증(End-to-End Testing)**에 온전히 집중해야 합니다!
-- [ ] **모바일 환경 테스트**: 모바일 기기(실제 기기 또는 브라우저 모바일 보기)에서 직접 **캠핑장 예약 사이클 전체**를 테스트합니다. (날짜 선택 -> 인원 선택 -> 결제 -> 알림 확인 -> 완료)
-- [ ] **사이트 설명 표출 확인**: 예약 모달 내에서 개별 사이트를 클릭했을 때 감성 문구 및 지원 시설(Wifi, 차박 등) 칩이 제대로 보이는지 확인합니다.
-- [ ] **스마트 여정 가이드 클릭**: `SmartPlanProposal` 추천 카드 클릭 시, 사용자의 행동 태그 시그널(예: `PLAN_USE_MILKIT_FILTER`)이 DB의 `user_personas`에 제대로 축적되는지 크로스체크가 필요합니다.
+## 📌 현재 상태 요약 (What We Did)
+이번 세션에서는 `smart_camping_plan_manual.md`에 명시된 15-Fact 추출 기반 머신러닝/규칙 기반 복합 추천 엔진의 현재 구현 상태를 **다른 AI와의 Cross-Checking을 포함하여 완전히 전수 감사(Audit) 완료**했습니다.
 
-## 4. 주의 사항 (Caveats/Notes)
-- **전역 Lint 에러**: 150여 개의 전역 Lint 에러/Warning(대부분 pre-existing `any` 타입 및 `<img />` 사용 태그)이 잔존하고 있습니다. 시간 여유가 될 때 (리팩토링 세션 등에서) 대규모 수정이 필요할 수 있습니다.
-- 빌드 검증(`npm run build`)은 성공하므로 현재 프로덕션 배포에는 문제가 없습니다.
+1. **감사 완료**: 
+   - `smartPlan.ts`, `route.ts`, `weather.ts`, `persona.ts`, `SmartPlanProposal.tsx` 5종의 코드와 매뉴얼 대조.
+   - 이전/현재 AI의 통합 점검 보고서(`audit_report_step1.md`, `audit_report_independent.md`) 두 건 발행.
+2. **코드 클린업**: 
+   - 불필요한 콘솔 로그 제거 (`SmartPlanProposal.tsx:55`).
+3. **태스크 및 로드맵 업데이트**:
+   - `task.md` 및 `RAON_MASTER_ROADMAP_v3.md`에 새롭게 도출된 파이프라인 수술 3-Phase Plan 반영 완료.
+
+---
+
+## 🛠 주요 구조적 결함 및 기술적 결정 (Technical Decisions)
+감사 결과, 현재 코드는 기본 ETL 뼈대와 AI 내러티브 생성은 잘 되어 있으나 **데이터의 질 및 동적 가중치 알고리즘**이 모두 누락되거나 Mock 처리된 상태입니다. 
+
+1. **Mock 날씨 문제 (`weather.ts`)**: 실제 기상청 연동 코드가 없이 무조건 맑음/15도를 반환하도록 Mocking 되어 있어 매뉴얼의 모든 날씨 로직(등유, 비오는날 메뉴 등)이 무력화됨.
+2. **페르소나 헛스윙 (`persona.ts` -> `smartPlan.ts`)**: 사용자 취향 태그를 잘 추출해오고도, 실제 카드 랭킹 점수(trustScore) 계산에는 안 쓰고 AI 프롬프트에 텍스트로만 밀어넣고 있음.
+3. **ETL 불일치 (`route.ts`)**: 매뉴얼상 `SPOT`(관광지) 카테고리가 존재해야 하나 TourAPI에서 축제(`FESTIVAL`)만 끌어오고 있음. 전국 축제가 위치 필터 없이 들어오는 중.
+
+*결정 사항*: 한 번에 모든 것을 고치다 깨질 위험이 크므로, 다음 세션에서 **3단계(Phase 1~3)**로 분리하여 점진적 주입(Incremental Injection) 방식으로 수술을 진행하기로 결정됨.
+
+---
+
+## 🚀 다음 세션 작업 가이드 (Next Steps)
+다음 AI 세션이 시작되면, 아래 가이드에 따라 가장 시급한 코어 기반 공사부터 시작해야 합니다:
+
+1. **Phase 1 (Mock 제거 및 파이프라인 보강)**:
+   - `weather.ts`의 Mock을 제거하고, 기상청 단기/중기 예보 API 구현 로직 복원 (없다면 Open-Meteo 등 대체).
+   - `route.ts`에 TourAPI의 12(관광지) 카테고리 호출 블록을 신설하여 `SPOT` 파이프라인 추가 (예산 지역코드 필수 적용).
+2. **Phase 2 (페르소나 점수 연동)**:
+   - `smartPlan.ts`의 `fetchHighTrustCandidates()` 부분 또는 내부 정렬 로직에서 `context.guestDetails` (아이 동반) 및 `context.topTags` 배열을 순회하며 메타데이터 필드와 일치하면 `trustScore`를 런타임에 +10~+50 증가시키는 알고리즘 작성.
+3. **Phase 3 (날씨 연동 고도화)**:
+   - 날씨 결과에 따라 특정 식당(국물류) 및 등유(5도 이하)를 조건부로 점수 부스팅하는 로직 완성.
+
+---
+
+## ⚠️ 주의 사항 (Warnings & Quirks)
+- 현재 Vercel의 Vercel Edge/Serverless Timeout 이슈 방지를 위해 `route.ts`의 Cron 런타임이 한정되어 있습니다 (`maxDuration = 300`). API 연동부를 quá 콜라보레이션 하지 않도록 성능에 유의하세요.
+- `smartPlan.ts` 상의 Gemini 직접 호출(`fetch`)은 SDK 충돌 회피를 위한 것으로 절대 SDK 래퍼로 롤백하지 마십시오.
+- 파일 경로 이동을 자제하고 현재 디렉토리 구조(`c:\Users\USER\Desktop\RAON.I\src\lib\` 등)를 준수하세요.

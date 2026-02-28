@@ -1,8 +1,8 @@
 # RAON.I 마스터 개발 로드맵 v3 (Final Integrated Version)
 
-**버전**: v4.1 (XP Lifecycle & Deletion Complete)
+**버전**: v4.2 (Push Delivery Breakthrough)
 **기반**: RAONAI SSOT MASTER v9 + User Feedback (Gap Filling)
-**작성일**: 2025-12-31
+**작성일**: 2026-02-27
 
 이 문서는 라온아이 프로젝트의 **최종 확정형 개발 가이드**입니다.
 기존의 견고한 프레임워크 위에 **트렌드(감성·초개인화)**와 **현실적인 AI 전략(L0/L1)**을 결합하여, 사용자에게 가장 가치 있는 경험을 우선적으로 전달합니다.
@@ -347,7 +347,8 @@
             *   [x] **Admin Dashboard**: 위치/푸시 권한 동의율 통계 카드 추가 (DB 연동).
             *   [x] **Weather Consistency**: `useWeather.ts`의 타임존(UTC) 이슈 해결 및 상세화면(`WeatherDetailSheet`) 로직 통일.
             *   [x] **Push Audit**: 예약/취소 알림 로직 전수 조사 및 보완 완료 (수신 실패 디버깅 대기).
-            *   [x] **Status**: **100% Done**
+            *   [x] **Push Stability (2026-02-27)**: **Foreground (In-app Toast) Success**. Background stabilization in progress.
+            *   [x] **Status**: **99% Done (Background Still Silent)**
 
 ### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
 > ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
@@ -367,9 +368,12 @@
 *   **9.5 PWA 구현** ✅ (2026-01-13):
     *   [x] `manifest.json` 작성 (앱 이름, 아이콘, 테마 색상)
 *   **9.6 스마트 캠핑 플랜 (Guided Journey \u0026 Persona) 🚀 (Next Target)**:
-    *   [ ] **1단계: 엔진 구축 (`smartPlan.ts`)**: UI 독립적인 순수 추천 로직 및 하이브리드 캐싱 파이프라인 완성. (임시 Mock 페르소나 데이터로 검증)
-    *   [ ] **2단계: 태그 매핑 시스템 (`persona.ts`)**: `docs/action_tag_mapping_manual.md`를 기반으로 사용자 행동 트리거 및 마스터 태그 지갑 DB 연동.
-    *   [ ] **3단계: 최종 연동 (Integration)**: 스마트 플랜 엔진에 실제 사용자 태그 데이터를 주입하여 개인화된 AI 서사 및 완벽한 큐레이션 제공.
+    *   [x] **1단계: 엔진 정합성 전수 조사 및 수정 계획 수립 (Audit Complete)**: 매뉴얼 기준 15-Fact 파이프라인, 페르소나 연동 결함 파악 및 3-Phase Fix Plan 확정.
+    *   [ ] **1.1단계: 코어 기반 공사 (Phase 1 Fix)**: Mock 날씨 제거, 기상청 단기예보 실연동 및 관광지(SPOT) ETL 마이그레이션.
+    *   [ ] **1.2단계: 동적 가중치 알고리즘 (Phase 2 Fix)**: 사용자 취향 태그 연동, 자녀 동반 가산점 로직 및 휴무일 방어 적용.
+    *   [ ] **1.3단계: 기후 연동 및 엔진 안정화 (Phase 3 Fix)**: 우천/기온(동계) 기반 점수 변동 로직 구현.
+    *   [ ] **2단계: 태그 매핑 시스템 (`persona.ts`)**: (진행 중)
+    *   [ ] **3단계: 최종 연동 (Integration)**: (진행 중)
     *   [x] 앱 아이콘 준비 (192x192, 512x512, 180x180) - 원본 로고 활용
     *   [x] Service Worker 확장 (Next.js PWA 기본 지원)
     *   [x] 메타 태그 추가 (`layout.tsx`) - 한국어 SEO 및 OG 태그 적용

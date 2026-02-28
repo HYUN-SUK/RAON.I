@@ -44,14 +44,38 @@ export default function SmartPlanProposal({
     const [plan, setPlan] = useState<StandardizedPlanJSON | null>(mockData || null);
     const [isLoading, setIsLoading] = useState(!mockData);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
+    const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>();
 
+    // 1. Get User's Current Location (Origin)
+    useEffect(() => {
+        if (!mockData && typeof window !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setUserOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                },
+                (err) => {
+                    console.warn("[SmartPlan] Failed to get user location:", err);
+                    // Fallback to a default or just proceed without origin
+                }
+            );
+        }
+    }, [mockData]);
+
+    // 2. Fetch Plan based on Journey (Origin -> Destination)
     useEffect(() => {
         if (mockData) return;
 
         async function fetchPlan() {
             setIsLoading(true);
             try {
-                const generatedPlan = await generatePersonalizedSmartPlan(userId, location, startDate, endDate, weatherContext);
+                // Pass userOrigin if available
+                const generatedPlan = await generatePersonalizedSmartPlan(
+                    userId,
+                    location,
+                    startDate,
+                    endDate,
+                    userOrigin
+                );
                 setPlan(generatedPlan);
             } catch (error) {
                 console.error("Failed to fetch smart plan:", error);
@@ -61,7 +85,7 @@ export default function SmartPlanProposal({
         }
 
         fetchPlan();
-    }, [userId, location, startDate, endDate, weatherContext, mockData]);
+    }, [userId, location, startDate, endDate, userOrigin, mockData]);
 
     const handleSwapOptionSelected = (category: string, newCardId: string) => {
         if (!plan) return;
@@ -136,44 +160,41 @@ export default function SmartPlanProposal({
     ] : [];
 
     const renderNarration = (text: string) => {
-        const regex = /\|\|([^|]+)\|([^|]+)\|\|/g;
-        const parts = [];
-        let lastIndex = 0;
-        let match;
+        if (!text) return text;
 
-        while ((match = regex.exec(text)) !== null) {
-            if (match.index > lastIndex) {
-                parts.push(<span key={`text-${lastIndex}`}>{text.substring(lastIndex, match.index)}</span>);
+        // 정규식: ||ID|이름|| 패턴을 찾습니다.
+        const regex = /(\|\|[^|]+\|[^|]+\|\|)/g;
+        const tokens = text.split(regex);
+
+        return tokens.map((token, index) => {
+            // 태그 매치 확인 (|| 로 시작하고 끝나는지)
+            if (token.startsWith('||') && token.endsWith('||')) {
+                const inner = token.slice(2, -2); // ID|이름
+                const parts = inner.split('|');
+                if (parts.length === 2) {
+                    const factId = parts[0];
+                    const placeName = parts[1];
+
+                    const fact = plan.itemListElement.find(f => f.id === factId) ||
+                        Object.values(plan.alternatives || {}).flat().find(f => f.id === factId);
+
+                    if (fact) {
+                        return (
+                            <span
+                                key={`tag-${index}`}
+                                onClick={(e) => { e.stopPropagation(); setSwapCategory(fact.category); }}
+                                className="inline-flex cursor-pointer text-[#F7F5EF] font-bold bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-lg mx-1 transition-colors border-b-2 border-[#F7F5EF]/40 hover:border-[#F7F5EF]"
+                            >
+                                {placeName}
+                            </span>
+                        );
+                    }
+                    return <span key={`text-fallback-${index}`}>{placeName}</span>;
+                }
             }
-
-            const factId = match[1];
-            const placeName = match[2];
-
-            const fact = plan.itemListElement.find(f => f.id === factId) ||
-                Object.values(plan.alternatives || {}).flat().find(f => f.id === factId);
-
-            if (fact) {
-                parts.push(
-                    <span
-                        key={`tag-${match.index}`}
-                        onClick={(e) => { e.stopPropagation(); setSwapCategory(fact.category); }}
-                        className="inline-flex cursor-pointer text-[#F7F5EF] font-bold bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-lg mx-1 transition-colors border-b-2 border-[#F7F5EF]/40 hover:border-[#F7F5EF]"
-                    >
-                        {placeName}
-                    </span>
-                );
-            } else {
-                parts.push(<span key={`text-fallback-${match.index}`}>{placeName}</span>);
-            }
-
-            lastIndex = regex.lastIndex;
-        }
-
-        if (lastIndex < text.length) {
-            parts.push(<span key={`text-${lastIndex}`}>{text.substring(lastIndex)}</span>);
-        }
-
-        return parts.length > 0 ? parts : text;
+            // 일반 텍스트 반환
+            return <span key={`text-${index}`}>{token}</span>;
+        });
     };
 
     return (

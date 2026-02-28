@@ -255,8 +255,20 @@ export async function getPersonalizedRecommendations(
     // Helper for safe tag checking
     const hasTag = (item: any, tag: string) => {
         if (!item?.tags) return false;
-        if (Array.isArray(item.tags)) return item.tags.includes(tag);
-        if (typeof item.tags === 'string') return item.tags.includes(tag);
+        try {
+            let tagsArray = item.tags;
+            if (typeof item.tags === 'string') {
+                // DB might return stringified JSON or comma-separated string
+                if (item.tags.startsWith('[')) {
+                    tagsArray = JSON.parse(item.tags);
+                } else {
+                    tagsArray = item.tags.split(',').map((t: string) => t.trim());
+                }
+            }
+            if (Array.isArray(tagsArray)) return tagsArray.includes(tag);
+        } catch (e) {
+            return false;
+        }
         return false;
     };
 

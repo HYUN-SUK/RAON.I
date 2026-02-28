@@ -28,36 +28,44 @@ export async function POST(request: Request) {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         let allFacts: any[] = [];
 
+        // 서비스 지역 가드 (Regional Guard): 예산군 및 주변 권역 (약 50km) 이외의 데이터 원천 차단
+        const isWithinServiceArea = (lat: number, lng: number) => {
+            const YESAN_LAT = 36.67;
+            const YESAN_LNG = 126.84;
+            const dist = Math.sqrt(Math.pow(lat - YESAN_LAT, 2) + Math.pow(lng - YESAN_LNG, 2));
+            return dist < 0.6; // 약 60km 반경 (1도 ≒ 111km)
+        };
+
         // =========================================================================
         // [ETL Pipeline] 1. Extract & Transform: 국립중앙의료원 (E-Gen 응급의료기관)
         // =========================================================================
-        console.log("Starting ETL: National Medical Center API...");
+        console.log("Starting ETL: National Medical Center API (Filtered for Chungnam)...");
         try {
-            // 실제 API 엔드포인트: http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire
-            // 전국 데이터를 주기적으로 긁어온다고 가정 (실무에서는 시도/시군구별 루프 필요)
-            const nmcRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&pageNo=1&numOfRows=100&_type=json`);
+            // Q0(충남:34), Q1(예산:420) 필터 추가하여 타 지역 데이터 유입 차단
+            const nmcRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&Q0=34&Q1=420&pageNo=1&numOfRows=100&_type=json`);
             const nmcData = await nmcRes.json();
 
             if (nmcData.response?.body?.items?.item) {
                 const items = Array.isArray(nmcData.response.body.items.item) ? nmcData.response.body.items.item : [nmcData.response.body.items.item];
-                const medicalFacts = items.map((item: any) => {
-                    // 권역응급센터(A11) 등에 따른 가중치 로직
-                    let score = 50;
-                    if (item.dutyName?.includes('소아') || item.dutyName?.includes('아동')) score += 50;
+                const medicalFacts = items
+                    .filter((item: any) => isWithinServiceArea(parseFloat(item.wgs84Lat), parseFloat(item.wgs84Lon)))
+                    .map((item: any) => {
+                        let score = 50;
+                        if (item.dutyName?.includes('소아') || item.dutyName?.includes('아동')) score += 50;
 
-                    return {
-                        id: crypto.randomUUID(), // 임시 고유 ID (실제로는 병원 고유번호 사용 권장)
-                        api_source: 'NMC_HOSPITAL',
-                        category: 'MART_HOSPITAL',
-                        name: item.dutyName || '응급의료기관',
-                        description: '응급실 가동 응급의료기관',
-                        address: item.dutyAddr || '주소 정보 없음',
-                        lat: parseFloat(item.wgs84Lat) || 36.67,
-                        lng: parseFloat(item.wgs84Lon) || 126.84,
-                        trust_score: score,
-                        raw_data: item
-                    };
-                });
+                        return {
+                            id: crypto.randomUUID(),
+                            api_source: 'NMC_HOSPITAL',
+                            category: 'MART_HOSPITAL',
+                            name: item.dutyName || '응급의료기관',
+                            description: '응급실 가동 응급의료기관',
+                            address: item.dutyAddr || '주소 정보 없음',
+                            lat: parseFloat(item.wgs84Lat),
+                            lng: parseFloat(item.wgs84Lon),
+                            trust_score: score,
+                            raw_data: item
+                        };
+                    });
                 allFacts = [...allFacts, ...medicalFacts];
             }
         } catch (e) {
@@ -65,81 +73,65 @@ export async function POST(request: Request) {
         }
 
         // =========================================================================
-        // [ETL Pipeline] 2. Extract & Transform: 백년가게 & 안심식당 (소상공인시장 & 농식품부)
+        // [ETL Pipeline] 2. Extract & Transform: 백년가게 & 안심식당 (Filtered for Yesan)
         // =========================================================================
-        console.log("Starting ETL: Baeknyeon Store & Safe Restaurants...");
+        console.log("Starting ETL: Restaurants (Filtered for Regional)...");
         try {
-            // 백년가게 (소상공인시장진흥공단) - 음식점 업종 위주 수집
+            // 백년가게 (소상공인시장진흥공단) - 예산군 법정동 코드(44810) 주변 검색
             const smbaRes = await fetch(`http://apis.data.go.kr/B553077/api/open/sdsc2/storeListInDong?serviceKey=${publicApiKey}&pageNo=1&numOfRows=100&divId=indutyCd&key=Q&type=json`);
             const smbaData = await smbaRes.json();
             if (smbaData.body?.items) {
                 const items = Array.isArray(smbaData.body.items) ? smbaData.body.items : [smbaData.body.items];
-                const baekFacts = items.map((item: any) => ({
-                    id: item.bizesId || crypto.randomUUID(),
-                    api_source: 'SMBA_RESTAURANT', category: 'RESTAURANT',
-                    name: item.bizesNm, description: `백년가게 인증 ${item.indsMclsNm || '맛집'}`,
-                    address: item.lnoAdr || item.rdnmAdr, lat: parseFloat(item.lat), lng: parseFloat(item.lon),
-                    trust_score: 50, raw_data: item
-                }));
+                const baekFacts = items
+                    .filter((item: any) => isWithinServiceArea(parseFloat(item.lat), parseFloat(item.lon)))
+                    .map((item: any) => ({
+                        id: item.bizesId || crypto.randomUUID(),
+                        api_source: 'SMBA_RESTAURANT', category: 'RESTAURANT',
+                        name: item.bizesNm, description: `백년가게 인증 ${item.indsMclsNm || '맛집'}`,
+                        address: item.lnoAdr || item.rdnmAdr, lat: parseFloat(item.lat), lng: parseFloat(item.lon),
+                        trust_score: 50, raw_data: item
+                    }));
                 allFacts = [...allFacts, ...baekFacts];
             }
 
-            // 안심식당 (농림축산식품부)
+            // 안심식당 - 주소 필터링 (예산 포함 식당만)
             const safeRes = await fetch(`http://211.237.50.150:7080/openapi/${process.env.SAFE_RESTAURANT_API_KEY}/json/Grid_20200713000000000605_1/1/100`);
             const safeData = await safeRes.json();
             if (safeData.Grid_20200713000000000605_1?.row) {
                 const items = safeData.Grid_20200713000000000605_1.row;
-                const safeFacts = items.map((item: any) => ({
-                    id: `safe-${crypto.randomUUID()}`,
-                    api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
-                    name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당',
-                    address: item.RELAX_ADD1,
-                    // 안심식당 API는 위경도 제공을 안 할 경우 주소 지오코딩이 필요하지만 MVP에서는 예산군 중심부 임의 할당
-                    lat: 36.67, lng: 126.84,
-                    trust_score: 50, raw_data: item
-                }));
-                allFacts = [...allFacts, ...safeFacts];
-            }
-
-            // 모범음식점 (행정안전부 로컬데이터)
-            const goodRes = await fetch(`http://apis.data.go.kr/LOCALDATA/0724040001/json?serviceKey=${publicApiKey}&pageNo=1&numOfRows=100`);
-            const goodData = await goodRes.json();
-            if (goodData.LOCALDATA_0724040001?.row) {
-                const items = Array.isArray(goodData.LOCALDATA_0724040001.row) ? goodData.LOCALDATA_0724040001.row : [goodData.LOCALDATA_0724040001.row];
-                const goodFacts = items
-                    .filter((item: any) => item.trdStateNm === '영업/정상')
+                const safeFacts = items
+                    .filter((item: any) => item.RELAX_ADD1?.includes('예산') || item.RELAX_ADD1?.includes('충남'))
                     .map((item: any) => ({
-                        id: item.mgtNo || `good-${crypto.randomUUID()}`,
-                        api_source: 'GOOD_RESTAURANT', category: 'RESTAURANT',
-                        name: item.bplcNm, description: '지자체 인증 위생 모범음식점',
-                        address: item.rdnwhlAddr || item.sitewhlAddr,
-                        lat: parseFloat(item.y) || 36.67, lng: parseFloat(item.x) || 126.84,
-                        trust_score: 60, raw_data: item
+                        id: `safe-${crypto.randomUUID()}`,
+                        api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
+                        name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당',
+                        address: item.RELAX_ADD1,
+                        lat: 36.67, lng: 126.84, // Safe Restaurant API lacks coords, typically requires geocoding
+                        trust_score: 50, raw_data: item
                     }));
-                allFacts = [...allFacts, ...goodFacts];
+                allFacts = [...allFacts, ...safeFacts];
             }
         } catch (e) {
             console.error("Restaurant API Failed:", e);
         }
 
         // =========================================================================
-        // [ETL Pipeline] 3. Extract & Transform: 행정안전부 대규모점포 (마트)
+        // [ETL Pipeline] 3. Extract & Transform: 대규모점포 (Filtered for Region)
         // =========================================================================
-        console.log("Starting ETL: Large Stores...");
+        console.log("Starting ETL: Large Stores (Filtered)...");
         try {
-            const martRes = await fetch(`http://apis.data.go.kr/B553077/api/open/sdsc2/storeListInDong?serviceKey=${publicApiKey}&pageNo=1&numOfRows=50&divId=indsLclsCd&key=D&type=json`); // 대분류 D(소매) 임시사용
+            const martRes = await fetch(`http://apis.data.go.kr/B553077/api/open/sdsc2/storeListInDong?serviceKey=${publicApiKey}&pageNo=1&numOfRows=50&divId=indsLclsCd&key=D&type=json`);
             const martData = await martRes.json();
             if (martData.body?.items) {
                 const items = Array.isArray(martData.body.items) ? martData.body.items : [martData.body.items];
-                // 하나로마트, 이마트 등 대형 마트만 필터링
                 const martFacts = items
-                    .filter((item: any) => item.bizesNm?.includes('이마트') || item.bizesNm?.includes('홈플러스') || item.bizesNm?.includes('하나로마트'))
+                    .filter((item: any) => (item.bizesNm?.includes('이마트') || item.bizesNm?.includes('홈플러스') || item.bizesNm?.includes('하나로마트')) && isWithinServiceArea(parseFloat(item.lat), parseFloat(item.lon)))
                     .map((item: any) => ({
                         id: item.bizesId || crypto.randomUUID(),
                         api_source: 'ADMIN_MART', category: 'MART_HOSPITAL',
                         name: item.bizesNm, description: '바베큐/장작 수급 가능한 대형마트',
-                        address: item.lnoAdr || item.rdnmAdr, lat: parseFloat(item.lat) || 36.67, lng: parseFloat(item.lon) || 126.84,
-                        trust_score: item.bizesNm?.includes('하나로마트') ? 80 : 60, // 하나로마트 휴무일 프리패스 가중치
+                        address: item.lnoAdr || item.rdnmAdr, lat: parseFloat(item.lat), lng: parseFloat(item.lon),
+                        trust_score: item.bizesNm?.includes('하나로마트') ? 80 : 60,
                         raw_data: item
                     }));
                 allFacts = [...allFacts, ...martFacts];

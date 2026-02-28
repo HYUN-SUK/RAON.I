@@ -153,6 +153,6 @@ export interface PointHistory {
     user_id: string;
     amount: number;
     reason: string;
-    related_mission_id?: string;
+    related_id?: string;
     created_at: string;
 }

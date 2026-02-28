@@ -1,28 +1,28 @@
 {
   "logs": [
     {
-      "id": "ed95bab3-0626-46c3-a8f9-28eb5154d088",
-      "title": "예약 신청 완료",
-      "event_type": "reservation_submitted",
+      "id": "7f56ad9c-7f6c-4e1a-847c-c5239e960cc2",
+      "title": "예약 확정",
+      "event_type": "reservation_confirmed",
       "status": "sent",
-      "error_message": "[{\"status\":200,\"full\":{\"name\":\"projects/raon-i-push/messages/c6a1ab85-a371-4ddb-9d8f-aea73c945cee\"}}]",
-      "created_at": "2026-02-27T03:43:29.581367+00:00"
+      "error_message": "[{\"status\":200,\"full\":{\"name\":\"projects/raon-i-push/messages/7bfadbd6-166d-4a69-96c8-3193805288a0\"}}]",
+      "created_at": "2026-02-27T04:13:16.738099+00:00"
     },
     {
-      "id": "ba301ca6-f308-4480-b7e1-72215cbc966d",
+      "id": "441fc4bb-8e69-4111-8751-8f82ca58987a",
       "title": "예약 신청 완료",
       "event_type": "reservation_submitted",
       "status": "sent",
-      "error_message": "[{\"status\":200}]",
-      "created_at": "2026-02-27T03:30:43.893252+00:00"
+      "error_message": "[{\"status\":200,\"full\":{\"name\":\"projects/raon-i-push/messages/34dc2de5-07b9-4b34-be71-d64bf22d6e0c\"}}]",
+      "created_at": "2026-02-27T04:12:26.914869+00:00"
     },
     {
-      "id": "13015982-7a1e-4093-b646-8f85a4ae26c3",
-      "title": "예약 신청 완료",
-      "event_type": "reservation_submitted",
+      "id": "fccbee08-707e-41be-841e-87e708440b7c",
+      "title": "예약 확정",
+      "event_type": "reservation_confirmed",
       "status": "sent",
-      "error_message": "[{\"status\":200}]",
-      "created_at": "2026-02-27T03:18:53.902358+00:00"
+      "error_message": "[{\"status\":200,\"full\":{\"name\":\"projects/raon-i-push/messages/897c73e0-27c8-47a7-854e-8de216bbb15d\"}}]",
+      "created_at": "2026-02-27T04:11:33.342359+00:00"
     }
   ],
   "tokens": [
@@ -32,7 +32,7 @@
       "device_type": "web",
       "is_active": true,
       "created_at": "2026-01-16T12:47:07.596731+00:00",
-      "last_updated_at": "2026-02-27T03:21:08.402+00:00"
+      "last_updated_at": "2026-02-27T03:53:53.265+00:00"
     },
     {
       "token": "chhTm3aD8xuPsJAwMlZoEO:APA91bGOFjoOLOaiXSqEamJEVMMdIWBu0T2hnexb4HD79kN7shFYBPcawYstLcycUYypSCjr55gHyEnRfHnD3rNnM_m2SCafff2l0smlFC92v_OmcS8pMkM",
