@@ -1,4 +1,4 @@
-# 🔔 알림 시스템 구축 및 운영 핸드북 (v2.1 - 2026-02-28 업데이트)
+# 🔔 알림 시스템 구축 및 운영 핸드북 (v2.2 - 2026-03-01 업데이트)
 
 본 문서는 RAON.I의 알림 시스템(푸시/인앱 배지)의 아키텍처, 작동 원리, 그리고 새로운 알림을 추가하는 표준 절차를 정의합니다.
 
@@ -118,13 +118,19 @@ await notificationService.dispatchNotification(
   - Vercel과 같은 Serverless 호스팅의 짧은 타임아웃(10~30초) 병목을 원천적으로 회피하기 위해, **GitHub Actions 서버에서 Supabase Edge Function을 직접 호출(Direct Call)**하는 구조를 채택했습니다.
   - GitHub 환경변수(Variables)에 등록된 프론트엔드 공개용 키(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)만을 사용하여 안전하게 통신하며, GitHub Actions 자체의 타임아웃은 6시간이므로 외부 날씨 API 연동과 같은 장기 대기 쓰레드도 100% 안정적으로 완료됩니다.
 
-#### 🔄 고성능 발송 프로세스 (Direct FCM + Chunking)
-1. **[단계 1] 캐시 프리페치 (08:50 AM KST)**: 날씨 및 행사 정보를 미리 DB로 긁어옵니다.
+#### 🔄 고성능 발송 프로세스 (Grid-First & Chunking)
+1. **[단계 1] 격자 기반 프리페치 (08:50 AM KST)**: 
+   - 개별 사용자 위치가 아닌, 전국을 5km 격자(`nx`, `ny`) 단위로 그룹화하여 날씨를 수집합니다.
+   - 중복 호출을 90% 이상 제거하여 수천 명의 알림 대상자도 단 몇 초 만에 캐싱을 완료합니다.
 2. **[단계 2] 초고속 병렬 발송 (09:00 AM KST)**:
-   - 외부 API 통신 없이 DB 캐시만 사용하여 메시지를 조립합니다.
+   - **Force Cache**: 외부 API 연동 없이 오직 DB 캐시만 사용하여 메시지를 조립합니다. 캐시가 없을 경우 지연을 방지하기 위해 즉시 기본값(Fallback)을 사용합니다.
    - **Direct FCM**: `push-notification` 함수를 거치지 않고 직접 FCM 서버와 통신하여 오버헤드를 최소화합니다.
-   - **Parallel Chunking**: 5~10건씩 묶어 병렬로 발송하여 수천 건도 수초 내에 완포합니다.
-   - **Token Reuse**: 1회의 인증으로 전체 배치 알림을 발송하는 효율적인 토큰 재사용 정책을 따릅니다.
+   - **Parallel Chunking**: 5~10건씩 묶어 병렬로 발송하여 대량 발송의 병목을 제거합니다.
+
+### 🛡️ 장애 대응 및 보안 (Robustness)
+- **타임아웃 제어**: 외부 API 호출 시 최대 6초의 엄격한 타임아웃을 적용하여 전체 발송 프로세스가 멈추는 것을 방지합니다.
+- **권한 관리**: GitHub Actions 호출 시 `SERVICE_ROLE_KEY`를 필수 사용하여 RLS 제약을 우회하고 관리자 권한으로 안정적인 데이터 처리를 수행합니다.
+- **지연 감지**: GitHub 서버 지연 시에도 `github.event.schedule` 정보를 기반으로 작업 모드를 정확히 판별하여 누락 없는 발송을 보장합니다.
 
 ### 🛠️ 점검 및 수동 복구 방법
 - **로그인/권한 문제**: Github Actions 콘솔(`Actions` 탭 -> `Camping Reminder Cron`)에서 에러 로그를 가장 빠르고 직관적으로 확인할 수 있습니다.

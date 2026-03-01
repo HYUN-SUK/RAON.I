@@ -27,14 +27,11 @@ jobs:
       - name: Determine Mode
         id: set-mode
         run: |
-          # If triggered by a manual dispatch, use the input mode
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
           else
-            # If triggered by schedule, determine mode based on time
-            # Note: cron triggers might be slightly delayed, so we check the approximate hour/minute
-            CURRENT_MINUTE=$(date -u +"%M")
-            if [ "$CURRENT_MINUTE" -ge "40" ] && [ "$CURRENT_MINUTE" -le "59" ]; then
+            # Use specific schedule trigger to determine mode (avoids issues with delay)
+            if [ "${{ github.event.schedule }}" = "50 23 * * *" ]; then
               echo "mode=prefetch" >> $GITHUB_ENV
             else
               echo "mode=dispatch" >> $GITHUB_ENV
@@ -44,8 +41,9 @@ jobs:
       - name: Trigger Supabase Edge Function
         run: |
           echo "Executing mode: ${{ env.mode }}"
+          # Use SERVICE_ROLE_KEY (as secret) for higher privilege and to bypass any potential RLS issues
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ vars.NEXT_PUBLIC_SUPABASE_URL }}/functions/v1/camping-reminder?mode=${{ env.mode }}" \
-            -H "Authorization: Bearer ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json")
           
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)

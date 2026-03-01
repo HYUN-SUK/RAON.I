@@ -221,7 +221,7 @@ const EMOJI_MAP: Record<string, string> = {
     '비': '🌧️', '비/눈': '🌨️', '눈': '❄️', '소나기': '🌦️'
 };
 
-async function getMultiDayForecast(lat: number, lng: number): Promise<DayForecast[]> {
+async function getMultiDayForecast(lat: number, lng: number, options: { forceCache?: boolean } = {}): Promise<DayForecast[]> {
     if (!KMA_KEY) return [mockForecast(new Date().toISOString().split('T')[0])];
     try {
         const grid = dfs_xy_conv("toXY", lat, lng);
@@ -241,10 +241,19 @@ async function getMultiDayForecast(lat: number, lng: number): Promise<DayForecas
             .single();
 
         // Cache is valid if updated within the last 6 hours
-        const isCacheValid = cacheHit && (now.getTime() - new Date(cacheHit.updated_at).getTime() < 6 * 3600000);
+        // During dispatch, we prioritize cache even if older (12h) to avoid live fetch delays
+        const ttlHours = options.forceCache ? 12 : 6;
+        const isCacheValid = cacheHit && (now.getTime() - new Date(cacheHit.updated_at).getTime() < ttlHours * 3600000);
 
         if (isCacheValid && cacheHit?.data && Array.isArray(cacheHit.data)) {
             return cacheHit.data;
+        }
+
+        // 1.1 If forceCache is true but no valid cache, we skip live fetch to maintain speed
+        if (options.forceCache) {
+            console.warn(`[Weather] Cache miss for ${grid.x},${grid.y} in dispatch mode. Skipping live fetch.`);
+            if (cacheHit?.data) return cacheHit.data; // Return even old cache
+            return [mockForecast(kst.toISOString().split('T')[0])];
         }
 
         // 2. Fetch from KMA
@@ -259,7 +268,7 @@ async function getMultiDayForecast(lat: number, lng: number): Promise<DayForecas
 
         // Timeout AbortController
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per API call
+        const timeoutId = setTimeout(() => controller.abort(), 6000); // Tight 6s timeout for batch performance
 
         let resp;
         try {
@@ -474,29 +483,37 @@ serve(async (req) => {
         // PREFETCH MODE (Cache Populating)
         // ==========================================
         if (mode === 'prefetch') {
-            // Extract unique locations
-            const locations = new Map<string, { lat: number, lng: number }>();
+            // Extract unique GRIDS (nx, ny) instead of just lat/lng
+            // This is significantly more scalable as multiple locations share the same grid
+            const uniqueGrids = new Map<string, { lat: number, lng: number }>();
+
             schedules.forEach(s => {
                 const lat = s.campground_lat || 37.5665;
                 const lng = s.campground_lng || 126.9780;
-                locations.set(`${lat},${lng}`, { lat, lng });
+                const grid = dfs_xy_conv("toXY", lat, lng);
+                const key = `${grid.x},${grid.y}`;
+                if (!uniqueGrids.has(key)) {
+                    uniqueGrids.set(key, { lat, lng });
+                }
             });
 
-            console.log(`[Prefetch] Fetching APIs for ${locations.size} unique locations...`);
+            console.log(`[Prefetch] Fetching APIs for ${uniqueGrids.size} unique grids...`);
 
-            // Prefetch nearby events (It's nationwide anyway, so doing it once)
-            await getNearbyEvents(37.5665, 126.9780, 30); // Caches ALL
+            // Prefetch nearby events (Nationwide cache in one go)
+            await getNearbyEvents(37.5665, 126.9780, 30);
 
-            // Prefetch weather in parallel but with small 3-chunk limits to be safe
-            const locArray = Array.from(locations.values());
+            // Prefetch weather for detected grids
+            const gridArray = Array.from(uniqueGrids.values());
             const chunkSize = 3;
-            for (let i = 0; i < locArray.length; i += chunkSize) {
-                const chunk = locArray.slice(i, i + chunkSize);
-                await Promise.all(chunk.map(c => getMultiDayForecast(c.lat, c.lng)));
+            for (let i = 0; i < gridArray.length; i += chunkSize) {
+                const chunk = gridArray.slice(i, i + chunkSize);
+                await Promise.all(chunk.map(c =>
+                    getMultiDayForecast(c.lat, c.lng).catch(err => console.error(`[Prefetch Error] Grid failure:`, err))
+                ));
             }
 
             console.log("[Prefetch] Done.");
-            return new Response(JSON.stringify({ success: true, mode: 'prefetch', locations: locations.size }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            return new Response(JSON.stringify({ success: true, mode: 'prefetch', grids: uniqueGrids.size }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
         // ==========================================
@@ -509,8 +526,8 @@ serve(async (req) => {
             const lat = s.campground_lat || 37.5665;
             const lng = s.campground_lng || 126.9780;
 
-            // Gets from cache mostly, fast
-            const forecasts = await getMultiDayForecast(lat, lng);
+            // Gets from cache mostly, fast. (forceCache: true ensures we don't block on KMA during dispatch)
+            const forecasts = await getMultiDayForecast(lat, lng, { forceCache: true });
             // Default fallback if date not found in 7-day forecast
             const f = forecasts.find(x => x.date === s.check_in) || mockForecast(s.check_in);
             const weatherLine = `${f.weatherEmoji} ${f.tempMin}°/${f.tempMax}° ${f.weatherLabel}`;
