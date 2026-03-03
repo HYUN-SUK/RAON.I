@@ -2,11 +2,11 @@ name: Camping Reminder Cron
 
 on:
   schedule:
-    # 1. Prefetch (Cache external APIs) at 23:50 UTC (08:50 AM KST)
-    - cron: '50 23 * * *'
+    # 1. Prefetch (Cache external APIs) at 23:15 UTC (08:15 AM KST)
+    - cron: '15 23 * * *'
     
-    # 2. Dispatch (Send Push Notifications) at 00:00 UTC (09:00 AM KST)
-    - cron: '0 0 * * *'
+    # 2. Dispatch (Send Push Notifications) at 23:30 UTC (08:30 AM KST)
+    - cron: '30 23 * * *'
 
   # Allow manual trigger for testing and catch-up
   workflow_dispatch:
@@ -31,7 +31,7 @@ jobs:
             echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
           else
             # Use specific schedule trigger to determine mode (avoids issues with delay)
-            if [ "${{ github.event.schedule }}" = "50 23 * * *" ]; then
+            if [ "${{ github.event.schedule }}" = "15 23 * * *" ]; then
               echo "mode=prefetch" >> $GITHUB_ENV
             else
               echo "mode=dispatch" >> $GITHUB_ENV
@@ -41,8 +41,9 @@ jobs:
       - name: Trigger Supabase Edge Function
         run: |
           echo "Executing mode: ${{ env.mode }}"
-          # Use SERVICE_ROLE_KEY (as secret) for higher privilege and to bypass any potential RLS issues
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ vars.NEXT_PUBLIC_SUPABASE_URL }}/functions/v1/camping-reminder?mode=${{ env.mode }}" \
+          # Use SERVICE_ROLE_KEY (as secret) for higher privilege and to bypass any potential RLS issues.
+          # The URL is hardcoded to prevent Github Variables misconfiguration from dropping the cron.
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://khqiqwtoyvesxahsjukk.supabase.co/functions/v1/camping-reminder?mode=${{ env.mode }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json")
           

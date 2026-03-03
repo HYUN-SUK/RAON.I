@@ -1,4 +1,4 @@
-# 🔔 알림 시스템 구축 및 운영 핸드북 (v2.2 - 2026-03-01 업데이트)
+# 🔔 알림 시스템 구축 및 운영 핸드북 (v2.3 - 2026-03-03 업데이트)
 
 본 문서는 RAON.I의 알림 시스템(푸시/인앱 배지)의 아키텍처, 작동 원리, 그리고 새로운 알림을 추가하는 표준 절차를 정의합니다.
 
@@ -113,16 +113,17 @@ await notificationService.dispatchNotification(
 또한, Serverless Edge Function 특유의 무거운 외부 API 통신 시 10초 타임아웃(Timeout) 한계를 극복하기 위해 작업을 두 단계로 분리(Prefetch / Dispatch)하여 운영합니다.
 
 ### ⏳ 스케줄링 및 무거운 작업 극복 구조
-- **스케줄러**: `.github/workflows/camping-reminder-cron.yml`
-  - GitHub Actions의 내장된 Cron 기능을 사용하여 매일 08:50 (Prefetch) 및 09:00 (Dispatch)에 스크립트를 실행합니다.
+- **크론(Cron) 작업**: `camping-reminder` Edge Function을 정기적으로 실행하여 발송 조건을 평가합니다.
+  - GitHub Actions의 내장된 Cron 기능을 사용하여 매일 **08:15 (Prefetch)** 및 **08:30 (Dispatch)**에 스크립트를 실행합니다. 정각 트래픽 과부하를 피하기 위해 스케줄을 분산했습니다.
+  - GitHub Actions가 Supabase Edge Function API를 HTTP POST 방식으로 호출합니다.
   - Vercel과 같은 Serverless 호스팅의 짧은 타임아웃(10~30초) 병목을 원천적으로 회피하기 위해, **GitHub Actions 서버에서 Supabase Edge Function을 직접 호출(Direct Call)**하는 구조를 채택했습니다.
   - GitHub 환경변수(Variables)에 등록된 프론트엔드 공개용 키(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)만을 사용하여 안전하게 통신하며, GitHub Actions 자체의 타임아웃은 6시간이므로 외부 날씨 API 연동과 같은 장기 대기 쓰레드도 100% 안정적으로 완료됩니다.
 
 #### 🔄 고성능 발송 프로세스 (Grid-First & Chunking)
-1. **[단계 1] 격자 기반 프리페치 (08:50 AM KST)**: 
+1. **[단계 1] 격자 기반 프리페치 (08:15 AM KST)**: 
    - 개별 사용자 위치가 아닌, 전국을 5km 격자(`nx`, `ny`) 단위로 그룹화하여 날씨를 수집합니다.
    - 중복 호출을 90% 이상 제거하여 수천 명의 알림 대상자도 단 몇 초 만에 캐싱을 완료합니다.
-2. **[단계 2] 초고속 병렬 발송 (09:00 AM KST)**:
+2. **[단계 2] 초고속 병렬 발송 (08:30 AM KST)**:
    - **Force Cache**: 외부 API 연동 없이 오직 DB 캐시만 사용하여 메시지를 조립합니다. 캐시가 없을 경우 지연을 방지하기 위해 즉시 기본값(Fallback)을 사용합니다.
    - **Direct FCM**: `push-notification` 함수를 거치지 않고 직접 FCM 서버와 통신하여 오버헤드를 최소화합니다.
    - **Parallel Chunking**: 5~10건씩 묶어 병렬로 발송하여 대량 발송의 병목을 제거합니다.
