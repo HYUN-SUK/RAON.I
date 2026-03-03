@@ -112,6 +112,49 @@ async function getScoredMenuRecommendations(
 }
 
 // ==========================================
+// DB-BASED SCORING GEAR RECOMMENDATION
+// ==========================================
+async function getScoredGearRecommendations(
+    weather: { tempMin: number; isRainy: boolean; tempMax: number },
+    count: number = 2
+): Promise<any[]> {
+    try {
+        const { data: pool, error } = await supabase
+            .from('recommendation_pool')
+            .select('title, description, tags')
+            .eq('category', 'play')
+            .contains('tags', ['#gear']);
+
+        if (error || !pool || pool.length === 0) return [];
+
+        const isCold = weather.tempMin < 10;
+        const isHot = weather.tempMax > 28;
+        const isRainy = weather.isRainy;
+
+        const scored = pool.map((item: any) => {
+            let score = 0;
+            const tags = item.tags || [];
+
+            if (isRainy && (tags.includes('#비오는날') || tags.includes('#우중캠핑'))) score += 100;
+            if (isCold && (tags.includes('#추운날') || tags.includes('#겨울') || tags.includes('#동계캠핑'))) score += 100;
+            if (isHot && (tags.includes('#더운날') || tags.includes('#여름') || tags.includes('#폭염'))) score += 100;
+            if (!isRainy && !isCold && !isHot && tags.includes('#맑음')) score += 50;
+
+            score += Math.random() * 10;
+            return { ...item, _score: score };
+        });
+
+        return scored
+            .sort((a, b) => (b._score || 0) - (a._score || 0))
+            .slice(0, count);
+
+    } catch (err) {
+        console.error("[Gear Scoring] Error:", err);
+        return [];
+    }
+}
+
+// ==========================================
 // TOURISM API / EVENT DISCOVERY
 // ==========================================
 async function getNearbyEvents(lat: number, lng: number, radiusKm: number = 30): Promise<any[]> {
@@ -528,9 +571,37 @@ serve(async (req) => {
 
             // Gets from cache mostly, fast. (forceCache: true ensures we don't block on KMA during dispatch)
             const forecasts = await getMultiDayForecast(lat, lng, { forceCache: true });
-            // Default fallback if date not found in 7-day forecast
-            const f = forecasts.find(x => x.date === s.check_in) || mockForecast(s.check_in);
-            const weatherLine = `${f.weatherEmoji} ${f.tempMin}°/${f.tempMax}° ${f.weatherLabel}`;
+
+            // Format multi-day weather (up to 3 days of the trip)
+            const start = new Date(s.check_in);
+            const end = s.check_out ? new Date(s.check_out) : new Date(start.getTime() + 86400000);
+
+            let weatherLines = [];
+            let isRainyAny = false;
+            let tempMinOverall = 999;
+            let tempMaxOverall = -999;
+
+            let curr = new Date(start);
+            for (let i = 0; i < 3; i++) {
+                if (curr >= end && i > 0) break; // Stop at check_out day, but ensure at least 1 day
+                const dStr = curr.toISOString().split('T')[0];
+                const fRaw = forecasts.find(x => x.date === dStr) || mockForecast(dStr);
+                const dayName = fRaw.dayOfWeek || DAY_NAMES[curr.getDay()];
+                weatherLines.push(`${dayName}: ${fRaw.weatherEmoji} ${fRaw.tempMin}°/${fRaw.tempMax}°`);
+
+                if (fRaw.isRainy) isRainyAny = true;
+                if (fRaw.tempMin < tempMinOverall) tempMinOverall = fRaw.tempMin;
+                if (fRaw.tempMax > tempMaxOverall) tempMaxOverall = fRaw.tempMax;
+
+                curr.setDate(curr.getDate() + 1);
+            }
+            const weatherLine = weatherLines.join(' | ');
+
+            // Virtual primary forecast representing the trip overall conditions
+            const primaryForecast = forecasts.find(x => x.date === s.check_in) || mockForecast(s.check_in);
+            primaryForecast.isRainy = isRainyAny;
+            primaryForecast.tempMin = tempMinOverall;
+            primaryForecast.tempMax = tempMaxOverall;
 
             // D-0: Today is the day!
             if (s.check_in === today && !s.notification_d0_sent) {
@@ -554,7 +625,7 @@ serve(async (req) => {
             }
             // D-1: Meal Recommendations
             else if (s.check_in === tomorrow && !s.notification_d1_sent) {
-                const meals = await getScoredMenuRecommendations(s.user_id, f, s.member_count || 2);
+                const meals = await getScoredMenuRecommendations(s.user_id, primaryForecast, s.member_count || 2);
                 const menuText = meals.length > 0
                     ? meals.map(m => `🍽️ ${m.title}`).join(', ')
                     : "캠핑장에서 즐기기 좋은 맛있는 요리";
@@ -572,16 +643,22 @@ serve(async (req) => {
             }
             // D-4: Gear Check
             else if (s.check_in === d4 && !s.notification_d4_sent) {
+                const gears = await getScoredGearRecommendations(primaryForecast, 2);
                 let tip = '평범한 날씨네요! 가볍게 떠나보세요.';
-                if (f.isRainy) tip = '비 소식이 있어요 ☔ 우비와 타프 꼭 챙기세요!';
-                else if (f.tempMin < 10) tip = '밤에는 쌀쌀해요 🧣 따뜻한 침낭과 핫팩 잊지 마세요.';
+
+                if (gears.length > 0) {
+                    tip = gears.map(g => `💡 ${g.title}: ${g.description}`).join('\n\n');
+                } else {
+                    if (primaryForecast.isRainy) tip = '비 소식이 있어요 ☔ 우비와 타프 꼭 챙기세요!';
+                    else if (primaryForecast.tempMin < 10) tip = '밤에는 쌀쌀해요 🧣 따뜻한 침낭과 핫팩 잊지 마세요.';
+                }
 
                 notifications.push({
                     user_id: s.user_id,
                     category: 'reservation',
                     event_type: 'upcoming_stay_d4', // Fixed type
                     title: `🎒 캠핑이 4일 남았어요!`,
-                    body: `📍 ${s.campground_name}\n${weatherLine}\n💡 ${tip}\n\n빠트린 물건이 없는지 체크리스트를 확인해보세요!`,
+                    body: `📍 ${s.campground_name}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
                     data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
                     status: 'queued' // Fixed status
                 });
