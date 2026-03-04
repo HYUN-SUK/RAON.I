@@ -1,0 +1,13 @@
+﻿{
+    "value":  [
+                  {
+                      "source":  "NMC",
+                      "data":  "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"items\":{\"item\":{\"dutyName\":\"ìë£ë²ì¸ìë¹ìë£ì¬ë¨ìì°ì¢\u0085í©ë³ì\",\"dutyTel3\":\"041-330-4119\",\"hpid\":\"A2400004\",\"hv30\":1,\"hv5\":\"Y\",\"hvamyn\":\""
+                  },
+                  {
+                      "source":  "TOUR_SPOT",
+                      "data":  "Unexpected errors\n"
+                  }
+              ],
+    "Count":  2
+}

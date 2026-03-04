@@ -9,7 +9,8 @@ export interface StandardizedPlanJSON {
     "@context": "https://schema.org",
     "@type": "ItemList",
     narration: string;         // AI Generated emotional guide narrative
-    itemListElement: FactCard[]; // The highly curated 5 facts (Active ones)
+    itemListElement: FactCard[]; // Track A: Destination Core Facts (15 slots)
+    routeListElement?: FactCard[]; // Track B: Journey (Route/Midpoint) Facts
     alternatives: Record<string, FactCard[]>; // The 2 remaining alternatives for each category
 }
 
@@ -166,66 +167,112 @@ export async function generateSmartPlan(
         midpoint = await getMidpointOnRoad(origin, location);
     }
 
-    // 3. Multi-point Fact Gathering
+    // 3. Multi-point Fact Gathering (Two-Track DB)
+    // Track A: Destination Core Facts (Radius 15km)
     const destCandidates = await fetchHighTrustCandidates(location.lat, location.lng);
-    let journeyCandidates: FactCard[] = [];
 
+    // Track B: Journey / Midpoint Facts (Radius 5~10km around route)
+    let journeyCandidates: FactCard[] = [];
     if (midpoint) {
         const midpointFacts = await fetchHighTrustCandidates(midpoint.lat, midpoint.lng);
         // 중간 지점에서는 식당과 카페 위주로 추출
-        journeyCandidates = midpointFacts.filter(f => f.category === 'RESTAURANT' || f.category === 'ROUTE_CAFE');
-    } else if (origin) {
-        const originFacts = await fetchHighTrustCandidates(origin.lat, origin.lng);
-        journeyCandidates = originFacts.filter(f => f.category === 'ROUTE_CAFE');
+        journeyCandidates = midpointFacts.filter(f => f.category === 'RESTAURANT' || f.category === 'ROUTE_CAFE' || f.category === 'SPOT');
     }
 
-    const allCandidates = [...destCandidates, ...journeyCandidates];
-
-    // 4. Categorical Selection (Top-1 Active, Top-2 Alternatives)
+    // 4. Categorical Selection (Track A: 15 Core Slots, Track B: 3~6 slots)
     const activeFacts: FactCard[] = [];
     const alternatives: Record<string, FactCard[]> = {};
-    const categories: FactCard['category'][] = ['ROUTE_CAFE', 'MART_HOSPITAL', 'RESTAURANT', 'SPOT', 'FESTIVAL'];
+    const destCategories: FactCard['category'][] = ['MART_HOSPITAL', 'RESTAURANT', 'SPOT', 'FESTIVAL'];
 
-    categories.forEach(cat => {
-        let catFacts = allCandidates.filter(f => f.category === cat);
+    // --- Fill Track A ---
+    destCategories.forEach(cat => {
+        let catFacts = destCandidates.filter(f => f.category === cat);
+        // 날씨/페르소나 연동 가중치 재계산 (간소화)
+        if (weatherSummary.includes('비') && cat === 'RESTAURANT') {
+            catFacts.forEach(f => { if (f.name.includes('탕') || f.name.includes('찌개') || f.name.includes('국밥')) f.trustScore += 30; });
+        }
+        if (weatherSummary.includes('비') && cat === 'SPOT') {
+            catFacts.forEach(f => { if (f.name.includes('박물관') || f.name.includes('실내') || f.name.includes('미술관')) f.trustScore += 30; });
+        }
+        // 동계 실내등유 1순위 견인 (11월~3월 또는 최저기온 5도 이하)
+        const isWinterOrCold = weatherSummary.includes('~-') || weatherSummary.includes('~0') || weatherSummary.includes('~1') || weatherSummary.includes('~2') || weatherSummary.includes('~3') || weatherSummary.includes('~4') || weatherSummary.includes('~5');
+        if (isWinterOrCold && cat === 'MART_HOSPITAL') {
+            catFacts.forEach(f => { if (f.name.includes('주유소') || f.description.includes('등유')) f.trustScore += 100; });
+        }
 
-        // 정렬 및 중복 제거
+        // 아이 동반 페르소나 (소아과/돈까스 가중치)
+        if (context.guestDetails?.kids && (context.guestDetails.kids.preschool > 0 || context.guestDetails.kids.elementary > 0)) {
+            catFacts.forEach(f => {
+                if (cat === 'MART_HOSPITAL' && (f.name.includes('소아') || f.name.includes('아동'))) f.trustScore += 50;
+                if (cat === 'RESTAURANT' && f.name.includes('돈까스')) f.trustScore += 20;
+            });
+        }
+
+        // 대형마트 일요일/장기 숙박 방어 및 하나로마트 격상
+        const isSundayIncluded = startDate.getDay() === 0 || endDate.getDay() === 0 || (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24) >= 7;
+        if (isSundayIncluded && cat === 'MART_HOSPITAL') {
+            catFacts.forEach(f => {
+                if (f.name.includes('이마트') || f.name.includes('홈플러스')) f.trustScore -= 40;
+                if (f.name.includes('하나로마트')) f.trustScore += 30;
+            });
+        }
+
         const sorted = catFacts.sort((a, b) => b.trustScore - a.trustScore);
         const unique = Array.from(new Set(sorted.map(s => s.id))).map(id => sorted.find(s => s.id === id)!);
 
         if (unique.length > 0) {
-            activeFacts.push(unique[0]);
-            alternatives[cat] = unique.slice(1, 3);
+            activeFacts.push(unique[0]); // 1위
+            alternatives[cat] = unique.slice(1, 4); // 대안 2~3개 보관
         }
     });
 
-    // 5. AI Narration with Dual-Weather and Journey Context
+    // --- Fill Track B (Route Facts) ---
+    const routeFacts: FactCard[] = [];
+    if (journeyCandidates.length > 0) {
+        const sortedRoute = journeyCandidates.sort((a, b) => b.trustScore - a.trustScore);
+        const uniqueRoute = Array.from(new Set(sortedRoute.map(s => s.id))).map(id => sortedRoute.find(s => s.id === id)!);
+        // 경로상 식당/카페 3순위까지 추출
+        routeFacts.push(...uniqueRoute.slice(0, 3));
+    }
+
+    // 5. AI Narration with Dual-Weather and Journey Context (3-Part Prompt)
     let narration = "";
     try {
         const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
         if (!geminiKey) throw new Error("Missing Gemini API Key");
 
         const prompt = `
-당신은 '라온아이'의 캠핑 플래너입니다. 아래 여정 정보와 장소들을 바탕으로 풍부한 여행 에세이 형태의 서사를 작성하세요.
+당신은 '라온아이'의 수석 캠핑 플래너입니다. 사용자의 도착지(캠핑장)뿐만 아니라 이동 여정 전체를 고려하여 따뜻하고 감성적인 서사를 작성하세요.
 
 [여정 컨텍스트]
-- 출발지 좌표: ${origin ? `${origin.lat}, ${origin.lng}` : '정보 없음'}
-- 도착지(캠핑장): ${location.lat}, ${location.lng}
-- 일정: ${startDate.toLocaleDateString()} ~ ${endDate.toLocaleDateString()}
-- 전체 날씨 정보: ${weatherSummary}
-- 페르소나: ${context.description} (인원: 성인 ${context.guestDetails?.adults})
+- 전체 날씨 요약: ${weatherSummary}
+- 성향(페르소나): ${context.description} (아이 동반 여부 확인)
 
-[엄선된 장소 (반드시 모두 포함)]
-${activeFacts.map(f => `- [${f.category}] ${f.name}: ${f.description}`).join('\n')}
+아래 3가지 타임라인 컨텍스트로 나누어 팩트를 기반으로 자연스러운 스토리를 연결해주세요:
 
-[작성 규칙]
-1. 출발지에서 캠핑장으로 향하는 '왕복 여정'의 설렘과 현지에서의 즐거움을 연결하세요.
-2. 날씨 정보를 적극 활용하여 (예: "밤에는 추우니 등유를 준비하세요") 실질적인 조언을 섞으세요.
-3. 장소 언급 시 반드시 ||ID|이름|| 형식을 지켜주세요.
-4. 따뜻한 존댓말로 작성하세요.
+[Context 1: 가는 길 추천]
+${routeFacts.length > 0 ? routeFacts.map(f => `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}`).join('\n') : '중간 경로 추천 장소가 없습니다. 조심히 바로 오세요.'}
+
+[Context 2: 캠핑장 주변 현지 추천]
+${activeFacts.map(f => `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}`).join('\n')}
+
+[Context 3: 오는 길 추천]
+(가는 길 추천 장소 중 마음에 드는 곳을 귀가하실 때 들러도 좋습니다.)
+
+[작성 지침]
+1. 장소 이름 언급 시 무조건 ||ID|이름|| 형식을 지켜주세요.
+2. 날씨 정보를 활용하여 (예: "비가 오니 국물 요리 ||ID|xx식당||을 추천합니다", "밤 기온이 떨어지니 ||ID|xx주유소||에서 등유를 꼭 챙기세요") 실용적 조언을 포함하세요.
+3. 길게 늘어놓지 말고 흐름이 자연스러운 3문단 정도의 수필 형식으로 작성하세요.
 `.trim();
 
-        // Direct fetch to Gemini API to avoid SDK version mismatch
+        console.log("\n=======================================================");
+        console.log("🚀 [PIPELINE STEP 3] Midpoint Calculated: ", midpoint ? `Lat ${midpoint.lat}, Lng ${midpoint.lng}` : "None");
+        console.log(`🚀 [PIPELINE STEP 5-7] Active Track A Local Facts: ${activeFacts.length} ea`);
+        console.log(`🚀 [PIPELINE STEP 5-7] Active Track B Route Facts: ${routeFacts.length} ea`);
+        console.log("🚀 [PIPELINE STEP 8] AI Prompt Assembled:");
+        console.log(prompt);
+        console.log("=======================================================\n");
+
         const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -243,8 +290,7 @@ ${activeFacts.map(f => `- [${f.category}] ${f.name}: ${f.description}`).join('\n
         }
     } catch (e) {
         console.error("AI Narration Failed:", e);
-        narration = "캠퍼님을 위한 특별한 여정이 준비되었습니다. 경로상의 추천 장소와 캠핑장 주변의 팩트들을 확인해보세요! ||" +
-            (activeFacts[0]?.id || "") + "|" + (activeFacts[0]?.name || "추천장소") + "|| 등 엄선된 장소들이 기다리고 있습니다.";
+        narration = "캠퍼님을 위한 특별한 여정이 준비되었습니다. 이동 경로에서 가볍게 들를 수 있는 카페와, 현지 캠핑장 주변의 든든한 마트, 식당, 병원 리스트를 확인해 보세요.";
     }
 
     return {
@@ -252,6 +298,7 @@ ${activeFacts.map(f => `- [${f.category}] ${f.name}: ${f.description}`).join('\n
         "@type": "ItemList",
         narration,
         itemListElement: activeFacts,
+        routeListElement: routeFacts,
         alternatives
     };
 }

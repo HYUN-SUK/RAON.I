@@ -1,0 +1,315 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?숋툘  write to custom object with { processEnv: myObject }
+--- Deep Dive: March 1st Activity ---
+
+Schedules (Mar 1-10):
+[
+  {
+    "id": "4edc7bea-c844-48f7-9575-222dd935f6d1",
+    "user_id": "c191ffa7-56e4-4be6-85b2-e5678dece820",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-01",
+    "notification_d0_sent": true,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "ceb37490-ccea-4927-8b01-74c36475efba",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?곹씗??,
+    "check_in": "2026-03-01",
+    "notification_d0_sent": true,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "fc278f75-e72b-45a5-bef7-a385152b9712",
+    "user_id": "c191ffa7-56e4-4be6-85b2-e5678dece820",
+    "campground_name": "?쇱삩罹좏븨",
+    "check_in": "2026-03-01",
+    "notification_d0_sent": true,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "3ab3d5d1-f718-4f5d-b4f4-59a9b2422033",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?μ씠??,
+    "check_in": "2026-03-01",
+    "notification_d0_sent": true,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "3ff9fdd2-947f-4b20-8552-c9c2c93ba6da",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?댁씠??,
+    "check_in": "2026-03-01",
+    "notification_d0_sent": true,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "28ebc312-6921-4fd4-8d3f-fc5e8543b953",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "泥좎닔??,
+    "check_in": "2026-03-02",
+    "notification_d0_sent": false,
+    "notification_d1_sent": true,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "1bce4f4f-ddf1-41c9-b379-f6cd6ecd28cc",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?곹씗??,
+    "check_in": "2026-03-02",
+    "notification_d0_sent": false,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "e295cfe2-bd81-4181-9ed7-354f75cf37b4",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "泥좎닔??,
+    "check_in": "2026-03-03",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "2852b2f1-132a-4a07-98b1-ab694a1179af",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "泥좎닔??,
+    "check_in": "2026-03-04",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "e3f2425a-a4fc-4295-a4a9-237d4069c084",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "誘쇱닔??,
+    "check_in": "2026-03-04",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "bf24c47f-aff7-4aa0-ad3f-43ed3978140f",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?곹씗??,
+    "check_in": "2026-03-04",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "69a3f25e-1e91-4b11-896f-51d8ff827e74",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-05",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "fdfaea1c-b001-4037-853f-9d793c486e4c",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-05",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "afa7d178-041c-4c9a-8d72-82397f29a0bf",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?μ씠??,
+    "check_in": "2026-03-05",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "39c509fe-1638-4b3e-a310-85cf7d72e084",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?곹씗??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "34d378e6-9d64-4655-ad9c-138c54b03eb6",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "誘쇱닔??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "abadda74-bb75-4254-ac47-87375ece1ac9",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?앹씠??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "57838132-5511-48d3-bcfe-079a94746011",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "24ea5afa-8de7-4aeb-b7ef-be3a3d384d98",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "5efce1f8-c4ff-4a29-a1fd-2d58ce4c336b",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "5b9c3114-01fa-4bd0-9431-f77043d99aa2",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "3bbcc4b9-6724-48c4-8b53-9da970cb85ba",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "泥좎닔??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  }
+]
+
+Notifications created today (UTC):
+[
+  {
+    "id": "14f07576-db3f-49da-8839-50c1bd8ec65f",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "reservation_confirmed",
+    "status": "sent",
+    "created_at": "2026-03-01T01:22:14.0075+00:00",
+    "title": "?덉빟 ?뺤젙"
+  },
+  {
+    "id": "063b518b-0b8f-4a14-8392-6cc0d9c16ea1",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "reservation_confirmed",
+    "status": "sent",
+    "created_at": "2026-03-01T01:22:21.60362+00:00",
+    "title": "?덉빟 ?뺤젙"
+  },
+  {
+    "id": "3fe1332c-63b4-4fec-8691-78461221fd63",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "reservation_confirmed",
+    "status": "sent",
+    "created_at": "2026-03-01T01:22:27.424749+00:00",
+    "title": "?덉빟 ?뺤젙"
+  },
+  {
+    "id": "762848a2-8127-4268-ae81-a075ea654110",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_today",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?룙截??쒕뵒???ㅻ뒛?댁뿉?? ?좊궇 以鍮??섏뀲?섏슂?"
+  },
+  {
+    "id": "3bcc718f-c190-4fa9-ac98-bf89cc16eb99",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "8e6e1bd4-8e09-4500-aace-7bec29c083c8",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "a256474b-893a-4cb1-8ca4-f048e092f90c",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "7baa7b57-d900-439c-b1b4-28192378f675",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?뜵 ?댁씪 萸?癒뱀쓣吏 怨좊??섏떆?섏슂?"
+  },
+  {
+    "id": "19f839a5-1dc5-4208-a52c-05dc999db62f",
+    "user_id": "c191ffa7-56e4-4be6-85b2-e5678dece820",
+    "event_type": "upcoming_stay_today",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?룙截??쒕뵒???ㅻ뒛?댁뿉?? ?좊궇 以鍮??섏뀲?섏슂?"
+  },
+  {
+    "id": "9d7fb364-ca6c-4297-a1ae-3d467020bb7f",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_today",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?룙截??쒕뵒???ㅻ뒛?댁뿉?? ?좊궇 以鍮??섏뀲?섏슂?"
+  },
+  {
+    "id": "438a3079-0171-482e-84c6-acae7089b279",
+    "user_id": "c191ffa7-56e4-4be6-85b2-e5678dece820",
+    "event_type": "upcoming_stay_today",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?룙截??쒕뵒???ㅻ뒛?댁뿉?? ?좊궇 以鍮??섏뀲?섏슂?"
+  },
+  {
+    "id": "b5c3e8e5-ede6-4fd0-aabe-da80c20b695c",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?뜵 ?댁씪 萸?癒뱀쓣吏 怨좊??섏떆?섏슂?"
+  },
+  {
+    "id": "786003c2-b6cf-4e68-a4a0-1424ef584539",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_today",
+    "status": "sent",
+    "created_at": "2026-03-01T01:34:37.712365+00:00",
+    "title": "?룙截??쒕뵒???ㅻ뒛?댁뿉?? ?좊궇 以鍮??섏뀲?섏슂?"
+  }
+]
+
+User Profiles:
+null

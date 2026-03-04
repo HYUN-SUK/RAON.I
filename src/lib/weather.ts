@@ -56,12 +56,32 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
     const grid = dfs_xy_conv("toXY", lat, lng);
     if (!grid.x || !grid.y) return null;
 
-    // 2. KMA API (Simplify for now, or Mock if similar to Deno)
-    // Using Mock for stability, same as Edge Function currently
-    return {
-        temp_min: 15,
-        temp_max: 25,
-        sky: 'Sunny',
-        pop: 0
-    };
+    // 2. Fetch from internal weather API or use Mock if fetch fails
+    try {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000';
+        const targetUrl = `${baseUrl}/api/weather?lat=${lat}&lng=${lng}`;
+
+        const res = await fetch(targetUrl, { next: { revalidate: 3600 } });
+        if (!res.ok) {
+            console.warn(`[getForecast] Weather API failed with status: ${res.status}`);
+            throw new Error("Weather API failed");
+        }
+
+        const data = await res.json();
+        return data; // Returns { current, daily: [], timeline: [], nx, ny }
+    } catch (error) {
+        console.error("[getForecast] Error fetching weather, falling back to mock:", error);
+        // Fallback Mock for stability
+        return {
+            current: { temp: 15, humidity: 50, windSpeed: 2, strPrecipitation: '0' },
+            daily: [
+                { date: dateStr, min: 10, max: 20, pop: 0, weatherCode: 'sunny' }
+            ],
+            timeline: [
+                { date: dateStr, time: '1500', temp: 15, sky: 1, pty: 0, pop: 0, weatherCode: 'sunny' }
+            ],
+            nx: grid.x,
+            ny: grid.y
+        };
+    }
 }

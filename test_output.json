@@ -1,0 +1,98 @@
+﻿{
+    "@context":  "https://schema.org",
+    "@type":  "ItemList",
+    "narration":  "ìº í¼ëì ìí í¹ë³í ì¬ì ì´ ì¤ë¹ëììµëë¤. ì´ë ê²½ë¡ìì ê°ë³ê² ë¤ë¥¼ ì ìë ì¹´íì, íì§ ìº íì¥ ì£¼ë³ì ë ë í ë§í¸, ìë¹, ë³ì ë¦¬ì¤í¸ë¥¼ íì¸í´ ë³´ì¸ì.",
+    "itemListElement":  [
+                            {
+                                "@type":  "Store",
+                                "id":  "a2d05d2b-98c2-426f-ae11-7859a78fac46",
+                                "category":  "MART_HOSPITAL",
+                                "name":  "(ì£¼)ìëª¨ ìí¸ë´ì£¼ì ì",
+                                "description":  "ëë°©ì© ì¤ë´ë±ì (í¬íí°ì©) ì·¨ê¸ ì£¼ì ì",
+                                "trustScore":  95,
+                                "distanceKm":  0,
+                                "metadata":  {
+                                                 "OS_NM":  "(ì£¼)ìëª¨ ìí¸ë´ì£¼ì ì",
+                                                 "PRICE":  1550,
+                                                 "UNI_ID":  "A0001217",
+                                                 "DISTANCE":  2325.2,
+                                                 "GIS_X_COOR":  317006,
+                                                 "GIS_Y_COOR":  544776,
+                                                 "POLL_DIV_CD":  "GSC"
+                                             },
+                                "provenance":  {
+                                                   "sourceName":  "OPINET"
+                                               }
+                            }
+                        ],
+    "routeListElement":  [
+
+                         ],
+    "alternatives":  {
+                         "MART_HOSPITAL":  [
+                                               {
+                                                   "@type":  "Store",
+                                                   "id":  "1987003e-1fcd-4b11-95a4-e8659991c551",
+                                                   "category":  "MART_HOSPITAL",
+                                                   "name":  "HDíëì¤ì¼ë±\u0085í¬ãì§ì ìì¬íëì£¼ì ì",
+                                                   "description":  "ëë°©ì© ì¤ë´ë±ì (í¬íí°ì©) ì·¨ê¸ ì£¼ì ì",
+                                                   "trustScore":  95,
+                                                   "distanceKm":  0,
+                                                   "metadata":  {
+                                                                    "OS_NM":  "HDíëì¤ì¼ë±\u0085í¬ãì§ì ìì¬íëì£¼ì ì",
+                                                                    "PRICE":  1570,
+                                                                    "UNI_ID":  "A0009919",
+                                                                    "DISTANCE":  3156.4,
+                                                                    "GIS_X_COOR":  315259.13639,
+                                                                    "GIS_Y_COOR":  541703.85296,
+                                                                    "POLL_DIV_CD":  "HDO"
+                                                                },
+                                                   "provenance":  {
+                                                                      "sourceName":  "OPINET"
+                                                                  }
+                                               },
+                                               {
+                                                   "@type":  "Store",
+                                                   "id":  "2ceea9d3-1b6a-4df5-a7a0-ec62936bc0e0",
+                                                   "category":  "MART_HOSPITAL",
+                                                   "name":  "ëì²­ì£¼ì ì",
+                                                   "description":  "ëë°©ì© ì¤ë´ë±ì (í¬íí°ì©) ì·¨ê¸ ì£¼ì ì",
+                                                   "trustScore":  95,
+                                                   "distanceKm":  0,
+                                                   "metadata":  {
+                                                                    "OS_NM":  "ëì²­ì£¼ì ì",
+                                                                    "PRICE":  1869,
+                                                                    "UNI_ID":  "A0010177",
+                                                                    "DISTANCE":  4603.8,
+                                                                    "GIS_X_COOR":  319220.9,
+                                                                    "GIS_Y_COOR":  544036.1,
+                                                                    "POLL_DIV_CD":  "SKE"
+                                                                },
+                                                   "provenance":  {
+                                                                      "sourceName":  "OPINET"
+                                                                  }
+                                               },
+                                               {
+                                                   "@type":  "Store",
+                                                   "id":  "314365b9-0b17-4b18-82d6-1ac2ad4a83b2",
+                                                   "category":  "MART_HOSPITAL",
+                                                   "name":  "SKë\u0085¼íì£¼ì ì",
+                                                   "description":  "ëë°©ì© ì¤ë´ë±ì (í¬íí°ì©) ì·¨ê¸ ì£¼ì ì",
+                                                   "trustScore":  95,
+                                                   "distanceKm":  0,
+                                                   "metadata":  {
+                                                                    "OS_NM":  "SKë\u0085¼íì£¼ì ì",
+                                                                    "PRICE":  1888,
+                                                                    "UNI_ID":  "A0009710",
+                                                                    "DISTANCE":  1946.1,
+                                                                    "GIS_X_COOR":  314292.669,
+                                                                    "GIS_Y_COOR":  546714.2385,
+                                                                    "POLL_DIV_CD":  "SKE"
+                                                                },
+                                                   "provenance":  {
+                                                                      "sourceName":  "OPINET"
+                                                                  }
+                                               }
+                                           ]
+                     }
+}

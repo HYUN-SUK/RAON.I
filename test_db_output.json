@@ -1,0 +1,75 @@
+﻿{
+    "data":  [
+                 {
+                     "id":  "a2d05d2b-98c2-426f-ae11-7859a78fac46",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "(ì£¼)ìëª¨ ìí¸ë´ì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "1987003e-1fcd-4b11-95a4-e8659991c551",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "HDíëì¤ì¼ë±\u0085í¬ãì§ì ìì¬íëì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "47dd932f-4bc5-47ce-817d-896c27c567dc",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "(ì£¼)ë¨ê²½ì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "c5ec6fd9-5113-47a5-bc51-e15fc4f41cb1",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "ëì±ìì (ì£¼)ì°ì¼ì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "99c392bf-af75-465d-ba7d-4d0e4b155b06",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "ëì±ì°ì\u0085(ì£¼)ì§ì í°ë¯¸ë(ê³ ì)ì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "1e264882-55b8-4860-9045-6bb9901ab5f3",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "ë°©ë°°ì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "aaa3e289-3ded-4853-9b50-52d9d86d0edc",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "HDíëì¤ì¼ë±\u0085í¬ãì§ì ì ì§ì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "eb8e27c5-4734-4829-8cd9-5c33132640b1",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "(ì£¼)ì ë¬¸ìëì§ ì¤ìì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "2ceea9d3-1b6a-4df5-a7a0-ec62936bc0e0",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "ëì²­ì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 },
+                 {
+                     "id":  "314365b9-0b17-4b18-82d6-1ac2ad4a83b2",
+                     "category":  "MART_HOSPITAL",
+                     "name":  "SKë\u0085¼íì£¼ì ì",
+                     "lat":  36.67,
+                     "lng":  126.84
+                 }
+             ],
+    "error":  null
+}

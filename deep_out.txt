@@ -1,0 +1,5 @@
+[400] 1. ODcloud (Query Param auth) => {"code":-3,"msg":"등록되지 않은 서비스 입니다."}
+\n[500] 2. TourAPI areaCode1 (Test Auth key) => Unexpected errors
+\n[500] 3. TourAPI areaBasedList1 (No Ldong) => Unexpected errors
+\n[ERR] fetch failed\n[500] 5. Festival APIS HTTP => Unexpected errors
+\n

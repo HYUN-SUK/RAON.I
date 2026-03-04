@@ -1,48 +1,32 @@
-# Session Handoff Document (Session v10 -> v11)
+# RAON.I Handoff Document
+**Date**: 2026-03-01
+**Current Phase**: Phase 9 (Smart Camping Plan - Internal API Verification & Pipeline Debugging)
 
-**작성일**: 2026-02-27
-**목적**: 스마트 캠핑 플랜(Guided Journey) 엔진 감사를 완료하고, 대규모 수정 세션을 앞두고 안전하게 인수인계하기 위함.
+## 📌 What We Achieved Today
+1. **Resolved 500 Internal Server Errors (Ministry of Interior APIs)**:
+   - Diagnosed that the `1741000/excellent_restaurant_info` and `1741000/large_scale_retail_stores` APIs required the `/info` suffix and `returnType=json` rather than `type=json` to work with the user's 64-character hex key. 
+   - Successfully extracted the real JSON data payloads.
+2. **Recovered 100-Year Store Endpoint**:
+   - Extracted the true Odyssey Cloud (ODCLOUD) endpoint from Swagger documentation.
+3. **ETL Pipeline (`route.ts`) Complete Repair**:
+   - Updated the mapping logic to parse the actual JSON keys returned by the APIs (e.g., `BPLC_NM`, `ROAD_NM_ADDR`, `BSNSSP_NM`) ensuring data is correctly inserted without falling back to blank coordinates.
+   - Successfully executed the `/api/cron/sync-smart-plan` cron job with `201` valid real-world data rows inserted into the Supabase Database.
+4. **15개 핵심 API 1:1 통신 현황 전수 검증 완료**:
+   - `api_status_report_v2.md` 리포트 작성 완료.
+   - 필수 11개 API (병원, 마트, 안심식당, 모범음식점, 오피넷, 날씨, 카카오) 정상 통신(200 OK) 확인.
+   - 4개 API (백년가게, 관광공사, 축제 2개)는 권한/방화벽/서버 불안정 문제로 보류, 하지만 `route.ts`의 `try-catch` 시스템 덕분에 서비스에 지장 없음을 증명.
+5. **새벽 6시 스케줄러(Cron) 생성 완료**:
+   - `.github/workflows/smart-plan-sync-cron.yml` 생성.
+   - 매일 KST 06:00 (UTC 21:00)에 `route.ts` 동기화 파이프라인 자동 실행 구성 완료.
 
----
+## 🚀 Next Session Objectives
+- **스마트캠핑플랜 8단계 내부 엔진 로직 정밀 검증 (Deep Dive) 진행**:
+  - **절대 UI/프론트엔드 작업으로 넘어가지 마세요.**
+  - **Action**: `data_pipeline_verification_plan.md`에 명시된 스마트 플랜 프로세스 8단계(사용자 버튼 클릭 -> 출발지 LBS 수집 -> Midpoint 거리 계산 -> 기온/페르소나에 따른 가중치 부여 -> AI 프롬프트 조립) 코어 로직의 흐름을 1:1로 단계별 산출물과 함께 콘솔 로그로 완벽히 추적하고 디버깅하십시오.
+  - **Goal**: AI에게 넘겨지는 프롬프트와 팩트 체인이 데이터의 누락이나 왜곡 없이 100% 매끄럽게 연결되는지 투명하게 증명하는 것이 최우선 목표입니다.
 
-## 📌 현재 상태 요약 (What We Did)
-이번 세션에서는 `smart_camping_plan_manual.md`에 명시된 15-Fact 추출 기반 머신러닝/규칙 기반 복합 추천 엔진의 현재 구현 상태를 **다른 AI와의 Cross-Checking을 포함하여 완전히 전수 감사(Audit) 완료**했습니다.
+## ⚠️ Known Contexts / Ongoing Issues
+- 11개의 API 코어 데이터가 굳건히 받쳐주고 있으므로 축제나 예외 상황에 집착하지 말고 기반 로직(거리 알고리즘, 가중치)에만 집중하십시오.
 
-1. **감사 완료**: 
-   - `smartPlan.ts`, `route.ts`, `weather.ts`, `persona.ts`, `SmartPlanProposal.tsx` 5종의 코드와 매뉴얼 대조.
-   - 이전/현재 AI의 통합 점검 보고서(`audit_report_step1.md`, `audit_report_independent.md`) 두 건 발행.
-2. **코드 클린업**: 
-   - 불필요한 콘솔 로그 제거 (`SmartPlanProposal.tsx:55`).
-3. **태스크 및 로드맵 업데이트**:
-   - `task.md` 및 `RAON_MASTER_ROADMAP_v3.md`에 새롭게 도출된 파이프라인 수술 3-Phase Plan 반영 완료.
-
----
-
-## 🛠 주요 구조적 결함 및 기술적 결정 (Technical Decisions)
-감사 결과, 현재 코드는 기본 ETL 뼈대와 AI 내러티브 생성은 잘 되어 있으나 **데이터의 질 및 동적 가중치 알고리즘**이 모두 누락되거나 Mock 처리된 상태입니다. 
-
-1. **Mock 날씨 문제 (`weather.ts`)**: 실제 기상청 연동 코드가 없이 무조건 맑음/15도를 반환하도록 Mocking 되어 있어 매뉴얼의 모든 날씨 로직(등유, 비오는날 메뉴 등)이 무력화됨.
-2. **페르소나 헛스윙 (`persona.ts` -> `smartPlan.ts`)**: 사용자 취향 태그를 잘 추출해오고도, 실제 카드 랭킹 점수(trustScore) 계산에는 안 쓰고 AI 프롬프트에 텍스트로만 밀어넣고 있음.
-3. **ETL 불일치 (`route.ts`)**: 매뉴얼상 `SPOT`(관광지) 카테고리가 존재해야 하나 TourAPI에서 축제(`FESTIVAL`)만 끌어오고 있음. 전국 축제가 위치 필터 없이 들어오는 중.
-
-*결정 사항*: 한 번에 모든 것을 고치다 깨질 위험이 크므로, 다음 세션에서 **3단계(Phase 1~3)**로 분리하여 점진적 주입(Incremental Injection) 방식으로 수술을 진행하기로 결정됨.
-
----
-
-## 🚀 다음 세션 작업 가이드 (Next Steps)
-다음 AI 세션이 시작되면, 아래 가이드에 따라 가장 시급한 코어 기반 공사부터 시작해야 합니다:
-
-1. **Phase 1 (Mock 제거 및 파이프라인 보강)**:
-   - `weather.ts`의 Mock을 제거하고, 기상청 단기/중기 예보 API 구현 로직 복원 (없다면 Open-Meteo 등 대체).
-   - `route.ts`에 TourAPI의 12(관광지) 카테고리 호출 블록을 신설하여 `SPOT` 파이프라인 추가 (예산 지역코드 필수 적용).
-2. **Phase 2 (페르소나 점수 연동)**:
-   - `smartPlan.ts`의 `fetchHighTrustCandidates()` 부분 또는 내부 정렬 로직에서 `context.guestDetails` (아이 동반) 및 `context.topTags` 배열을 순회하며 메타데이터 필드와 일치하면 `trustScore`를 런타임에 +10~+50 증가시키는 알고리즘 작성.
-3. **Phase 3 (날씨 연동 고도화)**:
-   - 날씨 결과에 따라 특정 식당(국물류) 및 등유(5도 이하)를 조건부로 점수 부스팅하는 로직 완성.
-
----
-
-## ⚠️ 주의 사항 (Warnings & Quirks)
-- 현재 Vercel의 Vercel Edge/Serverless Timeout 이슈 방지를 위해 `route.ts`의 Cron 런타임이 한정되어 있습니다 (`maxDuration = 300`). API 연동부를 quá 콜라보레이션 하지 않도록 성능에 유의하세요.
-- `smartPlan.ts` 상의 Gemini 직접 호출(`fetch`)은 SDK 충돌 회피를 위한 것으로 절대 SDK 래퍼로 롤백하지 마십시오.
-- 파일 경로 이동을 자제하고 현재 디렉토리 구조(`c:\Users\USER\Desktop\RAON.I\src\lib\` 등)를 준수하세요.
+***
+**Note to next AI**: Please deeply review `api_status_report_v2.md` and `data_pipeline_verification_plan.md`. Tomorrow's strict mandate from the LIVE user is internal 8-step verification ONLY. DO NOT proceed to UI rendering until the pipeline is completely proven to the user.

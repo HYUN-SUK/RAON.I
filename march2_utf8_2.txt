@@ -1,0 +1,193 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?뾺截?backup and recover secrets: https://dotenvx.com/ops
+--- Deep Dive: March 2nd Activity ---
+
+Schedules created since yesterday:
+[
+  {
+    "id": "bfd5d73d-7346-4659-97e8-877564179dd6",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?앹씠??,
+    "check_in": "2026-03-03",
+    "notification_d0_sent": false,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "122be905-5d44-4221-8cb3-6a4b4223a3db",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "誘쇱닔??,
+    "check_in": "2026-03-03",
+    "notification_d0_sent": false,
+    "notification_d1_sent": true,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "e3f2425a-a4fc-4295-a4a9-237d4069c084",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "誘쇱닔??,
+    "check_in": "2026-03-04",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "bf24c47f-aff7-4aa0-ad3f-43ed3978140f",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?곹씗??,
+    "check_in": "2026-03-04",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "be5e1d33-fb28-4426-948c-796bdc61fc39",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?뺤씠??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "3bbcc4b9-6724-48c4-8b53-9da970cb85ba",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "泥좎닔??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  },
+  {
+    "id": "4c867234-19ba-4263-96db-56f6ed41b0c9",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?댁씠??,
+    "check_in": "2026-03-06",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": true
+  }
+]
+
+Notifications created today (Mar 2 KST):
+[
+  {
+    "id": "897e57e4-dc58-4e5a-8e65-dfed5640a13f",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "7da3665a-e93f-45dc-bfc5-890d6e753add",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "fe338039-8b64-49c4-b1d6-188156e793b0",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?뜵 ?댁씪 萸?癒뱀쓣吏 怨좊??섏떆?섏슂?"
+  },
+  {
+    "id": "4aad8482-e448-42dd-af29-59f0411d0a55",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "b05af94a-d147-4f87-b604-3d8b6575ab29",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "80c79981-53d4-4e3b-9c31-65a1a2120998",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "e640a116-d554-4560-8b00-5fdfa0b4c9d1",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?뜵 ?댁씪 萸?癒뱀쓣吏 怨좊??섏떆?섏슂?"
+  },
+  {
+    "id": "3e5f8e59-6fb3-4f53-a902-7f1d22f288e1",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "d08c47a8-9bb3-4825-9f1b-7d7f77d24891",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "b0b97754-9ef0-44e7-b720-ae554033b321",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "event_type": "upcoming_stay_today",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?룙截??쒕뵒???ㅻ뒛?댁뿉?? ?좊궇 以鍮??섏뀲?섏슂?"
+  },
+  {
+    "id": "6cfbea7b-7e89-4dbd-8ab7-580732f1db90",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_today",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?룙截??쒕뵒???ㅻ뒛?댁뿉?? ?좊궇 以鍮??섏뀲?섏슂?"
+  },
+  {
+    "id": "1d0c01ce-d92c-4bd2-bf3a-97f7f49e1021",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "2a16b866-4a6d-4ccd-9c11-bd4a595ed44e",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  },
+  {
+    "id": "6acd082c-f367-459b-b79d-bbfd499c3315",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d1",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?뜵 ?댁씪 萸?癒뱀쓣吏 怨좊??섏떆?섏슂?"
+  },
+  {
+    "id": "c8cb5de7-393e-4984-864d-32b12c4d7240",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "event_type": "upcoming_stay_d4",
+    "status": "sent",
+    "created_at": "2026-03-02T01:13:02.901822+00:00",
+    "title": "?럲 罹좏븨??4???⑥븯?댁슂!"
+  }
+]

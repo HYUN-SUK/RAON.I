@@ -1,0 +1,28 @@
+{
+  "item": [
+    {
+      "APLY_YMD": "2009-05-27",
+      "BSNSSP_NM": "남일식당",
+      "CLSBIZ_YMD": "",
+      "DAT_UPDT_PNT": "2025-12-15 16:21:53",
+      "DAT_UPDT_SE": "I",
+      "DSGN_RTRCN_RSN": "",
+      "DSGN_RTRCN_YMD": "",
+      "DSGN_YMD": "2009-06-22",
+      "FD_OF_TYPE": "",
+      "IMPS_RSN": "",
+      "IMPS_YMD": "",
+      "LAST_MDFCN_PNT": "2022-04-18 09:20:33",
+      "LCPMT_NO": "19890567003",
+      "LCTN_ADDR": "경상북도 청도군 청도읍 고수리 827-22",
+      "MNG_NO": "5190000-101-1989-00004",
+      "OPN_ATMY_GRP_CD": "5190000",
+      "PRINC_FD_KND": "",
+      "RE_DSGN_YMD": "2020-10-30",
+      "ROAD_NM_ADDR": "경상북도 청도군 청도읍 고수동4길 7-1",
+      "SALS_STTS_CD": "01",
+      "SALS_STTS_NM": "영업",
+      "TELNO": "054-371-2000"
+    }
+  ]
+}

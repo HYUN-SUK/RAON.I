@@ -1,0 +1,17 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?숋툘  load multiple .env files with { path: ['.env.local', '.env'] }
+--- Testing APIs with 09:00 AM Params ---
+
+[1] Testing Tour API...
+Status: 200
+First 200 chars: {"response": {"header":{"resultCode":"0000","resultMsg":"OK"},"body": {"items": {"item":[{"addr1":"?쒖슱?밸퀎??媛뺣룞援??щ┝?쎈줈 875 (?붿궗??","addr2":"","zipcode":"05239","cat1":"","cat2":"","cat3":"","contentid":"130
+JSON Structure Check: true
+
+[2] Testing KMA Vilage API...
+Status: 200
+First 200 chars: {"response":{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"dataType":"JSON","items":{"item":[{"baseDate":"20260301","baseTime":"0800","category":"TMP","fcstDate":"20260301","fcstT
+JSON Structure Check: true
+
+[3] Testing KMA MidLand API...
+Status: 200
+First 200 chars: {"response":{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"dataType":"JSON","items":{"item":[{"regId":"11B00000","rnSt4Am":20,"rnSt4Pm":30,"rnSt5Am":60,"rnSt5Pm":40,"rnSt6Am":10,"
+JSON Structure Check: true

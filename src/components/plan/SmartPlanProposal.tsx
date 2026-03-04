@@ -89,45 +89,50 @@ export default function SmartPlanProposal({
 
     const handleSwapOptionSelected = (category: string, newCardId: string) => {
         if (!plan) return;
-        const currentActiveInfo = plan.itemListElement.find(c => c.category === category);
+        // Find if it's in itemListElement or routeListElement
+        const inItemIndex = plan.itemListElement.findIndex(c => c.category === category);
+        const inRouteIndex = plan.routeListElement?.findIndex(c => c.category === category) ?? -1;
+
+        const isRoute = inRouteIndex !== -1;
+        const currentActiveInfo = isRoute && plan.routeListElement ? plan.routeListElement[inRouteIndex] :
+            (inItemIndex !== -1 ? plan.itemListElement[inItemIndex] : null);
+
         const alternativeCards = plan.alternatives?.[category] || [];
         const newActiveInfo = alternativeCards.find(c => c.id === newCardId);
 
         if (currentActiveInfo && newActiveInfo) {
             if (userId) {
-                // Trigger 36: PLAN_SWAP_MEALKIT (마켓을 밀키트로 변경 등)
+                // Trigger Actions
                 if (newActiveInfo.category === 'MART_HOSPITAL' && newActiveInfo.metadata?.hasMilkit) {
                     dispatchPersonaAction(userId, 'PLAN_SWAP_MEALKIT').catch(console.error);
                 }
-                // Trigger 37: PLAN_SWAP_FANCY_FOOD
                 if (newActiveInfo.category === 'RESTAURANT' && newActiveInfo.metadata?.isHighEnd) {
                     dispatchPersonaAction(userId, 'PLAN_SWAP_FANCY_FOOD').catch(console.error);
                 }
-                // Trigger 39: PLAN_SWAP_NATURE_WALK
                 if (newActiveInfo.category === 'SPOT' && newActiveInfo.metadata?.isNatureWalk) {
                     dispatchPersonaAction(userId, 'PLAN_SWAP_NATURE_WALK').catch(console.error);
                 }
-                // (Optional fallback) Trigger general filter view
                 if (newActiveInfo.metadata?.isScenic) {
                     dispatchPersonaAction(userId, 'PLAN_FILTER_VIEW').catch(console.error);
                 }
             }
 
-            const activeIndex = plan.itemListElement.findIndex(c => c.category === category);
-            const newActiveList = [...plan.itemListElement];
-            newActiveList[activeIndex] = newActiveInfo;
-
             const newAltsList = alternativeCards.filter(c => c.id !== newCardId);
             newAltsList.push(currentActiveInfo);
 
-            setPlan({
-                ...plan,
-                itemListElement: newActiveList,
-                alternatives: {
-                    ...plan.alternatives,
-                    [category]: newAltsList
-                }
-            });
+            const updatedPlan = { ...plan, alternatives: { ...plan.alternatives, [category]: newAltsList } };
+
+            if (isRoute && updatedPlan.routeListElement) {
+                const newRouteList = [...updatedPlan.routeListElement];
+                newRouteList[inRouteIndex] = newActiveInfo;
+                updatedPlan.routeListElement = newRouteList;
+            } else {
+                const newActiveList = [...updatedPlan.itemListElement];
+                newActiveList[inItemIndex] = newActiveInfo;
+                updatedPlan.itemListElement = newActiveList;
+            }
+
+            setPlan(updatedPlan);
             setSwapCategory(null);
         }
     };
@@ -155,7 +160,7 @@ export default function SmartPlanProposal({
     if (!plan) return null;
 
     const swapOptions = swapCategory ? [
-        plan.itemListElement.find(c => c.category === swapCategory)!, // Current Active
+        (plan.itemListElement.find(c => c.category === swapCategory) || plan.routeListElement?.find(c => c.category === swapCategory))!, // Current Active
         ...(plan.alternatives?.[swapCategory] || []) // 2 Alternatives
     ] : [];
 
@@ -176,6 +181,7 @@ export default function SmartPlanProposal({
                     const placeName = parts[1];
 
                     const fact = plan.itemListElement.find(f => f.id === factId) ||
+                        plan.routeListElement?.find(f => f.id === factId) ||
                         Object.values(plan.alternatives || {}).flat().find(f => f.id === factId);
 
                     if (fact) {
@@ -196,6 +202,61 @@ export default function SmartPlanProposal({
             return <span key={`text-${index}`}>{token}</span>;
         });
     };
+
+    const renderFactCard = (card: FactCard) => (
+        <Card
+            key={card.id}
+            className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white ml-10`}
+            onClick={() => setSwapCategory(card.category)}
+        >
+            <CardContent className="p-4">
+                <div className="flex gap-4 items-center">
+                    {/* Icon */}
+                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)] text-xl border border-[#224732]/5">
+                        {CATEGORY_ICONS[card.category] || '📍'}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 pr-2">
+                        <div className="text-[10px] font-bold text-[#224732] mb-0.5">
+                            {CATEGORY_NAMES[card.category] || '추천 장소'}
+                        </div>
+                        <h4 className="font-bold text-gray-900 text-[15px] truncate">{card.name}</h4>
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                            {card.description}
+                        </p>
+
+                        <div className="flex items-center space-x-2 text-[10px] text-gray-400 mt-2">
+                            <span className="flex items-center text-[#224732]/70 font-medium bg-[#224732]/5 px-1.5 py-0.5 rounded-sm">
+                                <ShieldCheck className="w-3 h-3 mr-1" />
+                                추천도 {card.trustScore}%
+                            </span>
+                            {card.distanceKm && <span>{card.distanceKm}km 거리</span>}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col gap-2 shrink-0">
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); setSwapCategory(card.category); }}
+                            className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
+                        >
+                            <ArrowRightLeft className="w-4 h-4" />
+                        </Button>
+                        <Button
+                            size="icon"
+                            onClick={(e) => handleNavClick(e, card)}
+                            className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-none border-none"
+                        >
+                            <MapPin className="w-4 h-4" />
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">
@@ -223,65 +284,37 @@ export default function SmartPlanProposal({
             {/* 2. Fact List / Timeline UI */}
             <div className="space-y-4 pt-2">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-2 flex items-center justify-between">
-                    <span>최종 추천 일정표</span>
+                    <span>최종 추천 일정표 (여정 타임라인)</span>
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">카드를 터치해 일정을 교체하세요</span>
                 </h3>
 
-                <div className="grid gap-3 relative before:absolute before:inset-0 before:left-8 before:w-px before:bg-gray-200 before:z-0">
-                    {plan.itemListElement.map((card, index) => (
-                        <Card
-                            key={card.id}
-                            className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white`}
-                            onClick={() => setSwapCategory(card.category)}
-                        >
-                            <CardContent className="p-4">
-                                <div className="flex gap-4 items-center">
-                                    {/* Icon */}
-                                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)] text-xl border border-[#224732]/5">
-                                        {CATEGORY_ICONS[card.category] || '📍'}
-                                    </div>
+                <div className="grid gap-4 relative before:absolute before:inset-0 before:left-[35px] md:before:left-[35px] before:w-0.5 before:bg-[#224732]/10 before:z-0">
 
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0 pr-2">
-                                        <div className="text-[10px] font-bold text-[#224732] mb-0.5">
-                                            {CATEGORY_NAMES[card.category] || '추천 장소'}
-                                        </div>
-                                        <h4 className="font-bold text-gray-900 text-[15px] truncate">{card.name}</h4>
-                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-                                            {card.description}
-                                        </p>
+                    {/* Track B: Journey / Route Facts (가는 길) */}
+                    {plan.routeListElement && plan.routeListElement.length > 0 && (
+                        <div className="space-y-3 relative z-10 w-full pl-2">
+                            <div className="flex items-center gap-2 mb-2 ml-4">
+                                <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <span className="text-xs font-bold text-[#224732]">가는 길 (추천 경유지)</span>
+                            </div>
+                            {plan.routeListElement.map((card, index) => renderFactCard(card))}
+                        </div>
+                    )}
 
-                                        <div className="flex items-center space-x-2 text-[10px] text-gray-400 mt-2">
-                                            <span className="flex items-center text-[#224732]/70 font-medium bg-[#224732]/5 px-1.5 py-0.5 rounded-sm">
-                                                <ShieldCheck className="w-3 h-3 mr-1" />
-                                                추천도 {card.trustScore}%
-                                            </span>
-                                            {card.distanceKm && <span>{card.distanceKm}km 거리</span>}
-                                        </div>
-                                    </div>
+                    {/* Track A: Destination Core Facts (캠핑장 주변 현지) */}
+                    <div className="space-y-3 relative z-10 w-full pl-2 mt-2">
+                        <div className="flex items-center gap-2 mb-2 ml-4">
+                            <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
+                            <span className="text-xs font-bold text-[#224732]">캠핑장 주변 (현지 체류)</span>
+                        </div>
+                        {plan.itemListElement.map((card, index) => renderFactCard(card))}
 
-                                    {/* Actions */}
-                                    <div className="flex flex-col gap-2 shrink-0">
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={(e) => { e.stopPropagation(); setSwapCategory(card.category); }}
-                                            className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
-                                        >
-                                            <ArrowRightLeft className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                            size="icon"
-                                            onClick={(e) => handleNavClick(e, card)}
-                                            className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-none border-none"
-                                        >
-                                            <MapPin className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                        {/* 여정 종료 (집으로) */}
+                        <div className="flex items-center gap-2 mt-4 ml-4 pb-2">
+                            <div className="w-3 h-3 rounded-full border-2 border-dashed border-gray-400 bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
+                            <span className="text-xs font-semibold text-gray-400">안전한 귀가</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

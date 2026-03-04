@@ -1,0 +1,30 @@
+﻿
+[TESTING] ?洹쒕え?먰룷 (?됱븞遺)
+[URL] https://apis.data.go.kr/1741000/large_scale_retail_stores/getStoreList?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json
+[STATUS] 404 Not Found
+[BODY]
+API not found
+
+
+[TESTING] ?洹쒕え?먰룷 (Base)
+[URL] https://apis.data.go.kr/1741000/large_scale_retail_stores?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json
+[STATUS] 500 Internal Server Error
+[BODY]
+Unexpected errors
+
+
+[TESTING] 紐⑤쾾?뚯떇??(?됱븞遺)
+[URL] https://apis.data.go.kr/1741000/excellent_restaurant_info?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json
+[STATUS] 500 Internal Server Error
+[BODY]
+Unexpected errors
+
+
+[TESTING] 諛깅뀈媛寃?(Swagger)
+[URL] https://infuser.odcloud.kr/oas/docs?namespace=15102255/v1
+[STATUS] 200 OK
+[BODY]
+{"swagger":"2.0","info":{"version":"1","title":"?뚯긽怨듭씤?쒖옣吏꾪씎怨듬떒_?꾧뎅 諛깅뀈媛寃??꾪솴","description":""},"host":"api.odcloud.kr","basePath":"/api","schemes":["https","http"],"securityDefinitions":{"ApiKeyAuth":{"type":"apiKey","in":"header","name":"Authorization"},"ApiKeyAuth2":{"type":"apiKey","in":"query","name":
+
+[TESTING] ?꾧뎅臾명솕異뺤젣
+[URL] https://api.data.go.kr/openapi/tn_pubr_public_cltur_fstvl_api?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json

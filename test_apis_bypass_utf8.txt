@@ -1,0 +1,19 @@
+﻿[TESTING] http://apis.data.go.kr/B553077/api/open/sdsc2/storeListInDong?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&divId=signguCd&key=44810&type=json
+[STATUS] 403 Forbidden
+[BODY]
+Forbidden
+
+[TESTING] http://api.data.go.kr/openapi/tn_pubr_public_lrg_store_api?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json
+[STATUS] 200 OK
+[BODY]
+<!DOCTYPE html><html><title></title><script>var y=window</script><script>var x={o:'532db99c142505f9df2&pageNo=1&numOfRows=10&type=json',t:'/LKVYa/openapi/tn_pubr_public_lrg_store_api?servic',h:'eKey=03e41a022f4e6033f803beff860f41460f071cc9482e2'};function rsu(){return x.t+x.h+x.o}y.location.assign(rsu())</script></html>
+[TESTING] http://api.data.go.kr/openapi/tn_pubr_public_gd_rest_api?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json
+[STATUS] 200 OK
+[BODY]
+<!DOCTYPE html><html><title></title><script>var y=window</script><script>var x={o:'/UULKVYa/openapi/tn_pubr_public_gd_rest_api?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json',c:1},z=2;function rsu(h){return(x.o).substr(0,x.c)+(x.o).substr(x.c+h)}y.location.assign(rsu(z))</script></html>
+[TESTING] http://api.data.go.kr/openapi/tn_pubr_public_cltur_fstvl_api?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&pageNo=1&numOfRows=10&type=json
+[TESTING] http://apis.data.go.kr/B551011/KorService1/searchFestival1?serviceKey=03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2&numOfRows=10&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&eventStartDate=20240101&lDongRegnCd=44&lDongSignguCd=44810
+[STATUS] 500 Internal Server Error
+[BODY]
+Unexpected errors
+

@@ -1,0 +1,36 @@
+name: Smart Plan Daily Sync
+
+on:
+  schedule:
+    # 매일 아침 06:00 KST에 실행 (UTC 기준 전날 21:00)
+    - cron: '0 21 * * *'
+  workflow_dispatch: # Allow manual trigger via GitHub Actions UI
+
+jobs:
+  sync-public-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Smart Plan Sync Route
+        run: |
+          # 1. 날씨, 카카오 내비/맵 등은 smartPlan.ts에서 실시간 동적 호출되므로
+          # 2. 이 Cron은 그 외 정적/공공 API(마트, 식당, 병원 등)만 route.ts를 통해 DB에 선제 수집/저장합니다.
+          
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/sync-smart-plan")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response Payload: $body"
+          echo "HTTP Status Code: $http_code"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "Request failed with status $http_code"
+            exit 1
+          fi
+
+      - name: Log Result
+        run: echo "Smart Plan public APIs daily sync completed successfully at $(date)"

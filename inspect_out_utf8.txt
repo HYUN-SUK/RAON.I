@@ -1,0 +1,37 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?숋툘  enable debug logging with { debug: true }
+--- Inspecting user_schedules for Mar 1st (KST) ---
+Found 10 relevant schedules:
+- User: 4730be31-30b5-4594-a993-d8f5a7a5e26c
+  Campground: 泥좎닔??  Check-in: 2026-03-02
+  Sent Flags: D0:false, D1:true, D4:true
+- User: 8198bf15-0ffb-4bbc-b833-6b63e4a027b3
+  Campground: ?곹씗??  Check-in: 2026-03-02
+  Sent Flags: D0:false, D1:true, D4:false
+- User: c191ffa7-56e4-4be6-85b2-e5678dece820
+  Campground: ?쒖씠??  Check-in: 2026-03-01
+  Sent Flags: D0:true, D1:true, D4:false
+- User: 4730be31-30b5-4594-a993-d8f5a7a5e26c
+  Campground: ?곹씗??  Check-in: 2026-03-01
+  Sent Flags: D0:true, D1:true, D4:false
+- User: c191ffa7-56e4-4be6-85b2-e5678dece820
+  Campground: ?쇱삩罹좏븨
+  Check-in: 2026-03-01
+  Sent Flags: D0:true, D1:true, D4:false
+- User: 4730be31-30b5-4594-a993-d8f5a7a5e26c
+  Campground: ?μ씠??  Check-in: 2026-03-01
+  Sent Flags: D0:true, D1:true, D4:false
+- User: 4730be31-30b5-4594-a993-d8f5a7a5e26c
+  Campground: ?댁씠??  Check-in: 2026-03-01
+  Sent Flags: D0:true, D1:true, D4:false
+- User: 8198bf15-0ffb-4bbc-b833-6b63e4a027b3
+  Campground: ?쒖씠??  Check-in: 2026-03-05
+  Sent Flags: D0:false, D1:false, D4:true
+- User: 8198bf15-0ffb-4bbc-b833-6b63e4a027b3
+  Campground: ?쒖씠??  Check-in: 2026-03-05
+  Sent Flags: D0:false, D1:false, D4:true
+- User: 8198bf15-0ffb-4bbc-b833-6b63e4a027b3
+  Campground: ?μ씠??  Check-in: 2026-03-05
+  Sent Flags: D0:false, D1:false, D4:true
+
+Notifications created between 08:30 AM and 10:00 AM KST:
+?뚢?????????????(index) ???쒋????????????붴???????????

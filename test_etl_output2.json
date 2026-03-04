@@ -1,0 +1,18 @@
+﻿{
+    "value":  [
+                  {
+                      "source":  "NMC",
+                      "fetched":  100,
+                      "valid":  0
+                  },
+                  {
+                      "source":  "SMBA",
+                      "err":  "Unexpected token \u0027F\u0027, \"Forbidden\n\" is not valid JSON"
+                  },
+                  {
+                      "source":  "MART",
+                      "err":  "Unexpected token \u0027F\u0027, \"Forbidden\n\" is not valid JSON"
+                  }
+              ],
+    "Count":  3
+}

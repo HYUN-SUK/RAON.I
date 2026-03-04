@@ -1,0 +1,68 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?뱻 add observability to secrets: https://dotenvx.com/ops
+--- Diagnostic: March 3rd Activity ---
+
+1. Schedules created since Mar 2nd: 4
+[
+  {
+    "id": "247b5d2c-8b88-49b1-9f67-ad074e2a0c6f",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?쒖씠??,
+    "check_in": "2026-03-04",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "3809d2fa-c8e2-47c0-b9ca-8c01bd863526",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?댁씠??,
+    "check_in": "2026-03-04",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "71c475b4-177d-4848-984f-7fc8cf2d591d",
+    "user_id": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+    "campground_name": "?μ씠??,
+    "check_in": "2026-03-07",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  },
+  {
+    "id": "a4f67a1d-5a44-46f0-8bb4-d969b227b6a8",
+    "user_id": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+    "campground_name": "?곹씗??,
+    "check_in": "2026-03-08",
+    "notification_d0_sent": false,
+    "notification_d1_sent": false,
+    "notification_d4_sent": false
+  }
+]
+
+2. Notifications created today (Mar 3 KST): 0
+[]
+
+3. Weather Cache updated today (Mar 3 KST): 2
+[
+  {
+    "nx": 56,
+    "ny": 106,
+    "updated_at": "2026-03-03T00:39:57.359+00:00"
+  },
+  {
+    "nx": 55,
+    "ny": 107,
+    "updated_at": "2026-03-03T00:39:58.411+00:00"
+  }
+]
+
+4. Nearby Cache updated today (Mar 3 KST): 1
+[
+  {
+    "region_code": "ALL",
+    "base_date": "20260303",
+    "created_at": "2026-03-03T00:00:22.722944+00:00"
+  }
+]

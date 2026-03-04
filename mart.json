@@ -1,0 +1,32 @@
+{
+  "item": [
+    {
+      "BPLC_NM": "신동아쇼핑센터",
+      "BZSTAT_SE_NM": "복합쇼핑몰",
+      "CLSBIZ_YMD": "2025-12-30",
+      "CRD_INFO_X": "198622.89264988",
+      "CRD_INFO_Y": "446114.155238838",
+      "DAT_UPDT_PNT": "2026-01-17 22:48:10",
+      "DAT_UPDT_SE": "I",
+      "DTL_SALS_STTS_CD": "3",
+      "DTL_SALS_STTS_NM": "폐업처리",
+      "LAST_MDFCN_PNT": "2026-01-16 15:06:57",
+      "LCPMT_RTRCN_YMD": "",
+      "LCPMT_YMD": "1985-11-12",
+      "LCTN_AREA": "7470.17",
+      "LCTN_ZIP": "",
+      "LOTNO_ADDR": "서울특별시 용산구 용산동6가 69-167 신동아쇼핑",
+      "MNG_NO": "2010302009507500001",
+      "OPN_ATMY_GRP_CD": "3020000",
+      "ROAD_NM_ADDR": "서울특별시 용산구 이촌로 352, 신동아쇼핑 (용산동6가)",
+      "ROAD_NM_ZIP": "04428",
+      "ROBIZ_YMD": "",
+      "SALS_STTS_CD": "03",
+      "SALS_STTS_NM": "폐업",
+      "STOR_SE_NM": "대규모점포",
+      "TCBIZ_BGNG_YMD": "",
+      "TCBIZ_END_YMD": "",
+      "TELNO": "02-709-7501"
+    }
+  ]
+}
