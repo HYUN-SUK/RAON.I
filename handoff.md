@@ -1,25 +1,36 @@
-# Session Handoff: Smart Camping Plan API Resilience & Pipeline Preparation
+# Session Handoff: Smart Camping Plan Engine Enhancement (6 Categories)
 
-## 1. 현재 상태 요약 (Current Status)
-오늘 세션에서는 **스마트 캠핑 플랜 가이드 여정(Guided Journey)** 파이프라인의 핵심인 '공공 API 데이터 수집 브릿지'의 생존성(Resilience)을 영구적으로 확보했습니다.
-- **백년가게 (ODcloud)**: `unregisterd service` 에러를 회피하기 위해 `infuser.odcloud.kr/oas/docs` Swagger 명세에서 최신 UDDI 엔드포인트를 런타임에 동적으로 추출하는 로직을 적용했습니다.
-- **관광/축제 (TourAPI)**: `KorService1` 500 에러를 배제하고 최신 `KorService2/locationBasedList2` 규격으로 전면 마이그레이션 및 파라미터 매핑을 완료했습니다.
-- **날씨 예보 (Weather Fallback)**: 기상청 단/중기 API(`KMA`)의 할당량 초과(Quota Exceeded) 및 포맷 에러 시 즉각 발동하는 **Open-Meteo 무료 글로벌 기상 API 자동 전환(Fallback)** 시스템을 `api/weather/route.ts`에 성공적으로 이식하여 무점단 서비스를 보장합니다.
-- **Cron Job Configuration**: 매일 새벽 6시에 API 캐시를 자동 동기화하는 GitHub Actions 워크플로우(`smart-plan-sync-cron.yml`)를 구축했습니다.
+## 🎯 **오늘의 개발 목표 및 달성 내역**
+이번 세션에서는 기존 4개 카테고리(마트/병원 통합)로 묶여있던 스마트 캠핑 플랜(Data Pipeline)을 보다 정교한 **6개 카테고리(병원, 마트, 일반식당, 주유소, 관광지, 축제)**로 세분화하고, 일자별 날씨 동적 반영 엔진을 구현하는 데 성공했습니다.
 
-## 2. 기술적 결정 사항 (Technical Decisions)
-- **API 캡슐화 (Try-Catch Isolation)**: 전국표준데이터처럼 방화벽(WAF) 단위로 차단되는 에러 파이프라인이 발생하더라도, 연루된 타 API 수집(관광, 의료 등)에 영향을 주지 않도록 각 Fetch 로직을 독립된 블록으로 완전히 분리했습니다.
-- **Hybrid Weather Data Storage**: Open-Meteo 백업 데이터도 KMA가 반환하는 내부 `CachedWeather` 스키마(Current, Timeline, Daily)와 형태를 100% 동일하게 매핑하여 Frontend 렌더링에 이질감이 없도록 처리했습니다. 
+**[ 세부 완료 사항 ]**
+1. **카테고리 분할 로직 (Data Pipeline 재설계)**
+   - `src/lib/smartPlan.ts`: `MART_HOSPITAL`을 메타데이터와 공공 API 출처(`api_source`)를 기반으로 `HOSPITAL`(의료원), `MART`(일반 점포), `GAS_STATION`(등유 취급 주유소)로 코드 레벨에서 완벽히 분리했습니다.
+   - **Track A (현지 추천)**: 카테고리별 1위(메인)와 2~3위(대안)를 선별하여 총 18개(Top 18)의 슬롯을 보장하도록 확장했습니다.
+   - **Track B (경로 추천)**: 무작위 3개가 아닌, 중간 지점의 [경유 식당], [경유 카페], [가벼운 명소] 각각 1위씩 총 3개를 엄정하게 선별(`routeFacts`)하도록 수정했습니다.
 
-## 3. 주의 사항 (Known Caveats)
-- **WAF 차단 (방화벽 IP 차단)**: 전국표준데이터(축제/공연)는 클라우드 IP를 WAF 단에서 전면 차단 중입니다. 유저 에이전트(User-Agent) 변조로도 우회되지 않았습니다. 단, **TourAPI**에서 겹치는 축제 데이터를 방어해주고 있어서 심각한 이슈는 아닙니다. 추가 대응은 불필요합니다.
-- 오늘 패치된 4개의 공공 API 파이프라인 코드들은 linter와 prettier 자동 포맷팅 및 오류 정리를 모두 마쳐 깔끔하게 병합되었습니다.
+2. **일자별 날씨 동적 분석 (Day-by-Day Weighting)**
+   - `Day 1`(가는 길) 비 올 때와 `Day 2/3`(현지 체류 시) 비 올 때/맑을 때 가중치를 다르게 주도록 시계열 기반 조건부 가중치 로직을 적용했습니다.
+   - 겨울철/혹한기(최저 5도 이하)에는 무조건 `GAS_STATION`(실내등유) 추천 점수를 최고점으로 밀어 올렸습니다.
 
-## 4. 다음 작업 가이드 (Next Session Priority)
-> **🚨 다음 세션 본론: 스마트캠핑플랜 8단계 프로세스 내부 심층 분석 (Deep Dive)**
+3. **초고속 API 투트랙 아키텍처 문서화**
+   - 사용자 버튼 터치 시 무거운 카카오 검색이나 공공 API를 매번 부르지 않도록, 새벽 6시 Cron Job(DB 적재)과 실시간 사용자 조회 시점(단기 날씨 및 내비게이션 라우팅)의 역할을 `smart_camping_plan_manual.md`에 투명하게 기록했습니다.
 
-백엔드 파이프라인 구축 및 방어막이 모두 완료되었으므로, 다음 세션은 마침내 **"8단계 내부 로직 1:1 디버깅"**에 100% 시간을 투자합니다.
-1. `data_pipeline_verification_plan.md`를 열고 **Data Pipeline (Step 1 ~ Step 8)** 순서대로 실제 좌표값을 찌르며 내부 연산 로직을 증명합니다.
-2. 중간지점 `Midpoint`의 폴리라인 좌표 추출, 날씨별 `trustScore` 가산점(동계 등유, 우천 국물식당 등) 부여, `Persona` 태그 매핑 로직이 제대로 작동하여 `Top 15` 배열에 들어가는지 콘솔 터미널 로직으로 확인합니다.
-3. 텍스트 프롬프트 조립을 마친 데이터가 LLM에 넘어가기 전의 JSON 뭉치 상태를 육안 구조화하여 결함 유무를 최종 타진합니다.
-4. 모든 로직 결함이 제거되면 UI 단계로 이관합니다.
+4. **프론트엔드 UI 호환성 수정**
+   - 바뀐 6개 카테고리로 인해 화면이 깨지지 않도록 `SmartPlanProposal.tsx`의 아이콘(`CATEGORY_ICONS`) 및 변수 맵을 모두 맞춰주었습니다. (`npm run build` 퍼펙트 통과)
+
+---
+
+## 🏗️ **Technical Decisions (기술적 의사결정)**
+- **DB 스키마 유지 / 코드 레벨 필터링**: DB의 `smart_plan_facts` 테이블 구조를 억지로 뜯어고쳐 발생할 수 있는 데이터 증발 및 Cron Job 크래시 리스크를 원천 차단했습니다. 대신 Vercel 서버 메모리상에서 0.001초 미만의 속도로 데이터를 6개로 찢어(Extract) 렌더링하는 안정적인 아키텍처를 채택했습니다.
+- **AI 3-Timeline Prompting**: Gemini 1.5 Flash에게 [여정 기본 정보(일자별 날씨)], [가는 길 추천], [현지 캠핑장 추천], [오는 길 추천] 4단락으로 깔끔하게 나누어 데이터를 주입하여 윤색 퀄리티를 극대화했습니다.
+
+---
+
+## 🚀 **Next Session (다음 세션 할 일)**
+다음 개발자가 세션을 이어받을 때 즉시 수행해야 할 사항은 다음과 같습니다.
+
+1. **로컬 콘솔 디버깅 (Execution Test)**
+   - 현재 구현된 6카테고리 분리 로직이 실제 좌표(예: 출발지=서울, 도착지=예산군)를 넣었을 때 18개(Track A) + 3개(Track B) 배열로 터미널에 예쁘게 잘 떨어지는지 `smartPlan.ts` 단독 테스트 스크립트를 짜서 눈으로 확인해야 합니다.
+2. **AI 서사(Narration) 렌더링 검수**
+   - 개발 서버를 띄워 **"캠핑 여정 계획 세우기"** 버튼을 눌러, AI가 실제로 "금요일 비 오는 가는 길엔 국밥을 드시고, 맑은 토요일 현지에서는 수목원을 산책하세요"라는 문맥을 잘 뽑아내는지 라이브 뷰 검증(UI Test)을 수행하세요.

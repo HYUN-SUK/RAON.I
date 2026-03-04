@@ -463,10 +463,17 @@
 - [x] Normalize `camping-reminder` Edge Function (Remove direct fetch) [x]
 - [x] Verify End-to-End flow via simulation script [x]
 - [x] Update documentation (`walkthrough.md`, `implementation_plan_notification.md`) [x]
-Cancelled
+Cancel
     - [x] D-4, D-1, D-Day Reminders
     - [x] Admin actions
 - [ ] **Verification**: Live test of the reorganized system.
+
+### Phase 9.6: Smart Camping Plan Engine Refactoring (2026-03-04) ✅
+- [x] **Data Pipeline Audit & Redesign**: Transitioned from 4-category to 6-category (HOSPITAL, MART, RESTAURANT, GAS_STATION, SPOT, FESTIVAL).
+- [x] **Day-by-Day Dynamic Weather Integration**: Added separate weather scoring logic for `Day 1` (Route) vs `Day 2/3` (Destination).
+- [x] **API Extraction Strategy**: Updated API connection mappings in manual (TourAPI, MOIS, Kakao Local, SEMAS, MAFRA) ensuring Zero-Schema-Change DB caching (ETL via Cron) and fast real-time extraction.
+- [x] **SSOT Documentation**: Updated `docs/smart_camping_plan_manual.md` with the new 8-Step pipeline architecture.
+- [x] **TypeScript Compatibility**: Resolved UI display types in `SmartPlanProposal.tsx` and compiled successfully (`tsc --noEmit`).
 
 ### Phase 2: 캠핑장 DB 구축 (~8시간) 🔄
 - [x] **고캠핑 API 연동**: `lib/gocamping-api.ts`
