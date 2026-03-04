@@ -178,6 +178,10 @@ export async function GET(req: NextRequest) {
         const currentData = parseNcst(ncstJson); // Helper
         const forecastData = await parseFcst(fcstJson, lat, lng); // Helper
 
+        if (!currentData || forecastData.daily.length === 0 || forecastData.timeline.length === 0) {
+            throw new Error("KMA Response empty (Quota exceeded or Invalid Format)");
+        }
+
         const finalData = {
             current: currentData,
             daily: forecastData.daily,
@@ -201,8 +205,29 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(finalData);
 
     } catch (e: unknown) {
-        console.error("KMA Fetch Error", e);
-        return NextResponse.json({ error: "Failed to fetch from KMA", details: (e as Error).message || String(e) }, { status: 500 });
+        console.warn("KMA Fetch Error, activating Open-Meteo Fallback:", e);
+        const fallbackData = await fetchOpenMeteoFallback(lat, lng);
+
+        if (fallbackData) {
+            const finalData = {
+                current: fallbackData.current,
+                daily: fallbackData.daily,
+                timeline: fallbackData.timeline,
+                nx,
+                ny,
+                is_fallback: true
+            };
+
+            await supabase.from('weather_cache').upsert({
+                nx, ny,
+                data: finalData,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'nx,ny' });
+
+            return NextResponse.json(finalData);
+        }
+
+        return NextResponse.json({ error: "Failed to fetch from both KMA and Open-Meteo", details: (e as Error).message || String(e) }, { status: 500 });
     }
 }
 
@@ -567,5 +592,82 @@ async function getMidTermForecast(lat: number, lng: number) {
     } catch (e) {
         console.error("Mid fetch error", e);
         return [];
+    }
+}
+
+// --- Open-Meteo Fallback Logic ---
+async function fetchOpenMeteoFallback(lat: number, lng: number): Promise<CachedWeather | null> {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=10`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
+        const data = await res.json();
+
+        const current: CurrentWeather = {
+            temp: Math.round(data.current.temperature_2m),
+            humidity: data.current.relative_humidity_2m,
+            windSpeed: data.current.wind_speed_10m,
+            strPrecipitation: data.current.precipitation > 0 ? "1" : "0"
+        };
+
+        const mapWeatherCode = (code: number) => {
+            if (code <= 1) return 'sunny';
+            if (code === 2) return 'partly_cloudy';
+            if (code === 3) return 'cloudy';
+            if (code >= 51 && code <= 67) return 'rainy';
+            if (code >= 71 && code <= 86) return 'snowy';
+            if (code >= 95) return 'rainy';
+            return 'sunny';
+        };
+
+        const daily: DailyWeather[] = [];
+        for (let i = 0; i < data.daily.time.length; i++) {
+            const dateStr = data.daily.time[i].replace(/-/g, '');
+            daily.push({
+                date: dateStr,
+                min: Math.round(data.daily.temperature_2m_min[i]),
+                max: Math.round(data.daily.temperature_2m_max[i]),
+                pop: data.daily.precipitation_probability_max[i],
+                weatherCode: mapWeatherCode(data.daily.weather_code[i])
+            });
+        }
+
+        const timeline: TimelineWeather[] = [];
+        const nowMs = Date.now();
+        for (let i = 0; i < data.hourly.time.length; i++) {
+            const timeIso = data.hourly.time[i];
+            const tDate = new Date(timeIso);
+            if (tDate.getTime() + 3600000 < nowMs) continue;
+
+            const dateStr = timeIso.substring(0, 10).replace(/-/g, '');
+            const timeStr = timeIso.substring(11, 16).replace(':', '') + '00';
+
+            let sky = 1;
+            const cover = data.hourly.cloud_cover[i];
+            if (cover >= 70) sky = 4;
+            else if (cover >= 30) sky = 3;
+
+            timeline.push({
+                date: dateStr,
+                time: timeStr.substring(0, 4),
+                temp: Math.round(data.hourly.temperature_2m[i]),
+                sky,
+                pty: data.hourly.precipitation[i] > 0 ? 1 : 0,
+                pop: data.hourly.precipitation_probability[i],
+                weatherCode: mapWeatherCode(data.hourly.weather_code[i])
+            });
+
+            if (timeline.length >= 72) break;
+        }
+
+        return {
+            current,
+            daily,
+            timeline,
+            updatedAt: Date.now()
+        };
+    } catch (e) {
+        console.error("Open-Meteo Fallback Error:", e);
+        return null;
     }
 }

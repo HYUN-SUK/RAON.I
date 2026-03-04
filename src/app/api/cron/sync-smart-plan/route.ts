@@ -102,8 +102,13 @@ export async function POST(request: Request) {
             }
         } catch (e) { }
 
-        try { // 백년가게 (소상공인시장진흥공단 - odcloud)
-            const res = await fetch(`https://api.odcloud.kr/api/15102255/v1/uddi:fcb174b1-8b01-4964-b814-a70c8967d23e?serviceKey=${publicApiKey}&page=1&perPage=100`, fetchOptions);
+        try { // 백년가게 (소상공인시장진흥공단 - odcloud - Swagger Dynamic Auth)
+            const specUrl = `https://infuser.odcloud.kr/oas/docs?namespace=15102255/v1`;
+            const specRes = await fetch(specUrl, fetchOptions);
+            const spec = await specRes.json();
+            const latestPath = Object.keys(spec.paths || {})[0] || "/15102255/v1/uddi:fcb174b1-8b01-4964-b814-a70c8967d23e";
+
+            const res = await fetch(`https://api.odcloud.kr/api${latestPath}?serviceKey=${publicApiKey}&page=1&perPage=100`, fetchOptions);
             const data = await res.json();
             if (data.data) {
                 const items = Array.isArray(data.data) ? data.data : [data.data];
@@ -179,8 +184,8 @@ export async function POST(request: Request) {
             }
         } catch (e) { }
 
-        try { // TourAPI 축제 (새로운 lDongRegnCd 적용)
-            const res = await fetch(`http://apis.data.go.kr/B551011/KorService1/searchFestival1?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&eventStartDate=20240101&lDongRegnCd=${regionInfo.lDongRegnCd}&lDongSignguCd=${regionInfo.lDongSignguCd}`, fetchOptions);
+        try { // TourAPI 축제 (새로운 KorService2 locationBasedList2 적용)
+            const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
             const data = await res.json();
             if (data.response?.body?.items?.item) {
                 const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
@@ -196,8 +201,8 @@ export async function POST(request: Request) {
         // =========================================================================
         // 6. 관광지 : 한국관광공사 (TourAPI SPOT)
         // =========================================================================
-        try {
-            const res = await fetch(`http://apis.data.go.kr/B551011/KorService1/areaBasedList1?serviceKey=${publicApiKey}&numOfRows=100&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=12&lDongRegnCd=${regionInfo.lDongRegnCd}&lDongSignguCd=${regionInfo.lDongSignguCd}`, fetchOptions);
+        try { // 관광지 : 한국관광공사 (TourAPI SPOT - KorService2 locationBasedList2)
+            const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=100&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=12&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
             const data = await res.json();
             if (data.response?.body?.items?.item) {
                 const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
