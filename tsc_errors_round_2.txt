@@ -1,0 +1,1 @@
+src/components/plan/SmartPlanProposal.tsx(106,21): error TS2367: This comparison appears to be unintentional because the types '"RESTAURANT" | "FESTIVAL" | "SPOT" | "MART" | "ROUTE_CAFE" | "ROUTE_RESTAURANT" | "ROUTE_SPOT" | "HOSPITAL" | "GAS_STATION"' and '"MART_HOSPITAL"' have no overlap.

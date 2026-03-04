@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         }
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        let allFacts: any[] = [];
+        const allFacts: any[] = [];
 
         // Request Body에서 타겟 지역 정보 파싱 (동적 좌표/지역 주입 구조 완성)
         // Body가 없으면(기존 Cron 동작) 예산군 기본값 사용

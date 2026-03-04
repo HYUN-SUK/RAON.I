@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
     // For Nowcast (getUltraSrtNcst)
     // Needs base_time closest to current hour, if minutes < 40 use previous hour
     let hours = dateObj.getHours();
-    let minutes = dateObj.getMinutes();
+    const minutes = dateObj.getMinutes();
     if (minutes < 40) {
         hours = hours - 1;
         if (hours < 0) {
@@ -471,7 +471,7 @@ async function getMidTermForecast(lat: number, lng: number) {
     // If 06:00 ~ 18:00 -> Use Today 06:00
     // If >= 18:00 -> Use Today 18:00
 
-    let baseDate = new Date(kstDate);
+    const baseDate = new Date(kstDate);
 
     if (kstHour < 6) {
         baseDate.setDate(baseDate.getDate() - 1);

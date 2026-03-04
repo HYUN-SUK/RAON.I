@@ -1,0 +1,2 @@
+src/lib/smartPlan.ts(318,36): error TS1127: Invalid character.
+src/lib/smartPlan.ts(367,1): error TS1160: Unterminated template literal.

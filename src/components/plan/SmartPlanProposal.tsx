@@ -19,16 +19,24 @@ interface SmartPlanProposalProps {
 
 const CATEGORY_ICONS: Record<string, string> = {
     'ROUTE_CAFE': '☕',
-    'MART_HOSPITAL': '🛒',
+    'ROUTE_RESTAURANT': '🍲',
+    'ROUTE_SPOT': '📸',
+    'HOSPITAL': '🏥',
+    'MART': '🛒',
+    'GAS_STATION': '⛽',
     'RESTAURANT': '🍽️',
-    'SPOT': '📸',
+    'SPOT': '🏞️',
     'FESTIVAL': '🎪'
 };
 
 const CATEGORY_NAMES: Record<string, string> = {
     'ROUTE_CAFE': '경로 휴게/카페',
-    'MART_HOSPITAL': '마트/편의시설',
-    'RESTAURANT': '출출할 때 식사',
+    'ROUTE_RESTAURANT': '가는 길 식사',
+    'ROUTE_SPOT': '가는 길 명소',
+    'HOSPITAL': '인근 병원/약국',
+    'MART': '마트/편의장비',
+    'GAS_STATION': '주유/등유/차박',
+    'RESTAURANT': '현지 맛집',
     'SPOT': '주변 인생샷 명소',
     'FESTIVAL': '로컬 축제/이벤트'
 };
@@ -103,7 +111,7 @@ export default function SmartPlanProposal({
         if (currentActiveInfo && newActiveInfo) {
             if (userId) {
                 // Trigger Actions
-                if (newActiveInfo.category === 'MART_HOSPITAL' && newActiveInfo.metadata?.hasMilkit) {
+                if (newActiveInfo.category === 'MART' && newActiveInfo.metadata?.hasMilkit) {
                     dispatchPersonaAction(userId, 'PLAN_SWAP_MEALKIT').catch(console.error);
                 }
                 if (newActiveInfo.category === 'RESTAURANT' && newActiveInfo.metadata?.isHighEnd) {
