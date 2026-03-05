@@ -254,6 +254,12 @@ interface DayForecast {
     tempMax: number;
     pop: number;
     isRainy: boolean;
+    amWeatherLabel?: string;
+    amWeatherEmoji?: string;
+    amIsRainy?: boolean;
+    pmWeatherLabel?: string;
+    pmWeatherEmoji?: string;
+    pmIsRainy?: boolean;
 }
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
@@ -344,6 +350,9 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
             const dateStr = `${dateKey.substring(0, 4)}-${dateKey.substring(4, 6)}-${dateKey.substring(6, 8)}`;
 
             let tmn = 999, tmx = -999, maxPop = 0, ptyAny = '0', skyAfternoon = '1';
+            let skyAm = '1', ptyAm = '0';
+            let skyPm = '1', ptyPm = '0';
+
             for (const item of dayItems) {
                 const { category: cat, fcstValue: val, fcstTime: t } = item;
                 if (cat === 'TMN') tmn = parseFloat(val);
@@ -354,13 +363,25 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
                     if (v > tmx) tmx = v;
                 }
                 if (cat === 'POP') maxPop = Math.max(maxPop, parseInt(val));
-                if (cat === 'SKY' && t >= '1200' && t <= '1500') skyAfternoon = val;
+
+                if (t >= '0600' && t <= '0900') {
+                    if (cat === 'SKY') skyAm = val;
+                    if (cat === 'PTY' && val !== '0') ptyAm = val;
+                }
+                if (t >= '1200' && t <= '1500') {
+                    if (cat === 'SKY') skyPm = val;
+                    if (cat === 'PTY' && val !== '0') ptyPm = val;
+                    skyAfternoon = val;
+                }
                 if (cat === 'PTY' && val !== '0') ptyAny = val;
             }
             if (tmn === 999) tmn = 15;
             if (tmx === -999) tmx = 25;
 
             const weatherLabel = ptyAny !== '0' ? (PTY_MAP[ptyAny] || '비') : (SKY_MAP[skyAfternoon] || '맑음');
+            const amLabel = ptyAm !== '0' ? (PTY_MAP[ptyAm] || '비') : (SKY_MAP[skyAm] || '맑음');
+            const pmLabel = ptyPm !== '0' ? (PTY_MAP[ptyPm] || '비') : (SKY_MAP[skyPm] || '맑음');
+
             return {
                 date: dateStr,
                 dayOfWeek: DAY_NAMES[new Date(dateStr).getDay()],
@@ -369,7 +390,13 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
                 tempMin: Math.round(tmn),
                 tempMax: Math.round(tmx),
                 pop: maxPop,
-                isRainy: ptyAny !== '0' || maxPop > 60
+                isRainy: ptyAny !== '0' || maxPop > 60,
+                amWeatherLabel: amLabel,
+                amWeatherEmoji: EMOJI_MAP[amLabel] || '🌤',
+                amIsRainy: ptyAm !== '0',
+                pmWeatherLabel: pmLabel,
+                pmWeatherEmoji: EMOJI_MAP[pmLabel] || '🌤',
+                pmIsRainy: ptyPm !== '0',
             };
         });
 
@@ -393,7 +420,9 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
 function mockForecast(dateStr: string): DayForecast {
     return {
         date: dateStr, dayOfWeek: '', weatherLabel: '맑음', weatherEmoji: '☀️',
-        tempMin: 10, tempMax: 20, pop: 0, isRainy: false
+        tempMin: 10, tempMax: 20, pop: 0, isRainy: false,
+        amWeatherLabel: '맑음', amWeatherEmoji: '☀️', amIsRainy: false,
+        pmWeatherLabel: '맑음', pmWeatherEmoji: '☀️', pmIsRainy: false,
     };
 }
 
@@ -582,16 +611,36 @@ serve(async (req) => {
             let tempMaxOverall = -999;
 
             let curr = new Date(start);
-            for (let i = 0; i < 3; i++) {
-                if (curr >= end && i > 0) break; // Stop at check_out day, but ensure at least 1 day
+            const checkOutStr = end.toISOString().split('T')[0];
+
+            for (let i = 0; i < 4; i++) { // Max 4 days to prevent runway loops
                 const dStr = curr.toISOString().split('T')[0];
+                const isCheckInDay = (dStr === s.check_in);
+                const isCheckOutDay = (dStr === checkOutStr);
+
                 const fRaw = forecasts.find(x => x.date === dStr) || mockForecast(dStr);
                 const dayName = fRaw.dayOfWeek || DAY_NAMES[curr.getDay()];
-                weatherLines.push(`${dayName}: ${fRaw.weatherEmoji} ${fRaw.tempMin}°/${fRaw.tempMax}°`);
+
+                let emoji = fRaw.weatherEmoji;
+                let dayLabel = dayName;
+
+                if (isCheckInDay) {
+                    dayLabel = `${dayName} 오후`;
+                    emoji = fRaw.pmWeatherEmoji || fRaw.weatherEmoji;
+                } else if (isCheckOutDay) {
+                    dayLabel = `${dayName} 오전`;
+                    emoji = fRaw.amWeatherEmoji || fRaw.weatherEmoji;
+                }
+
+                weatherLines.push(`${dayLabel}: ${emoji} ${fRaw.tempMin}°/${fRaw.tempMax}°`);
 
                 if (fRaw.isRainy) isRainyAny = true;
                 if (fRaw.tempMin < tempMinOverall) tempMinOverall = fRaw.tempMin;
                 if (fRaw.tempMax > tempMaxOverall) tempMaxOverall = fRaw.tempMax;
+
+                if (isCheckOutDay || i >= 3) {
+                    break;
+                }
 
                 curr.setDate(curr.getDate() + 1);
             }
@@ -635,7 +684,7 @@ serve(async (req) => {
                     category: 'reservation',
                     event_type: 'upcoming_stay_d1',
                     title: `🍳 내일 뭐 먹을지 고민되시나요?`,
-                    body: `날씨에 딱 맞는 메뉴를 골라봤어요!\n\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
+                    body: `📍 ${s.campground_name}\n${weatherLine}\n\n날씨에 딱 맞는 메뉴를 골라봤어요!\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
                     data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
                     status: 'queued'
                 });
