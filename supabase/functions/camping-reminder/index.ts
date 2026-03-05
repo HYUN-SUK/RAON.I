@@ -531,8 +531,8 @@ serve(async (req) => {
             const uniqueGrids = new Map<string, { lat: number, lng: number }>();
 
             schedules.forEach(s => {
-                const lat = s.campground_lat || 37.5665;
-                const lng = s.campground_lng || 126.9780;
+                const lat = s.campground_lat || 36.6269;
+                const lng = s.campground_lng || 126.7647;
                 const grid = dfs_xy_conv("toXY", lat, lng);
                 const key = `${grid.x},${grid.y}`;
                 if (!uniqueGrids.has(key)) {
@@ -543,7 +543,7 @@ serve(async (req) => {
             console.log(`[Prefetch] Fetching APIs for ${uniqueGrids.size} unique grids...`);
 
             // Prefetch nearby events (Nationwide cache in one go)
-            await getNearbyEvents(37.5665, 126.9780, 30);
+            await getNearbyEvents(36.6269, 126.7647, 30);
 
             // Prefetch weather for detected grids
             const gridArray = Array.from(uniqueGrids.values());
@@ -566,8 +566,8 @@ serve(async (req) => {
         const updateIds: Record<string, string[]> = { d0: [], d1: [], d4: [] };
 
         for (const s of schedules) {
-            const lat = s.campground_lat || 37.5665;
-            const lng = s.campground_lng || 126.9780;
+            const lat = s.campground_lat || 36.6269;
+            const lng = s.campground_lng || 126.7647;
 
             // Gets from cache mostly, fast. (forceCache: true ensures we don't block on KMA during dispatch)
             const forecasts = await getMultiDayForecast(lat, lng, { forceCache: true });

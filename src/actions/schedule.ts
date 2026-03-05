@@ -4,9 +4,9 @@ import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 
 import { SITES } from '@/constants/sites';
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 
-// ═══════════════════════════════════════════════════════════
-// 타입 정의
+const RAON_I_ADDRESS = '충청남도 예산군 응봉면 입침리 341';
 // ═══════════════════════════════════════════════════════════
 
 export interface ScheduleFormData {
@@ -495,9 +495,9 @@ export async function ensureScheduleFromReservation(reservationId: string): Prom
         p_user_id: userData.user.id,
         p_source: 'raonai',
         p_campground_name: siteName,
-        p_campground_address: null, // 주소는 정보가 있다면 넣을 수 있음 (SITES에는 주소 없음, 하드코딩된 데이터라)
-        p_campground_lat: null,
-        p_campground_lng: null,
+        p_campground_address: RAON_I_ADDRESS, // 기본 예산 주소 저장
+        p_campground_lat: DEFAULT_CAMPING_LOCATION.latitude,
+        p_campground_lng: DEFAULT_CAMPING_LOCATION.longitude,
         p_check_in: reservation.check_in_date,
         p_check_out: reservation.check_out_date,
         p_memo: null,
@@ -557,9 +557,9 @@ export async function ensureScheduleFromReservationAdmin(reservationId: string, 
         p_user_id: userId,
         p_source: 'raonai',
         p_campground_name: siteName,
-        p_campground_address: null,
-        p_campground_lat: null,
-        p_campground_lng: null,
+        p_campground_address: RAON_I_ADDRESS,
+        p_campground_lat: DEFAULT_CAMPING_LOCATION.latitude,
+        p_campground_lng: DEFAULT_CAMPING_LOCATION.longitude,
         p_check_in: checkIn,
         p_check_out: checkOut,
         p_memo: null,
