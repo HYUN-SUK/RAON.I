@@ -84,7 +84,7 @@ async function getScoredMenuRecommendations(
 
         const month = new Date().getMonth() + 1;
 
-        const scored = pool.map(item => {
+        const scored = pool.map((item: any) => {
             let score = 0;
             const tags = item.tags || [];
 
@@ -102,7 +102,7 @@ async function getScoredMenuRecommendations(
         });
 
         return scored
-            .sort((a, b) => (b._score || 0) - (a._score || 0))
+            .sort((a: any, b: any) => (b._score || 0) - (a._score || 0))
             .slice(0, count);
 
     } catch (err) {
@@ -145,7 +145,7 @@ async function getScoredGearRecommendations(
         });
 
         return scored
-            .sort((a, b) => (b._score || 0) - (a._score || 0))
+            .sort((a: any, b: any) => (b._score || 0) - (a._score || 0))
             .slice(0, count);
 
     } catch (err) {
@@ -455,7 +455,7 @@ async function sendBulkPush(notifications: any[]) {
 
                 console.log(`[Push] Sending to ${tokens.length} tokens for user ${notif.user_id}...`);
 
-                const results = await Promise.all(tokens.map(async (t) => {
+                const results = await Promise.all(tokens.map(async (t: any) => {
                     const message = {
                         message: {
                             token: t.token,
@@ -486,22 +486,22 @@ async function sendBulkPush(notifications: any[]) {
 
                 // Cleanup invalid tokens
                 const invalidTokens = results
-                    .filter(r => {
+                    .filter((r: any) => {
                         const isError = r.status === 400 || r.status === 404;
                         const errCode = r.resBody?.error?.details?.[0]?.errorCode;
                         const status = r.resBody?.error?.status;
                         return isError || status === 'UNREGISTERED' || status === 'NOT_FOUND' || errCode === 'UNREGISTERED';
                     })
-                    .map(r => r.token);
+                    .map((r: any) => r.token);
 
                 if (invalidTokens.length > 0) {
                     console.log(`[CLEANUP] Pruning ${invalidTokens.length} stale tokens for user ${notif.user_id}`);
                     await supabase.from('push_tokens').delete().in('token', invalidTokens);
                 }
 
-                const successCount = results.filter(r => r.status === 200).length;
+                const successCount = results.filter((r: any) => r.status === 200).length;
                 const finalStatus = successCount > 0 ? 'sent' : 'failed';
-                const resultSummary = JSON.stringify(results.map(r => ({ status: r.status, err: r.resBody?.error?.message })));
+                const resultSummary = JSON.stringify(results.map((r: any) => ({ status: r.status, err: r.resBody?.error?.message })));
 
                 await supabase.from('notifications')
                     .update({
@@ -521,7 +521,7 @@ async function sendBulkPush(notifications: any[]) {
 // ==========================================
 // SERVE
 // ==========================================
-serve(async (req) => {
+serve(async (req: any) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
@@ -559,7 +559,7 @@ serve(async (req) => {
             // This is significantly more scalable as multiple locations share the same grid
             const uniqueGrids = new Map<string, { lat: number, lng: number }>();
 
-            schedules.forEach(s => {
+            schedules.forEach((s: any) => {
                 const lat = s.campground_lat || 36.6269;
                 const lng = s.campground_lng || 126.7647;
                 const grid = dfs_xy_conv("toXY", lat, lng);
