@@ -301,7 +301,7 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
         // 1.1 If forceCache is true but no valid cache, we skip live fetch to maintain speed
         if (options.forceCache) {
             console.warn(`[Weather] Cache miss for ${grid.x},${grid.y} in dispatch mode. Skipping live fetch.`);
-            if (cacheHit?.data) return cacheHit.data; // Return even old cache
+            if (cacheHit?.data && Array.isArray(cacheHit.data)) return cacheHit.data; // Return even old cache
             return [mockForecast(kst.toISOString().split('T')[0])];
         }
 
