@@ -28,6 +28,7 @@ export async function POST(request: Request) {
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         const allFacts: any[] = [];
+        const successSources: string[] = []; // 성공적으로 수집을 완수한 API 소스를 추적하기 위한 배열 (안전한 부분 업데이트용)
 
         // Request Body에서 타겟 지역 정보 파싱 (동적 좌표/지역 주입 구조 완성)
         // Body가 없으면(기존 Cron 동작) 예산군 기본값 사용
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
                     trust_score: item.dutyName?.includes('소아') ? 100 : 50, raw_data: item
                 })));
             }
+            successSources.push('NMC_HOSPITAL');
         } catch (e) { console.error("NMC Error", e); }
 
         // =========================================================================
@@ -84,7 +86,8 @@ export async function POST(request: Request) {
                     lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 80, raw_data: item
                 })));
             }
-        } catch (e) { }
+            successSources.push('LARGE_STORE');
+        } catch (e) { console.error("LARGE_STORE Error", e); }
 
         // =========================================================================
         // 3. 식당 : 행안부 (모범), 중기부 (백년가게), 농식품부 (안심식당)
@@ -100,16 +103,22 @@ export async function POST(request: Request) {
                     lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 50, raw_data: item
                 })));
             }
-        } catch (e) { }
+            successSources.push('GOOD_RESTAURANT');
+        } catch (e) { console.error("GOOD_RESTAURANT Error", e); }
 
-        try { // 백년가게 (소상공인시장진흥공단 - odcloud - Swagger Dynamic Auth)
-            const specUrl = `https://infuser.odcloud.kr/oas/docs?namespace=15102255/v1`;
+        try { // 백년가게 (소상공인시장진흥공단 - odcloud - Swagger Dynamic 최신 uddi path 자동 탐색)
+            const specUrl = `https://infuser.odcloud.kr/oas/docs?namespace=${encodeURIComponent('15102255/v1')}`;
             const specRes = await fetch(specUrl, fetchOptions);
             const spec = await specRes.json();
-            const latestPath = Object.keys(spec.paths || {})[0] || "/15102255/v1/uddi:fcb174b1-8b01-4964-b814-a70c8967d23e";
+            const paths = Object.keys(spec.paths || {});
+
+            if (!paths.length) throw new Error("ODcloud swagger paths empty");
+            const latestPath = paths[0]; // e.g "/15102255/v1/uddi:c198d295-..."
 
             const res = await fetch(`https://api.odcloud.kr/api${latestPath}?serviceKey=${publicApiKey}&page=1&perPage=100`, fetchOptions);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
+
             if (data.data) {
                 const items = Array.isArray(data.data) ? data.data : [data.data];
                 allFacts.push(...items.filter((item: any) => item['시도·시군구']?.includes(regionInfo.sigunguNm) || item['주소']?.includes(regionInfo.sigunguNm)).map((item: any) => ({
@@ -118,27 +127,31 @@ export async function POST(request: Request) {
                     lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 80, raw_data: item
                 })));
             }
-        } catch (e) { }
+            successSources.push('SMBA_BAEK');
+        } catch (e) { console.error("SMBA_BAEK Error", e); }
 
         try { // 안심식당 (농식품부)
-            const res = await fetch(`http://211.237.50.150:7080/openapi/${process.env.SAFE_RESTAURANT_API_KEY}/json/Grid_20200713000000000605_1/1/100`, fetchOptions);
-            const data = await res.json();
-            if (data.Grid_20200713000000000605_1?.row) {
-                const items = data.Grid_20200713000000000605_1.row;
-                allFacts.push(...items.filter((item: any) => item.RELAX_ADD1?.includes(regionInfo.sigunguNm)).map((item: any) => ({
-                    id: crypto.randomUUID(), api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
-                    name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당', address: item.RELAX_ADD1,
-                    lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 50, raw_data: item
-                })));
+            if (process.env.SAFE_RESTAURANT_API_KEY) {
+                const res = await fetch(`http://211.237.50.150:7080/openapi/${process.env.SAFE_RESTAURANT_API_KEY}/json/Grid_20200713000000000605_1/1/100`, fetchOptions);
+                const data = await res.json();
+                if (data.Grid_20200713000000000605_1?.row) {
+                    const items = data.Grid_20200713000000000605_1.row;
+                    allFacts.push(...items.filter((item: any) => item.RELAX_ADD1?.includes(regionInfo.sigunguNm)).map((item: any) => ({
+                        id: crypto.randomUUID(), api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
+                        name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당', address: item.RELAX_ADD1,
+                        lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 50, raw_data: item
+                    })));
+                }
+                successSources.push('SAFE_RESTAURANT');
             }
-        } catch (e) { }
+        } catch (e) { console.error("SAFE_RESTAURANT Error", e); }
 
         // =========================================================================
         // 4. 주유소 : 오피넷 (겨울철 등유)
         // =========================================================================
         try {
             const isWinter = new Date().getMonth() >= 10 || new Date().getMonth() <= 4;
-            if (isWinter) {
+            if (isWinter && process.env.OPINET_API_KEY) {
                 // 향후 동적 변환(Kakao Transcoord)이 가능하도록 기본 틀 유지
                 const opinetRes = await fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${process.env.OPINET_API_KEY}&x=175658&y=341695&radius=10000&sort=1&prodcd=C004&out=json`, fetchOptions);
                 const opinetData = await opinetRes.json();
@@ -150,8 +163,9 @@ export async function POST(request: Request) {
                         lat: targetLat + (Math.random() * 0.01), lng: targetLng + (Math.random() * 0.01), trust_score: 95, raw_data: item
                     })));
                 }
+                successSources.push('OPINET');
             }
-        } catch (e) { }
+        } catch (e) { console.error("OPINET Error", e); }
 
         // =========================================================================
         // 5. 축제/행사 : 전국문화축제, 전국공연행사, 한국관광공사
@@ -168,7 +182,8 @@ export async function POST(request: Request) {
                         lat: parseFloat(item.latitude), lng: parseFloat(item.longitude), trust_score: 80, raw_data: item
                     })));
             }
-        } catch (e) { }
+            successSources.push('FSTVL_STD');
+        } catch (e) { console.error("FSTVL_STD Error", e); }
 
         try { // 전국공연행사표준
             const res = await fetch(`http://api.data.go.kr/openapi/tn_pubr_public_prmn_fesvl_api?serviceKey=${publicApiKey}&pageNo=1&numOfRows=100&type=json`, fetchOptions);
@@ -182,7 +197,8 @@ export async function POST(request: Request) {
                         lat: parseFloat(item.latitude), lng: parseFloat(item.longitude), trust_score: 80, raw_data: item
                     })));
             }
-        } catch (e) { }
+            successSources.push('PRMN_STD');
+        } catch (e) { console.error("PRMN_STD Error", e); }
 
         try { // TourAPI 축제 (새로운 KorService2 locationBasedList2 적용)
             const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
@@ -196,7 +212,8 @@ export async function POST(request: Request) {
                         lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 80, raw_data: item
                     })));
             }
-        } catch (e) { }
+            successSources.push('TOUR_FSTVL');
+        } catch (e) { console.error("TOUR_FSTVL Error", e); }
 
         // =========================================================================
         // 6. 관광지 : 한국관광공사 (TourAPI SPOT)
@@ -213,22 +230,31 @@ export async function POST(request: Request) {
                         lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 40, raw_data: item
                     })));
             }
-        } catch (e) { }
+            successSources.push('TOUR_SPOT');
+        } catch (e) { console.error("TOUR_SPOT Error", e); }
 
         // =========================================================================
-        // 7. DB Save (Upsert)
-        // 날씨, 카카오로컬 등 실시간 변동성이 큰 데이터는 Cron에서 수집하지 않고
-        // smartPlan.ts 액션 단에서 사용자 조회 시점에 동적으로 덧붙이는 구조를 유지합니다.
+        // 7. DB Save (Upsert) - 소스별 개별 안전 업데이트 처리
+        // 하나의 API가 터져도 전체 데이터가 삭제되는 현상을 방지
         // =========================================================================
         const validFacts = allFacts.filter(f => f.name && !isNaN(f.lat) && !isNaN(f.lng));
-        console.log(`Loading ${validFacts.length} valid facts (out of ${allFacts.length} raw) into Supabase...`);
-        if (validFacts.length > 0) {
-            await supabase.from('smart_plan_facts').delete().not('id', 'is', null);
-            const { error } = await supabase.from('smart_plan_facts').insert(validFacts);
-            if (error) throw new Error(`DB Insert Failed: ${error.message}`);
+        console.log(`Successfully fetched sources: ${successSources.join(', ')}`);
+
+        let processedCount = 0;
+
+        for (const source of successSources) {
+            // 통신에 성공한 API 소스의 पुरानी 데이터만 지움, 에러가 발생한 API 소스는 옛날 데이터를 유지함.
+            await supabase.from('smart_plan_facts').delete().eq('api_source', source);
+
+            const chunk = validFacts.filter(f => f.api_source === source);
+            if (chunk.length > 0) {
+                const { error } = await supabase.from('smart_plan_facts').insert(chunk);
+                if (error) console.error(`DB Insert Failed for ${source}:`, error.message);
+                else processedCount += chunk.length;
+            }
         }
 
-        return NextResponse.json({ success: true, processed_count: allFacts.length });
+        return NextResponse.json({ success: true, processed_count: processedCount, successful_sources: successSources });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
     }

@@ -475,6 +475,11 @@ Cancel
 - [x] **SSOT Documentation**: Updated `docs/smart_camping_plan_manual.md` with the new 8-Step pipeline architecture.
 - [x] **TypeScript Compatibility**: Resolved UI display types in `SmartPlanProposal.tsx` and compiled successfully (`tsc --noEmit`).
 
+### Phase 9.7: API Health & Cron Job Resilience (2026-03-06) ✅
+- [x] **Cron Job Resilience Optimization**: Refactored `sync-smart-plan/route.ts` to perform chunked upserts. Replaced delete-all logic with source-specific deletion to prevent partial failure wiping.
+- [x] **SBA Baeknyeon Store API Fix**: Replaced hardcoded ODCloud endpoint with dynamic Swagger OAS path parsing to resolve `HTTP 400` "Unregistered Service" errors.
+- [x] **API Diagnostic Scripts**: Created and executed `test_cron_apis.js` and `test_user_apis.js` to verify connection health for all 6 public data sources, KMA Mid-Term, Kakao Local, and Kakao Navi. All systems Operational.
+
 ### Phase 2: 캠핑장 DB 구축 (~8시간) 🔄
 - [x] **고캠핑 API 연동**: `lib/gocamping-api.ts`
   - [x] API 타입 정의 (GoCampingResponse, GoCampingItem)

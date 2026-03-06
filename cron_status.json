@@ -1,0 +1,40 @@
+{
+  "db": {
+    "totalRecords": 200,
+    "latestUpdate": "2026-03-01T12:06:57.236Z",
+    "sources": {
+      "LARGE_STORE": 100,
+      "GOOD_RESTAURANT": 100
+    }
+  },
+  "api": {
+    "HOSPITAL": {
+      "status": "OK",
+      "timeMs": 69
+    },
+    "MART": {
+      "status": "OK",
+      "timeMs": 111
+    },
+    "RESTAURANT_MOIS": {
+      "status": "OK",
+      "timeMs": 69
+    },
+    "RESTAURANT_SMBA": {
+      "status": "HTTP 400",
+      "timeMs": 46
+    },
+    "RESTAURANT_SAFE": {
+      "status": "OK",
+      "timeMs": 338
+    },
+    "GAS_STATION": {
+      "status": "OK",
+      "timeMs": 250
+    },
+    "FESTIVAL_SPOT": {
+      "status": "OK",
+      "timeMs": 562
+    }
+  }
+}

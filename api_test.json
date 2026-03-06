@@ -1,0 +1,10 @@
+{
+  "baeknyeon": {
+    "status": "success",
+    "count": 5,
+    "latestPath": "/15102255/v1/uddi:c198d295-7df7-49ad-a7a4-a70c8967d23e"
+  },
+  "kma": {
+    "status": "success"
+  }
+}
