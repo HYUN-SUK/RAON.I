@@ -386,19 +386,87 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
                 date: dateStr,
                 dayOfWeek: DAY_NAMES[new Date(dateStr).getDay()],
                 weatherLabel,
-                weatherEmoji: EMOJI_MAP[weatherLabel] || '🌤',
+                weatherEmoji: EMOJI_MAP[weatherLabel] || '☀️',
                 tempMin: Math.round(tmn),
                 tempMax: Math.round(tmx),
                 pop: maxPop,
                 isRainy: ptyAny !== '0' || maxPop > 60,
                 amWeatherLabel: amLabel,
-                amWeatherEmoji: EMOJI_MAP[amLabel] || '🌤',
+                amWeatherEmoji: EMOJI_MAP[amLabel] || '☀️',
                 amIsRainy: ptyAm !== '0',
                 pmWeatherLabel: pmLabel,
-                pmWeatherEmoji: EMOJI_MAP[pmLabel] || '🌤',
+                pmWeatherEmoji: EMOJI_MAP[pmLabel] || '☀️',
                 pmIsRainy: ptyPm !== '0',
             };
         });
+
+        // 2.5. Fetch Mid-Term Forecast for days +3 to +7
+        try {
+            const midTmFc = hour < 6
+                ? new Date(kst.getTime() - 86400000).toISOString().split('T')[0].replace(/-/g, '') + '1800'
+                : (hour >= 18 ? baseDate + '1800' : baseDate + '0600');
+
+            // Hardcoded mid-term regions for RaonI target area (Chungnam, Yesan)
+            const urlLand = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=11C20000&tmFc=${midTmFc}`;
+            const urlTa = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=11C20401&tmFc=${midTmFc}`;
+
+            const midController = new AbortController();
+            const midTimeoutId = setTimeout(() => midController.abort(), 4000);
+
+            const [resLand, resTa] = await Promise.all([
+                fetch(urlLand, { signal: midController.signal }),
+                fetch(urlTa, { signal: midController.signal })
+            ]);
+            clearTimeout(midTimeoutId);
+
+            const dataLand = await resLand.json();
+            const dataTa = await resTa.json();
+            const land = dataLand?.response?.body?.items?.item?.[0];
+            const ta = dataTa?.response?.body?.items?.item?.[0];
+
+            if (land && ta) {
+                const baseDateZero = new Date(kst);
+                baseDateZero.setHours(0, 0, 0, 0);
+                for (let i = 3; i <= 7; i++) {
+                    const dateObj = new Date(baseDateZero);
+                    dateObj.setDate(dateObj.getDate() + i);
+                    const dateStr = dateObj.toISOString().split('T')[0];
+
+                    // Skip if short-term API already provided it
+                    if (dayForecasts.some(f => f.date === dateStr)) continue;
+
+                    const amLabel = land['wf' + i + 'Am'] || land['wf' + i] || '맑음';
+                    const pmLabel = land['wf' + i + 'Pm'] || land['wf' + i] || '맑음';
+                    const pop = Math.max(Number(land['rnSt' + i + 'Am'] || land['rnSt' + i] || 0), Number(land['rnSt' + i + 'Pm'] || land['rnSt' + i] || 0));
+
+                    const tempMin = ta['taMin' + i] || 10;
+                    const tempMax = ta['taMax' + i] || 20;
+
+                    const pmEmojiMatch = Object.entries(EMOJI_MAP).find(([key]) => pmLabel.includes(key));
+                    const amEmojiMatch = Object.entries(EMOJI_MAP).find(([key]) => amLabel.includes(key));
+
+                    dayForecasts.push({
+                        date: dateStr,
+                        dayOfWeek: DAY_NAMES[dateObj.getDay()],
+                        weatherLabel: pmLabel,
+                        weatherEmoji: pmEmojiMatch ? pmEmojiMatch[1] : '🌤',
+                        tempMin, tempMax, pop,
+                        isRainy: amLabel.includes('비') || pmLabel.includes('비') || pop >= 60,
+                        amWeatherLabel: amLabel,
+                        amWeatherEmoji: amEmojiMatch ? amEmojiMatch[1] : '🌤',
+                        amIsRainy: amLabel.includes('비'),
+                        pmWeatherLabel: pmLabel,
+                        pmWeatherEmoji: pmEmojiMatch ? pmEmojiMatch[1] : '🌤',
+                        pmIsRainy: pmLabel.includes('비')
+                    });
+                }
+            }
+        } catch (midErr) {
+            console.warn('[Weather] Mid-term fetch skipped/failed:', midErr);
+        }
+
+        // Sort just in case
+        dayForecasts.sort((a, b) => a.date.localeCompare(b.date));
 
         // 3. Save to Cache
         if (dayForecasts.length > 0) {
