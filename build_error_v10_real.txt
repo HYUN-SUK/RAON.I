@@ -1,0 +1,162 @@
+﻿
+> raon-app@0.1.0 build
+> next build
+
+npm : [baseline-brows
+er-mapping] The data 
+in this module is ove
+r two months old.  To
+ ensure accurate Base
+line data, please upd
+ate: `npm i baseline-
+browser-mapping@lates
+t -D`
+위치 줄:1 문자:1
++ npm run build > bui
+ld_error_v10.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ([baseli   
+ ne-brows...ping@    
+latest -D`:Strin    g
+) [], RemoteExc    ep
+tion
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+??`eslint` configurat
+ion in next.config.ts
+ is no longer support
+ed. See more info her
+e: https://nextjs.org
+/docs/app/api-referen
+ce/cli/next#next-lint
+-options
+??Invalid next.config
+.ts options detected:
+ 
+??    Unrecognized ke
+y(s) in object: 'esli
+nt'
+??See more info here:
+ https://nextjs.org/d
+ocs/messages/invalid-
+next-config
+??Warning: Next.js in
+ferred your workspace
+ root, but it may not
+ be correct.
+ We detected multiple
+ lockfiles and select
+ed the directory of C
+:\Users\USER\package-
+lock.json as the root
+ directory.
+ To silence this warn
+ing, set `turbopack.r
+oot` in your Next.js 
+config, or consider r
+emoving one of the lo
+ckfiles if it's not n
+eeded.
+   See https://nextjs
+.org/docs/app/api-ref
+erence/config/next-co
+nfig-js/turbopack#roo
+t-directory for more 
+information.
+ Detected additional 
+lockfiles: 
+   * C:\Users\USER\De
+sktop\RAON.I\package-
+lock.json
+
+??Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+??The "middleware" fi
+le convention is depr
+ecated. Please use "p
+roxy" instead. Learn 
+more: https://nextjs.
+org/docs/messages/mid
+dleware-to-proxy
+  Creating an optimized production build ...
+[baseline-browser-map
+ping] The data in thi
+s module is over two 
+months old.  To ensur
+e accurate Baseline d
+ata, please update: `
+npm i baseline-browse
+r-mapping@latest -D`
+??Compiled successfully in 15.1s
+  Running TypeScript ...
+Failed to compile.
+
+./old_route.ts:10:5
+Type error: Type 'num
+ber' is not assignabl
+e to type '{ lDongReg
+nCd: string; lDongSig
+nguCd: string; doNm: 
+string; sigunguNm: st
+ring; areaCode: strin
+g; }'.
+
+[0m [90m  8 |[39m 
+[90m// ?館???????筌?쥚釉
+??DB 鈺곌퀬??????덉읅??곗쨮 
+雅뚯눘???????덈즲嚥???블?[3
+9m
+ [90m  9 |[39m [36
+mconst[39m [33mREGI
+ON_MAP[39m[33m:[39
+m [33mRecord[39m[3
+3m<[39m[33mstring[
+39m[33m,[39m { lDon
+gRegnCd[33m:[39m st
+ring[33m;[39m lDong
+SignguCd[33m:[39m s
+tring[33m;[39m doNm
+[33m:[39m string[3
+3m;[39m sigunguNm[3
+3m:[39m string[33m,
+[39m areaCode[33m:
+[39m string }[33m>[
+39m [33m=[39m {
+[31m[1m>[22m[39m
+[90m 10 |[39m     [
+32m'?겸뫖沅???됯텦??: { lD
+ongRegnCd: '[39m[35
+m44[39m[32m', lDong
+SignguCd: '[39m[35m
+44810[39m[32m', doN
+m: '[39m?겸뫗猿?[33m?[
+39m?ㅻ즲[32m', sigungu
+Nm: '[39m[33m?[39m
+?됯텦??[33m?[39m[33m,
+[39m areaCode[33m:
+[39m [32m'34'[39m }
+[33m,[39m
+ [90m    |[39m     
+[31m[1m^[22m[39m
+ [90m 11 |[39m     
+[90m// ?곕떽? 筌?쥚釉??筌왖
+??肉??怨뺚뀲 ?類ㅼ삢?? ??由?
+???덉읅 ?곕떽? 揶쎛??};[3
+9m
+ [90m 12 |[39m
+ [90m 13 |[39m [36
+mexport[39m [36masy
+nc[39m [36mfunction
+[39m [33mPOST[39m(
+request[33m:[39m [
+33mRequest[39m) {[0
+m
+Next.js build worker 
+exited with code: 1 a
+nd signal: null

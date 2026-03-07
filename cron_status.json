@@ -1,40 +1,42 @@
 {
   "db": {
-    "totalRecords": 200,
-    "latestUpdate": "2026-03-01T12:06:57.236Z",
+    "totalRecords": 313,
+    "latestUpdate": "2026-03-07T08:12:57.219Z",
     "sources": {
       "LARGE_STORE": 100,
-      "GOOD_RESTAURANT": 100
+      "GOOD_RESTAURANT": 100,
+      "TOUR_FSTVL": 13,
+      "TOUR_SPOT": 100
     }
   },
   "api": {
     "HOSPITAL": {
       "status": "OK",
-      "timeMs": 69
+      "timeMs": 376
     },
     "MART": {
       "status": "OK",
-      "timeMs": 111
+      "timeMs": 58
     },
     "RESTAURANT_MOIS": {
       "status": "OK",
-      "timeMs": 69
+      "timeMs": 68
     },
     "RESTAURANT_SMBA": {
       "status": "HTTP 400",
-      "timeMs": 46
+      "timeMs": 48
     },
     "RESTAURANT_SAFE": {
       "status": "OK",
-      "timeMs": 338
+      "timeMs": 370
     },
     "GAS_STATION": {
       "status": "OK",
-      "timeMs": 250
+      "timeMs": 148
     },
     "FESTIVAL_SPOT": {
       "status": "OK",
-      "timeMs": 562
+      "timeMs": 305
     }
   }
 }

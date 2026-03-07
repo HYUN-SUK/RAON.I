@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "data": {
+    "success": true,
+    "processed_count": 313,
+    "successful_sources": [
+      "NMC_HOSPITAL",
+      "LARGE_STORE",
+      "GOOD_RESTAURANT",
+      "SMBA_BAEK",
+      "SAFE_RESTAURANT",
+      "OPINET",
+      "TOUR_FSTVL",
+      "TOUR_SPOT"
+    ]
+  }
+}
