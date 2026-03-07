@@ -431,14 +431,34 @@ export default function ScheduleDetailPage() {
 
                 {/* 스마트 캠핑 플랜 UI (Gap 1: Trigger UI) */}
                 <div className="mt-6 mb-4">
-                    {!showSmartPlan ? (
-                        <Button
-                            onClick={() => setShowSmartPlan(true)}
-                            className="w-full h-14 bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white rounded-2xl shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] text-base font-semibold transition-all hover:scale-[1.02]"
-                        >
-                            <span className="mr-2 text-xl">✨</span> 이번 캠핑계획 자동 완성하기
-                        </Button>
-                    ) : (
+                    {!showSmartPlan ? (() => {
+                        const checkInDate = new Date(schedule.check_in);
+                        // D-3 오전 9시 기준 설정
+                        const unlockTime = new Date(checkInDate);
+                        unlockTime.setDate(unlockTime.getDate() - 3);
+                        unlockTime.setHours(9, 0, 0, 0);
+
+                        const isLocked = new Date() < unlockTime;
+                        const lockedMessage = "최적의 팩트 선별 및 초정밀 단기 일기예보 반영을 위해, 캠핑 3일 전 오전 9시부터 오픈됩니다!";
+
+                        return (
+                            <div className="relative group">
+                                <Button
+                                    onClick={() => !isLocked && setShowSmartPlan(true)}
+                                    disabled={isLocked}
+                                    className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
+                                >
+                                    <span className="mr-2 text-xl">✨</span> 이번 캠핑계획 자동 완성하기
+                                </Button>
+                                {isLocked && (
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[90vw] bg-gray-800 text-white text-xs px-3 py-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center pointer-events-none">
+                                        {lockedMessage}
+                                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-b-4 border-b-gray-800" />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })() : (
                         <SmartPlanProposal
                             userId={userId}
                             location={{

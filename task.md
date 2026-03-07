@@ -480,6 +480,16 @@ Cancel
 - [x] **SBA Baeknyeon Store API Fix**: Replaced hardcoded ODCloud endpoint with dynamic Swagger OAS path parsing to resolve `HTTP 400` "Unregistered Service" errors.
 - [x] **API Diagnostic Scripts**: Created and executed `test_cron_apis.js` and `test_user_apis.js` to verify connection health for all 6 public data sources, KMA Mid-Term, Kakao Local, and Kakao Navi. All systems Operational.
 
+## Phase 10: 초고도화 예약 기반 동적 권역 파이프라인 개편 (진행 중)
+- [x] `sync-smart-plan/route.ts` 예약자 D-3 목적지 타겟팅 및 Geo-Clustering 설계
+- [x] API 스로틀링 딜레이(`setTimeout`) 적용으로 호출 Limit 우회
+- [x] 프런트엔드 UI: D-3 오전 9시 이전 스마트 플랜 버튼 비활성화 (Date Guard)
+- [ ] 운영 빌드(`npm run build`) 확인 및 Git Commit
+
+## Phase 99: 향후 도전 과제 (Backlog)
+- [ ] Vercel KV / Redis 활용하여 AI 프롬프트 생성 결과 단기 캐싱 도입
+- [ ] 다중 일자(2박 이상) 여정의 Track B 동선 세분화 로직 추가 구현
+
 ### Phase 2: 캠핑장 DB 구축 (~8시간) 🔄
 - [x] **고캠핑 API 연동**: `lib/gocamping-api.ts`
   - [x] API 타입 정의 (GoCampingResponse, GoCampingItem)
@@ -487,7 +497,6 @@ Cancel
 - [x] **자동 태깅**: `lib/auto-tagging.ts`
   - [x] 시설 감지 (샤워, 전기, 와이파이, 반려동물, 불멍, 놀이시설, 주차)
   - [x] 환경 감지 (계곡, 조용함, 뷰맛집, 숲속, 바다)
-  - [x] 태그 생성 및 변환 함수
 - [x] **DB 스키마 확장**: `20260203_campground_sync.sql`
   - [x] 환경 필드 추가 (has_playground, has_parking, env_*)
   - [x] upsert_campground RPC 함수

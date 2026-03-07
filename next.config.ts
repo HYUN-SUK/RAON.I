@@ -43,9 +43,6 @@ const nextConfig: ExtendedNextConfig = {
       },
     ],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;

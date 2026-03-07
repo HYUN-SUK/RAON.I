@@ -1,0 +1,211 @@
+﻿
+> raon-app@0.1.0 build
+> next build
+
+npm : [baseline-brows
+er-mapping] The data 
+in this module is ove
+r two months old.  To
+ ensure accurate Base
+line data, please upd
+ate: `npm i baseline-
+browser-mapping@lates
+t -D`
+위치 줄:1 문자:1
++ npm run build > bui
+ld_success_v10.txt 2>
+&1
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ([baseli   
+ ne-brows...ping@    
+latest -D`:Strin    g
+) [], RemoteExc    ep
+tion
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+??Warning: Next.js in
+ferred your workspace
+ root, but it may not
+ be correct.
+ We detected multiple
+ lockfiles and select
+ed the directory of C
+:\Users\USER\package-
+lock.json as the root
+ directory.
+ To silence this warn
+ing, set `turbopack.r
+oot` in your Next.js 
+config, or consider r
+emoving one of the lo
+ckfiles if it's not n
+eeded.
+   See https://nextjs
+.org/docs/app/api-ref
+erence/config/next-co
+nfig-js/turbopack#roo
+t-directory for more 
+information.
+ Detected additional 
+lockfiles: 
+   * C:\Users\USER\De
+sktop\RAON.I\package-
+lock.json
+
+??Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+??The "middleware" fi
+le convention is depr
+ecated. Please use "p
+roxy" instead. Learn 
+more: https://nextjs.
+org/docs/messages/mid
+dleware-to-proxy
+  Creating an optimized production build ...
+[baseline-browser-map
+ping] The data in thi
+s module is over two 
+months old.  To ensur
+e accurate Baseline d
+ata, please update: `
+npm i baseline-browse
+r-mapping@latest -D`
+??Compiled successfully in 15.2s
+  Running TypeScript ...
+  Collecting page data using 5 workers ...
+[baseline-browser-map
+ping] The data in thi
+s module is over two 
+months old.  To ensur
+e accurate Baseline d
+ata, please update: `
+npm i baseline-browse
+r-mapping@latest -D`
+[baseline-browser-map
+ping] The data in thi
+s module is over two 
+months old.  To ensur
+e accurate Baseline d
+ata, please update: `
+npm i baseline-browse
+r-mapping@latest -D`
+[baseline-browser-map
+ping] The data in thi
+s module is over two 
+months old.  To ensur
+e accurate Baseline d
+ata, please update: `
+npm i baseline-browse
+r-mapping@latest -D`
+[baseline-browser-map
+ping] The data in thi
+s module is over two 
+months old.  To ensur
+e accurate Baseline d
+ata, please update: `
+npm i baseline-browse
+r-mapping@latest -D`
+[baseline-browser-map
+ping] The data in thi
+s module is over two 
+months old.  To ensur
+e accurate Baseline d
+ata, please update: `
+npm i baseline-browse
+r-mapping@latest -D`
+  Generating static pages using 5 workers (0/16) ...
+  Generating static pages using 5 workers (4/16) 
+  Generating static pages using 5 workers (8/16) 
+  Generating static pages using 5 workers (12/16) 
+??Generating static pages using 5 workers (16/16) in 316.3ms
+  Finalizing page optimization ...
+
+Route (app)
+??? /
+??? /_not-found
+??? /admin
+??? /admin/block
+??? /admin/community
+??? /admin/content
+??? /admin/content/[id]
+??? /admin/groups
+??? /admin/login
+??? /admin/market
+??? /admin/market/[id]
+??? /admin/market/new
+??? /admin/mission
+??? /admin/mission/[id]
+??? /admin/mission/create
+??? /admin/notice
+??? /admin/notice/[id]
+??? /admin/notice/create
+??? /admin/operations
+??? /admin/payments
+??? /admin/push
+??? /admin/rate
+??? /admin/recommendations
+??? /admin/reservations
+??? /admin/settings
+??? /admin/sites
+??? /admin/sites/[id]
+??? /api/admin/campgrounds/sync
+??? /api/admin/operations
+??? /api/cron/mission-ranking
+??? /api/cron/sync-smart-plan
+??? /api/holidays
+??? /api/nearby-activities
+??? /api/nearby-events
+??? /api/nearby-facilities
+??? /api/test-db
+??? /api/test-etl-fetch
+??? /api/test-etl-fetch-v2
+??? /api/test-plan
+??? /api/weather
+??? /auth/callback
+??? /community
+??? /community/[id]
+??? /community/content
+??? /community/content/[id]
+??? /community/content/create
+??? /community/groups/[id]
+??? /community/groups/new
+??? /community/write
+??? /login
+??? /market
+??? /market/cart
+??? /market/checkout
+??? /market/orders
+??? /market/products/[id]
+??? /mission
+??? /mission/[id]
+??? /myspace
+??? /myspace/album
+??? /myspace/embers
+??? /myspace/favorites
+??? /myspace/history
+??? /myspace/records
+??? /myspace/records/seasonal
+??? /myspace/records/timeline
+??? /myspace/reservations
+??? /myspace/schedule
+??? /myspace/schedule/[id]
+??? /myspace/wallet
+??? /myspace/wishlist
+??? /notifications
+??? /planlock
+??? /reservation
+??? /reservation/[id]
+??? /reservation/complete
+
+
+? Proxy (Middleware)
+
+?  (Dynamic)  server-rendered on demand
+
