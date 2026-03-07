@@ -216,6 +216,67 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 // ==========================================
+// REGION ID HELPERS (Mid-term Forecast)
+// ==========================================
+// KMA Mid-term Land Forecast Regions (wf3~wf10)
+const MID_LAND_REGIONS: { id: string; name: string; bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number } }[] = [
+    { id: '11B00000', name: '서울, 인천, 경기도', bounds: { minLat: 36.8, maxLat: 38.3, minLng: 126.0, maxLng: 127.8 } },
+    { id: '11D10000', name: '강원도 영서', bounds: { minLat: 37.0, maxLat: 38.6, minLng: 127.5, maxLng: 128.5 } },
+    { id: '11D20000', name: '강원도 영동', bounds: { minLat: 37.0, maxLat: 38.6, minLng: 128.5, maxLng: 130.0 } },
+    { id: '11C20000', name: '대전, 세종, 충청남도', bounds: { minLat: 35.9, maxLat: 37.0, minLng: 125.8, maxLng: 127.6 } },
+    { id: '11C10000', name: '충청북도', bounds: { minLat: 36.0, maxLat: 37.2, minLng: 127.4, maxLng: 128.8 } },
+    { id: '11F20000', name: '광주, 전라남도', bounds: { minLat: 34.0, maxLat: 35.5, minLng: 125.5, maxLng: 127.8 } },
+    { id: '11F10000', name: '전라북도', bounds: { minLat: 35.3, maxLat: 36.2, minLng: 125.8, maxLng: 127.9 } },
+    { id: '11H10000', name: '대구, 경상북도', bounds: { minLat: 35.5, maxLat: 37.1, minLng: 127.8, maxLng: 129.6 } },
+    { id: '11H20000', name: '부산, 울산, 경상남도', bounds: { minLat: 34.5, maxLat: 35.8, minLng: 127.5, maxLng: 129.5 } },
+    { id: '11G00000', name: '제주도', bounds: { minLat: 33.1, maxLat: 34.0, minLng: 126.1, maxLng: 127.0 } }
+];
+
+// Reference cities with coordinates for exact temperature matching (taMin, taMax)
+const MID_TA_REGIONS: { id: string; name: string; lat: number; lng: number }[] = [
+    { id: '11B10101', name: '서울', lat: 37.5665, lng: 126.9780 },
+    { id: '11B20201', name: '인천', lat: 37.4563, lng: 126.7052 },
+    { id: '11B20601', name: '수원', lat: 37.2636, lng: 127.0286 },
+    { id: '11B20605', name: '가평', lat: 37.8315, lng: 127.5095 }, // popular camping
+    { id: '11D10301', name: '춘천', lat: 37.8813, lng: 127.7298 },
+    { id: '11D10401', name: '원주', lat: 37.3422, lng: 127.9202 },
+    { id: '11D20501', name: '강릉', lat: 37.7519, lng: 128.8761 },
+    { id: '11C20401', name: '홍성(예산)', lat: 36.6010, lng: 126.6607 },
+    { id: '11C20404', name: '서산', lat: 36.7845, lng: 126.4503 }, // Taean area
+    { id: '11C10301', name: '청주', lat: 36.6424, lng: 127.4890 },
+    { id: '11F20501', name: '광주', lat: 35.1595, lng: 126.8526 },
+    { id: '11F10201', name: '전주', lat: 35.8242, lng: 127.1480 },
+    { id: '11H10701', name: '대구', lat: 35.8714, lng: 128.6014 },
+    { id: '11H20201', name: '부산', lat: 35.1796, lng: 129.0756 },
+    { id: '11G00201', name: '제주', lat: 33.4996, lng: 126.5312 },
+    { id: '11G00401', name: '서귀포', lat: 33.2541, lng: 126.5601 }
+];
+
+function getMidTermRegionCodes(lat: number, lng: number): { landRegId: string; taRegId: string } {
+    let landRegId = '11C20000'; // Default Chungnam
+    // 1. Find Land Region (Weather state)
+    for (const r of MID_LAND_REGIONS) {
+        if (lat >= r.bounds.minLat && lat <= r.bounds.maxLat && lng >= r.bounds.minLng && lng <= r.bounds.maxLng) {
+            landRegId = r.id;
+            break;
+        }
+    }
+
+    // 2. Find Nearest Temperature Reference City (Temperature state)
+    let taRegId = '11C20401'; // Default Hongseong/Yesan
+    let minDistance = 99999;
+    for (const r of MID_TA_REGIONS) {
+        const d = calculateDistance(lat, lng, r.lat, r.lng);
+        if (d < minDistance) {
+            minDistance = d;
+            taRegId = r.id;
+        }
+    }
+
+    return { landRegId, taRegId };
+}
+
+// ==========================================
 // WEATHER HELPERS
 // ==========================================
 function dfs_xy_conv(code: string, v1: number, v2: number) {
@@ -406,9 +467,10 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
                 ? new Date(kst.getTime() - 86400000).toISOString().split('T')[0].replace(/-/g, '') + '1800'
                 : (hour >= 18 ? baseDate + '1800' : baseDate + '0600');
 
-            // Hardcoded mid-term regions for RaonI target area (Chungnam, Yesan)
-            const urlLand = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=11C20000&tmFc=${midTmFc}`;
-            const urlTa = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=11C20401&tmFc=${midTmFc}`;
+            // Dynamic mid-term regions based on user's exact coordinates!
+            const { landRegId, taRegId } = getMidTermRegionCodes(lat, lng);
+            const urlLand = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=${landRegId}&tmFc=${midTmFc}`;
+            const urlTa = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=${taRegId}&tmFc=${midTmFc}`;
 
             const midController = new AbortController();
             const midTimeoutId = setTimeout(() => midController.abort(), 4000);
