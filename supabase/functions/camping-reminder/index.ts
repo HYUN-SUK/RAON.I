@@ -727,6 +727,7 @@ serve(async (req: any) => {
         for (const s of schedules) {
             const lat = s.campground_lat || 36.6269;
             const lng = s.campground_lng || 126.7647;
+            const displayName = s.source === 'raonai' ? `라온아이 캠핑장 (${s.campground_name})` : (s.campground_name || '캠핑장');
 
             // Gets from cache mostly, fast. (forceCache: true ensures we don't block on KMA during dispatch)
             const forecasts = await getMultiDayForecast(lat, lng, { forceCache: true });
@@ -796,7 +797,7 @@ serve(async (req: any) => {
                     category: 'reservation',
                     event_type: 'upcoming_stay_today',
                     title: `🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?`,
-                    body: `📍 ${s.campground_name}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
+                    body: `📍 ${displayName}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
                     data: { link: `/myspace/schedule/${s.id}` },
                     status: 'queued'
                 });
@@ -814,7 +815,7 @@ serve(async (req: any) => {
                     category: 'reservation',
                     event_type: 'upcoming_stay_d1',
                     title: `🍳 내일 뭐 먹을지 고민되시나요?`,
-                    body: `📍 ${s.campground_name}\n${weatherLine}\n\n날씨에 딱 맞는 메뉴를 골라봤어요!\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
+                    body: `📍 ${displayName}\n${weatherLine}\n\n날씨에 딱 맞는 메뉴를 골라봤어요!\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
                     data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
                     status: 'queued'
                 });
@@ -837,7 +838,7 @@ serve(async (req: any) => {
                     category: 'reservation',
                     event_type: 'upcoming_stay_d4', // Fixed type
                     title: `🎒 캠핑이 4일 남았어요!`,
-                    body: `📍 ${s.campground_name}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
+                    body: `📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
                     data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
                     status: 'queued' // Fixed status
                 });
