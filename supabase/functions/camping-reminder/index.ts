@@ -355,14 +355,55 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
         const ttlHours = options.forceCache ? 12 : 6;
         const isCacheValid = cacheHit && (now.getTime() - new Date(cacheHit.updated_at).getTime() < ttlHours * 3600000);
 
-        if (isCacheValid && cacheHit?.data && Array.isArray(cacheHit.data)) {
-            return cacheHit.data;
+        // --- Adapter for Frontend Cache Format ---
+        // Frontend app API (/api/weather) stores object: { current: {...}, daily: [...], timeline: [...] }
+        if (isCacheValid && cacheHit?.data) {
+            if (Array.isArray(cacheHit.data)) {
+                return cacheHit.data; // Native Cron Format
+            } else if (cacheHit.data.daily && Array.isArray(cacheHit.data.daily)) {
+                // Map Frontend Object to DayForecast[]
+                const mapped: DayForecast[] = cacheHit.data.daily.map((d: any) => {
+                    const dateStr = `${d.date.substring(0, 4)}-${d.date.substring(4, 6)}-${d.date.substring(6, 8)}`;
+                    const dayName = DAY_NAMES[new Date(dateStr).getDay()];
+                    let emoji = '☀️';
+                    if (d.weatherCode === 'rainy' || d.weatherCode === 'snowy') emoji = '🌧️';
+                    else if (d.weatherCode === 'cloudy') emoji = '☁️';
+                    else if (d.weatherCode === 'partly_cloudy') emoji = '⛅';
+
+                    return {
+                        date: dateStr,
+                        dayOfWeek: dayName,
+                        weatherLabel: d.weatherCode,
+                        weatherEmoji: emoji,
+                        tempMin: d.min || 0,
+                        tempMax: d.max || 0,
+                        pop: d.pop || 0,
+                        isRainy: d.weatherCode === 'rainy' || d.weatherCode === 'snowy'
+                    };
+                });
+                return mapped;
+            }
         }
 
         // 1.1 If forceCache is true but no valid cache, we skip live fetch to maintain speed
         if (options.forceCache) {
             console.warn(`[Weather] Cache miss for ${grid.x},${grid.y} in dispatch mode. Skipping live fetch.`);
-            if (cacheHit?.data && Array.isArray(cacheHit.data)) return cacheHit.data; // Return even old cache
+            // Try to map even if stale
+            if (cacheHit?.data) {
+                if (Array.isArray(cacheHit.data)) return cacheHit.data;
+                if (cacheHit.data.daily && Array.isArray(cacheHit.data.daily)) {
+                    return cacheHit.data.daily.map((d: any) => {
+                        const dateStr = `${d.date.substring(0, 4)}-${d.date.substring(4, 6)}-${d.date.substring(6, 8)}`;
+                        const dayName = DAY_NAMES[new Date(dateStr).getDay()];
+                        return {
+                            date: dateStr, dayOfWeek: dayName, weatherLabel: d.weatherCode,
+                            weatherEmoji: d.weatherCode === 'rainy' ? '🌧️' : '☀️',
+                            tempMin: d.min || 0, tempMax: d.max || 0, pop: d.pop || 0,
+                            isRainy: d.weatherCode === 'rainy' || d.weatherCode === 'snowy'
+                        };
+                    });
+                }
+            }
             return [mockForecast(kst.toISOString().split('T')[0])];
         }
 
