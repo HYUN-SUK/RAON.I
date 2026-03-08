@@ -25,17 +25,15 @@
 *   **Step 2. Journey Sampling (여정 중간지점 좌표 로케이팅)**: 카카오 내비 API를 활용해 실제 주행 경로상의 50% 지점(Midpoint)을 추출합니다.
 
 ### [ Phase 2: Hybrid Enrichment Pipeline (하이브리드 데이터 수집) ]
-*   **Step 3. Phase 11: Master DB Scan (고속 내부망 검색)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등 정적 데이터는 공공 API 대신 미리 캐싱된 Supabase 내부 `master_places` 테이블에서 PostGIS RPC를 통해 초고속(10ms)으로 1차 후보군을 추출합니다.
+*   **Step 3. Phase 11: Master DB Scan (고속 내부망 검색)**: `get_master_places_in_radius` RPC를 호출하여 반경 내 1차 후보군을 추출합니다. 정렬 기준은 **1순위 `trust_score` 내림차순**(백년가게 등 검증 데이터 우선), **2순위 `distance` 오름차순**으로 상위 20개를 선별합니다.
 *   **Step 4. Phase 12: Real-time Kakao Enrichment (실시간 2차 검증)**: 1차 후보군 중 상위 20개에 대해 카카오 로컬 API로 상세 URL을 획득하고, 초경량 스크래퍼(`scraper.ts`)를 가동하여 **별점**과 **리뷰 수**를 실시간으로 획득, 데이터 신뢰도를 검증합니다.
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
-*   **Step 4. Category Segregation (6카테고리 분류)**: Track A를 6개의 독립 카테고리(`HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`)로 엄격하게 분류합니다. Track B는 3개의 경로 카테고리(`ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`)로 나눕니다.
-*   **Step 5. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
-    *   **Day 1 (가는 길)**: 비가 오면 Track B에서 '국물 요리'와 '실내 명소' 점수를 상향합니다.
-    *   **Day 2~3 (현지 체류 시간)**: 맑으면 Track A에서 야외 액티비티 명소, 시원한 식당 메뉴의 점수를 상향합니다. 비가 오면 그 반대입니다.
-    *   **동계 (최저 온도 5도 이하)**: 일자 무관하게 `GAS_STATION`(등유) 정보를 최상단 압도적 1위(`+100`점)로 밀어 올립니다.
-    *   **페르소나**: 영유아/아동 동반 시 `HOSPITAL`(소아과)과 `RESTAURANT`(돈까스) 가중치를 상향합니다.
-*   **Step 6. Exception Guard (휴무일 및 장기 숙박 방어)**: 일정 중 둘째/넷째 일요일이 포함되거나 7일 이상 체류 시 대형마트의 점수를 깎고 휴무가 적은 하나로마트 점수를 우선 상향합니다.
+*   **Step 5. Category Segregation (6카테고리 분류)**: 수집된 팩트들을 6개의 독립 카테고리(`HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`)로 엄격하게 분류합니다. 
+*   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
+    *   **Day 1 (가는 길)**: 비가 오면 '국물 요리'와 '실내 명소' 점수를 상향합니다.
+    *   **Day 2~3 (현지 체류 시간)**: 맑으면 야외 액티비티 명소 점수를 상향합니다.
+    *   **Phase 12 가중치**: 카카오 별점이 4.0 이상이거나 리뷰가 많으면 신뢰도 점수를 추가 부여하여 최상단 배치를 보장합니다.
 
 ### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
 *   **Step 7. Phase 12 Verified Top 3 (검증된 정예 선별)**: Enrichment가 완료된 데이터 중 카테고리별로 별점과 리뷰 가중치가 가장 높은 **Top 3 (1개 메인, 2개 대안)**을 최종 선별하여 AI에게 전달합니다. 
