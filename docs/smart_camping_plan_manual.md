@@ -21,24 +21,27 @@
 사용자가 '캠핑 여정 계획 세우기' 버튼을 누른 순간부터 데이터를 수집, 정제하여 최종적으로 AI에게 프롬프트로 넘기기 직전까지의 8단계 흐름입니다.
 
 ### [ Phase 1: Context Gathering (유저 상황 수집) ]
-*   **Step 1. Weather & Persona Context (일자별 날씨 및 페르소나 파악)**: 입력된 일정의 매일의 날씨(Day 1, Day 2, Day 3)를 API를 통해 개별 추출하고, 유저의 활동 기반 페르소나 태그(아이 동반, 미식가 등)를 식별합니다.
-*   **Step 2. Journey Sampling (여정 중간지점 좌표 로케이팅)**: 카카오 내비 API를 활용해 실제 주행 경로상의 50% 지점(Midpoint)을 추출합니다.
+*   **Step 1. Weather & Persona Context (일자별 날씨 및 페르소나 파악)**: 사용자가 버튼을 누르면, 캠핑 예정일의 일자별 날씨(Day 1~3)를 수집하고 유저의 활동 성향(아이 동반, 미식가 등) 페르소나를 식별합니다.
+*   **Step 2. Journey Sampling (여정 중간지점 좌표 추출)**: 카카오 내비 API를 활용해 실제 출발지-캠핑장 주행 경로상의 50% 지점(Midpoint)을 추출하여 '가는 길' 추천의 기준점으로 삼습니다.
 
-### [ Phase 2: Hybrid Enrichment Pipeline (하이브리드 데이터 수집) ]
-*   **Step 3. Phase 11: Master DB Scan (고속 내부망 검색)**: `get_master_places_in_radius` RPC를 호출하여 반경 내 1차 후보군을 추출합니다. 정렬 기준은 **1순위 `trust_score` 내림차순**(백년가게 등 검증 데이터 우선), **2순위 `distance` 오름차순**으로 상위 20개를 선별합니다.
-*   **Step 4. Phase 12: Real-time Kakao Enrichment (실시간 2차 검증)**: 1차 후보군 중 상위 20개에 대해 카카오 로컬 API로 상세 URL을 획득하고, 초경량 스크래퍼(`scraper.ts`)를 가동하여 **별점**과 **리뷰 수**를 실시간으로 획득, 데이터 신뢰도를 검증합니다.
+### [ Phase 2: Hybrid Data Gathering & Enrichment (하이브리드 데이터 수집) ]
+*   **Step 3. Phase 11: Master DB Scan (Track A - 현지 팩트)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등은 Supabase 내부 `master_places`에서 PostGIS로 고속 선별합니다. 
+    *   **1차 선별 로직**: 날씨 예보를 반영하여 비가 오면 실내/국물요리 위주로, 맑으면 야외 위주로 **상위 20개** 후보군을 우선 선별합니다.
+*   **Step 4. Phase 12: Real-time Verification (Track B - 가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페], [명소]를 조회합니다. 
+    *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
+    *   **2차 정제**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득, 검증된 데이터만 `smart_plan_facts`에 저장합니다.
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
-*   **Step 5. Category Segregation (6카테고리 분류)**: 수집된 팩트들을 6개의 독립 카테고리(`HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`)로 엄격하게 분류합니다. 
+*   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `CAS_STATION`, `SPOT`, `FESTIVAL`(현지) 및 `ROUTE_*`(경로) 9개 카테고리로 엄격히 분류합니다. 
 *   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
-    *   **Day 1 (가는 길)**: 비가 오면 '국물 요리'와 '실내 명소' 점수를 상향합니다.
-    *   **Day 2~3 (현지 체류 시간)**: 맑으면 야외 액티비티 명소 점수를 상향합니다.
-    *   **Phase 12 가중치**: 카카오 별점이 4.0 이상이거나 리뷰가 많으면 신뢰도 점수를 추가 부여하여 최상단 배치를 보장합니다.
+    *   **Day 1 (가는 길)**: 날씨에 따라 '국물 요리' 혹은 '실내 명소' 가중치를 부여합니다.
+    *   **Day 2~3 (현지)**: 기온이 낮으면(`isWinterOrCold`) 주유소(등유) 점수를 압도적 1위(`+100`)로 올리고, 아이 동반 시 소아과와 어린이 식당 가중치를 높입니다.
+*   **Step 7. Exception Guard (휴무일 및 장기 숙박 방어)**: 일요일이 포함되거나 장기 체류 시 대형마트 대신 하나로마트 점수를 우선 상향합니다.
 
 ### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
-*   **Step 7. Phase 12 Verified Top 3 (검증된 정예 선별)**: Enrichment가 완료된 데이터 중 카테고리별로 별점과 리뷰 가중치가 가장 높은 **Top 3 (1개 메인, 2개 대안)**을 최종 선별하여 AI에게 전달합니다. 
-*   **Step 8. AI Prompt Assembly (다일차 입체 서사 조립 전달)**: 
-    *   `[ 여정 기본 정보 ]`, `[ 가는 길 ]`, `[ 주변 추천 ]`, `[ 오는 길 ]` 구조로 Gemini LLM에 전달하며, 특히 **"별점 4.5점의 검증된 맛집"**과 같은 구체적인 신뢰 지표를 서사의 팩트로 인용하도록 프롬프트를 조립합니다.
+*   **Step 8. Final Selection & AI Assembly (정예 선별 및 서사 조립)**: 
+    *   **Top 3 선별**: Enrichment가 완료된 데이터 중 카테고리별로 별점/신뢰도가 가장 높은 **Top 3 (1개 메인, 2개 대안)**을 선별합니다.
+    *   **AI Narration**: Gemini LLM이 **"별점 4.5점의 검증된 맛집"**과 같이 데이터의 신뢰 근거를 인용하여 감성적인 3문단의 여정 서사를 작성합니다.
 
 ---
 

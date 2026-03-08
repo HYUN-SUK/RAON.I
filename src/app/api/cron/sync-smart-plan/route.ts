@@ -137,11 +137,29 @@ export async function POST(request: Request) {
                         target_lat: targetLat,
                         target_lng: targetLng,
                         radius_meters: 20000,
-                        limit_count: 20
+                        limit_count: 50 // Fetch more initially to allow weather-based filtering
                     });
 
                     if (!err && candidates && candidates.length > 0) {
-                        const filteredCandidates = candidates.filter((c: any) => c.category === cat);
+                        // [Phase 11 High-Level Logic] Weather-Aware 1st Selection
+                        // Fetch weather for the target cluster to prioritize candidates
+                        const forecastRes = await fetch(`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${publicApiKey}&numOfRows=10&pageNo=1&base_date=${new Date().toISOString().split('T')[0].replace(/-/g, '')}&base_time=0500&nx=55&ny=127&_type=json`);
+                        const weatherData = await forecastRes.json();
+                        const isRaining = JSON.stringify(weatherData).includes('비') || JSON.stringify(weatherData).includes('소나기');
+
+                        const filteredCandidates = candidates
+                            .filter((c: any) => c.category === cat)
+                            .map((c: any) => {
+                                let weatherWeight = 0;
+                                if (isRaining) {
+                                    if (c.name.includes('탕') || c.name.includes('찌개') || c.name.includes('전골')) weatherWeight += 20;
+                                    if (c.description?.includes('실내') || c.description?.includes('박물관')) weatherWeight += 20;
+                                }
+                                return { ...c, temp_score: (c.trust_score || 0) + weatherWeight };
+                            })
+                            .sort((a: any, b: any) => b.temp_score - a.temp_score)
+                            .slice(0, 20); // Select top 20 verified/weather-appropriate for scraping
+
                         const enrichedResults = [];
 
                         for (const cand of filteredCandidates) {
