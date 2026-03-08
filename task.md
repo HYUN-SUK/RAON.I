@@ -486,6 +486,13 @@ Cancel
 - [x] 프런트엔드 UI: D-3 오전 9시 이전 스마트 플랜 버튼 비활성화 (Date Guard)
 - [x] 운영 빌드(`npm run build`) 확인 및 Git Commit 완료
 
+## Phase 11: 10만 건 이상의 대용량 원시 데이터 처리 마이그레이션 (Hybrid Sync Architecture)
+- [ ] **DB 마이그레이션**: `master_places` (식당/마트/관광명소 전용 테이블) + `master_places_gas` (주유소 전용 테이블) 생성 및 `GIST` 인덱스 추가 (`schema.sql`)
+- [ ] **주간 배치 크론잡**: `api/cron/sync-master-places` (매주 월요일 06:00 KST에 전체 풀-페이지네이션 캐싱)
+- [ ] **엔진 내부 라우팅**: `sync-smart-plan/route.ts` (D-3 크론잡)에서 식당/마트/관광지/주유소를 제외하고 외부호출은 순수 **날씨, 병상, 축제**만 하도록 슬림화
+- [ ] **엔진 내부망 쿼리 치환**: `src/lib/smartPlan.ts`에서 Supabase 내부 `rpc('get_master_places_in_radius')`로 초고속 스캔 검색 치환
+- [ ] **빌드 및 검증**: `npm run build` 및 시뮬레이션 테스트를 통한 데이터 무결성 검증
+
 ## Phase 99: 향후 도전 과제 (Backlog)
 - [ ] Vercel KV / Redis 활용하여 AI 프롬프트 생성 결과 단기 캐싱 도입
 - [ ] 다중 일자(2박 이상) 여정의 Track B 동선 세분화 로직 추가 구현

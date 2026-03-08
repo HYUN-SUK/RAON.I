@@ -38,29 +38,40 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
 
         let currentRadius = 15000;
         let facts: any[] = [];
+        let rpcDynamicFn = 'get_smart_plan_facts_in_radius';
+        let rpcMasterFn = 'get_master_places_in_radius';
 
         while (currentRadius <= 30000) {
-            const { data, error } = await supabase.rpc('get_smart_plan_facts_in_radius', {
+            // 1. Fetch Dynamic Data (HOSPITAL, FESTIVAL)
+            const { data: dynamicData, error: dynamicErr } = await supabase.rpc(rpcDynamicFn, {
                 center_lat: lat,
                 center_lng: lng,
                 radius_meters: currentRadius
             });
+            if (dynamicErr) console.error("Dynamic RPC Error:", dynamicErr);
 
-            if (error) {
-                console.error("Supabase RPC Error:", error);
-                throw error;
-            }
+            // 2. Fetch Static Master Data (RESTAURANT, MART, GAS_STATION, SPOT)
+            const { data: masterData, error: masterErr } = await supabase.rpc(rpcMasterFn, {
+                target_lat: lat,
+                target_lng: lng,
+                radius_meters: currentRadius,
+                limit_count: 50
+            });
+            if (masterErr) console.error("Master RPC Error:", masterErr);
+
+            const combinedRaw = [...(dynamicData || []), ...(masterData || [])];
 
             if (currentRadius === 15000) {
-                facts = data || [];
+                facts = combinedRaw;
             } else {
                 const existingCategories = new Set(facts.map(f => f.category));
-                const newFacts = (data || []).filter((f: any) => !existingCategories.has(f.category));
+                const newFacts = combinedRaw.filter((f: any) => !existingCategories.has(f.category));
                 facts = [...facts, ...newFacts];
             }
 
             const presentCategories = new Set(facts.map(f => f.category));
-            if (presentCategories.has('MART_HOSPITAL') && presentCategories.has('RESTAURANT')) {
+            // Break early target hit
+            if ((presentCategories.has('HOSPITAL') || presentCategories.has('MART_HOSPITAL')) && presentCategories.has('RESTAURANT')) {
                 break;
             }
             currentRadius += 5000;
@@ -71,7 +82,7 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
         return facts.map((row: any) => {
             let mappedCategory: FactCard['category'] = row.category as any;
 
-            // Legacy DB mapping split into 6 Categories
+            // Legacy DB mapping split into 6 Categories (in case old dynamic data still exists)
             if (row.category === 'MART_HOSPITAL') {
                 if (row.api_source === 'NMC_HOSPITAL' || row.name.includes('병원') || row.name.includes('의원') || row.name.includes('보건소') || row.name.includes('약국')) {
                     mappedCategory = 'HOSPITAL';
@@ -93,7 +104,7 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
                 name: row.name,
                 description: row.description || '',
                 trustScore: row.trust_score || 50,
-                distanceKm: 0,
+                distanceKm: row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0,
                 metadata: row.raw_data || {},
                 provenance: { sourceName: row.api_source }
             };

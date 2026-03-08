@@ -82,20 +82,21 @@ export async function POST(request: Request) {
             return dist <= 0.3; // 검색 반경 약 30km 제한
         };
 
-        // 3. 클러스터 순회 & API Rate Limit (Limit-Exceed) 방어를 위한 Throttling 설계
+        // 3. Phase 11 Hybrid Architecture (Realtime Fetch ONLY)
+        // Static data (MART, RESTAURANT, GAS_STATION, SPOT) is handled by 'master_places' backend.
+        // We only fetch volatile dynamic data here: HOSPITAL, FESTIVAL (Weather is handled by AI Pipeline directly).
         for (let i = 0; i < clusters.length; i++) {
             const cluster = clusters[i];
             const targetLat = cluster.lat;
             const targetLng = cluster.lng;
 
-            // 기존 고정 매핑에서, 예약자 주소 텍스트 기반으로 동적 추출 
             const addrParts = cluster.address.split(' ');
             const doNm = addrParts[0] || '충청남도';
             const sigunguNm = addrParts[1] || '예산군';
 
-            console.log(`[Smart Plan Cron] Fetching Cluster ${i + 1}/${clusters.length}: ${doNm} ${sigunguNm} (${targetLat}, ${targetLng})`);
+            console.log(`[Smart Plan Cron] D-3 Fetching Dynamic Data for Cluster ${i + 1}/${clusters.length}: ${doNm} ${sigunguNm}`);
 
-            // 1. 병원
+            // 1. 병원 (NMC_HOSPITAL)
             try {
                 const q0 = encodeURIComponent(doNm);
                 const q1 = encodeURIComponent(sigunguNm);
@@ -113,81 +114,7 @@ export async function POST(request: Request) {
                 successSources.add('NMC_HOSPITAL');
             } catch (e) { console.error("NMC_HOSPITAL Error", e); }
 
-            // 2. 마트 (행안부 대규모점포)
-            try {
-                const res = await fetch(`https://apis.data.go.kr/1741000/large_scale_retail_stores/info?serviceKey=${publicApiKey}&pageNo=1&numOfRows=100&returnType=json`, fetchOptions);
-                const data = await res.json();
-                if (data.response?.body?.items?.item) {
-                    const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
-                    allFacts.push(...items.map((item: any) => ({
-                        id: crypto.randomUUID(), api_source: 'LARGE_STORE', category: 'MART',
-                        name: item.BPLC_NM || item.companyNm || item.storeNm || '대형마트', description: `대규모점포`, address: item.ROAD_NM_ADDR || item.LOTNO_ADDR || item.address,
-                        lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 80, raw_data: item
-                    })));
-                }
-                successSources.add('LARGE_STORE');
-            } catch (e) { console.error("LARGE_STORE Error", e); }
-
-            // 3-1. 식당 (소상공인시장진흥공단 백년가게)
-            try {
-                const specUrl = `https://infuser.odcloud.kr/oas/docs?namespace=${encodeURIComponent('15102255/v1')}`;
-                const specRes = await fetch(specUrl, fetchOptions);
-                const spec = await specRes.json();
-                const paths = Object.keys(spec.paths || {});
-                if (paths.length > 0) {
-                    const latestPath = paths[0];
-                    const res = await fetch(`https://api.odcloud.kr/api${latestPath}?serviceKey=${publicApiKey}&page=1&perPage=100`, fetchOptions);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.data) {
-                            const items = Array.isArray(data.data) ? data.data : [data.data];
-                            allFacts.push(...items.filter((item: any) => item['시도·시군구']?.includes(sigunguNm) || item['주소']?.includes(sigunguNm)).map((item: any) => ({
-                                id: crypto.randomUUID(), api_source: 'SMBA_BAEK', category: 'RESTAURANT',
-                                name: item['업체명'], description: `백년가게 공식 지정 (${item['업종'] || '식당'})`, address: item['주소'],
-                                lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 80, raw_data: item
-                            })));
-                        }
-                        successSources.add('SMBA_BAEK');
-                    }
-                }
-            } catch (e) { console.error("SMBA_BAEK Error", e); }
-
-            // 3-2. 식당 (농식품부 안심식당)
-            try {
-                if (process.env.SAFE_RESTAURANT_API_KEY) {
-                    const res = await fetch(`http://211.237.50.150:7080/openapi/${process.env.SAFE_RESTAURANT_API_KEY}/json/Grid_20200713000000000605_1/1/100`, fetchOptions);
-                    const data = await res.json();
-                    if (data.Grid_20200713000000000605_1?.row) {
-                        const items = data.Grid_20200713000000000605_1.row;
-                        allFacts.push(...items.filter((item: any) => item.RELAX_ADD1?.includes(sigunguNm)).map((item: any) => ({
-                            id: crypto.randomUUID(), api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
-                            name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당', address: item.RELAX_ADD1,
-                            lat: targetLat + (Math.random() * 0.02 - 0.01), lng: targetLng + (Math.random() * 0.02 - 0.01), trust_score: 50, raw_data: item
-                        })));
-                        successSources.add('SAFE_RESTAURANT');
-                    }
-                }
-            } catch (e) { console.error("SAFE_RESTAURANT Error", e); }
-
-            // 4. 주유소 (도착지 겨울철 등유)
-            try {
-                const isWinter = new Date().getMonth() >= 10 || new Date().getMonth() <= 4;
-                if (isWinter && process.env.OPINET_API_KEY) {
-                    const opinetRes = await fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${process.env.OPINET_API_KEY}&x=175658&y=341695&radius=10000&sort=1&prodcd=C004&out=json`, fetchOptions);
-                    const opinetData = await opinetRes.json();
-                    if (opinetData.RESULT?.OIL) {
-                        const items = Array.isArray(opinetData.RESULT.OIL) ? opinetData.RESULT.OIL : [opinetData.RESULT.OIL];
-                        allFacts.push(...items.map((item: any) => ({
-                            id: crypto.randomUUID(), api_source: 'OPINET', category: 'GAS_STATION',
-                            name: item.OS_NM, description: '겨울철 난방 실내등유(팬히터용) 주유소', address: item.NEW_ADR,
-                            lat: targetLat + (Math.random() * 0.01), lng: targetLng + (Math.random() * 0.01), trust_score: 95, raw_data: item
-                        })));
-                    }
-                    successSources.add('OPINET');
-                }
-            } catch (e) { console.error("OPINET Error", e); }
-
-            // 5. 축제
+            // 2. 한시적 축제 (TOUR_FSTVL)
             try {
                 const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
                 const data = await res.json();
@@ -203,25 +130,9 @@ export async function POST(request: Request) {
                 successSources.add('TOUR_FSTVL');
             } catch (e) { console.error("TOUR_FSTVL Error", e); }
 
-            // 6. 관광지
-            try {
-                const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=100&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=12&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
-                const data = await res.json();
-                if (data.response?.body?.items?.item) {
-                    const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
-                    allFacts.push(...items.filter((item: any) => isWithinServiceArea(parseFloat(item.mapy), parseFloat(item.mapx), targetLat, targetLng))
-                        .map((item: any) => ({
-                            id: crypto.randomUUID(), api_source: 'TOUR_SPOT', category: 'SPOT',
-                            name: item.title, description: '한국관광공사 선정 주변 관광명소', address: item.addr1,
-                            lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 40, raw_data: item
-                        })));
-                }
-                successSources.add('TOUR_SPOT');
-            } catch (e) { console.error("TOUR_SPOT Error", e); }
-
-            // 7. Rate Limit Throttling: 마지막 클러스터가 아니면 공공포털 과부하를 막기 위해 3초간 비동기 대기
+            // Throttling: 마지막 클러스터가 아니면 공공포털 과부하를 막기 위해 3초간 비동기 대기
             if (i < clusters.length - 1) {
-                console.log(`[Smart Plan Cron] Waiting 3000ms before next cluster fetch...`);
+                console.log(`[Smart Plan Cron] Waiting 3000ms before next dynamic cluster fetch...`);
                 await new Promise(resolve => setTimeout(resolve, 3000));
             }
         }
@@ -231,8 +142,7 @@ export async function POST(request: Request) {
         const sourcesArray = Array.from(successSources);
         let processedCount = 0;
 
-        // "Wipe-out & Full-Sync" 로직을 폐기하고 "TTL (Time To Live)" 로직으로 4일간 캐시 생명력 유지
-        // D-3에 찌른 데이터가 D-Day까지 온전히 보존되며 그 전에는 날아가지 않음 (서버비용 제로, 속도 무한 확장의 비결)
+        // TTL 로직으로 4일간 캐시 생명력 유지
         const obsoleteDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
         const { error: deleteError } = await supabase.from('smart_plan_facts')
             .delete()
@@ -243,7 +153,7 @@ export async function POST(request: Request) {
         }
 
         for (const source of sourcesArray) {
-            // 이번 묶음에서 수집된 현재 클러스터들의 최신 사실들만 Insert (중복은 무시되거나 Append)
+            // 이번 묶음에서 수집된 현재 클러스터들의 최신 사실들만 Insert
             const chunk = validFacts.filter(f => f.api_source === source);
             if (chunk.length > 0) {
                 const { error } = await supabase.from('smart_plan_facts').insert(chunk);
@@ -252,7 +162,7 @@ export async function POST(request: Request) {
             }
         }
 
-        console.log(`[Smart Plan Cron] Completed. Processed: ${processedCount}. Clusters: ${clusters.length}`);
+        console.log(`[Smart Plan Cron] Completed Dynamic Fetch. Processed: ${processedCount}. Clusters: ${clusters.length}`);
         return NextResponse.json({ success: true, processed_count: processedCount, successful_sources: sourcesArray, clusters: clusters.length });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
