@@ -64,14 +64,19 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
             if (currentRadius === 15000) {
                 facts = combinedRaw;
             } else {
-                const existingCategories = new Set(facts.map(f => f.category));
-                const newFacts = combinedRaw.filter((f: any) => !existingCategories.has(f.category));
+                // 이미 있는 카테고리 뿐만 아니라, 같은 이름의 장소가 MASTER_ENRICHED로 있다면 중복 제거
+                const existingNames = new Set(facts.map(f => f.name));
+                const newFacts = combinedRaw.filter((f: any) => !existingNames.has(f.name));
                 facts = [...facts, ...newFacts];
             }
 
             const presentCategories = new Set(facts.map(f => f.category));
-            // Break early target hit
-            if ((presentCategories.has('HOSPITAL') || presentCategories.has('MART_HOSPITAL')) && presentCategories.has('RESTAURANT')) {
+            // Break early if we have core categories
+            const hasHospital = presentCategories.has('HOSPITAL') || presentCategories.has('MART_HOSPITAL');
+            const hasRestaurant = presentCategories.has('RESTAURANT');
+            const hasEnriched = facts.some(f => f.api_source === 'MASTER_ENRICHED');
+
+            if (hasHospital && hasRestaurant && (hasEnriched || currentRadius >= 20000)) {
                 break;
             }
             currentRadius += 5000;
@@ -306,14 +311,17 @@ export async function generateSmartPlan(
 ${routeFacts.length > 0 ? routeFacts.map(f => `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}`).join('\n') : '중간 경로 데이터가 없습니다. 조심히 바로 오시길 안내해주세요.'}
 
 [Context 2: 캠핑장 주변 현지 추천]
-${activeFacts.map(f => `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}`).join('\n')}
+${activeFacts.map(f => {
+            const enrichedInfo = f.provenance.sourceName === 'MASTER_ENRICHED' ? " (카카오맵 별점/후기 검증 완료)" : "";
+            return `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}${enrichedInfo}`;
+        }).join('\n')}
 
 [Context 3: 오는 길 추천]
-(위 가는 길 추천 중 선택하지 못한 대안이나 가벼운 명소를 귀갓길 컨텍스트로 따뜻하게 제안해주세요. 맑은 날씨라면 뷰 좋은 카페를 추천해도 좋습니다.)
+(위 가는 길 추천 중 선택하지 못한 대안이나 가벼운 명소를 귀갓길 컨텍스트로 따뜻하게 제안해주세요. 특히 별점이 높고 검증된 장소가 있다면 그 이유를 강조하세요. 맑은 날씨라면 뷰 좋은 카페를 추천해도 좋습니다.)
 
 [작성 지침]
 1. 장소 이름 언급 시 무조건 ||ID|이름|| 규격을 지켜주세요.
-2. 각 날짜별 날씨의 차이(예: "금요일엔 비가 오지만 토요일엔 화창해요")를 짚어가며 팩트 데이터 장소(국물 요리 vs 야외명소 등)를 연결하세요.
+2. 각 날짜별 날씨의 차이와 팩트 데이터의 '별점', '리뷰' 정보를 적극 인용하여 "이곳은 평점이 4.5점으로 아주 높아요" 같은 구체적인 신뢰감을 제공하세요.
 3. 길지 않은 3문단의 수필 형식으로 작성하세요.
 `.trim();
 

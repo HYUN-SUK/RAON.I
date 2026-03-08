@@ -24,10 +24,9 @@
 *   **Step 1. Weather & Persona Context (일자별 날씨 및 페르소나 파악)**: 입력된 일정의 매일의 날씨(Day 1, Day 2, Day 3)를 API를 통해 개별 추출하고, 유저의 활동 기반 페르소나 태그(아이 동반, 미식가 등)를 식별합니다.
 *   **Step 2. Journey Sampling (여정 중간지점 좌표 로케이팅)**: 카카오 내비 API를 활용해 실제 주행 경로상의 50% 지점(Midpoint)을 추출합니다.
 
-### [ Phase 2: Multi-point DB Querying (단일 DB 투-트랙 호출) ]
-*   **Step 3. Two-Track Fact Gathering (현지 및 경로 데이터 병렬 수집)**:
-    *   **Track A (현지 팩트)**: 캠핑장 반경 15km~30km 이내의 [병원], [마트], [식당], [주유소], [관광지], [축제]를 조회합니다.
-    *   **Track B (가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페/휴게소], [가벼운 명소]를 제한적으로 조회합니다.
+### [ Phase 2: Hybrid Enrichment Pipeline (하이브리드 데이터 수집) ]
+*   **Step 3. Phase 11: Master DB Scan (고속 내부망 검색)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등 정적 데이터는 공공 API 대신 미리 캐싱된 Supabase 내부 `master_places` 테이블에서 PostGIS RPC를 통해 초고속(10ms)으로 1차 후보군을 추출합니다.
+*   **Step 4. Phase 12: Real-time Kakao Enrichment (실시간 2차 검증)**: 1차 후보군 중 상위 20개에 대해 카카오 로컬 API로 상세 URL을 획득하고, 초경량 스크래퍼(`scraper.ts`)를 가동하여 **별점**과 **리뷰 수**를 실시간으로 획득, 데이터 신뢰도를 검증합니다.
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
 *   **Step 4. Category Segregation (6카테고리 분류)**: Track A를 6개의 독립 카테고리(`HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`)로 엄격하게 분류합니다. Track B는 3개의 경로 카테고리(`ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`)로 나눕니다.
@@ -39,11 +38,9 @@
 *   **Step 6. Exception Guard (휴무일 및 장기 숙박 방어)**: 일정 중 둘째/넷째 일요일이 포함되거나 7일 이상 체류 시 대형마트의 점수를 깎고 휴무가 적은 하나로마트 점수를 우선 상향합니다.
 
 ### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
-*   **Step 7. Priority Ranking & 18+3 Slots Assignment (순위 배정)**:
-    *   **Track A (Top 18)**: 6개 카테고리별 점수 1위를 메인(`activeFacts` 6곳)으로 배정하고, 2~3위는 대안 슬롯(`alternatives` 12곳)에 보관합니다.
-    *   **Track B (Top 3)**: 가는 길 카테고리(식당, 카페, 명소) 별로 1위를 꼽아 `routeFacts` 3곳에 보관합니다.
+*   **Step 7. Phase 12 Verified Top 3 (검증된 정예 선별)**: Enrichment가 완료된 데이터 중 카테고리별로 별점과 리뷰 가중치가 가장 높은 **Top 3 (1개 메인, 2개 대안)**을 최종 선별하여 AI에게 전달합니다. 
 *   **Step 8. AI Prompt Assembly (다일차 입체 서사 조립 전달)**: 
-    *   `[ 여정 기본 정보 (일자별 날씨) ]`, `[ 가는 길 추천 ]`, `[ 캠핑장 주변 메인 추천 ]`, `[ 오는 길 추천 ]` 구조로 분리하여 Gemini LLM에 데이터를 텍스트 프롬프트 형태로 조립, 전송합니다.
+    *   `[ 여정 기본 정보 ]`, `[ 가는 길 ]`, `[ 주변 추천 ]`, `[ 오는 길 ]` 구조로 Gemini LLM에 전달하며, 특히 **"별점 4.5점의 검증된 맛집"**과 같은 구체적인 신뢰 지표를 서사의 팩트로 인용하도록 프롬프트를 조립합니다.
 
 ---
 

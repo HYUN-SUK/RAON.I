@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { scrapeKakaoPlace } from '@/lib/scraper';
 
 // Vercel Serverless Function Timeout 설정 (최대 5분)
 export const maxDuration = 300;
@@ -82,9 +83,7 @@ export async function POST(request: Request) {
             return dist <= 0.3; // 검색 반경 약 30km 제한
         };
 
-        // 3. Phase 11 Hybrid Architecture (Realtime Fetch ONLY)
-        // Static data (MART, RESTAURANT, GAS_STATION, SPOT) is handled by 'master_places' backend.
-        // We only fetch volatile dynamic data here: HOSPITAL, FESTIVAL (Weather is handled by AI Pipeline directly).
+        // 3. Phase 11 & 12 Hybrid Architecture
         for (let i = 0; i < clusters.length; i++) {
             const cluster = clusters[i];
             const targetLat = cluster.lat;
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
             const doNm = addrParts[0] || '충청남도';
             const sigunguNm = addrParts[1] || '예산군';
 
-            console.log(`[Smart Plan Cron] D-3 Fetching Dynamic Data for Cluster ${i + 1}/${clusters.length}: ${doNm} ${sigunguNm}`);
+            console.log(`[Smart Plan Cron] Cluster ${i + 1}/${clusters.length}: ${doNm} ${sigunguNm}`);
 
             // 1. 병원 (NMC_HOSPITAL)
             try {
@@ -130,40 +129,82 @@ export async function POST(request: Request) {
                 successSources.add('TOUR_FSTVL');
             } catch (e) { console.error("TOUR_FSTVL Error", e); }
 
-            // Throttling: 마지막 클러스터가 아니면 공공포털 과부하를 막기 위해 3초간 비동기 대기
+            // 3. Phase 12: Kakao Enrichment (Static Data: RESTAURANT, MART, SPOT)
+            const staticCategories: ('RESTAURANT' | 'MART' | 'SPOT')[] = ['RESTAURANT', 'SPOT', 'MART'];
+            for (const cat of staticCategories) {
+                try {
+                    const { data: candidates, error: err } = await supabase.rpc('get_master_places_in_radius', {
+                        target_lat: targetLat,
+                        target_lng: targetLng,
+                        radius_meters: 20000,
+                        limit_count: 20
+                    });
+
+                    if (!err && candidates && candidates.length > 0) {
+                        const filteredCandidates = candidates.filter((c: any) => c.category === cat);
+                        const enrichedResults = [];
+
+                        for (const cand of filteredCandidates) {
+                            const kakaoKey = process.env.KAKAO_REST_API_KEY;
+                            if (!kakaoKey) break;
+
+                            const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(cand.name)}&x=${cand.lng}&y=${cand.lat}&radius=2000`, {
+                                headers: { 'Authorization': `KakaoAK ${kakaoKey}` }
+                            });
+                            const kData = await kRes.json();
+                            const matched = kData.documents?.[0];
+
+                            if (matched && matched.place_url) {
+                                const scResult = await scrapeKakaoPlace(matched.place_url);
+                                let finalScore = (cand.trust_score || 50);
+                                if (scResult.success) {
+                                    if (scResult.rating >= 4.0) finalScore += 30;
+                                    if (scResult.reviewCount >= 20) finalScore += 20;
+                                    if (scResult.rating > 0 && scResult.rating < 3.0) finalScore -= 40;
+                                }
+
+                                enrichedResults.push({
+                                    id: crypto.randomUUID(), api_source: 'MASTER_ENRICHED', category: cand.category,
+                                    name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
+                                    trust_score: Math.min(finalScore, 100),
+                                    description: scResult.success
+                                        ? `${cand.description} (별점: ${scResult.rating}, 리뷰: ${scResult.reviewCount}건)`
+                                        : cand.description,
+                                    raw_data: { ...cand.raw_data, kakao_url: matched.place_url, scraping: scResult }
+                                });
+                            }
+                            await new Promise(r => setTimeout(r, 100)); // Rate limit defense
+                        }
+
+                        const top3 = enrichedResults.sort((a, b) => b.trust_score - a.trust_score).slice(0, 3);
+                        allFacts.push(...top3);
+                        if (top3.length > 0) successSources.add('MASTER_ENRICHED');
+                    }
+                } catch (e) { console.error(`${cat} Enrichment Error`, e); }
+            }
+
             if (i < clusters.length - 1) {
-                console.log(`[Smart Plan Cron] Waiting 3000ms before next dynamic cluster fetch...`);
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
         }
 
-        // 8. DB Save (Upsert) 및 찌꺼기 팩트 청소 (TTL 로직)
+        // 8. DB Save (Upsert) 및 TTL
         const validFacts = allFacts.filter(f => f.name && !isNaN(f.lat) && !isNaN(f.lng));
         const sourcesArray = Array.from(successSources);
         let processedCount = 0;
 
-        // TTL 로직으로 4일간 캐시 생명력 유지
         const obsoleteDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
-        const { error: deleteError } = await supabase.from('smart_plan_facts')
-            .delete()
-            .lt('created_at', obsoleteDate);
-
-        if (deleteError) {
-            console.error('[Smart Plan Cron] TTL Wipe Error:', deleteError.message);
-        }
+        await supabase.from('smart_plan_facts').delete().lt('created_at', obsoleteDate);
 
         for (const source of sourcesArray) {
-            // 이번 묶음에서 수집된 현재 클러스터들의 최신 사실들만 Insert
             const chunk = validFacts.filter(f => f.api_source === source);
             if (chunk.length > 0) {
                 const { error } = await supabase.from('smart_plan_facts').insert(chunk);
-                if (error) console.error(`DB Insert Failed for ${source}:`, error.message);
-                else processedCount += chunk.length;
+                if (!error) processedCount += chunk.length;
             }
         }
 
-        console.log(`[Smart Plan Cron] Completed Dynamic Fetch. Processed: ${processedCount}. Clusters: ${clusters.length}`);
-        return NextResponse.json({ success: true, processed_count: processedCount, successful_sources: sourcesArray, clusters: clusters.length });
+        return NextResponse.json({ success: true, processed_count: processedCount, clusters: clusters.length });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
     }
