@@ -156,8 +156,24 @@ export async function POST(request: Request) {
 
                     if (!err && candidates && candidates.length > 0) {
                         // [Phase 11 High-Level Logic] Weather-Aware 1st Selection
-                        // Fetch weather for the target cluster to prioritize candidates
-                        const forecastRes = await fetch(`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${publicApiKey}&numOfRows=10&pageNo=1&base_date=${new Date().toISOString().split('T')[0].replace(/-/g, '')}&base_time=0500&nx=55&ny=127&_type=json`);
+                        // 위경도 → 기상청 격자(nx, ny) 변환 (Lambert Conformal Conic)
+                        const RE = 6371.00877, GRID = 5.0, SLAT1 = 30.0, SLAT2 = 60.0;
+                        const OLAT = 38.0, OLON = 126.0, XO = 43, YO = 136;
+                        const DEGRAD = Math.PI / 180.0;
+                        const re = RE / GRID;
+                        const slat1 = SLAT1 * DEGRAD, slat2 = SLAT2 * DEGRAD;
+                        const sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(Math.tan(Math.PI * 0.25 + slat2 * 0.5) / Math.tan(Math.PI * 0.25 + slat1 * 0.5));
+                        const sf = Math.pow(Math.tan(Math.PI * 0.25 + slat1 * 0.5), sn) * Math.cos(slat1) / sn;
+                        const ro = re * sf / Math.pow(Math.tan(Math.PI * 0.25 + OLAT * DEGRAD * 0.5), sn);
+                        const ra = re * sf / Math.pow(Math.tan(Math.PI * 0.25 + targetLat * DEGRAD * 0.5), sn);
+                        let theta = targetLng * DEGRAD - OLON * DEGRAD;
+                        if (theta > Math.PI) theta -= 2.0 * Math.PI;
+                        if (theta < -Math.PI) theta += 2.0 * Math.PI;
+                        theta *= sn;
+                        const gridNx = Math.floor(ra * Math.sin(theta) + XO + 0.5);
+                        const gridNy = Math.floor(ro - ra * Math.cos(theta) + YO + 0.5);
+
+                        const forecastRes = await fetch(`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${publicApiKey}&numOfRows=10&pageNo=1&base_date=${new Date().toISOString().split('T')[0].replace(/-/g, '')}&base_time=0500&nx=${gridNx}&ny=${gridNy}&_type=json`);
                         const weatherData = await forecastRes.json();
                         const isRaining = JSON.stringify(weatherData).includes('비') || JSON.stringify(weatherData).includes('소나기');
 

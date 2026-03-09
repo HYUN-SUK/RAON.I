@@ -4,6 +4,40 @@ import { createClient } from '@supabase/supabase-js';
 // Vercel Serverless Function Timeout 설정 (최대 5분이지만, 비동기 배치는 Edge Runtime 혹은 백그라운드 처리 권장)
 export const maxDuration = 300;
 
+// 카카오 지오코딩 헬퍼: 주소 → 위경도 변환
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+    const kakaoKey = process.env.KAKAO_REST_API_KEY;
+    if (!kakaoKey || !address) return null;
+    try {
+        const res = await fetch(
+            `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`,
+            { headers: { 'Authorization': `KakaoAK ${kakaoKey}` } }
+        );
+        const data = await res.json();
+        if (data.documents && data.documents.length > 0) {
+            return {
+                lat: parseFloat(data.documents[0].y),
+                lng: parseFloat(data.documents[0].x)
+            };
+        }
+        // 주소 검색 실패 시 키워드 검색으로 폴백
+        const kwRes = await fetch(
+            `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(address)}`,
+            { headers: { 'Authorization': `KakaoAK ${kakaoKey}` } }
+        );
+        const kwData = await kwRes.json();
+        if (kwData.documents && kwData.documents.length > 0) {
+            return {
+                lat: parseFloat(kwData.documents[0].y),
+                lng: parseFloat(kwData.documents[0].x)
+            };
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 export async function POST(request: Request) {
     try {
         const authHeader = request.headers.get('authorization');
@@ -83,10 +117,27 @@ export async function POST(request: Request) {
                         const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
                         if (items.length === 0) { hasMore = false; break; }
 
-                        // Fake coordinates for mart since this specific API doesn't provide lat/lng in public portal easily.
-                        // In reality, Kakao Local API batch reverse-geocoding should be used, but for the hybrid architecture demo, we insert what we can.
-                        // Since lat/lng is required in schema, we'll skip those without it, or we rely on Kakao Local dynamically in Route B.
-                        // *Note: A real batch system offline resolves coords using Kakao.*
+                        // 카카오 지오코딩으로 주소 → 좌표 변환 후 삽입
+                        const chunk = [];
+                        for (const item of items) {
+                            const addr = item.RDNWHL_ADDR || item.LNM_ADDR || item.BPLC_NM || '';
+                            if (!addr) continue;
+                            const coords = await geocodeAddress(addr);
+                            if (!coords) continue; // 좌표 변환 실패 시 스킵 (더미값 삽입 방지)
+                            chunk.push({
+                                id: crypto.randomUUID(), api_source: 'LARGE_STORE', category: 'MART',
+                                name: item.BPLC_NM || item.STRNM || addr, description: '행정안전부 등록 대규모 점포',
+                                address: addr, lat: coords.lat, lng: coords.lng,
+                                trust_score: 60, raw_data: item,
+                                sido: item.CTPRVN_NM || '', sigungu: item.SIGNGU_NM || ''
+                            });
+                            await new Promise(r => setTimeout(r, 100)); // 카카오 API 과부하 방지
+                        }
+                        if (chunk.length > 0) {
+                            const { error } = await supabase.from('master_places').insert(chunk);
+                            if (error) console.error('[Master Sync] MART Insert Error:', error.message);
+                            else totalInserted += chunk.length;
+                        }
                         pageNo++;
                         await new Promise(r => setTimeout(r, 1000));
                     } else {
@@ -115,13 +166,20 @@ export async function POST(request: Request) {
                             const res = await fetch(`https://api.odcloud.kr/api${latestPath}?serviceKey=${publicApiKey}&page=${pageNo}&perPage=100`, fetchOptions);
                             const data = await res.json();
                             if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-                                const chunk = data.data.map((item: any) => ({
-                                    id: crypto.randomUUID(), api_source: 'SMBA_BAEK', category: 'RESTAURANT',
-                                    name: item['업체명'], description: `백년가게 공식 지정 (${item['업종'] || '식당'})`, address: item['주소'],
-                                    // Normally Geocoded here. For master sync, we need offline KAKAO processing or rely on existing ones.
-                                    lat: 36.67 + (Math.random() * 0.1), lng: 126.84 + (Math.random() * 0.1), trust_score: 80, raw_data: item,
-                                    sido: item['시도·시군구']?.split(' ')[0] || '', sigungu: item['시도·시군구']?.split(' ')[1] || ''
-                                }));
+                                const chunk = [];
+                                for (const item of data.data) {
+                                    const addr = item['주소'] || '';
+                                    if (!addr || !item['업체명']) continue;
+                                    const coords = await geocodeAddress(addr);
+                                    if (!coords) continue; // 좌표 변환 실패 시 스킵
+                                    chunk.push({
+                                        id: crypto.randomUUID(), api_source: 'SMBA_BAEK', category: 'RESTAURANT',
+                                        name: item['업체명'], description: `백년가게 공식 지정 (${item['업종'] || '식당'})`, address: addr,
+                                        lat: coords.lat, lng: coords.lng, trust_score: 80, raw_data: item,
+                                        sido: item['시도·시군구']?.split(' ')[0] || '', sigungu: item['시도·시군구']?.split(' ')[1] || ''
+                                    });
+                                    await new Promise(r => setTimeout(r, 100)); // 카카오 API 과부하 방지
+                                }
                                 const { error } = await supabase.from('master_places').insert(chunk);
                                 if (!error) totalInserted += chunk.length;
                                 pageNo++;
@@ -152,12 +210,20 @@ export async function POST(request: Request) {
                         const data = await res.json();
                         if (data.Grid_20200713000000000605_1?.row && data.Grid_20200713000000000605_1.row.length > 0) {
                             const items = data.Grid_20200713000000000605_1.row;
-                            const chunk = items.map((item: any) => ({
-                                id: crypto.randomUUID(), api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
-                                name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당', address: item.RELAX_ADD1,
-                                lat: 36.67 + (Math.random() * 0.1), lng: 126.84 + (Math.random() * 0.1), trust_score: 50, raw_data: item,
-                                sido: item.RELAX_SI_NM || '', sigungu: item.RELAX_SIDO_NM || ''
-                            }));
+                            const chunk = [];
+                            for (const item of items) {
+                                const addr = item.RELAX_ADD1 || '';
+                                if (!addr || !item.RELAX_REST_NM) continue;
+                                const coords = await geocodeAddress(addr);
+                                if (!coords) continue; // 좌표 변환 실패 시 스킵
+                                chunk.push({
+                                    id: crypto.randomUUID(), api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
+                                    name: item.RELAX_REST_NM, description: '농식품부 인증 위생 안심식당', address: addr,
+                                    lat: coords.lat, lng: coords.lng, trust_score: 50, raw_data: item,
+                                    sido: item.RELAX_SI_NM || '', sigungu: item.RELAX_SIDO_NM || ''
+                                });
+                                await new Promise(r => setTimeout(r, 100));
+                            }
                             const { error } = await supabase.from('master_places').insert(chunk);
                             if (!error) totalInserted += chunk.length;
                             pageNo++;
@@ -186,13 +252,21 @@ export async function POST(request: Request) {
                         const items = Array.isArray(data.body.items.item) ? data.body.items.item : [data.body.items.item];
                         if (items.length === 0) { hasMore = false; break; }
 
-                        const chunk = items.map((item: any) => ({
-                            id: crypto.randomUUID(), api_source: 'MOIS_GOOD_RESTAURANT', category: 'RESTAURANT',
-                            name: item.BPLC_NM || item.bplcNm || item.name, description: '행정안전부 지정 모범음식점', address: item.RDNWH_ADDR || item.SITE_WHL_ADDR || item.address,
-                            // Fallback coords; Kakao reverse geocoding needed for accurate mapping
-                            lat: 36.67 + (Math.random() * 0.1), lng: 126.84 + (Math.random() * 0.1), trust_score: 55, raw_data: item,
-                            sido: item.SIDO_NM || '', sigungu: item.SIGUNGU_NM || ''
-                        }));
+                        const chunk = [];
+                        for (const item of items) {
+                            const name = item.BPLC_NM || item.bplcNm || item.name || '';
+                            const addr = item.RDNWH_ADDR || item.SITE_WHL_ADDR || item.address || '';
+                            if (!addr || !name) continue;
+                            const coords = await geocodeAddress(addr);
+                            if (!coords) continue; // 좌표 변환 실패 시 스킵
+                            chunk.push({
+                                id: crypto.randomUUID(), api_source: 'MOIS_GOOD_RESTAURANT', category: 'RESTAURANT',
+                                name, description: '행정안전부 지정 모범음식점', address: addr,
+                                lat: coords.lat, lng: coords.lng, trust_score: 55, raw_data: item,
+                                sido: item.SIDO_NM || '', sigungu: item.SIGUNGU_NM || ''
+                            });
+                            await new Promise(r => setTimeout(r, 100));
+                        }
                         const { error } = await supabase.from('master_places').insert(chunk);
                         if (!error) totalInserted += chunk.length;
                         pageNo++;
@@ -217,13 +291,22 @@ export async function POST(request: Request) {
                     const opinetData = await opinetRes.json();
                     if (opinetData.RESULT?.OIL) {
                         const items = Array.isArray(opinetData.RESULT.OIL) ? opinetData.RESULT.OIL : [opinetData.RESULT.OIL];
-                        const chunk = items.map((item: any) => ({
-                            id: crypto.randomUUID(), api_source: 'OPINET', category: 'GAS_STATION',
-                            name: item.OS_NM, description: '겨울철 난방 실내등유(팬히터용) 주유소', address: item.NEW_ADR,
-                            // Opinet uses KATECH coords (x/y), they need conversion to WGS84 for PostGIS
-                            lat: 36.67 + (Math.random() * 0.1), lng: 126.84 + (Math.random() * 0.1), trust_score: 95, raw_data: item,
-                            sido: '', sigungu: ''
-                        }));
+                        const chunk = [];
+                        for (const item of items) {
+                            const addr = item.NEW_ADR || item.VAN_ADR || '';
+                            const name = item.OS_NM || '';
+                            if (!name) continue;
+                            // OPINET은 KATECH 좌표(x/y)를 쓰므로 주소 기반 카카오 지오코딩으로 WGS84 변환
+                            const coords = addr ? await geocodeAddress(addr) : null;
+                            if (!coords) continue; // 좌표 변환 실패 시 스킵
+                            chunk.push({
+                                id: crypto.randomUUID(), api_source: 'OPINET', category: 'GAS_STATION',
+                                name, description: '겨울철 난방 실내등유(팬히터용) 주유소', address: addr,
+                                lat: coords.lat, lng: coords.lng, trust_score: 95, raw_data: item,
+                                sido: '', sigungu: ''
+                            });
+                            await new Promise(r => setTimeout(r, 100));
+                        }
                         await supabase.from('master_places_gas').insert(chunk);
                         totalInserted += chunk.length;
                     }

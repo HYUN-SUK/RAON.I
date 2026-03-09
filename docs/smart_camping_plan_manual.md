@@ -29,12 +29,12 @@
     *   **기술 사양**: `GIST` 인덱스가 적용된 공간 쿼리를 통해 **10ms 이하**의 검색 속도를 보장합니다.
     *   **1차 선별 로직**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여해 **상위 20개** 후보군을 우선 선별합니다. 정렬 기준은 **1순위 `trust_score` 내림차순**, **2순위 `distance` 오름차순**입니다.
 *   **Step 4. Phase 12: Real-time Verification (Track B - 가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페], [명소]를 조회합니다. 
-    *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com` 비공개 JSON 엔드포인트를 직접 호출합니다.
+    *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com`의 비공개 JSON 엔드포인트(`/places/panel3/`, `/places/reviews/kakaomap/meta/`)를 직접 호출하여 별점/리뷰 수를 JSON 형태로 추출합니다. (**cheerio HTML 파싱이 아닌 JSON API 직접 호출 방식**)
     *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
     *   **2차 정제**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득, 검증된 데이터만 `smart_plan_facts`에 저장합니다.
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
-*   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `CAS_STATION`, `SPOT`, `FESTIVAL`(현지 6종) 및 `ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`(경로 3종)의 **총 9개 카테고리**로 엄격히 분류합니다. 
+*   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`(현지 6종) 및 `ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`(경로 3종)의 **총 9개 카테고리**로 엄격히 분류합니다. 
 *   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
     *   **Day 1 (가는 길)**: 날씨(비/맑음)에 따라 '국물 요리' 혹은 '테라스 카페/실내 명소' 가중치를 부여합니다.
     *   **Day 2~3 (현지)**: 기온이 낮으면(`isWinterOrCold`) 주유소(등유) 점수를 압도적 1위(`+100`)로 올리고, 아이 동반 시 소아과와 어린이 식당 가중치를 높입니다.
@@ -117,7 +117,10 @@
    - `master_places_gas`: 겨울철 등유 수급이 핵심인 주유소 전용 테이블 (`trust_score` 90점 이상 고정 관리).
 2. **주간 풀-페이지네이션 동기화 (Weekly Batch)**:
    - 매주 월요일 06:00 KST, 공공 API(SBA, NMC, TourAPI, MOIS 등)를 전수 조사하여 수만 건의 최신 데이터를 업데이트합니다.
-   - **Throttling**: 관공서 서버 부하를 방지하기 위해 각 페이지 호출 사이에 1~3초의 의도적 지연을 삽입합니다.
+   - **실행 환경**: Vercel Serverless의 5분 제한을 우회하기 위해 **GitHub Actions 러너에서 직접 실행** (`scripts/sync-master-places.mjs`). 타임아웃 2시간.
+   - **지오코딩 중복 스킵**: 배치 시작 시 DB의 기존 주소를 메모리에 캐싱하여, 이미 좌표가 있는 주소는 카카오 API를 호출하지 않습니다. 첫 주에만 수만 건 호출, 이후에는 신규분만 호출.
+   - **Upsert 패턴**: 이름+주소 기준으로 중복 판단하여 기존 데이터는 스킵, 신규 데이터만 삽입합니다.
+   - **Throttling**: 관공서 서버 부하를 방지하기 위해 각 페이지 호출 사이에 0.5~1초의 의도적 지연을 삽입합니다.
 3. **신뢰 지표(Trust Score) 계층 구조**:
    - `80점~90점`: 백년가게, 안심식당, 모범음식점 (공공기관 공식 인증)
    - `50점~70점`: 한국관광공사 등록 명소, 대규모 점포 정보
