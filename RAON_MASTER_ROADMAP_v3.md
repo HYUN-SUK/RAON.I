@@ -43,6 +43,7 @@
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
 | **Phase 4** | **미래 기능 (Future)** | ✅ **완료** | 100% | 웹 푸시(FCM), 상황별 알림 시스템, 인앱 배지 구현 완료. |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
+| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | Phase 11/12 하이브리드 동기화 및 실시간 검증 엔진 구축 완료. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
@@ -158,6 +159,10 @@
     *   [x] Citational UI (서사 + 팩트 카드) 및 교체 상호작용 개발.
     *   [x] `Fallback Mock Data` 주입 로직 탑재 (미연결 또는 API Key 부재 시 무중단 렌더링).
     *   [x] **동적 카테고리**: 관리자 설정 페이지에서 카테고리 추가/순서변경 기능 구현.
+*   **5.5.5 Hybrid Sync Stabilization (Phase 11 & 12) ✅ (2026-03-08)**:
+    *   [x] **Phase 11**: PostGIS 기반 마스터 DB 스캔 및 날씨 가중치 1차 선별 구현.
+    *   [x] **Phase 12**: 카카오맵 별점/리뷰 스크래퍼 및 실시간 팩트 정제 파이프라인 이식.
+    *   [x] **SSOT**: `smart_camping_plan_manual.md`에 전체 로직 및 장애 대응 시나리오 통합.
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
 **"더 깊은 연결과 재미"**

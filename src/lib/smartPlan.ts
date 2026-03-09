@@ -325,15 +325,6 @@ ${activeFacts.map(f => {
 3. 길지 않은 3문단의 수필 형식으로 작성하세요.
 `.trim();
 
-        // console debugging points
-        console.log("\n=======================================================");
-        console.log("🚀 [PIPELINE STEP 3] Midpoint Calculated: ", midpoint ? `Lat ${midpoint.lat}, Lng ${midpoint.lng}` : "None");
-        console.log(`🚀 [PIPELINE STEP 5-7] Active Track A Local Facts: ${activeFacts.length} ea`);
-        console.log(`🚀 [PIPELINE STEP 5-7] Active Track B Route Facts: ${routeFacts.length} ea`);
-        console.log("🚀 [PIPELINE STEP 8] AI Prompt Assembled:");
-        console.log(prompt);
-        console.log("=======================================================\n");
-
         const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

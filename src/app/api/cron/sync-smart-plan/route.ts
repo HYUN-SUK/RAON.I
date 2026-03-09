@@ -75,7 +75,21 @@ export async function POST(request: Request) {
         }
 
         const fetchOptions = { headers: { 'User-Agent': 'Mozilla/5.0' } };
-        const allFacts: any[] = [];
+
+        interface SmartPlanFact {
+            id: string;
+            api_source: string;
+            category: string;
+            name: string;
+            description: string;
+            address: string;
+            lat: number;
+            lng: number;
+            trust_score: number;
+            raw_data: any;
+        }
+
+        const allFacts: SmartPlanFact[] = [];
         const successSources: Set<string> = new Set();
 
         const isWithinServiceArea = (lat: number, lng: number, cLat: number, cLng: number) => {
@@ -109,9 +123,9 @@ export async function POST(request: Request) {
                         lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
                         trust_score: item.dutyName?.includes('소아') ? 100 : 50, raw_data: item
                     })));
+                    successSources.add('NMC_HOSPITAL');
                 }
-                successSources.add('NMC_HOSPITAL');
-            } catch (e) { console.error("NMC_HOSPITAL Error", e); }
+            } catch (e: any) { console.error("NMC_HOSPITAL Error", e); }
 
             // 2. 한시적 축제 (TOUR_FSTVL)
             try {
@@ -125,9 +139,9 @@ export async function POST(request: Request) {
                             name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1,
                             lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 80, raw_data: item
                         })));
+                    successSources.add('TOUR_FSTVL');
                 }
-                successSources.add('TOUR_FSTVL');
-            } catch (e) { console.error("TOUR_FSTVL Error", e); }
+            } catch (e: any) { console.error("TOUR_FSTVL Error", e); }
 
             // 3. Phase 12: Kakao Enrichment (Static Data: RESTAURANT, MART, SPOT)
             const staticCategories: ('RESTAURANT' | 'MART' | 'SPOT')[] = ['RESTAURANT', 'SPOT', 'MART'];
@@ -198,7 +212,7 @@ export async function POST(request: Request) {
                         allFacts.push(...top3);
                         if (top3.length > 0) successSources.add('MASTER_ENRICHED');
                     }
-                } catch (e) { console.error(`${cat} Enrichment Error`, e); }
+                } catch (e: any) { console.error(`${cat} Enrichment Error`, e); }
             }
 
             if (i < clusters.length - 1) {

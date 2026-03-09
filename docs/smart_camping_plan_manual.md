@@ -26,26 +26,28 @@
 
 ### [ Phase 2: Hybrid Data Gathering & Enrichment (하이브리드 데이터 수집) ]
 *   **Step 3. Phase 11: Master DB Scan (Track A - 현지 팩트)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등은 Supabase 내부 `master_places`에서 PostGIS로 고속 선별합니다. 
-    *   **1차 선별 로직**: 날씨 예보를 반영하여 비가 오면 실내/국물요리 위주로, 맑으면 야외 위주로 **상위 20개** 후보군을 우선 선별합니다.
+    *   **기술 사양**: `GIST` 인덱스가 적용된 공간 쿼리를 통해 **10ms 이하**의 검색 속도를 보장합니다.
+    *   **1차 선별 로직**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여해 **상위 20개** 후보군을 우선 선별합니다. 정렬 기준은 **1순위 `trust_score` 내림차순**, **2순위 `distance` 오름차순**입니다.
 *   **Step 4. Phase 12: Real-time Verification (Track B - 가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페], [명소]를 조회합니다. 
+    *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com` 비공개 JSON 엔드포인트를 직접 호출합니다.
     *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
     *   **2차 정제**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득, 검증된 데이터만 `smart_plan_facts`에 저장합니다.
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
-*   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `CAS_STATION`, `SPOT`, `FESTIVAL`(현지) 및 `ROUTE_*`(경로) 9개 카테고리로 엄격히 분류합니다. 
+*   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `CAS_STATION`, `SPOT`, `FESTIVAL`(현지 6종) 및 `ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`(경로 3종)의 **총 9개 카테고리**로 엄격히 분류합니다. 
 *   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
-    *   **Day 1 (가는 길)**: 날씨에 따라 '국물 요리' 혹은 '실내 명소' 가중치를 부여합니다.
+    *   **Day 1 (가는 길)**: 날씨(비/맑음)에 따라 '국물 요리' 혹은 '테라스 카페/실내 명소' 가중치를 부여합니다.
     *   **Day 2~3 (현지)**: 기온이 낮으면(`isWinterOrCold`) 주유소(등유) 점수를 압도적 1위(`+100`)로 올리고, 아이 동반 시 소아과와 어린이 식당 가중치를 높입니다.
-*   **Step 7. Exception Guard (휴무일 및 장기 숙박 방어)**: 일요일이 포함되거나 장기 체류 시 대형마트 대신 하나로마트 점수를 우선 상향합니다.
+*   **Step 7. Exception Guard (휴무일 및 장기 숙박 방어)**: 일정 중 대형마트 휴무일(둘째/넷째 일요일)이 포함되거나 7일 이상 체류 시 대형마트 가중치를 깎고(`-40`) 하나로마트 점수를 상향(`+30`)합니다.
 
 ### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
 *   **Step 8. Final Selection & AI Assembly (정예 선별 및 서사 조립)**: 
-    *   **Top 3 선별**: Enrichment가 완료된 데이터 중 카테고리별로 별점/신뢰도가 가장 높은 **Top 3 (1개 메인, 2개 대안)**을 선별합니다.
-    *   **AI Narration**: Gemini LLM이 **"별점 4.5점의 검증된 맛집"**과 같이 데이터의 신뢰 근거를 인용하여 감성적인 3문단의 여정 서사를 작성합니다.
+    *   **Top 3 선별**: Enrichment가 완료된 데이터 중 카테고리별로 별점/리뷰 가중치가 가장 높은 **Top 3 (1개 메인, 2개 대안)**을 최종 선별합니다.
+    *   **AI Narration**: Gemini LLM이 **"별점 4.5점의 검증된 맛집"**과 같이 Phase 12에서 획득한 실시간 평점 지표를 서사의 팩트로 인용하여 감성적인 3문단의 여정 서사를 작성합니다.
 
 ---
 
-## 🔍 3. 6개 카테고리별 세부 정제 명세 (Data Transformation Spec)
+## 🔍 3. 9개 카테고리별 세부 정제 명세 (Data Transformation Spec)
 
 모든 팩트는 코드 내 `trustScore` 비교를 통해 카테고리 내에서 순위(1위~3위)가 결정됩니다.
 
@@ -72,12 +74,22 @@
 ### 3.6 지역 축제 / 오일장 - `[FESTIVAL]`
 - **점수(Score)**: 캠핑 일정 중 축제 날짜가 겹치면 기본 1순위로 강제 보장하여 지역 로컬리티 확보.
 
+### 3.7 경로 기반 식당 / 카페 / 명소 - `[ROUTE_RESTAURANT, ROUTE_CAFE, ROUTE_SPOT]`
+- **기준**: Phase 12에서 수집된 현지 밖(주행 경로상)의 팩트.
+- **특징**: 카카오 별점 4.0 이상인 경우 '가는 길의 묘미'로 강조하여 서사에 반영.
+
 ---
 
-## 💾 4. 인프라 및 API 생존성 보장 구조
-1. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다.
-2. **PostGIS Radius Search**: 모든 데이터 질의는 Vercel 배포 시 `get_smart_plan_facts_in_radius` SQL 함수 1회 호출로 묶여 실행됩니다. 이후 Vercel Node 컴파일 서버에서 분류/가중치 로직이 10 밀리초 단위로 수행됩니다.
-3. **Prompt Resiliency**: LLM 호출 에러 시, `narration` 문장만 "캠퍼님을 위한 특별한 여정이 준비되었습니다."라는 Fallback 문구로 대체되며, Top 18 리스트를 프론트 화면상에서 그대로 렌더링되도록 보호됩니다.
+## 💾 4. 인프라 및 데이터 파이프라인 안정성 (Data Resiliency)
+스마트 캠핑 플랜은 공공데이터의 불안정성을 극점으로 고려하여 설계되었습니다.
+
+1. **ETL 에러 조기 경보 및 우회**:
+   - **SMBA (403 Forbidden)**: API 권한 승인 지연 시 카카오 로컬 API로 즉시 Fail-over.
+   - **NMC (Empty Response)**: 법정동 코드 인코딩 오류 발생 시 반경 기반 공간 쿼리(`get_master_places_in_radius`)로 대체.
+   - **TourAPI (XML Data)**: JSON 응답 강제 및 XML 찌꺼기 감지 시 `try-catch`로 파이프라인 중단 방지.
+2. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다.
+3. **PostGIS Radius Search**: 모든 데이터 질의는 Vercel 배포 시 `get_master_places_in_radius` SQL 함수 1회 호출로 묶여 실행됩니다. 이후 Vercel Node 컴파일 서버에서 분류/가중치 로직이 10 밀리초 단위로 수행됩니다.
+4. **Prompt Resiliency**: LLM 호출 에러 시, `narration` 문장만 "캠퍼님을 위한 특별한 여정이 준비되었습니다."라는 Fallback 문구로 대체되며, Top 15 리스트를 프론트 화면상에서 그대로 렌더링되도록 보호됩니다.
 
 ---
 
@@ -96,4 +108,23 @@
    - 확정성 높은 **초정밀 기상청 단기예보(강수량/풍속)** 와 위에서 수집된 현지 팩트들이 완전히 캐싱되는 시점인 **캠핑 3일 전(D-3) 오전 9시** 정각이 되기 전까지, 프런트엔드의 `[스마트 플랜 생성]` 버튼을 강제 비활성화하여 AI의 환각(Hallucination) 및 엉뚱한 동선 제안을 차단합니다. 
 
 ---
-**라온아이 프로젝트 SSOT 기준 문서 - 6 카테고리 8단계 개편 및 D-3 예약 동적 클러스터링 사양**
+
+## 🏗️ 6. 하이브리드 마스터 DB 동기화 시스템 (Phase 11: Hybrid Master Sync)
+전국 10만 건 이상의 대용량 원시 데이터를 효율적으로 관리하고, 고속(10ms) 추천을 가능케 하는 내부망 캐싱 시스템입니다.
+
+1. **데이터 스토리지 구조 (Dual-Table)**:
+   - `master_places`: 식당, 마트, 명소, 카페 등 일반 장소를 위한 `GIST(geometry)` 인덱스 적용 테이블.
+   - `master_places_gas`: 겨울철 등유 수급이 핵심인 주유소 전용 테이블 (`trust_score` 90점 이상 고정 관리).
+2. **주간 풀-페이지네이션 동기화 (Weekly Batch)**:
+   - 매주 월요일 06:00 KST, 공공 API(SBA, NMC, TourAPI, MOIS 등)를 전수 조사하여 수만 건의 최신 데이터를 업데이트합니다.
+   - **Throttling**: 관공서 서버 부하를 방지하기 위해 각 페이지 호출 사이에 1~3초의 의도적 지연을 삽입합니다.
+3. **신뢰 지표(Trust Score) 계층 구조**:
+   - `80점~90점`: 백년가게, 안심식당, 모범음식점 (공공기관 공식 인증)
+   - `50점~70점`: 한국관광공사 등록 명소, 대규모 점포 정보
+   - `30점~40점`: 일반 상권 정보 및 기타 크롤링 잠정 데이터
+   - 이 점수는 Phase 11 선별 시 1순위 정렬 기준으로 사용되어, 광고성 업체가 아닌 **'국가가 보증한 장소'**를 최상단에 배치합니다.
+4. **공간 인덱싱 (GIST Index)**:
+   - 위경도 좌표를 PostGIS의 `geometry(Point, 4326)` 타입으로 변환 저장하여, 반경 20km 검색 시 수십만 건의 레코드 중에서도 10ms 이내에 결과를 반환합니다.
+
+---
+**라온아이 프로젝트 SSOT 기준 문서 - 9 카테고리 8단계 개편 및 Phase 11/12 하이브리드 엔진 통합 사양**
