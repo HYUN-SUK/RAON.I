@@ -421,6 +421,7 @@ ${activeFacts.map(f => {
 1. 장소 이름 언급 시 무조건 ||ID|이름|| 규격을 지켜주세요.
 2. 각 날짜별 날씨의 차이와 팩트 데이터의 '별점', '리뷰' 정보를 적극 인용하여 "이곳은 평점이 4.5점으로 아주 높아요" 같은 구체적인 신뢰감을 제공하세요.
 3. 길지 않은 3문단의 수필 형식으로 작성하세요.
+4. 만약 추천 장소에 병원(HOSPITAL) 정보가 포함되지 않았다면, 응급 상황 발생 시 119 구급대를 이용하거나 가장 가까운 시내 의료기관으로 이동하도록 따뜻하게 안내를 포함해주세요.
 `.trim();
 
         const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
