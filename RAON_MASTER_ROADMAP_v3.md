@@ -162,6 +162,7 @@
 *   **5.5.5 Hybrid Sync Stabilization (Phase 11 & 12) ✅ (2026-03-08)**:
     *   [x] **Phase 11**: PostGIS 기반 마스터 DB 스캔 및 날씨 가중치 1차 선별 구현.
     *   [x] **Phase 12**: 카카오맵 별점/리뷰 스크래퍼 및 실시간 팩트 정제 파이프라인 이식.
+    *   [x] **v2 Update (2026-03-10)**: Evidence 구조화(Fact Chips), AI 환각 방지 지침 적용, 최신 API 연동 복구 완료.
     *   [x] **SSOT**: `smart_camping_plan_manual.md`에 전체 로직 및 장애 대응 시나리오 통합.
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
