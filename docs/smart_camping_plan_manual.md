@@ -35,41 +35,76 @@
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
 *   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`(현지 6종) 및 `ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`(경로 3종)의 **총 9개 카테고리**로 엄격히 분류합니다. 
+
+*   **Step 5.5. v2 4축 점수 체계 (Multi-Axis Scoring v2)**:
+    기존 `trust_score` 단일값 가감 방식을 폐기하고, **4개 축의 가중합 - Risk Penalty** 공식으로 `finalScore`를 산출합니다.
+
+    **4축 구성:**
+    | 축 | 의미 | 하위 지표 | 범위 |
+    |---|---|---|---|
+    | **Existence** | 실제 존재/출처 신뢰도 | `source_confidence` + `geo_confidence` | 0~100 |
+    | **Quality** | 장소 품질 | `official_cert` + `live_rating` | 0~100 |
+    | **ContextFit** | 이번 캠핑 적합도 | `weather_match` + `persona_match` | 0~100 |
+    | **Logistics** | 접근 편의성 | `distance` | 0~100 |
+
+    **카테고리별 가중치 (W1:Existence, W2:Quality, W3:ContextFit, W4:Logistics):**
+    | 카테고리 | W1 | W2 | W3 | W4 | 설계 의도 |
+    |---|---|---|---|---|---|
+    | HOSPITAL | 0.40 | 0.10 | 0.25 | 0.25 | 존재 확실성 최우선 |
+    | MART | 0.30 | 0.10 | 0.20 | 0.40 | 가까운 곳 우선 |
+    | GAS_STATION | 0.30 | 0.10 | 0.20 | 0.40 | 가까운 곳 우선 |
+    | RESTAURANT | 0.20 | 0.30 | 0.30 | 0.20 | 품질+적합성 균형 |
+    | SPOT | 0.20 | 0.20 | 0.35 | 0.25 | 적합성 최우선 |
+    | FESTIVAL | 0.25 | 0.10 | 0.40 | 0.25 | 적합성 최우선 |
+    | ROUTE_* | 0.20 | 0.20~0.25 | 0.20~0.25 | 0.35 | 동선 접근성 우선 |
+
+    **Risk Penalty (최대 -40점):**
+    - 일요일 포함 일정 + 대형마트(이마트/홈플러스/롯데마트): **-15점**
+    - 설명(description) 5자 미만 (정보 빈약): **-5점**
+    - 미검증 데이터 (MASTER_ENRICHED/NMC_HOSPITAL/SMBA_BAEK 아닌 출처): **-5점**
+
+    **최종 공식:**
+    ```
+    finalScore = round(Existence×W1 + Quality×W2 + ContextFit×W3 + Logistics×W4) - riskPenalty + diversityBonus
+    ```
+    `FactCard.trustScore`에는 하위 호환을 위해 `finalScore`가 채워지며, `scoreBreakdown` 필드에 4축 상세 점수가 함께 저장됩니다.
+
 *   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
-    *   **Day 1 (가는 길)**: 날씨(비/맑음)에 따라 '국물 요리' 혹은 '테라스 카페/실내 명소' 가중치를 부여합니다.
-    *   **Day 2~3 (현지)**: 기온이 낮으면(`isWinterOrCold`) 주유소(등유) 점수를 압도적 1위(`+100`)로 올리고, 아이 동반 시 소아과와 어린이 식당 가중치를 높입니다.
-*   **Step 7. Exception Guard (휴무일 및 장기 숙박 방어)**: 일정 중 대형마트 휴무일(둘째/넷째 일요일)이 포함되거나 7일 이상 체류 시 대형마트 가중치를 깎고(`-40`) 하나로마트 점수를 상향(`+30`)합니다.
+    *   v2 4축 체계에서 **ContextFit 축**의 `weather_match`와 `persona_match`로 반영됩니다.
+    *   **Day 1 (가는 길)**: 비 예보 시 국물 요리/실내 명소의 `weather_match`가 45/50으로 상승, 맑은 날 야외 명소/시원한 메뉴가 40~45로 상승.
+    *   **Day 2~3 (현지)**: 겨울철(`isWinterOrCold`) 주유소는 `weather_match=50`으로 최상위, 아이 동반 시 소아과/어린이 식당의 `persona_match`가 40~45로 상승.
+*   **Step 7. Exception Guard (휴무일 및 장기 숙박 방어)**: v2 체계에서 **Risk Penalty**로 통합. 일요일 포함 + 대형마트일 때 -15점 감점, 하나로마트에는 Diversity Bonus +5점 부여.
 
 ### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
 *   **Step 8. Final Selection & AI Assembly (정예 선별 및 서사 조립)**: 
-    *   **Top 3 선별**: Enrichment가 완료된 데이터 중 카테고리별로 별점/리뷰 가중치가 가장 높은 **Top 3 (1개 메인, 2개 대안)**을 최종 선별합니다.
+    *   **Top 3 선별**: 4축 `finalScore` 기준으로 카테고리별 **Top 3 (1개 메인, 2개 대안)**을 최종 선별합니다.
     *   **AI Narration**: Gemini LLM이 **"별점 4.5점의 검증된 맛집"**과 같이 Phase 12에서 획득한 실시간 평점 지표를 서사의 팩트로 인용하여 감성적인 3문단의 여정 서사를 작성합니다.
 
 ---
 
 ## 🔍 3. 9개 카테고리별 세부 정제 명세 (Data Transformation Spec)
 
-모든 팩트는 코드 내 `trustScore` 비교를 통해 카테고리 내에서 순위(1위~3위)가 결정됩니다.
+모든 팩트는 v2 4축 점수 체계의 `finalScore`(= `trustScore`) 기준으로 카테고리 내 순위(1위~3위)가 결정됩니다. 각 카테고리별 가중치가 다르므로, 같은 원시 데이터라도 카테고리에 따라 최종 점수가 달라집니다.
 
 ### 3.1 국립중앙의료원 병원 / 의원 - `[HOSPITAL]`
 - **기준**: 원래 마트와 합쳐져 있었으나 분리됨. DB의 `api_source`가 `NMC_HOSPITAL` 이거나 매장명에 '병원', '의원', '보건소'가 포함.
-- **점수(Score)**: 영유아 동반 태그 시 이름에 '소아' 및 '아동'이 있으면 `+50` 부여. 
+- **점수(Score)**: 가중치 `[E:0.40, Q:0.10, CF:0.25, L:0.25]`. 존재 확실성(Existence) 최우선. 영유아 동반 시 '소아/아동' 키워드가 `persona_match=45`로 반영.
 
 ### 3.2 일반 점포 및 마트 - `[MART]`
 - **연결 API**: 카카오맵 Local API + 행정안전부_생활_대규모점포 조회서비스
 - **기준**: `HOSPITAL`과 `GAS_STATION`을 제외한 상점. 이마트, 홈플러스, 롯데마트, 하나로마트, 주요 24시 편의점 등.
-- **점수(Score)**: 둘째/넷째 일요일 포함 또는 장기 체류(7일 이상) 시 이마트/홈플러스 `-40` 강등, 하나로마트 `+30` 반영.
+- **점수(Score)**: 가중치 `[E:0.30, Q:0.10, CF:0.20, L:0.40]`. 접근성(Logistics) 최우선. 일요일 포함 시 대형마트 Risk Penalty -15점, 하나로마트 Diversity Bonus +5점.
 
 ### 3.3 우수 식당 (백년가게, 카카오 높은평점) - `[RESTAURANT]`
 - **연결 API**: 카카오맵 Local API + 소상공인시장진흥공단 상가정보 API (백년가게) + 행정안전부_모범음식점정보 조회서비스 + 농림축산부 안심식당
-- **점수(Score)**: 카테고리 분리 없음. 각 일정별(가는 길 Day 1 vs 현지 Day 2/3) 날씨에 따라 '탕/찌개/국밥'(`+30`), '냉면/막국수'(`+20`), 아이동반 시 '돈까스'(`+20`) 동적 가중치 할당.
+- **점수(Score)**: 가중치 `[E:0.20, Q:0.30, CF:0.30, L:0.20]`. 품질(Quality)과 적합성(ContextFit) 균형. 비 날 '탕/찌개/국밥'의 `weather_match=45`, 맑은 날 '막국수/냉면'의 `weather_match=40`, 아이동반 시 '돈까스/어린이'의 `persona_match=40`.
 
 ### 3.4 오피넷 실내등유 취급 주유소 - `[GAS_STATION]`
 - **기준**: DB상 `MART_HOSPITAL`로 조회되나, 메타데이터 혹은 명칭 상의 '주유소', 단어 설명의 '등유'를 기반으로 별개의 `GAS_STATION` 카테고리로 독자 분리.
-- **점수(Score)**: 최저 온도 5도 이하면 압도적으로 `+100` 점수 부여.
+- **점수(Score)**: 가중치 `[E:0.30, Q:0.10, CF:0.20, L:0.40]`. 겨울철(`isWinterOrCold`) 시 `weather_match=50`으로 ContextFit 축이 만점 근접하여 최상위 배치.
 
 ### 3.5 관광 기관 API (현지 명소/관광지) - `[SPOT]`
-- **점수(Score)**: 현지 체류(Day 2/3) 기상에 비가 오면 실내/박물관/미술관 `+30` 추가. 맑으면 수목원/테마파크/휴양림 `+30` 추가. 
+- **점수(Score)**: 가중치 `[E:0.20, Q:0.20, CF:0.35, L:0.25]`. ContextFit 최우선. 비 날 실내/박물관 `weather_match=45`, 맑은 날 수목원/야외 `weather_match=45`. 비 날 야외 명소는 `weather_match=10`으로 자연 감점.
 
 ### 3.6 지역 축제 / 오일장 - `[FESTIVAL]`
 - **점수(Score)**: 캠핑 일정 중 축제 날짜가 겹치면 기본 1순위로 강제 보장하여 지역 로컬리티 확보.
@@ -121,11 +156,11 @@
    - **지오코딩 중복 스킵**: 배치 시작 시 DB의 기존 주소를 메모리에 캐싱하여, 이미 좌표가 있는 주소는 카카오 API를 호출하지 않습니다. 첫 주에만 수만 건 호출, 이후에는 신규분만 호출.
    - **Upsert 패턴**: 이름+주소 기준으로 중복 판단하여 기존 데이터는 스킵, 신규 데이터만 삽입합니다.
    - **Throttling**: 관공서 서버 부하를 방지하기 위해 각 페이지 호출 사이에 0.5~1초의 의도적 지연을 삽입합니다.
-3. **신뢰 지표(Trust Score) 계층 구조**:
-   - `80점~90점`: 백년가게, 안심식당, 모범음식점 (공공기관 공식 인증)
-   - `50점~70점`: 한국관광공사 등록 명소, 대규모 점포 정보
-   - `30점~40점`: 일반 상권 정보 및 기타 크롤링 잠정 데이터
-   - 이 점수는 Phase 11 선별 시 1순위 정렬 기준으로 사용되어, 광고성 업체가 아닌 **'국가가 보증한 장소'**를 최상단에 배치합니다.
+3. **출처 신뢰 계층 (Existence Score의 source_confidence 기반)**:
+   - `55~60점`: 백년가게(SMBA_BAEK), 안심식당(SAFE_RESTAURANT), 병원(NMC_HOSPITAL), 오피넷(OPINET), 카카오 검증(MASTER_ENRICHED)
+   - `45~50점`: 한국관광공사 등록 명소(TOUR_SPOT/TOUR_CAFE), 모범음식점(MOIS_GOOD_RESTAURANT)
+   - `30~40점`: 일반 상권 정보(LARGE_STORE) 및 기타 데이터
+   - 이 점수는 v2 4축 체계의 **Existence 축**에 반영되며, 카테고리별 가중치와 결합해 `finalScore`를 결정합니다. 공공기관 인증 장소가 자연스럽게 상위에 배치됩니다.
 4. **공간 인덱싱 (GIST Index)**:
    - 위경도 좌표를 PostGIS의 `geometry(Point, 4326)` 타입으로 변환 저장하여, 반경 20km 검색 시 수십만 건의 레코드 중에서도 10ms 이내에 결과를 반환합니다.
 

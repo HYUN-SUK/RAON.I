@@ -19,7 +19,15 @@ export interface FactCard {
     category: 'ROUTE_CAFE' | 'ROUTE_RESTAURANT' | 'ROUTE_SPOT' | 'HOSPITAL' | 'MART' | 'RESTAURANT' | 'GAS_STATION' | 'SPOT' | 'FESTIVAL';
     name: string;
     description: string;
-    trustScore: number;
+    trustScore: number; // 하위 호환: finalScore로 채워짐
+    scoreBreakdown?: {
+        existence: number;    // 0~100: 출처 신뢰도 + 좌표 신뢰도
+        quality: number;      // 0~100: 공공 인증 + 실시간 평점
+        contextFit: number;   // 0~100: 날씨 적합 + 페르소나 적합
+        logistics: number;    // 0~100: 거리 접근성
+        riskPenalty: number;  // 0~40: 리스크 감점
+        finalScore: number;   // 가중합 - 페널티
+    };
     distanceKm?: number;
     metadata: Record<string, any>;
     provenance: {
@@ -29,6 +37,126 @@ export interface FactCard {
 }
 
 import { createClient } from '@supabase/supabase-js';
+
+// ========================================================================================
+// v2 4축 점수 체계 (Existence / Quality / ContextFit / Logistics + Risk Penalty)
+// ========================================================================================
+
+// 카테고리별 가중치: [Existence, Quality, ContextFit, Logistics]
+const CATEGORY_WEIGHTS: Record<string, [number, number, number, number]> = {
+    HOSPITAL: [0.40, 0.10, 0.25, 0.25],
+    MART: [0.30, 0.10, 0.20, 0.40],
+    GAS_STATION: [0.30, 0.10, 0.20, 0.40],
+    RESTAURANT: [0.20, 0.30, 0.30, 0.20],
+    SPOT: [0.20, 0.20, 0.35, 0.25],
+    FESTIVAL: [0.25, 0.10, 0.40, 0.25],
+    ROUTE_RESTAURANT: [0.20, 0.25, 0.20, 0.35],
+    ROUTE_CAFE: [0.20, 0.20, 0.25, 0.35],
+    ROUTE_SPOT: [0.20, 0.20, 0.25, 0.35],
+};
+
+function calcExistence(f: FactCard): number {
+    // source_confidence (0~60)
+    let src = 30;
+    const s = f.provenance.sourceName;
+    if (s === 'NMC_HOSPITAL' || s === 'SMBA_BAEK' || s === 'SAFE_RESTAURANT') src = 55;
+    if (s === 'MOIS_GOOD_RESTAURANT') src = 50;
+    if (s === 'TOUR_SPOT' || s === 'TOUR_CAFE') src = 45;
+    if (s === 'OPINET') src = 55;
+    if (s === 'MASTER_ENRICHED') src = 60;
+    if (s === 'LARGE_STORE') src = 40;
+
+    // geo_confidence (0~40)
+    const geo = (f.distanceKm !== undefined && f.distanceKm > 0) ? 35 : 15;
+
+    return Math.min(100, src + geo);
+}
+
+function calcQuality(f: FactCard): number {
+    // official_cert (0~50)
+    let cert = 10;
+    const s = f.provenance.sourceName;
+    if (s === 'SMBA_BAEK') cert = 45;
+    if (s === 'SAFE_RESTAURANT' || s === 'MOIS_GOOD_RESTAURANT') cert = 35;
+    if (s === 'NMC_HOSPITAL') cert = 30;
+    if (s === 'OPINET') cert = 40;
+    if (s === 'TOUR_SPOT' || s === 'TOUR_CAFE') cert = 25;
+
+    // live_rating (0~50): 카카오 검증된 데이터는 높은 점수
+    let live = 15;
+    if (s === 'MASTER_ENRICHED') live = 40;
+
+    return Math.min(100, cert + live);
+}
+
+function calcContextFit(
+    f: FactCard, weather: string, isWinter: boolean, hasKids: boolean
+): number {
+    // weather_match (0~50)
+    let wm = 25;
+    if (weather.includes('비')) {
+        if (f.name.match(/탕|찌개|칼국수|국밥|전골/)) wm = 45;
+        if (f.name.match(/박물관|실내|미술관/)) wm = 45;
+        if (f.category === 'SPOT' && !f.name.match(/박물관|실내|미술관/)) wm = 10; // 비 날 야외 명소 감점
+    }
+    if (weather.includes('맑음')) {
+        if (f.name.match(/막국수|냉면|구이/)) wm = 40;
+        if (f.name.match(/수목원|둘레길|계곡|야외/)) wm = 45;
+    }
+    if (isWinter && f.category === 'GAS_STATION') wm = 50;
+
+    // persona_match (0~50)
+    let pm = 25;
+    if (hasKids) {
+        if (f.category === 'HOSPITAL' && f.name.match(/소아|아동/)) pm = 45;
+        if (f.category === 'RESTAURANT' && f.name.match(/돈까스|어린이/)) pm = 40;
+    }
+
+    return Math.min(100, wm + pm);
+}
+
+function calcLogistics(f: FactCard, maxDistanceKm: number): number {
+    if (!f.distanceKm || maxDistanceKm === 0) return 50;
+    const ratio = f.distanceKm / maxDistanceKm;
+    return Math.max(0, Math.round(100 * (1 - ratio)));
+}
+
+function calcRiskPenalty(f: FactCard, isSundayIncluded: boolean): number {
+    let penalty = 0;
+    // 일요일 대형마트 휴무 위험
+    if (isSundayIncluded && f.category === 'MART'
+        && f.name.match(/이마트|홈플러스|롯데마트/)) penalty += 15;
+    // 정보 빈약
+    if (!f.description || f.description.length < 5) penalty += 5;
+    // 미검증 데이터 (카카오 or 공공 직접 확인 아닌 것)
+    if (f.provenance.sourceName !== 'MASTER_ENRICHED'
+        && f.provenance.sourceName !== 'NMC_HOSPITAL'
+        && f.provenance.sourceName !== 'SMBA_BAEK') penalty += 5;
+    return Math.min(40, penalty);
+}
+
+function computeFinalScore(
+    f: FactCard, weather: string, isWinter: boolean,
+    hasKids: boolean, isSunday: boolean, maxDistKm: number
+): FactCard {
+    const existence = calcExistence(f);
+    const quality = calcQuality(f);
+    const contextFit = calcContextFit(f, weather, isWinter, hasKids);
+    const logistics = calcLogistics(f, maxDistKm);
+    const riskPenalty = calcRiskPenalty(f, isSunday);
+
+    const w = CATEGORY_WEIGHTS[f.category] || [0.25, 0.25, 0.25, 0.25];
+    const raw = existence * w[0] + quality * w[1] + contextFit * w[2] + logistics * w[3];
+    const finalScore = Math.max(0, Math.round(raw - riskPenalty));
+
+    // 일요일 하나로마트 Diversity Bonus (+5)
+    let bonus = 0;
+    if (isSunday && f.category === 'MART' && f.name.includes('하나로마트')) bonus = 5;
+
+    f.scoreBreakdown = { existence, quality, contextFit, logistics, riskPenalty, finalScore: finalScore + bonus };
+    f.trustScore = finalScore + bonus; // 하위 호환
+    return f;
+}
 
 async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactCard[]> {
     try {
@@ -212,83 +340,53 @@ export async function generateSmartPlan(
         }).filter(f => f.category === 'ROUTE_RESTAURANT' || f.category === 'ROUTE_CAFE' || f.category === 'ROUTE_SPOT');
     }
 
-    // 4. Fill Track B (Day 1 logic)
+    // === v2 4축 점수 체계 컨텍스트 ===
+    const hasKids = !!(context.guestDetails?.kids && (context.guestDetails.kids.preschool > 0 || context.guestDetails.kids.elementary > 0));
+    const isSundayIncluded = startDate.getDay() === 0 || endDate.getDay() === 0 || tripDays >= 7;
+
+    // 4. Fill Track B (Day 1 - 가는 길) — v2 4축 점수 적용
     const routeFacts: FactCard[] = [];
+    const routeMaxDist = Math.max(...journeyCandidates.map(f => f.distanceKm || 0), 1);
+
     ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
         let catFacts = journeyCandidates.filter(f => f.category === cat);
 
-        if (day1Weather.includes('비')) {
-            if (cat === 'ROUTE_RESTAURANT') {
-                catFacts.forEach(f => { if (f.name.includes('탕') || f.name.includes('찌개') || f.name.includes('칼국수') || f.name.includes('국밥')) f.trustScore += 40; });
-            }
-            if (cat === 'ROUTE_SPOT') {
-                catFacts.forEach(f => { if (f.name.includes('박물관') || f.name.includes('실내') || f.name.includes('미술관')) f.trustScore += 40; });
-            }
-        }
+        // v2: 4축 점수 계산 (Day1 날씨 기준)
+        catFacts = catFacts.map(f => computeFinalScore(
+            f, day1Weather, isWinterOrCold, hasKids, isSundayIncluded, routeMaxDist
+        ));
 
         if (catFacts.length > 0) {
             const sorted = catFacts.sort((a, b) => b.trustScore - a.trustScore);
-            routeFacts.push(sorted[0]); // Pick top 1 from each Route Category
+            routeFacts.push(sorted[0]);
         }
     });
 
-    // 5. Fill Track A (Day 2/3 logic)
+    // 5. Fill Track A (Day 2/3 - 현지) — v2 4축 점수 적용
     const activeFacts: FactCard[] = [];
     const alternatives: Record<string, FactCard[]> = {};
     const destCategories: FactCard['category'][] = ['HOSPITAL', 'MART', 'RESTAURANT', 'GAS_STATION', 'SPOT', 'FESTIVAL'];
+    const destMaxDist = Math.max(...destCandidates.map(f => f.distanceKm || 0), 1);
+
+    // Day 2/3 날씨 합산 (둘 중 하나라도 비/맑음이면 적용)
+    const destWeather = [day2Weather, day3Weather].find(w => w.includes('비'))
+        || [day2Weather, day3Weather].find(w => w.includes('맑음'))
+        || '중립';
 
     destCategories.forEach(cat => {
         let catFacts = destCandidates.filter(f => f.category === cat);
 
-        // Day 2/3 Weather Logic
-        const destWeatherHasRain = day2Weather.includes('비') || day3Weather.includes('비');
-        const destWeatherIsClear = day2Weather.includes('맑음') || day3Weather.includes('맑음');
-
-        if (destWeatherHasRain) {
-            if (cat === 'RESTAURANT') {
-                catFacts.forEach(f => { if (f.name.includes('전골') || f.name.includes('찌개') || f.name.includes('국밥')) f.trustScore += 30; });
-            }
-            if (cat === 'SPOT') {
-                catFacts.forEach(f => { if (f.name.includes('박물관') || f.name.includes('실내') || f.name.includes('미술관')) f.trustScore += 30; });
-            }
-        }
-        if (destWeatherIsClear) {
-            if (cat === 'RESTAURANT') {
-                catFacts.forEach(f => { if (f.name.includes('막국수') || f.name.includes('냉면') || f.name.includes('구이')) f.trustScore += 20; });
-            }
-            if (cat === 'SPOT') {
-                catFacts.forEach(f => { if (f.name.includes('수목원') || f.name.includes('둘레길') || f.name.includes('계곡') || f.name.includes('야외')) f.trustScore += 30; });
-            }
-        }
-
-        if (isWinterOrCold && cat === 'GAS_STATION') {
-            catFacts.forEach(f => { if (f.name.includes('주유소') || f.description?.includes('등유')) f.trustScore += 100; });
-        }
-
-        if (context.guestDetails?.kids && (context.guestDetails.kids.preschool > 0 || context.guestDetails.kids.elementary > 0)) {
-            if (cat === 'HOSPITAL') {
-                catFacts.forEach(f => { if (f.name.includes('소아') || f.name.includes('아동')) f.trustScore += 50; });
-            }
-            if (cat === 'RESTAURANT') {
-                catFacts.forEach(f => { if (f.name.includes('돈까스') || f.name.includes('어린이')) f.trustScore += 20; });
-            }
-        }
-
-        // Sunday / Long trip defense
-        const isSundayIncluded = startDate.getDay() === 0 || endDate.getDay() === 0 || tripDays >= 7;
-        if (isSundayIncluded && cat === 'MART') {
-            catFacts.forEach(f => {
-                if (f.name.includes('이마트') || f.name.includes('홈플러스') || f.name.includes('롯데마트')) f.trustScore -= 40;
-                if (f.name.includes('하나로마트')) f.trustScore += 30;
-            });
-        }
+        // v2: 4축 점수 계산 (Day2/3 날씨 기준)
+        catFacts = catFacts.map(f => computeFinalScore(
+            f, destWeather, isWinterOrCold, hasKids, isSundayIncluded, destMaxDist
+        ));
 
         const sorted = catFacts.sort((a, b) => b.trustScore - a.trustScore);
         const unique = Array.from(new Set(sorted.map(s => s.id))).map(id => sorted.find(s => s.id === id)!);
 
         if (unique.length > 0) {
             activeFacts.push(unique[0]);
-            alternatives[cat] = unique.slice(1, 3); // next 2 per category (Total 12 alternatives)
+            alternatives[cat] = unique.slice(1, 3);
         }
     });
 
