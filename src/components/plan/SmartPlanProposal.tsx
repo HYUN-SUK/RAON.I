@@ -226,20 +226,44 @@ export default function SmartPlanProposal({
 
                     {/* Info */}
                     <div className="flex-1 min-w-0 pr-2">
-                        <div className="text-[10px] font-bold text-[#224732] mb-0.5">
-                            {CATEGORY_NAMES[card.category] || '추천 장소'}
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-[10px] font-bold text-[#224732] px-1.5 py-0.5 bg-[#224732]/5 rounded-sm">
+                                {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
+                            </span>
+                            {card.verificationStatus === 'confirmed' && (
+                                <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm">
+                                    <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
+                                    검증됨
+                                </span>
+                            )}
                         </div>
                         <h4 className="font-bold text-gray-900 text-[15px] truncate">{card.name}</h4>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1 leading-relaxed">
                             {card.description}
                         </p>
 
-                        <div className="flex items-center space-x-2 text-[10px] text-gray-400 mt-2">
-                            <span className="flex items-center text-[#224732]/70 font-medium bg-[#224732]/5 px-1.5 py-0.5 rounded-sm">
-                                <ShieldCheck className="w-3 h-3 mr-1" />
-                                추천도 {card.trustScore}%
-                            </span>
-                            {card.distanceKm && <span>{card.distanceKm}km 거리</span>}
+                        {/* Fact Chips (v2 Phase 2) */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            {card.evidence?.stars !== undefined && card.evidence.stars > 0 && (
+                                <span className="text-[10px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold border border-yellow-100/50">
+                                    ⭐ {card.evidence.stars.toFixed(1)}
+                                </span>
+                            )}
+                            {card.evidence?.reviews !== undefined && card.evidence.reviews > 0 && (
+                                <span className="text-[10px] bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded-md font-medium border border-gray-100">
+                                    💬 리뷰 {card.evidence.reviews >= 100 ? '100+' : card.evidence.reviews}
+                                </span>
+                            )}
+                            {card.evidence?.certifications.map((cert, idx) => (
+                                <span key={idx} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold border border-blue-100/50">
+                                    인증: {cert}
+                                </span>
+                            ))}
+                            {!card.evidence?.stars && !card.evidence?.certifications.length && card.distanceKm && (
+                                <span className="text-[10px] text-gray-400 font-medium">
+                                    📍 {card.distanceKm}km 거리
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -359,12 +383,25 @@ export default function SmartPlanProposal({
                                                 {opt.metadata?.isTakeout && <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-sm">포장특화</span>}
                                                 {opt.metadata?.hasNightView && <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-sm">야경명소</span>}
                                             </div>
-                                            <p className="text-xs text-gray-600 leading-snug">
+                                            <p className="text-xs text-gray-600 leading-snug line-clamp-1">
                                                 {opt.description}
                                             </p>
-                                            <div className="text-[10px] text-gray-400 mt-2 flex justify-between items-center">
-                                                <span>출처: {opt.provenance.sourceName}</span>
-                                                <span className="font-medium text-[#224732]/70">추천도 {opt.trustScore}</span>
+
+                                            {/* Fact Chips in Bottom Sheet */}
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                {opt.evidence?.stars && (
+                                                    <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold">
+                                                        ⭐ {opt.evidence.stars.toFixed(1)}
+                                                    </span>
+                                                )}
+                                                {opt.evidence?.certifications.map((c, i) => (
+                                                    <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">
+                                                        {c}
+                                                    </span>
+                                                ))}
+                                                <span className="text-[9px] text-gray-400 ml-auto">
+                                                    추천도 {opt.trustScore}
+                                                </span>
                                             </div>
                                         </div>
                                         {!isCurrentActive && (

@@ -28,6 +28,14 @@ export interface FactCard {
         riskPenalty: number;  // 0~40: 리스크 감점
         finalScore: number;   // 가중합 - 페널티
     };
+    verificationStatus?: 'confirmed' | 'unverified';
+    roleName?: string;       // 여정 내 역할명 (예: "가는 길 점심")
+    evidence?: {
+        stars?: number;
+        reviews?: number;
+        certifications: string[];
+        verifiedAt?: string;
+    };
     distanceKm?: number;
     metadata: Record<string, any>;
     provenance: {
@@ -154,7 +162,41 @@ function computeFinalScore(
     if (isSunday && f.category === 'MART' && f.name.includes('하나로마트')) bonus = 5;
 
     f.scoreBreakdown = { existence, quality, contextFit, logistics, riskPenalty, finalScore: finalScore + bonus };
-    f.trustScore = finalScore + bonus; // 하위 호환
+    f.trustScore = finalScore + bonus;
+
+    // --- v2 Phase 2: Evidence & Verification ---
+    const s = f.provenance.sourceName;
+    f.verificationStatus = (s === 'MASTER_ENRICHED' || s === 'NMC_HOSPITAL' || s === 'SMBA_BAEK' || s === 'SAFE_RESTAURANT')
+        ? 'confirmed' : 'unverified';
+
+    const evidence: FactCard['evidence'] = { certifications: [] };
+    if (s === 'SMBA_BAEK') evidence.certifications.push('중기부 백년가게');
+    if (s === 'SAFE_RESTAURANT') evidence.certifications.push('농식품부 안심식당');
+    if (s === 'MOIS_GOOD_RESTAURANT') evidence.certifications.push('행안부 모범음식점');
+    if (s === 'NMC_HOSPITAL') evidence.certifications.push('응급의료기관');
+
+    // Kakao Scraping Data 추출
+    const scraping = f.metadata?.raw_data?.scraping;
+    if (scraping && scraping.success) {
+        evidence.stars = scraping.rating;
+        evidence.reviews = scraping.reviewCount;
+    }
+    f.evidence = evidence;
+
+    // Role Name Mapping
+    const ROLE_MAP: Record<string, string> = {
+        'ROUTE_RESTAURANT': '가는 길 식사',
+        'ROUTE_CAFE': '여정의 쉼표',
+        'ROUTE_SPOT': '기분 전환 명소',
+        'HOSPITAL': '안전 가디언',
+        'MART': '든든한 보급소',
+        'GAS_STATION': '따뜻한 온도(등유)',
+        'RESTAURANT': '캠핑장 맛집',
+        'SPOT': '현지 명소',
+        'FESTIVAL': '로컬 축제'
+    };
+    f.roleName = ROLE_MAP[f.category] || '추천 장소';
+
     return f;
 }
 
@@ -417,11 +459,13 @@ ${activeFacts.map(f => {
 [Context 3: 오는 길 추천]
 (위 가는 길 추천 중 선택하지 못한 대안이나 가벼운 명소를 귀갓길 컨텍스트로 따뜻하게 제안해주세요. 특히 별점이 높고 검증된 장소가 있다면 그 이유를 강조하세요. 맑은 날씨라면 뷰 좋은 카페를 추천해도 좋습니다.)
 
-[작성 지침]
+[작성 지침 (엄격 준수)]
 1. 장소 이름 언급 시 무조건 ||ID|이름|| 규격을 지켜주세요.
-2. 각 날짜별 날씨의 차이와 팩트 데이터의 '별점', '리뷰' 정보를 적극 인용하여 "이곳은 평점이 4.5점으로 아주 높아요" 같은 구체적인 신뢰감을 제공하세요.
-3. 길지 않은 3문단의 수필 형식으로 작성하세요.
-4. 만약 추천 장소에 병원(HOSPITAL) 정보가 포함되지 않았다면, 응급 상황 발생 시 119 구급대를 이용하거나 가장 가까운 시내 의료기관으로 이동하도록 따뜻하게 안내를 포함해주세요.
+2. 팩트 데이터의 '별점', '리뷰' 정보를 적극 인용하여 "이곳은 평점이 4.5점으로 아주 높아요" 같은 구체적인 신뢰감을 제공하세요.
+3. [금지 규칙] 영업시간, 메뉴 가격, 실시간 잔여석 정보는 데이터에 명시되지 않았다면 절대로 임의로 지어내지 마세요.
+4. [톤 가이드] 휴무 위험 등 리스크 언급 시 "방문 전 전화를 통해 운영 여부를 한 번 더 확인하시면 더 완벽한 여정이 될 거예요"와 같이 부드러운 권유형을 사용하세요.
+5. 길지 않은 3문단의 수필 형식으로 작성하세요.
+6. 만약 추천 장소에 병원(HOSPITAL) 정보가 포함되지 않았다면, 응급 상황 발생 시 119 구급대를 이용하거나 가장 가까운 시내 의료기관으로 이동하도록 따뜻하게 안내를 포함해주세요.
 `.trim();
 
         const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
