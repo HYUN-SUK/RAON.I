@@ -246,10 +246,10 @@ export async function POST(request: Request) {
             while (hasMore && pageNo <= 30) {
                 try {
                     // Typical MOIS Good Restaurant open API format from data.go.kr
-                    const res = await fetch(`http://apis.data.go.kr/B552061/goodRestaurant/getGoodRestaurantList?serviceKey=${publicApiKey}&pageNo=${pageNo}&numOfRows=100&type=json`, fetchOptions);
+                    const res = await fetch(`http://apis.data.go.kr/1741000/excellent_restaurant_info/info?serviceKey=${publicApiKey}&pageNo=${pageNo}&numOfRows=100&returnType=json`, fetchOptions);
                     const data = await res.json();
-                    if (data.body?.items?.item) {
-                        const items = Array.isArray(data.body.items.item) ? data.body.items.item : [data.body.items.item];
+                    if (data.response?.body?.items?.item) {
+                        const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
                         if (items.length === 0) { hasMore = false; break; }
 
                         const chunk = [];
