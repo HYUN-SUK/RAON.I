@@ -69,6 +69,19 @@ const CATEGORY_WEIGHTS: Record<string, [number, number, number, number]> = {
     ROUTE_SPOT: [0.20, 0.20, 0.25, 0.35],
 };
 
+// v2.1: 카테고리별 1차 후보 상한 (도시 근처에서 식당이 전체를 독점하는 것을 방지)
+const CATEGORY_SHORTLIST_CAP: Record<string, number> = {
+    HOSPITAL: 20,
+    MART: 20,
+    GAS_STATION: 15,
+    RESTAURANT: 40,
+    SPOT: 20,
+    FESTIVAL: 10,
+    ROUTE_RESTAURANT: 20,
+    ROUTE_CAFE: 20,
+    ROUTE_SPOT: 20,
+};
+
 function calcExistence(f: FactCard): number {
     // source_confidence (0~60)
     let src = 30;
@@ -471,6 +484,12 @@ export async function generateSmartPlan(
 
     destCategories.forEach(cat => {
         let catFacts = destCandidates.filter(f => f.category === cat);
+
+        // v2.1: 카테고리별 상한 적용 (trust_score 기준 정렬 후 cap)
+        const cap = CATEGORY_SHORTLIST_CAP[cat] || 20;
+        if (catFacts.length > cap) {
+            catFacts = catFacts.sort((a, b) => b.trustScore - a.trustScore).slice(0, cap);
+        }
 
         // v2.1: 4축 점수 계산 (Day2/3 날씨 기준)
         catFacts = catFacts.map(f => computeFinalScore(

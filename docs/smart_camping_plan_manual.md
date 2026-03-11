@@ -28,7 +28,15 @@
 *   **Step 3. Phase 11: Hybrid Master DB Scan (Track A - 현지 팩트)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등은 Supabase 내부 `master_places`에서 PostGIS로 고속 선별합니다. 
     *   **병원/축제 예외**: `HOSPITAL` 및 `FESTIVAL` 카테고리는 공공 API의 실시간성이 중요하므로, Phase 11 마스터 DB가 아닌 **Phase 10 동적 권역 파이프라인**을 통해 예약 3일 전(D-3) 실시간 수집된 `smart_plan_facts`에서 가져옵니다.
     *   **기술 사양**: `GIST` 인덱스가 적용된 공간 쿼리를 통해 **10ms 이하**의 검색 속도를 보장합니다.
-    *   **1차 선별 로직 (v2.1 개선)**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여합니다. **v2.1부터 1차 후보군은 `limit_count: 200`으로 넉넉히 회수**하며, 이 단계의 목적은 최종 선별이 아니라 **누락 방지형 후보 확보(recall)**입니다. 이후 Step 5.5의 v2 4축 점수 계산을 거쳐 최종 Top 3를 선별합니다.
+    *   **1차 선별 로직 (v2.1 개선)**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여합니다. **v2.1부터 1차 후보군은 `limit_count: 200`으로 넉넉히 회수**하며, 이 단계의 목적은 최종 선별이 아니라 **누락 방지형 후보 확보(recall)**입니다.
+        - **카테고리별 Shortlist Cap**: 도시 근처 캠핑장에서 식당이 전체 후보를 독점하는 것을 방지하기 위해, RPC 호출 후 JS 레벨에서 카테고리별 상한을 적용합니다:
+          | 카테고리 | 상한 | 카테고리 | 상한 |
+          |---------|------|---------|------|
+          | RESTAURANT | 40 | HOSPITAL | 20 |
+          | MART | 20 | GAS_STATION | 15 |
+          | SPOT | 20 | FESTIVAL | 10 |
+          | ROUTE_* | 각 20 | | |
+        - 이후 Step 5.5의 v2 4축 점수 계산을 거쳐 최종 Top 3를 선별합니다.
 *   **Step 4. Phase 12: Real-time Verification (Track B - 가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페], [명소]를 조회합니다. 
     *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com`의 비공개 JSON 엔드포인트(`/places/panel3/`, `/places/reviews/kakaomap/meta/`)를 직접 호출하여 별점/리뷰 수를 JSON 형태로 추출합니다. (**cheerio HTML 파싱이 아닌 JSON API 직접 호출 방식**)
     *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
