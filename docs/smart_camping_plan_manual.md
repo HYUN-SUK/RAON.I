@@ -28,11 +28,14 @@
 *   **Step 3. Phase 11: Hybrid Master DB Scan (Track A - 현지 팩트)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등은 Supabase 내부 `master_places`에서 PostGIS로 고속 선별합니다. 
     *   **병원/축제 예외**: `HOSPITAL` 및 `FESTIVAL` 카테고리는 공공 API의 실시간성이 중요하므로, Phase 11 마스터 DB가 아닌 **Phase 10 동적 권역 파이프라인**을 통해 예약 3일 전(D-3) 실시간 수집된 `smart_plan_facts`에서 가져옵니다.
     *   **기술 사양**: `GIST` 인덱스가 적용된 공간 쿼리를 통해 **10ms 이하**의 검색 속도를 보장합니다.
-    *   **1차 선별 로직**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여해 **상위 20개** 후보군을 우선 선별합니다. 정렬 기준은 **1순위 `trust_score` 내림차순**, **2순위 `distance` 오름차순**입니다.
+    *   **1차 선별 로직 (v2.1 개선)**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여합니다. **v2.1부터 1차 후보군은 `limit_count: 200`으로 넉넉히 회수**하며, 이 단계의 목적은 최종 선별이 아니라 **누락 방지형 후보 확보(recall)**입니다. 이후 Step 5.5의 v2 4축 점수 계산을 거쳐 최종 Top 3를 선별합니다.
 *   **Step 4. Phase 12: Real-time Verification (Track B - 가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페], [명소]를 조회합니다. 
     *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com`의 비공개 JSON 엔드포인트(`/places/panel3/`, `/places/reviews/kakaomap/meta/`)를 직접 호출하여 별점/리뷰 수를 JSON 형태로 추출합니다. (**cheerio HTML 파싱이 아닌 JSON API 직접 호출 방식**)
     *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
-    *   **2차 정제**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득, 검증된 데이터만 `smart_plan_facts`에 저장합니다.
+    *   **2차 정제 (v2.1 Fail-soft 정책)**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득합니다. **실시간 검증 성공 여부와 관계없이 후보 자체는 유지**하며, 검증 결과는 `FactCard.evidence`와 `verificationStatus`에 기록합니다.
+        - 검증 성공: `verificationStatus = VERIFIED`, `api_source = MASTER_ENRICHED`
+        - 카카오 매칭 실패/스크래핑 에러: `verificationStatus = UNVERIFIED`, 원본 `api_source` 유지
+        - 즉, **실시간 검증 실패가 후보 탈락으로 직접 이어지지 않습니다.** 실시간 검증은 추천 품질 상승용 보강 단계로 취급합니다.
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
 *   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`(현지 6종) 및 `ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`(경로 3종)의 **총 9개 카테고리**로 엄격히 분류합니다. 
@@ -59,16 +62,35 @@
     | FESTIVAL | 0.25 | 0.10 | 0.40 | 0.25 | 적합성 최우선 |
     | ROUTE_* | 0.20 | 0.20~0.25 | 0.20~0.25 | 0.35 | 동선 접근성 우선 |
 
-    **Risk Penalty (최대 -40점):**
-    - 일요일 포함 일정 + 대형마트(이마트/홈플러스/롯데마트): **-15점**
-    - 설명(description) 5자 미만 (정보 빈약): **-5점**
-    - 미검증 데이터 (MASTER_ENRICHED/NMC_HOSPITAL/SMBA_BAEK 아닌 출처): **-5점**
+    **Risk Penalty (v2.1 세분화, 최대 -40점):**
+    | 조건 | 감점 | 비고 |
+    |------|------|------|
+    | 일요일 포함 일정 + 대형마트(이마트/홈플러스/롯데마트) | **-15** | `SUNDAY_BIG_MART` |
+    | 공공 인증 출처이나 실시간 미검증 (OPINET, MOIS, TOUR_* 등) | **-2** | `SEMI_PUBLIC_UNVERIFIED` |
+    | 일반 출처 + 미검증 (LARGE_STORE, 기타) | **-5** | `UNVERIFIED` |
+    | 필수 필드 2개 이상 누락 (이름/좌표/카테고리/출처) | **-5** | `MISSING_FIELDS` |
+    | 필수 필드 3개 이상 누락 | **-10** | `SEVERE_MISSING_FIELDS` |
+    | 설명 없음 또는 매우 빈약 (3자 미만) | **-2** | `WEAK_DESC` |
+
+    감점 사유는 `FactCard.riskFlags` 배열에 기록되어 AI 서사 작성 시 부드러운 권유형 문장 변환에 활용됩니다.
 
     **최종 공식:**
     ```
     finalScore = round(Existence×W1 + Quality×W2 + ContextFit×W3 + Logistics×W4) - riskPenalty + diversityBonus
     ```
     `FactCard.trustScore`에는 하위 호환을 위해 `finalScore`가 채워지며, `scoreBreakdown` 필드에 4축 상세 점수가 함께 저장됩니다.
+    - **v2.1 Evidence Extractor**: `FactCard.evidence` 필드에 별점(`stars`), 리뷰 수(`reviews`), 공공 인증 항목(`badges`), 출처 라벨(`sourceLabel`), 검증 시각(`verifiedAt`), 개별 `verificationStatus`를 구조화하여 저장합니다.
+    - **v2.1 Quality.live_rating 별점 세분화**: `calcQuality()`의 `live_rating` 하위지표가 출처 기반 일괄 점수에서 **실제 별점 기반 세분화**로 개선되었습니다:
+      | 별점 | live_rating 점수 |
+      |------|------------------|
+      | 4.5 이상 | 50 |
+      | 4.2 ~ 4.49 | 40 |
+      | 4.0 ~ 4.19 | 30 |
+      | 3.8 ~ 3.99 | 20 |
+      | 확인 불가 | 10 |
+      | 데이터 없음 | 0 |
+      - `MASTER_ENRICHED` 출처이나 별점 파싱 실패 시 기존값(40) 유지 (하위 호환).
+    - **v2.1 FactCard 확장 필드**: `riskFlags` (감점 사유 배열), `selectionTier` (`PRIMARY`/`ALTERNATIVE`/`FEATURED`/`HIDDEN`), `evidence.badges` (배지 배열), `evidence.sourceLabel` (출처 라벨)이 추가되었습니다.
 
 *   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
     *   v2 4축 체계에서 **ContextFit 축**의 `weather_match`와 `persona_match`로 반영됩니다.
@@ -78,8 +100,13 @@
 
 ### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
 *   **Step 8. Final Selection & AI Assembly (정예 선별 및 서사 조립)**: 
-    *   **Top 3 선별**: 4축 `finalScore` 기준으로 카테고리별 **Top 3 (1개 메인, 2개 대안)**을 최종 선별합니다.
-    *   **AI Narration**: Gemini LLM이 **"별점 4.5점의 검증된 맛집"**과 같이 Phase 12에서 획득한 실시간 평점 지표를 서사의 팩트로 인용하여 감성적인 3문단의 여정 서사를 작성합니다.
+    *   **Top 3 선별**: 4축 `finalScore` 기준으로 카테고리별 **Top 3 (1개 메인 `PRIMARY`, 2개 대안 `ALTERNATIVE`)**을 최종 선별합니다.
+    *   **v2.1 FESTIVAL featured 슬롯 분리**: FESTIVAL은 일반 카테고리 경쟁 랭킹과 별도로 **`FEATURED` 슬롯**으로 우선 배치됩니다. 즉, FESTIVAL은 RESTAURANT/MART/SPOT과 같은 일반 Top 3 경쟁군이 아니라, 지역성 강조용 별도 추천 카드(`featuredFestival`)로 노출됩니다.
+    *   **AI Narration (v2.1 강화)**: Gemini LLM에 전달하는 프롬프트에 **`evidence` 기반 정보(별점, 리뷰 수, 배지, 검증상태)를 직접 포함**하여 AI가 더 정확한 팩트를 인용한 감성적 3문단 여정 서사를 작성합니다.
+    *   **AI Guardrails (환각 방지)**: 데이터에 존재하지 않는 **영업시간, 메뉴 가격, 실시간 잔여석** 정보를 임의로 지어내지 않도록 엄격한 프롬프트 지침을 준수합니다.
+    *   **v2.1 verificationStatus 규칙**: `VERIFIED` 장소만 "검증된" 표현을 사용하며, `UNVERIFIED` 장소는 "방문 전 확인 권장" 수준으로만 표현합니다.
+    *   **Tone Guide**: 휴무 위험 등 리스크 언급 시 "방문 전 확인 권장"과 같은 따뜻한 권유형 문장을 사용하며, 장소 이름 언급 시 `||ID|이름||` 규격을 엄수합니다. **서사는 사용자의 편안함과 동선 부담 감소를 먼저 말합니다.**
+    *   **Emergency Guide**: 추천 리스트에 병원이 포함되지 않은 경우, 119 이용 및 시내 이동 안내를 서사에 자동 포함합니다.
 
 ---
 
@@ -113,11 +140,17 @@
 - **점수(Score)**: 가중치 `[E:0.20, Q:0.20, CF:0.35, L:0.25]`. ContextFit 최우선. 비 날 실내/박물관 `weather_match=45`, 맑은 날 수목원/야외 `weather_match=45`. 비 날 야외 명소는 `weather_match=10`으로 자연 감점.
 
 ### 3.6 지역 축제 / 오일장 - `[FESTIVAL]`
-- **점수(Score)**: 캠핑 일정 중 축제 날짜가 겹치면 기본 1순위로 강제 보장하여 지역 로컬리티 확보.
+- **점수(Score)**: 가중치 `[E:0.25, Q:0.10, CF:0.40, L:0.25]`. ContextFit 최우선.
+- **v2.1 featured 슬롯 운영**: 캠핑 일정 중 축제 날짜가 겹치는 경우, FESTIVAL은 일반 카테고리 경쟁 랭킹과 별도로 **`FEATURED` 슬롯**으로 우선 배치됩니다. `StandardizedPlanJSON.featuredFestival` 필드를 통해 별도 전달되며, `selectionTier = 'FEATURED'`, `roleName = '투데이 로컬 축제'`가 부여됩니다.
 
 ### 3.7 경로 기반 식당 / 카페 / 명소 - `[ROUTE_RESTAURANT, ROUTE_CAFE, ROUTE_SPOT]`
 - **기준**: Phase 12에서 수집된 현지 밖(주행 경로상)의 팩트.
 - **특징**: 카카오 별점 4.0 이상인 경우 '가는 길의 묘미'로 강조하여 서사에 반영.
+
+### 3.8 Fact Verification UI & Card - `[UI/UX Enhancement]`
+- **Fact Chips**: 장소 카드 상단에 별점(⭐), 리뷰 수(💬), 공공 인증(🏆) 배지를 노출하여 데이터의 출처와 신뢰도를 사용자에게 시각적으로 즉시 증명합니다.
+- **Verified Badge**: 4축 점수 및 `verificationStatus`가 임계치 이상인 장소에는 'Verified' 마크를 부여하여 추천의 근거를 명확히 합니다.
+- **Role Display**: 여정 내 각 장소의 역할(가는 길, 현지 추천 등)을 카테고리 칩으로 표시하여 동선 이해를 돕습니다.
 
 ---
 
@@ -129,7 +162,10 @@
    - **NMC (Empty Response)**: 법정동 코드 인코딩 오류 발생 시 반경 기반 공간 쿼리(`get_master_places_in_radius`)로 대체.
    - **TourAPI (XML Data)**: JSON 응답 강제 및 XML 찌꺼기 감지 시 `try-catch`로 파이프라인 중단 방지.
 2. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다.
-3. **PostGIS Radius Search**: 모든 데이터 질의는 Vercel 배포 시 `get_master_places_in_radius` SQL 함수 1회 호출로 묶여 실행됩니다. 이후 Vercel Node 컴파일 서버에서 분류/가중치 로직이 10 밀리초 단위로 수행됩니다.
+3. **API Endpoint Resilience (2026-03-10 업데이트)**: 
+    - **MOIS Good Restaurant (1741000)**: 기존 `B552061` 엔드포인트의 노후화 및 JSON 미지원 대응을 위해 행정안전부 최신 주소(`1741000/excellent_restaurant_info/info`)로 교체하고 `returnType=json` 파라미터를 적용하여 안정적인 데이터 수집을 보장합니다.
+    - **Gemini 1.5 Flash**: 모델 및 엔드포인트 규격(`v1beta`)을 지속적으로 점검하여 AI 서사 생성의 연속성을 유지합니다.
+4. **PostGIS Radius Search**: 모든 데이터 질의는 Vercel 배포 시 `get_master_places_in_radius` SQL 함수 1회 호출로 묶여 실행됩니다. 이후 Vercel Node 컴파일 서버에서 분류/가중치 로직이 10 밀리초 단위로 수행됩니다.
 4. **Prompt Resiliency**: LLM 호출 에러 시, `narration` 문장만 "캠퍼님을 위한 특별한 여정이 준비되었습니다."라는 Fallback 문구로 대체되며, Top 15 리스트를 프론트 화면상에서 그대로 렌더링되도록 보호됩니다.
 
 ---
