@@ -196,29 +196,51 @@ export async function POST(request: Request) {
                             const kakaoKey = process.env.KAKAO_REST_API_KEY;
                             if (!kakaoKey) break;
 
-                            const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(cand.name)}&x=${cand.lng}&y=${cand.lat}&radius=2000`, {
-                                headers: { 'Authorization': `KakaoAK ${kakaoKey}` }
-                            });
-                            const kData = await kRes.json();
-                            const matched = kData.documents?.[0];
+                            try {
+                                const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(cand.name)}&x=${cand.lng}&y=${cand.lat}&radius=2000`, {
+                                    headers: { 'Authorization': `KakaoAK ${kakaoKey}` }
+                                });
+                                const kData = await kRes.json();
+                                const matched = kData.documents?.[0];
 
-                            if (matched && matched.place_url) {
-                                const scResult = await scrapeKakaoPlace(matched.place_url);
-                                let finalScore = (cand.trust_score || 50);
-                                if (scResult.success) {
-                                    if (scResult.rating >= 4.0) finalScore += 30;
-                                    if (scResult.reviewCount >= 20) finalScore += 20;
-                                    if (scResult.rating > 0 && scResult.rating < 3.0) finalScore -= 40;
+                                if (matched && matched.place_url) {
+                                    const scResult = await scrapeKakaoPlace(matched.place_url);
+                                    let finalScore = (cand.trust_score || 50);
+                                    if (scResult.success) {
+                                        if (scResult.rating >= 4.0) finalScore += 30;
+                                        if (scResult.reviewCount >= 20) finalScore += 20;
+                                        if (scResult.rating > 0 && scResult.rating < 3.0) finalScore -= 40;
+                                    }
+
+                                    enrichedResults.push({
+                                        id: crypto.randomUUID(), api_source: 'MASTER_ENRICHED', category: cand.category,
+                                        name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
+                                        trust_score: Math.min(finalScore, 100),
+                                        description: scResult.success
+                                            ? `${cand.description} (별점: ${scResult.rating}, 리뷰: ${scResult.reviewCount}건)`
+                                            : cand.description,
+                                        raw_data: { ...cand.raw_data, kakao_url: matched.place_url, scraping: scResult }
+                                    });
+                                } else {
+                                    // v2.1 Fail-soft: 카카오 매칭 실패 시에도 원본 후보를 UNVERIFIED로 유지
+                                    enrichedResults.push({
+                                        id: crypto.randomUUID(), api_source: cand.api_source || cand.category,
+                                        category: cand.category,
+                                        name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
+                                        trust_score: cand.trust_score || 50,
+                                        description: cand.description || '',
+                                        raw_data: { ...cand.raw_data, kakao_matched: false }
+                                    });
                                 }
-
+                            } catch (matchErr) {
+                                // v2.1 Fail-soft: 스크래핑 에러 시에도 후보 유지
                                 enrichedResults.push({
-                                    id: crypto.randomUUID(), api_source: 'MASTER_ENRICHED', category: cand.category,
+                                    id: crypto.randomUUID(), api_source: cand.api_source || cand.category,
+                                    category: cand.category,
                                     name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
-                                    trust_score: Math.min(finalScore, 100),
-                                    description: scResult.success
-                                        ? `${cand.description} (별점: ${scResult.rating}, 리뷰: ${scResult.reviewCount}건)`
-                                        : cand.description,
-                                    raw_data: { ...cand.raw_data, kakao_url: matched.place_url, scraping: scResult }
+                                    trust_score: cand.trust_score || 50,
+                                    description: cand.description || '',
+                                    raw_data: { ...cand.raw_data, kakao_matched: false, error: true }
                                 });
                             }
                             await new Promise(r => setTimeout(r, 100)); // Rate limit defense

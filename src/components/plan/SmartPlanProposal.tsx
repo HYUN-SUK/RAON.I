@@ -230,7 +230,7 @@ export default function SmartPlanProposal({
                             <span className="text-[10px] font-bold text-[#224732] px-1.5 py-0.5 bg-[#224732]/5 rounded-sm">
                                 {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
                             </span>
-                            {card.verificationStatus === 'confirmed' && (
+                            {card.verificationStatus === 'VERIFIED' && (
                                 <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm">
                                     <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
                                     검증됨
