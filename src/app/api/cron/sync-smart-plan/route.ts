@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { scrapeKakaoPlace } from '@/lib/scraper';
+import proj4 from 'proj4';
 
 // Vercel Serverless Function Timeout 설정 (최대 5분)
 export const maxDuration = 300;
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     try {
         const authHeader = request.headers.get('authorization');
         if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         }
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         const publicApiKey = process.env.PUBLIC_DATA_API_KEY;
 
         if (!supabaseUrl || !supabaseServiceKey || !publicApiKey) {
-            return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500 });
+            return new Response(JSON.stringify({ error: 'Server Configuration Error' }), { status: 500 });
         }
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         // 수동 파라미터가 없는데, D-3일 예약도 한 명도 없다면? 그냥 비용 절감 차원에서 종결(Skip)
         if (clusters.length === 0 && !manualTargetLat) {
             console.log(`[Smart Plan Cron] Skiped: No reservations found for D-3 (${targetStr})`);
-            return NextResponse.json({ success: true, message: 'No D-3 schedules found. Skipped API syncing.', processed_count: 0 });
+            return new Response(JSON.stringify({ success: true, message: 'No D-3 schedules found. Skipped API syncing.', processed_count: 0 }), { status: 200 });
         } else if (manualTargetLat) {
             clusters.push({ lat: manualTargetLat, lng: manualTargetLng!, names: ['Manual Target'], address: manualAddress || '충청남도 예산군' });
         }
@@ -143,7 +143,41 @@ export async function POST(request: Request) {
                 }
             } catch (e: any) { console.error("TOUR_FSTVL Error", e); }
 
-            // 3. Phase 12: Kakao Enrichment (Static Data: RESTAURANT, MART, SPOT)
+            // 3. 오피넷 주유소 (OPINET_GAS) - D-3 동적 캐싱
+            try {
+                const OPINET_API_KEY = process.env.OPINET_API_KEY;
+                if (OPINET_API_KEY) {
+                    // WGS84 -> WTM (EPSG:5181) 변환 정의
+                    proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs");
+                    const [wtmX, wtmY] = proj4("EPSG:4326", "EPSG:5181", [targetLng, targetLat]);
+
+                    // 주변 주유소 검색 (반경 5km)
+                    const res = await fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX)}&y=${Math.round(wtmY)}&radius=5000&sort=1&prodcd=C004&out=json`, fetchOptions);
+                    const data = await res.json();
+
+                    if (data.RESULT?.OIL) {
+                        const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
+                        // 등유(KEROSENE) 가격순 상위 3개만 추출
+                        const gasStations = items
+                            .filter((item: any) => item.K_PRICE > 0)
+                            .sort((a: any, b: any) => a.K_PRICE - b.K_PRICE)
+                            .slice(0, 3)
+                            .map((item: any) => ({
+                                id: crypto.randomUUID(), api_source: 'OPINET_GAS', category: 'GAS',
+                                name: item.OS_NM, 
+                                description: `등유: ${item.K_PRICE}원 (최저가 순)`, 
+                                address: item.VAN_ADR || '주소 정보 없음',
+                                lat: targetLat, lng: targetLng,
+                                trust_score: 90, 
+                                raw_data: item
+                            }));
+                        allFacts.push(...gasStations);
+                        successSources.add('OPINET_GAS');
+                    }
+                }
+            } catch (e: any) { console.error("OPINET_GAS Error", e); }
+
+            // 4. Phase 12: Kakao Enrichment (Static Data: RESTAURANT, MART, SPOT)
             const staticCategories: ('RESTAURANT' | 'MART' | 'SPOT')[] = ['RESTAURANT', 'SPOT', 'MART'];
             for (const cat of staticCategories) {
                 try {
@@ -274,8 +308,8 @@ export async function POST(request: Request) {
             }
         }
 
-        return NextResponse.json({ success: true, processed_count: processedCount, clusters: clusters.length });
+        return new Response(JSON.stringify({ success: true, processed_count: processedCount, clusters: clusters.length }), { status: 200 });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
+        return new Response(JSON.stringify({ error: error.message || 'Error' }), { status: 500 });
     }
 }

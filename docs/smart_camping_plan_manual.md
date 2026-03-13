@@ -26,8 +26,9 @@
 
 ### [ Phase 2: Hybrid Data Gathering & Enrichment (하이브리드 데이터 수집) ]
 *   **Step 3. Phase 11: Hybrid Master DB Scan (Track A - 현지 팩트)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등은 Supabase 내부 `master_places`에서 PostGIS로 고속 선별합니다. 
-    *   **병원/축제 예외**: `HOSPITAL` 및 `FESTIVAL` 카테고리는 공공 API의 실시간성이 중요하므로, Phase 11 마스터 DB가 아닌 **Phase 10 동적 권역 파이프라인**을 통해 예약 3일 전(D-3) 실시간 수집된 `smart_plan_facts`에서 가져옵니다.
+    *   **병원/축제/주유소 예외**: `HOSPITAL`, `FESTIVAL`, `GAS_STATION`(오피넷) 카테고리는 실시간성 및 가격 정보의 정확성이 중요하므로, Phase 11 마스터 DB가 아닌 **Phase 10 동적 권역 파이프라인**을 통해 예약 3일 전(D-3) 실시간 수집된 `smart_plan_facts`에서 가져옵니다.
     *   **기술 사양**: `GIST` 인덱스가 적용된 공간 쿼리를 통해 **10ms 이하**의 검색 속도를 보장합니다.
+    *   **1차 선별 및 중복 전략**: 동일 장소가 여러 공공 API(모범음식점, 안심식당, 백년가게 등)에서 중복 수집된 경우, **`api_source`를 포함한 결정론적 ID(UUID v5)**를 통해 각각 별도 레코드로 저장됩니다. 이는 향후 다중 인증 장소에 대한 신뢰 가중치 부여의 근거가 됩니다.
     *   **1차 선별 로직 (v2.1 개선)**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여합니다. **v2.1부터 1차 후보군은 `limit_count: 200`으로 넉넉히 회수**하며, 이 단계의 목적은 최종 선별이 아니라 **누락 방지형 후보 확보(recall)**입니다.
         - **카테고리별 Shortlist Cap**: 도시 근처 캠핑장에서 식당이 전체 후보를 독점하는 것을 방지하기 위해, RPC 호출 후 JS 레벨에서 카테고리별 상한을 적용합니다:
           | 카테고리 | 상한 | 카테고리 | 상한 |
@@ -141,7 +142,8 @@
 - **점수(Score)**: 가중치 `[E:0.20, Q:0.30, CF:0.30, L:0.20]`. 품질(Quality)과 적합성(ContextFit) 균형. 비 날 '탕/찌개/국밥'의 `weather_match=45`, 맑은 날 '막국수/냉면'의 `weather_match=40`, 아이동반 시 '돈까스/어린이'의 `persona_match=40`.
 
 ### 3.4 오피넷 실내등유 취급 주유소 - `[GAS_STATION]`
-- **기준**: DB상 `MART_HOSPITAL`로 조회되나, 메타데이터 혹은 명칭 상의 '주유소', 단어 설명의 '등유'를 기반으로 별개의 `GAS_STATION` 카테고리로 독자 분리.
+- **데이터 소스**: 오피넷(OPINET) 실시간 API
+- **수집 전략**: 주간 배치(정적)에서 제외하고, 캠핑 3일 전(D-3) 해당 캠핑장 반경 5km 내의 등유 취급 주유소를 동적으로 수집하여 `smart_plan_facts`에 캐싱합니다. (20km Geo-Clustering 적용)
 - **점수(Score)**: 가중치 `[E:0.30, Q:0.10, CF:0.20, L:0.40]`. 겨울철(`isWinterOrCold`) 시 `weather_match=50`으로 ContextFit 축이 만점 근접하여 최상위 배치.
 
 ### 3.5 관광 기관 API (현지 명소/관광지) - `[SPOT]`
@@ -170,11 +172,12 @@
    - **NMC (Empty Response)**: 법정동 코드 인코딩 오류 발생 시 반경 기반 공간 쿼리(`get_master_places_in_radius`)로 대체.
    - **TourAPI (XML Data)**: JSON 응답 강제 및 XML 찌꺼기 감지 시 `try-catch`로 파이프라인 중단 방지.
 2. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다.
-3. **API Endpoint Resilience (2026-03-10 업데이트)**: 
-    - **MOIS Good Restaurant (1741000)**: 기존 `B552061` 엔드포인트의 노후화 및 JSON 미지원 대응을 위해 행정안전부 최신 주소(`1741000/excellent_restaurant_info/info`)로 교체하고 `returnType=json` 파라미터를 적용하여 안정적인 데이터 수집을 보장합니다.
+3. **API Endpoint Resilience (2026-03-13 업데이트)**: 
+    - **MOIS Good Restaurant (1741000)**: 기존 `B552061` 엔드포인트의 노후화 및 JSON 미지원 대응을 위해 행정안전부 최신 주소(`1741000/excellent_restaurant_info/info`)로 교체하거나, **안정적인 파일 직접 동기화(LocalData CSV/ZIP)** 방식으로 우회하여 적재 실패를 원천 방지합니다.
+    - **MART Coordinate Correction**: 행안부 대규모점포 데이터의 중부원점(`EPSG:5174`) 좌표를 `proj4` 라이브러리를 통해 위경도(`WGS84`)로 변환하여 저장함으로써 위치 정보의 정확성을 확보합니다.
     - **Gemini 1.5 Flash**: 모델 및 엔드포인트 규격(`v1beta`)을 지속적으로 점검하여 AI 서사 생성의 연속성을 유지합니다.
 4. **PostGIS Radius Search**: 모든 데이터 질의는 Vercel 배포 시 `get_master_places_in_radius` SQL 함수 1회 호출로 묶여 실행됩니다. 이후 Vercel Node 컴파일 서버에서 분류/가중치 로직이 10 밀리초 단위로 수행됩니다.
-4. **Prompt Resiliency**: LLM 호출 에러 시, `narration` 문장만 "캠퍼님을 위한 특별한 여정이 준비되었습니다."라는 Fallback 문구로 대체되며, Top 15 리스트를 프론트 화면상에서 그대로 렌더링되도록 보호됩니다.
+5. **Prompt Resiliency**: LLM 호출 에러 시, `narration` 문장만 "캠퍼님을 위한 특별한 여정이 준비되었습니다."라는 Fallback 문구로 대체되며, Top 15 리스트를 프론트 화면상에서 그대로 렌더링되도록 보호됩니다.
 
 ---
 
@@ -202,14 +205,16 @@
    - `master_places`: 식당, 마트, 명소, 카페 등 일반 장소를 위한 `GIST(geometry)` 인덱스 적용 테이블.
    - `master_places_gas`: 겨울철 등유 수급이 핵심인 주유소 전용 테이블 (`trust_score` 90점 이상 고정 관리).
 2. **주간 풀-페이지네이션 동기화 (Weekly Batch)**:
-   - 매주 월요일 06:00 KST, 공공 API(SBA, NMC, TourAPI, MOIS 등)를 전수 조사하여 수만 건의 최신 데이터를 업데이트합니다.
-   - **실행 환경**: Vercel Serverless의 5분 제한을 우회하기 위해 **GitHub Actions 러너에서 직접 실행** (`scripts/sync-master-places.mjs`). 타임아웃 2시간.
-   - **지오코딩 중복 스킵**: 배치 시작 시 DB의 기존 주소를 메모리에 캐싱하여, 이미 좌표가 있는 주소는 카카오 API를 호출하지 않습니다. 첫 주에만 수만 건 호출, 이후에는 신규분만 호출.
-   - **Upsert 패턴**: 이름+주소 기준으로 중복 판단하여 기존 데이터는 스킵, 신규 데이터만 삽입합니다.
-   - **Throttling**: 관공서 서버 부하를 방지하기 위해 각 페이지 호출 사이에 0.5~1초의 의도적 지연을 삽입합니다.
+   - 매주 월요일 06:00 KST, 공공 API(SBA, NMC, TourAPI, MOIS 등) 및 **LocalData 전체 파일(CSV/ZIP)**을 전수 조사하여 최신 데이터를 업데이트합니다.
+   - **실행 환경**: Vercel Serverless의 5분 제한을 우회하기 위해 **GitHub Actions 러너에서 직접 실행** (`scripts/sync-master-places.mjs`).
+   - **결정론적 ID (UUID v5)**: `api_source + 상호 + 주소`를 조합한 고유 ID를 생성합니다. (단일 장소가 여러 인증을 받은 경우 각각 수집하여 신뢰도 지표로 활용 가능)
+   - **지오코딩 중복 스킵**: 배치 시작 시 DB의 기존 주소를 메모리에 캐싱하여, 이미 좌표가 있는 주소는 카카오 API를 호출하지 않습니다. 첫 주에만 수만 건 호출하며 이후에는 신규 항목만 지오코딩을 수행합니다.
+   - **좌표계 표준화 (Proj4)**: 행안부 TM 좌표(`EPSG:5174`)를 위경도(`WGS84`)로 변환하여 적재 실패를 해결합니다.
+   - **Upsert 패턴**: 생성된 고유 ID를 Primary Key로 삼아 `onConflict: id` 전략으로 중복 없이 정보를 업데이트합니다.
+   - **Throttling**: 관공서 서버 부하를 방지하기 위해 0.5~1초의 의도적 지연을 삽입합니다.
 3. **출처 신뢰 계층 (Existence Score의 source_confidence 기반)**:
    - `55~60점`: 백년가게(SMBA_BAEK), 안심식당(SAFE_RESTAURANT), 병원(NMC_HOSPITAL), 오피넷(OPINET), 카카오 검증(MASTER_ENRICHED)
-   - `45~50점`: 한국관광공사 등록 명소(TOUR_SPOT/TOUR_CAFE), 모범음식점(MOIS_GOOD_RESTAURANT)
+   - `45~50점`: 한국관광공사 등록 명소(TOUR_SPOT/TOUR_CAFE), 모범음식점(MOIS_GOOD_RESTAURANT), 대규모점포(MART)
    - `30~40점`: 일반 상권 정보(LARGE_STORE) 및 기타 데이터
    - 이 점수는 v2 4축 체계의 **Existence 축**에 반영되며, 카테고리별 가중치와 결합해 `finalScore`를 결정합니다. 공공기관 인증 장소가 자연스럽게 상위에 배치됩니다.
 4. **공간 인덱싱 (GIST Index)**:

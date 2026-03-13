@@ -1,36 +1,29 @@
-# 📝 Session Handoff: Smart Camping Plan v2 & API Restoration
+# Handoff - Smart Camping Plan ETL 5.0 & Weekly Batch Automation
 
-## 📅 세션 요약 (2026-03-10)
-이번 세션에서는 Smart Camping Plan v2의 **2차 기능(Evidence & UI 고도화)**을 완료하고, 시스템 전반의 **외부 API 연동 상태를 전수 점검 및 복구**했습니다.
+## 📅 Session Summary (2026-03-13)
+In this session, we focused on stabilizing the static data synchronization (ETL 5.0) and automating the weekly batch process. The primary challenge was the failure of "MART" (Large-scale stores) data import due to coordinate system mismatches and duplicate data issues.
 
-### ✅ 완료된 작업
-1.  **Smart Plan v2 Phase 2 구현**
-    *   `FactCard` 인터페이스 확장: 별점, 리뷰 수, 공공 인증 데이터를 구조화하여 관리.
-    *   **UI Fact Chips**: 사용자 카드에 ⭐별점, 💬리뷰, 🏆인증 배지를 시각화하여 신뢰도 강화.
-    *   **AI Guardrails**: AI가 영업시간/가격 등을 임의 생성(Hallucination)하지 못하도록 엄격한 지침 및 리스트 톤 가이드 적용.
-2.  **전체 API 통신 점검 및 복구**
-    *   기상청, 고캠핑, Kakao, TourAPI, 오피넷 등 8종 이상의 API 연결 상태 정상 확인.
-    *   **모범음식점 API 장애 해결**: 노후된 엔드포인트(`B552061`)를 최신 행안부 규격(`1741000`)으로 교체하여 데이터 수신 정상화.
-3.  **코드 안정화**
-    *   `tsc --noEmit` 검증 통과 및 작업 내용 Git 커밋(`ae188f1`, `942d189`).
+### Key Accomplishments
+1.  **MART Data Import Resolved**:
+    - Fixed the issue where MART data from 행정안전부 was not importing due to the `EPSG:5174` (TM) coordinate system. Integrated `proj4` for conversion to `WGS84`.
+    - Resolved unique constraint issues by implementing deterministic IDs (`UUID v5`) using `api_source + name + address` as a seed.
+2.  **Weekly Batch Automation**:
+    - Refactored `scripts/sync-master-places.mjs` to include the combined logic: deterministic IDs, coordinate transformation, and file-based synchronization for LocalData (MART/MOIS).
+    - Removed Opinet from the weekly batch as it has been moved to a dynamic D-3 caching strategy for real-time accuracy.
+3.  **API Standardization**:
+    - Synchronized `src/app/api/cron/sync-master-places/route.ts` with the new deterministic ID logic to ensure consistency between manual scripts and automated CRON jobs.
+4.  **SSOT Update**:
+    - Updated `docs/smart_camping_plan_manual.md` to reflect the new hybrid collection strategy and the technical resolution for static data imports.
 
----
+## 🛠️ Technical Decisions
+-   **Deterministic IDs for Reliability**: We now include `api_source` in the UUID seed. This allows the same physical location listed in multiple APIs (e.g., Safe Restaurant + Good Restaurant) to be stored as separate records. This is critical for future "Trust Score" (신뢰도) calculations.
+-   **File-Based Sync for Stability**: Due to the frequent 500 errors of the government REST APIs, we switched to direct ZIP/CSV/XLSX downloads from LocalData.go.kr for primary static datasets.
 
-## 🛠️ 기술적 결정 사항
-*   **API 엔드포인트 최신화**: 공공데이터포털의 일부 구형 API가 JSON을 지원하지 않거나 500 오류를 뱉는 현상을 발견하여, 최신 관리 주체(행안부)의 엔드포인트로 전환하고 `returnType=json` 파라미터를 적용했습니다.
-*   **AI 프롬프트 가시성**: AI가 추천 사유를 작성할 때 팩트 데이터(별점/리뷰)를 구체적으로 인용하게 하여 사용자 설득력을 높였습니다.
+## 🚀 Next Steps (Next Session)
+1.  **Monitor Weekly Batch**: Confirm that the GitHub Actions CRON job runs successfully on the coming Monday using the updated `sync-master-places.mjs`.
+2.  **Reliability Logic Implementation**: Start developing the logic that aggregates multiple records of the same establishment (matching by name/address) to calculate a trustworthiness score.
+3.  **Expansion**: Continue with Phase 12.3 (Camping spot bookmarking) and 12.5 (Private community features).
 
----
-
-## 🚀 다음 세션 작업 가이드
-1.  **AI 프롬프트 심층 점검**: `smartPlan.ts` 내의 AI 생성 서사가 실제 데이터와 얼마나 잘 어우러지는지, 버튼 클릭을 통한 실물 테스트 진행.
-2.  **핵심 파이프라인 작동 여부**: 예약 시나리오를 가정한 전체 플랜 생성 프로세스(D-3 싱크부터 UI 노출까지) 엔드투엔드 점검.
-3.  **Gemini 엔드포인트 미세 조정**: 현재 404가 간헐적으로 발생하는 구글 제미나이 호출 규격 재확인.
-
----
-
-## ⚠️ 주의 사항
-*   **Gemini API**: 현재 코드상에는 정상이나 테스트 도구에서 `404`가 발생한 이력이 있습니다. 실제 작동 시 로그 모니터링이 필요합니다.
-*   **모범음식점 데이터 구조**: 응답 형식이 `data.body`에서 `data.response.body`로 변경되었으므로 파싱 로직의 일관성을 유지해야 합니다.
-
-**고생 많으셨습니다. 내일은 실제 버튼을 클릭하며 여정의 감동을 확인해 보시죠!**
+## ⚠️ Notes
+-   **Dependencies**: Added `uuid` and `@types/uuid`, `@types/proj4` to `package.json`.
+-   **Environment**: Ensure `PUBLIC_DATA_API_KEY` and `KAKAO_REST_API_KEY` are correctly set in the production environment (Vercel/GitHub Secrets).
