@@ -182,7 +182,6 @@ async function syncLocalData() {
             }
 
             let chunk = [];
-            let sampleLogged = false;
             for (const r of records) {
                 const name = (r.사업장명 || r.업소명 || r.상호 || r.BPLC_NM || r.bplcNm || '').trim();
                 const addr = (r.도로명전체주소 || r.소재지전체주소 || r.RDNWHL_ADDR || r.SITE_WHL_ADDR || '').trim();
@@ -191,8 +190,6 @@ async function syncLocalData() {
                 // [Source-Aware Skip] Skip only if this source is already recorded for this ID
                 const existingSources = syncMap.get(id) || '';
                 if (existingSources.includes(source.apiSource)) continue;
-
-                if (!sampleLogged) { console.log(`    Sample Record Keys: ${Object.keys(r).join(', ')}`); sampleLogged = true; }
                 const status = r.상세영업상태명 || r.상세영업상태 || r.영업상태명 || r.상태명 || r.TRD_STATE_NM || r.trdStateNm || '';
                 
                 if (!name || !addr || (status && !String(status).includes('영업'))) continue;
