@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         const targetStr = targetDate.toISOString().split('T')[0];
 
         const { data: schedules } = await supabase
-            .from('schedules')
+            .from('user_schedules')
             .select('campground_lat, campground_lng, campground_name, campground_address')
             .eq('check_in', targetStr)
             .not('campground_lat', 'is', null)

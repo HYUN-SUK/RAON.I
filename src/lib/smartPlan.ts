@@ -3,6 +3,9 @@
 // ========================================================================================
 import { UserPersona, extractUserPersona } from './persona';
 import { getForecast } from '@/lib/weather';
+import { groupAndScorePlaces, RawPlace } from './reliability';
+import { v4 as uuidv4 } from 'uuid';
+import crypto from 'node:crypto';
 
 export interface StandardizedPlanJSON {
     "@context": "https://schema.org",
@@ -124,7 +127,10 @@ function calcQuality(f: FactCard): number {
         live = 0; // 데이터 없음
     }
 
-    return Math.min(100, cert + live);
+    // Reliability Bonus (Group & Weight)
+    const certBonus = f.metadata?.certificationBonus || 0;
+
+    return Math.min(100, cert + live + certBonus);
 }
 
 function calcContextFit(
@@ -247,6 +253,15 @@ function computeFinalScore(
     } else {
         evidence.verificationStatus = VERIFIED_SOURCES.includes(s) ? 'VERIFIED' : 'UNVERIFIED';
     }
+
+    // Merge multi-source evidence
+    if (f.metadata?.badges) {
+        evidence.badges = Array.from(new Set([...(evidence.badges || []), ...f.metadata.badges]));
+    }
+    if (f.metadata?.certifications) {
+        evidence.certifications = Array.from(new Set([...(evidence.certifications || []), ...f.metadata.certifications]));
+    }
+
     f.evidence = evidence;
 
     // Role Name Mapping
@@ -296,13 +311,16 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
             if (masterErr) console.error("Master RPC Error:", masterErr);
 
             const combinedRaw = [...(dynamicData || []), ...(masterData || [])];
+            
+            // Reliability Engine 적용: 그룹화 및 보너스 점수 산출
+            const groupedFacts = groupAndScorePlaces(combinedRaw as RawPlace[]);
 
             if (currentRadius === 15000) {
-                facts = combinedRaw;
+                facts = groupedFacts;
             } else {
-                // 이미 있는 카테고리 뿐만 아니라, 같은 이름의 장소가 MASTER_ENRICHED로 있다면 중복 제거
-                const existingNames = new Set(facts.map(f => f.name));
-                const newFacts = combinedRaw.filter((f: any) => !existingNames.has(f.name));
+                // 이미 있는 장소(이름+주소) 중복 제거 로직 강화
+                const existingKeys = new Set(facts.map(f => `${f.name}|${f.address}`));
+                const newFacts = groupedFacts.filter((f: any) => !existingKeys.has(`${f.name}|${f.address}`));
                 facts = [...facts, ...newFacts];
             }
 
@@ -344,9 +362,15 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
                 category: mappedCategory,
                 name: row.name,
                 description: row.description || '',
-                trustScore: row.trust_score || 50,
+                address: row.address || '',
+                trustScore: row.totalTrustScore || row.trust_score || 50,
                 distanceKm: row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0,
-                metadata: row.raw_data || {},
+                metadata: { 
+                  ...(row.raw_data || {}), 
+                  certificationBonus: row.certificationBonus,
+                  badges: row.badges,
+                  certifications: row.certifications
+                },
                 provenance: { sourceName: row.api_source }
             };
         });

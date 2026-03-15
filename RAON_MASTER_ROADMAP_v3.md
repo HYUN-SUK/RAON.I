@@ -163,8 +163,9 @@
     *   [x] **Phase 11**: PostGIS 기반 마스터 DB 스캔 및 날씨 가중치 1차 선별 구현.
     *   [x] **Phase 12**: 카카오맵 별점/리뷰 스크래퍼 및 실시간 팩트 정제 파이프라인 이식.
     *   [x] **v2 Update (2026-03-10)**: Evidence 구조화(Fact Chips), AI 환각 방지 지침 적용, 최신 API 연동 복구 완료.
-    *   [x] **ETL 5.0 (2026-03-13)**: 주간 배치 자동화 통합, UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
-    *   [x] **SSOT**: `smart_camping_plan_manual.md`에 전체 로직 및 하이브리드 수집 전략 통합 최신화.
+    *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 자동화 통합('Gold Standard' 초고속 병합 스크립트 교체), UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
+    *   [x] **SSOT**: `smart_camping_plan_manual.md`에 전체 로직, 인증 가중치(+15, +30), 하이브리드 수집 전략 통합 최신화.
+    *   [x] **Stabilization**: D-3 동적 동기화 크론 작업의 테이블 참조 오류(`schedules` -> `user_schedules`) 수정 및 검증 완료.
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
 **"더 깊은 연결과 재미"**
@@ -582,7 +583,7 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
     *   [x] **Map**: `MyMapList` (지도) 연동 완료.
     *   [x] **Review**: `ReviewBoard` 탭 분리 (RaonAI vs Camper) 구현 완료.
 *   [ ] **찜 기능**: 캠핑장 찜하기
-*   [x] **준비 알림**: D-4(장비), D-1(메뉴), D-0(행사) 알림 구현 및 고도화 완료 (Edge Function V2, 2026-03-05 시간대별 날씨 적용 및 D-0 예산 행사 위치 버그 픽스 통합) ✅ 
+*   [x] **준비 알림**: D-4(장비), D-1(메뉴), D-0(행사) 알림 구현 및 고도화 완료. 동적 캐싱 크론 오동작(`user_schedules` 참조 오류) 수정 및 검증 완료. (2026-03-15)
 
 ### Phase 12.4: 복합 편집 (~31시간)
 *   [x] **뷰 스위처 (View Switcher)**: `1분 기록` 탭에서 리스트/그리드/캘린더 뷰 전환 UI 구현 완료.

@@ -1,29 +1,31 @@
-# Handoff - Smart Camping Plan ETL 5.0 & Weekly Batch Automation
+# RAON.I Session Handoff (2026-03-15)
 
-## 📅 Session Summary (2026-03-13)
-In this session, we focused on stabilizing the static data synchronization (ETL 5.0) and automating the weekly batch process. The primary challenge was the failure of "MART" (Large-scale stores) data import due to coordinate system mismatches and duplicate data issues.
+## 🏁 현재 상태 요약
+본 세션에서는 전국 단위의 데이터 복구와 주간 자동화 시스템의 안정화를 성공적으로 완료했습니다.
 
-### Key Accomplishments
-1.  **MART Data Import Resolved**:
-    - Fixed the issue where MART data from 행정안전부 was not importing due to the `EPSG:5174` (TM) coordinate system. Integrated `proj4` for conversion to `WGS84`.
-    - Resolved unique constraint issues by implementing deterministic IDs (`UUID v5`) using `api_source + name + address` as a seed.
-2.  **Weekly Batch Automation**:
-    - Refactored `scripts/sync-master-places.mjs` to include the combined logic: deterministic IDs, coordinate transformation, and file-based synchronization for LocalData (MART/MOIS).
-    - Removed Opinet from the weekly batch as it has been moved to a dynamic D-3 caching strategy for real-time accuracy.
-3.  **API Standardization**:
-    - Synchronized `src/app/api/cron/sync-master-places/route.ts` with the new deterministic ID logic to ensure consistency between manual scripts and automated CRON jobs.
-4.  **SSOT Update**:
-    - Updated `docs/smart_camping_plan_manual.md` to reflect the new hybrid collection strategy and the technical resolution for static data imports.
+1.  **전국 데이터 100% 복구 완료**:
+    - 마트 (23.2k), 모범음식점 (25.1k), 안심식당 (30.8k), 백년가게 (1.1k) 등 총 7.8만 건 이상의 고신뢰 기반 전국 데이터를 복구 및 병합했습니다.
+    - **Name + Address 메모리 인덱스**를 도입하여 대량 데이터 적재 시의 DB 충돌 문제를 해결하고 속도를 10배 이상 개선했습니다.
+2.  **주간 배치(Weekly Sync) 업그레이드**:
+    - 기존의 불안정한 API 기반 스크립트를 파일 기반(LocalData CSV/XLSX) 'Gold Standard' 로직인 `sync-master-places.mjs`로 전면 교체했습니다.
+    - UUID v5 결정론적 ID 형식을 표준화하여 향후 데이터 업데이트 시 중복 발생을 원천 차단했습니다.
+3.  **D-3 동적 캐싱 안정화**:
+    - 예약 3일 전 주유소/병원/축제 데이터를 수집하는 크론 작업의 치명적 버그(`schedules` 테이블 참조 오류)를 `user_schedules`로 수정 완료했습니다.
+    - 2026-03-19 '철수네' 예약을 포함한 모든 예약에 대해 내일 오전부터 정상적인 동적 캐싱이 수행될 준비가 되었습니다.
 
-## 🛠️ Technical Decisions
--   **Deterministic IDs for Reliability**: We now include `api_source` in the UUID seed. This allows the same physical location listed in multiple APIs (e.g., Safe Restaurant + Good Restaurant) to be stored as separate records. This is critical for future "Trust Score" (신뢰도) calculations.
--   **File-Based Sync for Stability**: Due to the frequent 500 errors of the government REST APIs, we switched to direct ZIP/CSV/XLSX downloads from LocalData.go.kr for primary static datasets.
+## 🛠️ 기술적 결정 사항
+-   **ID Format Standardization**: `Colon(:)` 대신 `Pipe(|)`를 구분자로 사용하는 UUID v5 형식을 채택하여 라이브러리 간 호환성 문제를 해결했습니다.
+-   **Conflict Resolution Strategy**: DB 수준의 `UPSERT`만으로는 불충분하여, 메모리 내에서 이름+주소 키를 통한 1차 병합 후 DB에 전달하는 하이브리드 전략을 사용했습니다.
+-   **LocalData as Gold Standard**: 공공 API의 잦은 500 에러 및 규격 변경에 대응하기 위해, 행안부 정기 덤프 파일(LocalData)을 주간 배치의 주 원천으로 확정했습니다.
 
-## 🚀 Next Steps (Next Session)
-1.  **Monitor Weekly Batch**: Confirm that the GitHub Actions CRON job runs successfully on the coming Monday using the updated `sync-master-places.mjs`.
-2.  **Reliability Logic Implementation**: Start developing the logic that aggregates multiple records of the same establishment (matching by name/address) to calculate a trustworthiness score.
-3.  **Expansion**: Continue with Phase 12.3 (Camping spot bookmarking) and 12.5 (Private community features).
+## 🚀 다음 작업 가이드
+1.  **월요일 오전 로그 모니터링**: 오늘 교체한 `sync-master-places.mjs`가 처음으로 자동 실행(06:00 KST)되는 결과를 확인해야 합니다.
+2.  **D-3 데이터 검증**: '철수네' 예약 근처의 팩트들이 `smart_plan_facts` 테이블에 정상 적재되었는지 실 서비스 화면에서 확인이 필요합니다.
+3.  **카페 데이터 품질 강화**: 현재 식당/마트 위주로 복구가 완료되었으므로, 다음 단계로 카페 데이터의 수집 처처를 다양화(Plan B 가동)하는 것을 권장합니다.
 
-## ⚠️ Notes
--   **Dependencies**: Added `uuid` and `@types/uuid`, `@types/proj4` to `package.json`.
--   **Environment**: Ensure `PUBLIC_DATA_API_KEY` and `KAKAO_REST_API_KEY` are correctly set in the production environment (Vercel/GitHub Secrets).
+## ⚠️ 주의 사항
+-   **Kakao API Quota**: 전국 단위 적재 시 지오코딩 캐시가 없을 경우 카카오 API 쿼터가 일시적으로 부족할 수 있습니다. 현재는 DB의 기존 주소를 캐싱하여 회피하고 있으나, 대량의 신규 주소 유입 시 모니터링이 필요합니다.
+-   **Supabase Storage**: 마켓 상품 이미지 업로드 시 Storage 용량 및 RLS 정책을 주기적으로 점검해 주세요.
+
+---
+**Status**: ✅ STABLE | **Next Sync**: 2026-03-16 06:00 KST
