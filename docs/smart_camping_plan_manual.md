@@ -47,7 +47,8 @@
     *   **2차 정제 (v2.1 Fail-soft 정책)**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득합니다. **실시간 검증 성공 여부와 관계없이 후보 자체는 유지**하며, 검증 결과는 `FactCard.evidence`와 `verificationStatus`에 기록합니다.
         - 검증 성공: `verificationStatus = VERIFIED`, `api_source = MASTER_ENRICHED`
         - 카카오 매칭 실패/스크래핑 에러: `verificationStatus = UNVERIFIED`, 원본 `api_source` 유지
-        - 즉, **실시간 검증 실패가 후보 탈락으로 직접 이어지지 않습니다.** 실시간 검증은 추천 품질 상승용 보강 단계로 취급합니다.
+        - 즉, **실시간 검증 실패가 후보 탈락으로 직접 이어지지 않습니다.
+6. **국립중앙의료원(NMC) 연계**: 실시간 응급실 가용 병상 및 위치 정보를 수집합니다. 수집된 데이터는 **카카오 로컬 API를 통해 2차 검증(별점, 리뷰 수 수합)**을 거쳐 신뢰도를 보강합니다.
 
 ### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
 *   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`(현지 6종) 및 `ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`(경로 3종)의 **총 9개 카테고리**로 엄격히 분류합니다. 
@@ -155,6 +156,7 @@
 
 ### 3.6 지역 축제 / 오일장 - `[FESTIVAL]`
 - **점수(Score)**: 가중치 `[E:0.25, Q:0.10, CF:0.40, L:0.25]`. ContextFit 최우선.
+-8. **한국관광공사(TourAPI) 연계**: 캠핑 예정일 전후 3일간의 지역 축제 정보를 수집합니다. 수집된 축제 장소는 **카카오 로컬 API로 정확한 좌표와 인기도(리뷰 수)를 보강**하여 정제합니다.
 - **v2.1 featured 슬롯 운영**: 캠핑 일정 중 축제 날짜가 겹치는 경우, FESTIVAL은 일반 카테고리 경쟁 랭킹과 별도로 **`FEATURED` 슬롯**으로 우선 배치됩니다. `StandardizedPlanJSON.featuredFestival` 필드를 통해 별도 전달되며, `selectionTier = 'FEATURED'`, `roleName = '투데이 로컬 축제'`가 부여됩니다.
 
 ### 3.7 경로 기반 식당 / 카페 / 명소 - `[ROUTE_RESTAURANT, ROUTE_CAFE, ROUTE_SPOT]`
@@ -178,7 +180,10 @@
 2. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다. **Open-Meteo는 비상업적 용도의 경우 별도의 인증키(API Key) 없이 작동하므로**, 추가 환경 변수 설정 없이 즉각적인 장애 대응이 가능합니다.
 3. **API Endpoint Resilience (2026-03-14 Post-Mortem)**: 
     - **MOIS API Issue**: `B552061` 및 `1741000` 일부 엔드포인트는 주기적으로 HTTP 500 에러를 반환하거나 JSON 타입을 지원하지 않는 불안정성을 보입니다.
-    - **Gold Standard (LocalData)**: 이 문제를 해결하기 위해 **`localdata.go.kr`의 CSV/XLSX 원본 파일 직접 동기화**를 상시 동기화의 **Gold Standard(표준)**로 확정했습니다. `scripts/sync-master-places.mjs`(구 `master-sync-reliability.mjs` 로직 통합)를 통해 API 장애 시에도 전국 데이터 동기화의 연속성을 보장합니다.
+     - **Gold Standard (LocalData)**: 이 문제를 해결하기 위해 **`localdata.go.kr`의 CSV/XLSX 원본 파일 직접 동기화**를 상시 동기화의 **Gold Standard(표준)**로 확정했습니다. `scripts/sync-master-places.mjs`(구 `master-sync-reliability.mjs` 로직 통합)를 통해 API 장애 시에도 전국 데이터 동기화의 연속성을 보장합니다.
+     - **Memory-Safe Chunking**: 전국 단위(10만 건+) 대용량 데이터 처리 시 타임아웃을 방지하기 위해 **100건 단위 청크 처리 및 1,000건당 3초의 GC 지연 시간**을 강제 적용하여 인프라 안정성을 확보했습니다.
+4. **Timezone-Aware Cron Job**:
+     - **KST (UTC+9) 고정**: 서버 시간(UTC) 오차로 인한 매칭 실패를 방지하기 위해, 모든 스케줄링 로직은 **한국 시간(KST)으로 보정된 날짜**를 기준으로 '3일 전' 예약자를 정확히 타겟팅합니다.
     - **Safe Restaurant API**: 농식품부 API(`211.237.50.150`)를 유지하되, 일일 쿼터 및 키 오류 발생 시 즉시 `debug_safe_rest.mjs`에서 검증된 키로 복구하는 체계를 유지합니다.
     - **MART Coordinate Correction**: 행안부 대규모점포 데이터의 중부원점(`EPSG:5174`) 좌표를 `proj4` 라이브러리를 통해 위경도(`WGS84`)로 변환하여 저장함으로써 위치 정보의 정확성을 확보합니다.
     - **Gemini 1.5 Flash**: 모델 및 엔드포인트 규격(`v1beta`)을 지속적으로 점검하여 AI 서사 생성의 연속성을 유지합니다.
