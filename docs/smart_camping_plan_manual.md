@@ -32,7 +32,7 @@
         - **1개 인증**: 보너스 없음 (Standard)
         - **2개 인증 중복**: **+15점** 보너스
         - **3개 이상 인증 중복**: **+30점** 보너스 (최고 신뢰 등급)
-    *   **1차 선별 로직 (v2.1 개선)**: `get_master_places_in_radius` RPC를 호출하며, 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여합니다. **v2.1부터 1차 후보군은 `limit_count: 200`으로 넉넉히 회수**하며, 이 단계의 목적은 최종 선별이 아니라 **누락 방지형 후보 확보(recall)**입니다.
+    *   **1차 선별 로직 (v2.1 개선)**: `get_master_places_in_radius` RPC를 호출하며, **15km 반경에서 시작하여 최대 30km까지 5km 단위로 점진적으로 확장**하며 후보를 탐색합니다. 날씨 예보를 상호 참조하여 비가 오면 실내/국물요리 위주로, 맑으면 야외/시원한 메뉴 위주로 가중치를 부여합니다. **v2.1부터 1차 후보군은 `limit_count: 200`으로 넉넉히 회수**하며, 이 단계의 목적은 최종 선별이 아니라 **누락 방지형 후보 확보(recall)**입니다.
         - **카테고리별 Shortlist Cap**: 도시 근처 캠핑장에서 식당이 전체 후보를 독점하는 것을 방지하기 위해, RPC 호출 후 JS 레벨에서 카테고리별 상한을 적용합니다:
           | 카테고리 | 상한 | 카테고리 | 상한 |
           |---------|------|---------|------|
@@ -106,15 +106,16 @@
 
 *   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
     *   v2 4축 체계에서 **ContextFit 축**의 `weather_match`와 `persona_match`로 반영됩니다.
-    *   **Day 1 (가는 길)**: 비 예보 시 국물 요리/실내 명소의 `weather_match`가 45/50으로 상승, 맑은 날 야외 명소/시원한 메뉴가 40~45로 상승.
-    *   **Day 2~3 (현지)**: 겨울철(`isWinterOrCold`) 주유소는 `weather_match=50`으로 최상위, 아이 동반 시 소아과/어린이 식당의 `persona_match`가 40~45로 상승.
+    *   **Day 1 (가는 길)**: 비 예보 시 국물 요리/실내 명소의 `weather_match`가 45/50으로 상승, 맑음 시 야외 40~45.
+    *   **Day 2~3 (현지)**: **최저 기온 5도 이하** 또는 11월~3월인 경우 '겨울 모드'가 활성화되어 주유소는 `weather_match=50`으로 최상위 배치. 아이 동반 시 소아과/어린이 식당의 `persona_match`가 40~45로 상승.
 *   **Step 7. Exception Guard (휴무일 및 장기 숙박 방어)**: v2 체계에서 **Risk Penalty**로 통합. 일요일 포함 + 대형마트일 때 -15점 감점, 하나로마트에는 Diversity Bonus +5점 부여.
 
 ### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
 *   **Step 8. Final Selection & AI Assembly (정예 선별 및 서사 조립)**: 
     *   **Top 3 선별**: 4축 `finalScore` 기준으로 카테고리별 **Top 3 (1개 메인 `PRIMARY`, 2개 대안 `ALTERNATIVE`)**을 최종 선별합니다.
     *   **v2.1 FESTIVAL featured 슬롯 분리**: FESTIVAL은 일반 카테고리 경쟁 랭킹과 별도로 **`FEATURED` 슬롯**으로 우선 배치됩니다. 즉, FESTIVAL은 RESTAURANT/MART/SPOT과 같은 일반 Top 3 경쟁군이 아니라, 지역성 강조용 별도 추천 카드(`featuredFestival`)로 노출됩니다.
-    *   **AI Narration (v2.1 강화)**: Gemini LLM에 전달하는 프롬프트에 **`evidence` 기반 정보(별점, 리뷰 수, 배지, 검증상태)를 직접 포함**하여 AI가 더 정확한 팩트를 인용한 감성적 3문단 여정 서사를 작성합니다.
+    *   **AI Narration (v2.1 강화)**: Gemini LLM에 전달하는 프롬프트에 **`evidence` 기반 정보(별점, 리뷰 수, 배지, 검증상태)를 직접 포함**하여 AI가 더 정확한 팩트를 인용한 감성적 **3파트 타임라인(가는 길, 현지, 오는 길)** 여정 서사를 작성합니다.
+    *   **오는 길 추천**: 가는 길 추천 중 선택되지 않은 대안이나 근처의 명소를 '귀갓길의 따뜻한 제안'으로 서사에 포함하도록 가이드합니다.
     *   **AI Guardrails (환각 방지)**: 데이터에 존재하지 않는 **영업시간, 메뉴 가격, 실시간 잔여석** 정보를 임의로 지어내지 않도록 엄격한 프롬프트 지침을 준수합니다.
     *   **v2.1 verificationStatus 규칙**: `VERIFIED` 장소만 "검증된" 표현을 사용하며, `UNVERIFIED` 장소는 "방문 전 확인 권장" 수준으로만 표현합니다.
     *   **Tone Guide**: 휴무 위험 등 리스크 언급 시 "방문 전 확인 권장"과 같은 따뜻한 권유형 문장을 사용하며, 장소 이름 언급 시 `||ID|이름||` 규격을 엄수합니다. **서사는 사용자의 편안함과 동선 부담 감소를 먼저 말합니다.**
@@ -174,7 +175,7 @@
    - **SMBA (403 Forbidden)**: API 권한 승인 지연 시 카카오 로컬 API로 즉시 Fail-over.
    - **NMC (Empty Response)**: 법정동 코드 인코딩 오류 발생 시 반경 기반 공간 쿼리(`get_master_places_in_radius`)로 대체.
    - **TourAPI (XML Data)**: JSON 응답 강제 및 XML 찌꺼기 감지 시 `try-catch`로 파이프라인 중단 방지.
-2. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다.
+2. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다. **Open-Meteo는 비상업적 용도의 경우 별도의 인증키(API Key) 없이 작동하므로**, 추가 환경 변수 설정 없이 즉각적인 장애 대응이 가능합니다.
 3. **API Endpoint Resilience (2026-03-14 Post-Mortem)**: 
     - **MOIS API Issue**: `B552061` 및 `1741000` 일부 엔드포인트는 주기적으로 HTTP 500 에러를 반환하거나 JSON 타입을 지원하지 않는 불안정성을 보입니다.
     - **Gold Standard (LocalData)**: 이 문제를 해결하기 위해 **`localdata.go.kr`의 CSV/XLSX 원본 파일 직접 동기화**를 상시 동기화의 **Gold Standard(표준)**로 확정했습니다. `scripts/sync-master-places.mjs`(구 `master-sync-reliability.mjs` 로직 통합)를 통해 API 장애 시에도 전국 데이터 동기화의 연속성을 보장합니다.

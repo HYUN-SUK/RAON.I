@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { scrapeKakaoPlace } from '@/lib/scraper';
 import proj4 from 'proj4';
+import crypto from 'node:crypto';
 
 // Vercel Serverless Function Timeout 설정 (최대 5분)
 export const maxDuration = 300;
@@ -36,9 +37,11 @@ export async function POST(request: Request) {
             }
         } catch (e) { /* ignore GET or JSON parsing error */ }
 
-        // 예약 기반의 3일전 동적 타겟팅 설정
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + 3);
+        // 예약 기반의 3일전 동적 타겟팅 설정 (KST 기준)
+        const now = new Date();
+        const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+        const targetDate = new Date(kstNow);
+        targetDate.setDate(kstNow.getDate() + 3);
         const targetStr = targetDate.toISOString().split('T')[0];
 
         const { data: schedules } = await supabase
@@ -110,6 +113,7 @@ export async function POST(request: Request) {
             console.log(`[Smart Plan Cron] Cluster ${i + 1}/${clusters.length}: ${doNm} ${sigunguNm}`);
 
             // 1. 병원 (NMC_HOSPITAL)
+            const hospitalCandidates = [];
             try {
                 const q0 = encodeURIComponent(doNm);
                 const q1 = encodeURIComponent(sigunguNm);
@@ -117,29 +121,28 @@ export async function POST(request: Request) {
                 const data = await res.json();
                 if (data.response?.body?.items?.item) {
                     const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
-                    allFacts.push(...items.map((item: any) => ({
-                        id: crypto.randomUUID(), api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
+                    hospitalCandidates.push(...items.map((item: any) => ({
+                        api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
                         name: item.dutyName, description: '응급실 가동 응급의료기관', address: item.dutyAddr,
                         lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
                         trust_score: item.dutyName?.includes('소아') ? 100 : 50, raw_data: item
                     })));
-                    successSources.add('NMC_HOSPITAL');
                 }
             } catch (e: any) { console.error("NMC_HOSPITAL Error", e); }
 
             // 2. 한시적 축제 (TOUR_FSTVL)
+            const festivalCandidates = [];
             try {
                 const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
                 const data = await res.json();
                 if (data.response?.body?.items?.item) {
                     const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
-                    allFacts.push(...items.filter((item: any) => isWithinServiceArea(parseFloat(item.mapy), parseFloat(item.mapx), targetLat, targetLng))
+                    festivalCandidates.push(...items.filter((item: any) => isWithinServiceArea(parseFloat(item.mapy), parseFloat(item.mapx), targetLat, targetLng))
                         .map((item: any) => ({
-                            id: crypto.randomUUID(), api_source: 'TOUR_FSTVL', category: 'FESTIVAL',
+                            api_source: 'TOUR_FSTVL', category: 'FESTIVAL',
                             name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1,
                             lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 80, raw_data: item
                         })));
-                    successSources.add('TOUR_FSTVL');
                 }
             } catch (e: any) { console.error("TOUR_FSTVL Error", e); }
 
@@ -177,18 +180,25 @@ export async function POST(request: Request) {
                 }
             } catch (e: any) { console.error("OPINET_GAS Error", e); }
 
-            // 4. Phase 12: Kakao Enrichment (Static Data: RESTAURANT, MART, SPOT)
-            const staticCategories: ('RESTAURANT' | 'MART' | 'SPOT')[] = ['RESTAURANT', 'SPOT', 'MART'];
-            for (const cat of staticCategories) {
+            // 4. Phase 12: Kakao Enrichment (Dynamic & Static Categories)
+            const categoriesToEnrich: ('RESTAURANT' | 'MART' | 'SPOT' | 'HOSPITAL' | 'FESTIVAL')[] = ['HOSPITAL', 'FESTIVAL', 'RESTAURANT', 'SPOT', 'MART'];
+            for (const cat of categoriesToEnrich) {
                 try {
-                    const { data: candidates, error: err } = await supabase.rpc('get_master_places_in_radius', {
-                        target_lat: targetLat,
-                        target_lng: targetLng,
-                        radius_meters: 20000,
-                        limit_count: 50 // Fetch more initially to allow weather-based filtering
-                    });
+                    let candidates = [];
+                    if (cat === 'HOSPITAL') candidates = hospitalCandidates;
+                    else if (cat === 'FESTIVAL') candidates = festivalCandidates;
+                    else {
+                        // Master DB Scan
+                        const { data: dbItems, error: err } = await supabase.rpc('get_master_places_in_radius', {
+                            target_lat: targetLat,
+                            target_lng: targetLng,
+                            radius_meters: 20000,
+                            limit_count: 50
+                        });
+                        if (!err && dbItems) candidates = dbItems.filter((c: any) => c.category === cat);
+                    }
 
-                    if (!err && candidates && candidates.length > 0) {
+                    if (candidates && candidates.length > 0) {
                         // [Phase 11 High-Level Logic] Weather-Aware 1st Selection
                         // 위경도 → 기상청 격자(nx, ny) 변환 (Lambert Conformal Conic)
                         const RE = 6371.00877, GRID = 5.0, SLAT1 = 30.0, SLAT2 = 60.0;
@@ -282,13 +292,17 @@ export async function POST(request: Request) {
 
                         const top3 = enrichedResults.sort((a, b) => b.trust_score - a.trust_score).slice(0, 3);
                         allFacts.push(...top3);
-                        if (top3.length > 0) successSources.add('MASTER_ENRICHED');
+                        if (top3.length > 0 && ['RESTAURANT', 'MART', 'SPOT'].includes(cat)) {
+                            successSources.add('MASTER_ENRICHED');
+                        } else if (top3.length > 0) {
+                            successSources.add(cat === 'HOSPITAL' ? 'NMC_HOSPITAL' : 'TOUR_FSTVL');
+                        }
                     }
                 } catch (e: any) { console.error(`${cat} Enrichment Error`, e); }
             }
 
             if (i < clusters.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, 3000)); // Throttling (Manual Sec 5.3)
             }
         }
 

@@ -52,7 +52,7 @@ async function geocodeAddress(address) {
     const cleanAddr = String(address).trim();
     if (geocodeCache.has(cleanAddr)) return geocodeCache.get(cleanAddr);
     
-    await new Promise(r => setTimeout(r, 150)); // Throttling
+    await new Promise(r => setTimeout(r, 3000)); // Throttling (Manual Sec 5.3)
     try {
         const res = await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(cleanAddr)}`, {
             headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` }
@@ -219,6 +219,13 @@ async function syncLocalData() {
                 }
                 
                 if (!lat || !lng) continue; // Skip LocalData records without file-based coordinates for speed
+                
+                // Rate limit defense for LocalData processing batching
+                if (chunk.length >= 100) { 
+                    await upsertBatch(chunk); 
+                    chunk = []; 
+                    await new Promise(r => setTimeout(r, 3000)); 
+                }
 
                 chunk.push({
                     id,
@@ -226,7 +233,14 @@ async function syncLocalData() {
                     name: String(name).trim(), address: String(addr).trim(), lat, lng,
                     trust_score: source.category === 'MART' ? 60 : 65, raw_data: r
                 });
-                if (chunk.length >= 100) { await upsertBatch(chunk); chunk = []; }
+                if (chunk.length >= 100) { 
+                    await upsertBatch(chunk); 
+                    chunk = []; 
+                    // [Memory Optimization] Periodic small delay to allow GC
+                    if (records.indexOf(r) % 1000 === 0) {
+                        await new Promise(r => setTimeout(r, 3000));
+                    }
+                }
             }
             if (chunk.length > 0) await upsertBatch(chunk);
         } catch (e) { console.error(`  ${source.name} Error:`, e.message); }
