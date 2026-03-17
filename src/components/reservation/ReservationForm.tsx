@@ -8,6 +8,7 @@ import TermsAgreementDialog from './TermsAgreementDialog';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
+import { getCampingProfile, saveCampingProfile } from '@/actions/camping-profile';
 
 interface ReservationFormProps {
     site: Site;
@@ -56,8 +57,17 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 setHasPet(rebookData.guestDetails.hasPet ?? false);
             }
         } else {
-            // rebookData가 없으면(새 예약), 최근 예약 기록에서 이름/연락처만이라도 가져오기
+            // rebookData가 없으면(새 예약), 캠핑 프로필에서 인원 정보 로딩
             fetchUserContactInfo();
+            getCampingProfile().then(profile => {
+                if (profile) {
+                    setAdults(profile.adults);
+                    setKidsPreschool(profile.kidsPreschool);
+                    setKidsElementary(profile.kidsElementary);
+                    setKidsTeen(profile.kidsTeen);
+                    setHasPet(profile.hasPet);
+                }
+            }).catch(console.error);
         }
 
         // 언마운트 시 rebookData 클리어
@@ -140,6 +150,12 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             });
 
             if (result.success) {
+                // 캠핑 프로필 동기화 (Fire & Forget) — 인원 구성 정보만 업데이트
+                saveCampingProfile({
+                    originLabel: null, originLat: null, originLng: null,
+                    adults, kidsPreschool, kidsElementary, kidsTeen, hasPet,
+                }).catch(console.error);
+
                 // [Phase 2] Dispatch Persona Actions safely in the background
                 try {
                     const supabase = createClient();

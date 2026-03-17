@@ -18,6 +18,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScheduleFormData, createSchedule } from '@/actions/schedule';
 import { toast } from 'sonner';
 import MyMapModal from '@/components/myspace/MyMapModal';
+import CampingProfileGate from '@/components/shared/CampingProfileGate';
+import { CampingProfile } from '@/actions/camping-profile';
 
 interface ScheduleFormProps {
     onSuccess?: (scheduleId: string) => void;
@@ -33,6 +35,8 @@ export default function ScheduleForm({
 }: ScheduleFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
+    const [profileComplete, setProfileComplete] = useState(false);
+    const [campingProfile, setCampingProfile] = useState<CampingProfile | null>(null);
     const [formData, setFormData] = useState<Partial<ScheduleFormData>>({
         source: 'external',
         campgroundName: '',
@@ -45,6 +49,12 @@ export default function ScheduleForm({
 
     // 날짜 최소값 (오늘)
     const today = format(new Date(), 'yyyy-MM-dd');
+
+    // 프로필 확인 완료 시
+    const handleProfileComplete = (profile: CampingProfile) => {
+        setCampingProfile(profile);
+        setProfileComplete(true);
+    };
 
     // 지도에서 장소 선택 시 호출
     const handlePlaceSelect = (place: { name: string; address: string; lat: number; lng: number }) => {
@@ -96,120 +106,134 @@ export default function ScheduleForm({
 
     return (
         <>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                {/* 캠핑장 이름 - 클릭하면 바로 지도 검색 열림 */}
-                <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <Tent className="w-4 h-4 text-[#224732]" />
-                        캠핑장 이름
-                    </label>
-                    <button
-                        type="button"
-                        onClick={() => setIsMapOpen(true)}
-                        className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:border-[#224732] hover:bg-gray-50 transition-colors text-left"
-                    >
-                        <span className={formData.campgroundName ? 'text-gray-900' : 'text-gray-400'}>
-                            {formData.campgroundName || '지도에서 캠핑장 검색하기'}
-                        </span>
-                        <Search className="w-5 h-5 text-[#224732]" />
-                    </button>
-                    {formData.campgroundAddress && (
-                        <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {formData.campgroundAddress}
-                        </p>
-                    )}
-                </div>
-
-                {/* 주소 */}
-                <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <MapPin className="w-4 h-4 text-[#224732]" />
-                        주소 (선택)
-                    </label>
-                    <Input
-                        type="text"
-                        placeholder="캠핑장 주소를 입력해주세요"
-                        value={formData.campgroundAddress || ''}
-                        onChange={(e) => setFormData({ ...formData, campgroundAddress: e.target.value })}
+            {/* Step 1: 캠핑 프로필 확인/입력 */}
+            {!profileComplete && (
+                <div className="mb-4">
+                    <CampingProfileGate
+                        onComplete={handleProfileComplete}
+                        requireOrigin={true}
+                        title="캠핑 기본 정보"
                     />
                 </div>
+            )}
 
-                {/* 일정 */}
-                <div className="grid grid-cols-2 gap-3">
+            {/* Step 2: 캠핑장/일정 입력 (프로필 완료 후 표시) */}
+            {profileComplete && (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* 캠핑장 이름 - 클릭하면 바로 지도 검색 열림 */}
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                            <Calendar className="w-4 h-4 text-[#224732]" />
-                            입실일
+                            <Tent className="w-4 h-4 text-[#224732]" />
+                            캠핑장 이름
                         </label>
-                        <Input
-                            type="date"
-                            min={today}
-                            value={formData.checkIn || ''}
-                            onChange={(e) => setFormData({ ...formData, checkIn: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                            <Calendar className="w-4 h-4 text-gray-400" />
-                            퇴실일
-                        </label>
-                        <Input
-                            type="date"
-                            min={formData.checkIn || today}
-                            value={formData.checkOut || ''}
-                            onChange={(e) => setFormData({ ...formData, checkOut: e.target.value })}
-                            required
-                        />
-                    </div>
-                </div>
-
-                {/* 메모 */}
-                <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <FileText className="w-4 h-4 text-[#224732]" />
-                        메모 (선택)
-                    </label>
-                    <Textarea
-                        placeholder="특별히 기억하고 싶은 것, 준비물 등을 메모해보세요"
-                        value={formData.memo || ''}
-                        onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                        rows={3}
-                        className="resize-none"
-                    />
-                </div>
-
-                {/* 버튼 */}
-                <div className="flex gap-3 pt-2">
-                    {onCancel && (
-                        <Button
+                        <button
                             type="button"
-                            variant="outline"
-                            onClick={onCancel}
-                            className="flex-1"
+                            onClick={() => setIsMapOpen(true)}
+                            className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:border-[#224732] hover:bg-gray-50 transition-colors text-left"
+                        >
+                            <span className={formData.campgroundName ? 'text-gray-900' : 'text-gray-400'}>
+                                {formData.campgroundName || '지도에서 캠핑장 검색하기'}
+                            </span>
+                            <Search className="w-5 h-5 text-[#224732]" />
+                        </button>
+                        {formData.campgroundAddress && (
+                            <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {formData.campgroundAddress}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* 주소 */}
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <MapPin className="w-4 h-4 text-[#224732]" />
+                            주소 (선택)
+                        </label>
+                        <Input
+                            type="text"
+                            placeholder="캠핑장 주소를 입력해주세요"
+                            value={formData.campgroundAddress || ''}
+                            onChange={(e) => setFormData({ ...formData, campgroundAddress: e.target.value })}
+                        />
+                    </div>
+
+                    {/* 일정 */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Calendar className="w-4 h-4 text-[#224732]" />
+                                입실일
+                            </label>
+                            <Input
+                                type="date"
+                                min={today}
+                                value={formData.checkIn || ''}
+                                onChange={(e) => setFormData({ ...formData, checkIn: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                퇴실일
+                            </label>
+                            <Input
+                                type="date"
+                                min={formData.checkIn || today}
+                                value={formData.checkOut || ''}
+                                onChange={(e) => setFormData({ ...formData, checkOut: e.target.value })}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* 메모 */}
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <FileText className="w-4 h-4 text-[#224732]" />
+                            메모 (선택)
+                        </label>
+                        <Textarea
+                            placeholder="특별히 기억하고 싶은 것, 준비물 등을 메모해보세요"
+                            value={formData.memo || ''}
+                            onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                            rows={3}
+                            className="resize-none"
+                        />
+                    </div>
+
+                    {/* 버튼 */}
+                    <div className="flex gap-3 pt-2">
+                        {onCancel && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onCancel}
+                                className="flex-1"
+                                disabled={isSubmitting}
+                            >
+                                <X className="w-4 h-4 mr-1" />
+                                취소
+                            </Button>
+                        )}
+                        <Button
+                            type="submit"
+                            className="flex-1 bg-[#224732] hover:bg-[#1a3626]"
                             disabled={isSubmitting}
                         >
-                            <X className="w-4 h-4 mr-1" />
-                            취소
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                    등록 중...
+                                </>
+                            ) : (
+                                '일정 등록하기'
+                            )}
                         </Button>
-                    )}
-                    <Button
-                        type="submit"
-                        className="flex-1 bg-[#224732] hover:bg-[#1a3626]"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                등록 중...
-                            </>
-                        ) : (
-                            '일정 등록하기'
-                        )}
-                    </Button>
-                </div>
-            </form>
+                    </div>
+                </form>
+            )}
 
             {/* 캠핑장 검색용 지도 모달 */}
             <MyMapModal

@@ -139,7 +139,8 @@ async function syncBaeknyeon() {
                 const name = i['업체명'], addr = i['주소'] || i['기본주소'];
                 const id = generateId('SMBA_BAEK', name, addr);
                 const existingSources = syncMap.get(id) || '';
-                if (existingSources.includes('SMBA_BAEK')) continue;
+                const hasCoords = geocodeCache.has(clean(addr));
+                if (existingSources.includes('SMBA_BAEK') && hasCoords) continue;
 
                 const coords = await geocodeAddress(addr);
                 chunk.push({
@@ -189,9 +190,10 @@ async function syncLocalData() {
                 const addr = (r.도로명전체주소 || r.소재지전체주소 || r.RDNWHL_ADDR || r.SITE_WHL_ADDR || '').trim();
                 const id = generateId(source.apiSource, name, addr);
                 
-                // [Source-Aware Skip] Skip only if this source is already recorded for this ID
+                // [Source-Aware Skip] Skip only if this source is already recorded AND we have coordinates
                 const existingSources = syncMap.get(id) || '';
-                if (existingSources.includes(source.apiSource)) continue;
+                const hasCoords = geocodeCache.has(clean(addr));
+                if (existingSources.includes(source.apiSource) && hasCoords) continue;
                 const status = r.상세영업상태명 || r.상세영업상태 || r.영업상태명 || r.상태명 || r.TRD_STATE_NM || r.trdStateNm || '';
                 
                 if (!name || !addr || (status && !String(status).includes('영업'))) continue;
@@ -277,7 +279,8 @@ async function syncSafe() {
                 const name = i.RELAX_REST_NM, addr = i.RELAX_ADD1;
                 const id = generateId('SAFE_RESTAURANT', name, addr);
                 const existingSources = syncMap.get(id) || '';
-                if (existingSources.includes('SAFE_RESTAURANT')) continue;
+                const hasCoords = geocodeCache.has(clean(addr));
+                if (existingSources.includes('SAFE_RESTAURANT') && hasCoords) continue;
 
                 const coords = geocodeCache.get(String(addr).trim()) || await geocodeAddress(addr);
                 chunk.push({

@@ -11,7 +11,6 @@ import {
     CampgroundWithScore,
 } from '@/types/camping-ajiit';
 import { recommendCampgrounds } from '@/lib/campground-recommendation';
-import { useLBS } from '@/hooks/useLBS';
 
 import ModeSelector from '@/components/planlock/ModeSelector';
 import ToggleSelector from '@/components/planlock/ToggleSelector';
@@ -19,6 +18,8 @@ import RecommendationCard from '@/components/planlock/RecommendationCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCcw, Loader2, Users, User, Heart, Flame, Car, Leaf } from 'lucide-react';
 import { toast } from 'sonner';
+import CampingProfileGate from '@/components/shared/CampingProfileGate';
+import { CampingProfile } from '@/actions/camping-profile';
 
 // 모드 아이콘 매핑
 const MODE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -37,7 +38,10 @@ const MODE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>>
 export default function PlanLockPage() {
     const router = useRouter();
     const supabase = createClient();
-    const { location, isLoading: locationLoading } = useLBS();
+
+    // 캠핑 프로필 (출발지 + 인원)
+    const [profileComplete, setProfileComplete] = useState(false);
+    const [campingProfile, setCampingProfile] = useState<CampingProfile | null>(null);
 
     // 단계 관리 (0: 모드, 1: 토글, 2: 결과)
     const [step, setStep] = useState(0);
@@ -137,8 +141,8 @@ export default function PlanLockPage() {
             const results = recommendCampgrounds(campgrounds, favorites, userFavorites, {
                 mode: selectedMode,
                 toggles: selectedToggles,
-                userLat: location?.latitude,
-                userLng: location?.longitude,
+                userLat: campingProfile?.originLat ?? undefined,
+                userLng: campingProfile?.originLng ?? undefined,
                 maxDistance: distanceKm,
                 limit: 3,
             });
@@ -231,8 +235,22 @@ export default function PlanLockPage() {
 
             {/* 메인 콘텐츠 */}
             <main className="p-4 pb-24">
+                {/* Step -1: 캠핑 프로필 확인/입력 */}
+                {!profileComplete && (
+                    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                        <CampingProfileGate
+                            onComplete={(profile) => {
+                                setCampingProfile(profile);
+                                setProfileComplete(true);
+                            }}
+                            requireOrigin={true}
+                            title="출발 정보"
+                        />
+                    </div>
+                )}
+
                 {/* Step 0: 모드 선택 */}
-                {step === 0 && (
+                {profileComplete && step === 0 && (
                     <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                         <ModeSelector
                             selectedMode={selectedMode}
@@ -261,7 +279,7 @@ export default function PlanLockPage() {
                 )}
 
                 {/* Step 1: 토글 선택 */}
-                {step === 1 && (
+                {profileComplete && step === 1 && (
                     <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                         {/* 선택된 모드 표시 */}
                         {modeConfig && (
@@ -312,18 +330,12 @@ export default function PlanLockPage() {
                             </div>
                         </div>
 
-                        {/* 위치 안내 */}
-                        {locationLoading && (
-                            <p className="text-sm text-gray-500 mt-4 flex items-center gap-2">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                현재 위치를 확인하고 있어요...
-                            </p>
-                        )}
+
                     </div>
                 )}
 
                 {/* Step 2: 추천 결과 */}
-                {step === 2 && (
+                {profileComplete && step === 2 && (
                     <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                         {/* 선택 요약 */}
                         {modeConfig && (
@@ -382,7 +394,7 @@ export default function PlanLockPage() {
             </main>
 
             {/* 하단 버튼 */}
-            {step < 2 && (
+            {profileComplete && step < 2 && (
                 <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50">
                     <Button
                         onClick={handleNext}

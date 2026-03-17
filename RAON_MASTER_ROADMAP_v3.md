@@ -164,8 +164,14 @@
     *   [x] **Phase 12**: 카카오맵 별점/리뷰 스크래퍼 및 실시간 팩트 정제 파이프라인 이식.
     *   [x] **v2 Update (2026-03-10)**: Evidence 구조화(Fact Chips), AI 환각 방지 지침 적용, 최신 API 연동 복구 완료.
     *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 자동화 통합('Gold Standard' 초고속 병합 스크립트 교체), UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
+    *   [x] **API Resilience (v4) (2026-03-17)**: ODcloud 백년가게 동적 경로 탐색(Swagger Discovery) 및 LocalData 기반 마트/식당 헬스체크 전환으로 전 계통 안정성 확보 완료.
     *   [x] **SSOT**: `smart_camping_plan_manual.md`에 전체 로직, 인증 가중치(+15, +30), 하이브리드 수집 전략 통합 최신화.
     *   [x] **Stabilization**: D-3 동적 동기화 크론 작업의 테이블 참조 오류(`schedules` -> `user_schedules`) 수정 및 검증 완료.
+    *   [x] **5.5.6 Unified User Camping Profile ✅ (2026-03-17)**:
+        *   [x] **DB**: `user_camping_profiles` 테이블 구축 및 RLS/RPC (`upsert_camping_profile`) 적용.
+        *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
+        *   [x] **Flow Integration**: 예약, 타캠핑장 일정 등록, 캠핑장 추천(PlanLock), 스마트플랜 4대 엔진 통합 완료.
+        *   [x] **UX**: 기존 정보 존재 시 '간편 확인' 버튼 하나로 통과하는 최적화 로직 적용.
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
 **"더 깊은 연결과 재미"**

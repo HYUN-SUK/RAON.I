@@ -15,6 +15,8 @@ interface SmartPlanProposalProps {
     endDate: Date;
     weatherContext?: string;
     mockData?: StandardizedPlanJSON;
+    /** 출발지 좌표 (캠핑 프로필에서 전달). 없으면 브라우저 geolocation fallback */
+    origin?: { lat: number; lng: number };
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -47,15 +49,20 @@ export default function SmartPlanProposal({
     startDate,
     endDate,
     weatherContext,
-    mockData
+    mockData,
+    origin
 }: SmartPlanProposalProps) {
     const [plan, setPlan] = useState<StandardizedPlanJSON | null>(mockData || null);
     const [isLoading, setIsLoading] = useState(!mockData);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
-    const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>();
+    const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
 
-    // 1. Get User's Current Location (Origin)
+    // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
+        if (origin) {
+            setUserOrigin(origin);
+            return;
+        }
         if (!mockData && typeof window !== 'undefined' && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
@@ -63,11 +70,10 @@ export default function SmartPlanProposal({
                 },
                 (err) => {
                     console.warn("[SmartPlan] Failed to get user location:", err);
-                    // Fallback to a default or just proceed without origin
                 }
             );
         }
-    }, [mockData]);
+    }, [mockData, origin]);
 
     // 2. Fetch Plan based on Journey (Origin -> Destination)
     useEffect(() => {

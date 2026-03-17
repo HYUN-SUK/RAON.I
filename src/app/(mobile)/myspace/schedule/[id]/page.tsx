@@ -50,6 +50,8 @@ import MealRecommendationWidget from '@/components/myspace/MealRecommendationWid
 import { getPersonalizedRecommendations, RecipeSearchResult } from '@/actions/recommendation';
 import SmartPlanProposal from '@/components/plan/SmartPlanProposal';
 import { createClient } from '@/lib/supabase-client';
+import CampingProfileGate from '@/components/shared/CampingProfileGate';
+import { CampingProfile, getCampingProfile } from '@/actions/camping-profile';
 
 
 const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
@@ -69,6 +71,8 @@ export default function ScheduleDetailPage() {
 
     const [userId, setUserId] = useState<string>();
     const [showSmartPlan, setShowSmartPlan] = useState(false);
+    const [smartPlanOrigin, setSmartPlanOrigin] = useState<{ lat: number; lng: number } | undefined>();
+    const [showProfileGate, setShowProfileGate] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -441,10 +445,43 @@ export default function ScheduleDetailPage() {
                         const isLocked = new Date() < unlockTime;
                         const lockedMessage = "최적의 팩트 선별 및 초정밀 단기 일기예보 반영을 위해, 캠핑 3일 전 오전 9시부터 오픈됩니다!";
 
+                        // 프로필 게이트 표시 중
+                        if (showProfileGate) {
+                            return (
+                                <div className="space-y-3">
+                                    <CampingProfileGate
+                                        onComplete={(profile) => {
+                                            setSmartPlanOrigin(
+                                                profile.originLat && profile.originLng
+                                                    ? { lat: profile.originLat, lng: profile.originLng }
+                                                    : undefined
+                                            );
+                                            setShowProfileGate(false);
+                                            setShowSmartPlan(true);
+                                        }}
+                                        requireOrigin={true}
+                                        title="출발 정보 확인"
+                                    />
+                                </div>
+                            );
+                        }
+
                         return (
                             <div className="relative group">
                                 <Button
-                                    onClick={() => !isLocked && setShowSmartPlan(true)}
+                                    onClick={async () => {
+                                        if (isLocked) return;
+                                        // 프로필 확인 후 진행
+                                        const profile = await getCampingProfile();
+                                        if (profile?.originLat && profile?.originLng) {
+                                            // 프로필 있음 → 직접 진행
+                                            setSmartPlanOrigin({ lat: profile.originLat, lng: profile.originLng });
+                                            setShowSmartPlan(true);
+                                        } else {
+                                            // 프로필 없음/출발지 없음 → 게이트 표시
+                                            setShowProfileGate(true);
+                                        }
+                                    }}
                                     disabled={isLocked}
                                     className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
                                 >
@@ -467,6 +504,7 @@ export default function ScheduleDetailPage() {
                             }}
                             startDate={new Date(schedule.check_in)}
                             endDate={new Date(schedule.check_out)}
+                            origin={smartPlanOrigin}
                         />
                     )}
                 </div>
