@@ -1,0 +1,23 @@
+[
+  "id",
+  "user_id",
+  "source",
+  "reservation_id",
+  "campground_id",
+  "campground_name",
+  "campground_address",
+  "campground_lat",
+  "campground_lng",
+  "check_in",
+  "check_out",
+  "status",
+  "record_written",
+  "record_id",
+  "notification_d4_sent",
+  "notification_d1_sent",
+  "notification_d0_sent",
+  "memo",
+  "created_at",
+  "updated_at",
+  "member_count"
+]

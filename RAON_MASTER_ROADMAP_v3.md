@@ -354,6 +354,10 @@
             *   [x] **iOS Support**: iOS Safari '홈 화면에 추가' 가이드 모달 구현.
             *   [x] **Admin Dashboard**: 위치/푸시 권한 동의율 통계 카드 추가 (DB 연동).
             *   [x] **Weather Consistency**: `useWeather.ts`의 타임존(UTC) 이슈 해결 및 상세화면(`WeatherDetailSheet`) 로직 통일.
+            ### [STEP 5.2] Reliability Audit & Automation Recovery (2026-03-16) ✅
+- **정밀 감사 완료**: 코드-매뉴얼 전수 대조 및 불일치(카카오 범위, 스로틀링, 기상 Fallback) 수정 완료.
+- **자동화 복구**: KST 타임존 보정 및 메모리 최적화 배치 로직 적용으로 Cron Job 신뢰성 회복.
+- **결과**: 예산군 권역 D-3 캐싱 시뮬레이션 성공 및 내일 새벽 통합 테스트 준비 완료.
             *   [x] **Push Audit**: 예약/취소 알림 로직 전수 조사 및 보완 완료 (수신 실패 디버깅 대기).
             *   [x] **Push Stability (2026-02-27)**: **Foreground (In-app Toast) Success**. Background stabilization in progress.
             *   [x] **Status**: **99% Done (Background Still Silent)**

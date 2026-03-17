@@ -40,6 +40,8 @@ const syncMap = new Map(); // id -> existingSources (string)
 const nameAddressMap = new Map(); // "name|address" -> id
 const geocodeCache = new Map();
 let totalSynced = 0;
+let geocodingCount = 0;
+// Quota removed for full recovery session
 
 function clean(s) { return String(s || '').trim(); }
 
@@ -52,7 +54,7 @@ async function geocodeAddress(address) {
     const cleanAddr = String(address).trim();
     if (geocodeCache.has(cleanAddr)) return geocodeCache.get(cleanAddr);
     
-    await new Promise(r => setTimeout(r, 3000)); // Throttling (Manual Sec 5.3)
+    await new Promise(r => setTimeout(r, 500)); // Throttling (Manual Sec 6.2 - Bulk Recovery Mode)
     try {
         const res = await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(cleanAddr)}`, {
             headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` }
@@ -218,7 +220,16 @@ async function syncLocalData() {
                     }
                 }
                 
-                if (!lat || !lng) continue; // Skip LocalData records without file-based coordinates for speed
+                if (!lat || !lng) {
+                    // [Full Recovery Mode] Recover all missing coordinates
+                    const coords = await geocodeAddress(addr);
+                    if (coords) {
+                        lat = coords.lat; lng = coords.lng;
+                        geocodingCount++;
+                    }
+                }
+
+                if (!lat || !lng) continue; // Still no coordinates after attempt or quota reached
                 
                 // Rate limit defense for LocalData processing batching
                 if (chunk.length >= 100) { 
@@ -280,6 +291,7 @@ async function syncSafe() {
 }
 
 async function main() {
+    const startTime = Date.now();
     console.log('🚀 RAONAI NATIONWIDE CONSOLIDATED SYNC (Gold Standard)');
     
     // Improved argument parsing
@@ -325,7 +337,19 @@ async function main() {
     if (!category || category === 'LOCALDATA') await syncLocalData();
     if (!category || category === 'SAFE_RESTAURANT') await syncSafe();
     
-    console.log(`\n\n🏁 Done. Total ${totalSynced}`);
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    console.log(`\n\n🏁 Done. Total ${totalSynced} (Geocoded: ${geocodingCount})`);
+
+    // Log to Supabase
+    await supabase.from('automation_logs').insert({
+        job_name: 'MASTER_SYNC',
+        status: totalSynced > 0 ? 'SUCCESS' : 'FAILURE',
+        processed_count: totalSynced,
+        message: `Synced ${totalSynced} items. Recovered ${geocodingCount} coords via Geocoding.`,
+        duration_ms: duration
+    });
 }
 
 main().catch(err => {

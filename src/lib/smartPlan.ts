@@ -211,7 +211,8 @@ function calcRiskPenalty(f: FactCard, isSundayIncluded: boolean): number {
 
 function computeFinalScore(
     f: FactCard, weather: string, isWinter: boolean,
-    hasKids: boolean, isSunday: boolean, maxDistKm: number
+    hasKids: boolean, isSunday: boolean, maxDistKm: number,
+    origin?: { lat: number, lng: number }
 ): FactCard {
     const existence = calcExistence(f);
     const quality = calcQuality(f);
@@ -221,7 +222,26 @@ function computeFinalScore(
 
     const w = CATEGORY_WEIGHTS[f.category] || [0.25, 0.25, 0.25, 0.25];
     const raw = existence * w[0] + quality * w[1] + contextFit * w[2] + logistics * w[3];
-    const finalScore = Math.max(0, Math.round(raw - riskPenalty));
+    
+    // v3: Origin-based Road-trip Bonus (+10 max)
+    // Favors places closer to the travel route (if origin is known)
+    let originBonus = 0;
+    if (origin && f.metadata?.raw_data) {
+        try {
+            const getDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+                const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c;
+            };
+            const distFromOrigin = getDist(origin.lat, origin.lng, f.metadata.raw_data.lat, f.metadata.raw_data.lng);
+            // If the place is "on the way" (closer to origin than the destination is, relatively), 
+            // we give a small boost to favor the beginning of the local area search
+            if (distFromOrigin < 100) originBonus = 5; 
+        } catch(e) {}
+    }
+
+    const finalScore = Math.max(0, Math.round(raw - riskPenalty + originBonus));
 
     // 일요일 하나로마트 Diversity Bonus (+5)
     let bonus = 0;
@@ -485,7 +505,7 @@ export async function generateSmartPlan(
 
         // v2: 4축 점수 계산 (Day1 날씨 기준)
         catFacts = catFacts.map(f => computeFinalScore(
-            f, day1Weather, isWinterOrCold, hasKids, isSundayIncluded, routeMaxDist
+            f, day1Weather, isWinterOrCold, hasKids, isSundayIncluded, routeMaxDist, origin
         ));
 
         if (catFacts.length > 0) {
@@ -517,7 +537,7 @@ export async function generateSmartPlan(
 
         // v2.1: 4축 점수 계산 (Day2/3 날씨 기준)
         catFacts = catFacts.map(f => computeFinalScore(
-            f, destWeather, isWinterOrCold, hasKids, isSundayIncluded, destMaxDist
+            f, destWeather, isWinterOrCold, hasKids, isSundayIncluded, destMaxDist, origin
         ));
 
         const sorted = catFacts.sort((a, b) => b.trustScore - a.trustScore);
@@ -536,7 +556,7 @@ export async function generateSmartPlan(
     if (festivalCandidates.length > 0) {
         // 축제 날짜와 캐핑 일정 겹침 여부 확인 (날짜 정보 없으면 일단 포함)
         const scoredFestivals = festivalCandidates.map(f => computeFinalScore(
-            f, destWeather, isWinterOrCold, hasKids, isSundayIncluded, destMaxDist
+            f, destWeather, isWinterOrCold, hasKids, isSundayIncluded, destMaxDist, origin
         ));
         featuredFestival = scoredFestivals
             .sort((a, b) => b.trustScore - a.trustScore)

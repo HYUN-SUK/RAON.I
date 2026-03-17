@@ -71,7 +71,6 @@ export async function POST(request: Request) {
 
         // 수동 파라미터가 없는데, D-3일 예약도 한 명도 없다면? 그냥 비용 절감 차원에서 종결(Skip)
         if (clusters.length === 0 && !manualTargetLat) {
-            console.log(`[Smart Plan Cron] Skiped: No reservations found for D-3 (${targetStr})`);
             return new Response(JSON.stringify({ success: true, message: 'No D-3 schedules found. Skipped API syncing.', processed_count: 0 }), { status: 200 });
         } else if (manualTargetLat) {
             clusters.push({ lat: manualTargetLat, lng: manualTargetLng!, names: ['Manual Target'], address: manualAddress || '충청남도 예산군' });
@@ -100,8 +99,17 @@ export async function POST(request: Request) {
             return dist <= 0.3; // 검색 반경 약 30km 제한
         };
 
-        // 3. Phase 11 & 12 Hybrid Architecture
+        // 3. Phase 11 & 12 Hybrid Architecture (Parallelized & Timeout-Aware)
+        const startTime = Date.now();
+        const TIMEOUT_LIMIT = (maxDuration - 30) * 1000; // 270초 안전 마진
+
         for (let i = 0; i < clusters.length; i++) {
+            // 타임아웃 임계점 도달 시 즉시 중단하고 수집된 것만 저장
+            if (Date.now() - startTime > TIMEOUT_LIMIT) {
+                console.warn("Approaching Vercel timeout. Prematurely finishing collection.");
+                break;
+            }
+
             const cluster = clusters[i];
             const targetLat = cluster.lat;
             const targetLng = cluster.lng;
@@ -110,119 +118,114 @@ export async function POST(request: Request) {
             const doNm = addrParts[0] || '충청남도';
             const sigunguNm = addrParts[1] || '예산군';
 
-            console.log(`[Smart Plan Cron] Cluster ${i + 1}/${clusters.length}: ${doNm} ${sigunguNm}`);
+            // 1. 병원 (NMC_HOSPITAL) & 축제 (TOUR_FSTVL) & 주유소 (OPINET_GAS) 병렬 수집
+            const apiTasks = [];
 
-            // 1. 병원 (NMC_HOSPITAL)
-            const hospitalCandidates = [];
-            try {
-                const q0 = encodeURIComponent(doNm);
-                const q1 = encodeURIComponent(sigunguNm);
-                const res = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${q0}&STAGE2=${q1}&pageNo=1&numOfRows=100&_type=json`, fetchOptions);
-                const data = await res.json();
-                if (data.response?.body?.items?.item) {
-                    const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
-                    hospitalCandidates.push(...items.map((item: any) => ({
-                        api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
-                        name: item.dutyName, description: '응급실 가동 응급의료기관', address: item.dutyAddr,
-                        lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
-                        trust_score: item.dutyName?.includes('소아') ? 100 : 50, raw_data: item
-                    })));
-                }
-            } catch (e: any) { console.error("NMC_HOSPITAL Error", e); }
-
-            // 2. 한시적 축제 (TOUR_FSTVL)
-            const festivalCandidates = [];
-            try {
-                const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
-                const data = await res.json();
-                if (data.response?.body?.items?.item) {
-                    const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
-                    festivalCandidates.push(...items.filter((item: any) => isWithinServiceArea(parseFloat(item.mapy), parseFloat(item.mapx), targetLat, targetLng))
-                        .map((item: any) => ({
-                            api_source: 'TOUR_FSTVL', category: 'FESTIVAL',
-                            name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1,
-                            lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 80, raw_data: item
-                        })));
-                }
-            } catch (e: any) { console.error("TOUR_FSTVL Error", e); }
-
-            // 3. 오피넷 주유소 (OPINET_GAS) - D-3 동적 캐싱
-            try {
-                const OPINET_API_KEY = process.env.OPINET_API_KEY;
-                if (OPINET_API_KEY) {
-                    // WGS84 -> WTM (EPSG:5181) 변환 정의
-                    proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs");
-                    const [wtmX, wtmY] = proj4("EPSG:4326", "EPSG:5181", [targetLng, targetLat]);
-
-                    // 주변 주유소 검색 (반경 5km)
-                    const res = await fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX)}&y=${Math.round(wtmY)}&radius=5000&sort=1&prodcd=C004&out=json`, fetchOptions);
+            // Hospital
+            apiTasks.push((async () => {
+                try {
+                    const q0 = encodeURIComponent(doNm);
+                    const q1 = encodeURIComponent(sigunguNm);
+                    const res = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${q0}&STAGE2=${q1}&pageNo=1&numOfRows=100&_type=json`, fetchOptions);
                     const data = await res.json();
-
-                    if (data.RESULT?.OIL) {
-                        const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
-                        // 등유(KEROSENE) 가격순 상위 3개만 추출
-                        const gasStations = items
-                            .filter((item: any) => item.K_PRICE > 0)
-                            .sort((a: any, b: any) => a.K_PRICE - b.K_PRICE)
-                            .slice(0, 3)
-                            .map((item: any) => ({
-                                id: crypto.randomUUID(), api_source: 'OPINET_GAS', category: 'GAS',
-                                name: item.OS_NM, 
-                                description: `등유: ${item.K_PRICE}원 (최저가 순)`, 
-                                address: item.VAN_ADR || '주소 정보 없음',
-                                lat: targetLat, lng: targetLng,
-                                trust_score: 90, 
-                                raw_data: item
-                            }));
-                        allFacts.push(...gasStations);
-                        successSources.add('OPINET_GAS');
+                    if (data.response?.body?.items?.item) {
+                        const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
+                        return items.map((item: any) => ({
+                            api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
+                            name: item.dutyName, description: '응급실 가동 응급의료기관', address: item.dutyAddr,
+                            lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
+                            trust_score: item.dutyName?.includes('소아') ? 100 : 50, raw_data: item
+                        }));
                     }
-                }
-            } catch (e: any) { console.error("OPINET_GAS Error", e); }
+                } catch (e) { console.error("NMC_HOSPITAL Task Error", e); }
+                return [];
+            })());
 
-            // 4. Phase 12: Kakao Enrichment (Dynamic & Static Categories)
+            // Festival
+            apiTasks.push((async () => {
+                try {
+                    const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
+                    const data = await res.json();
+                    if (data.response?.body?.items?.item) {
+                        const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
+                        return items.filter((item: any) => isWithinServiceArea(parseFloat(item.mapy), parseFloat(item.mapx), targetLat, targetLng))
+                            .map((item: any) => ({
+                                api_source: 'TOUR_FSTVL', category: 'FESTIVAL',
+                                name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1,
+                                lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 80, raw_data: item
+                            }));
+                    }
+                } catch (e) { console.error("TOUR_FSTVL Task Error", e); }
+                return [];
+            })());
+
+            // Gas
+            apiTasks.push((async () => {
+                try {
+                    const OPINET_API_KEY = process.env.OPINET_API_KEY;
+                    if (OPINET_API_KEY) {
+                        proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs");
+                        const [wtmX, wtmY] = proj4("EPSG:4326", "EPSG:5181", [targetLng, targetLat]);
+                        const res = await fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX)}&y=${Math.round(wtmY)}&radius=5000&sort=1&prodcd=C004&out=json`, fetchOptions);
+                        const data = await res.json();
+                        if (data.RESULT?.OIL) {
+                            const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
+                            return items.filter((item: any) => item.K_PRICE > 0)
+                                .sort((a: any, b: any) => a.K_PRICE - b.K_PRICE)
+                                .slice(0, 3)
+                                .map((item: any) => ({
+                                    id: crypto.randomUUID(), api_source: 'OPINET_GAS', category: 'GAS',
+                                    name: item.OS_NM, description: `등유: ${item.K_PRICE}원 (최저가 순)`, address: item.VAN_ADR || '주소 정보 없음',
+                                    lat: targetLat, lng: targetLng, trust_score: 90, raw_data: item
+                                }));
+                        }
+                    }
+                } catch (e) { console.error("OPINET_GAS Task Error", e); }
+                return [];
+            })());
+
+            const initialResults = await Promise.all(apiTasks);
+            allFacts.push(...initialResults.flat());
+
+            // 4. Phase 12: Kakao Enrichment (Weather-Aware Parallel Processing)
             const categoriesToEnrich: ('RESTAURANT' | 'MART' | 'SPOT' | 'HOSPITAL' | 'FESTIVAL')[] = ['HOSPITAL', 'FESTIVAL', 'RESTAURANT', 'SPOT', 'MART'];
+            
+            // Weather pre-fetch for the cluster
+            let isRaining = false;
+            try {
+                const RE = 6371.00877, GRID = 5.0, SLAT1 = 30.0, SLAT2 = 60.0;
+                const OLAT = 38.0, OLON = 126.0, XO = 43, YO = 136, DEGRAD = Math.PI / 180.0;
+                const re = RE / GRID, slat1 = SLAT1 * DEGRAD, slat2 = SLAT2 * DEGRAD;
+                const sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(Math.tan(Math.PI * 0.25 + slat2 * 0.5) / Math.tan(Math.PI * 0.25 + slat1 * 0.5));
+                const sf = Math.pow(Math.tan(Math.PI * 0.25 + slat1 * 0.5), sn) * Math.cos(slat1) / sn;
+                const ro = re * sf / Math.pow(Math.tan(Math.PI * 0.25 + OLAT * DEGRAD * 0.5), sn);
+                const ra = re * sf / Math.pow(Math.tan(Math.PI * 0.25 + targetLat * DEGRAD * 0.5), sn);
+                let theta = targetLng * DEGRAD - OLON * DEGRAD;
+                if (theta > Math.PI) theta -= 2.0 * Math.PI; if (theta < -Math.PI) theta += 2.0 * Math.PI;
+                theta *= sn;
+                const gridNx = Math.floor(ra * Math.sin(theta) + XO + 0.5);
+                const gridNy = Math.floor(ro - ra * Math.cos(theta) + YO + 0.5);
+                const forecastRes = await fetch(`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${publicApiKey}&numOfRows=10&pageNo=1&base_date=${new Date().toISOString().split('T')[0].replace(/-/g, '')}&base_time=0500&nx=${gridNx}&ny=${gridNy}&_type=json`);
+                const weatherData = await forecastRes.json();
+                isRaining = JSON.stringify(weatherData).includes('비') || JSON.stringify(weatherData).includes('소나기');
+            } catch (e) { console.warn("Weather fetch failed, defaulting to sunny."); }
+
             for (const cat of categoriesToEnrich) {
+                if (Date.now() - startTime > TIMEOUT_LIMIT) break;
+
                 try {
                     let candidates = [];
-                    if (cat === 'HOSPITAL') candidates = hospitalCandidates;
-                    else if (cat === 'FESTIVAL') candidates = festivalCandidates;
+                    if (cat === 'HOSPITAL') candidates = initialResults[0];
+                    else if (cat === 'FESTIVAL') candidates = initialResults[1];
                     else {
-                        // Master DB Scan
-                        const { data: dbItems, error: err } = await supabase.rpc('get_master_places_in_radius', {
-                            target_lat: targetLat,
-                            target_lng: targetLng,
-                            radius_meters: 20000,
-                            limit_count: 50
+                        const { data: dbItems } = await supabase.rpc('get_master_places_in_radius', {
+                            target_lat: targetLat, target_lng: targetLng, radius_meters: 20000, limit_count: 50
                         });
-                        if (!err && dbItems) candidates = dbItems.filter((c: any) => c.category === cat);
+                        if (dbItems) candidates = dbItems.filter((c: any) => c.category === cat);
                     }
 
                     if (candidates && candidates.length > 0) {
-                        // [Phase 11 High-Level Logic] Weather-Aware 1st Selection
-                        // 위경도 → 기상청 격자(nx, ny) 변환 (Lambert Conformal Conic)
-                        const RE = 6371.00877, GRID = 5.0, SLAT1 = 30.0, SLAT2 = 60.0;
-                        const OLAT = 38.0, OLON = 126.0, XO = 43, YO = 136;
-                        const DEGRAD = Math.PI / 180.0;
-                        const re = RE / GRID;
-                        const slat1 = SLAT1 * DEGRAD, slat2 = SLAT2 * DEGRAD;
-                        const sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(Math.tan(Math.PI * 0.25 + slat2 * 0.5) / Math.tan(Math.PI * 0.25 + slat1 * 0.5));
-                        const sf = Math.pow(Math.tan(Math.PI * 0.25 + slat1 * 0.5), sn) * Math.cos(slat1) / sn;
-                        const ro = re * sf / Math.pow(Math.tan(Math.PI * 0.25 + OLAT * DEGRAD * 0.5), sn);
-                        const ra = re * sf / Math.pow(Math.tan(Math.PI * 0.25 + targetLat * DEGRAD * 0.5), sn);
-                        let theta = targetLng * DEGRAD - OLON * DEGRAD;
-                        if (theta > Math.PI) theta -= 2.0 * Math.PI;
-                        if (theta < -Math.PI) theta += 2.0 * Math.PI;
-                        theta *= sn;
-                        const gridNx = Math.floor(ra * Math.sin(theta) + XO + 0.5);
-                        const gridNy = Math.floor(ro - ra * Math.cos(theta) + YO + 0.5);
-
-                        const forecastRes = await fetch(`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${publicApiKey}&numOfRows=10&pageNo=1&base_date=${new Date().toISOString().split('T')[0].replace(/-/g, '')}&base_time=0500&nx=${gridNx}&ny=${gridNy}&_type=json`);
-                        const weatherData = await forecastRes.json();
-                        const isRaining = JSON.stringify(weatherData).includes('비') || JSON.stringify(weatherData).includes('소나기');
-
                         const filteredCandidates = candidates
-                            .filter((c: any) => c.category === cat)
                             .map((c: any) => {
                                 let weatherWeight = 0;
                                 if (isRaining) {
@@ -232,13 +235,12 @@ export async function POST(request: Request) {
                                 return { ...c, temp_score: (c.trust_score || 0) + weatherWeight };
                             })
                             .sort((a: any, b: any) => b.temp_score - a.temp_score)
-                            .slice(0, 20); // Select top 20 verified/weather-appropriate for scraping
+                            .slice(0, 5); // Reduce to 5 for speed (Safety Margin)
 
-                        const enrichedResults = [];
-
-                        for (const cand of filteredCandidates) {
+                        // Parallel enrichment for top 5 candidates
+                        const enrichedResults = await Promise.all(filteredCandidates.map(async (cand: any) => {
                             const kakaoKey = process.env.KAKAO_REST_API_KEY;
-                            if (!kakaoKey) break;
+                            if (!kakaoKey) return null;
 
                             try {
                                 const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(cand.name)}&x=${cand.lng}&y=${cand.lat}&radius=2000`, {
@@ -255,74 +257,56 @@ export async function POST(request: Request) {
                                         if (scResult.reviewCount >= 20) finalScore += 20;
                                         if (scResult.rating > 0 && scResult.rating < 3.0) finalScore -= 40;
                                     }
-
-                                    enrichedResults.push({
+                                    return {
                                         id: crypto.randomUUID(), api_source: 'MASTER_ENRICHED', category: cand.category,
                                         name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
                                         trust_score: Math.min(finalScore, 100),
-                                        description: scResult.success
-                                            ? `${cand.description} (별점: ${scResult.rating}, 리뷰: ${scResult.reviewCount}건)`
-                                            : cand.description,
+                                        description: scResult.success ? `${cand.description} (별점: ${scResult.rating}, 리뷰: ${scResult.reviewCount}건)` : cand.description,
                                         raw_data: { ...cand.raw_data, kakao_url: matched.place_url, scraping: scResult }
-                                    });
-                                } else {
-                                    // v2.1 Fail-soft: 카카오 매칭 실패 시에도 원본 후보를 UNVERIFIED로 유지
-                                    enrichedResults.push({
-                                        id: crypto.randomUUID(), api_source: cand.api_source || cand.category,
-                                        category: cand.category,
-                                        name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
-                                        trust_score: cand.trust_score || 50,
-                                        description: cand.description || '',
-                                        raw_data: { ...cand.raw_data, kakao_matched: false }
-                                    });
+                                    };
                                 }
-                            } catch (matchErr) {
-                                // v2.1 Fail-soft: 스크래핑 에러 시에도 후보 유지
-                                enrichedResults.push({
-                                    id: crypto.randomUUID(), api_source: cand.api_source || cand.category,
-                                    category: cand.category,
-                                    name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
-                                    trust_score: cand.trust_score || 50,
-                                    description: cand.description || '',
-                                    raw_data: { ...cand.raw_data, kakao_matched: false, error: true }
-                                });
-                            }
-                            await new Promise(r => setTimeout(r, 100)); // Rate limit defense
-                        }
+                            } catch (matchErr) { /* fallback to original */ }
 
-                        const top3 = enrichedResults.sort((a, b) => b.trust_score - a.trust_score).slice(0, 3);
+                            return {
+                                id: crypto.randomUUID(), api_source: cand.api_source || cand.category,
+                                category: cand.category, name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
+                                trust_score: cand.trust_score || 50, description: cand.description || '', raw_data: { ...cand.raw_data, kakao_matched: false }
+                            };
+                        }));
+
+                        const validEnriched = enrichedResults.filter(Boolean) as SmartPlanFact[];
+                        const top3 = validEnriched.sort((a, b) => b.trust_score - a.trust_score).slice(0, 3);
                         allFacts.push(...top3);
-                        if (top3.length > 0 && ['RESTAURANT', 'MART', 'SPOT'].includes(cat)) {
-                            successSources.add('MASTER_ENRICHED');
-                        } else if (top3.length > 0) {
-                            successSources.add(cat === 'HOSPITAL' ? 'NMC_HOSPITAL' : 'TOUR_FSTVL');
-                        }
                     }
                 } catch (e: any) { console.error(`${cat} Enrichment Error`, e); }
             }
-
-            if (i < clusters.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 3000)); // Throttling (Manual Sec 5.3)
-            }
         }
 
-        // 8. DB Save (Upsert) 및 TTL
+        // 8. DB Save (Upsert)
         const validFacts = allFacts.filter(f => f.name && !isNaN(f.lat) && !isNaN(f.lng));
-        const sourcesArray = Array.from(successSources);
         let processedCount = 0;
 
         const obsoleteDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
         await supabase.from('smart_plan_facts').delete().lt('created_at', obsoleteDate);
 
-        for (const source of sourcesArray) {
-            const chunk = validFacts.filter(f => f.api_source === source);
-            if (chunk.length > 0) {
-                const { error } = await supabase.from('smart_plan_facts').insert(chunk);
-                if (!error) processedCount += chunk.length;
-            }
+        if (validFacts.length > 0) {
+            const { error } = await supabase.from('smart_plan_facts').upsert(validFacts);
+            if (!error) processedCount = validFacts.length;
+            else console.error("Upsert Error", error);
         }
 
-        return new Response(JSON.stringify({ success: true, processed_count: processedCount, clusters: clusters.length }), { status: 200 });
+        // 9. Log Automation Result
+        const duration = Date.now() - startTime;
+        await supabase.from('automation_logs').insert({
+            job_name: 'SMART_PLAN_CACHING',
+            status: processedCount > 0 ? 'SUCCESS' : 'FAILURE',
+            processed_count: processedCount,
+            message: `Processed ${clusters.length} clusters in ${duration}ms`,
+            duration_ms: duration,
+            target_date: targetStr
+        });
+
+        return new Response(JSON.stringify({ success: true, processed_count: processedCount, clusters: clusters.length, duration_ms: duration }), { status: 200 });
     } catch (error: any) {
         return new Response(JSON.stringify({ error: error.message || 'Error' }), { status: 500 });
     }
