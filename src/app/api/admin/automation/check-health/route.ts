@@ -74,11 +74,21 @@ export async function POST(request: Request) {
       }), { status: 200 });
 
     } catch (execError: any) {
-      console.error('Exec error:', execError);
-      return new Response(JSON.stringify({ error: 'Failed to run health check script', details: execError.message }), { status: 500 });
+      console.error('Exec error details:', {
+        message: execError.message,
+        stdout: execError.stdout,
+        stderr: execError.stderr,
+        code: execError.code
+      });
+      return new Response(JSON.stringify({ 
+        error: 'Failed to run health check script', 
+        details: execError.message,
+        stderr: execError.stderr
+      }), { status: 500 });
     }
 
   } catch (error: any) {
+    console.error('API Route Error:', error);
     return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), { status: 500 });
   }
 }

@@ -64,7 +64,8 @@ async function checkHealth() {
     }
   }
 
-  for (const api of API_CONFIGS) {
+  // [Parallel Execution] 모든 API를 동시에 점검하여 속도 향상 (타임아웃 방지)
+  const results = await Promise.all(API_CONFIGS.map(async (api) => {
     const apiStartTime = Date.now();
     try {
       const response = await fetch(api.url, {
@@ -82,45 +83,46 @@ async function checkHealth() {
       const isOk = response.ok;
       let errorDetail = '';
       
-      // 특별 처리: Gemini는 유저 요청에 따라 실패하더라도 조치 보류 (성공일 때만 기록)
+      if (!isOk) {
+        errorDetail = `HTTP ${response.status}: ${response.statusText}`;
+      }
+
+      // 특별 처리: Gemini는 실패하더라도 조치 보류 (기포함)
       if (api.name === 'GEMINI' && !isOk) {
-        console.log(`[SKIP] ${api.label} failed, but skipping as requested.`);
-        apiStatus.push({
+        return {
           name: api.name,
           label: api.label,
           status: 'FAILURE',
           duration_ms: duration,
           error: `HTTP ${response.status} (Deferred)`,
           checked_at: new Date().toISOString()
-        });
-        continue;
+        };
       }
 
-      if (!isOk) {
-        errorDetail = `HTTP ${response.status}: ${response.statusText}`;
-      }
-
-      console.log(`[${isOk ? 'OK' : 'FAIL'}] ${api.label} (${duration}ms)`);
-      apiStatus.push({
+      return {
         name: api.name,
         label: api.label,
         status: isOk ? 'SUCCESS' : 'FAILURE',
         duration_ms: duration,
         error: errorDetail,
         checked_at: new Date().toISOString()
-      });
+      };
     } catch (error) {
-      console.log(`[ERROR] ${api.label}: ${error.message}`);
-      apiStatus.push({
+      return {
         name: api.name,
         label: api.label,
         status: 'FAILURE',
         duration_ms: Date.now() - apiStartTime,
         error: error.message,
         checked_at: new Date().toISOString()
-      });
+      };
     }
-  }
+  }));
+
+  results.forEach(res => {
+    console.log(`[${res.status === 'SUCCESS' ? 'OK' : 'FAIL'}] ${res.label} (${res.duration_ms}ms)`);
+    apiStatus.push(res);
+  });
 
   const { error } = await supabase.from('automation_logs').insert({
     job_name: 'API_HEALTH_CHECK',
