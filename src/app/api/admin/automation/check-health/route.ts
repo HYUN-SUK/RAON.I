@@ -1,10 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
-import fs from 'fs';
-
-const execPromise = promisify(exec);
+import { performHealthCheck } from '@/lib/api-health';
 
 export async function POST(request: Request) {
   try {
@@ -16,74 +10,24 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return new Response(JSON.stringify({ error: 'Server Configuration Error' }), { status: 500 });
-    }
-
-    // 2. 스크립트 실행 (절대 경로 사용)
-    const scriptPath = path.join(process.cwd(), 'scripts', 'check_api_health.mjs');
-    
+    // 2. 네이티브 모듈 직접 호출 (Serverless Compatible)
     try {
-      // 스크립트를 실행하고 stdout을 캡처합니다.
-      const { stdout, stderr } = await execPromise(`node ${scriptPath}`);
+      const results = await performHealthCheck();
       
-      if (stderr) {
-        console.warn('Script stderr:', stderr);
-      }
-
-      // stdout에서 JSON 결과 추출
-      const match = stdout.match(/JSON_RESULT_START\n([\s\S]*?)\nJSON_RESULT_END/);
-      let apiStatusData = null;
-
-      if (match && match[1]) {
-        try {
-          apiStatusData = JSON.parse(match[1]);
-        } catch (parseError) {
-          console.error('Failed to parse script output JSON:', parseError);
-        }
-      }
-
-      // DB 저장이 성공했는지와 별개로, 파싱된 결과가 있다면 즉시 반환
-      if (apiStatusData) {
-        return new Response(JSON.stringify({ 
-          success: true, 
-          message: 'API Health check completed (Direct Response).',
-          data: apiStatusData 
-        }), { status: 200 });
-      }
-
-      // 만약 파싱에 실패했다면 기존처럼 DB에서 최신 로그를 가져오는 차선책 시도
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      const { data, error } = await supabase
-        .from('automation_logs')
-        .select('*')
-        .eq('job_name', 'API_HEALTH_CHECK')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error) throw error;
-
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'API Health check completed.',
-        data: data.api_status 
-      }), { status: 200 });
-
-    } catch (execError: any) {
-      console.error('Exec error details:', {
-        message: execError.message,
-        stdout: execError.stdout,
-        stderr: execError.stderr,
-        code: execError.code
+        message: 'API Health check completed (Native Execution).',
+        data: results 
+      }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
       });
+
+    } catch (checkError: any) {
+      console.error('Health Check Execution Error:', checkError);
       return new Response(JSON.stringify({ 
-        error: 'Failed to run health check script', 
-        details: execError.message,
-        stderr: execError.stderr
+        error: 'Failed to perform health check', 
+        details: checkError.message 
       }), { status: 500 });
     }
 
