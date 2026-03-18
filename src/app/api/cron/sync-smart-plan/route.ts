@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { scrapeKakaoPlace } from '@/lib/scraper';
 import proj4 from 'proj4';
-import crypto from 'node:crypto';
+import { v5 as uuidv5 } from 'uuid';
+
+const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // UUID v5 Namespace
 
 // Vercel Serverless Function Timeout 설정 (최대 5분)
 export const maxDuration = 300;
@@ -77,6 +79,10 @@ export async function POST(request: Request) {
         }
 
         const fetchOptions = { headers: { 'User-Agent': 'Mozilla/5.0' } };
+
+        const generateFactId = (source: string, name: string, address: string) => {
+            return uuidv5(`${source}|${String(name).trim()}|${String(address).trim()}`, MY_NAMESPACE);
+        };
 
         interface SmartPlanFact {
             id: string;
@@ -174,7 +180,8 @@ export async function POST(request: Request) {
                                 .sort((a: any, b: any) => a.K_PRICE - b.K_PRICE)
                                 .slice(0, 3)
                                 .map((item: any) => ({
-                                    id: crypto.randomUUID(), api_source: 'OPINET_GAS', category: 'GAS',
+                                    id: generateFactId('OPINET_GAS', item.OS_NM, item.VAN_ADR || '주소없음'), 
+                                    api_source: 'OPINET_GAS', category: 'GAS',
                                     name: item.OS_NM, description: `등유: ${item.K_PRICE}원 (최저가 순)`, address: item.VAN_ADR || '주소 정보 없음',
                                     lat: targetLat, lng: targetLng, trust_score: 90, raw_data: item
                                 }));
@@ -258,7 +265,8 @@ export async function POST(request: Request) {
                                         if (scResult.rating > 0 && scResult.rating < 3.0) finalScore -= 40;
                                     }
                                     return {
-                                        id: crypto.randomUUID(), api_source: 'MASTER_ENRICHED', category: cand.category,
+                                        id: generateFactId('MASTER_ENRICHED', cand.name, cand.address), 
+                                        api_source: 'MASTER_ENRICHED', category: cand.category,
                                         name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
                                         trust_score: Math.min(finalScore, 100),
                                         description: scResult.success ? `${cand.description} (별점: ${scResult.rating}, 리뷰: ${scResult.reviewCount}건)` : cand.description,
@@ -268,7 +276,8 @@ export async function POST(request: Request) {
                             } catch (matchErr) { /* fallback to original */ }
 
                             return {
-                                id: crypto.randomUUID(), api_source: cand.api_source || cand.category,
+                                id: generateFactId(cand.api_source || cand.category, cand.name, cand.address),
+                                api_source: cand.api_source || cand.category,
                                 category: cand.category, name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
                                 trust_score: cand.trust_score || 50, description: cand.description || '', raw_data: { ...cand.raw_data, kakao_matched: false }
                             };
@@ -286,8 +295,9 @@ export async function POST(request: Request) {
         const validFacts = allFacts.filter(f => f.name && !isNaN(f.lat) && !isNaN(f.lng));
         let processedCount = 0;
 
-        const obsoleteDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
-        await supabase.from('smart_plan_facts').delete().lt('created_at', obsoleteDate);
+        // [Phase 12 Extension] 영구 자산화 정책: 4일 TTL 삭제 로직 제거 (주석 처리)
+        // const obsoleteDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
+        // await supabase.from('smart_plan_facts').delete().lt('created_at', obsoleteDate);
 
         if (validFacts.length > 0) {
             const { error } = await supabase.from('smart_plan_facts').upsert(validFacts);
