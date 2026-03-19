@@ -58,21 +58,50 @@ export async function POST(request: Request) {
         const clusters: Cluster[] = [];
 
         for (const s of schedules || []) {
+            let targetLat = s.campground_lat;
+            let targetLng = s.campground_lng;
+
+            // [Resilience Fallback] 좌표가 null일 경우 master_places에서 이름으로 역추적 시도
+            if (!targetLat || !targetLng) {
+                const { data: matchedPlace } = await supabase
+                    .from('master_places')
+                    .select('lat, lng')
+                    .ilike('name', `%${s.campground_name}%`)
+                    .not('lat', 'is', null)
+                    .limit(1)
+                    .single();
+                
+                if (matchedPlace) {
+                    targetLat = matchedPlace.lat;
+                    targetLng = matchedPlace.lng;
+                    console.log(`Fallback coordinates found for ${s.campground_name}: [${targetLat}, ${targetLng}]`);
+                }
+            }
+
+            if (!targetLat || !targetLng) continue; // 여전히 좌표가 없으면 스킵
+
             let found = false;
             for (const c of clusters) {
-                const dist = Math.sqrt(Math.pow(c.lat - s.campground_lat, 2) + Math.pow(c.lng - s.campground_lng, 2));
+                const dist = Math.sqrt(Math.pow(c.lat - targetLat, 2) + Math.pow(c.lng - targetLng, 2));
                 if (dist <= 0.2) { // 반경 약 20km 이내면 동일한 타겟으로 편입
                     if (!c.names.includes(s.campground_name)) c.names.push(s.campground_name);
                     found = true; break;
                 }
             }
             if (!found) {
-                clusters.push({ lat: s.campground_lat, lng: s.campground_lng, names: [s.campground_name], address: s.campground_address || '충청남도 예산군' });
+                clusters.push({ lat: targetLat, lng: targetLng, names: [s.campground_name], address: s.campground_address || '충청남도 예산군' });
             }
         }
 
-        // 수동 파라미터가 없는데, D-3일 예약도 한 명도 없다면? 그냥 비용 절감 차원에서 종결(Skip)
+        // 수동 파라미터가 없는데, D-3일 예약도 한 명도 없다면? 그냥 비용 절감 차원에서 종결(Skip)하되 로그는 남김
         if (clusters.length === 0 && !manualTargetLat) {
+            await supabase.from('automation_logs').insert({
+                job_name: 'SMART_PLAN_CACHING',
+                status: 'SUCCESS',
+                processed_count: 0,
+                message: 'No target schedules with valid coordinates found. Skipped API syncing.',
+                target_date: targetStr
+            });
             return new Response(JSON.stringify({ success: true, message: 'No D-3 schedules found. Skipped API syncing.', processed_count: 0 }), { status: 200 });
         } else if (manualTargetLat) {
             clusters.push({ lat: manualTargetLat, lng: manualTargetLng!, names: ['Manual Target'], address: manualAddress || '충청남도 예산군' });
