@@ -43,8 +43,8 @@
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
 | **Phase 4** | **미래 기능 (Future)** | ✅ **완료** | 100% | 웹 푸시(FCM), 상황별 알림 시스템, 인앱 배지 구현 완료. |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
-| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | Phase 11/12 하이브리드 동기화 및 실시간 검증 엔진 구축 완료. |
-| **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 98% | 크리에이터, 미션(XP/Deletion 완전구현) 완료. 확장 지도 대기 |
+| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | 페르소나 V2 엔진 및 전 영역 센서(50개) 배치/감사 완료. |
+| **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
 

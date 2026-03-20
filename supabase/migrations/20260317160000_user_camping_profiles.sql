@@ -82,4 +82,7 @@ GRANT EXECUTE ON FUNCTION upsert_camping_profile(UUID, TEXT, DOUBLE PRECISION, D
 -- 6. 인덱스
 CREATE INDEX IF NOT EXISTS idx_camping_profiles_user_id ON user_camping_profiles(user_id);
 
-RAISE NOTICE '✅ user_camping_profiles 테이블 및 RPC 생성 완료';
+DO $$
+BEGIN
+  RAISE NOTICE '✅ user_camping_profiles 테이블 및 RPC 생성 완료';
+END $$;

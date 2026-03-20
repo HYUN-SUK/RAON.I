@@ -42,24 +42,10 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         setSelectedSite(site);
         fetchSiteConfig();
 
-        // rebookData가 있으면 폼 자동 입력 (Smart Re-book)
-        if (rebookData) {
-            setFamilyCount(rebookData.familyCount);
-            setVisitorCount(rebookData.visitorCount);
-            setVehicleCount(rebookData.vehicleCount);
-            if (rebookData.guestName) setName(rebookData.guestName);
-            if (rebookData.guestPhone) setPhone(rebookData.guestPhone);
-            if (rebookData.guestDetails) {
-                setAdults(rebookData.guestDetails.adults ?? 2);
-                setKidsPreschool(rebookData.guestDetails.kids?.preschool ?? 0);
-                setKidsElementary(rebookData.guestDetails.kids?.elementary ?? 0);
-                setKidsTeen(rebookData.guestDetails.kids?.teen ?? 0);
-                setHasPet(rebookData.guestDetails.hasPet ?? false);
-            }
-        } else {
-            // rebookData가 없으면(새 예약), 캠핑 프로필에서 인원 정보 로딩
-            fetchUserContactInfo();
-            getCampingProfile().then(profile => {
+        const loadInitialData = async () => {
+            // 1. 공통 캠핑 프로필 로드 (최우선순위)
+            try {
+                const profile = await getCampingProfile();
                 if (profile) {
                     setAdults(profile.adults);
                     setKidsPreschool(profile.kidsPreschool);
@@ -67,8 +53,35 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     setKidsTeen(profile.kidsTeen);
                     setHasPet(profile.hasPet);
                 }
-            }).catch(console.error);
-        }
+            } catch (err) {
+                console.error('[ReservationForm] Profile load failed', err);
+            }
+
+            // 2. 예약자 기본 연락처 정보 로드
+            fetchUserContactInfo();
+
+            // 3. 재예약(Re-book) 데이터가 있으면 특정 필드 덮어쓰기 (성함, 연락처 등)
+            if (rebookData) {
+                setFamilyCount(rebookData.familyCount);
+                setVisitorCount(rebookData.visitorCount);
+                setVehicleCount(rebookData.vehicleCount);
+                if (rebookData.guestName) setName(rebookData.guestName);
+                if (rebookData.guestPhone) setPhone(rebookData.guestPhone);
+                
+                // 재예약 데이터에 상세 인원 정보가 포함되어 있다면 덮어씀 (예약별 특수성 반영)
+                if (rebookData.guestDetails) {
+                    if (rebookData.guestDetails.adults !== undefined) setAdults(rebookData.guestDetails.adults);
+                    if (rebookData.guestDetails.kids) {
+                        if (rebookData.guestDetails.kids.preschool !== undefined) setKidsPreschool(rebookData.guestDetails.kids.preschool);
+                        if (rebookData.guestDetails.kids.elementary !== undefined) setKidsElementary(rebookData.guestDetails.kids.elementary);
+                        if (rebookData.guestDetails.kids.teen !== undefined) setKidsTeen(rebookData.guestDetails.kids.teen);
+                    }
+                    if (rebookData.guestDetails.hasPet !== undefined) setHasPet(rebookData.guestDetails.hasPet);
+                }
+            }
+        };
+
+        loadInitialData();
 
         // 언마운트 시 rebookData 클리어
         return () => {
@@ -150,11 +163,15 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             });
 
             if (result.success) {
-                // 캠핑 프로필 동기화 (Fire & Forget) — 인원 구성 정보만 업데이트
-                saveCampingProfile({
-                    originLabel: null, originLat: null, originLng: null,
-                    adults, kidsPreschool, kidsElementary, kidsTeen, hasPet,
-                }).catch(console.error);
+                // 캠핑 프로필 동기화 (Awaited for stability) — 인원 구성 정보 업데이트
+                try {
+                    await saveCampingProfile({
+                        originLabel: null, originLat: null, originLng: null,
+                        adults, kidsPreschool, kidsElementary, kidsTeen, hasPet,
+                    });
+                } catch (saveErr) {
+                    console.error('[ReservationForm] Profile sync failed', saveErr);
+                }
 
                 // [Phase 2] Dispatch Persona Actions safely in the background
                 try {

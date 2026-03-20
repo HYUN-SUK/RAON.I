@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2 } from 'lucide-react';
 import { generatePersonalizedSmartPlan, StandardizedPlanJSON, FactCard } from '@/lib/smartPlan';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { toast } from 'sonner';
 
 interface SmartPlanProposalProps {
     userId?: string;
@@ -116,18 +117,24 @@ export default function SmartPlanProposal({
 
         if (currentActiveInfo && newActiveInfo) {
             if (userId) {
-                // Trigger Actions
+                // Trigger Actions (Phase 3 Sync)
                 if (newActiveInfo.category === 'MART' && newActiveInfo.metadata?.hasMilkit) {
                     dispatchPersonaAction(userId, 'PLAN_SWAP_MEALKIT').catch(console.error);
                 }
-                if (newActiveInfo.category === 'RESTAURANT' && newActiveInfo.metadata?.isHighEnd) {
-                    dispatchPersonaAction(userId, 'PLAN_SWAP_FANCY_FOOD').catch(console.error);
+                if (newActiveInfo.category === 'RESTAURANT' && (newActiveInfo.metadata?.isHighEnd || newActiveInfo.metadata?.isHighLuxury)) {
+                    dispatchPersonaAction(userId, 'PLAN_SWAP_LUXURY').catch(console.error);
+                }
+                if (newActiveInfo.category === 'MART' && newActiveInfo.metadata?.isVintage) {
+                    dispatchPersonaAction(userId, 'PLAN_SWAP_VINTAGE').catch(console.error);
                 }
                 if (newActiveInfo.category === 'SPOT' && newActiveInfo.metadata?.isNatureWalk) {
-                    dispatchPersonaAction(userId, 'PLAN_SWAP_NATURE_WALK').catch(console.error);
+                    dispatchPersonaAction(userId, 'PLAN_SWAP_WALK').catch(console.error);
                 }
                 if (newActiveInfo.metadata?.isScenic) {
                     dispatchPersonaAction(userId, 'PLAN_FILTER_VIEW').catch(console.error);
+                }
+                if (newActiveInfo.category === 'HOSPITAL' || newActiveInfo.category === 'FACILITY') {
+                    dispatchPersonaAction(userId, 'PLAN_FILTER_PRIVATE').catch(console.error);
                 }
             }
 
@@ -156,7 +163,14 @@ export default function SmartPlanProposal({
         if (userId) {
             dispatchPersonaAction(userId, 'PLAN_CLICK_NAVI').catch(console.error);
         }
-        window.open(`https://map.kakao.com/link/to/${card.name},${location.lat},${location.lng}`, '_blank');
+        window.open(`https://map.kakao.com/link/to/${card.name},${card.lat},${card.lng}`, '_blank');
+    };
+
+    const handleShareClick = () => {
+        if (userId) {
+            dispatchPersonaAction(userId, 'PLAN_SHARE_SNS').catch(console.error);
+        }
+        toast.success('플랜 이미지가 생성되었습니다. SNS로 공유해보세요!');
     };
 
     if (isLoading) {
@@ -248,6 +262,16 @@ export default function SmartPlanProposal({
                             {card.description}
                         </p>
 
+                        {/* AI Reasoning (Phase 3) */}
+                        {card.reasoning && (
+                            <div className="mt-2 py-1.5 px-2 bg-blue-50/50 rounded-lg border border-blue-100/30 flex items-start gap-1.5">
+                                <span className="text-[10px] bg-blue-500 text-white px-1 rounded-sm font-bold shrink-0 mt-0.5">AI</span>
+                                <p className="text-[11px] text-blue-700 font-medium leading-tight">
+                                    {card.reasoning}
+                                </p>
+                            </div>
+                        )}
+
                         {/* Fact Chips (v2 Phase 2) */}
                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             {card.evidence?.stars !== undefined && card.evidence.stars > 0 && (
@@ -316,6 +340,18 @@ export default function SmartPlanProposal({
                     <p className="text-lg leading-loose font-medium text-white/90 tracking-tight whitespace-pre-wrap">
                         {renderNarration(plan.narration)}
                     </p>
+
+                    <div className="pt-2 flex justify-end">
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={handleShareClick}
+                            className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold rounded-xl h-9"
+                        >
+                            <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                            플랜 공유하기
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -392,6 +428,13 @@ export default function SmartPlanProposal({
                                             <p className="text-xs text-gray-600 leading-snug line-clamp-1">
                                                 {opt.description}
                                             </p>
+                                            
+                                            {/* AI Reasoning in Bottom Sheet */}
+                                            {opt.reasoning && (
+                                                <p className="text-[10px] text-blue-600 font-medium mt-1 italic">
+                                                    " {opt.reasoning} "
+                                                </p>
+                                            )}
 
                                             {/* Fact Chips in Bottom Sheet */}
                                             <div className="flex flex-wrap items-center gap-1.5 mt-2">

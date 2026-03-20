@@ -61,15 +61,29 @@ ALTER TABLE public.user_persona_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trip_persona_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- 사용자는 본인의 데이터만 조회 가능
+DROP POLICY IF EXISTS "Users can view own action log" ON public.user_action_log;
 CREATE POLICY "Users can view own action log" ON public.user_action_log FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own tag ledger" ON public.user_tag_ledger;
 CREATE POLICY "Users can view own tag ledger" ON public.user_tag_ledger FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own persona snapshot" ON public.user_persona_snapshots;
 CREATE POLICY "Users can view own persona snapshot" ON public.user_persona_snapshots FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own trip snapshot" ON public.trip_persona_snapshots;
 CREATE POLICY "Users can view own trip snapshot" ON public.trip_persona_snapshots FOR SELECT USING (auth.uid() = user_id);
 
 -- 서비스 역할(서버 사이드)만 쓰기 가능
+DROP POLICY IF EXISTS "Service role full access action log" ON public.user_action_log;
 CREATE POLICY "Service role full access action log" ON public.user_action_log FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
+
+DROP POLICY IF EXISTS "Service role full access tag ledger" ON public.user_tag_ledger;
 CREATE POLICY "Service role full access tag ledger" ON public.user_tag_ledger FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
+
+DROP POLICY IF EXISTS "Service role full access persona snapshot" ON public.user_persona_snapshots;
 CREATE POLICY "Service role full access persona snapshot" ON public.user_persona_snapshots FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
+
+DROP POLICY IF EXISTS "Service role full access trip snapshot" ON public.trip_persona_snapshots;
 CREATE POLICY "Service role full access trip snapshot" ON public.trip_persona_snapshots FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
 
 -- 완료 메시지

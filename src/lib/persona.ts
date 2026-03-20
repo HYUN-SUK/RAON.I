@@ -32,57 +32,69 @@ export interface UserPersona {
  * Canonical TagId를 사용하여 정합성을 보장합니다.
  */
 export const ACTION_TAG_MAP: Record<string, { tags: TagId[], weight: number }> = {
-    // 3.1 예약 및 외부 일정 등록 (Strong Signals)
-    'RESERVATION_GLAMPING_CARAVAN': { tags: ['FACILITY_PRIVATE_BATH', 'FOOD_BBQ'], weight: 10.0 },
-    'RESERVATION_NOJI_NATURE': { tags: ['STYLE_SOLO', 'MOOD_QUIET'], weight: 10.0 },
-    'RESERVATION_KIDS_INCLUDED': { tags: ['FAMILY_INFANT'], weight: 10.0 },
-    'RESERVATION_PET_INCLUDED': { tags: ['FAMILY_PET'], weight: 10.0 },
-    'RESERVATION_FAMILY_ADDED': { tags: ['STYLE_FAMILY'], weight: 8.0 },
-    'RESERVATION_WEEKDAY_LEISURE': { tags: ['MOOD_QUIET'], weight: 8.0 },
-    'RESERVATION_WEEKEND_PEAK': { tags: ['STYLE_FAMILY'], weight: 5.0 },
-    'RESERVATION_MULTIPLE_NIGHTS': { tags: ['MOOD_QUIET'], weight: 5.0 },
-    'RESERVATION_SOLO_CAMPER': { tags: ['STYLE_SOLO', 'MOOD_QUIET'], weight: 10.0 },
-    'RESERVATION_URBAN_NEARBY': { tags: ['LEGACY_UNKNOWN'], weight: 5.0 }, // #도심인접, #매점/인프라중시
+    // [4.1] 예약 및 외부 일정 (Strong Signals)
+    'RESERVATION_GLAMPING_CARAVAN': { tags: ['FACILITY_GLAMP', 'FACILITY_LUXURY'], weight: 10.0 },
+    'RESERVATION_NOJI_NATURE': { tags: ['FACILITY_OFFROAD', 'MOOD_NATURE'], weight: 10.0 },
+    'RESERVATION_KIDS_INCLUDED': { tags: ['FAMILY_INFANT', 'FACILITY_KIDS'], weight: 15.0 },
+    'RESERVATION_PET_INCLUDED': { tags: ['FAMILY_PET'], weight: 15.0 },
+    'RESERVATION_FAMILY_ADDED': { tags: ['STYLE_GROUP', 'STYLE_FAMILY'], weight: 10.0 },
+    'RESERVATION_WEEKEND_PEAK': { tags: ['ACTIVITY_BUSY', 'STYLE_FAMILY'], weight: 5.0 },
+    'RESERVATION_WEEKDAY_LEISURE': { tags: ['MOOD_LAZY', 'MOOD_QUIET'], weight: 8.0 },
+    'RESERVATION_MULTIPLE_NIGHTS': { tags: ['ACTIVITY_GEAR', 'MOOD_LAZY'], weight: 5.0 },
+    'RESERVATION_SOLO_CAMPER': { tags: ['STYLE_SOLO', 'ACTIVITY_READ'], weight: 10.0 },
+    'RESERVATION_URBAN_NEARBY': { tags: ['VIEW_CITY', 'FACILITY_STORE'], weight: 5.0 },
     
-    // 3.5 프로필 설정 (Profile Sync)
+    // [4.2] 커뮤니티 및 소셜 (Medium Signals)
+    'COMMUNITY_WRITE_FIRE': { tags: ['ACTIVITY_FIRE', 'MOOD_ACC'], weight: 5.0 },
+    'COMMUNITY_WRITE_COOKING': { tags: ['FOOD_COOKING', 'FOOD_BBQ'], weight: 5.0 },
+    'COMMUNITY_WRITE_STARRY': { tags: ['VIEW_STARRY', 'MOOD_QUIET'], weight: 8.0 },
+    'COMMUNITY_WRITE_RAINY': { tags: ['MOOD_RAIN', 'MOOD_ACC'], weight: 8.0 },
+    'COMMUNITY_WRITE_SNOWY': { tags: ['MOOD_SNOW', 'MOOD_NATURE'], weight: 8.0 },
+    'COMMUNITY_EMBER_FOOD': { tags: ['FOOD_COOKING', 'FOOD_SEAFOOD'], weight: 3.0 },
+    'COMMUNITY_EMBER_GEAR': { tags: ['ACTIVITY_GEAR', 'SOCIAL_ACTIVE'], weight: 3.0 },
+    'COMMUNITY_LIKE_GEAR': { tags: ['ACTIVITY_GEAR', 'MOOD_VINTAGE'], weight: 2.0 },
+    'COMMUNITY_LIKE_MINIMAL': { tags: ['ACTIVITY_MINIMAL', 'FACILITY_OFFROAD'], weight: 2.0 },
+    'COMMUNITY_COMMENT_SEAFOOD': { tags: ['FOOD_SEAFOOD', 'FOOD_ALCOHOL'], weight: 3.0 },
+    'COMMUNITY_COMMENT_VEGAN': { tags: ['FOOD_VEGAN', 'ACTIVITY_MINIMAL'], weight: 3.0 },
+    'COMMUNITY_FEED_DWELL': { tags: ['ACTIVITY_PHOTO', 'SOCIAL_ACTIVE'], weight: 1.0 },
+    'COMMUNITY_FOLLOWER_50': { tags: ['SOCIAL_ACTIVE'], weight: 10.0 },
+    'COMMUNITY_PROFILE_CHANGE': { tags: ['ACTIVITY_PHOTO', 'MOOD_ACC'], weight: 5.0 },
+    'COMMUNITY_FOLLOW_USER': { tags: ['SOCIAL_ACTIVE'], weight: 5.0 },
+
+    // [4.3] LBS 및 주변 탐색 (Weak Signals)
+    'LBS_CLICK_OCEAN_VIBE': { tags: ['VIEW_OCEAN', 'VIEW_OPEN'], weight: 2.0 },
+    'LBS_CLICK_FOREST_VIBE': { tags: ['VIEW_FOREST', 'MOOD_QUIET'], weight: 2.0 },
+    'LBS_CLICK_VALLEY_VIBE': { tags: ['VIEW_LAKE', 'ACTIVITY_WATER'], weight: 2.0 },
+    'LBS_NEARBY_FESTIVAL': { tags: ['ACTIVITY_FESTIVAL', 'ACTIVITY_BUSY'], weight: 3.0 },
+    'LBS_CLICK_CAFE': { tags: ['FOOD_CAFE', 'FOOD_BAKERY'], weight: 2.0 },
+    'LBS_CLICK_MART': { tags: ['FOOD_COOKING', 'FOOD_MEALKIT'], weight: 2.0 },
+    'LBS_CLICK_LOCALFOOD': { tags: ['FOOD_LOCAL', 'FOOD_BBQ'], weight: 2.0 },
+    'LBS_CLICK_HIKE': { tags: ['ACTIVITY_HIKE'], weight: 2.0 },
+    'LBS_CLICK_PARK': { tags: ['MOOD_NATURE', 'ACTIVITY_READ'], weight: 2.0 },
+    'LBS_WEATHER_CLICK': { tags: ['ACTIVITY_BUSY', 'ACTIVITY_PHOTO'], weight: 1.0 },
+
+    // [4.4] 스마트 플랜 상호작용 (Strong/Medium)
+    'PLAN_SWAP_MEALKIT': { tags: ['FOOD_MEALKIT', 'MOOD_LAZY'], weight: 4.0 },
+    'PLAN_SWAP_LUXURY': { tags: ['FACILITY_LUXURY', 'FOOD_CAFE'], weight: 4.0 },
+    'PLAN_SWAP_VINTAGE': { tags: ['MOOD_VINTAGE', 'FACILITY_OFFROAD'], weight: 3.0 },
+    'PLAN_SWAP_WALK': { tags: ['MOOD_NATURE', 'ACTIVITY_READ'], weight: 4.0 },
+    'PLAN_CLICK_NAVI': { tags: ['ACTIVITY_BUSY', 'ACTIVITY_HIKE'], weight: 3.0 },
+    'PLAN_SHARE_SNS': { tags: ['ACTIVITY_PHOTO', 'SOCIAL_ACTIVE'], weight: 5.0 },
+    'PLAN_LIKE_ALCOHOL': { tags: ['FOOD_ALCOHOL'], weight: 3.0 },
+    'PLAN_LIKE_KIDS_ZONE': { tags: ['FACILITY_KIDS', 'FAMILY_INFANT'], weight: 3.0 },
+    'PLAN_FILTER_VIEW': { tags: ['VIEW_OPEN', 'VIEW_OCEAN'], weight: 3.0 },
+    'PLAN_FILTER_PRIVATE': { tags: ['FACILITY_PRIVATE_BATH', 'FACILITY_LUXURY'], weight: 5.0 },
+
+    // [4.5] 마켓 및 미션 (Medium Signals)
+    'MARKET_CLICK_LANTERN': { tags: ['MOOD_ACC', 'MOOD_VINTAGE'], weight: 3.0 },
+    'MARKET_CLICK_TENT': { tags: ['ACTIVITY_GEAR', 'STYLE_FAMILY'], weight: 3.0 },
+    'MARKET_CLICK_MAT': { tags: ['FACILITY_LUXURY', 'MOOD_LAZY'], weight: 2.0 },
+    'MISSION_LNT_PARTICIPATE': { tags: ['MOOD_NATURE', 'ACTIVITY_MINIMAL'], weight: 5.0 },
+    'MISSION_BADGE_GEAR_MASTER': { tags: ['ACTIVITY_GEAR'], weight: 4.0 },
+
+    // Profile Sync (Legacy Support)
     'PROFILE_SYNC_KIDS': { tags: ['FAMILY_INFANT'], weight: 8.0 },
     'PROFILE_SYNC_PET': { tags: ['FAMILY_PET'], weight: 8.0 },
-
-    // 3.2 커뮤니티 및 소통 (Community Feed)
-    'COMMUNITY_WRITE_FIRE': { tags: ['ACTIVITY_FIRE'], weight: 5.0 },
-    'COMMUNITY_WRITE_COOKING': { tags: ['FOOD_BBQ'], weight: 5.0 },
-    'COMMUNITY_WRITE_HEALING': { tags: ['MOOD_QUIET'], weight: 5.0 },
-    'COMMUNITY_WRITE_STARRY': { tags: ['MOOD_QUIET'], weight: 8.0 }, // #밤하늘별빛
-    'COMMUNITY_WRITE_RAINY': { tags: ['LEGACY_UNKNOWN'], weight: 8.0 }, // #우중캠핑낭만, #감성소품
-    'COMMUNITY_WRITE_SNOWY': { tags: ['SEASON_WINTER'], weight: 8.0 }, // #설중캠핑, #자연그대로
-    'COMMUNITY_LIKE_POST': { tags: ['STYLE_FAMILY'], weight: 2.0 }, 
-    'COMMUNITY_COMMENT_POST': { tags: ['STYLE_FAMILY'], weight: 3.0 },
-    'COMMUNITY_EMBER_DONATE': { tags: ['ACTIVITY_PHOTO'], weight: 2.0 },
-    'COMMUNITY_FOLLOW_USER': { tags: ['SOCIAL_ACTIVE'], weight: 5.0 },
-    'COMMUNITY_FEED_DWELL': { tags: ['SOCIAL_ACTIVE'], weight: 1.0 }, // #사진/기록, #소셜 (10분 이상 체류)
-
-    // 3.5 마켓 및 미션 (Market & Mission)
-    'MARKET_CLICK_LANTERN': { tags: ['MOOD_QUIET'], weight: 3.0 },
-    'MARKET_CLICK_TENT': { tags: ['STYLE_FAMILY'], weight: 3.0 },
-    'MISSION_PARTICIPATE': { tags: ['ACTIVITY_PHOTO'], weight: 5.0 },
-    'MISSION_LNT_START': { tags: ['MOOD_QUIET'], weight: 5.0 },
-
-    // 3.3 추천 및 주변 탐색 (LBS/Nearby)
-    'LBS_CLICK_CAFE': { tags: ['FOOD_CAFE'], weight: 2.0 },
-    'LBS_CLICK_MART': { tags: ['FOOD_BBQ'], weight: 2.0 },
-    'LBS_CLICK_ATTRACTION': { tags: ['ACTIVITY_PHOTO'], weight: 2.0 },
-    'LBS_CLICK_LEISURE': { tags: ['ACTIVITY_HEALING'], weight: 2.0 },
-    'LBS_CLICK_OCEAN_VIBE': { tags: ['VIEW_OCEAN'], weight: 3.0 }, // #오션뷰, #탁트인시야
-    'LBS_CLICK_MOUNTAIN_VIBE': { tags: ['MOOD_QUIET'], weight: 3.0 }, // #포레스트뷰, #조용한/힐링
-    'LBS_CLICK_VALLEY_VIBE': { tags: ['ACTIVITY_HEALING'], weight: 3.0 }, // #호수/계곡, #수상액티비티
-    'LBS_WEATHER_CLICK': { tags: ['ACTIVITY_PHOTO'], weight: 1.0 }, // #가득찬일정, #사진/기록
-    'LBS_NEARBY_CLICK': { tags: ['ACTIVITY_HEALING'], weight: 3.0 }, // #로컬축제탐방, #가득찬일정
-
-    // 3.4 스마트 플랜 상호작용
-    'PLAN_LIKE_KIDS_ZONE': { tags: ['FAMILY_INFANT'], weight: 3.0 },
-    'PLAN_FILTER_SHOWER': { tags: ['FACILITY_PRIVATE_BATH'], weight: 5.0 },
-    'PLAN_CLICK_OCEAN': { tags: ['VIEW_OCEAN'], weight: 3.0 },
-    'PLAN_SEASON_WINTER': { tags: ['SEASON_WINTER'], weight: 4.0 },
 };
 
 /**
@@ -148,8 +160,6 @@ export async function logUserAction(
 
         if (ledgerError) throw ledgerError;
 
-        console.log(`[Persona v2] Action logged with ${tags.length} tags for user ${userId}`);
-
         // 3. Trip Snapshot 즉시 갱신 (Strong Signal인 경우에만)
         const STRONG_SIGNALS = ['RESERVATION', 'SCHEDULE_ADD', 'PROFILE_UPDATE'];
         if (STRONG_SIGNALS.includes(metadata.action_type) || metadata.action_type?.startsWith('RESERVATION_')) {
@@ -206,7 +216,6 @@ export async function refreshTripSnapshot(userId: string, customSupabase?: any):
             }, { onConflict: 'user_id' }); // user_id가 PK인 1:1 관계 가정 (또는 trip_id 기준)
 
         if (error) throw error;
-        console.log(`[Persona v2] Trip Snapshot refreshed for user ${userId}`);
 
     } catch (error) {
         console.error("[Persona v2] Failed to refresh trip snapshot:", error);

@@ -1,0 +1,19 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+--- Checking 3-day cached data (smart_plan_facts) ---
+{
+  "SPOT (TOUR_SPOT)": 100,
+  "MART_HOSPITAL (LARGE_STORE)": 100,
+  "RESTAURANT (GOOD_RESTAURANT)": 100,
+  "FESTIVAL (TOUR_FSTVL)": 13
+}
+
+--- Checking static RESTAURANT data in master_places ---
+{
+  "TOUR_CAFE": 998,
+  "SAFE_RESTAURANT": 2
+}
+
+--- Checking for duplicates in RESTAURANT data ---
+Sample duplicates (Name|Address): []
+Total unique restaurants: 1000
+Total restaurant records: 1000

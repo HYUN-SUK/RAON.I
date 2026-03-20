@@ -10,6 +10,8 @@ import TopBar from '@/components/TopBar';
 import { Flag, ChevronRight, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { createClient } from '@/lib/supabase-client';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 export default function MissionListPage() {
     const router = useRouter();
@@ -17,8 +19,17 @@ export default function MissionListPage() {
 
     useEffect(() => {
         fetchMissions();
-    }, [fetchMissions]); // fetchMissions inside store depends on sortBy, but here we just trigger initial load or relies on store state change if we subscribed correctly. 
-    // Actually, setSortBy in store already calls fetchMissions. So we just need initial load.
+        
+        // --- [Phase 3] Tag Sensor: Mission List View ---
+        const logPageView = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await dispatchPersonaAction(user.id, 'MISSION_PARTICIPATE' as any);
+            }
+        };
+        logPageView();
+    }, [fetchMissions]);
 
     if (isLoading && missions.length === 0) {
         return (

@@ -343,6 +343,22 @@ export const creatorService = {
 
             // --- [Phase 3] Tag Sensor: Follow ---
             await dispatchPersonaAction(user.id, 'COMMUNITY_FOLLOW_USER' as any);
+
+            // --- [Phase 3] Tag Sensor: Follower 50 Milestone ---
+            // 해당 크리에이터의 팔로워 수를 확인하여 50명 도달 시 보상 태그 부여
+            try {
+                const { count } = await supabase
+                    .from('creator_follows')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('creator_id', creatorId);
+
+                if (count === 50) {
+                    await dispatchPersonaAction(creatorId, 'COMMUNITY_FOLLOWER_50' as any);
+                    console.log(`[Persona] Creator ${creatorId} reached 50 followers milestone!`);
+                }
+            } catch (err) {
+                console.error('[Persona] Milestone check failed', err);
+            }
         }
         return isFollowing;
     },

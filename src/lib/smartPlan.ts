@@ -21,10 +21,13 @@ export interface StandardizedPlanJSON {
 export interface FactCard {
     "@type": string;
     id: string;
-    category: 'ROUTE_CAFE' | 'ROUTE_RESTAURANT' | 'ROUTE_SPOT' | 'HOSPITAL' | 'MART' | 'RESTAURANT' | 'GAS_STATION' | 'SPOT' | 'FESTIVAL';
+    category: 'ROUTE_CAFE' | 'ROUTE_RESTAURANT' | 'ROUTE_SPOT' | 'HOSPITAL' | 'MART' | 'RESTAURANT' | 'GAS_STATION' | 'SPOT' | 'FESTIVAL' | 'FACILITY';
+    lat: number;
+    lng: number;
     name: string;
     description: string;
-    trustScore: number; // 하위 호환: finalScore로 채워짐
+    reasoning?: string;      // AI가 생성한 추천 이유 (Persona Match)
+    trustScore: number;
     scoreBreakdown?: {
         existence: number;    // 0~100: 출처 신뢰도 + 좌표 신뢰도
         quality: number;      // 0~100: 공공 인증 + 실시간 평점
@@ -384,6 +387,8 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
                 id: row.id,
                 category: mappedCategory,
                 name: row.name,
+                lat: row.lat || (row.raw_data?.lat),
+                lng: row.lng || (row.raw_data?.lng),
                 description: row.description || '',
                 address: row.address || '',
                 trustScore: row.totalTrustScore || row.trust_score || 50,
@@ -617,18 +622,44 @@ ${festivalContext}
 5. [톤 가이드] 휴무 위험 등 리스크 언급 시 "방문 전 전화를 통해 운영 여부를 한 번 더 확인하시면 더 완벽한 여정이 될 거예요"와 같이 부드러운 권유형을 사용하세요.
 6. 길지 않은 3문단의 수필 형식으로 작성하세요.
 7. 만약 추천 장소에 병원(HOSPITAL) 정보가 포함되지 않았다면, 응급 상황 발생 시 119 구급대를 이용하거나 가장 가까운 시내 의료기관으로 이동하도록 따뜻하게 안내를 포함해주세요.
-8. [최종 원칙] 서사는 사용자의 편안함과 동선 부담 감소를 먼저 말하세요.
+8. [추천 이유 생성] 각 추천 카드(ID 별로)에 대해 사용자의 페르소나와 해당 장소의 특성이 왜 어울리는지 1문장(20자 이내)으로 핵심 이유를 작성해주세요.
+
+[출력 형식]
+반드시 아래 JSON 형식을 지켜주세요.
+{
+  "narration": "전체 여정 서사 텍스트",
+  "reasons": {
+    "ID1": "추천 이유 1",
+    "ID2": "추천 이유 2",
+    ...
+  }
+}
 `.trim();
 
         const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            body: JSON.stringify({ 
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { response_mime_type: "application/json" }
+            })
         });
 
         const apiData = await apiRes.json();
-        if (apiData.candidates && apiData.candidates[0]?.content?.parts[0]?.text) {
-            narration = apiData.candidates[0].content.parts[0].text;
+        const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (responseText) {
+            const parsed = JSON.parse(responseText);
+            narration = parsed.narration;
+            
+            // Apply reasons to cards
+            const allCards = [...routeFacts, ...activeFacts];
+            if (featuredFestival) allCards.push(...featuredFestival);
+            
+            allCards.forEach(card => {
+                if (parsed.reasons && parsed.reasons[card.id]) {
+                    card.reasoning = parsed.reasons[card.id];
+                }
+            });
         } else {
             console.error("Gemini API Error Response:", JSON.stringify(apiData));
             throw new Error("Invalid Gemini API response");

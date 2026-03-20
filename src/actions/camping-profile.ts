@@ -99,3 +99,42 @@ export async function saveCampingProfile(
 
     return { success: true };
 }
+
+/**
+ * [Phase 5] 카카오 주소 검색 (Server-side)
+ * 클라이언트 CORS 및 API 키 노출 방지를 위해 Server Action으로 처리합니다.
+ */
+export async function searchAddressAction(query: string): Promise<{ label: string; lat: number; lng: number }[]> {
+    if (!query.trim()) return [];
+
+    const kakaoKey = process.env.KAKAO_REST_API_KEY;
+    if (!kakaoKey) {
+        console.error('[CampingProfile] KAKAO_REST_API_KEY is missing in env');
+        return [];
+    }
+
+    try {
+        const res = await fetch(
+            `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=5`,
+            {
+                headers: { Authorization: `KakaoAK ${kakaoKey}` },
+                next: { revalidate: 3600 } // Cache for 1 hour
+            }
+        );
+
+        if (!res.ok) {
+            console.error('[CampingProfile] Kakao API error:', res.status);
+            return [];
+        }
+
+        const data = await res.json();
+        return (data.documents || []).map((doc: any) => ({
+            label: doc.place_name || doc.address_name,
+            lat: parseFloat(doc.y),
+            lng: parseFloat(doc.x),
+        }));
+    } catch (err) {
+        console.error('[CampingProfile] Address search failed:', err);
+        return [];
+    }
+}

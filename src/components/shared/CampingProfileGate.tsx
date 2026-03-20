@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { CampingProfile, getCampingProfile, saveCampingProfile } from '@/actions/camping-profile';
+import { CampingProfile, getCampingProfile, saveCampingProfile, searchAddressAction } from '@/actions/camping-profile';
 
 interface CampingProfileGateProps {
     /** 프로필 확인/입력 완료 시 호출 */
@@ -87,35 +87,7 @@ export default function CampingProfileGate({
         setSearchResults([]);
 
         try {
-            // Kakao Local REST API 사용 (Geocoder)
-            const kakaoKey = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY || process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
-            if (!kakaoKey) {
-                toast.error('카카오 API 키가 설정되지 않았습니다');
-                setIsSearching(false);
-                return;
-            }
-
-            const res = await fetch(
-                `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=5`,
-                {
-                    headers: { Authorization: `KakaoAK ${kakaoKey}` },
-                }
-            );
-
-            if (!res.ok) {
-                // REST API 키가 아닌 경우 JS 키로 시도할 수 없으므로 안내
-                toast.error('주소 검색에 실패했습니다');
-                setIsSearching(false);
-                return;
-            }
-
-            const data = await res.json();
-            const results = (data.documents || []).map((doc: any) => ({
-                label: doc.place_name || doc.address_name,
-                lat: parseFloat(doc.y),
-                lng: parseFloat(doc.x),
-            }));
-
+            const results = await searchAddressAction(query);
             setSearchResults(results);
 
             if (results.length === 0) {

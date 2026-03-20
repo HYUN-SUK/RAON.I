@@ -17,11 +17,13 @@ COMMENT ON TABLE public.automation_logs IS '크론 자동화 작업의 실행 �
 ALTER TABLE public.automation_logs ENABLE ROW LEVEL SECURITY;
 
 -- 4. Policies
+DROP POLICY IF EXISTS "Public can read automation logs" ON public.automation_logs;
 CREATE POLICY "Public can read automation logs"
 ON public.automation_logs FOR SELECT
 TO authenticated, anon
 USING (true);
 
+DROP POLICY IF EXISTS "Service role can manage automation logs" ON public.automation_logs;
 CREATE POLICY "Service role can manage automation logs"
 ON public.automation_logs FOR ALL
 TO service_role
