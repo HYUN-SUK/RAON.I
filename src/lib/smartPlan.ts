@@ -5,6 +5,7 @@ import { UserPersona, extractUserPersona } from './persona';
 import { getForecast } from '@/lib/weather';
 import { groupAndScorePlaces, RawPlace } from './reliability';
 import { v4 as uuidv4 } from 'uuid';
+import { computePersonaMatch } from './personaBridge';
 import crypto from 'node:crypto';
 
 export interface StandardizedPlanJSON {
@@ -134,14 +135,14 @@ function calcQuality(f: FactCard): number {
 }
 
 function calcContextFit(
-    f: FactCard, weather: string, isWinter: boolean, hasKids: boolean
+    f: FactCard, weather: string, isWinter: boolean, persona: UserPersona
 ): number {
-    // weather_match (0~50)
+    // 1. weather_match (0~50)
     let wm = 25;
     if (weather.includes('비')) {
         if (f.name.match(/탕|찌개|칼국수|국밥|전골/)) wm = 45;
         if (f.name.match(/박물관|실내|미술관/)) wm = 45;
-        if (f.category === 'SPOT' && !f.name.match(/박물관|실내|미술관/)) wm = 10; // 비 날 야외 명소 감점
+        if (f.category === 'SPOT' && !f.name.match(/박물관|실내|미술관/)) wm = 10;
     }
     if (weather.includes('맑음')) {
         if (f.name.match(/막국수|냉면|구이/)) wm = 40;
@@ -149,12 +150,14 @@ function calcContextFit(
     }
     if (isWinter && f.category === 'GAS_STATION') wm = 50;
 
-    // persona_match (0~50)
-    let pm = 25;
-    if (hasKids) {
-        if (f.category === 'HOSPITAL' && f.name.match(/소아|아동/)) pm = 45;
-        if (f.category === 'RESTAURANT' && f.name.match(/돈까스|어린이/)) pm = 40;
-    }
+    // 2. persona_match (0~50) - AI 고도화 엔진 (v2.0)
+    // topTags 배열을 Record<string, number>로 변환하여 브리지 엔진에 전달
+    const personaTagsMap = persona.topTags.reduce((acc, curr) => {
+        acc[curr.tagId] = curr.weight;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const pm = computePersonaMatch(f, personaTagsMap);
 
     return Math.min(100, wm + pm);
 }
@@ -211,12 +214,12 @@ function calcRiskPenalty(f: FactCard, isSundayIncluded: boolean): number {
 
 function computeFinalScore(
     f: FactCard, weather: string, isWinter: boolean,
-    hasKids: boolean, isSunday: boolean, maxDistKm: number,
+    persona: UserPersona, isSunday: boolean, maxDistKm: number,
     origin?: { lat: number, lng: number }
 ): FactCard {
     const existence = calcExistence(f);
     const quality = calcQuality(f);
-    const contextFit = calcContextFit(f, weather, isWinter, hasKids);
+    const contextFit = calcContextFit(f, weather, isWinter, persona);
     const logistics = calcLogistics(f, maxDistKm);
     const riskPenalty = calcRiskPenalty(f, isSunday);
 
@@ -505,7 +508,7 @@ export async function generateSmartPlan(
 
         // v2: 4축 점수 계산 (Day1 날씨 기준)
         catFacts = catFacts.map(f => computeFinalScore(
-            f, day1Weather, isWinterOrCold, hasKids, isSundayIncluded, routeMaxDist, origin
+            f, day1Weather, isWinterOrCold, context, isSundayIncluded, routeMaxDist, origin
         ));
 
         if (catFacts.length > 0) {
@@ -537,7 +540,7 @@ export async function generateSmartPlan(
 
         // v2.1: 4축 점수 계산 (Day2/3 날씨 기준)
         catFacts = catFacts.map(f => computeFinalScore(
-            f, destWeather, isWinterOrCold, hasKids, isSundayIncluded, destMaxDist, origin
+            f, destWeather, isWinterOrCold, context, isSundayIncluded, destMaxDist, origin
         ));
 
         const sorted = catFacts.sort((a, b) => b.trustScore - a.trustScore);
@@ -556,7 +559,7 @@ export async function generateSmartPlan(
     if (festivalCandidates.length > 0) {
         // 축제 날짜와 캐핑 일정 겹침 여부 확인 (날짜 정보 없으면 일단 포함)
         const scoredFestivals = festivalCandidates.map(f => computeFinalScore(
-            f, destWeather, isWinterOrCold, hasKids, isSundayIncluded, destMaxDist, origin
+            f, destWeather, isWinterOrCold, context, isSundayIncluded, destMaxDist, origin
         ));
         featuredFestival = scoredFestivals
             .sort((a, b) => b.trustScore - a.trustScore)

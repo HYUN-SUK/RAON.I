@@ -165,19 +165,22 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         if (kidsPreschool > 0 || kidsElementary > 0) {
                             dispatchPersonaAction(userId, 'RESERVATION_KIDS_INCLUDED').catch(console.error);
                         }
+                        if (hasPet) {
+                            dispatchPersonaAction(userId, 'RESERVATION_PET_INCLUDED').catch(console.error);
+                        }
                         if (familyCount > 1) {
                             dispatchPersonaAction(userId, 'RESERVATION_FAMILY_ADDED').catch(console.error);
                         }
                         if (nights >= 2) {
                             dispatchPersonaAction(userId, 'RESERVATION_MULTIPLE_NIGHTS').catch(console.error);
                         }
-                        if (adults === 1 && kidsPreschool === 0 && kidsElementary === 0 && kidsTeen === 0 && familyCount === 1) {
+                        if (adults === 1 && (kidsPreschool + kidsElementary + kidsTeen) === 0 && familyCount === 1) {
                             dispatchPersonaAction(userId, 'RESERVATION_SOLO_CAMPER').catch(console.error);
                         }
                         const dayOfWeekIn = fromDate.getDay();
                         const dayOfWeekOut = toDate.getDay();
                         // 주말 판단: 금(5), 토(6), 일(0)
-                        const isWeekend = dayOfWeekIn === 5 || dayOfWeekIn === 6 || dayOfWeekOut === 6 || dayOfWeekOut === 0;
+                        const isWeekend = [0, 5, 6].includes(dayOfWeekIn) || [0, 5, 6].includes(dayOfWeekOut);
                         if (isWeekend) {
                             dispatchPersonaAction(userId, 'RESERVATION_WEEKEND_PEAK').catch(console.error);
                         } else {

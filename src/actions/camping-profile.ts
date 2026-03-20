@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase-server';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 /**
  * 통합 캠핑 프로필 타입
@@ -82,6 +83,18 @@ export async function saveCampingProfile(
     if (error) {
         console.error('[CampingProfile] Save error:', error);
         return { success: false, error: error.message };
+    }
+
+    // [Phase 2] Dispatch Persona Actions for Profile Sync
+    try {
+        if (profile.kidsPreschool > 0 || profile.kidsElementary > 0) {
+            await dispatchPersonaAction(userData.user.id, 'PROFILE_SYNC_KIDS', supabase);
+        }
+        if (profile.hasPet) {
+            await dispatchPersonaAction(userData.user.id, 'PROFILE_SYNC_PET', supabase);
+        }
+    } catch (err) {
+        console.error('[Persona] Failed to dispatch profile sync actions', err);
     }
 
     return { success: true };

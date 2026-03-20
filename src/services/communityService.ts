@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase-client';
 import { Post, BoardType } from '@/store/useCommunityStore';
 import { pointService } from '@/services/pointService';
 import { Database } from '@/types/supabase';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 // Instantiate the browser client which has access to cookies
 export const supabase = createClient();
@@ -241,6 +242,11 @@ export const communityService = {
             // Increment count
             await supabase.rpc('increment_like_count', { row_id: postId });
             isLiked = true;
+
+            // --- [Phase 3] Tag Sensor: Community Like ---
+            if (userId && userId !== ANON_USER_ID) {
+                await dispatchPersonaAction(userId, 'COMMUNITY_LIKE_POST' as any);
+            }
         }
 
         return isLiked;
@@ -299,6 +305,11 @@ export const communityService = {
         if (error) throw error;
         // Increment comment count
         await supabase.rpc('increment_comment_count', { row_id: postId });
+
+        // --- [Phase 3] Tag Sensor: Community Comment ---
+        if (userId && userId !== ANON_USER_ID) {
+            await dispatchPersonaAction(userId, 'COMMUNITY_COMMENT_POST' as any);
+        }
 
         const { data: { user } } = await supabase.auth.getUser();
         const isAdmin = user?.email === 'admin@raon.ai' || user?.app_metadata?.role === 'admin';

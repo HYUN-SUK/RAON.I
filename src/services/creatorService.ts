@@ -5,6 +5,7 @@ import {
     CreatorContentType, CreatorContentStatus
 } from '@/types/creator';
 import { Database } from '@/types/supabase';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 const supabase = createClient();
 
@@ -218,7 +219,6 @@ export const creatorService = {
             .select('id')
             .eq('content_id', contentId)
             .eq('user_id', user.id)
-            .eq('user_id', user.id)
             .maybeSingle();
 
         let isLiked = false;
@@ -246,7 +246,6 @@ export const creatorService = {
             .from('creator_content_likes')
             .select('id')
             .eq('content_id', contentId)
-            .eq('user_id', user.id)
             .eq('user_id', user.id)
             .maybeSingle();
 
@@ -341,6 +340,9 @@ export const creatorService = {
 
             if (insertError) throw insertError;
             isFollowing = true;
+
+            // --- [Phase 3] Tag Sensor: Follow ---
+            await dispatchPersonaAction(user.id, 'COMMUNITY_FOLLOW_USER' as any);
         }
         return isFollowing;
     },
@@ -353,7 +355,6 @@ export const creatorService = {
             .from('creator_follows')
             .select('id')
             .eq('creator_id', creatorId)
-            .eq('follower_id', user.id)
             .eq('follower_id', user.id)
             .maybeSingle();
 
@@ -368,7 +369,7 @@ export const creatorService = {
 
         const { error: uploadError } = await supabase.storage
             .from(bucket)
-            .upload(filePath, file); // Will fail if bucket doesn't exist, need to ensure bucket exists or use 'community-images' for now if lazy.
+            .upload(filePath, file);
 
         if (uploadError) {
             // Fallback to community-images if creator-assets doesn't exist

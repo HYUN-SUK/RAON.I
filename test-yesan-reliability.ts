@@ -16,7 +16,10 @@ async function runTest() {
     const persona: UserPersona = {
         description: "맛을 중요하게 생각하는 가족",
         guestDetails: { adults: 2, kids: { preschool: 0, elementary: 1, teen: 0 } },
-        topTags: [{ tag: "맛집", weight: 10 }, { tag: "로컬", weight: 10 }]
+        topTags: [
+            { tagId: 'FOOD_LOCAL', weight: 10, tag: "맛집" }, 
+            { tagId: 'LEGACY_UNKNOWN', weight: 10, tag: "로컬" }
+        ]
     };
 
     const location = { lat: 36.6345, lng: 126.8234 }; // 할머니어죽 위치

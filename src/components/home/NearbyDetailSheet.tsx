@@ -12,6 +12,8 @@ import { MapPin, Calendar, Navigation, Phone, Copy, Loader2, RefreshCw, External
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Skeleton } from "@/components/ui/skeleton";
+import { dispatchPersonaAction } from '@/lib/persona';
+import { createClient } from '@/lib/supabase-client';
 
 interface NearbyEvent {
     id: number | string;
@@ -67,6 +69,23 @@ export default function NearbyDetailSheet({
     customDescription,
 }: NearbyDetailSheetProps) {
     const [activeTab, setActiveTab] = useState("events");
+ 
+    // --- [Phase 3] Tag Sensor: LBS Interaction ---
+    const logLbsInteraction = async (cat?: string) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        let actionKey = '';
+        if (cat === '카페' || cat === 'Bakery') actionKey = 'LBS_CLICK_CAFE';
+        else if (cat === '마트' || cat === 'Store') actionKey = 'LBS_CLICK_MART';
+        else if (activeTab === 'attractions') actionKey = 'LBS_CLICK_ATTRACTION';
+        else if (activeTab === 'leisure') actionKey = 'LBS_CLICK_LEISURE';
+
+        if (actionKey) {
+            await dispatchPersonaAction(user.id, actionKey as any);
+        }
+    };
 
     // API Fetching States
     const [apiEvents, setApiEvents] = useState<NearbyEvent[]>([]);
@@ -229,6 +248,7 @@ export default function NearbyDetailSheet({
 
         // Simple approach for Web Environment:
         window.open(naverWeb, '_blank');
+        logLbsInteraction();
 
         // Note: For true "Deep Link" on mobile web, usually we use an intent:// URL or a universal link.
         // If we want to strictly follow the "Deep Link" requirement, we might need a selection UI.
@@ -375,7 +395,10 @@ export default function NearbyDetailSheet({
                                                     <Button
                                                         variant="outline"
                                                         className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12"
-                                                        onClick={() => window.open(event.detail_url!, '_blank')}
+                                                        onClick={() => {
+                                                            window.open(event.detail_url!, '_blank');
+                                                            logLbsInteraction();
+                                                        }}
                                                     >
                                                         <ExternalLink size={16} className="mr-2" />
                                                         상세보기
@@ -438,12 +461,18 @@ export default function NearbyDetailSheet({
                                         </div>
                                         <div className="flex gap-2 mt-4">
                                             {item.detail_url && (
-                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => window.open(item.detail_url!, '_blank')}>
+                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => {
+                                                    window.open(item.detail_url!, '_blank');
+                                                    logLbsInteraction();
+                                                }}>
                                                     <ExternalLink size={16} className="mr-2" /> 상세보기
                                                 </Button>
                                             )}
                                             {item.latitude && item.longitude && (
-                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => openNavigationChoice(item.latitude!, item.longitude!, item.title)}>
+                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => {
+                                                    openNavigationChoice(item.latitude!, item.longitude!, item.title);
+                                                    logLbsInteraction();
+                                                }}>
                                                     <Navigation size={16} className="mr-2" /> 길찾기
                                                 </Button>
                                             )}
@@ -493,12 +522,18 @@ export default function NearbyDetailSheet({
                                         </div>
                                         <div className="flex gap-2 mt-4">
                                             {item.detail_url && (
-                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => window.open(item.detail_url!, '_blank')}>
+                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => {
+                                                    window.open(item.detail_url!, '_blank');
+                                                    logLbsInteraction();
+                                                }}>
                                                     <ExternalLink size={16} className="mr-2" /> 상세보기
                                                 </Button>
                                             )}
                                             {item.latitude && item.longitude && (
-                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => openNavigationChoice(item.latitude!, item.longitude!, item.title)}>
+                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => {
+                                                    openNavigationChoice(item.latitude!, item.longitude!, item.title);
+                                                    logLbsInteraction();
+                                                }}>
                                                     <Navigation size={16} className="mr-2" /> 길찾기
                                                 </Button>
                                             )}
@@ -580,7 +615,12 @@ export default function NearbyDetailSheet({
                                                 variant="outline"
                                                 size="sm"
                                                 className="w-10 h-10 rounded-full p-0 border-stone-200"
-                                                onClick={() => place.phone && copyToClipboard(place.phone)}
+                                                onClick={() => {
+                                                    if (place.phone) {
+                                                        copyToClipboard(place.phone);
+                                                        logLbsInteraction(place.category);
+                                                    }
+                                                }}
                                             >
                                                 <Copy size={16} className="text-stone-400" />
                                             </Button>
@@ -588,7 +628,12 @@ export default function NearbyDetailSheet({
                                                 variant="outline"
                                                 size="sm"
                                                 className="w-10 h-10 rounded-full p-0 border-stone-200"
-                                                onClick={() => place.lat !== undefined && place.lng !== undefined && openNavigationChoice(place.lat, place.lng, place.name || '')}
+                                                onClick={() => {
+                                                    if (place.lat !== undefined && place.lng !== undefined) {
+                                                        openNavigationChoice(place.lat, place.lng, place.name || '');
+                                                        logLbsInteraction(place.category);
+                                                    }
+                                                }}
                                             >
                                                 <Navigation size={16} className="text-stone-600" />
                                             </Button>

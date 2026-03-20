@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 import { SITES } from '@/constants/sites';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
@@ -86,6 +87,32 @@ export async function createSchedule(data: ScheduleFormData): Promise<{ success:
     }
 
     revalidatePath('/myspace/schedule');
+
+    // [Phase 2/3] Dispatch Persona Actions for External Schedule
+    if (data.source === 'external') {
+        try {
+            const name = data.campgroundName;
+            const address = data.campgroundAddress || '';
+            
+            // No 1: 글램핑/카라반 포함
+            if (name.includes('글램핑') || name.includes('카라반')) {
+                await dispatchPersonaAction(userData.user.id, 'RESERVATION_GLAMPING_CARAVAN', supabase);
+            } 
+            // No 2: 자연휴양림/노지 포함
+            else if (name.includes('노지') || name.includes('자연') || name.includes('휴양림')) {
+                await dispatchPersonaAction(userData.user.id, 'RESERVATION_NOJI_NATURE', supabase);
+            }
+            // No 10: 도심지/도심근교인 경우 (서울, 광역시 등)
+            if (address.includes('서울') || address.includes('인천') || address.includes('대전') || 
+                address.includes('대구') || address.includes('부산') || address.includes('광주') || 
+                address.includes('경기')) {
+                await dispatchPersonaAction(userData.user.id, 'RESERVATION_URBAN_NEARBY', supabase);
+            }
+        } catch (err) {
+            console.error('[Persona] Failed to dispatch external schedule action', err);
+        }
+    }
+
     return { success: true, id: result };
 }
 

@@ -155,6 +155,7 @@
     *   [x] **게시판 (`Feed`, `Post`)**: 사진/키워드 분석 및 좋아요/불씨 후원.
     *   [x] **내 공간 (`LBS`, `Record`)**: 키워드 기록 및 위치 탐색 시그널.
     *   [x] **마켓 & 마이스페이스 (`Market`)**: 감성 장비 클릭 및 LNT 미션 시그널.
+    *   [x] **Phase 3 센서 고도화 (Completed)**: 커뮤니티 체류 시간(No 22), 큐레이션 카드 클릭(No 26-28), 날씨/LBS 상세 클릭(No 29, 35) 실장 완료.
 *   **5.5.4 UI Component (`SmartPlanProposal.tsx`)** ✅:
     *   [x] Citational UI (서사 + 팩트 카드) 및 교체 상호작용 개발.
     *   [x] `Fallback Mock Data` 주입 로직 탑재 (미연결 또는 API Key 부재 시 무중단 렌더링).
@@ -552,6 +553,7 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 - [ ] **AEO 공개 페이지** - `/about`, `/info` 정책/시설/가격 요약
 - [ ] **Schema.org 마크업** - `Campground`, `CampingPitch`, `Offer`
 - [ ] **SSOT 최종 점검** - 환불/이용수칙/시설 정보 일치 확인
+- [ ] **행동-태그 매핑 최종 점검** - 출시 전 전체 UI/로직 확정 후 `action_tag_mapping_manual.md` 전수 동기화 및 잔여 센서(No 36-45, 50 등) 실장 완료.
 - [ ] **robots.txt 업데이트** - AI 크롤러(GPTBot, ClaudeBot) 허용
 - [ ] **UTM/로그 표준화** - AI 유입 측정 준비
 

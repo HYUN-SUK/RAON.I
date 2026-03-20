@@ -66,27 +66,11 @@ export function EmberButton({
                     description: `${EMBER_COST} 토큰이 사용되었습니다.`
                 });
 
-                // --- [Phase 3.5] Progressive Trigger Injection: Community (Ember) ---
-                (async () => {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user && targetType === 'post') {
-                        // Fetch the post to classify the ember reason
-                        const { data: postData } = await supabase
-                            .from('community_posts')
-                            .select('title, content')
-                            .eq('id', targetId)
-                            .single();
-
-                        if (postData) {
-                            const text = `${postData.title} ${postData.content}`.toLowerCase();
-                            if (text.includes('요리') || text.includes('음식') || text.includes('바베큐') || text.includes('먹방')) {
-                                await dispatchPersonaAction(user.id, 'FEED_DONATE_FOOD');
-                            } else {
-                                await dispatchPersonaAction(user.id, 'FEED_DONATE_GEAR');
-                            }
-                        }
-                    }
-                })();
+                // --- [Phase 2] Tag Sensor: Ember Donate ---
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await dispatchPersonaAction(user.id, 'COMMUNITY_EMBER_DONATE' as any);
+                }
 
                 // 애니메이션 종료 후 콜백
                 setTimeout(() => {

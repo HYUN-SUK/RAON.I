@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
+import { dispatchPersonaAction } from '@/lib/persona';
 
 // ═══════════════════════════════════════════════════════════
 // 타입 정의
@@ -79,6 +80,33 @@ export async function createRecord(input: CreateRecordInput): Promise<{ success:
         if (error) {
             console.error('Create record error:', error);
             return { success: false, error: error.message || '기록 저장에 실패했어요' };
+        }
+
+        // [Phase 2] Dispatch Persona Actions for Community Post
+        try {
+            if (allTags.includes('장비') || input.content.includes('불멍')) {
+                await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_FIRE', supabase);
+            }
+            if (allTags.includes('음식') || input.content.includes('요리') || input.content.includes('바베큐')) {
+                await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_COOKING', supabase);
+            }
+            if (input.content.includes('힐링') || input.content.includes('여유')) {
+                await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_HEALING', supabase);
+            }
+            // No 13: 별빛/은하수 관련
+            if (input.content.includes('별') || input.content.includes('은하수')) {
+                await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_STARRY', supabase);
+            }
+            // No 14: 우중캠핑/비 관련
+            if (input.content.includes('비') || input.content.includes('우중')) {
+                await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_RAINY', supabase);
+            }
+            // No 15: 설중캠핑/눈 관련
+            if (input.content.includes('눈') || input.content.includes('설중')) {
+                await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_SNOWY', supabase);
+            }
+        } catch (err) {
+            console.error('[Persona] Failed to dispatch community actions', err);
         }
 
         revalidatePath('/myspace');

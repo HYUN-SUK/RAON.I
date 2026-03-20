@@ -8,6 +8,8 @@ import CommunityTabs from '@/components/community/CommunityTabs';
 import CommunityBoardContainer from '@/components/community/CommunityBoardContainer';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { dispatchPersonaAction } from '@/lib/persona';
+import { createClient } from '@/lib/supabase-client';
 
 export default function CommunityPage() {
     const { activeTab, setActiveTab, loadPosts } = useCommunityStore();
@@ -40,6 +42,19 @@ export default function CommunityPage() {
         params.set('tab', newTab);
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     };
+
+    // No 22: 커뮤니티 피드 조회 10분 이상 연속 체류
+    React.useEffect(() => {
+        const timer = setTimeout(async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await dispatchPersonaAction(user.id, 'COMMUNITY_FEED_DWELL');
+            }
+        }, 10 * 60 * 1000); // 10 minutes (600,000ms)
+
+        return () => clearTimeout(timer);
+    }, []);
 
     // Prevent hydration mismatch or flash of default content
     if (!isInitialized && tabParam) {

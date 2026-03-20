@@ -92,6 +92,21 @@ export default function ReturningHome() {
     const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
 
     const handleRecommendationClick = (item: RecommendationItem, reason?: string) => {
+        // --- [Phase 3] Curation Card Sensors (No 26-28) ---
+        (async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                if (item.title?.includes('바다 앞')) {
+                    await dispatchPersonaAction(user.id, 'LBS_CLICK_OCEAN_VIBE');
+                } else if (item.title?.includes('깊은 산속')) {
+                    await dispatchPersonaAction(user.id, 'LBS_CLICK_MOUNTAIN_VIBE');
+                } else if (item.title?.includes('계곡 물놀이')) {
+                    await dispatchPersonaAction(user.id, 'LBS_CLICK_VALLEY_VIBE');
+                }
+            }
+        })();
+
         // Special Handling for LBS Card
         if (item.type === 'nearby_lbs') {
             setNearbyEvents(item.events || []);

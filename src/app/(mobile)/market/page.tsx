@@ -96,19 +96,17 @@ export default function MarketPage() {
                     {categories.map(cat => (
                         <button
                             key={cat.id}
-                            onClick={() => {
+                            onClick={async () => {
                                 setSelectedCategory(cat.id);
-                                // --- [Phase 3.5] Progressive Trigger Injection: Market (Gamification) ---
-                                (async () => {
-                                    if (cat.id === 'lantern' || cat.id === 'tent') {
-                                        const supabase = createClient();
-                                        const { data: { user } } = await supabase.auth.getUser();
-                                        if (user) {
-                                            if (cat.id === 'lantern') await dispatchPersonaAction(user.id, 'MARKET_CLICK_LANTERN');
-                                            if (cat.id === 'tent') await dispatchPersonaAction(user.id, 'MARKET_CLICK_TENT'); // Assuming 'tent' exists in data
-                                        }
+                                // --- [Phase 2] Tag Sensor: Market Category Click ---
+                                if (cat.id === 'lantern' || cat.id === 'tent') {
+                                    const supabase = createClient();
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (user) {
+                                        const actionKey = cat.id === 'lantern' ? 'MARKET_CLICK_LANTERN' : 'MARKET_CLICK_TENT';
+                                        await dispatchPersonaAction(user.id, actionKey as any);
                                     }
-                                })();
+                                }
                             }}
                             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors
                                 ${selectedCategory === cat.id
