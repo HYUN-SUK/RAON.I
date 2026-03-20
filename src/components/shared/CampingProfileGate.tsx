@@ -210,7 +210,12 @@ export default function CampingProfileGate({
 
                 {/* 요약 카드 */}
                 <div className="space-y-2 mb-3">
-                    {existingProfile.originLabel && (
+                    {requireOrigin && !existingProfile.originLat ? (
+                        <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>출발지: <strong className="font-bold">미설정 (필수)</strong></span>
+                        </div>
+                    ) : existingProfile.originLabel && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <MapPin className="w-3.5 h-3.5 text-gray-400" />
                             <span>출발: <strong className="text-gray-800">{existingProfile.originLabel}</strong></span>
@@ -233,10 +238,23 @@ export default function CampingProfileGate({
 
                 <Button
                     onClick={handleConfirmExisting}
-                    className="w-full h-10 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-medium"
+                    className={`w-full h-10 rounded-xl text-sm font-medium ${
+                        requireOrigin && !existingProfile.originLat 
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                        : 'bg-[#224732] hover:bg-[#1a3626] text-white'
+                    }`}
                 >
-                    <Check className="w-4 h-4 mr-1" />
-                    이대로 진행
+                    {requireOrigin && !existingProfile.originLat ? (
+                        <>
+                            <Search className="w-4 h-4 mr-1" />
+                            출발지 입력하고 진행하기
+                        </>
+                    ) : (
+                        <>
+                            <Check className="w-4 h-4 mr-1" />
+                            이대로 진행
+                        </>
+                    )}
                 </Button>
             </div>
         );

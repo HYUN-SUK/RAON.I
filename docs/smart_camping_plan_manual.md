@@ -116,7 +116,7 @@
 *   **Step 8. Final Selection & AI Assembly (정예 선별 및 서사 조립)**: 
     *   **Top 3 선별**: 4축 `finalScore` 기준으로 카테고리별 **Top 3 (1개 메인 `PRIMARY`, 2개 대안 `ALTERNATIVE`)**을 최종 선별합니다.
     *   **v2.1 FESTIVAL featured 슬롯 분리**: FESTIVAL은 일반 카테고리 경쟁 랭킹과 별도로 **`FEATURED` 슬롯**으로 우선 배치됩니다. 즉, FESTIVAL은 RESTAURANT/MART/SPOT과 같은 일반 Top 3 경쟁군이 아니라, 지역성 강조용 별도 추천 카드(`featuredFestival`)로 노출됩니다.
-    *   **AI Narration & Reasoning (v3.0 고도화)**: Gemini LLM에 전달하는 프롬프트에 **`evidence` 기반 정보(별점, 리뷰 수, 배지, 검증상태)를 직접 포함**하여, AI가 전체 여정 서사뿐만 아니라 각 카드별 **"왜 이 장소를 추천했는지(Reasoning)"** 1문장 핵심 사유를 동적으로 생성합니다.
+    *   **AI Narration & Reasoning (v3.0 고도화)**: Gemini LLM에 전달하는 프롬프트에 **`evidence` 기반 정보(별점, 리뷰 수, 배지, 검증상태)를 직접 포함**하여, 더 정확한 팩트를 인용한 감성적 **3파트 타임라인(가는 길, 현지, 오는 길)**을 전체 여정 서사뿐만 아니라 각 카드별 **"왜 이 장소를 추천했는지(Reasoning)"** 1문장 핵심 사유를 동적으로 생성하여 AI에게 전달합니다.
     *   **오는 길 추천**: 가는 길 추천 중 선택되지 않은 대안이나 근처의 명소를 '귀갓길의 따뜻한 제안'으로 서사에 포함하도록 가이드합니다.
     *   **AI Guardrails (환각 방지)**: 데이터에 존재하지 않는 **영업시간, 메뉴 가격, 실시간 잔여석** 정보를 임의로 지어내지 않도록 엄격한 프롬프트 지침을 준수합니다.
     *   **v2.1 verificationStatus 규칙**: `VERIFIED` 장소만 "검증된" 표현을 사용하며, `UNVERIFIED` 장소는 "방문 전 확인 권장" 수준으로만 표현합니다.
