@@ -63,17 +63,16 @@ export async function POST(request: Request) {
 
             // [Resilience Fallback] 좌표가 null일 경우 master_places에서 이름으로 역추적 시도
             if (!targetLat || !targetLng) {
-                const { data: matchedPlace } = await supabase
+                const { data: matchedPlaces } = await supabase
                     .from('master_places')
                     .select('lat, lng')
-                    .ilike('name', `%${s.campground_name}%`)
+                    .ilike('name', `%${s.campground_name.trim()}%`)
                     .not('lat', 'is', null)
-                    .limit(1)
-                    .single();
+                    .limit(1);
                 
-                if (matchedPlace) {
-                    targetLat = matchedPlace.lat;
-                    targetLng = matchedPlace.lng;
+                if (matchedPlaces && matchedPlaces.length > 0) {
+                    targetLat = matchedPlaces[0].lat;
+                    targetLng = matchedPlaces[0].lng;
                     console.log(`Fallback coordinates found for ${s.campground_name}: [${targetLat}, ${targetLng}]`);
                 }
             }
@@ -347,6 +346,16 @@ export async function POST(request: Request) {
 
         return new Response(JSON.stringify({ success: true, processed_count: processedCount, clusters: clusters.length, duration_ms: duration }), { status: 200 });
     } catch (error: any) {
+        console.error("CRITICAL_CRON_ERROR", error);
+        try {
+            const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+            await supabase.from('automation_logs').insert({
+                job_name: 'SMART_PLAN_CACHING',
+                status: 'FAILURE',
+                message: `CRITICAL_ERROR: ${error.message || 'Unknown error'}`,
+                processed_count: 0
+            });
+        } catch (logErr) { console.error("FAILED_TO_LOG_ERROR", logErr); }
         return new Response(JSON.stringify({ error: error.message || 'Error' }), { status: 500 });
     }
 }
