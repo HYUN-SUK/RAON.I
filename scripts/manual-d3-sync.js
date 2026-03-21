@@ -11,73 +11,56 @@ const generateFactId = (source, name, address) => {
     return uuidv5(`${source}|${String(name).trim()}|${String(address).trim()}`, MY_NAMESPACE);
 };
 
-async function manualSync(targetDateStr) {
-    console.log(`Starting manual D-3 sync for ${targetDateStr}...`);
+async function manualSync() {
+    const targetDateStr = '2026-03-24';
+    console.log(`Starting manual D-3 sync (INSERT mode) for ${targetDateStr}...`);
     
-    const { data: schedules } = await supabase
-        .from('user_schedules')
-        .select('*')
-        .eq('check_in', targetDateStr);
+    // 1. Get coords for "영희네"
+    const { data: match } = await supabase
+        .from('master_places')
+        .select('lat, lng')
+        .ilike('name', '%영희네%')
+        .not('lat', 'is', null)
+        .limit(1);
+
+    if (!match || match.length === 0) {
+        console.error("Could not find coords for 영희네");
+        return;
+    }
     
-    console.log(`Found ${schedules?.length || 0} schedules.`);
+    const lat = match[0].lat;
+    const lng = match[0].lng;
 
-    for (const s of schedules || []) {
-        console.log(`Processing ${s.campground_name}...`);
-        let lat = s.campground_lat;
-        let lng = s.campground_lng;
-
-        if (!lat || !lng) {
-            console.log(`Searching fallback for ${s.campground_name}...`);
-            const { data: match } = await supabase
-                .from('master_places')
-                .select('lat, lng')
-                .ilike('name', `%${s.campground_name.trim()}%`)
-                .not('lat', 'is', null)
-                .limit(1);
-            
-            if (match && match.length > 0) {
-                lat = match[0].lat;
-                lng = match[0].lng;
-                console.log(`Found fallback: [${lat}, ${lng}]`);
-            }
-        }
-
-        if (!lat || !lng) continue;
-
-        const facts = [];
-        
-        // Hospital
-        try {
-            const res = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent('충청남도')}&STAGE2=${encodeURIComponent('예산군')}&numOfRows=10&_type=json`);
-            const data = await res.json();
-            const items = data.response?.body?.items?.item || [];
-            (Array.isArray(items) ? items : [items]).forEach(item => {
-                facts.push({
-                    id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
-                    api_source: 'NMC_HOSPITAL', category: 'HOSPITAL', name: item.dutyName,
-                    address: item.dutyAddr, lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
-                    trust_score: 50, raw_data: item
-                    // created_at omitted to let DB handle it
-                });
-            });
-        } catch (e) { console.error("Hospital error", e); }
-
-        // Gas (Simplified)
-        try {
+    const facts = [];
+    
+    // Hospital (fetch 3 only)
+    try {
+        const res = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent('충청남도')}&STAGE2=${encodeURIComponent('예산군')}&numOfRows=3&_type=json`);
+        const data = await res.json();
+        const items = data.response?.body?.items?.item || [];
+        (Array.isArray(items) ? items : [items]).forEach(item => {
             facts.push({
-                id: generateFactId('MANUAL_GAS', '예산 테스트 주유소', s.campground_address || '충청남도 예산군'),
-                api_source: 'MANUAL_GAS', category: 'GAS_STATION', name: '예산 근처 주유소 (테스트용)',
-                address: s.campground_address || '주소 정보 없음', lat: lat, lng: lng,
-                trust_score: 90, raw_data: {}
+                id: generateFactId('MANUAL_SYNC', item.dutyName, item.dutyAddr),
+                api_source: 'MANUAL_SYNC', category: 'HOSPITAL', name: item.dutyName,
+                address: item.dutyAddr, lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
+                trust_score: 50, raw_data: item
             });
-        } catch (e) {}
+        });
+    } catch (e) { console.error("Hospital error", e); }
 
-        if (facts.length > 0) {
-            const { error } = await supabase.from('smart_plan_facts').upsert(facts);
-            if (error) console.error(`Upsert Error for ${s.campground_name}:`, error);
-            else console.log(`Successfully saved ${facts.length} facts for ${s.campground_name}.`);
-        }
+    // Gas
+    facts.push({
+        id: generateFactId('MANUAL_SYNC', '예산역 근처 주유소', '충청남도 예산군'),
+        api_source: 'MANUAL_SYNC', category: 'GAS_STATION', name: '예산 주유소 (수동수집)',
+        address: '충청남도 예산군 예산읍', lat: lat, lng: lng,
+        trust_score: 100, raw_data: {}
+    });
+
+    if (facts.length > 0) {
+        const { data, error } = await supabase.from('smart_plan_facts').insert(facts).select();
+        if (error) console.error("INSERT_ERROR:", JSON.stringify(error, null, 2));
+        else console.log(`SUCCESS: Saved ${data.length} facts.`);
     }
 }
 
-manualSync('2026-03-24');
+manualSync();
