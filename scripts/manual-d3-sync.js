@@ -22,6 +22,7 @@ async function manualSync(targetDateStr) {
     console.log(`Found ${schedules?.length || 0} schedules.`);
 
     for (const s of schedules || []) {
+        console.log(`Processing ${s.campground_name}...`);
         let lat = s.campground_lat;
         let lng = s.campground_lng;
 
@@ -44,7 +45,6 @@ async function manualSync(targetDateStr) {
         if (!lat || !lng) continue;
 
         const facts = [];
-        const now = new Date().toISOString();
         
         // Hospital
         try {
@@ -56,8 +56,8 @@ async function manualSync(targetDateStr) {
                     id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
                     api_source: 'NMC_HOSPITAL', category: 'HOSPITAL', name: item.dutyName,
                     address: item.dutyAddr, lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
-                    trust_score: 50, raw_data: item,
-                    created_at: now
+                    trust_score: 50, raw_data: item
+                    // created_at omitted to let DB handle it
                 });
             });
         } catch (e) { console.error("Hospital error", e); }
@@ -65,17 +65,17 @@ async function manualSync(targetDateStr) {
         // Gas (Simplified)
         try {
             facts.push({
-                id: generateFactId('MANUAL', '테스트 주유소', s.campground_address || '충정남도 예산군'),
-                api_source: 'MANUAL', category: 'GAS_STATION', name: '예산 근처 주유소 (테스트)',
+                id: generateFactId('MANUAL_GAS', '예산 테스트 주유소', s.campground_address || '충청남도 예산군'),
+                api_source: 'MANUAL_GAS', category: 'GAS_STATION', name: '예산 근처 주유소 (테스트용)',
                 address: s.campground_address || '주소 정보 없음', lat: lat, lng: lng,
-                trust_score: 90, raw_data: {},
-                created_at: now
+                trust_score: 90, raw_data: {}
             });
         } catch (e) {}
 
         if (facts.length > 0) {
             const { error } = await supabase.from('smart_plan_facts').upsert(facts);
-            console.log(`Saved ${facts.length} facts for ${s.campground_name}. Error:`, error);
+            if (error) console.error(`Upsert Error for ${s.campground_name}:`, error);
+            else console.log(`Successfully saved ${facts.length} facts for ${s.campground_name}.`);
         }
     }
 }
