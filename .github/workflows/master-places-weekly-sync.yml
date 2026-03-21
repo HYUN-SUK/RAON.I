@@ -2,8 +2,8 @@ name: Master Places Weekly Sync
 
 on:
   schedule:
-    # [임시 테스트] 내일 새벽(토요일) 아침 06:00 KST에 실행 (UTC 기준 금요일 21:00)
-    - cron: '0 21 * * 5'
+    # [임시 테스트] 내일 새벽(일요일) 아침 06:00 KST에 실행 (UTC 기준 토요일 21:00)
+    - cron: '0 21 * * 6'
   workflow_dispatch: # 수동 트리거 허용
 
 jobs:

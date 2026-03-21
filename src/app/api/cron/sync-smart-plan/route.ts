@@ -49,9 +49,7 @@ export async function POST(request: Request) {
         const { data: schedules } = await supabase
             .from('user_schedules')
             .select('campground_lat, campground_lng, campground_name, campground_address')
-            .eq('check_in', targetStr)
-            .not('campground_lat', 'is', null)
-            .not('campground_lng', 'is', null);
+            .eq('check_in', targetStr);
 
         // 2. 지리적 클러스터링 (Geo-Clustering: 반경 20km 병합 처리)
         interface Cluster { lat: number; lng: number; names: string[], address: string }
