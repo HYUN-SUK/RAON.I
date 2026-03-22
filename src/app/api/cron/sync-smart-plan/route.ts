@@ -196,12 +196,9 @@ export async function POST(request: Request) {
                         if (seenGas.size >= 5) break; 
                         const gasPromises = group.map(s => {
                             const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`;
-                            console.log("OPINET Request:", url);
                             return fetch(url, fetchOptions)
                             .then(async r => {
-                                const json = await r.json();
-                                console.log(`OPINET Status: ${r.status}, OIL items: ${json.RESULT?.OIL?.length || 0}`);
-                                return json;
+                                return await r.json();
                             }).catch(err => {
                                 console.error("OPINET Fetch Error:", err.message);
                                 return null;
