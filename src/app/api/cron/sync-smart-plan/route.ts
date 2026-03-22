@@ -250,6 +250,12 @@ export async function POST(request: Request) {
                 if (data) candidates.push(...data);
             }));
 
+            // Include freshly fetched dynamic records (HOSPITALS, FESTIVALS, GAS) directly to bypass PostGIS indexing delay
+            if (rawMasterInserts && rawMasterInserts.length > 0) {
+                const uniqueRaw = Object.values(rawMasterInserts.reduce((acc: any, row: any) => ({ ...acc, [row.id]: row }), {})) as any[];
+                candidates.push(...uniqueRaw);
+            }
+
             // Helper: WGS84 Distance (km)
             const getDist = (lat: number, lng: number) => {
                 const R = 6371; const dLat = (lat - targetLat) * Math.PI / 180; const dLon = (lng - targetLng) * Math.PI / 180;

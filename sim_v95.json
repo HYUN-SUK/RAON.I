@@ -1,0 +1,11 @@
+{
+  "id": "547d0a81-a3c7-4f09-8bb2-ca6c5edd52f2",
+  "job_name": "SMART_PLAN_CACHING",
+  "status": "SUCCESS",
+  "processed_count": 63,
+  "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":74,\"stepC_kakao_success\":74,\"stepD_upsert\":0}],\"final_upsert\":63}",
+  "duration_ms": 5880,
+  "target_date": "2026-03-26",
+  "api_status": null,
+  "created_at": "2026-03-22T08:25:05.202123+00:00"
+}
