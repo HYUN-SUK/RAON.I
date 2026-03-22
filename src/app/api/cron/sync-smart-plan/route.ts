@@ -181,8 +181,8 @@ export async function POST(request: Request) {
             try {
                 const OPINET_API_KEY = process.env.OPINET_API_KEY;
                 if (OPINET_API_KEY) {
-                    proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs");
-                    const [wtmX, wtmY] = proj4("EPSG:4326", "EPSG:5181", [targetLng, targetLat]);
+                    proj4.defs("TM128", "+proj=tmerc +lat_0=38 +lon_0=128 +k=0.9999 +x_0=400000 +y_0=600000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43");
+                    const [wtmX, wtmY] = proj4("EPSG:4326", "TM128", [targetLng, targetLat]);
                     const seenGas = new Set();
                     
                     const spiralShifts = [
@@ -194,23 +194,33 @@ export async function POST(request: Request) {
 
                     for (const group of spiralShifts) {
                         if (seenGas.size >= 5) break; 
-                        const gasPromises = group.map(s => 
-                            fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`, fetchOptions)
-                            .then(r=>r.json()).catch(()=>null)
-                        );
+                        const gasPromises = group.map(s => {
+                            const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`;
+                            console.log("OPINET Request:", url);
+                            return fetch(url, fetchOptions)
+                            .then(async r => {
+                                const json = await r.json();
+                                console.log(`OPINET Status: ${r.status}, OIL items: ${json.RESULT?.OIL?.length || 0}`);
+                                return json;
+                            }).catch(err => {
+                                console.error("OPINET Fetch Error:", err.message);
+                                return null;
+                            });
+                        });
                         const gasResults = await Promise.all(gasPromises);
                         gasResults.forEach(data => {
                             if (data?.RESULT?.OIL) {
                                 const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
                                 items.forEach((item: any) => {
-                                    const key = item.OS_NM + item.VAN_ADR;
-                                    if (!seenGas.has(key) && item.K_PRICE > 0) {
+                                    const key = (item.OS_NM || 'NONE') + (item.VAN_ADR || 'ADDR');
+                                    const price = parseFloat(item.PRICE || item.K_PRICE || "0");
+                                    if (!seenGas.has(key) && price > 0) {
                                         seenGas.add(key);
-                                        const [lon, lat] = proj4("EPSG:5181", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
+                                        const [lon, lat] = proj4("TM128", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
                                         rawMasterInserts.push({
                                             id: generateFactId('OPINET_GAS', item.OS_NM, item.VAN_ADR || '주소없음'),
                                             api_source: 'OPINET_GAS', category: 'GAS_STATION',
-                                            name: item.OS_NM, description: `등유: ${item.K_PRICE}원`, address: item.VAN_ADR || '주소 정보 없음',
+                                            name: item.OS_NM, description: `등유: ${price}원`, address: item.VAN_ADR || '주소 정보 없음',
                                             lat: lat, lng: lon, trust_score: 55, raw_data: item
                                         });
                                     }
