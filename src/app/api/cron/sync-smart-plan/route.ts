@@ -138,6 +138,27 @@ export async function POST(request: Request) {
                 }
             } catch (e) { console.error("Hospital Fetch Error"); }
 
+            // A-1-2. Kakao Local Hospital Fetch (HP8) - Radius 20km
+            try {
+                const kakaoKey = process.env.KAKAO_REST_API_KEY;
+                if (kakaoKey) {
+                    const res = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${targetLng}&y=${targetLat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${kakaoKey}` } });
+                    const data = await res.json();
+                    if (data.documents) {
+                        data.documents.forEach((item: any) => {
+                            rawMasterInserts.push({
+                                id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
+                                api_source: 'KAKAO_HP8', category: 'HOSPITAL',
+                                name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name,
+                                lat: parseFloat(item.y), lng: parseFloat(item.x),
+                                trust_score: item.place_name?.match(/종합병원|의료원|대학병원/) ? 50 : 20, raw_data: item
+                            });
+                        });
+                        tracking.stepA_dynamic.HOSPITAL += data.documents.length;
+                    }
+                }
+            } catch (e) { console.error("Kakao HP8 Error"); }
+
             // A-2. Festival
             try {
                 const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${publicApiKey}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${targetLng}&mapY=${targetLat}&radius=20000`, fetchOptions);
@@ -156,39 +177,47 @@ export async function POST(request: Request) {
                 }
             } catch (e) { console.error("Festival Fetch Error"); }
 
-            // A-3. Gas Station (Multi-call 10km bounds via Katec EPSG:5181)
+            // A-3. Gas Station (Multi-call Spiral Search constraints up to 30km)
             try {
                 const OPINET_API_KEY = process.env.OPINET_API_KEY;
                 if (OPINET_API_KEY) {
                     proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs");
                     const [wtmX, wtmY] = proj4("EPSG:4326", "EPSG:5181", [targetLng, targetLat]);
-                    const shifts = [{x:0,y:0}, {x:5000,y:0}, {x:-5000,y:0}, {x:0,y:5000}, {x:0,y:-5000}]; // 5km shifts
-                    
-                    const gasPromises = shifts.map(s => 
-                        fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`, fetchOptions)
-                        .then(r=>r.json()).catch(()=>null)
-                    );
-                    const gasResults = await Promise.all(gasPromises);
                     const seenGas = new Set();
+                    
+                    const spiralShifts = [
+                        [{x:0, y:0}],
+                        [{x:10000,y:0}, {x:-10000,y:0}, {x:0,y:10000}, {x:0,y:-10000}],
+                        [{x:20000,y:0}, {x:-20000,y:0}, {x:0,y:20000}, {x:0,y:-20000}, {x:15000,y:15000}, {x:-15000,y:15000}, {x:15000,y:-15000}, {x:-15000,y:-15000}],
+                        [{x:30000,y:0}, {x:-30000,y:0}, {x:0,y:30000}, {x:0,y:-30000}]
+                    ];
 
-                    gasResults.forEach(data => {
-                        if (data?.RESULT?.OIL) {
-                            const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
-                            items.forEach((item: any) => {
-                                const key = item.OS_NM + item.VAN_ADR;
-                                if (!seenGas.has(key) && item.K_PRICE > 0) {
-                                    seenGas.add(key);
-                                    const [lon, lat] = proj4("EPSG:5181", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
-                                    rawMasterInserts.push({
-                                        id: generateFactId('OPINET_GAS', item.OS_NM, item.VAN_ADR || '주소없음'),
-                                        api_source: 'OPINET_GAS', category: 'GAS_STATION',
-                                        name: item.OS_NM, description: `등유: ${item.K_PRICE}원`, address: item.VAN_ADR || '주소 정보 없음',
-                                        lat: lat, lng: lon, trust_score: 55, raw_data: item
-                                    });
-                                }
-                            });
-                        }
-                    });
+                    for (const group of spiralShifts) {
+                        if (seenGas.size >= 5) break; 
+                        const gasPromises = group.map(s => 
+                            fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`, fetchOptions)
+                            .then(r=>r.json()).catch(()=>null)
+                        );
+                        const gasResults = await Promise.all(gasPromises);
+                        gasResults.forEach(data => {
+                            if (data?.RESULT?.OIL) {
+                                const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
+                                items.forEach((item: any) => {
+                                    const key = item.OS_NM + item.VAN_ADR;
+                                    if (!seenGas.has(key) && item.K_PRICE > 0) {
+                                        seenGas.add(key);
+                                        const [lon, lat] = proj4("EPSG:5181", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
+                                        rawMasterInserts.push({
+                                            id: generateFactId('OPINET_GAS', item.OS_NM, item.VAN_ADR || '주소없음'),
+                                            api_source: 'OPINET_GAS', category: 'GAS_STATION',
+                                            name: item.OS_NM, description: `등유: ${item.K_PRICE}원`, address: item.VAN_ADR || '주소 정보 없음',
+                                            lat: lat, lng: lon, trust_score: 55, raw_data: item
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
                     tracking.stepA_dynamic.GAS_STATION = seenGas.size;
                 }
             } catch (e) { console.error("Gas Fetch Error"); }
@@ -203,11 +232,23 @@ export async function POST(request: Request) {
             // ==========================================
             // Step B. 1차 선별 (1st Filtering) - Pure Facts Only
             // ==========================================
-            // Get all candidates around cluster from master_places (now including the freshly upserted dynamic ones)
-            const { data: dbItems } = await supabase.rpc('get_master_places_in_radius', {
-                target_lat: targetLat, target_lng: targetLng, radius_meters: 30000, limit_count: 1500
-            });
-            const candidates = dbItems || [];
+            // Fetch dynamically via explicit category quotas. 
+            const categories = [
+                { cat: 'RESTAURANT', limit: 1000 },
+                { cat: 'MART', limit: 100 },
+                { cat: 'SPOT', limit: 100 },
+                { cat: 'FESTIVAL', limit: 100 },
+                { cat: 'HOSPITAL', limit: 100 },
+                { cat: 'GAS_STATION', limit: 100 }
+            ];
+            
+            const candidates: any[] = [];
+            await Promise.all(categories.map(async ({ cat, limit }) => {
+                const { data } = await supabase.rpc('get_master_places_in_radius', {
+                    target_lat: targetLat, target_lng: targetLng, radius_meters: 30000, limit_count: limit, p_category: cat
+                });
+                if (data) candidates.push(...data);
+            }));
 
             // Helper: WGS84 Distance (km)
             const getDist = (lat: number, lng: number) => {
@@ -236,8 +277,20 @@ export async function POST(request: Request) {
             selectedCandidates.push(...marts);
             tracking.stepB_filter['MART'].passed_formula = marts.length;
 
-            // 2) SPOT, FESTIVAL, HOSPITAL (Distance DESC)
-            ['SPOT', 'FESTIVAL', 'HOSPITAL'].forEach(cat => {
+            // 2) HOSPITAL (Distance + Grading Hierarchy)
+            const hospitals = candidates.filter((c:any) => c.category === 'HOSPITAL').map((c:any) => {
+                let s = 0;
+                if (c.api_source === 'NMC_HOSPITAL') s += 100;
+                else if (c.trust_score >= 50) s += 50; 
+                else s += 20; 
+                s += Math.max(0, (1 - (c._dist / 30.0)) * 50); 
+                return { ...c, _sortScore: s };
+            }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 15);
+            selectedCandidates.push(...hospitals);
+            tracking.stepB_filter['HOSPITAL'].passed_formula = hospitals.length;
+
+            // 3) SPOT, FESTIVAL (Distance DESC)
+            ['SPOT', 'FESTIVAL'].forEach(cat => {
                 const list = candidates.filter((c:any) => c.category === cat)
                                        .sort((a:any, b:any) => a._dist - b._dist)
                                        .slice(0, 15);
