@@ -98,6 +98,7 @@ export async function POST(request: Request) {
         const generateFactId = (source: string, name: string, address: string) => uuidv5(`${source}|${String(name).trim()}|${String(address).trim()}`, MY_NAMESPACE);
 
         const allFacts: any[] = [];
+        const clusterLogs: any[] = [];
         const startTime = Date.now();
         const TIMEOUT_LIMIT = (maxDuration - 30) * 1000;
 
@@ -114,6 +115,8 @@ export async function POST(request: Request) {
             // ==========================================
             // Step A. Raw Dynamic Data Fetch & Upsert (Organic Growth)
             // ==========================================
+            const tracking: any = { stepA_dynamic: { HOSPITAL: 0, FESTIVAL: 0, GAS_STATION: 0 }, stepB_filter: {}, stepC_kakao_attempts: 0, stepC_kakao_success: 0, stepD_upsert: 0 };
+            clusterLogs.push(tracking);
             const rawMasterInserts: any[] = [];
 
             // A-1. Hospital (Local City Fetch)
@@ -131,6 +134,7 @@ export async function POST(request: Request) {
                             trust_score: item.dutyName?.includes('소아') ? 100 : 55, raw_data: item
                         });
                     });
+                    tracking.stepA_dynamic.HOSPITAL = items.length;
                 }
             } catch (e) { console.error("Hospital Fetch Error"); }
 
@@ -148,6 +152,7 @@ export async function POST(request: Request) {
                             lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 45, raw_data: item
                         });
                     });
+                    tracking.stepA_dynamic.FESTIVAL = items.length;
                 }
             } catch (e) { console.error("Festival Fetch Error"); }
 
@@ -184,6 +189,7 @@ export async function POST(request: Request) {
                             });
                         }
                     });
+                    tracking.stepA_dynamic.GAS_STATION = seenGas.size;
                 }
             } catch (e) { console.error("Gas Fetch Error"); }
 
@@ -212,6 +218,9 @@ export async function POST(request: Request) {
             candidates.forEach((c: any) => c._dist = getDist(c.lat, c.lng));
 
             const selectedCandidates: any[] = [];
+            ['MART', 'SPOT', 'FESTIVAL', 'HOSPITAL', 'GAS_STATION', 'RESTAURANT'].forEach(cat => {
+                tracking.stepB_filter[cat] = { discovered: candidates.filter((c:any) => c.category === cat).length, passed_formula: 0 };
+            });
 
             // 1) MART (Brand Score + Area + Distance)
             const marts = candidates.filter((c:any) => c.category === 'MART').map((c:any) => {
@@ -225,6 +234,7 @@ export async function POST(request: Request) {
                 return { ...c, _sortScore: s };
             }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 15);
             selectedCandidates.push(...marts);
+            tracking.stepB_filter['MART'].passed_formula = marts.length;
 
             // 2) SPOT, FESTIVAL, HOSPITAL (Distance DESC)
             ['SPOT', 'FESTIVAL', 'HOSPITAL'].forEach(cat => {
@@ -232,6 +242,7 @@ export async function POST(request: Request) {
                                        .sort((a:any, b:any) => a._dist - b._dist)
                                        .slice(0, 15);
                 selectedCandidates.push(...list);
+                tracking.stepB_filter[cat].passed_formula = list.length;
             });
 
             // 3) GAS_STATION (Price ASC -> Distance)
@@ -242,6 +253,7 @@ export async function POST(request: Request) {
                 return pA - pB;
             }).slice(0, 10);
             selectedCandidates.push(...gasFiltered);
+            tracking.stepB_filter['GAS_STATION'].passed_formula = gasFiltered.length;
 
             // 4) RESTAURANT (Trust Score DESC -> Distance)
             const rests = candidates.filter((c:any) => c.category === 'RESTAURANT').sort((a:any, b:any) => {
@@ -250,6 +262,7 @@ export async function POST(request: Request) {
                 return tB - tA;
             }).slice(0, 20);
             selectedCandidates.push(...rests);
+            tracking.stepB_filter['RESTAURANT'].passed_formula = rests.length;
 
 
             // ==========================================
@@ -302,6 +315,8 @@ export async function POST(request: Request) {
 
                 const validEnriched = enrichedResults.filter(Boolean) as any[];
                 allFacts.push(...validEnriched);
+                tracking.stepC_kakao_attempts += catCands.length;
+                tracking.stepC_kakao_success += validEnriched.length;
             }
         }
 
@@ -314,7 +329,9 @@ export async function POST(request: Request) {
         if (validFacts.length > 0) {
             const uniqueFacts = Object.values(validFacts.reduce((acc: any, row: any) => ({ ...acc, [row.id]: row }), {})) as any[];
             const { error } = await supabase.from('smart_plan_facts').upsert(uniqueFacts, { onConflict: 'id' });
-            if (!error) processedCount = uniqueFacts.length;
+            if (!error) {
+                processedCount = uniqueFacts.length;
+            }
             else console.error("Upsert Facts Error", error);
         }
 
@@ -323,7 +340,7 @@ export async function POST(request: Request) {
             job_name: 'SMART_PLAN_CACHING',
             status: processedCount > 0 ? 'SUCCESS' : 'FAILURE',
             processed_count: processedCount,
-            message: `Processed ${clusters.length} clusters in ${duration}ms`,
+            message: JSON.stringify({ clusters: clusterLogs, final_upsert: processedCount }),
             duration_ms: duration,
             target_date: targetStr
         });

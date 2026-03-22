@@ -41,6 +41,7 @@ const nameAddressMap = new Map(); // "name|address" -> id
 const geocodeCache = new Map();
 let totalSynced = 0;
 let geocodingCount = 0;
+const syncStats = {}; // Tracks category counts
 // Quota removed for full recovery session
 
 function clean(s) { return String(s || '').trim(); }
@@ -119,6 +120,9 @@ async function upsertBatch(items) {
         }
     } else {
         totalSynced += uniqueValidItems.length;
+        uniqueValidItems.forEach(i => {
+            if (i.category) syncStats[i.category] = (syncStats[i.category] || 0) + 1;
+        });
         process.stdout.write(`\r[Sync Progress] Total: ${totalSynced} items... Cache: ${geocodeCache.size}`);
     }
 }
@@ -350,7 +354,11 @@ async function main() {
         job_name: 'MASTER_SYNC',
         status: totalSynced > 0 ? 'SUCCESS' : 'FAILURE',
         processed_count: totalSynced,
-        message: `Synced ${totalSynced} items. Recovered ${geocodingCount} coords via Geocoding.`,
+        message: JSON.stringify({
+            total_synced: totalSynced,
+            geocoded: geocodingCount,
+            category_breakdown: syncStats
+        }),
         duration_ms: duration
     });
 }
