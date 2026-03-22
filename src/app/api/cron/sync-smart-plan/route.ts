@@ -205,7 +205,7 @@ export async function POST(request: Request) {
             // ==========================================
             // Get all candidates around cluster from master_places (now including the freshly upserted dynamic ones)
             const { data: dbItems } = await supabase.rpc('get_master_places_in_radius', {
-                target_lat: targetLat, target_lng: targetLng, radius_meters: 30000, limit_count: 500
+                target_lat: targetLat, target_lng: targetLng, radius_meters: 30000, limit_count: 1500
             });
             const candidates = dbItems || [];
 

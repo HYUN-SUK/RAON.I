@@ -1,0 +1,58 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?뾺截?backup and recover secrets: https://dotenvx.com/ops
+Fetching the latest SMART_PLAN_CACHING log...
+Raw Log Record:
+ {
+  "id": "4aa110c1-739b-4659-be1d-73cd86cf0cb2",
+  "job_name": "SMART_PLAN_CACHING",
+  "status": "SUCCESS",
+  "processed_count": 29,
+  "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":0,\"passed_formula\":0},\"FESTIVAL\":{\"discovered\":0,\"passed_formula\":0},\"HOSPITAL\":{\"discovered\":0,\"passed_formula\":0},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":471,\"passed_formula\":20}},\"stepC_kakao_attempts\":35,\"stepC_kakao_success\":35,\"stepD_upsert\":0}],\"final_upsert\":29}",
+  "duration_ms": 5430,
+  "target_date": "2026-03-26",
+  "api_status": null,
+  "created_at": "2026-03-22T04:34:36.353585+00:00"
+}
+
+--- Parsed Telemetry Message ---
+{
+  "clusters": [
+    {
+      "stepA_dynamic": {
+        "HOSPITAL": 1,
+        "FESTIVAL": 9,
+        "GAS_STATION": 0
+      },
+      "stepB_filter": {
+        "MART": {
+          "discovered": 29,
+          "passed_formula": 15
+        },
+        "SPOT": {
+          "discovered": 0,
+          "passed_formula": 0
+        },
+        "FESTIVAL": {
+          "discovered": 0,
+          "passed_formula": 0
+        },
+        "HOSPITAL": {
+          "discovered": 0,
+          "passed_formula": 0
+        },
+        "GAS_STATION": {
+          "discovered": 0,
+          "passed_formula": 0
+        },
+        "RESTAURANT": {
+          "discovered": 471,
+          "passed_formula": 20
+        }
+      },
+      "stepC_kakao_attempts": 35,
+      "stepC_kakao_success": 35,
+      "stepD_upsert": 0
+    }
+  ],
+  "final_upsert": 29
+}
+--------------------------------
