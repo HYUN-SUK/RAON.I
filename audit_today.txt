@@ -1,0 +1,347 @@
+=== 1. Automation Logs ===
+[
+  {
+    "id": "1b604947-1472-410c-90d5-08d24a8e9f39",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Processed 1 clusters in 19032ms",
+    "duration_ms": 19032,
+    "target_date": "2026-03-25",
+    "api_status": null,
+    "created_at": "2026-03-21T21:30:25.715406+00:00"
+  },
+  {
+    "id": "a92549b1-d294-406f-9d66-765828dc6370",
+    "job_name": "MASTER_SYNC",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Synced 0 items. Recovered 0 coords via Geocoding.",
+    "duration_ms": 68751,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-21T21:15:15.730607+00:00"
+  },
+  {
+    "id": "e7b8fe5d-a3d2-4a51-afb4-7a84efc933b8",
+    "job_name": "API_HEALTH_CHECK",
+    "status": "SUCCESS",
+    "processed_count": 14,
+    "message": "전체 14개 API 중 13개 정상",
+    "duration_ms": 4700,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "MART_LOCALDATA",
+        "error": "",
+        "label": "마트(LocalData)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:11.696Z",
+        "duration_ms": 1290
+      },
+      {
+        "name": "REST_LOCALDATA",
+        "error": "",
+        "label": "식당(모범음식점)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:11.712Z",
+        "duration_ms": 1300
+      },
+      {
+        "name": "REST_BAEK",
+        "error": "",
+        "label": "식당(백년가게)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:12.361Z",
+        "duration_ms": 1945
+      },
+      {
+        "name": "REST_SAFE",
+        "error": "",
+        "label": "식당(안심식당)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:10.860Z",
+        "duration_ms": 442
+      },
+      {
+        "name": "TOUR_SPOT",
+        "error": "",
+        "label": "관광명소(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:13.810Z",
+        "duration_ms": 3391
+      },
+      {
+        "name": "FESTIVAL",
+        "error": "",
+        "label": "축제(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:12.222Z",
+        "duration_ms": 1802
+      },
+      {
+        "name": "HOSPITAL",
+        "error": "",
+        "label": "병원(NMC)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:12.233Z",
+        "duration_ms": 1813
+      },
+      {
+        "name": "GAS_OPINET",
+        "error": "",
+        "label": "주유소(오피넷)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:12.303Z",
+        "duration_ms": 1882
+      },
+      {
+        "name": "WEATHER_SHORT",
+        "error": "",
+        "label": "날씨(단기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:12.224Z",
+        "duration_ms": 1802
+      },
+      {
+        "name": "WEATHER_MID",
+        "error": "",
+        "label": "날씨(중기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:12.237Z",
+        "duration_ms": 1815
+      },
+      {
+        "name": "KAKAO_LOCAL",
+        "error": "",
+        "label": "카카오로컬",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:13.008Z",
+        "duration_ms": 2585
+      },
+      {
+        "name": "KAKAO_MAP",
+        "error": "",
+        "label": "카카오맵",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:12.999Z",
+        "duration_ms": 2574
+      },
+      {
+        "name": "GOCAMPING",
+        "error": "",
+        "label": "고캠핑",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-21T10:56:13.834Z",
+        "duration_ms": 3408
+      },
+      {
+        "name": "GEMINI",
+        "error": "HTTP 404 (Deferred)",
+        "label": "AI(제미나이)",
+        "status": "FAILURE",
+        "checked_at": "2026-03-21T10:56:12.400Z",
+        "duration_ms": 1974
+      }
+    ],
+    "created_at": "2026-03-21T10:56:14.604955+00:00"
+  },
+  {
+    "id": "3ea99566-63d6-4e5b-9878-8d5d7462e534",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Processed 1 clusters in 17191ms",
+    "duration_ms": 17191,
+    "target_date": "2026-03-24",
+    "api_status": null,
+    "created_at": "2026-03-20T21:35:13.973205+00:00"
+  },
+  {
+    "id": "0b3b63c3-3b8d-494b-8ef7-bd59a5639836",
+    "job_name": "MASTER_SYNC",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Synced 0 items. Recovered 0 coords via Geocoding.",
+    "duration_ms": 65177,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-20T21:21:33.294678+00:00"
+  },
+  {
+    "id": "1d67cb54-0e7b-4dc9-8cb4-cc383a9602e6",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Processed 1 clusters in 17227ms",
+    "duration_ms": 17227,
+    "target_date": "2026-03-23",
+    "api_status": null,
+    "created_at": "2026-03-19T21:40:45.108699+00:00"
+  },
+  {
+    "id": "a7ebe876-06a6-46ee-92c6-20e9569efb7e",
+    "job_name": "MASTER_SYNC",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Synced 0 items. Recovered 0 coords via Geocoding.",
+    "duration_ms": 64909,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-19T21:26:07.502811+00:00"
+  },
+  {
+    "id": "c16f1d50-1251-4587-9700-5410fb2f1ab1",
+    "job_name": "API_HEALTH_CHECK",
+    "status": "SUCCESS",
+    "processed_count": 14,
+    "message": "전체 14개 API 중 13개 정상",
+    "duration_ms": 3712,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "MART_LOCALDATA",
+        "error": "",
+        "label": "마트(LocalData)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:29.542Z",
+        "duration_ms": 1284
+      },
+      {
+        "name": "REST_LOCALDATA",
+        "error": "",
+        "label": "식당(모범음식점)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:29.564Z",
+        "duration_ms": 1304
+      },
+      {
+        "name": "REST_BAEK",
+        "error": "",
+        "label": "식당(백년가게)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:30.087Z",
+        "duration_ms": 1825
+      },
+      {
+        "name": "REST_SAFE",
+        "error": "",
+        "label": "식당(안심식당)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:28.697Z",
+        "duration_ms": 434
+      },
+      {
+        "name": "TOUR_SPOT",
+        "error": "",
+        "label": "관광명소(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:30.348Z",
+        "duration_ms": 2083
+      },
+      {
+        "name": "FESTIVAL",
+        "error": "",
+        "label": "축제(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:29.585Z",
+        "duration_ms": 1319
+      },
+      {
+        "name": "HOSPITAL",
+        "error": "",
+        "label": "병원(NMC)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:29.590Z",
+        "duration_ms": 1324
+      },
+      {
+        "name": "GAS_OPINET",
+        "error": "",
+        "label": "주유소(오피넷)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:29.831Z",
+        "duration_ms": 1565
+      },
+      {
+        "name": "WEATHER_SHORT",
+        "error": "",
+        "label": "날씨(단기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:30.358Z",
+        "duration_ms": 2091
+      },
+      {
+        "name": "WEATHER_MID",
+        "error": "",
+        "label": "날씨(중기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:30.339Z",
+        "duration_ms": 2072
+      },
+      {
+        "name": "KAKAO_LOCAL",
+        "error": "",
+        "label": "카카오로컬",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:30.626Z",
+        "duration_ms": 2358
+      },
+      {
+        "name": "KAKAO_MAP",
+        "error": "",
+        "label": "카카오맵",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:30.656Z",
+        "duration_ms": 2387
+      },
+      {
+        "name": "GOCAMPING",
+        "error": "",
+        "label": "고캠핑",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-19T04:16:30.402Z",
+        "duration_ms": 2133
+      },
+      {
+        "name": "GEMINI",
+        "error": "HTTP 404 (Deferred)",
+        "label": "AI(제미나이)",
+        "status": "FAILURE",
+        "checked_at": "2026-03-19T04:16:30.018Z",
+        "duration_ms": 1748
+      }
+    ],
+    "created_at": "2026-03-19T04:16:31.287254+00:00"
+  },
+  {
+    "id": "66723658-8806-40af-ae9f-9aab4bec11fc",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Processed 1 clusters in 17580ms",
+    "duration_ms": 17580,
+    "target_date": "2026-03-22",
+    "api_status": null,
+    "created_at": "2026-03-18T21:39:55.437286+00:00"
+  },
+  {
+    "id": "ca396669-0c10-46af-bb93-59944e3d5923",
+    "job_name": "MASTER_SYNC",
+    "status": "FAILURE",
+    "processed_count": 0,
+    "message": "Synced 0 items. Recovered 0 coords via Geocoding.",
+    "duration_ms": 56349,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-18T21:38:05.907561+00:00"
+  }
+]
+
+=== 2. master_places recent updates ===
+Master Places newly created/upserted today: {}
+
+=== 3. smart_plan_facts recent updates ===
+Smart Plan Facts newly created/upserted today: {}
+Sample Facts:
+[]

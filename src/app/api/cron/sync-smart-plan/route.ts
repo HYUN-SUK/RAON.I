@@ -189,7 +189,8 @@ export async function POST(request: Request) {
 
             // Upsert Raw Data to master_places for permanent retention
             if (rawMasterInserts.length > 0) {
-                await supabase.from('master_places').upsert(rawMasterInserts, { onConflict: 'id' });
+                const uniqueRaw = Object.values(rawMasterInserts.reduce((acc: any, row: any) => ({ ...acc, [row.id]: row }), {})) as any[];
+                await supabase.from('master_places').upsert(uniqueRaw, { onConflict: 'id' });
             }
 
 
@@ -311,8 +312,9 @@ export async function POST(request: Request) {
         let processedCount = 0;
 
         if (validFacts.length > 0) {
-            const { error } = await supabase.from('smart_plan_facts').upsert(validFacts, { onConflict: 'id' });
-            if (!error) processedCount = validFacts.length;
+            const uniqueFacts = Object.values(validFacts.reduce((acc: any, row: any) => ({ ...acc, [row.id]: row }), {})) as any[];
+            const { error } = await supabase.from('smart_plan_facts').upsert(uniqueFacts, { onConflict: 'id' });
+            if (!error) processedCount = uniqueFacts.length;
             else console.error("Upsert Facts Error", error);
         }
 
