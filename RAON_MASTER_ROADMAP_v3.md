@@ -43,7 +43,7 @@
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
 | **Phase 4** | **미래 기능 (Future)** | ✅ **완료** | 100% | 웹 푸시(FCM), 상황별 알림 시스템, 인앱 배지 구현 완료. |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
-| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | 페르소나 V2 엔진 및 전 영역 센서(50개) 배치/감사 완료. |
+| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | V9.5 하이엔드 파이프라인(나선탐색/병원스코어/쿼터제) 실장 완료. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
@@ -128,7 +128,26 @@
 *   **5.3 주문/결제 (Checkout)** ✅:
     *   [x] 배송지 입력 폼 (Daum 주소 API 연동).
     *   [x] 결제 수단 선택 UI (무통장/카드).
-    *   [x] 주문 완료 페이지 (Order Success).
+*   **5.5.5 Hybrid Sync Stabilization (Phase 11 & 12) ✅ (2026-03-08)**:
+    *   [x] **Phase 11**: PostGIS 기반 마스터 DB 스캔 및 날씨 가중치 1차 선별 구현.
+    *   [x] **Phase 12**: 카카오맵 별점/리뷰 스크래퍼 및 실시간 팩트 정제 파이프라인 이식.
+    *   [x] **v2 Update (2026-03-10)**: Evidence 구조화(Fact Chips), AI 환각 방지 지침 적용, 최신 API 연동 복구 완료.
+    *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 자동화 통합('Gold Standard' 초고속 병합 스크립트 교체), UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
+    *   [x] **API Resilience (v4-v6) (2026-03-21)**: D-3 캐싱의 좌표 결측 예약 배제 필터 버그 수정(`route.ts`), 전역 에러 로깅 강화, 주간 배치 일요일 임시 실행 스케줄링 및 "영희네" 예약 건 수동 데이터 적재 완료. 
+    *   [x] **Logic Audit (v7) (2026-03-21)**: `smart_camping_plan_manual.md` 대조 감사를 통해 병원 수집 범위 한계 및 주유소 Top 3 필터링 병목 지점 식별 및 보고 완료.
+    *   **V9.5 Pipeline Excellence (2026-03-22)** ✅:
+        *   [x] **Resilience**: SQL 21000 에러(중복 충돌) 방어 및 Audit Telemetry 구축.
+        *   [x] **Spiral Search**: 등유 주유소 30km 확장 탐색 및 TM128 좌표 보정 완료.
+        *   [x] **Hospital Hierarchy**: NMC 응급실 우선 및 종합병원/의원 가중치 스코어링 도입.
+        *   [x] **Category Quotas**: 카테고리별 병렬 쿼터제(Quota) 적용으로 데이터 유실 원천 차단.
+        *   [x] **PostGIS Bypass**: 인덱싱 지연 우회 실시간 병합 로직으로 신선도 100% 확보.
+    *   **SSOT**: `smart_camping_plan_manual.md` V9.5 전체 로직 및 안정성 장치 통합 최신화 완료.
+    *   [x] **Stabilization**: D-3 동적 동기화 크론 작업의 테이블 참조 오류(`schedules` -> `user_schedules`) 수정 및 검증 완료.
+    *   [x] **5.5.6 Unified User Camping Profile ✅ (2026-03-17)**:
+        *   [x] **DB**: `user_camping_profiles` 테이블 구축 및 RLS/RPC (`upsert_camping_profile`) 적용.
+        *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
+        *   [x] **Flow Integration**: 예약, 타캠핑장 일정 등록, 캠핑장 추천(PlanLock), 스마트플랜 4대 엔진 통합 완료.
+        *   [x] **UX**: 기존 정보 존재 시 '간편 확인' 버튼 하나로 통과하는 최적화 로직 적용.
 *   **5.4 리뷰 시스템 (Reviews)** ✅ (Completed):
     *   [x] **구조**: `market_reviews` 테이블 스키마 검증 및 `UNIQUE(user_id, product_id)` 제약 확인.
     *   [x] **기능**: 리뷰 작성/삭제 (별점, 텍스트) 및 중복 방지 로직.
@@ -595,7 +614,7 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
     *   [x] **Photo**: Image Editor V3.1 (Crop/Filter/Text/Draw) + Safe Save Logic.
     *   [x] **Map**: `MyMapList` (지도) 연동 완료.
     *   [x] **Review**: `ReviewBoard` 탭 분리 (RaonAI vs Camper) 구현 완료.
-*   [ ] **찜 기능**: 캠핑장 찜하기
+*   [x] **찜 기능**: 캠핑장 찜하기 (V12.3 New Heart System 구현 완료)
 *   [x] **준비 알림**: D-4(장비), D-1(메뉴), D-0(행사) 알림 구현 및 고도화 완료. 동적 캐싱 크론 오동작(`user_schedules` 참조 오류) 수정 및 검증 완료. (2026-03-15)
 
 ### Phase 12.4: 복합 편집 (~31시간)

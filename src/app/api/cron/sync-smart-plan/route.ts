@@ -25,10 +25,10 @@ export async function POST(request: Request) {
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-        // 1. D-3 (캠핑 3일 전) 타겟팅 일정 추출
         let manualTargetLat: number | null = null;
         let manualTargetLng: number | null = null;
         let manualAddress: string | null = null;
+        let manualTargetDate: string | null = null;
 
         try {
             const body = await request.json();
@@ -37,13 +37,16 @@ export async function POST(request: Request) {
                 manualTargetLng = body.targetLng;
                 manualAddress = body.targetRegion || '충청남도 예산군';
             }
+            if (body.targetDate) {
+                manualTargetDate = body.targetDate;
+            }
         } catch (e) { /* ignore GET or JSON parsing error */ }
 
         const now = new Date();
         const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
         const targetDate = new Date(kstNow);
         targetDate.setDate(kstNow.getDate() + 3);
-        const targetStr = targetDate.toISOString().split('T')[0];
+        const targetStr = manualTargetDate || targetDate.toISOString().split('T')[0];
 
         const { data: schedules } = await supabase
             .from('user_schedules')
@@ -196,9 +199,12 @@ export async function POST(request: Request) {
                         if (seenGas.size >= 5) break; 
                         const gasPromises = group.map(s => {
                             const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`;
+                            console.log(`[Opinet Probe] Radius Shift: ${s.x}, ${s.y} | URL: ${url}`);
                             return fetch(url, fetchOptions)
                             .then(async r => {
-                                return await r.json();
+                                const d = await r.json();
+                                console.log(`[Opinet Response] Status: ${r.status} | Found: ${d?.RESULT?.OIL?.length || 0}`);
+                                return d;
                             }).catch(err => {
                                 console.error("OPINET Fetch Error:", err.message);
                                 return null;

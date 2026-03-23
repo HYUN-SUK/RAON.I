@@ -39,7 +39,7 @@ export default function WishlistPage() {
             }
 
             const { data, error } = await supabase
-                .from('user_favorites')
+                .from('user_campground_hearts')
                 .select(`
                     created_at,
                     campgrounds(
@@ -76,7 +76,7 @@ export default function WishlistPage() {
             if (!user) return;
 
             const { error } = await supabase
-                .from('user_favorites')
+                .from('user_campground_hearts')
                 .delete()
                 .eq('user_id', user.id)
                 .eq('campground_id', campgroundId);

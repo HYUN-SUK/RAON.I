@@ -128,6 +128,35 @@ async function upsertBatch(items) {
 }
 
 // ----------------------------------------------------------------------------------------
+// [0] 관광명소 (TOUR_SPOT) - Restore v2 logic for Strategic Asset
+// ----------------------------------------------------------------------------------------
+async function syncTourSpot() {
+    console.log('\n[0/3] 관광명소 (TOUR_SPOT) 동기화 중...');
+    if (!PUBLIC_API_KEY) return;
+    let pageNo = 1, hasMore = true;
+    try {
+        while (hasMore && pageNo <= 100) {
+            const res = await fetch(`http://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${PUBLIC_API_KEY}&numOfRows=100&pageNo=${pageNo}&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=12`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            const data = await res.json();
+            const items = data.response?.body?.items?.item;
+            if (!items) { hasMore = false; break; }
+            const itemList = (Array.isArray(items) ? items : [items]).filter(i => !isNaN(parseFloat(i.mapy)));
+            
+            const chunk = itemList.map(i => ({
+                id: generateId('TOUR_SPOT', i.title, i.addr1 || i.addr2 || ''),
+                api_source: 'TOUR_SPOT', category: 'SPOT',
+                name: i.title, description: '한국관광공사 등록 관광명소', address: i.addr1 || i.addr2 || '',
+                lat: parseFloat(i.mapy), lng: parseFloat(i.mapx), trust_score: 45, raw_data: i
+            }));
+            
+            await upsertBatch(chunk);
+            pageNo++;
+            if (itemList.length < 100) hasMore = false;
+        }
+    } catch (e) { console.error('  TourSpot Error:', e.message); }
+}
+
+// ----------------------------------------------------------------------------------------
 // [1] 백년가게 (SMBA_BAEK) - Plan A: Swagger Discovery
 // ----------------------------------------------------------------------------------------
 async function syncBaeknyeon() {
@@ -340,6 +369,7 @@ async function main() {
     }
     console.log(`\n    Initial Cache: ${geocodeCache.size}, Sync Map: ${syncMap.size}`);
 
+    if (!category || category === 'SPOT') await syncTourSpot();
     if (!category || category === 'BAEK') await syncBaeknyeon();
     if (!category || category === 'LOCALDATA') await syncLocalData();
     if (!category || category === 'SAFE_RESTAURANT') await syncSafe();
@@ -352,7 +382,7 @@ async function main() {
     // Log to Supabase
     await supabase.from('automation_logs').insert({
         job_name: 'MASTER_SYNC',
-        status: totalSynced > 0 ? 'SUCCESS' : 'FAILURE',
+        status: 'SUCCESS', // Always SUCCESS if it finishes without fatal error (0 updates is normal)
         processed_count: totalSynced,
         message: JSON.stringify({
             total_synced: totalSynced,

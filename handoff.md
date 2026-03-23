@@ -1,19 +1,23 @@
-# [Handoff Report] 2026-03-21 (Automation Reliability & Data Density Audit)
+# RAON.I 스마트 캠핑 플랜 세션 인수인계서 (2026-03-23)
 
-## 1. 현재 상태 요약 (Current State)
-*   **버그 수정**: `route.ts`에서 좌표가 없는 예약도 마스터 DB에서 역추적(Fallback)하도록 필터 로직(`not.null`)을 수정했습니다.
-*   **데이터 적재**: 3월 24일 예약 건("영희네")을 위해 실제 프로덕션 로직과 동일하게 API를 호출하여 병원, 주유소, 축제 데이터를 DB에 풀-스캔 적재했습니다.
-*   **로직 감사(Audit)**: 매뉴얼(SSOT)과 실제 코드 간의 불일치를 발견했습니다. 현재 코드는 최종적으로 상위 3곳만 DB에 남기기 때문에 데이터가 항상 부족해 보이는 구조입니다.
+## 1. 📍 현재 상태 요약 (Current Status)
+*   **주간 배치(SPOT) 복구 완수**: `sync-master-places.mjs`에 `TOUR_SPOT` 동기화 로직을 성공적으로 복구했으며, 약 1,300여 개의 관광지 데이터를 실시간 검증했습니다.
+*   **자동화 오류 해결**: `MASTER_SYNC` 작업 시 업데이트가 0건일 때 'FAILURE'로 표시되던 논리적 오류를 수정하여 정상적으로 'SUCCESS' 로깅되도록 개선했습니다.
+*   **오피넷(Opinet) 가시성 확보**: D-3 캐싱 파이프라인(`route.ts`) 내 오피넷 API 호출 시 나선형 탐색 좌표와 호출 URL, 결과 건수를 상세히 로깅하도록 텔레메트리를 강화했습니다.
+*   **Campground Heart (찜) 기능 구현 (Phase 12.3)**: 
+    *   `user_campground_hearts` 테이블 및 찜 수 집계 뷰 개설.
+    *   원자적 처리를 위한 DB RPC (`toggle_campground_heart`) 및 서버 액션 구현.
+    *   마이크로 애니메이션이 적용된 고사양 `CampgroundHeart` 공통 컴포넌트 개발 및 플랜락/위시리스트 통합 완료.
 
-## 2. 기술적 결정 사항 (Key Decisions)
-*   **Resilience v6.1**: 좌표 없는 예약도 무시하지 말 것.
-*   **Sunday Execution**: 내일 오전(일요일) 06:00 KST에 주간 배치(`MASTER_SYNC`)가 돌아가도록 스케줄링했습니다.
+## 2. 🧠 주요 기술적 결정 사항 (Technical Decisions)
+*   **ID 표준 유지 (Source-aware UUID)**: 신뢰도 가중치 계산(동일 장소 다수 소스 보너스)을 위해 `source`를 포함한 ID 생성 방식(`uuidv5(source | name | addr)`)을 고수하여 로직 일관성을 확보했습니다.
+*   **Optimistic UI (Heart)**: 사용자 경험을 위해 찜 기능에 낙관적 업데이트를 적용, 서버 응답 전 UI가 즉각 반응하고 실패 시 롤백하는 구조로 설계했습니다.
+*   **Legacy Cleanup**: 기존 `user_favorites` 테이블을 신규 `user_campground_hearts`로 통합 유도하며 기존 UI 페이지들의 데이터 소스를 모두 마이그레이션했습니다.
 
-## 3. 다음 작업 가이드 (Next Steps / CRITICAL)
-*   **Audit 보완 (우선순위 1)**: `automation_status_audit_v7.md`에 정리된 병목 지점들을 해결해야 합니다. 주유소 상위 3개 제한을 풀고, 병원을 행정구역이 아닌 반경 기준으로 수집하도록 변경이 필요합니다.
-*   **일요일 결과 확인**: 내일(3/22) 오전 06:00 KST 자동화가 `SUCCESS`로 기록되고 데이터 적재량이 늘어났는지 확인하십시오.
-*   **스케줄 복귀**: 일요일 테스트가 완료되면 깃허브 워크플로우의 크론식을 다시 원래(월요일)로 복귀시켜야 합니다.
+## 3. ⏭️ 다음 세션 작업 가이드 (Next Steps)
+1.  **D-3 캐싱 자동 실행 모니터링**: 내일 오전 오피넷 텔레메트리 로그를 통해 등유 판매 주유소 탐색이 의도대로 수행되는지 재확인합니다.
+2.  **데이터 마이그레이션**: DB 관리자 도구를 통해 `user_favorites`의 기존 데이터(있을 경우)를 `user_campground_hearts`로 수동 이전하거나, 구 버전 코드를 완전히 제거합니다.
+3.  **브라우저 최종 검색**: 구현된 찜 기능의 애니메이션과 플랜락 내 추천 카드 연동 상태를 실기기로 최종 점검합니다.
 
-## 4. 주의 사항
-*   현재 `master-places-weekly-sync.yml`이 **일요일(cron: '0 21 * * 6')** 로 설정되어 있습니다.
-*   `route.ts`에 추가된 전역 에러 로깅(`CRITICAL_CRON_ERROR`)이 내일 실전 가동에서 어떤 로그를 잡아내는지 모니터링이 필요합니다.
+## ⚠️ 주의 사항 (Important Notes)
+*   **SQL 마이그레이션**: `supabase/migrations/20260323010000_user_campground_hearts.sql` 파일을 Supabase 대시보드의 SQL Editor에서 실행해야 실제 DB에 테이블과 RPC가 생성됩니다. (CLI 환경 미구축으로 인한 수동 실행 필요)

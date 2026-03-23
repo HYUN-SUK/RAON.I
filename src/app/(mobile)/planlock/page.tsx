@@ -103,13 +103,13 @@ export default function PlanLockPage() {
 
         // 찜 수 집계
         const { data: favCountData } = await supabase
-            .from('campground_favorites_count')
-            .select('campground_id, favorite_count');
+            .from('campground_hearts_count')
+            .select('campground_id, heart_count');
 
         if (favCountData) {
             const map = new Map<string, number>();
             favCountData.forEach((row) => {
-                map.set(row.campground_id, row.favorite_count);
+                map.set(row.campground_id, row.heart_count);
             });
             setFavorites(map);
         }
@@ -118,7 +118,7 @@ export default function PlanLockPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             const { data: userFavData } = await supabase
-                .from('user_favorites')
+                .from('user_campground_hearts')
                 .select('campground_id')
                 .eq('user_id', user.id);
 
@@ -155,42 +155,10 @@ export default function PlanLockPage() {
         }
     };
 
-    // 찜 토글
+    // 찜 토글 (Refetched on component signal)
     const handleFavoriteToggle = async (campgroundId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            toast.info('로그인 후 찜할 수 있어요');
-            return;
-        }
-
-        const isFavorite = userFavorites.has(campgroundId);
-
-        if (isFavorite) {
-            // 찜 해제
-            await supabase
-                .from('user_favorites')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('campground_id', campgroundId);
-
-            setUserFavorites((prev) => {
-                const next = new Set(prev);
-                next.delete(campgroundId);
-                return next;
-            });
-            toast.success('찜 목록에서 제거했어요');
-        } else {
-            // 찜 추가
-            await supabase.from('user_favorites').insert({
-                user_id: user.id,
-                campground_id: campgroundId,
-            });
-
-            setUserFavorites((prev) => new Set(prev).add(campgroundId));
-            toast.success('찜 목록에 추가했어요');
-        }
-
-        // 찜 수 갱신
+        // Since the CampgroundHeart component handles the DB toggle itself,
+        // we just need to refresh the local count state to keep the UI in sync.
         fetchCampgroundData();
     };
 

@@ -5,6 +5,7 @@ import { getSearchUrl, getKakaoMapUrl, getNaverMapUrl } from '@/lib/campground-r
 import { cn } from '@/lib/utils';
 import { Heart, MapPin, Navigation, ExternalLink, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import CampgroundHeart from '@/components/shared/CampgroundHeart';
 
 interface RecommendationCardProps {
     campground: CampgroundWithScore;
@@ -76,27 +77,22 @@ export function RecommendationCard({
                         )}
                     </div>
 
-                    {/* 찜 버튼 */}
-                    <button
-                        type="button"
-                        onClick={() => onFavoriteToggle?.(campground.id)}
-                        className={cn(
-                            'flex items-center gap-1 px-2 py-1 rounded-lg transition-colors',
-                            campground.isFavorite
-                                ? 'text-red-500 bg-red-50'
-                                : 'text-gray-400 hover:text-red-400 hover:bg-red-50'
-                        )}
-                    >
-                        <Heart
-                            className={cn(
-                                'w-4 h-4',
-                                campground.isFavorite && 'fill-current'
-                            )}
+                    {/* 찜 버튼 (V12.3 New Heart System) */}
+                    <div className="flex flex-col items-center gap-1">
+                        <CampgroundHeart 
+                            campgroundId={campground.id}
+                            initialIsHearted={campground.isFavorite}
+                            size={20}
+                            className="p-1.5"
+                            onToggle={() => onFavoriteToggle?.(campground.id)}
                         />
-                        <span className="text-xs font-medium">
+                        <span className={cn(
+                            "text-[10px] font-bold",
+                            campground.isFavorite ? "text-red-500" : "text-gray-400"
+                        )}>
                             {campground.favoriteCount || 0}
                         </span>
-                    </button>
+                    </div>
                 </div>
 
                 {/* 태그 */}
