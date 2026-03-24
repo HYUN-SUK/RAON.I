@@ -1,23 +1,22 @@
 # RAON.I 스마트 캠핑 플랜 세션 인수인계서 (2026-03-23)
 
 ## 1. 📍 현재 상태 요약 (Current Status)
-*   **주간 배치(SPOT) 복구 완수**: `sync-master-places.mjs`에 `TOUR_SPOT` 동기화 로직을 성공적으로 복구했으며, 약 1,300여 개의 관광지 데이터를 실시간 검증했습니다.
-*   **자동화 오류 해결**: `MASTER_SYNC` 작업 시 업데이트가 0건일 때 'FAILURE'로 표시되던 논리적 오류를 수정하여 정상적으로 'SUCCESS' 로깅되도록 개선했습니다.
-*   **오피넷(Opinet) 가시성 확보**: D-3 캐싱 파이프라인(`route.ts`) 내 오피넷 API 호출 시 나선형 탐색 좌표와 호출 URL, 결과 건수를 상세히 로깅하도록 텔레메트리를 강화했습니다.
-*   **Campground Heart (찜) 기능 구현 (Phase 12.3)**: 
-    *   `user_campground_hearts` 테이블 및 찜 수 집계 뷰 개설.
-    *   원자적 처리를 위한 DB RPC (`toggle_campground_heart`) 및 서버 액션 구현.
-    *   마이크로 애니메이션이 적용된 고사양 `CampgroundHeart` 공통 컴포넌트 개발 및 플랜락/위시리스트 통합 완료.
+*   **3단계 자동화 시뮬레이션 완수**: 3/27(금) "라온아이 오토캠핑장" 예약 건을 타겟으로 주간 배치 및 D-3 캐싱 시뮬레이션 전 과정을 성공적으로 검증했습니다.
+    *   **식당/마트/명소**: 36,990건 수집 (SPOT 복구 확인).
+    *   **주유소/병원**: 오피넷 나선형 탐색으로 **실내등유** 및 NMC 응급실 정보 63건 안착 확인.
+*   **Campground Heart (찜) 기능 완료**: 전용 DB 인프라와 마이크로 애니메이션 UI를 플랜락 및 위시리스트에 통합 완료했습니다.
+*   **임시 스케줄 패치**: 내일(3/24 화요일) 오전 06:00 KST에 주간 배치와 D-3 캐싱이 동시에 수행되도록 GitHub Actions 설정을 임시 패치했습니다.
+*   **빌드 및 커밋 완료**: `npm run build`를 통해 정적 페이지 생성을 검증하고 모든 변경 사항을 로컬 Git에 커밋했습니다.
 
 ## 2. 🧠 주요 기술적 결정 사항 (Technical Decisions)
-*   **ID 표준 유지 (Source-aware UUID)**: 신뢰도 가중치 계산(동일 장소 다수 소스 보너스)을 위해 `source`를 포함한 ID 생성 방식(`uuidv5(source | name | addr)`)을 고수하여 로직 일관성을 확보했습니다.
-*   **Optimistic UI (Heart)**: 사용자 경험을 위해 찜 기능에 낙관적 업데이트를 적용, 서버 응답 전 UI가 즉각 반응하고 실패 시 롤백하는 구조로 설계했습니다.
-*   **Legacy Cleanup**: 기존 `user_favorites` 테이블을 신규 `user_campground_hearts`로 통합 유도하며 기존 UI 페이지들의 데이터 소스를 모두 마이그레이션했습니다.
+*   **Weekly Sync Temporary Schedule**: 원래 월요일(KST) 실행되는 주간 배치를 내일(화) 점검을 위해 `0 21 * * 1` (UTC)로 임시 조정했습니다.
+*   **D-3 Target Logic**: `route.ts`에 `targetDate` 오버라이드 기능을 추가하여 시뮬레이션 유연성을 확보했습니다.
+*   **ID Persistence**: multi-source 신뢰도 계산을 위해 `uuidv5` 기반의 결정론적 ID 생성 방식을 유지했습니다.
 
 ## 3. ⏭️ 다음 세션 작업 가이드 (Next Steps)
-1.  **D-3 캐싱 자동 실행 모니터링**: 내일 오전 오피넷 텔레메트리 로그를 통해 등유 판매 주유소 탐색이 의도대로 수행되는지 재확인합니다.
-2.  **데이터 마이그레이션**: DB 관리자 도구를 통해 `user_favorites`의 기존 데이터(있을 경우)를 `user_campground_hearts`로 수동 이전하거나, 구 버전 코드를 완전히 제거합니다.
-3.  **브라우저 최종 검색**: 구현된 찜 기능의 애니메이션과 플랜락 내 추천 카드 연동 상태를 실기기로 최종 점검합니다.
+1.  **내일 오전 06:15 모니터링**: 자동화 로그(`automation_logs`)를 통해 3/27 예약 건에 대한 실제 데이터 적재 상태를 최종 확인합니다.
+2.  **Git Push**: 로컬 커밋(`feat: Implement Phase 12.3...`)을 서버로 푸시하여 Vercel 배포를 트리거해 주세요.
+3.  **브라우저 확인**: 실제 모바일 기기 혹은 브라우저에서 찜 기능의 인터랙션과 플랜락 추천 카드의 레이아웃을 확인합니다.
 
 ## ⚠️ 주의 사항 (Important Notes)
-*   **SQL 마이그레이션**: `supabase/migrations/20260323010000_user_campground_hearts.sql` 파일을 Supabase 대시보드의 SQL Editor에서 실행해야 실제 DB에 테이블과 RPC가 생성됩니다. (CLI 환경 미구축으로 인한 수동 실행 필요)
+*   **임시 패치 되돌리기**: 내일 오전 점검이 끝나면 `.github/workflows/master-places-weekly-sync.yml`의 크론 설정을 다시 원래대로(`0 21 * * 0`) 복구해야 합니다.

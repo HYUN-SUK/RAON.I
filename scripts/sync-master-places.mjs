@@ -42,7 +42,8 @@ const geocodeCache = new Map();
 let totalSynced = 0;
 let geocodingCount = 0;
 const syncStats = {}; // Tracks category counts
-// Quota removed for full recovery session
+let automationLogId = null;
+const sourceMetrics = {}; // { sourceName: { fetched, existing, updated, new, duration } }
 
 function clean(s) { return String(s || '').trim(); }
 
@@ -127,6 +128,55 @@ async function upsertBatch(items) {
     }
 }
 
+async function startLogging() {
+    try {
+        const { data, error } = await supabase
+            .from('automation_logs')
+            .insert([{
+                job_name: 'MASTER_SYNC',
+                status: 'RUNNING',
+                message: '전국 마스터 플레이스 동기화 시작',
+                created_at: new Date().toISOString()
+            }])
+            .select();
+        if (error) throw error;
+        automationLogId = data[0].id;
+    } catch (e) {
+        console.error('Logging start failed:', e.message);
+    }
+}
+
+async function finishLogging(status, message) {
+    if (!automationLogId) return;
+    try {
+        // sourceMetrics를 api_status 규격으로 변환
+        const api_status = Object.entries(sourceMetrics).map(([name, m]) => ({
+            name: name,
+            label: name,
+            status: 'SUCCESS',
+            duration_ms: m.duration,
+            fetched_count: m.fetched,
+            existing_count: m.existing,
+            updated_count: m.updated,
+            new_count: m.new
+        }));
+
+        await supabase
+            .from('automation_logs')
+            .update({
+                status,
+                message,
+                duration_ms: Date.now() - startTime,
+                api_status,
+                processed_count: totalSynced
+            })
+            .eq('id', automationLogId);
+    } catch (e) {
+        console.error('Logging finish failed:', e.message);
+    }
+}
+
+let startTime = Date.now();
 // ----------------------------------------------------------------------------------------
 // [0] 관광명소 (TOUR_SPOT) - Restore v2 logic for Strategic Asset
 // ----------------------------------------------------------------------------------------
@@ -192,6 +242,7 @@ async function syncBaeknyeon() {
 
 async function syncLocalData() {
     console.log('\n[2/3] LocalData (모범음식점/마트) 동기화 (Gold Standard)...');
+    const startTime = Date.now();
     const sources = [
         { name: '대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
         { name: '준대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_24_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
@@ -201,6 +252,8 @@ async function syncLocalData() {
 
     for (const source of sources) {
         console.log(`  -> Downloading ${source.name}...`);
+        const sourceStartTime = Date.now();
+        sourceMetrics[source.name] = { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
         try {
             const res = await fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             let recordsList = []; // New structure to handle multiple files in ZIP
@@ -228,6 +281,7 @@ async function syncLocalData() {
             }
 
             const records = recordsList; // Re-use legacy variable name for loop below
+            sourceMetrics[source.name].fetched = records.length;
 
             let chunk = [];
             for (const r of records) {
@@ -238,7 +292,16 @@ async function syncLocalData() {
                 // [Source-Aware Skip] Skip only if this source is already recorded AND we have coordinates
                 const existingSources = syncMap.get(id) || '';
                 const hasCoords = geocodeCache.has(clean(addr));
-                if (existingSources.includes(source.apiSource) && hasCoords) continue;
+                if (existingSources.includes(source.apiSource) && hasCoords) {
+                    sourceMetrics[source.name].existing++;
+                    continue;
+                }
+                
+                if (existingSources.includes(source.apiSource)) {
+                    sourceMetrics[source.name].updated++;
+                } else {
+                    sourceMetrics[source.name].new++;
+                }
                 const status = r.상세영업상태명 || r.상세영업상태 || r.영업상태명 || r.상태명 || r.TRD_STATE_NM || r.trdStateNm || '';
                 
                 if (!name || !addr || (status && !String(status).includes('영업'))) continue;
@@ -301,7 +364,11 @@ async function syncLocalData() {
                 }
             }
             if (chunk.length > 0) await upsertBatch(chunk);
-        } catch (e) { console.error(`  ${source.name} Error:`, e.message); }
+            
+            sourceMetrics[source.name].duration = Date.now() - sourceStartTime;
+            console.log(`    Successfully processed ${source.name} in ${sourceMetrics[source.name].duration}ms`);
+        } catch (e) {
+ console.error(`  ${source.name} Error:`, e.message); }
     }
 }
 
@@ -339,73 +406,64 @@ async function syncSafe() {
 }
 
 async function main() {
-    const startTime = Date.now();
-    console.log('🚀 RAONAI NATIONWIDE CONSOLIDATED SYNC (Gold Standard)');
+    startTime = Date.now();
+    await startLogging();
     
-    // Improved argument parsing
-    const args = process.argv.slice(2);
-    const category = args.find(a => a.startsWith('--category='))?.split('=')[1] || 
-                     (args.includes('--category') ? args[args.indexOf('--category') + 1] : null);
-
-    // Global Pre-fetch (Full Database Audit)
-    console.log('    Pre-fetching existing records for ultra-fast skip...');
-    let pageCount = 0;
-    const pageSize = 1000;
-    while (true) {
-        const { data, error } = await supabase.from('master_places')
-            .select('id, name, address, lat, lng, api_source')
-            .range(pageCount * pageSize, (pageCount + 1) * pageSize - 1)
-            .order('id');
+    try {
+        console.log('🚀 RAONAI NATIONWIDE CONSOLIDATED SYNC (Gold Standard)');
         
-        if (error) { console.error('Pre-fetch error:', error.message); break; }
-        if (!data || data.length === 0) break;
-        
-        data.forEach(r => {
-            syncMap.set(r.id, r.api_source || '');
-            const key = `${clean(r.name).toLowerCase()}|${clean(r.address).toLowerCase()}`;
-            nameAddressMap.set(key, r.id);
+        // Improved argument parsing
+        const args = process.argv.slice(2);
+        const category = args.find(a => a.startsWith('--category='))?.split('=')[1] || 
+                        (args.includes('--category') ? args[args.indexOf('--category') + 1] : null);
 
-            // Also add address-based ID to handle source name changes
-            const sources = (r.api_source || '').split(',');
-            sources.forEach(s => {
-                const legacyId = generateId(s.trim(), '', r.address); // Note: Simple addr check if name unknown
-                syncMap.set(legacyId, r.api_source || '');
+        // Global Pre-fetch (Full Database Audit)
+        console.log('    Pre-fetching existing records for ultra-fast skip...');
+        let pageCount = 0;
+        const pageSize = 1000;
+        while (true) {
+            const { data, error } = await supabase.from('master_places')
+                .select('id, name, address, lat, lng, api_source')
+                .range(pageCount * pageSize, (pageCount + 1) * pageSize - 1)
+                .order('id');
+            
+            if (error) { console.error('Pre-fetch error:', error.message); break; }
+            if (!data || data.length === 0) break;
+            
+            data.forEach(r => {
+                syncMap.set(r.id, r.api_source || '');
+                const key = `${clean(r.name).toLowerCase()}|${clean(r.address).toLowerCase()}`;
+                nameAddressMap.set(key, r.id);
+
+                // Also add address-based ID to handle source name changes
+                const sources = (r.api_source || '').split(',');
+                sources.forEach(s => {
+                    const legacyId = generateId(s.trim(), '', r.address);
+                    syncMap.set(legacyId, r.api_source || '');
+                });
+                if (r.address && r.lat && r.lng) {
+                    geocodeCache.set(clean(r.address), { lat: r.lat, lng: r.lng });
+                }
             });
-            if (r.address && r.lat && r.lng) {
-                geocodeCache.set(clean(r.address), { lat: r.lat, lng: r.lng });
-            }
-        });
-        pageCount++;
-        if (data.length < pageSize) break;
-        if (pageCount % 10 === 0) process.stdout.write(`\r    Loaded ${syncMap.size} records into memory...`);
+            pageCount++;
+            if (data.length < pageSize) break;
+            if (pageCount % 10 === 0) process.stdout.write(`\r    Loaded ${syncMap.size} records into memory...`);
+        }
+        console.log(`\n    Initial Cache: ${geocodeCache.size}, Sync Map: ${syncMap.size}`);
+
+        if (!category || category === 'SPOT') await syncTourSpot();
+        if (!category || category === 'BAEK') await syncBaeknyeon();
+        if (!category || category === 'LOCALDATA') await syncLocalData();
+        if (!category || category === 'SAFE_RESTAURANT') await syncSafe();
+        
+        console.log(`\n\n🏁 Done. Total ${totalSynced} (Geocoded: ${geocodingCount})`);
+        await finishLogging('SUCCESS', '전국 마스터 플레이스 동기화 완료');
+        process.exit(0);
+    } catch (e) {
+        console.error('\n!!! CRITICAL ERROR !!!', e);
+        await finishLogging('FAILURE', `치명적 오류: ${e.message}`);
+        process.exit(1);
     }
-    console.log(`\n    Initial Cache: ${geocodeCache.size}, Sync Map: ${syncMap.size}`);
-
-    if (!category || category === 'SPOT') await syncTourSpot();
-    if (!category || category === 'BAEK') await syncBaeknyeon();
-    if (!category || category === 'LOCALDATA') await syncLocalData();
-    if (!category || category === 'SAFE_RESTAURANT') await syncSafe();
-    
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-    
-    console.log(`\n\n🏁 Done. Total ${totalSynced} (Geocoded: ${geocodingCount})`);
-
-    // Log to Supabase
-    await supabase.from('automation_logs').insert({
-        job_name: 'MASTER_SYNC',
-        status: 'SUCCESS', // Always SUCCESS if it finishes without fatal error (0 updates is normal)
-        processed_count: totalSynced,
-        message: JSON.stringify({
-            total_synced: totalSynced,
-            geocoded: geocodingCount,
-            category_breakdown: syncStats
-        }),
-        duration_ms: duration
-    });
 }
 
-main().catch(err => {
-    console.error('Fatal Sync Error:', err);
-    process.exit(1);
-});
+main();

@@ -2,8 +2,8 @@ name: Smart Plan Daily Sync
 
 on:
   schedule:
-    # 매일 아침 06:00 KST에 실행 (UTC 기준 전날 21:00)
-    - cron: '0 21 * * *'
+    # [임시 패치] 3/25(수) 아침 08:00 KST 실행 (UTC 기준 3/24(화) 23:00)
+    - cron: '0 23 * * 2'
   workflow_dispatch: # Allow manual trigger via GitHub Actions UI
 
 jobs:

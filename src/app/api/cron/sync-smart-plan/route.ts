@@ -102,6 +102,13 @@ export async function POST(request: Request) {
 
         const allFacts: any[] = [];
         const clusterLogs: any[] = [];
+        const totalTracking: any = {
+            stepA_dynamic: { HOSPITAL: 0, FESTIVAL: 0, GAS_STATION: 0 },
+            stepB_filter: { MART: 0, SPOT: 0, FESTIVAL: 0, HOSPITAL: 0, GAS_STATION: 0, RESTAURANT: 0 },
+            stepC_kakao_attempts: 0,
+            stepC_kakao_success: 0,
+            stepD_upsert: 0
+        };
         const startTime = Date.now();
         const TIMEOUT_LIMIT = (maxDuration - 30) * 1000;
 
@@ -432,6 +439,19 @@ export async function POST(request: Request) {
                 allFacts.push(...validEnriched);
                 tracking.stepC_kakao_attempts += catCands.length;
                 tracking.stepC_kakao_success += validEnriched.length;
+                
+                // Aggregation to totalTracking
+                totalTracking.stepC_kakao_attempts += catCands.length;
+                totalTracking.stepC_kakao_success += validEnriched.length;
+            }
+
+            // Aggregate Category Breakdown (Step B)
+            for (const cat in tracking.stepB_filter) {
+                totalTracking.stepB_filter[cat] = (totalTracking.stepB_filter[cat] || 0) + (tracking.stepB_filter[cat]?.passed_formula || 0);
+            }
+            // Aggregate Step A
+            for (const cat in tracking.stepA_dynamic) {
+                totalTracking.stepA_dynamic[cat] += tracking.stepA_dynamic[cat];
             }
         }
 
@@ -455,7 +475,20 @@ export async function POST(request: Request) {
             job_name: 'SMART_PLAN_CACHING',
             status: processedCount > 0 ? 'SUCCESS' : 'FAILURE',
             processed_count: processedCount,
-            message: JSON.stringify({ clusters: clusterLogs, final_upsert: processedCount }),
+            message: JSON.stringify({ 
+                clusters: clusterLogs, 
+                final_upsert: processedCount,
+                metrics: {
+                    user_total: (schedules?.length || 0),
+                    regions_merged: clusters.length,
+                    category_breakdown: totalTracking.stepB_filter,
+                    kakao_stats: {
+                        attempts: totalTracking.stepC_kakao_attempts,
+                        success: totalTracking.stepC_kakao_success
+                    },
+                    stepA_total: totalTracking.stepA_dynamic
+                }
+            }),
             duration_ms: duration,
             target_date: targetStr
         });

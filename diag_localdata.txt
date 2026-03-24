@@ -1,0 +1,55 @@
+=== LOCALDATA_RESTAURANT XLSX 파싱 진단 ===
+Downloading XLSX from: https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx
+HTTP Status: 200
+Content-Type: application/vnd.ms-excel
+Buffer size: 11646389 bytes
+Sheet names: ["모범음식점_1"]
+Total parsed records: 65610
+
+=== 첫 번째 레코드 키 목록 ===
+  KEY: "번호" => VALUE: "1"
+  KEY: "개방서비스ID" => VALUE: "12_03_01_E"
+  KEY: "개방자치단체코드" => VALUE: "3000000"
+  KEY: "관리번호" => VALUE: "3000000-101-1966-00561"
+  KEY: "업소명" => VALUE: "청진옥"
+  KEY: "인허가번호" => VALUE: "19660025011"
+  KEY: "도로명주소" => VALUE: ""
+  KEY: "소재지주소" => VALUE: "서울특별시 종로구 청진동 89-0 지상1층 "
+  KEY: "영업상태구분코드" => VALUE: "02"
+  KEY: "영업상태명" => VALUE: "폐업"
+  KEY: "폐업일자" => VALUE: "2008-09-19"
+  KEY: "신청일자" => VALUE: "20071109"
+  KEY: "지정일자" => VALUE: "20071120"
+  KEY: "지정취소일자" => VALUE: "20080919"
+  KEY: "지정취소사유" => VALUE: "폐업민원처리: 200830000340003507"
+  KEY: "불가일자" => VALUE: ""
+  KEY: "불가사유" => VALUE: ""
+  KEY: "음식의유형" => VALUE: ""
+  KEY: "주된음식종류" => VALUE: "해장국"
+  KEY: "재지정일자" => VALUE: ""
+  KEY: "최종수정일자" => VALUE: "2008-09-19 00:00:00"
+  KEY: "데이터갱신구분" => VALUE: "I"
+  KEY: "데이터갱신일자" => VALUE: "2019-04-09 18:08:48"
+  KEY: "전화번호" => VALUE: "  0207351690"
+
+=== 코드 키 매핑 점검 ===
+Name key match: 업소명
+Addr key match: 
+Status key match: 영업상태명
+
+=== 영업상태 분포 분석 (상위 30건) ===
+Found status key: 영업상태명
+  "폐업": 36163건
+  "영업": 29447건
+
+=== 유효 데이터 필터링 시뮬레이션 ===
+Name key used: 업소명
+Addr key used: NONE
+  이름 있음: 65610/65610
+  주소 있음: 0/65610
+  이름+주소 있음: 0/65610
+  영업 상태: 29447/65610
+  필터 통과 (name && addr && (no status || includes 영업)): 0/65610
+
+=== 좌표 관련 키 ===
+  ⚠️ 좌표 관련 키 없음! -> 모든 레코드에 지오코딩 필요

@@ -72,6 +72,7 @@ export default function AutomationLogsPage() {
   const [loading, setLoading] = useState(true);
   const [checkingHealth, setCheckingHealth] = useState(false);
   const [localApiStatus, setLocalApiStatus] = useState<ApiStatus[]>(INITIAL_API_LIST);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLogs();
@@ -146,6 +147,132 @@ export default function AutomationLogsPage() {
     if (name.includes('FESTIVAL')) return <Ticket className="w-5 h-5" />;
     if (name.includes('KAKAO')) return <Wifi className="w-5 h-5" />;
     return <Wifi className="w-5 h-5" />;
+  };
+
+  const renderLogDetails = (log: AutomationLog) => {
+    try {
+      if (log.job_name === 'MASTER_SYNC') {
+        const hasDetails = log.api_status && log.api_status.length > 0;
+        let totalCount = log.processed_count;
+        
+        if (!hasDetails) {
+            try {
+                const msg = JSON.parse(log.message);
+                totalCount = msg.total_synced || log.processed_count;
+            } catch (e) { /* ignore */ }
+        }
+
+        return (
+          <div className="p-8 bg-gray-50/50 rounded-3xl mt-2 mx-10 mb-6 border-2 border-dashed border-gray-200">
+            {!hasDetails && (
+              <div className="mb-4 px-3 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded-lg inline-block">
+                ⚠️ 상세 메트릭 도입 전 기록된 레거시 데이터입니다.
+              </div>
+            )}
+            <h4 className="text-sm font-black text-gray-800 mb-4 flex items-center">
+              <Database className="w-4 h-4 mr-2 text-brand-600" /> 주간 데이터 동기화 상세 메트릭
+            </h4>
+            
+            {hasDetails ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {log.api_status!.map((s: any, i: number) => (
+                    <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">{s.label}</p>
+                    <div className="flex justify-between items-end">
+                        <span className="text-xl font-black text-gray-900">{s.fetched_count?.toLocaleString() || 0}</span>
+                        <span className="text-[10px] font-bold text-brand-600">+{s.new_count || 0} New</span>
+                    </div>
+                    <div className="mt-2 text-[10px] text-gray-500 font-medium">
+                        대조: {s.existing_count?.toLocaleString() || 0} | 업데이트: {s.updated_count || 0}
+                    </div>
+                    </div>
+                ))}
+                </div>
+            ) : (
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 flex items-center space-x-6">
+                    <div className="p-4 bg-brand-50 rounded-2xl text-brand-600">
+                        <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase">최종 동기화 합계</p>
+                        <p className="text-2xl font-black text-gray-900">{totalCount.toLocaleString()}건</p>
+                    </div>
+                </div>
+            )}
+          </div>
+        );
+      }
+
+      if (log.job_name === 'SMART_PLAN_CACHING' && log.message) {
+        const msg = JSON.parse(log.message);
+        const metrics = msg.metrics;
+        
+        // Legacy Support: metrics 필드가 없는 경우 기본 정보로 구성
+        const displayMetrics = metrics || {
+            user_total: '?',
+            regions_merged: msg.clusters?.length || 0,
+            category_breakdown: {},
+            kakao_stats: { success: msg.final_upsert || 0, attempts: '?' }
+        };
+
+        return (
+          <div className="p-8 bg-gray-50/50 rounded-3xl mt-2 mx-10 mb-6 border-2 border-dashed border-gray-200">
+            {!metrics && (
+              <div className="mb-4 px-3 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded-lg inline-block">
+                ⚠️ 상세 메트릭 도입 전 기록된 레거시 데이터입니다.
+              </div>
+            )}
+            <div className="flex justify-between items-start mb-6">
+              <h4 className="text-sm font-black text-gray-800 flex items-center">
+                <Calendar className="w-4 h-4 mr-2 text-brand-600" /> D-3 스마트 플랜 캐싱 요약
+              </h4>
+              <div className="flex space-x-4">
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">대상 사용자</p>
+                  <p className="text-sm font-black">{displayMetrics.user_total}명</p>
+                </div>
+                <div className="text-right border-l pl-4">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">병합 권역</p>
+                  <p className="text-sm font-black">{displayMetrics.regions_merged}개</p>
+                </div>
+              </div>
+            </div>
+
+            {metrics ? (
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">카테고리별 1차 선별 결과</p>
+                <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                  {Object.entries(metrics.category_breakdown || {}).map(([cat, count]: [string, any]) => (
+                    <div key={cat} className="bg-white px-4 py-3 rounded-2xl border border-gray-100 flex flex-col items-center">
+                      <span className="text-[9px] font-black text-gray-400 mb-1">{cat}</span>
+                      <span className="text-base font-black text-gray-800">{count || 0}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="py-4 text-xs text-gray-400 italic">
+                해당 버전은 카테고리별 상세 통계를 지원하지 않습니다.
+              </div>
+            )}
+              
+            <div className="bg-brand-50 p-4 rounded-2xl flex justify-between items-center mt-4">
+              <div className="flex items-center space-x-3 text-brand-900">
+                <Bot className="w-5 h-5" />
+                <span className="text-[11px] font-black">실시간 카카오 검증 & AI 스코어링</span>
+              </div>
+              <span className="text-xs font-bold text-brand-700">
+                최종 적재 건수: {msg.final_upsert || 0}건
+                {metrics && ` (성공률: ${Math.round((metrics.kakao_stats?.success / metrics.kakao_stats?.attempts) * 100) || 0}%)`}
+              </span>
+            </div>
+          </div>
+        );
+      }
+    } catch (e) {
+      return <div className="mx-10 my-4 text-xs text-red-500 font-bold">상세 데이터를 파싱할 수 없습니다.</div>;
+    }
+    return null;
   };
 
   return (
@@ -265,20 +392,38 @@ export default function AutomationLogsPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {logs.length > 0 ? logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-10 py-6 whitespace-nowrap text-sm text-gray-400 font-bold">
-                      {format(new Date(log.created_at), 'MM/dd HH:mm', { locale: ko })}
-                    </td>
-                    <td className="px-10 py-6 whitespace-nowrap font-black text-gray-800 text-sm">
-                      {log.job_name}
-                    </td>
-                    <td className="px-10 py-6 whitespace-nowrap">
-                      {getStatusBadge(log.status)}
-                    </td>
-                    <td className="px-10 py-6 whitespace-nowrap text-[11px] text-gray-500 font-bold italic">
-                      {log.message}
-                    </td>
-                  </tr>
+                  <React.Fragment key={log.id}>
+                    <tr 
+                      className={`hover:bg-gray-50/50 transition-colors cursor-pointer ${expandedLogId === log.id ? 'bg-brand-50/20' : ''}`}
+                      onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                    >
+                      <td className="px-10 py-6 whitespace-nowrap text-sm text-gray-400 font-bold">
+                        {format(new Date(log.created_at), 'MM/dd HH:mm', { locale: ko })}
+                      </td>
+                      <td className="px-10 py-6 whitespace-nowrap font-black text-gray-800 text-sm">
+                        <div className="flex items-center">
+                          {log.job_name}
+                          {(log.job_name === 'MASTER_SYNC' || log.job_name === 'SMART_PLAN_CACHING') && (
+                            <Maximize2 className="w-3 h-3 ml-2 text-brand-400" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-10 py-6 whitespace-nowrap">
+                        {getStatusBadge(log.status)}
+                      </td>
+                      <td className="px-10 py-6 whitespace-nowrap text-[11px] text-gray-500 font-bold italic flex justify-between items-center">
+                        <span>{log.message?.length > 50 ? log.message.substring(0, 50) + '...' : log.message}</span>
+                        {expandedLogId === log.id ? <ChevronUp className="w-4 h-4 text-brand-600" /> : <ChevronDown className="w-4 h-4" />}
+                      </td>
+                    </tr>
+                    {expandedLogId === log.id && (
+                      <tr>
+                        <td colSpan={4} className="bg-white">
+                          {renderLogDetails(log)}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 )) : (
                   <tr>
                     <td colSpan={4} className="px-10 py-24 text-center">
