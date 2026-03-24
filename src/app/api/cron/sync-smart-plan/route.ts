@@ -238,7 +238,22 @@ export async function POST(request: Request) {
             // Upsert Raw Data to master_places for permanent retention
             if (rawMasterInserts.length > 0) {
                 const uniqueRaw = Object.values(rawMasterInserts.reduce((acc: any, row: any) => ({ ...acc, [row.id]: row }), {})) as any[];
-                await supabase.from('master_places').upsert(uniqueRaw, { onConflict: 'id' });
+                const { error: masterUpsertError } = await supabase.from('master_places').upsert(uniqueRaw, { onConflict: 'id' });
+                
+                if (masterUpsertError) {
+                    console.error('[master_places upsert FAILED]', masterUpsertError.message, masterUpsertError.details);
+                    // 개별 건 재시도 (Fallback: 1건씩 upsert)
+                    let recoveredCount = 0;
+                    for (const row of uniqueRaw) {
+                        const { error: singleErr } = await supabase.from('master_places').upsert([row], { onConflict: 'id' });
+                        if (!singleErr) recoveredCount++;
+                    }
+                    console.log(`[master_places recovery] ${recoveredCount}/${uniqueRaw.length} recovered`);
+                    tracking.stepA_master_upsert = { attempted: uniqueRaw.length, failed: true, recovered: recoveredCount };
+                } else {
+                    console.log(`[master_places upsert OK] ${uniqueRaw.length} records permanently stored`);
+                    tracking.stepA_master_upsert = { attempted: uniqueRaw.length, failed: false, recovered: uniqueRaw.length };
+                }
             }
 
 
@@ -282,28 +297,44 @@ export async function POST(request: Request) {
                 tracking.stepB_filter[cat] = { discovered: candidates.filter((c:any) => c.category === cat).length, passed_formula: 0 };
             });
 
-            // 1) MART (Brand Score + Area + Distance)
-            const marts = candidates.filter((c:any) => c.category === 'MART').map((c:any) => {
-                let s = 0;
-                if (c.name.match(/이마트|홈플러스|롯데마트|트레이더스|에브리데이|익스프레스/)) s += 50;
-                else if (c.name.match(/하나로마트|탑마트|메가마트|농협/)) s += 40;
-                else if (c.name.match(/식자재|도매|마트/)) s += 20;
-                const ar = c.raw_data?.ar ? parseFloat(c.raw_data.ar) : 0;
-                if (ar > 3000) s += 10; else if (ar > 1000) s += 5;
-                s += Math.max(0, (1 - (c._dist / 20.0)) * 40);
-                return { ...c, _sortScore: s };
+            // 1) MART (Brand Score + Distance + Noise Filter)
+            const marts = candidates.filter((c:any) => {
+                if (c.category !== 'MART') return false;
+                // Noise Filter: 비식료품 대형점포 제외
+                const isNoise = /패션|아울렛|의류|슈즈|전자|하이마트|가구|백화점|쇼핑블럭|시장/.test(c.name);
+                return !isNoise;
+            }).map((c:any) => {
+                let s = 60; // Base score for Mart
+                const name = c.name;
+                // Brand Weights (Proposal v10)
+                if (/하나로마트|농협/.test(name)) s = 90;
+                else if (/이마트|롯데마트|홈플러스|노브랜드|트레이더스/.test(name)) s = 80;
+                else if (/식자재|도매|익스프레스|에브리데이/.test(name)) s = 65;
+                
+                // Distance Weight (Max 40pts, Radius 20km)
+                const distScore = Math.max(0, (1 - (c._dist / 20.0)) * 40);
+                return { ...c, _sortScore: s + distScore };
             }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 15);
             selectedCandidates.push(...marts);
             tracking.stepB_filter['MART'].passed_formula = marts.length;
 
-            // 2) HOSPITAL (Distance + Grading Hierarchy)
-            const hospitals = candidates.filter((c:any) => c.category === 'HOSPITAL').map((c:any) => {
-                let s = 0;
-                if (c.api_source === 'NMC_HOSPITAL') s += 100;
-                else if (c.trust_score >= 50) s += 50; 
-                else s += 20; 
-                s += Math.max(0, (1 - (c._dist / 30.0)) * 50); 
-                return { ...c, _sortScore: s };
+            // 2) HOSPITAL (Hierarchy + Distance + Noise Filter)
+            const hospitals = candidates.filter((c:any) => {
+                if (c.category !== 'HOSPITAL') return false;
+                // Noise Filter: 동물병원, 정신병원, 단순 관공서 등 제외
+                const isNoise = /동물|반려|정신|행정관|피부|치과|요양|성형/.test(c.name);
+                return !isNoise;
+            }).map((c:any) => {
+                let s = 20; // Default base
+                const name = c.name;
+                // Hierarchy Scoring (Proposal v10)
+                if (c.api_source?.includes('NMC') || /종합병원|의료원/.test(name)) s = 100;
+                else if (/내과|소아과|외과|가정의학/.test(name)) s = 70;
+                else if (/보건소|보건지소/.test(name)) s = 50;
+                
+                // Distance Weight (Max 50pts, Radius 30km)
+                const distScore = Math.max(0, (1 - (c._dist / 30.0)) * 50); 
+                return { ...c, _sortScore: s + distScore };
             }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 15);
             selectedCandidates.push(...hospitals);
             tracking.stepB_filter['HOSPITAL'].passed_formula = hospitals.length;
@@ -327,12 +358,24 @@ export async function POST(request: Request) {
             selectedCandidates.push(...gasFiltered);
             tracking.stepB_filter['GAS_STATION'].passed_formula = gasFiltered.length;
 
-            // 4) RESTAURANT (Trust Score DESC -> Distance)
-            const rests = candidates.filter((c:any) => c.category === 'RESTAURANT').sort((a:any, b:any) => {
-                const tA = a.trust_score || 0; const tB = b.trust_score || 0;
-                if (tA === tB) return a._dist - b._dist;
-                return tB - tA;
-            }).slice(0, 20);
+            // 4) RESTAURANT (Multi-Auth Bonus + Distance + Noise Filter)
+            const rests = candidates.filter((c:any) => {
+                if (c.category !== 'RESTAURANT') return false;
+                // Noise Filter: 비음식점 백년가게 등 제외
+                const isNoise = /안경|의상|한복|건축|이용원|이발|미용/.test(c.name);
+                return !isNoise;
+            }).map((c:any) => {
+                // Multi-Auth Bonus Calculation (Manual Step 3)
+                const sources = (c.api_source || '').split(',').map((s:string) => s.trim());
+                let s = 60; // Standard base
+                if (sources.length >= 3) s = 100; // 3+ API overlap (+30 bonus)
+                else if (sources.length === 2) s = 85; // 2 API overlap (+15 bonus)
+                else if (sources.includes('SMBA_BAEK') || sources.includes('LOCALDATA_RESTAURANT')) s = 70; // Certified standard
+                
+                // Distance Weight (Max 40pts, Radius 15km)
+                const distScore = Math.max(0, (1 - (c._dist / 15.0)) * 40);
+                return { ...c, _sortScore: s + distScore };
+            }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 20);
             selectedCandidates.push(...rests);
             tracking.stepB_filter['RESTAURANT'].passed_formula = rests.length;
 

@@ -193,7 +193,9 @@ async function syncBaeknyeon() {
 async function syncLocalData() {
     console.log('\n[2/3] LocalData (모범음식점/마트) 동기화 (Gold Standard)...');
     const sources = [
-        { name: '마트', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
+        { name: '대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
+        { name: '준대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_24_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
+        { name: '중형슈퍼마켓', url: 'https://www.localdata.go.kr/datafile/each/06_07_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
         { name: '모범음식점', url: 'https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx', category: 'RESTAURANT', apiSource: 'LOCALDATA_RESTAURANT', type: 'XLSX' }
     ];
 
@@ -201,26 +203,36 @@ async function syncLocalData() {
         console.log(`  -> Downloading ${source.name}...`);
         try {
             const res = await fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-            let records = [];
+            let recordsList = []; // New structure to handle multiple files in ZIP
+            
             if (source.type === 'ZIP') {
                 const buffer = Buffer.from(await res.arrayBuffer());
                 const directory = await unzipper.Open.buffer(buffer);
-                const csvFile = directory.files.find(f => f.path.toLowerCase().endsWith('.csv'));
-                const content = iconv.decode(await csvFile.buffer(), 'cp949');
-                const { parse } = await import('csv-parse/sync');
-                records = parse(content, { columns: true, skip_empty_lines: true, relax_column_count: true });
+                const csvFiles = directory.files.filter(f => f.path.toLowerCase().endsWith('.csv'));
+                
+                for (const csvFile of csvFiles) {
+                    console.log(`    Parsing file: ${csvFile.path}`);
+                    const content = iconv.decode(await csvFile.buffer(), 'cp949');
+                    const { parse } = await import('csv-parse/sync');
+                    const parsed = parse(content, { columns: true, skip_empty_lines: true, relax_column_count: true });
+                    recordsList.push(...parsed);
+                }
+                console.log(`    Parsed ${recordsList.length} total records from ${csvFiles.length} files`);
             } else {
                 const buffer = Buffer.from(await res.arrayBuffer());
                 const workbook = XLSX.read(buffer, { type: 'buffer' });
                 const sheetName = workbook.SheetNames[0];
-                records = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                console.log(`    Parsed ${records.length} records from ${sheetName}`);
+                const parsed = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                recordsList.push(...parsed);
+                console.log(`    Parsed ${recordsList.length} records from ${sheetName}`);
             }
+
+            const records = recordsList; // Re-use legacy variable name for loop below
 
             let chunk = [];
             for (const r of records) {
                 const name = (r.사업장명 || r.업소명 || r.상호 || r.BPLC_NM || r.bplcNm || '').trim();
-                const addr = (r.도로명전체주소 || r.소재지전체주소 || r.RDNWHL_ADDR || r.SITE_WHL_ADDR || '').trim();
+                const addr = (r.도로명전체주소 || r.도로명주소 || r.소재지전체주소 || r.소재지주소 || r.RDNWHL_ADDR || r.SITE_WHL_ADDR || '').trim();
                 const id = generateId(source.apiSource, name, addr);
                 
                 // [Source-Aware Skip] Skip only if this source is already recorded AND we have coordinates
