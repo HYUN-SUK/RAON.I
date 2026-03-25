@@ -245,8 +245,8 @@ async function syncLocalData() {
     const startTime = Date.now();
     const sources = [
         { name: '대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_LARGE', type: 'ZIP' },
-        { name: '준대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_24_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_SSM', type: 'ZIP' },
-        { name: '중형슈퍼마켓', url: 'https://www.localdata.go.kr/datafile/each/06_07_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_SUPER', type: 'ZIP' },
+        { name: '준대규모마트', url: 'API_MOIS_SSM', category: 'MART', apiSource: 'LOCALDATA_MART_SSM', type: 'API' },
+        { name: '중형슈퍼마켓', url: 'https://www.localdata.go.kr/datafile/each/07_22_13_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_SUPER', type: 'ZIP' },
         { name: '모범음식점', url: 'https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx', category: 'RESTAURANT', apiSource: 'LOCALDATA_RESTAURANT', type: 'XLSX' }
     ];
 
@@ -258,7 +258,31 @@ async function syncLocalData() {
             const res = await fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             let recordsList = []; // New structure to handle multiple files in ZIP
             
-            if (source.type === 'ZIP') {
+            if (source.type === 'API') {
+                console.log(`    Fetching from MOIS OpenAPI...`);
+                let pageNo = 1;
+                while (pageNo <= 50) {
+                    const url = `http://apis.data.go.kr/1741000/large_scale_retail_stores/info?serviceKey=${PUBLIC_API_KEY}&pageNo=${pageNo}&numOfRows=100&returnType=JSON`;
+                    const apiRes = await fetch(url);
+                    const apiData = await apiRes.json();
+                    if (!apiData.response?.body?.items) break;
+                    const items = apiData.response.body.items.item || [];
+                    const rowItems = Array.isArray(items) ? items : [items];
+                    if (rowItems.length === 0) break;
+
+                    const activeItems = rowItems.filter((i) => i.SALS_STTS_NM === '영업/정상');
+                    recordsList.push(...activeItems.map(i => ({
+                        ...i,
+                        사업장명: i.BPLC_NM,
+                        도로명전체주소: i.ROAD_NM_ADDR || i.LOTNO_ADDR,
+                        상세영업상태명: i.SALS_STTS_NM,
+                        좌표정보X: i.X_CRDNT,
+                        좌표정보Y: i.Y_CRDNT
+                    })));
+                    if (rowItems.length < 100) break;
+                    pageNo++;
+                }
+            } else if (source.type === 'ZIP') {
                 const buffer = Buffer.from(await res.arrayBuffer());
                 const directory = await unzipper.Open.buffer(buffer);
                 const csvFiles = directory.files.filter(f => f.path.toLowerCase().endsWith('.csv'));
@@ -304,7 +328,12 @@ async function syncLocalData() {
                 }
                 const status = r.상세영업상태명 || r.상세영업상태 || r.영업상태명 || r.상태명 || r.TRD_STATE_NM || r.trdStateNm || '';
                 
-                if (!name || !addr || (status && !String(status).includes('영업'))) continue;
+                // [Relaxed Ingestion] Allow non-open statuses but potentially lower their score later
+                if (!name || !addr) continue; 
+
+                // Determine base trust score based on status
+                const isOpen = String(status).includes('영업');
+                const baseTrustScore = source.category === 'MART' ? (isOpen ? 60 : 0) : (isOpen ? 65 : 0);
 
                 let lat = null, lng = null;
                 // [Robust Mapping] Search for coordinate keys dynamically
@@ -345,21 +374,21 @@ async function syncLocalData() {
                 if (chunk.length >= 100) { 
                     await upsertBatch(chunk); 
                     chunk = []; 
-                    await new Promise(r => setTimeout(r, 3000)); 
+                    // await new Promise(r => setTimeout(r, 3000)); 
                 }
 
                 chunk.push({
                     id,
                     api_source: source.apiSource, category: source.category,
                     name: String(name).trim(), address: String(addr).trim(), lat, lng,
-                    trust_score: source.category === 'MART' ? 60 : 65, raw_data: r
+                    trust_score: baseTrustScore, raw_data: r
                 });
                 if (chunk.length >= 100) { 
                     await upsertBatch(chunk); 
                     chunk = []; 
                     // [Memory Optimization] Periodic small delay to allow GC
                     if (records.indexOf(r) % 1000 === 0) {
-                        await new Promise(r => setTimeout(r, 3000));
+                        // await new Promise(r => setTimeout(r, 3000));
                     }
                 }
             }

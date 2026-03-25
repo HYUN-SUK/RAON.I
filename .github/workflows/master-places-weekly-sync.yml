@@ -2,8 +2,8 @@ name: Master Places Weekly Sync
 
 on:
   schedule:
-    # [임시 패치] 3/25(수) 아침 06:00 KST 실행 (UTC 기준 3/24(화) 21:00)
-    - cron: '0 21 * * 2'
+    # [임시 패치] 3/26(목) 새벽 04:00 KST 실행 (UTC 기준 3/25(수) 19:00)
+    - cron: '0 19 * * 3'
   workflow_dispatch: # 수동 트리거 허용
 
 jobs:
