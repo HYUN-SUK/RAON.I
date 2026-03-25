@@ -244,9 +244,9 @@ async function syncLocalData() {
     console.log('\n[2/3] LocalData (모범음식점/마트) 동기화 (Gold Standard)...');
     const startTime = Date.now();
     const sources = [
-        { name: '대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
-        { name: '준대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_24_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
-        { name: '중형슈퍼마켓', url: 'https://www.localdata.go.kr/datafile/each/06_07_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART', type: 'ZIP' },
+        { name: '대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_LARGE', type: 'ZIP' },
+        { name: '준대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_24_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_SSM', type: 'ZIP' },
+        { name: '중형슈퍼마켓', url: 'https://www.localdata.go.kr/datafile/each/06_07_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_SUPER', type: 'ZIP' },
         { name: '모범음식점', url: 'https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx', category: 'RESTAURANT', apiSource: 'LOCALDATA_RESTAURANT', type: 'XLSX' }
     ];
 

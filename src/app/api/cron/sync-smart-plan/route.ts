@@ -218,6 +218,7 @@ export async function POST(request: Request) {
                             });
                         });
                         const gasResults = await Promise.all(gasPromises);
+                        const gasInserts: any[] = [];
                         gasResults.forEach(data => {
                             if (data?.RESULT?.OIL) {
                                 const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
@@ -226,17 +227,40 @@ export async function POST(request: Request) {
                                     const price = parseFloat(item.PRICE || item.K_PRICE || "0");
                                     if (!seenGas.has(key) && price > 0) {
                                         seenGas.add(key);
+                                        // TM128 → WGS84 좌표 변환 (매뉴얼 4.4 좌표계 표준화)
                                         const [lon, lat] = proj4("TM128", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
-                                        rawMasterInserts.push({
-                                            id: generateFactId('OPINET_GAS', item.OS_NM, item.VAN_ADR || '주소없음'),
+                                        // 주소 폴백 체인: VAN_ADR → NEW_ADR → 역지오코딩 대기
+                                        const rawAddr = item.VAN_ADR || item.NEW_ADR || '';
+                                        gasInserts.push({
+                                            id: generateFactId('OPINET_GAS', item.OS_NM, rawAddr || '주소없음'),
                                             api_source: 'OPINET_GAS', category: 'GAS_STATION',
-                                            name: item.OS_NM, description: `등유: ${price}원`, address: item.VAN_ADR || '주소 정보 없음',
+                                            name: item.OS_NM, description: `등유: ${price}원`, address: rawAddr,
                                             lat: lat, lng: lon, trust_score: 55, raw_data: item
                                         });
                                     }
                                 });
                             }
                         });
+
+                        // 주유소 주소 누락 보강: WGS84 좌표 → 카카오 역지오코딩
+                        const kakaoKey = process.env.KAKAO_REST_API_KEY;
+                        for (const gas of gasInserts) {
+                            if (!gas.address && kakaoKey && gas.lat && gas.lng) {
+                                try {
+                                    const revGeoRes = await fetch(
+                                        `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${gas.lng}&y=${gas.lat}`,
+                                        { headers: { 'Authorization': `KakaoAK ${kakaoKey}` } }
+                                    );
+                                    const revGeoData = await revGeoRes.json();
+                                    if (revGeoData.documents?.[0]) {
+                                        const doc = revGeoData.documents[0];
+                                        gas.address = doc.road_address?.address_name || doc.address?.address_name || '';
+                                        gas.id = generateFactId('OPINET_GAS', gas.name, gas.address || '주소없음');
+                                    }
+                                } catch (e) { /* 역지오코딩 실패 시 skip */ }
+                            }
+                            rawMasterInserts.push(gas);
+                        }
                     }
                     tracking.stepA_dynamic.GAS_STATION = seenGas.size;
                 }
