@@ -135,6 +135,7 @@
     *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 자동화 통합('Gold Standard' 초고속 병합 스크립트 교체), UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
     *   [x] **API Resilience (v4-v6) (2026-03-21)**: D-3 캐싱의 좌표 결측 예약 배제 필터 버그 수정(`route.ts`), 전역 에러 로깅 강화, 주간 배치 일요일 임시 실행 스케줄링 및 "영희네" 예약 건 수동 데이터 적재 완료. 
     *   [x] **Logic Audit (v7) (2026-03-21)**: `smart_camping_plan_manual.md` 대조 감사를 통해 병원 수집 범위 한계 및 주유소 Top 3 필터링 병목 지점 식별 및 보고 완료.
+    *   [x] **Pipeline Remediation (2026-03-25)**: MART PostGIS RPC 카테고리 필터링 버그 수정, 주유소 주소 누락 보강(역지오코딩 폴백), 마트 API 소스 세분화(LARGE/SSM/SUPER) 및 매뉴얼(v10.1) 최신화 완료.
     *   **V9.5 Pipeline Excellence (2026-03-22)** ✅:
         *   [x] **Resilience**: SQL 21000 에러(중복 충돌) 방어 및 Audit Telemetry 구축.
         *   [x] **Spiral Search**: 등유 주유소 30km 확장 탐색 및 TM128 좌표 보정 완료.
