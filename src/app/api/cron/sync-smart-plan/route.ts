@@ -210,7 +210,6 @@ export async function POST(request: Request) {
                             return fetch(url, fetchOptions)
                             .then(async r => {
                                 const d = await r.json();
-                                console.log(`[Opinet Response] Status: ${r.status} | Found: ${d?.RESULT?.OIL?.length || 0}`);
                                 return d;
                             }).catch(err => {
                                 console.error("OPINET Fetch Error:", err.message);
@@ -281,8 +280,6 @@ export async function POST(request: Request) {
                     }
                     console.log(`[master_places recovery] ${recoveredCount}/${uniqueRaw.length} recovered`);
                     tracking.stepA_master_upsert = { attempted: uniqueRaw.length, failed: true, recovered: recoveredCount };
-                } else {
-                    console.log(`[master_places upsert OK] ${uniqueRaw.length} records permanently stored`);
                     tracking.stepA_master_upsert = { attempted: uniqueRaw.length, failed: false, recovered: uniqueRaw.length };
                 }
             }
@@ -331,21 +328,22 @@ export async function POST(request: Request) {
             // 1) MART (Brand Score + Distance + Noise Filter)
             const marts = candidates.filter((c:any) => {
                 if (c.category !== 'MART') return false;
-                // Noise Filter: 비식료품 대형점포 제외
-                const isNoise = /패션|아울렛|의류|슈즈|전자|하이마트|가구|백화점|쇼핑블럭|시장/.test(c.name);
+                // Noise Filter: 비식료품 대형점포 제외 (SSOT v10.3)
+                const isNoise = /패션|아울렛|의류|슈즈|전자|하이마트|가구|침대|웨딩|시마을|전시장|백화점|쇼핑블럭|시장/.test(c.name);
                 return !isNoise;
             }).map((c:any) => {
                 let s = 60; // Base score for Mart
-                const name = c.name;
-                // Brand Weights (Proposal v10)
-                if (/하나로마트|농협/.test(name)) s = 90;
-                else if (/이마트|롯데마트|홈플러스|노브랜드|트레이더스/.test(name)) s = 80;
-                else if (/식자재|도매|익스프레스|에브리데이/.test(name)) s = 65;
+                const name = c.name.toUpperCase();
+                // Brand Weights (SSOT v10.3 - Refined for Proximity)
+                if (/하나로마트|NH농협|농협마트/.test(name)) s = 80;
+                else if (/이마트|롯데마트|홈플러스|노브랜드|트레이더스/.test(name)) s = 75;
+                else if (/GS THE FRESH|GS더프레시|이마트에브리데이|홈플러스익스프레스|식자재마트/.test(name)) s = 65;
                 
-                // Distance Weight (Max 40pts, Radius 20km)
-                const distScore = Math.max(0, (1 - (c._dist / 20.0)) * 40);
+                // Distance Weight (Max 60pts, Radius 15km - Linear Penalty beyond 15km)
+                const distScore = (1 - (c._dist / 15.0)) * 60;
                 return { ...c, _sortScore: s + distScore };
             }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 15);
+
             selectedCandidates.push(...marts);
             tracking.stepB_filter['MART'].passed_formula = marts.length;
 
@@ -429,26 +427,32 @@ export async function POST(request: Request) {
                     if (!kakaoKey) return null;
 
                     try {
-                        const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(cand.name)}&x=${cand.lng}&y=${cand.lat}&radius=2000`, { headers: { 'Authorization': `KakaoAK ${kakaoKey}` } });
-                        const kData = await kRes.json();
-                        const matched = kData.documents?.[0];
+                        let kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(cand.name)}&x=${cand.lng}&y=${cand.lat}&radius=2000`, { headers: { 'Authorization': `KakaoAK ${kakaoKey}` } });
+                        let kData = await kRes.json();
+                        
+                        // Fallback: If 2km search fails, try 10km (relaxed for verified entities with coordinate drift)
+                        if (!kData.documents || kData.documents.length === 0) {
+                             kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(cand.name)}&x=${cand.lng}&y=${cand.lat}&radius=10000`, { headers: { 'Authorization': `KakaoAK ${kakaoKey}` } });
+                             kData = await kRes.json();
+                        }
+
+                        const matched = kData.documents?.find((d:any) => d.place_name.replace(/\s/g,'') === cand.name.replace(/\s/g,'')) || kData.documents?.[0];
+
 
                         if (matched && matched.place_url) {
                             const scResult = await scrapeKakaoPlace(matched.place_url);
                             let finalScore = (cand.trust_score || 50);
-                            if (scResult.success) {
-                                if (scResult.rating >= 4.0) finalScore += 30;
-                                if (scResult.reviewCount >= 20) finalScore += 20;
-                                if (scResult.rating > 0 && scResult.rating < 3.0) finalScore -= 40;
-                            }
+                            
                             return {
                                 id: generateFactId('MASTER_ENRICHED', cand.name, cand.address), 
                                 api_source: 'MASTER_ENRICHED', category: cand.category,
                                 name: cand.name, address: cand.address, lat: cand.lat, lng: cand.lng,
-                                trust_score: Math.min(finalScore, 100),
+                                trust_score: finalScore, // Removed 100-point cap (v3.2 refinement)
                                 description: scResult.success ? `${cand.description || ''} (별점: ${scResult.rating}, 리뷰: ${scResult.reviewCount}건)` : (cand.description || ''),
                                 raw_data: { ...cand.raw_data, kakao_url: matched.place_url, scraping: scResult }
                             };
+
+
                         }
                     } catch (err) { /* fallback */ }
 

@@ -1,0 +1,4 @@
+--- 🛒 MART RAW DATA COUNT REPORT ---
+대규모마트 (LARGE): 2,964 건 (원천 기준)
+준대규모마트 (SSM): 오류 (FILE_ENDED)
+중형슈퍼 (SUPER): 6,266 건 (원천 기준)

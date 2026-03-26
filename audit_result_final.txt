@@ -1,54 +1,54 @@
 === 1. automation_logs ===
+[MASTER_SYNC] Status:RUNNING Count:0 Date:2026-03-25T04:11:59.003+00:00 Target:N/A Duration:nullms
+  MSG: 전국 마스터 플레이스 동기화 시작
+[MASTER_SYNC] Status:SUCCESS Count:4341 Date:2026-03-25T02:05:37.441+00:00 Target:N/A Duration:592881ms
+  MSG: 전국 마스터 플레이스 동기화 완료
+[SMART_PLAN_CACHING] Status:SUCCESS Count:53 Date:2026-03-24T23:25:37.84601+00:00 Target:2026-03-28 Duration:36087ms
+  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7},"stepB_filter":{"MART":{"discovered":0,"passed_formula":0},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":9,"passed_formula":9},"HOSPITAL":{"discovered":33,"passed_formula":15},"GAS_STATION":{"discovered":14,"passed_formula":10},"RESTAURANT":{"discovered":1000,"passed_formula":20}},"stepC_kakao_attempts":69,"stepC_kakao_success":69,"stepD_upsert":0,"stepA_master_upsert":{"attempted":32,"failed":true,"recovered":31}}],"final_upsert":53,"metrics":{"user_total":1,"regions_merged":1,"category_breakdown":{"MART":0,"SPOT":15,"FESTIVAL":9,"HOSPITAL":15,"GAS_STATION":10,"RESTAURANT":20},"kakao_stats":{"attempts":69,"success":69},"stepA_total":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7}}}
+[MASTER_SYNC] Status:SUCCESS Count:0 Date:2026-03-24T21:33:28.426+00:00 Target:N/A Duration:93998ms
+  MSG: 전국 마스터 플레이스 동기화 완료
+[SMART_PLAN_CACHING] Status:SUCCESS Count:61 Date:2026-03-24T14:51:12.595289+00:00 Target:2026-03-28 Duration:10350ms
+  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":18,"passed_formula":15},"HOSPITAL":{"discovered":33,"passed_formula":15},"GAS_STATION":{"discovered":14,"passed_formula":10},"RESTAURANT":{"discovered":1000,"passed_formula":20}},"stepC_kakao_attempts":90,"stepC_kakao_success":90,"stepD_upsert":0,"stepA_master_upsert":{"attempted":32,"failed":true,"recovered":31}}],"final_upsert":61,"metrics":{"user_total":1,"regions_merged":1,"category_breakdown":{"MART":15,"SPOT":15,"FESTIVAL":15,"HOSPITAL":15,"GAS_STATION":10,"RESTAURANT":20},"kakao_stats":{"attempts":90,"success":90},"stepA_total":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7}}}
+[MASTER_SYNC] Status:SUCCESS Count:13179 Date:2026-03-24T13:00:45.66443+00:00 Target:N/A Duration:6635000ms
+  MSG: {"total_synced":13179,"geocoded":13179,"category_breakdown":{"RESTAURANT":13179}}
+[MASTER_SYNC] Status:SUCCESS Count:28678 Date:2026-03-24T12:53:02.507068+00:00 Target:N/A Duration:14944950ms
+  MSG: {"total_synced":28678,"geocoded":28678,"category_breakdown":{"RESTAURANT":28678}}
 [SMART_PLAN_CACHING] Status:SUCCESS Count:63 Date:2026-03-23T21:41:47.518411+00:00 Target:2026-03-27 Duration:19844ms
   MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":18,"passed_formula":15},"HOSPITAL":{"discovered":31,"passed_formula":15},"GAS_STATION":{"discovered":7,"passed_formula":7},"RESTAURANT":{"discovered":651,"passed_formula":20}},"stepC_kakao_attempts":87,"stepC_kakao_success":87,"stepD_upsert":0}],"final_upsert":63}
 [MASTER_SYNC] Status:SUCCESS Count:0 Date:2026-03-23T21:32:00.381502+00:00 Target:N/A Duration:66203ms
   MSG: {"total_synced":0,"geocoded":0,"category_breakdown":{}}
 [MASTER_SYNC] Status:SUCCESS Count:3898 Date:2026-03-23T12:47:30.609932+00:00 Target:N/A Duration:17572538ms
   MSG: {"total_synced":3898,"geocoded":0,"category_breakdown":{"SPOT":3898}}
-[SMART_PLAN_CACHING] Status:SUCCESS Count:63 Date:2026-03-23T08:05:21.092791+00:00 Target:2026-03-27 Duration:6937ms
-  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":18,"passed_formula":15},"HOSPITAL":{"discovered":31,"passed_formula":15},"GAS_STATION":{"discovered":7,"passed_formula":7},"RESTAURANT":{"discovered":651,"passed_formula":20}},"stepC_kakao_attempts":87,"stepC_kakao_success":87,"stepD_upsert":0}],"final_upsert":63}
-[SMART_PLAN_CACHING] Status:SUCCESS Count:57 Date:2026-03-22T21:31:36.156666+00:00 Target:2026-03-26 Duration:16756ms
-  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":15,"FESTIVAL":9,"GAS_STATION":0},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":18,"passed_formula":15},"HOSPITAL":{"discovered":30,"passed_formula":15},"GAS_STATION":{"discovered":0,"passed_formula":0},"RESTAURANT":{"discovered":676,"passed_formula":20}},"stepC_kakao_attempts":80,"stepC_kakao_success":80,"stepD_upsert":0}],"final_upsert":57}
-[MASTER_SYNC] Status:FAILURE Count:0 Date:2026-03-22T21:23:10.709772+00:00 Target:N/A Duration:95034ms
-  MSG: {"total_synced":0,"geocoded":0,"category_breakdown":{}}
-[SMART_PLAN_CACHING] Status:SUCCESS Count:70 Date:2026-03-22T09:11:26.718071+00:00 Target:2026-03-26 Duration:11488ms
-  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":9,"passed_formula":9},"HOSPITAL":{"discovered":16,"passed_formula":15},"GAS_STATION":{"discovered":7,"passed_formula":7},"RESTAURANT":{"discovered":651,"passed_formula":20}},"stepC_kakao_attempts":81,"stepC_kakao_success":81,"stepD_upsert":0}],"final_upsert":70}
-[SMART_PLAN_CACHING] Status:SUCCESS Count:70 Date:2026-03-22T09:04:58.869695+00:00 Target:2026-03-26 Duration:2639ms
-  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":7},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":9,"passed_formula":9},"HOSPITAL":{"discovered":16,"passed_formula":15},"GAS_STATION":{"discovered":7,"passed_formula":7},"RESTAURANT":{"discovered":651,"passed_formula":20}},"stepC_kakao_attempts":81,"stepC_kakao_success":81,"stepD_upsert":0}],"final_upsert":70}
-[SMART_PLAN_CACHING] Status:SUCCESS Count:63 Date:2026-03-22T09:03:35.753825+00:00 Target:2026-03-26 Duration:6040ms
-  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":0},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":9,"passed_formula":9},"HOSPITAL":{"discovered":16,"passed_formula":15},"GAS_STATION":{"discovered":0,"passed_formula":0},"RESTAURANT":{"discovered":651,"passed_formula":20}},"stepC_kakao_attempts":74,"stepC_kakao_success":74,"stepD_upsert":0}],"final_upsert":63}
-[SMART_PLAN_CACHING] Status:SUCCESS Count:63 Date:2026-03-22T09:01:58.613874+00:00 Target:2026-03-26 Duration:7747ms
-  MSG: {"clusters":[{"stepA_dynamic":{"HOSPITAL":16,"FESTIVAL":9,"GAS_STATION":0},"stepB_filter":{"MART":{"discovered":29,"passed_formula":15},"SPOT":{"discovered":100,"passed_formula":15},"FESTIVAL":{"discovered":9,"passed_formula":9},"HOSPITAL":{"discovered":16,"passed_formula":15},"GAS_STATION":{"discovered":0,"passed_formula":0},"RESTAURANT":{"discovered":651,"passed_formula":20}},"stepC_kakao_attempts":74,"stepC_kakao_success":74,"stepD_upsert":0}],"final_upsert":63}
 
 === 2. master_places by category ===
-  RESTAURANT: 46624
-  MART: 5148
+  RESTAURANT: 73661
+  MART: 8878
   SPOT: 17234
-  HOSPITAL: 15
-  GAS_STATION: 0
+  HOSPITAL: 17
+  GAS_STATION: 7
   FESTIVAL: 9
-  TOTAL: 69030
+  TOTAL: 99806
 
 === 3. master_places by api_source ===
   TOUR_SPOT: 17234
-  SMBA_BAEK: 1199
-  LOCALDATA_MART: 5148
-  LOCALDATA_RESTAURANT: 0
-  SAFE_RESTAURANT: 30349
+  SMBA_BAEK: 1169
+  LOCALDATA_MART: 8878
+  LOCALDATA_RESTAURANT: 28678
+  SAFE_RESTAURANT: 29279
   NMC_HOSPITAL: 0
-  KAKAO_HP8: 15
+  KAKAO_HP8: 17
   TOUR_FSTVL: 9
-  OPINET_GAS: 0
+  OPINET_GAS: 7
   MASTER_ENRICHED: 0
 
 === 4. smart_plan_facts by category ===
-  RESTAURANT: 52
-  MART: 66
+  RESTAURANT: 69
+  MART: 69
   SPOT: 14
-  HOSPITAL: 18
+  HOSPITAL: 19
   GAS_STATION: 7
   FESTIVAL: 28
-  TOTAL: 187
+  TOTAL: 208
 
 === 5. user_schedules 3/27 ===
   Count: 1
@@ -56,35 +56,35 @@
   reservations 3/27: null
 
 === 6. smart_plan_facts recent 20 ===
-  [SPOT] 예당호 모노레일 Score:40 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [GAS_STATION] 영창주유소 Score:55 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [RESTAURANT] 충남왕족발 Score:80 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [RESTAURANT] 굴다리식품 판매장 Score:80 Src:SMBA_BAEK Updated:2026-03-23T21:41:46.523222+00:00
-  [MART] (주)이마트 아산점 Score:70 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [GAS_STATION] 능금주유소 Score:55 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [FESTIVAL] 의좋은 형제 축제 Score:45 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [RESTAURANT] 홍콩반점 Score:80 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [RESTAURANT] 은정갈비 Score:80 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [SPOT] 대흥향교 Score:45 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [SPOT] 예산 알토란사과마을 Score:40 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [MART] 롯데쇼핑(주)롯데마트 홍성점 Score:60 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [MART] 예산홍성패션타운 Score:70 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [FESTIVAL] 홍성 역사인물축제 Score:45 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [RESTAURANT] 귀빈식당 Score:80 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [RESTAURANT] 광천해산물상사 Score:80 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [SPOT] 예당관광지 Score:40 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [SPOT] 대흥동헌 Score:45 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [FESTIVAL] 홍성글로벌바비큐페스티벌 Score:45 Src:MASTER_ENRICHED Updated:2026-03-23T21:41:46.523222+00:00
-  [RESTAURANT] 할머니어죽 Score:80 Src:SMBA_BAEK Updated:2026-03-23T21:41:46.523222+00:00
+  [SPOT] 대흥동헌 Score:40 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [SPOT] 예당호 조각공원 Score:40 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [FESTIVAL] 2025 충청남도 드론 페스타 Score:45 Src:TOUR_FSTVL Updated:2026-03-24T23:25:37.264605+00:00
+  [FESTIVAL] 예산사과축제 Score:45 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [HOSPITAL] 충청남도홍성의료원 Score:50 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [SPOT] 느린호수길 Score:40 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [HOSPITAL] 편한허리신경외과의원 Score:20 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [HOSPITAL] 경찰공제회 예산의원 Score:20 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [RESTAURANT] 장어촌 Score:65 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [RESTAURANT] 삽다리곱창전문점 Score:65 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [RESTAURANT] 임진강장어 Score:65 Src:SAFE_RESTAURANT, LOCALDATA_RESTAURANT Updated:2026-03-24T23:25:37.264605+00:00
+  [HOSPITAL] 추영광내과의원 Score:20 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [HOSPITAL] 푸른의원 Score:20 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [RESTAURANT] 돌고래회관 Score:65 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [RESTAURANT] 동가룰가든 Score:65 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [SPOT] 예당호 모노레일 Score:40 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [RESTAURANT] 할머니어죽 Score:80 Src:SMBA_BAEK Updated:2026-03-24T23:25:37.264605+00:00
+  [SPOT] 예산 알토란사과마을 Score:40 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [HOSPITAL] 이상석내과의원 Score:20 Src:MASTER_ENRICHED Updated:2026-03-24T23:25:37.264605+00:00
+  [FESTIVAL] 예산황새축제 Score:45 Src:TOUR_FSTVL Updated:2026-03-24T23:25:37.264605+00:00
 
 === 7. master_places recent 10 ===
-  [SPOT] 무궁화동산 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:29.192186+00:00
-  [SPOT] 망치몽돌해수욕장 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:25.897644+00:00
-  [SPOT] 망경사 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:25.897644+00:00
-  [SPOT] 맨발의 청춘길 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:25.897644+00:00
-  [SPOT] 머드광장 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:25.897644+00:00
-  [SPOT] 맥전포항 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:25.897644+00:00
-  [SPOT] 마중공원 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:25.29215+00:00
-  [SPOT] 만흥공원 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:25.29215+00:00
-  [SPOT] 로렌츠감성치유시골체험 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:23.068268+00:00
-  [SPOT] 라베니체광장 Score:45 Src:TOUR_SPOT Updated:2026-03-23T07:55:23.068268+00:00
+  [MART] 제트왕식자재마트 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 진주대곡농협로컬푸드하나로마트 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 주식회사 세계로유통 수지성복점 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 유한회사 동부코러스 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 즐거운마트 서초점 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 트레이더스 홀세일 클럽 마곡점 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 목포농협하나로마트로컬푸드북항점 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] GS더프레쉬 의정부장암점 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 홈마트(식자재전문매장) Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00
+  [MART] 파워식자재도매센터전주점 Score:60 Src:LOCALDATA_MART_SUPER Updated:2026-03-25T04:15:52.489966+00:00

@@ -25,6 +25,31 @@ export interface MergedPlace extends RawPlace {
   totalTrustScore: number;
   badges: string[];
   certifications: string[];
+  brandScore?: number;
+}
+
+/**
+ * 마트 브랜드별 우선순위 점수 산출 (SSOT v10.2 매뉴얼 준수)
+ */
+function calcMartBrandScore(name: string): number {
+  const n = name.toUpperCase();
+  if (n.includes('하나로마트') || n.includes('NH농협') || n.includes('농협마트')) return 90;
+  
+  const BIG_3 = ['이마트', '롯데마트', '홈플러스', '노브랜드', '트레이더스'];
+  if (BIG_3.some(b => n.includes(b))) return 80;
+  
+  const SSM = ['GS THE FRESH', 'GS더프레시', '이마트에브리데이', '홈플러스익스프레스', '식자재마트'];
+  if (SSM.some(s => n.includes(s))) return 65;
+  
+  return 60; // 기본 마트 점수
+}
+
+/**
+ * 캠핑과 무관한 비식품 판매시설 필터링
+ */
+function isMartNoise(name: string): boolean {
+  const NOISE_KEYWORDS = ['패션', '아울렛', '의류', '가구', '침대', '웨딩', '시마을', '전시장'];
+  return NOISE_KEYWORDS.some(k => name.includes(k));
 }
 
 /**
@@ -47,6 +72,9 @@ export function groupAndScorePlaces(places: RawPlace[]): MergedPlace[] {
 
   // Grouping by Name + Normalized Address
   places.forEach((p) => {
+    // 마트 카테고리의 경우 노이즈 필터링 적용
+    if (p.category === 'MART' && isMartNoise(p.name)) return;
+
     const key = `${p.name.trim()}|${normalizeAddress(p.address)}`;
     if (!groups[key]) groups[key] = [];
     groups[key].push(p);
@@ -66,7 +94,15 @@ export function groupAndScorePlaces(places: RawPlace[]): MergedPlace[] {
     if (uniqueSources.length === 2) bonus = 15;
     else if (uniqueSources.length >= 3) bonus = 30;
 
-    const baseScore = main.trust_score || 40;
+    let baseScore = main.trust_score || 40;
+    
+    // 마트 카테고리의 경우 브랜드 기반 점수 재산출 (SSOT v10.2)
+    let bScore = undefined;
+    if (main.category === 'MART') {
+      bScore = calcMartBrandScore(main.name);
+      baseScore = bScore;
+    }
+
     const finalScore = Math.min(100, baseScore + bonus);
 
     // 배지 및 인증 정보 통합
@@ -82,7 +118,9 @@ export function groupAndScorePlaces(places: RawPlace[]): MergedPlace[] {
       }
       if (s === 'NMC_HOSPITAL') { badges.push('응급의료기관'); certs.push('응급의료기관'); }
       if (s === 'OPINET') { badges.push('공인주유소'); }
-      if (s === 'LOCALDATA_MART') { badges.push('대규모점포'); }
+      if (s === 'LOCALDATA_MART' || s.includes('LOCALDATA_MART_LARGE')) { badges.push('대형마트'); }
+      if (s.includes('LOCALDATA_MART_SSM')) { badges.push('준대규모점포'); }
+      if (s.includes('LOCALDATA_MART_SUPER')) { badges.push('식품판매업'); }
     });
 
     return {
@@ -91,7 +129,8 @@ export function groupAndScorePlaces(places: RawPlace[]): MergedPlace[] {
       certificationBonus: bonus,
       totalTrustScore: finalScore,
       badges: Array.from(new Set(badges)),
-      certifications: Array.from(new Set(certs))
+      certifications: Array.from(new Set(certs)),
+      brandScore: bScore
     };
   });
 }

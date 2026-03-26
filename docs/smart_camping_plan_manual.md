@@ -45,7 +45,7 @@
     *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com`의 비공개 JSON 엔드포인트(`/places/panel3/`, `/places/reviews/kakaomap/meta/`)를 직접 호출하여 별점/리뷰 수를 JSON 형태로 추출합니다. (**cheerio HTML 파싱이 아닌 JSON API 직접 호출 방식**)
     *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
     *   **2차 정제 (v2.1 Fail-soft 정책)**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득합니다. **실시간 검증 성공 여부와 관계없이 후보 자체는 유지**하며, 검증 결과는 `FactCard.evidence`와 `verificationStatus`에 기록합니다.
-        - 검증 성공: `verificationStatus = VERIFIED`, `api_source = MASTER_ENRICHED`
+        - 검증 성공: `verificationStatus = VERIFIED`, `api_source = MASTER_ENRICHED`. **1차 선별 점수를 그대로 유지하되 100점 상한(Cap)을 적용하지 않음.**
         - 카카오 매칭 실패/스크래핑 에러: `verificationStatus = UNVERIFIED`, 원본 `api_source` 유지
         - 즉, **실시간 검증 실패가 후보 탈락으로 직접 이어지지 않습니다.**
     *   **특수 항목(HOSPITAL) 실시간 갱신 & 계층형 선별**: 국립중앙의료원(NMC) API + **카카오 HP8(종합병원 등급)** API를 결합 수집합니다. 행정구역 경계선 문제를 피하기 위해 **PostGIS 반경 20km~30km 확장 검색**을 수행하며, 응급실 유무와 병원 등급에 따른 **계층형 가중치 스코어링**으로 정예 후보를 추출합니다.
@@ -89,11 +89,11 @@
 
     감점 사유는 `FactCard.riskFlags` 배열에 기록되어 AI 서사 작성 시 부드러운 권유형 문장 변환에 활용됩니다.
 
-    **최종 공식:**
+    **최종 공식 (v3.2 개정):**
     ```
     finalScore = round(Existence×W1 + Quality×W2 + ContextFit×W3 + Logistics×W4) - riskPenalty + diversityBonus
     ```
-    `FactCard.trustScore`에는 하위 호환을 위해 `finalScore`가 채워지며, `scoreBreakdown` 필드에 4축 상세 점수가 함께 저장됩니다.
+    `FactCard.trustScore`에는 하위 호환을 위해 `finalScore`가 채워지며, **100점 상한제(Cap)를 전면 폐지**하여 우수한 장소가 100점 이상의 높은 변별력을 갖도록 합니다. (카카오 검증 자체에 대한 일괄 가산점은 부여하지 않으며, 실시간 별점/리뷰 데이터는 Phase 3 엔진에서 반영합니다.)
     - **v2.1 Evidence Extractor**: `FactCard.evidence` 필드에 별점(`stars`), 리뷰 수(`reviews`), 공공 인증 항목(`badges`), 출처 라벨(`sourceLabel`), 검증 시각(`verifiedAt`), 개별 `verificationStatus`를 구조화하여 저장합니다.
     - **v2.1 Quality.live_rating 별점 세분화**: `calcQuality()`의 `live_rating` 하위지표가 출처 기반 일괄 점수에서 **실제 별점 기반 세분화**로 개선되었습니다:
       | 별점 | live_rating 점수 |

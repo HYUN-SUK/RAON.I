@@ -71,58 +71,40 @@ async function geocodeAddress(address) {
     return null;
 }
 
-async function upsertBatch(items) {
-    const seenIds = new Set();
-    const uniqueValidItems = [];
-    for (const item of items) {
-        if (item.name && item.address && item.lat !== null && item.lng !== null && !seenIds.has(item.id)) {
-            seenIds.add(item.id);
-            uniqueValidItems.push(item);
-        }
-    }
+async function upsertBatch(items, sourceName = null) {
+    if (items.length === 0) return;
+    const uniqueValidItems = items.filter(i => i.id && i.name && i.address);
+    if (uniqueValidItems.length === 0) return;
+    
     const finalItems = [];
     for (const item of uniqueValidItems) {
-        // [Fast Conflict Resolution] Check Name+Address index
         const key = `${clean(item.name).toLowerCase()}|${clean(item.address).toLowerCase()}`;
         const existingId = nameAddressMap.get(key);
-        
-        if (existingId) {
-            item.id = existingId; // Use existing ID to trigger update instead of conflict
-        }
+        if (existingId) item.id = existingId;
 
         const existingSources = syncMap.get(item.id) || '';
         if (existingSources && !existingSources.includes(item.api_source)) {
-            // Merge sources
-            const merged = [...new Set([...existingSources.split(',').map(s => s.trim()), item.api_source])].join(', ');
-            item.api_source = merged;
+            item.api_source = [...new Set([...existingSources.split(',').map(s => s.trim()), item.api_source])].join(', ');
         }
-        finalItems.push(item);
+
+        if (!item.lat || !item.lng) {
+            const coords = await geocodeAddress(item.address);
+            if (coords) { item.lat = coords.lat; item.lng = coords.lng; geocodingCount++; }
+        }
+        if (item.lat && item.lng) {
+            finalItems.push({ ...item, location: `POINT(${item.lng} ${item.lat})` });
+        }
     }
 
     if (finalItems.length === 0) return;
     const { error } = await supabase.from('master_places').upsert(finalItems, { onConflict: 'id' });
     if (error) {
-        if (error.code === '23505' && error.message.includes('master_places_name_address_key')) {
-            // Conflict on name/address. We need to find the existing record and merge api_source.
-            for (const item of uniqueValidItems) {
-                const { data: existing } = await supabase.from('master_places').select('id, api_source').eq('name', item.name).eq('address', item.address).single();
-                if (existing) {
-                    if (!existing.api_source.includes(item.api_source)) {
-                        const newSources = [...new Set([...existing.api_source.split(','), item.api_source])].join(',');
-                        await supabase.from('master_places').update({ api_source: newSources }).eq('id', existing.id);
-                    }
-                } else {
-                    // Actual PK conflict or other error
-                    await supabase.from('master_places').upsert([item], { onConflict: 'id' }).catch(() => {});
-                }
-            }
-        } else {
-            console.error(`\n[DB Error] ${error.message} - ${error.details || ''}`);
-        }
+        console.error(`\n[DB Error] ${error.message}`);
     } else {
         totalSynced += uniqueValidItems.length;
         uniqueValidItems.forEach(i => {
             if (i.category) syncStats[i.category] = (syncStats[i.category] || 0) + 1;
+            if (sourceName && sourceMetrics[sourceName]) sourceMetrics[sourceName].updated++;
         });
         process.stdout.write(`\r[Sync Progress] Total: ${totalSynced} items... Cache: ${geocodeCache.size}`);
     }
@@ -181,6 +163,7 @@ let startTime = Date.now();
 // [0] 관광명소 (TOUR_SPOT) - Restore v2 logic for Strategic Asset
 // ----------------------------------------------------------------------------------------
 async function syncTourSpot() {
+    const tourStartTime = Date.now();
     console.log('\n[0/3] 관광명소 (TOUR_SPOT) 동기화 중...');
     if (!PUBLIC_API_KEY) return;
     let pageNo = 1, hasMore = true;
@@ -199,10 +182,14 @@ async function syncTourSpot() {
                 lat: parseFloat(i.mapy), lng: parseFloat(i.mapx), trust_score: 45, raw_data: i
             }));
             
-            await upsertBatch(chunk);
+            sourceMetrics['관광명소'] = sourceMetrics['관광명소'] || { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
+            sourceMetrics['관광명소'].fetched += itemList.length;
+
+            await upsertBatch(chunk, '관광명소');
             pageNo++;
             if (itemList.length < 100) hasMore = false;
         }
+        sourceMetrics['관광명소'].duration = Date.now() - tourStartTime;
     } catch (e) { console.error('  TourSpot Error:', e.message); }
 }
 
@@ -210,6 +197,7 @@ async function syncTourSpot() {
 // [1] 백년가게 (SMBA_BAEK) - Plan A: Swagger Discovery
 // ----------------------------------------------------------------------------------------
 async function syncBaeknyeon() {
+    const baekStartTime = Date.now();
     console.log('\n[1/3] 백년가게 (SMBA_BAEK) 동송화 중...');
     try {
         const spec = await fetch(`https://infuser.odcloud.kr/oas/docs?namespace=15102255/v1`).then(r => r.json());
@@ -231,8 +219,11 @@ async function syncBaeknyeon() {
                     name, address: addr, lat: coords?.lat || null, lng: coords?.lng || null, trust_score: 80, raw_data: i
                 });
             }
-            await upsertBatch(chunk);
+            sourceMetrics['백년가게'] = sourceMetrics['백년가게'] || { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
+            sourceMetrics['백년가게'].fetched += data.data.length;
+            await upsertBatch(chunk, '백년가게');
         }
+        sourceMetrics['백년가게'].duration = Date.now() - baekStartTime;
     } catch (e) { console.error('Baeknyeon Error:', e.message); }
 }
 
@@ -255,8 +246,7 @@ async function syncLocalData() {
         const sourceStartTime = Date.now();
         sourceMetrics[source.name] = { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
         try {
-            const res = await fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-            let recordsList = []; // New structure to handle multiple files in ZIP
+            let recordsList = []; 
             
             if (source.type === 'API') {
                 console.log(`    Fetching from MOIS OpenAPI...`);
@@ -283,6 +273,7 @@ async function syncLocalData() {
                     pageNo++;
                 }
             } else if (source.type === 'ZIP') {
+                const res = await fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
                 const buffer = Buffer.from(await res.arrayBuffer());
                 const directory = await unzipper.Open.buffer(buffer);
                 const csvFiles = directory.files.filter(f => f.path.toLowerCase().endsWith('.csv'));
@@ -296,6 +287,7 @@ async function syncLocalData() {
                 }
                 console.log(`    Parsed ${recordsList.length} total records from ${csvFiles.length} files`);
             } else {
+                const res = await fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
                 const buffer = Buffer.from(await res.arrayBuffer());
                 const workbook = XLSX.read(buffer, { type: 'buffer' });
                 const sheetName = workbook.SheetNames[0];

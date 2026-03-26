@@ -1,0 +1,13 @@
+--- 🛒 MART DATA AUDIT REPORT (Master DB) ---
+SSM: 1,317 건
+SUPER: 13,250 건
+
+--- 🕒 LATEST SYNC LOG ---
+Sync Time: 2026-03-25T04:50:37.392+00:00
+Status: RUNNING
+Total Processed: 0
+Message: 전국 마스터 플레이스 동기화 시작
+
+--- 🔍 ALL UNIQUE SOURCES IN DB ---
+- LOCALDATA_MART_LARGE
+- LOCALDATA_MART_SUPER

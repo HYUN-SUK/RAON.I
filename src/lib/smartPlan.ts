@@ -316,7 +316,7 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
         let currentRadius = 15000;
         let facts: any[] = [];
         let rpcDynamicFn = 'get_smart_plan_facts_in_radius';
-        let rpcMasterFn = 'get_master_places_in_radius';
+        let rpcMasterFn = 'get_master_places_in_radius_v2';
 
         while (currentRadius <= 30000) {
             // 1. Fetch Dynamic Data (HOSPITAL, FESTIVAL)

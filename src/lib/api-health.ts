@@ -20,7 +20,9 @@ export const getApiConfigs = () => {
   const baseTime = now.getHours() < 6 ? '1800' : '0600';
 
   return [
-    { name: 'MART_LOCALDATA', label: '마트(LocalData)', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip' },
+    { name: 'MART_LARGE', label: '마트(대형마트)', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip' },
+    { name: 'MART_SSM', label: '마트(준대규모)', url: 'https://www.localdata.go.kr/datafile/each/08_24_01_P_CSV.zip' },
+    { name: 'MART_SUPER', label: '마트(기타식품)', url: 'https://www.localdata.go.kr/datafile/each/07_22_13_P_CSV.zip' },
     { name: 'REST_LOCALDATA', label: '식당(모범음식점)', url: 'https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx' },
     { name: 'REST_BAEK', label: '식당(백년가게)', url: `https://api.odcloud.kr/api/15102255/v1/uddi:c8c0f585-8ee0-47a3-8686-3507119e0780?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&page=1&perPage=1` },
     { name: 'REST_SAFE', label: '식당(안심식당)', url: `http://211.237.50.150:7080/openapi/${process.env.SAFE_RESTAURANT_API_KEY}/json/Grid_20200713000000000605_1/1/1` },

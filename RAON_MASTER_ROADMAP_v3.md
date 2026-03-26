@@ -189,6 +189,11 @@
     *   [x] **Logic Audit (v7) (2026-03-21)**: `smart_camping_plan_manual.md` 대조 감사를 통해 병원 수집 범위 한계 및 주유소 Top 3 필터링 병목 지점 식별 및 보고 완료.
     *   [x] **SSOT**: `smart_camping_plan_manual.md`에 전체 로직, 인증 가중치(+15, +30), 하이브리드 수집 전략 통합 최신화.
     *   [x] **Stabilization**: D-3 동적 동기화 크론 작업의 테이블 참조 오류(`schedules` -> `user_schedules`) 수정 및 검증 완료.
+    *   [x] **5.5.7 Core Logic Optimization (v10.3) ✅ (2026-03-26)**:
+        *   [x] **Mart Remediation**: 거리 가중치 60pt 상향 및 15km 페널티 도입으로 근접성 우선순위 확보.
+        *   [x] **Kakao Fallback**: 상호명 일치 시 10km까지 확장 검색 적용으로 좌표 드리프트 방어.
+        *   [x] **Uncapped Scoring**: 100점 상한제 폐지로 고품질 데이터 변별력 강화.
+        *   [x] **Data Audit**: 예산/홍성 지역 마스터 DB 전수 조사 및 로컬 마트 78건 발굴 완료.
     *   [x] **5.5.6 Unified User Camping Profile ✅ (2026-03-17)**:
         *   [x] **DB**: `user_camping_profiles` 테이블 구축 및 RLS/RPC (`upsert_camping_profile`) 적용.
         *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
