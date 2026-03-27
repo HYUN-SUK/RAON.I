@@ -158,27 +158,71 @@ async function main() {
             }
         } catch (e) {}
 
-        // A-3. Gas Station (Opinet Kerosene v10.7)
+        // A-3. Gas Station (Opinet Kerosene v10.7 + Spiral Search & 3-Step Address Fallback)
         if (OPINET_API_KEY) {
             try {
                 proj4.defs("TM128", "+proj=tmerc +lat_0=38 +lon_0=128 +k=0.9999 +x_0=400000 +y_0=600000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43");
                 const [wtmX, wtmY] = proj4("EPSG:4326", "TM128", [targetLng, targetLat]);
-                const petrolRes = await fetch(`http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX)}&y=${Math.round(wtmY)}&radius=30000&sort=1&prodcd=C004&out=json`, fetchOptions);
-                const petrolData = await petrolRes.json();
-                if (petrolData.RESULT?.OIL) {
-                    const items = Array.isArray(petrolData.RESULT.OIL) ? petrolData.RESULT.OIL : [petrolData.RESULT.OIL];
-                    items.forEach(item => {
-                        const [lon, lat] = proj4("TM128", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
-                        rawMasterInserts.push({
-                            id: generateFactId('OPINET_GAS', item.OS_NM, item.VAN_ADR || item.NEW_ADR || 'COORD_ONLY'),
-                            api_source: 'OPINET_GAS', category: 'GAS_STATION',
-                            name: item.OS_NM, description: `실내등유: ${item.PRICE || item.K_PRICE}원`, address: item.VAN_ADR || item.NEW_ADR || '',
-                            lat, lng: lon, trust_score: 55, raw_data: item
-                        });
+                const seenGas = new Set();
+                const currentMonth = kstNow.getMonth() + 1;
+                const isWinterSearch = [11, 12, 1, 2, 3].includes(currentMonth);
+                const prodCode = 'C004'; // Kerosene
+
+                // Spiral Search Logic (from Manual 4.4 + route.ts 5km Radius Consistency)
+                const spiralShifts = [
+                    [{x:0,y:0}], // 5km radius center
+                    [{x:10000,y:0}, {x:-10000,y:0}, {x:0,y:10000}, {x:0,y:-10000}], 
+                    [{x:20000,y:0}, {x:-20000,y:0}, {x:0,y:20000}, {x:0,y:-20000}, {x:15000,y:15000}, {x:-15000,y:15000}, {x:15000,y:-15000}, {x:-15000,y:-15000}],
+                    [{x:30000,y:0}, {x:-30000,y:0}, {x:0,y:30000}, {x:0,y:-30000}]
+                ];
+
+                for (const group of spiralShifts) {
+                    if (seenGas.size >= 15) break; 
+                    const gasPromises = group.map(async s => {
+                        const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=${prodCode}&out=json`;
+                        try {
+                            const r = await fetch(url, fetchOptions);
+                            return await r.json();
+                        } catch (e) { return null; }
                     });
-                    totalTracking.stepA_dynamic.GAS_STATION += items.length;
+                    const results = await Promise.all(gasPromises);
+                    
+                    const gasGroupInserts = [];
+                    for (const data of results) {
+                        if (data?.RESULT?.OIL) {
+                            const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
+                            for (const item of items) {
+                                const key = (item.OS_NM || 'NONE') + (item.VAN_ADR || 'ADDR');
+                                if (!seenGas.has(key) && (item.PRICE || item.K_PRICE)) {
+                                    seenGas.add(key);
+                                    const [lon, lat] = proj4("TM128", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
+                                    
+                                    // 3-Step Address Fallback (from Manual 4.4)
+                                    let finalAddr = item.VAN_ADR || item.NEW_ADR || '';
+                                    if (!finalAddr && KAKAO_KEY && lat && lon) {
+                                        try {
+                                            const revRes = await fetch(`https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lon}&y=${lat}`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                                            const revData = await revRes.json();
+                                            if (revData.documents?.[0]) {
+                                                finalAddr = revData.documents[0].road_address?.address_name || revData.documents[0].address?.address_name || '';
+                                            }
+                                        } catch (e) {}
+                                    }
+
+                                    gasGroupInserts.push({
+                                        id: generateFactId('OPINET_GAS', item.OS_NM, finalAddr || 'COORD_ONLY'),
+                                        api_source: 'OPINET_GAS', category: 'GAS_STATION',
+                                        name: item.OS_NM, description: `실내등유: ${item.PRICE || item.K_PRICE}원`, address: finalAddr,
+                                        lat, lng: lon, trust_score: 55, raw_data: item
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    if (gasGroupInserts.length > 0) rawMasterInserts.push(...gasGroupInserts);
                 }
-            } catch (e) {}
+                totalTracking.stepA_dynamic.GAS_STATION += seenGas.size;
+            } catch (e) { console.error("Gas Spiral Error:", e.message); }
         }
 
         // DB Upsert to master_places
