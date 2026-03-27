@@ -103,7 +103,7 @@ export function groupAndScorePlaces(places: RawPlace[]): MergedPlace[] {
       baseScore = bScore;
     }
 
-    const finalScore = Math.min(100, baseScore + bonus);
+    const finalScore = baseScore + bonus;
 
     // 배지 및 인증 정보 통합
     const badges: string[] = [];

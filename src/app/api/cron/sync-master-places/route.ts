@@ -79,14 +79,35 @@ export async function POST(request: Request) {
                     const items = data.response?.body?.items?.item;
                     if (items) {
                         const itemList = Array.isArray(items) ? items : [items];
-                        const chunk = itemList.map((item: any) => {
+                        
+                        // [v10.5.2] Enrichment: Fetch Detailed Info (readcount, overview) in Chunks
+                        const enrichedList = [];
+                        for (let i = 0; i < itemList.length; i += 10) {
+                            const batch = itemList.slice(i, i + 10);
+                            const enriched = await Promise.all(batch.map(async (item: any) => {
+                                try {
+                                    // DetailCommon2 Call for rich meta
+                                    const dRes = await fetch(`http://apis.data.go.kr/B551011/KorService2/detailCommon2?serviceKey=${publicApiKey}&MobileOS=ETC&MobileApp=AppTest&_type=json&contentId=${item.contentid}&defaultYN=Y&overviewYN=Y&areacodeYN=Y&catcodeYN=Y&addrinfoYN=Y&mapinfoYN=Y&firstImageYN=Y`, fetchOptions);
+                                    const dData = await dRes.json();
+                                    const dItem = dData.response?.body?.items?.item;
+                                    const detail = dItem ? (Array.isArray(dItem) ? dItem[0] : dItem) : {};
+                                    return { ...item, ...detail }; // Merge enriched fields
+                                } catch (err) { return item; }
+                            }));
+                            enrichedList.push(...enriched);
+                        }
+
+                        const chunk = enrichedList.map((item: any) => {
                             const name = item.title;
                             const addr = item.addr1 || item.addr2 || '';
                             return {
                                 id: uuidv5(`TOUR_SPOT|${name}|${addr}`, MY_NAMESPACE),
                                 api_source: 'TOUR_SPOT', category: 'SPOT',
-                                name, description: '한국관광공사 선정 관광명소', address: addr,
-                                lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 40, raw_data: item,
+                                name, 
+                                description: item.overview || '한국관광공사 선정 관광명소', // Rich description applied
+                                address: addr,
+                                lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), 
+                                trust_score: 40, raw_data: item,
                                 sido: '', sigungu: ''
                             };
                         }).filter((i: any) => !isNaN(i.lat) && !isNaN(i.lng));

@@ -202,11 +202,15 @@ export async function POST(request: Request) {
                         [{x:30000,y:0}, {x:-30000,y:0}, {x:0,y:30000}, {x:0,y:-30000}]
                     ];
 
+                    const currentMonth = kstNow.getMonth() + 1;
+                    const isWinterFetch = [11, 12, 1, 2, 3].includes(currentMonth);
+                    // [v10.7.2] User Correction: Indoor Kerosene is C004
+                    const prodCode = 'C004'; 
+
                     for (const group of spiralShifts) {
-                        if (seenGas.size >= 5) break; 
+                        if (seenGas.size >= 15) break; 
                         const gasPromises = group.map(s => {
-                            const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`;
-                            console.log(`[Opinet Probe] Radius Shift: ${s.x}, ${s.y} | URL: ${url}`);
+                            const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=${prodCode}&out=json`;
                             return fetch(url, fetchOptions)
                             .then(async r => {
                                 const d = await r.json();
@@ -223,6 +227,7 @@ export async function POST(request: Request) {
                                 const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
                                 items.forEach((item: any) => {
                                     const key = (item.OS_NM || 'NONE') + (item.VAN_ADR || 'ADDR');
+                                    if (isWinterFetch && !item.K_PRICE) item.K_PRICE = item.PRICE; 
                                     const price = parseFloat(item.PRICE || item.K_PRICE || "0");
                                     if (!seenGas.has(key) && price > 0) {
                                         seenGas.add(key);
@@ -345,65 +350,240 @@ export async function POST(request: Request) {
             }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 15);
 
             selectedCandidates.push(...marts);
+            
+            // ==========================================
+            // [v10.4] Mart Fallback Logic (Convenience Stores)
+            // ==========================================
+            if (marts.length < 3) {
+                const shortfall = 3 - marts.length;
+                const kakaoKey = process.env.KAKAO_REST_API_KEY;
+                console.log(`[v10.4 Fallback] Mart shortfall: ${shortfall}. Fetching CS2...`);
+                
+                try {
+                    const res = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${targetLng}&y=${targetLat}&radius=20000&size=${shortfall}&sort=distance`, {
+                        headers: { 'Authorization': `KakaoAK ${kakaoKey}` }
+                    });
+                    const data = await res.json();
+                    
+                    if (data.documents && data.documents.length > 0) {
+                        data.documents.forEach((item: any) => {
+                            selectedCandidates.push({
+                                id: generateFactId('KAKAO_CS2', item.place_name, item.road_address_name || item.address_name),
+                                api_source: 'KAKAO_CS2', category: 'MART',
+                                name: item.place_name, 
+                                description: `[편의점 폴백] ${item.category_name || '편의점'}`, 
+                                address: item.road_address_name || item.address_name,
+                                lat: parseFloat(item.y), lng: parseFloat(item.x),
+                                trust_score: 50, // Base score for convenience fallback
+                                raw_data: { ...item, isFallback: true },
+                                _dist: parseInt(item.distance) / 1000,
+                                _sortScore: 50 + (1 - (parseInt(item.distance) / 20000)) * 40
+                            });
+                        });
+                        console.log(`[v10.4 Fallback] Added ${data.documents.length} convenience stores.`);
+                    }
+                } catch (e) {
+                    console.error("[v10.4 Fallback] Kakao CS2 Fetch Error:", e);
+                }
+            }
+
             tracking.stepB_filter['MART'].passed_formula = marts.length;
 
-            // 2) HOSPITAL (Hierarchy + Distance + Noise Filter)
-            const hospitals = candidates.filter((c:any) => {
-                if (c.category !== 'HOSPITAL') return false;
-                // Noise Filter: 동물병원, 정신병원, 단순 관공서 등 제외
-                const isNoise = /동물|반려|정신|행정관|피부|치과|요양|성형/.test(c.name);
-                return !isNoise;
-            }).map((c:any) => {
-                let s = 20; // Default base
-                const name = c.name;
-                // Hierarchy Scoring (Proposal v10)
-                if (c.api_source?.includes('NMC') || /종합병원|의료원/.test(name)) s = 100;
-                else if (/내과|소아과|외과|가정의학/.test(name)) s = 70;
-                else if (/보건소|보건지소/.test(name)) s = 50;
-                
-                // Distance Weight (Max 50pts, Radius 30km)
-                const distScore = Math.max(0, (1 - (c._dist / 30.0)) * 50); 
-                return { ...c, _sortScore: s + distScore };
-            }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 15);
-            selectedCandidates.push(...hospitals);
-            tracking.stepB_filter['HOSPITAL'].passed_formula = hospitals.length;
+            // 2) HOSPITAL (Group by Name/Address + Hierarchy + Emergency Bonus + Distance)
+            const hospMap = new Map<string, any>();
+            candidates.filter((c:any) => c.category === 'HOSPITAL').forEach((c:any) => {
+                const normName = c.name.replace(/\s/g, '');
+                const key = `${normName}|${(c.address || '').slice(0, 15)}`;
+                const existing = hospMap.get(key);
 
-            // 3) SPOT, FESTIVAL (Distance DESC)
-            ['SPOT', 'FESTIVAL'].forEach(cat => {
-                const list = candidates.filter((c:any) => c.category === cat)
-                                       .sort((a:any, b:any) => a._dist - b._dist)
-                                       .slice(0, 15);
-                selectedCandidates.push(...list);
-                tracking.stepB_filter[cat].passed_formula = list.length;
+                // Noise Filter logic moved into map collection to ensure we don't even collect them
+                const isNoise = /동물|반려|정신|행정관|피부|치과|요양|성형|한의원/.test(c.name);
+                if (isNoise) return;
+
+                if (existing) {
+                    // Keep the one with higher trust_score or more meta
+                    if (!existing.raw_data?.firstimage && c.raw_data?.firstimage) {
+                        existing.raw_data = { ...existing.raw_data, firstimage: c.raw_data.firstimage };
+                    }
+                    if (c._dist < existing._dist) existing._dist = c._dist;
+                } else {
+                    hospMap.set(key, { ...c });
+                }
             });
 
+            const dedupedHospitals = Array.from(hospMap.values());
+            const scoredHospitals = dedupedHospitals.map((m: any) => {
+                const distKm = m._dist;
+                if (distKm > 30) return null;
+
+                const name = m.name || "";
+                const raw = m.raw_data || {};
+                
+                let s = 30; // Default Base for Clinics
+                
+                // Tier 1: General Hospitals / Medical Centers
+                if (m.api_source?.includes('NMC') || /종합병원|의료원/.test(name)) s = 100;
+                // Tier 2: Primary Care (Internal, Peds, etc)
+                else if (/내과|소아과|외과|가정의학/.test(name)) s = 70;
+                // Tier 3: Public Health
+                else if (/보건소|보건지소/.test(name)) s = 50;
+
+                // [v10.6] Emergency / Night-time Bonus (+40)
+                if (/응급|야간|24시/.test(name) || /응급실/.test(raw.description || '')) {
+                    s += 40;
+                }
+
+                // Digital Assets
+                if (raw.firstimage) s += 10;
+                if (raw.description?.length > 50) s += 10;
+
+                const distScore = Math.max(0, (1 - (distKm / 30.0)) * 40);
+                return { ...m, _sortScore: s + distScore, trust_score: s };
+            }).filter(m => m !== null)
+              .sort((a: any, b: any) => (b._sortScore || 0) - (a._sortScore || 0))
+              .slice(0, 15);
+
+            selectedCandidates.push(...scoredHospitals);
+            tracking.stepB_filter['HOSPITAL'].passed_formula = scoredHospitals.length;
+
+            // 3) SPOT, FESTIVAL (Group by Name/Address + Date Filtering + Prestige Scoring + Distance)
+            const spotMap = new Map<string, any>();
+            const targetYYYYMMDD = targetStr.replace(/-/g, '');
+
+            candidates.filter((c:any) => ['SPOT', 'FESTIVAL'].includes(c.category)).forEach((c:any) => {
+                const key = `${c.name.replace(/\s/g, '')}|${(c.address || '').slice(0, 15)}`;
+                const existing = spotMap.get(key);
+
+                // [v10.7] Festival Date Filtering
+                if (c.category === 'FESTIVAL') {
+                    const sDate = c.raw_data?.eventstartdate;
+                    const eDate = c.raw_data?.eventenddate;
+                    if (sDate && eDate) {
+                        // Skip if camping date is NOT within festival range
+                        if (targetYYYYMMDD < sDate || targetYYYYMMDD > eDate) return;
+                    }
+                }
+
+                if (existing) {
+                    if (!existing.raw_data?.firstimage && c.raw_data?.firstimage) {
+                        existing.raw_data = { ...existing.raw_data, firstimage: c.raw_data.firstimage };
+                    }
+                    if (c._dist < existing._dist) existing._dist = c._dist;
+                } else {
+                    spotMap.set(key, { ...c });
+                }
+            });
+
+            const dedupedSpots = Array.from(spotMap.values());
+            const scoredSpots = dedupedSpots.map((m: any) => {
+                const distKm = m._dist;
+                if (distKm > 30) return null;
+
+                const name = m.name || "";
+                const raw = m.raw_data || {};
+                const contentId = raw.contentTypeId || "";
+                
+                let s = 10; // Base Prestige
+                if (['12', '14', '28'].includes(contentId) || m.api_source === 'TOUR_SPOT') s += 20;
+                if (contentId === '15') s += 40; // Festival Base (Higher than standard spot)
+                
+                // [v10.7] Festival Active Bonus
+                if (m.category === 'FESTIVAL') s += 20; 
+
+                // [v10.5.1] Universal Core Keyword Tiering
+                if (/국립|도립|군립|수목원|휴양림|관광지|출렁다리|모노레일|케이블카|해수욕장|테마파크|사($|[\s({])|사찰|읍성|성지/.test(name)) { 
+                    s += 45; 
+                } else if (/박물관|미술관|기념관|천문대|생태|역사|향교|서원|고택|생가|가옥|민속촌/.test(name)) { 
+                    s += 30; 
+                } else if (/공원|체험관|조각|예술|문화촌/.test(name)) {
+                    s += 15;
+                }
+
+                // [v10.5] Digital Asset & Popularity Index
+                const descLen = raw.description?.length || 0;
+                const readcount = parseInt(raw.readcount || "0");
+                if (raw.firstimage) s += 15;
+                if (descLen > 100) s += 15;
+                if (raw.firstimage && descLen > 100) s += 10;
+
+                if (readcount >= 10000) s += 40;
+                else if (readcount >= 5000) s += 25;
+                else if (readcount >= 1000) s += 10;
+
+                const distScore = Math.max(0, (1 - (distKm / 30.0)) * 40);
+                return { ...m, _sortScore: s + distScore, prestige_score: s };
+            }).filter(m => m !== null)
+              .sort((a: any, b: any) => (b._sortScore || 0) - (a._sortScore || 0))
+              .slice(0, 25); // Increased slice for festivals
+
+            selectedCandidates.push(...scoredSpots);
+            tracking.stepB_filter['SPOT'].passed_formula = scoredSpots.length;
+
             // 3) GAS_STATION (Price ASC -> Distance)
-            const gasFiltered = candidates.filter((c:any) => c.category === 'GAS_STATION').sort((a:any, b:any) => {
+            const targetMonth = kstNow.getMonth() + 1;
+            const isWinter = [11, 12, 1, 2, 3].includes(targetMonth);
+
+            const gasFiltered = candidates.filter((c:any) => {
+                if (c.category !== 'GAS_STATION') return false;
+                if (isWinter) {
+                    // [v10.7] Winter Kerosene Check
+                    const kPrice = parseFloat(c.raw_data?.K_PRICE || "0");
+                    return kPrice > 0;
+                }
+                return true;
+            }).sort((a:any, b:any) => {
+                if (isWinter) {
+                    const pA = parseFloat(a.raw_data?.K_PRICE || "9999");
+                    const pB = parseFloat(b.raw_data?.K_PRICE || "9999");
+                    return pA - pB;
+                }
                 const pA = a.raw_data?.K_PRICE ? parseFloat(a.raw_data.K_PRICE) : 99999;
                 const pB = b.raw_data?.K_PRICE ? parseFloat(b.raw_data.K_PRICE) : 99999;
                 if (pA === pB) return a._dist - b._dist;
                 return pA - pB;
+            }).map(g => {
+                if (isWinter) {
+                    return { ...g, description: `[동계 등유] 가격: ${g.raw_data.K_PRICE}원` };
+                }
+                return g;
             }).slice(0, 10);
+
             selectedCandidates.push(...gasFiltered);
             tracking.stepB_filter['GAS_STATION'].passed_formula = gasFiltered.length;
 
-            // 4) RESTAURANT (Multi-Auth Bonus + Distance + Noise Filter)
-            const rests = candidates.filter((c:any) => {
-                if (c.category !== 'RESTAURANT') return false;
-                // Noise Filter: 비음식점 백년가게 등 제외
-                const isNoise = /안경|의상|한복|건축|이용원|이발|미용/.test(c.name);
+            // 4) RESTAURANT (Group by Name/Address + Multi-Auth Summation + Distance + Noise Filter)
+            const restMap = new Map<string, any>();
+            candidates.filter((c:any) => c.category === 'RESTAURANT').forEach((c:any) => {
+                const key = `${c.name.replace(/\s/g, '')}|${(c.address || '').slice(0, 15)}`;
+                const existing = restMap.get(key);
+                if (existing) {
+                    // Merge sources (unique)
+                    const s1 = (existing.api_source || '').split(',').map((s:string) => s.trim());
+                    const s2 = (c.api_source || '').split(',').map((s:string) => s.trim());
+                    existing.api_source = Array.from(new Set([...s1, ...s2])).join(',');
+                    // Keep the closer distance if multiple records exist
+                    if (c._dist < existing._dist) existing._dist = c._dist;
+                } else {
+                    restMap.set(key, { ...c });
+                }
+            });
+
+            const rests = Array.from(restMap.values()).filter((c:any) => {
+                // Noise Filter: 비음식점 백년가게/안심식당 등 제외 (v10.4 강화)
+                const isNoise = /안경|의상|한복|건축|이용원|이발|미용|보청기|수선|세탁|공방|장례식장|노인복지|어린이집/.test(c.name);
                 return !isNoise;
             }).map((c:any) => {
-                // Multi-Auth Bonus Calculation (Manual Step 3)
+                // [v10.4] Weighted Certification Scoring (Baknyeon: 50, Mobeom: 30, Ansim: 20)
                 const sources = (c.api_source || '').split(',').map((s:string) => s.trim());
-                let s = 60; // Standard base
-                if (sources.length >= 3) s = 100; // 3+ API overlap (+30 bonus)
-                else if (sources.length === 2) s = 85; // 2 API overlap (+15 bonus)
-                else if (sources.includes('SMBA_BAEK') || sources.includes('LOCALDATA_RESTAURANT')) s = 70; // Certified standard
+                let s = 10; // Base score for any restaurant
+                
+                if (sources.includes('SMBA_BAEK')) s += 50;
+                if (sources.includes('MOIS_GOOD_RESTAURANT')) s += 30;
+                if (sources.includes('SAFE_RESTAURANT')) s += 20;
                 
                 // Distance Weight (Max 40pts, Radius 15km)
                 const distScore = Math.max(0, (1 - (c._dist / 15.0)) * 40);
-                return { ...c, _sortScore: s + distScore };
+                return { ...c, _sortScore: s + distScore, trust_score: s };
             }).sort((a:any, b:any) => b._sortScore - a._sortScore).slice(0, 20);
             selectedCandidates.push(...rests);
             tracking.stepB_filter['RESTAURANT'].passed_formula = rests.length;

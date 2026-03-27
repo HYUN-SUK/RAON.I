@@ -63,14 +63,14 @@ import { createClient } from '@supabase/supabase-js';
 // v2 4축 점수 체계 (Existence / Quality / ContextFit / Logistics + Risk Penalty)
 // ========================================================================================
 
-// 카테고리별 가중치: [Existence, Quality, ContextFit, Logistics]
+// 카테고리별 가중치 (v10.4 고도화): [Existence, Quality, ContextFit, Logistics]
 const CATEGORY_WEIGHTS: Record<string, [number, number, number, number]> = {
-    HOSPITAL: [0.40, 0.10, 0.25, 0.25],
-    MART: [0.30, 0.10, 0.20, 0.40],
-    GAS_STATION: [0.30, 0.10, 0.20, 0.40],
-    RESTAURANT: [0.20, 0.30, 0.30, 0.20],
-    SPOT: [0.20, 0.20, 0.35, 0.25],
-    FESTIVAL: [0.25, 0.10, 0.40, 0.25],
+    HOSPITAL: [0.50, 0.10, 0.20, 0.20], // 존재 확실성(v55) + 거리 가중치
+    MART: [0.25, 0.05, 0.10, 0.60],    // 거리 가중치 60pt (v10.3 개편)
+    GAS_STATION: [0.30, 0.10, 0.10, 0.50], // 거리 가중치 상향
+    RESTAURANT: [0.20, 0.35, 0.25, 0.20], // 품질(별점) 및 적합성 중심
+    SPOT: [0.20, 0.20, 0.40, 0.20],      // 테마별 적합성 최우선
+    FESTIVAL: [0.25, 0.10, 0.45, 0.20],  // 적합성 최우선
     ROUTE_RESTAURANT: [0.20, 0.25, 0.20, 0.35],
     ROUTE_CAFE: [0.20, 0.20, 0.25, 0.35],
     ROUTE_SPOT: [0.20, 0.20, 0.25, 0.35],
@@ -91,14 +91,72 @@ const CATEGORY_SHORTLIST_CAP: Record<string, number> = {
 
 function calcExistence(f: FactCard): number {
     // source_confidence (0~60)
-    let src = 30;
-    const s = f.provenance.sourceName;
-    if (s === 'NMC_HOSPITAL' || s === 'SMBA_BAEK' || s === 'SAFE_RESTAURANT') src = 55;
-    if (s === 'MOIS_GOOD_RESTAURANT') src = 50;
-    if (s === 'TOUR_SPOT' || s === 'TOUR_CAFE') src = 45;
-    if (s === 'OPINET') src = 55;
-    if (s === 'MASTER_ENRICHED') src = 60;
-    if (s === 'LARGE_STORE') src = 40;
+    let src = 10; // Base score
+    const s = f.provenance.sourceName || '';
+
+    if (f.category === 'RESTAURANT') {
+        const sources = s.split(',').map(item => item.trim());
+        if (sources.includes('SMBA_BAEK')) src += 50;
+        if (sources.includes('MOIS_GOOD_RESTAURANT')) src += 30;
+        if (sources.includes('SAFE_RESTAURANT')) src += 20;
+    } else if (f.category === 'SPOT') {
+        const name = f.name || "";
+        const raw = f.metadata?.raw_data || {};
+        const contentId = raw.contentTypeId || "";
+        
+        src = 10; // Base Prestige
+        if (['12', '14', '28'].includes(contentId) || f.provenance.sourceName === 'TOUR_SPOT') src += 20;
+
+        // [v10.5.1] Universal Core Keyword Tiering
+        if (/국립|도립|군립|수목원|휴양림|관광지|출렁다리|모노레일|케이블카|해수욕장|테마파크|사($|[\s({])|사찰|읍성|성지/.test(name)) { 
+            src += 45; 
+        } else if (/박물관|미술관|기념관|천문대|생태|역사|향교|서원|고택|생가|가옥|민속촌/.test(name)) { 
+            src += 30; 
+        } else if (/공원|체험관|조각|예술|문화촌/.test(name)) {
+            src += 15;
+        }
+
+        // [v10.5] Digital Asset & Popularity Index
+        const descLen = raw.description?.length || 0;
+        const readcount = parseInt(raw.readcount || "0");
+        if (raw.firstimage) src += 15;
+        if (descLen > 100) src += 15;
+        if (raw.firstimage && descLen > 100) src += 10;
+
+        if (readcount >= 10000) src += 40;
+        else if (readcount >= 5000) src += 25;
+        else if (readcount >= 1000) src += 10;
+    } else if (f.category === 'HOSPITAL') {
+        const name = f.name || "";
+        const raw = f.metadata?.raw_data || {};
+        const isNoise = /동물|반려|정신|행정관|피부|치과|요양|성형|한의원|뷰티|비만|디톡스|안과|산후|산부인과|한복|항문/.test(name);
+        if (isNoise) src = 0;
+        else {
+            src = 30; // Default Base
+            if (f.provenance.sourceName?.includes('NMC') || /종합병원|의료원/.test(name)) src = 100;
+            else if (/내과|소아과|외과|가정의학/.test(name)) src = 70;
+            else if (/보건소|보건지소/.test(name)) src = 50;
+
+            // [v10.6] Emergency / Night-time Bonus (+40)
+            if (/응급|야간|24시/.test(name) || /응급실/.test(raw.description || '')) {
+                src += 40;
+            }
+
+            // Digital Assets
+            if (raw.firstimage) src += 10;
+            if (raw.description?.length > 50) src += 10;
+        }
+    } else if (f.category === 'FESTIVAL') {
+        src = 50; // Festival Base (Higher than spot)
+        if (f.metadata?.raw_data?.firstimage) src += 15;
+        if (f.metadata?.raw_data?.readcount >= 5000) src += 25;
+    } else {
+        // Other categories legacy mapping
+        src = 30;
+        if (s === 'NMC_HOSPITAL' || s === 'OPINET' || f.category === 'GAS_STATION') src = 55;
+        if (s === 'MASTER_ENRICHED') src = 60;
+        if (s === 'LARGE_STORE') src = 40;
+    }
 
     // geo_confidence (0~40)
     const geo = (f.distanceKm !== undefined && f.distanceKm > 0) ? 35 : 15;
@@ -362,7 +420,46 @@ async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactC
             currentRadius += 5000;
         }
 
-        if (!facts || facts.length === 0) return [];
+        if (!facts || facts.length === 0) {
+            // No facts at all, return empty but could try emergency fetch here too
+            return [];
+        }
+
+        // v10.4: Mart Fallback Logic in Live Engine
+        const martsCount = facts.filter(f => f.category === 'MART' || f.category === 'MART_HOSPITAL').length;
+        if (martsCount < 3) {
+            console.log(`[v10.4 Live Fallback] Mart shortfall: ${3 - martsCount}. Fetching Kakao CS2...`);
+            const shortfall = 3 - martsCount;
+            const kakaoKey = process.env.KAKAO_REST_API_KEY;
+            if (kakaoKey) {
+                try {
+                    const res = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${lng}&y=${lat}&radius=20000&size=${shortfall}&sort=distance`, {
+                        headers: { 'Authorization': `KakaoAK ${kakaoKey}` }
+                    });
+                    const data = await res.json();
+                    if (data.documents) {
+                        data.documents.forEach((item: any) => {
+                            facts.push({
+                                id: `kakao-cs2-${item.id}`,
+                                name: item.place_name,
+                                address: item.road_address_name || item.address_name,
+                                category: 'MART',
+                                api_source: 'KAKAO_CS2',
+                                lat: parseFloat(item.y),
+                                lng: parseFloat(item.x),
+                                distance_meters: parseInt(item.distance),
+                                trust_score: 50,
+                                description: `[편의점 폴백] ${item.category_name || '편의점'}`,
+                                raw_data: { ...item, isFallback: true },
+                                badges: ['편의점'],
+                                certifications: [],
+                                totalTrustScore: 50
+                            });
+                        });
+                    }
+                } catch (e) { console.error("Live Fallback Error:", e); }
+            }
+        }
 
         return facts.map((row: any) => {
             let mappedCategory: FactCard['category'] = row.category as any;
