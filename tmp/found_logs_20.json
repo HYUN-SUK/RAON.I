@@ -1,0 +1,653 @@
+[
+  {
+    "id": "287eb79a-9dfb-438f-b99f-a4f7a323ef9b",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 102776,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "대규모마트",
+        "label": "대규모마트",
+        "status": "SUCCESS",
+        "new_count": 368,
+        "duration_ms": 1721,
+        "fetched_count": 4154,
+        "updated_count": 0,
+        "existing_count": 3786
+      },
+      {
+        "name": "준대규모마트",
+        "label": "준대규모마트",
+        "status": "SUCCESS",
+        "new_count": 0,
+        "duration_ms": 0,
+        "fetched_count": 0,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "중형슈퍼마켓",
+        "label": "중형슈퍼마켓",
+        "status": "SUCCESS",
+        "new_count": 354,
+        "duration_ms": 3916,
+        "fetched_count": 13688,
+        "updated_count": 0,
+        "existing_count": 13334
+      },
+      {
+        "name": "모범음식점",
+        "label": "모범음식점",
+        "status": "SUCCESS",
+        "new_count": 12487,
+        "duration_ms": 24999,
+        "fetched_count": 65610,
+        "updated_count": 0,
+        "existing_count": 53123
+      }
+    ],
+    "created_at": "2026-03-27T19:42:57.68+00:00"
+  },
+  {
+    "id": "a91980dc-e421-432c-86fe-a1ce9b356606",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":0,\"stepC_kakao_success\":0},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 2063,
+    "target_date": "2026-03-30",
+    "api_status": null,
+    "created_at": "2026-03-27T12:20:47.960174+00:00"
+  },
+  {
+    "id": "373fdcd5-fffa-4321-bb10-f6e91fb3dce8",
+    "job_name": "MASTER_SYNC",
+    "status": "RUNNING",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 시작",
+    "duration_ms": null,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-26T03:54:58.687+00:00"
+  },
+  {
+    "id": "c0a70301-5e62-46b7-8a72-d6af549ec3ac",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 26,
+    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":0,\"passed_formula\":0},\"SPOT\":{\"discovered\":0,\"passed_formula\":0},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":11},\"GAS_STATION\":{\"discovered\":7,\"passed_formula\":7},\"RESTAURANT\":{\"discovered\":0,\"passed_formula\":0}},\"stepC_kakao_attempts\":27,\"stepC_kakao_success\":27,\"stepD_upsert\":0,\"stepA_master_upsert\":{\"attempted\":32,\"failed\":true,\"recovered\":31}}],\"final_upsert\":26,\"metrics\":{\"user_total\":1,\"regions_merged\":1,\"category_breakdown\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":9,\"HOSPITAL\":11,\"GAS_STATION\":7,\"RESTAURANT\":0},\"kakao_stats\":{\"attempts\":27,\"success\":27},\"stepA_total\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7}}}",
+    "duration_ms": 24199,
+    "target_date": "2026-03-29",
+    "api_status": null,
+    "created_at": "2026-03-25T21:50:10.30061+00:00"
+  },
+  {
+    "id": "280264ed-2a71-49c8-b615-78c9953d8514",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 109514,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "대규모마트",
+        "label": "대규모마트",
+        "status": "SUCCESS",
+        "new_count": 368,
+        "duration_ms": 2264,
+        "fetched_count": 4154,
+        "updated_count": 0,
+        "existing_count": 3786
+      },
+      {
+        "name": "준대규모마트",
+        "label": "준대규모마트",
+        "status": "SUCCESS",
+        "new_count": 0,
+        "duration_ms": 0,
+        "fetched_count": 0,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "중형슈퍼마켓",
+        "label": "중형슈퍼마켓",
+        "status": "SUCCESS",
+        "new_count": 354,
+        "duration_ms": 4611,
+        "fetched_count": 13688,
+        "updated_count": 0,
+        "existing_count": 13334
+      },
+      {
+        "name": "모범음식점",
+        "label": "모범음식점",
+        "status": "SUCCESS",
+        "new_count": 31374,
+        "duration_ms": 29590,
+        "fetched_count": 65610,
+        "updated_count": 0,
+        "existing_count": 34236
+      }
+    ],
+    "created_at": "2026-03-25T19:47:49.161+00:00"
+  },
+  {
+    "id": "2c739d1c-ebac-4bf2-8470-f536af8ffd5e",
+    "job_name": "MASTER_SYNC",
+    "status": "RUNNING",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 시작",
+    "duration_ms": null,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-25T09:04:04.886+00:00"
+  },
+  {
+    "id": "8139bd46-8af8-47bc-bca5-30791cda65fb",
+    "job_name": "MASTER_SYNC",
+    "status": "RUNNING",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 시작",
+    "duration_ms": null,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-25T04:50:37.392+00:00"
+  },
+  {
+    "id": "9018981d-9fc3-4a3d-bcca-1d0dc34fc1f0",
+    "job_name": "MASTER_SYNC",
+    "status": "RUNNING",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 시작",
+    "duration_ms": null,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-25T04:45:46.665+00:00"
+  },
+  {
+    "id": "70a6bde5-e22d-4197-847d-bdcb2370faff",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 26,
+    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":0,\"passed_formula\":0},\"SPOT\":{\"discovered\":0,\"passed_formula\":0},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":11},\"GAS_STATION\":{\"discovered\":7,\"passed_formula\":7},\"RESTAURANT\":{\"discovered\":0,\"passed_formula\":0}},\"stepC_kakao_attempts\":27,\"stepC_kakao_success\":27,\"stepD_upsert\":0,\"stepA_master_upsert\":{\"attempted\":32,\"failed\":true,\"recovered\":31}}],\"final_upsert\":26,\"metrics\":{\"user_total\":1,\"regions_merged\":1,\"category_breakdown\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":9,\"HOSPITAL\":11,\"GAS_STATION\":7,\"RESTAURANT\":0},\"kakao_stats\":{\"attempts\":27,\"success\":27},\"stepA_total\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7}}}",
+    "duration_ms": 3912,
+    "target_date": "2026-03-28",
+    "api_status": null,
+    "created_at": "2026-03-25T04:24:08.503909+00:00"
+  },
+  {
+    "id": "bf2d9441-abc2-4e18-8380-076b3ed1d651",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 26,
+    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":0,\"passed_formula\":0},\"SPOT\":{\"discovered\":0,\"passed_formula\":0},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":11},\"GAS_STATION\":{\"discovered\":7,\"passed_formula\":7},\"RESTAURANT\":{\"discovered\":0,\"passed_formula\":0}},\"stepC_kakao_attempts\":27,\"stepC_kakao_success\":27,\"stepD_upsert\":0,\"stepA_master_upsert\":{\"attempted\":32,\"failed\":true,\"recovered\":31}}],\"final_upsert\":26,\"metrics\":{\"user_total\":1,\"regions_merged\":1,\"category_breakdown\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":9,\"HOSPITAL\":11,\"GAS_STATION\":7,\"RESTAURANT\":0},\"kakao_stats\":{\"attempts\":27,\"success\":27},\"stepA_total\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7}}}",
+    "duration_ms": 4499,
+    "target_date": "2026-03-28",
+    "api_status": null,
+    "created_at": "2026-03-25T04:21:27.714579+00:00"
+  },
+  {
+    "id": "4c54ca6a-8910-453a-a2ab-c9846f523f7f",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 10593,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 694081,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "대규모마트",
+        "label": "대규모마트",
+        "status": "SUCCESS",
+        "new_count": 4154,
+        "duration_ms": 132142,
+        "fetched_count": 4154,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "준대규모마트",
+        "label": "준대규모마트",
+        "status": "SUCCESS",
+        "new_count": 0,
+        "duration_ms": 0,
+        "fetched_count": 0,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "중형슈퍼마켓",
+        "label": "중형슈퍼마켓",
+        "status": "SUCCESS",
+        "new_count": 13688,
+        "duration_ms": 84431,
+        "fetched_count": 13688,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "모범음식점",
+        "label": "모범음식점",
+        "status": "SUCCESS",
+        "new_count": 38559,
+        "duration_ms": 457085,
+        "fetched_count": 65610,
+        "updated_count": 0,
+        "existing_count": 27051
+      }
+    ],
+    "created_at": "2026-03-25T04:11:59.003+00:00"
+  },
+  {
+    "id": "67b9fd94-bb12-47fe-a488-90be92ca3644",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 4341,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 592881,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "대규모마트",
+        "label": "대규모마트",
+        "status": "SUCCESS",
+        "new_count": 4154,
+        "duration_ms": 132880,
+        "fetched_count": 4154,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "준대규모마트",
+        "label": "준대규모마트",
+        "status": "SUCCESS",
+        "new_count": 0,
+        "duration_ms": 0,
+        "fetched_count": 0,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "중형슈퍼마켓",
+        "label": "중형슈퍼마켓",
+        "status": "SUCCESS",
+        "new_count": 0,
+        "duration_ms": 0,
+        "fetched_count": 0,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "모범음식점",
+        "label": "모범음식점",
+        "status": "SUCCESS",
+        "new_count": 38559,
+        "duration_ms": 439094,
+        "fetched_count": 65610,
+        "updated_count": 0,
+        "existing_count": 27051
+      }
+    ],
+    "created_at": "2026-03-25T02:05:37.441+00:00"
+  },
+  {
+    "id": "fa6d0852-de0d-4047-b74b-46f494a62214",
+    "job_name": "API_HEALTH_CHECK",
+    "status": "SUCCESS",
+    "processed_count": 14,
+    "message": "전체 14개 API 중 13개 정상",
+    "duration_ms": 1434,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "MART_LOCALDATA",
+        "error": "",
+        "label": "마트(LocalData)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.149Z",
+        "duration_ms": 104
+      },
+      {
+        "name": "REST_LOCALDATA",
+        "error": "",
+        "label": "식당(모범음식점)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.155Z",
+        "duration_ms": 109
+      },
+      {
+        "name": "REST_BAEK",
+        "error": "",
+        "label": "식당(백년가게)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.246Z",
+        "duration_ms": 198
+      },
+      {
+        "name": "REST_SAFE",
+        "error": "",
+        "label": "식당(안심식당)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.505Z",
+        "duration_ms": 456
+      },
+      {
+        "name": "TOUR_SPOT",
+        "error": "",
+        "label": "관광명소(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:41.406Z",
+        "duration_ms": 1354
+      },
+      {
+        "name": "FESTIVAL",
+        "error": "",
+        "label": "축제(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.431Z",
+        "duration_ms": 376
+      },
+      {
+        "name": "HOSPITAL",
+        "error": "",
+        "label": "병원(NMC)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:41.407Z",
+        "duration_ms": 1350
+      },
+      {
+        "name": "GAS_OPINET",
+        "error": "",
+        "label": "주유소(오피넷)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.222Z",
+        "duration_ms": 164
+      },
+      {
+        "name": "WEATHER_SHORT",
+        "error": "",
+        "label": "날씨(단기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:41.397Z",
+        "duration_ms": 1337
+      },
+      {
+        "name": "WEATHER_MID",
+        "error": "",
+        "label": "날씨(중기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.439Z",
+        "duration_ms": 377
+      },
+      {
+        "name": "KAKAO_LOCAL",
+        "error": "",
+        "label": "카카오로컬",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.151Z",
+        "duration_ms": 88
+      },
+      {
+        "name": "KAKAO_MAP",
+        "error": "",
+        "label": "카카오맵",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:40.163Z",
+        "duration_ms": 98
+      },
+      {
+        "name": "GOCAMPING",
+        "error": "",
+        "label": "고캠핑",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-25T00:36:41.408Z",
+        "duration_ms": 1340
+      },
+      {
+        "name": "GEMINI",
+        "error": "HTTP 404 (Deferred)",
+        "label": "AI(제미나이)",
+        "status": "FAILURE",
+        "checked_at": "2026-03-25T00:36:40.278Z",
+        "duration_ms": 209
+      }
+    ],
+    "created_at": "2026-03-25T00:36:38.365182+00:00"
+  },
+  {
+    "id": "c708e7ef-83e8-4b0b-9683-f174e4418418",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 53,
+    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":0,\"passed_formula\":0},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":33,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":14,\"passed_formula\":10},\"RESTAURANT\":{\"discovered\":1000,\"passed_formula\":20}},\"stepC_kakao_attempts\":69,\"stepC_kakao_success\":69,\"stepD_upsert\":0,\"stepA_master_upsert\":{\"attempted\":32,\"failed\":true,\"recovered\":31}}],\"final_upsert\":53,\"metrics\":{\"user_total\":1,\"regions_merged\":1,\"category_breakdown\":{\"MART\":0,\"SPOT\":15,\"FESTIVAL\":9,\"HOSPITAL\":15,\"GAS_STATION\":10,\"RESTAURANT\":20},\"kakao_stats\":{\"attempts\":69,\"success\":69},\"stepA_total\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7}}}",
+    "duration_ms": 36087,
+    "target_date": "2026-03-28",
+    "api_status": null,
+    "created_at": "2026-03-24T23:25:37.84601+00:00"
+  },
+  {
+    "id": "cbf22d70-fa5e-40f2-9b83-625bdd20ca5b",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 93998,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "대규모마트",
+        "label": "대규모마트",
+        "status": "SUCCESS",
+        "new_count": 1395,
+        "duration_ms": 2270,
+        "fetched_count": 4154,
+        "updated_count": 0,
+        "existing_count": 2759
+      },
+      {
+        "name": "준대규모마트",
+        "label": "준대규모마트",
+        "status": "SUCCESS",
+        "new_count": 0,
+        "duration_ms": 0,
+        "fetched_count": 0,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "중형슈퍼마켓",
+        "label": "중형슈퍼마켓",
+        "status": "SUCCESS",
+        "new_count": 0,
+        "duration_ms": 0,
+        "fetched_count": 0,
+        "updated_count": 0,
+        "existing_count": 0
+      },
+      {
+        "name": "모범음식점",
+        "label": "모범음식점",
+        "status": "SUCCESS",
+        "new_count": 38559,
+        "duration_ms": 31941,
+        "fetched_count": 65610,
+        "updated_count": 0,
+        "existing_count": 27051
+      }
+    ],
+    "created_at": "2026-03-24T21:33:28.426+00:00"
+  },
+  {
+    "id": "760a77cc-fea4-455e-956c-22627000369a",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 61,
+    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":18,\"passed_formula\":15},\"HOSPITAL\":{\"discovered\":33,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":14,\"passed_formula\":10},\"RESTAURANT\":{\"discovered\":1000,\"passed_formula\":20}},\"stepC_kakao_attempts\":90,\"stepC_kakao_success\":90,\"stepD_upsert\":0,\"stepA_master_upsert\":{\"attempted\":32,\"failed\":true,\"recovered\":31}}],\"final_upsert\":61,\"metrics\":{\"user_total\":1,\"regions_merged\":1,\"category_breakdown\":{\"MART\":15,\"SPOT\":15,\"FESTIVAL\":15,\"HOSPITAL\":15,\"GAS_STATION\":10,\"RESTAURANT\":20},\"kakao_stats\":{\"attempts\":90,\"success\":90},\"stepA_total\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7}}}",
+    "duration_ms": 10350,
+    "target_date": "2026-03-28",
+    "api_status": null,
+    "created_at": "2026-03-24T14:51:12.595289+00:00"
+  },
+  {
+    "id": "710a71df-4257-4bbe-a98b-7db0cf5e05b0",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 13179,
+    "message": "{\"total_synced\":13179,\"geocoded\":13179,\"category_breakdown\":{\"RESTAURANT\":13179}}",
+    "duration_ms": 6635000,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-24T13:00:45.66443+00:00"
+  },
+  {
+    "id": "8ea5c33e-c368-41af-8772-d788c6a44cf3",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 28678,
+    "message": "{\"total_synced\":28678,\"geocoded\":28678,\"category_breakdown\":{\"RESTAURANT\":28678}}",
+    "duration_ms": 14944950,
+    "target_date": null,
+    "api_status": null,
+    "created_at": "2026-03-24T12:53:02.507068+00:00"
+  },
+  {
+    "id": "adba3596-6558-4d6f-bbf4-4c4c09bf932c",
+    "job_name": "API_HEALTH_CHECK",
+    "status": "SUCCESS",
+    "processed_count": 14,
+    "message": "전체 14개 API 중 13개 정상",
+    "duration_ms": 5248,
+    "target_date": null,
+    "api_status": [
+      {
+        "name": "MART_LOCALDATA",
+        "error": "",
+        "label": "마트(LocalData)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:23.669Z",
+        "duration_ms": 1330
+      },
+      {
+        "name": "REST_LOCALDATA",
+        "error": "",
+        "label": "식당(모범음식점)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:23.675Z",
+        "duration_ms": 1334
+      },
+      {
+        "name": "REST_BAEK",
+        "error": "",
+        "label": "식당(백년가게)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:24.296Z",
+        "duration_ms": 1954
+      },
+      {
+        "name": "REST_SAFE",
+        "error": "",
+        "label": "식당(안심식당)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:22.817Z",
+        "duration_ms": 473
+      },
+      {
+        "name": "TOUR_SPOT",
+        "error": "",
+        "label": "관광명소(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:24.765Z",
+        "duration_ms": 2420
+      },
+      {
+        "name": "FESTIVAL",
+        "error": "",
+        "label": "축제(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:24.771Z",
+        "duration_ms": 2425
+      },
+      {
+        "name": "HOSPITAL",
+        "error": "",
+        "label": "병원(NMC)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:23.727Z",
+        "duration_ms": 1380
+      },
+      {
+        "name": "GAS_OPINET",
+        "error": "",
+        "label": "주유소(오피넷)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:24.253Z",
+        "duration_ms": 1906
+      },
+      {
+        "name": "WEATHER_SHORT",
+        "error": "",
+        "label": "날씨(단기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:26.281Z",
+        "duration_ms": 3933
+      },
+      {
+        "name": "WEATHER_MID",
+        "error": "",
+        "label": "날씨(중기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:24.762Z",
+        "duration_ms": 2413
+      },
+      {
+        "name": "KAKAO_LOCAL",
+        "error": "",
+        "label": "카카오로컬",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:24.897Z",
+        "duration_ms": 2547
+      },
+      {
+        "name": "KAKAO_MAP",
+        "error": "",
+        "label": "카카오맵",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:24.922Z",
+        "duration_ms": 2571
+      },
+      {
+        "name": "GOCAMPING",
+        "error": "",
+        "label": "고캠핑",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-24T07:50:26.288Z",
+        "duration_ms": 3936
+      },
+      {
+        "name": "GEMINI",
+        "error": "HTTP 404 (Deferred)",
+        "label": "AI(제미나이)",
+        "status": "FAILURE",
+        "checked_at": "2026-03-24T07:50:24.315Z",
+        "duration_ms": 1963
+      }
+    ],
+    "created_at": "2026-03-24T07:50:27.179635+00:00"
+  },
+  {
+    "id": "6029ecfe-bf30-4304-b76e-909317aec085",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 63,
+    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":18,\"passed_formula\":15},\"HOSPITAL\":{\"discovered\":31,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":7,\"passed_formula\":7},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":87,\"stepC_kakao_success\":87,\"stepD_upsert\":0}],\"final_upsert\":63}",
+    "duration_ms": 19844,
+    "target_date": "2026-03-27",
+    "api_status": null,
+    "created_at": "2026-03-23T21:41:47.518411+00:00"
+  }
+]

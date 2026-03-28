@@ -1,0 +1,46 @@
+[
+  {
+    "id": "1bbcbe27-a274-4e73-a6ec-cf7989899d82",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":38},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":0,\"stepC_kakao_success\":0},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 3442,
+    "target_date": "2026-03-31",
+    "api_status": null,
+    "created_at": "2026-03-28T09:57:08.120426+00:00"
+  },
+  {
+    "id": "d1ed9922-3c41-48f4-9461-272430db1293",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":38},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":0,\"stepC_kakao_success\":0},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 2552,
+    "target_date": "2026-03-31",
+    "api_status": null,
+    "created_at": "2026-03-28T09:55:30.035012+00:00"
+  },
+  {
+    "id": "f3dc7d39-e3b4-40a3-ac3f-c45602be93ae",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":38},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":0,\"stepC_kakao_success\":0},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 3068,
+    "target_date": "2026-03-31",
+    "api_status": null,
+    "created_at": "2026-03-28T09:48:59.472535+00:00"
+  },
+  {
+    "id": "f88d3b4d-80f8-4eb3-aac1-ca7437296885",
+    "job_name": "SMART_PLAN_CACHING",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":38},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":0,\"stepC_kakao_success\":0},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 4736,
+    "target_date": "2026-03-31",
+    "api_status": null,
+    "created_at": "2026-03-28T09:45:25.274766+00:00"
+  }
+]

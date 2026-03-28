@@ -1,0 +1,55 @@
+{
+  "targetDate": "2026-03-30",
+  "region": "예산군",
+  "auditResults": [
+    {
+      "category": "RESTAURANT",
+      "masterTotal": 0,
+      "discovered": 0,
+      "quotaPassed": 0,
+      "kakaoVerified": 0,
+      "finalDB": 0
+    },
+    {
+      "category": "SPOT",
+      "masterTotal": 79,
+      "discovered": 0,
+      "quotaPassed": 0,
+      "kakaoVerified": 0,
+      "finalDB": 0
+    },
+    {
+      "category": "MART",
+      "masterTotal": 31,
+      "discovered": 0,
+      "quotaPassed": 0,
+      "kakaoVerified": 0,
+      "finalDB": 0
+    },
+    {
+      "category": "HOSPITAL",
+      "masterTotal": 8,
+      "discovered": 0,
+      "quotaPassed": 0,
+      "kakaoVerified": 0,
+      "finalDB": 0
+    },
+    {
+      "category": "GAS_STATION",
+      "masterTotal": 4,
+      "discovered": 0,
+      "quotaPassed": 0,
+      "kakaoVerified": 0,
+      "finalDB": 0
+    },
+    {
+      "category": "FESTIVAL",
+      "masterTotal": 4,
+      "discovered": 0,
+      "quotaPassed": 0,
+      "kakaoVerified": 0,
+      "finalDB": 0
+    }
+  ],
+  "factList": []
+}

@@ -69,40 +69,28 @@ FOR EACH ROW EXECUTE FUNCTION public.update_master_places_location();
 
 -- 6. RPC Function: The magical 0.1s Fast Query for D-3 Cron / Frontend
 -- Finds Top N master places within given meters radius, sorted by trust_score
+-- [v11.0 Patch] Changed to NUMERIC for JS/Supabase compatibility & fixed parameter to p_category
 CREATE OR REPLACE FUNCTION get_master_places_in_radius(
-  target_lat DOUBLE PRECISION,
-  target_lng DOUBLE PRECISION,
-  radius_meters DOUBLE PRECISION,
-  target_category TEXT DEFAULT NULL,
-  limit_count INTEGER DEFAULT 50
+  target_lat NUMERIC,
+  target_lng NUMERIC,
+  radius_meters NUMERIC,
+  p_category TEXT,
+  limit_count INTEGER DEFAULT 300
 )
-RETURNS TABLE (
-  id UUID,
-  api_source TEXT,
-  category TEXT,
-  name TEXT,
-  description TEXT,
-  address TEXT,
-  lat DOUBLE PRECISION,
-  lng DOUBLE PRECISION,
-  trust_score INTEGER,
-  raw_data JSONB,
-  distance_meters DOUBLE PRECISION
-) AS $$
+RETURNS SETOF public.master_places
+LANGUAGE plpgsql
+AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
-    m.id, m.api_source, m.category, m.name, m.description, m.address, 
-    m.lat, m.lng, m.trust_score, m.raw_data,
-    ST_Distance(m.location::geography, ST_SetSRID(ST_MakePoint(target_lng, target_lat), 4326)::geography) AS distance_meters
-  FROM 
-    public.master_places m
-  WHERE 
-    (target_category IS NULL OR m.category = target_category)
-    AND ST_DWithin(m.location::geography, ST_SetSRID(ST_MakePoint(target_lng, target_lat), 4326)::geography, radius_meters)
-  ORDER BY 
-    m.trust_score DESC, 
-    distance_meters ASC
+  SELECT *
+  FROM public.master_places
+  WHERE category = p_category
+    AND ST_DWithin(
+      location,
+      ST_SetSRID(ST_MakePoint(target_lng, target_lat), 4326)::geography,
+      radius_meters
+    )
+  ORDER BY trust_score DESC, location <-> ST_SetSRID(ST_MakePoint(target_lng, target_lat), 4326)
   LIMIT limit_count;
 END;
-$$ LANGUAGE plpgsql;
+$$;

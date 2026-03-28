@@ -83,15 +83,16 @@ async function main() {
         .eq('check_in', targetStr);
 
     if (!schedules || schedules.length === 0) {
-        console.log('No reservations for D-3. Execution completed.');
+        console.log(`No reservations for D-3 (${targetStr}). Execution completed.`);
         process.exit(0);
     }
+    console.log(`Found ${schedules.length} reservations for ${targetStr}.`);
 
     // 2. 지리적 클러스터링 (Geo-Clustering)
     const clusters = [];
     for (const s of schedules) {
-        let lat = s.campground_lat, lng = s.campground_lng;
-        if (!lat || !lng) continue; // Skip if no coords
+        let lat = Number(s.campground_lat), lng = Number(s.campground_lng);
+        if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) continue; // Skip if no valid coords
 
         let found = false;
         for (const c of clusters) {
@@ -243,10 +244,18 @@ async function main() {
 
         const clusterCandidates = [];
         for (const { cat, limit } of categories) {
-            const { data } = await supabase.rpc('get_master_places_in_radius', {
-                target_lat: targetLat, target_lng: targetLng, radius_meters: 30000, limit_count: limit, p_category: cat
+            const { data, error } = await supabase.rpc('get_master_places_in_radius', {
+                target_lat: Number(targetLat), 
+                target_lng: Number(targetLng), 
+                radius_meters: 30000, 
+                p_category: cat,  // 매뉴얼 v11.0 표준 규격
+                limit_count: limit
             });
-            if (data) clusterCandidates.push(...data);
+            if (error) console.error(`[RPC ERROR] ${cat}:`, error.message);
+            if (data) {
+                console.log(`[Step B] ${cat}: Discovered ${data.length} candidates (Limit: ${limit})`);
+                clusterCandidates.push(...data);
+            }
         }
 
         // Step C. Kakao Verifier & Scraper (v11.0 Parallel with Concurrency Control)
