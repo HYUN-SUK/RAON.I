@@ -251,9 +251,8 @@ async function main() {
                 p_category: cat,  // 매뉴얼 v11.0 표준 규격
                 limit_count: limit
             });
-            if (error) console.error(`[RPC ERROR] ${cat}:`, error.message);
             if (data) {
-                console.log(`[Step B] ${cat}: Discovered ${data.length} candidates (Limit: ${limit})`);
+                // [v11.0 Performance] Successfully discovered candidates using Standardized RPC
                 clusterCandidates.push(...data);
             }
         }

@@ -149,6 +149,11 @@
         *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
         *   [x] **Flow Integration**: 예약, 타캠핑장 일정 등록, 캠핑장 추천(PlanLock), 스마트플랜 4대 엔진 통합 완료.
         *   [x] **UX**: 기존 정보 존재 시 '간편 확인' 버튼 하나로 통과하는 최적화 로직 적용.
+    *   [x] **5.5.9 Pipeline Resilience & Precision Audit SOP ✅ (2026-03-28)**:
+        *   [x] **RPC Core Fix**: `get_master_places_in_radius` 중복 제거 및 `p_category`/`NUMERIC` 표준화 완료.
+        *   [x] **Precision Audit**: 3/31 예산군 타겟 **Quota 300** 확장 수집(식당 286건 등) 실측 및 필터링 정합성 증명.
+        *   [x] **SOP Deployment**: `precision_audit_sop_v11.md` 배포를 통한 주간/D-3 감사 지표 표준 가이드 수립.
+        *   [x] **Automation Patch**: 내일 새벽(3/29) 일요일 04:00 AM(주간), 06:00 AM(D-3) 임시 강제 실행 패치 완료.
 *   **5.4 리뷰 시스템 (Reviews)** ✅ (Completed):
     *   [x] **구조**: `market_reviews` 테이블 스키마 검증 및 `UNIQUE(user_id, product_id)` 제약 확인.
     *   [x] **기능**: 리뷰 작성/삭제 (별점, 텍스트) 및 중복 방지 로직.

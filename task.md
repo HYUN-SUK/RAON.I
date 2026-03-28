@@ -1,34 +1,19 @@
-# Task Checklist: Unified User Camping Profile
+# Task Checklist: v11.0 Smart Camping Plan Pipeline Restoration
 
-- [x] **Planning: 구현 계획서 작성**
-    - [x] ReservationForm 현재 guest_details/pet 저장 현황 점검
-    - [x] 외부 일정 등록 폼 현황 점검
-    - [x] DB 스키마 확인 (reservations, profiles 등)
-    - [x] 통합 캠핑 프로필 구현 계획서 작성
-    - [x] 사용자 승인 완료 ✅
-- [x] **Execution: 구현**
-    - [x] DB: `user_camping_profiles` 테이블 생성 (출발지 + 인원정보)
-    - [x] Server Actions: `camping-profile.ts` 생성
-    - [x] 공용 `CampingProfileGate` 컴포넌트 구축
-    - [x] 라온아이 예약 흐름에 연동
-    - [x] 타 캠핑장 일정 등록 흐름에 연동
-    - [x] 캠핑장 추천(PlanLock) 흐름에 연동
-    - [x] 스마트캠핑플랜 흐름에 연동
-- [x] **Verification: 빌드 & 검증**
-    - [x] 빌드 오류 점검 (TSC Pass)
-    - [x] 플로우 통합 검토 완료
-- [x] **Persona Action-Tag Mapping 고도화 (Next Phase)**
-    - [x] 타 AI 제안서 검토 및 보고서 작성 (`persona_system_review_plan.md`)
-    - [x] AI 간 합의안 도출 (Hybrid Decay, Soft Negative, Bridge V1)
-    - [x] 세부 기술 사양 확정 (갱신 시점, 점수 범위, 마이그레이션 등)
-    - [x] 사용자 질문 답변 및 매뉴얼(SSOT) 2.0 업그레이드
-    - [x] 전체 로드맵(Phase 1~3) 및 빌드 점검 전략 수립
-    - [x] 사용자 최종 승인 완료
-    - [x] Phase 1: 기반 인프라 (DB/Tags/Bridge) 구축
-    - [x] 빌드 안정성 확보 (TSC Pass & Test Logic Update)
-    - [x] 기반 데이터 마이그레이션 유틸리티 작성
-    - [x] Phase 2: 강한 신호(Strong) 센서 설치 (예약/프로필/일정/커뮤니티 글쓰기)
-    - [x] Phase 3: 약한 신호(Weak/Medium) 센서 설치 및 빌드 완료
-        - [x] 소셜 상호작용 (좋아요/댓글/구독) 센서 설치 ✅
-        - [x] 주변 탐색 (LBS - 카페/마트/관광지/레포츠) 센서 설치 ✅
-        - [x] 빌드 안정성 최종 점검 (TSC Pass) ✅
+- [x] **RPC Function 정밀 수술 (Critical Infrastructure)**
+    - [x] `p_category` 패치를 통한 매뉴얼 v11.0 규격 동기화
+    - [x] DB 내 중복(Ghost) RPC 함수 전량 제거 (`DROP FUNCTION ... CASCADE`)
+    - [x] `NUMERIC` 타입 기반 단일 표준 함수 재정의
+- [x] **Pipeline Code Sync**
+    - [x] `scripts/caching-smart-plan.mjs` RPC 호출부 수지 (Casting `Number()`, `p_category`)
+    - [x] 로컬 SQL 마이그레이션 파일(`supabase/20260308...`) 동기화
+- [x] **Precision Audit (D-3 Caching Phase 2)**
+    - [x] 3/31 예산군 타겟 정밀 감사 수행
+    - [x] **Quota 300** 확장 정상 작동 실측 (RESTAURANT 286개 수집 성공)
+    - [x] 최종 적재 리스트(`spot_final_audit.md`) 생성 및 검증
+- [x] **Standardization & Automation Patch**
+    - [x] **[SOP 수립]** `precision_audit_sop_v11.md` 작성 및 배포
+    - [x] **[스케줄 패치]** 내일 새벽(3/29) 일요일 04:00 AM(주간), 06:00 AM(D-3) 자동 실행 설정
+- [ ] **Next Session: Post-Execution Audit**
+    - [ ] 3/29 새벽 자동화 실행 로그(`automation_logs`) 및 지표 대조
+    - [ ] 문제 없을 시 4축 점수화(Personalization Score) 고도화 진입
