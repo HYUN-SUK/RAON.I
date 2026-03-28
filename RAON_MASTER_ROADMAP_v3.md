@@ -194,7 +194,8 @@
         *   [x] **Batch Migration**: Vercel(5분) 타임아웃 극복을 위한 GitHub Actions 배치 스크립트 전환.
         *   [x] **Spiral Mesh Search**: 오피넷 5km 제약 해결을 위한 17지점 나선형 검색 로직 탑재.
         *   [x] **Address Resilience**: VAN -> NEW -> Kakao Reverse Geocoding 3중 주소 보강 체계 완성.
-        *   [x] **SSOT Consistency**: 매뉴얼(v11.0)과 구현 코드 간의 로직 100% 동기화 및 빌드 성공.
+        *   [x] **Verification**: 밤샘 배치(04:00/06:00) 성공 확인 및 데이터 정합성 검증 완료.
+    *   [x] **SSOT Consistency**: 매뉴얼(v11.0)과 구현 코드 간의 로직 100% 동기화 및 빌드 성공.
     *   [x] **5.5.6 Unified User Camping Profile ✅ (2026-03-17)**:
         *   [x] **DB**: `user_camping_profiles` 테이블 구축 및 RLS/RPC (`upsert_camping_profile`) 적용.
         *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
