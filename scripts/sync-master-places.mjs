@@ -36,8 +36,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const syncMap = new Map(); // id -> existingSources (string)
-const nameAddressMap = new Map(); // "name|address" -> id
+const syncMap = new Map(); // id -> api_source
 const geocodeCache = new Map();
 let totalSynced = 0;
 let geocodingCount = 0;
@@ -76,16 +75,18 @@ async function upsertBatch(items, sourceName = null) {
     const uniqueValidItems = items.filter(i => i.id && i.name && i.address);
     if (uniqueValidItems.length === 0) return;
     
-    const finalItems = [];
-    for (const item of uniqueValidItems) {
-        const key = `${clean(item.name).toLowerCase()}|${clean(item.address).toLowerCase()}`;
-        const existingId = nameAddressMap.get(key);
-        if (existingId) item.id = existingId;
+    // [Unique Guard] Prevent "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    const dedupeMap = new Map();
+    uniqueValidItems.forEach(item => dedupeMap.set(item.id, item));
+    const dedupedItems = Array.from(dedupeMap.values());
 
-        const existingSources = syncMap.get(item.id) || '';
-        if (existingSources && !existingSources.includes(item.api_source)) {
-            item.api_source = [...new Set([...existingSources.split(',').map(s => s.trim()), item.api_source])].join(', ');
-        }
+    const finalItems = [];
+    let batchNew = 0;
+    let batchUpdated = 0;
+
+    for (const item of dedupedItems) {
+        // [Separate Storage Principle] Each (Source, Name, Address) has a unique ID.
+        const exists = syncMap.has(item.id);
 
         if (!item.lat || !item.lng) {
             const coords = await geocodeAddress(item.address);
@@ -93,18 +94,35 @@ async function upsertBatch(items, sourceName = null) {
         }
         if (item.lat && item.lng) {
             finalItems.push({ ...item, location: `POINT(${item.lng} ${item.lat})` });
+            if (exists) batchUpdated++;
+            else batchNew++;
         }
     }
 
     if (finalItems.length === 0) return;
+    
+    // Final sanity check for ID uniqueness
+    const ids = finalItems.map(i => i.id);
+    const uniqueIds = new Set(ids);
+    if (ids.length !== uniqueIds.size) {
+        console.error(`\n[CRITICAL] dedupeMap failed! items: ${ids.length}, unique: ${uniqueIds.size}`);
+    }
+
     const { error } = await supabase.from('master_places').upsert(finalItems, { onConflict: 'id' });
     if (error) {
-        console.error(`\n[DB Error] ${error.message}`);
+        console.error(`\n[DB Error] ${error.message} (Batch Size: ${finalItems.length})`);
+        if (error.message.includes('affect row a second time')) {
+             console.log(`  Sample ID causing conflict potential: ${finalItems[0].id}`);
+        }
     } else {
-        totalSynced += uniqueValidItems.length;
-        uniqueValidItems.forEach(i => {
+        totalSynced += finalItems.length;
+        if (sourceName && sourceMetrics[sourceName]) {
+            sourceMetrics[sourceName].new += batchNew;
+            sourceMetrics[sourceName].updated += batchUpdated;
+        }
+        finalItems.forEach(i => {
             if (i.category) syncStats[i.category] = (syncStats[i.category] || 0) + 1;
-            if (sourceName && sourceMetrics[sourceName]) sourceMetrics[sourceName].updated++;
+            syncMap.set(i.id, i.api_source); // Update cache
         });
         process.stdout.write(`\r[Sync Progress] Total: ${totalSynced} items... Cache: ${geocodeCache.size}`);
     }
@@ -175,15 +193,25 @@ async function syncTourSpot() {
             if (!items) { hasMore = false; break; }
             const itemList = (Array.isArray(items) ? items : [items]).filter(i => !isNaN(parseFloat(i.mapy)));
             
-            const chunk = itemList.map(i => ({
-                id: generateId('TOUR_SPOT', i.title, i.addr1 || i.addr2 || ''),
-                api_source: 'TOUR_SPOT', category: 'SPOT',
-                name: i.title, description: '한국관광공사 등록 관광명소', address: i.addr1 || i.addr2 || '',
-                lat: parseFloat(i.mapy), lng: parseFloat(i.mapx), trust_score: 45, raw_data: i
-            }));
-            
+            const chunk = [];
             sourceMetrics['관광명소'] = sourceMetrics['관광명소'] || { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
             sourceMetrics['관광명소'].fetched += itemList.length;
+
+            for (const i of itemList) {
+                const id = generateId('TOUR_SPOT', i.title, i.addr1 || i.addr2 || '');
+                const hasCoords = geocodeCache.has(clean(i.addr1 || i.addr2 || ''));
+                
+                if (syncMap.has(id) && hasCoords) {
+                    sourceMetrics['관광명소'].existing++;
+                    continue;
+                }
+
+                chunk.push({
+                    id, api_source: 'TOUR_SPOT', category: 'SPOT',
+                    name: i.title, description: '한국관광공사 등록 관광명소', address: i.addr1 || i.addr2 || '',
+                    lat: parseFloat(i.mapy), lng: parseFloat(i.mapx), trust_score: 45, raw_data: i
+                });
+            }
 
             await upsertBatch(chunk, '관광명소');
             pageNo++;
@@ -198,7 +226,7 @@ async function syncTourSpot() {
 // ----------------------------------------------------------------------------------------
 async function syncBaeknyeon() {
     const baekStartTime = Date.now();
-    console.log('\n[1/3] 백년가게 (SMBA_BAEK) 동송화 중...');
+    console.log('\n[1/3] 백년가게 (SMBA_BAEK) 동기화 중...');
     try {
         const spec = await fetch(`https://infuser.odcloud.kr/oas/docs?namespace=15102255/v1`).then(r => r.json());
         const path = Object.keys(spec.paths || {})[0];
@@ -209,9 +237,11 @@ async function syncBaeknyeon() {
             for (const i of data.data) {
                 const name = i['업체명'], addr = i['주소'] || i['기본주소'];
                 const id = generateId('SMBA_BAEK', name, addr);
-                const existingSources = syncMap.get(id) || '';
                 const hasCoords = geocodeCache.has(clean(addr));
-                if (existingSources.includes('SMBA_BAEK') && hasCoords) continue;
+                if (syncMap.has(id) && hasCoords) {
+                    sourceMetrics['백년가게'].existing++;
+                    continue;
+                }
 
                 const coords = await geocodeAddress(addr);
                 chunk.push({
@@ -235,8 +265,8 @@ async function syncLocalData() {
     console.log('\n[2/3] LocalData (모범음식점/마트) 동기화 (Gold Standard)...');
     const startTime = Date.now();
     const sources = [
-        { name: '대규모마트', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_LARGE', type: 'ZIP' },
-        { name: '준대규모마트', url: 'API_MOIS_SSM', category: 'MART', apiSource: 'LOCALDATA_MART_SSM', type: 'API' },
+        { name: '대규모및준대규모점포', url: 'https://file.localdata.go.kr/file/large_scale_retail_stores/info', category: 'MART', apiSource: 'LOCALDATA_MART_LARGE', type: 'CSV_DIRECT' },
+        { name: '기타식품판매업', url: 'https://file.localdata.go.kr/file/other_food_retailers/info', category: 'MART', apiSource: 'LOCALDATA_MART_OTHER', type: 'CSV_DIRECT' },
         { name: '중형슈퍼마켓', url: 'https://www.localdata.go.kr/datafile/each/07_22_13_P_CSV.zip', category: 'MART', apiSource: 'LOCALDATA_MART_SUPER', type: 'ZIP' },
         { name: '모범음식점', url: 'https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx', category: 'RESTAURANT', apiSource: 'LOCALDATA_RESTAURANT', type: 'XLSX' }
     ];
@@ -248,7 +278,14 @@ async function syncLocalData() {
         try {
             let recordsList = []; 
             
-            if (source.type === 'API') {
+            if (source.type === 'CSV_DIRECT') {
+                console.log(`    Fetching direct CSV from file.localdata...`);
+                const res = await fetch(source.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                const content = iconv.decode(await res.arrayBuffer(), 'cp949');
+                const { parse } = await import('csv-parse/sync');
+                const parsed = parse(content, { columns: true, skip_empty_lines: true, relax_column_count: true });
+                recordsList.push(...parsed);
+            } else if (source.type === 'API') {
                 console.log(`    Fetching from MOIS OpenAPI...`);
                 let pageNo = 1;
                 while (pageNo <= 50) {
@@ -305,18 +342,11 @@ async function syncLocalData() {
                 const addr = (r.도로명전체주소 || r.도로명주소 || r.소재지전체주소 || r.소재지주소 || r.RDNWHL_ADDR || r.SITE_WHL_ADDR || '').trim();
                 const id = generateId(source.apiSource, name, addr);
                 
-                // [Source-Aware Skip] Skip only if this source is already recorded AND we have coordinates
-                const existingSources = syncMap.get(id) || '';
+                // [Source-Aware Skip] Skip only if this ID already exists AND we have coordinates
                 const hasCoords = geocodeCache.has(clean(addr));
-                if (existingSources.includes(source.apiSource) && hasCoords) {
+                if (syncMap.has(id) && hasCoords) {
                     sourceMetrics[source.name].existing++;
                     continue;
-                }
-                
-                if (existingSources.includes(source.apiSource)) {
-                    sourceMetrics[source.name].updated++;
-                } else {
-                    sourceMetrics[source.name].new++;
                 }
                 const status = r.상세영업상태명 || r.상세영업상태 || r.영업상태명 || r.상태명 || r.TRD_STATE_NM || r.trdStateNm || '';
                 
@@ -362,21 +392,15 @@ async function syncLocalData() {
 
                 if (!lat || !lng) continue; // Still no coordinates after attempt or quota reached
                 
-                // Rate limit defense for LocalData processing batching
-                if (chunk.length >= 100) { 
-                    await upsertBatch(chunk); 
-                    chunk = []; 
-                    // await new Promise(r => setTimeout(r, 3000)); 
-                }
-
                 chunk.push({
                     id,
                     api_source: source.apiSource, category: source.category,
                     name: String(name).trim(), address: String(addr).trim(), lat, lng,
                     trust_score: baseTrustScore, raw_data: r
                 });
+
                 if (chunk.length >= 100) { 
-                    await upsertBatch(chunk); 
+                    await upsertBatch(chunk, source.name); 
                     chunk = []; 
                     // [Memory Optimization] Periodic small delay to allow GC
                     if (records.indexOf(r) % 1000 === 0) {
@@ -384,7 +408,7 @@ async function syncLocalData() {
                     }
                 }
             }
-            if (chunk.length > 0) await upsertBatch(chunk);
+            if (chunk.length > 0) await upsertBatch(chunk, source.name);
             
             sourceMetrics[source.name].duration = Date.now() - sourceStartTime;
             console.log(`    Successfully processed ${source.name} in ${sourceMetrics[source.name].duration}ms`);
@@ -411,9 +435,11 @@ async function syncSafe() {
             for (const i of items) {
                 const name = i.RELAX_REST_NM, addr = i.RELAX_ADD1;
                 const id = generateId('SAFE_RESTAURANT', name, addr);
-                const existingSources = syncMap.get(id) || '';
                 const hasCoords = geocodeCache.has(clean(addr));
-                if (existingSources.includes('SAFE_RESTAURANT') && hasCoords) continue;
+                if (syncMap.has(id) && hasCoords) {
+                    sourceMetrics['안심식당'].existing++;
+                    continue;
+                }
 
                 const coords = geocodeCache.get(String(addr).trim()) || await geocodeAddress(addr);
                 chunk.push({
@@ -421,7 +447,9 @@ async function syncSafe() {
                     name, address: addr, lat: coords?.lat || null, lng: coords?.lng || null, trust_score: 60, raw_data: i
                 });
             }
-            await upsertBatch(chunk);
+            sourceMetrics['안심식당'] = sourceMetrics['안심식당'] || { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
+            sourceMetrics['안심식당'].fetched += items.length;
+            await upsertBatch(chunk, '안심식당');
         }
     } catch (e) { console.error('Safe Error:', e.message); }
 }
@@ -453,15 +481,6 @@ async function main() {
             
             data.forEach(r => {
                 syncMap.set(r.id, r.api_source || '');
-                const key = `${clean(r.name).toLowerCase()}|${clean(r.address).toLowerCase()}`;
-                nameAddressMap.set(key, r.id);
-
-                // Also add address-based ID to handle source name changes
-                const sources = (r.api_source || '').split(',');
-                sources.forEach(s => {
-                    const legacyId = generateId(s.trim(), '', r.address);
-                    syncMap.set(legacyId, r.api_source || '');
-                });
                 if (r.address && r.lat && r.lng) {
                     geocodeCache.set(clean(r.address), { lat: r.lat, lng: r.lng });
                 }
