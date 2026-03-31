@@ -12,20 +12,71 @@
 
 ---
 
+## 🛡️ 점검 오류 재발 방지 가이드 (Audit Reliability Guide)
+
+AI 어시스턴트는 세션 시작 시 다음 **4대 원칙**을 반드시 준수하여 데이터 오판을 방지해야 합니다.
+
+1. **상시 전수 조사 (Exact Count Check)**:
+   - Supabase 클라이언트의 `.select()`는 기본 1,000건 제한이 있습니다.
+   - 대규모 테이블(master_places 등) 조회 시 반드시 `{ count: 'exact', head: true }` 옵션을 사용하거나 개별 카운트 쿼리를 실행하여 실제 전체 건수를 먼저 파악하십시오.
+   
+2. **시간 필터링 주의 (Timezone Awareness)**:
+   - "오늘" 또는 "새벽"이라는 표현은 KST(UTC+9) 기준임을 명심하십시오.
+   - 배치 실행 로그(`.automation_logs`)의 `created_at` 시간을 확인하여 필터링 범위를 정확히 설정하십시오. (예: 3/31 새벽 배치는 3/30 19:00 UTC 이후 로그 확인)
+
+3. **명칭 불일치 및 규격 가변성 검증 (Schema Drift Awareness)**:
+   - 데이터가 0건으로 보일 경우, 삭제된 것이 아니라 `api_source` 명칭이나 **외부 API 응답 키값(Key)**이 변경되었을 가능성을 조사하십시오.
+   - **실전 쿼리 (Key 변경 감지)**:
+     ```sql
+     -- 특정 필드(예: BSNSSP_NM)가 존재하지만 매핑되지 않은 데이터가 있는지 확인
+     SELECT count(*) FROM master_places WHERE raw_data->>'BSNSSP_NM' IS NOT NULL AND api_source = 'MOIS_GOOD_RESTAURANT';
+     ```
+   - `SELECT DISTINCT api_source` 쿼리를 통해 현재 DB에 저장된 실제 소스명을 대조하십시오.
+
+4. **표준 감사 도구 활용 (Standardized Tooling)**:
+   - 매번 일회성 코드를 작성하지 말고, `scripts/` 내에 정의된 표준 감사 스크립트를 우선 실행하여 일관된 지표를 도출하십시오.
+
+---
+
 ## 📅 1. 주간 배치 (Weekly Master Sync) 점검
 
 **목적**: 전국 규모의 정적 데이터(식당, 마트, 명소)가 각 API 출처별로 누락 없이 `master_places`에 적재되었는지 확인.
 
 ### API별 지표 대조 (Static Data)
-| 카테고리 | API 출처 (api_source) | Fetch 성공 | Inserted | Updated | 비고 |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **식당** | `SMBA_BAEK` (백년가게) | | | | |
-| | `MOIS_GOOD` (모범음식점) | | | | |
-| | `SAFE_REST` (안심식당) | | | | |
-| **마트** | `LOCALDATA_MART_SSM` | | | | |
-| | `LOCALDATA_MART_LARGE` | | | | |
-| | `LOCALDATA_MART_SUPER` | | | | |
-| **명소** | `TOUR_SPOT` (관광공사) | | | | |
+| 카테고리 | API 출처 (api_source) | 기존 데이터 수 | 패치 성공 | 신규(New) | 업데이트 | 최종 적재수 | 비고 |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **식당** | `SMBA_BAEK` (백년가게) | | | | | | |
+| | `MOIS_GOOD_RESTAURANT` | | | | | | |
+| | `SAFE_REST` (안심식당) | | | | | | |
+| **마트** | `LOCALDATA_MART_LARGE` | | | | | | |
+| | `LOCALDATA_MART_SSM` | | | | | | |
+| | `LOCALDATA_MART_OTHER` | | | | | | |
+| **명소** | `TOUR_SPOT` (관광공사) | | | | | | |
+
+### 🛠️ 주간 배치 표준 감사 SQL (Standard Audit SQL)
+신규 AI 어시스턴트는 다음 쿼리를 즉시 실행하여 지표를 도출하십시오.
+
+```sql
+-- 1. 전체 수집 현황 통계
+SELECT api_source, count(*) 
+FROM master_places 
+GROUP BY api_source 
+ORDER BY count DESC;
+
+-- 2. 안심식당(SAFE_REST) 필터 무결성 점검 (0건이어야 정상)
+-- '지정취소' 데이터나 RELAX_USE_YN이 Y가 아닌 데이터가 있는지 확인
+SELECT count(*) 
+FROM master_places 
+WHERE api_source = 'SAFE_REST' 
+  AND (raw_data->>'RELAX_USE_YN' != 'Y' OR raw_data->>'RELAX_USE_YN' IS NULL);
+
+-- 3. 행안부(MOIS) 규격 불일치 정밀 진단
+-- 응답에는 존재하나 매핑 엔진이 놓치고 있는 데이터 수 파악
+SELECT count(*) 
+FROM master_places 
+WHERE raw_data->>'BSNSSP_NM' IS NOT NULL 
+  AND (name IS NULL OR name = '');
+```
 
 ---
 
@@ -34,12 +85,35 @@
 **목적**: 사용자의 예약 지역을 타겟팅하여 동적 데이터(병원, 주유소, 축제)가 최신 API 원천에서 수집되었는지 확인.
 
 ### API별 지표 대조 (Dynamic Data)
-| 카테고리 | API 출처 (api_source) | 수집 목표량 | 실제 수집량 | 상태 |
-| :--- | :--- | :---: | :---: | :--- |
-| **병원** | `NMC_HOSPITAL` (응급실) | | | |
-| | `KAKAO_HP8` (종합병원) | | | |
-| **주유소** | `OPINET` (실내등유) | | | |
-| **축제** | `TOUR_FESTIVAL` | | | |
+| 카테고리 | API 출처 (api_source) | 기존 데이터 수 | 패치 성공 | 신규(New) | 업데이트 | 최종 적재수 | 비고 |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **병원** | `NMC_HOSPITAL` (응급실) | | | | | | |
+
+### 🛠️ D-3 캐싱 표준 감사 SQL (Standard Audit SQL)
+동적 캐싱 데이터의 무결성을 다음 쿼리로 검증하십시오.
+
+```sql
+-- 1. 타겟 날짜(D-3) 기반 캐싱 데이터 추출 현황
+-- job_name = 'SMART_PLAN_CACHING' 로그 확인
+SELECT * 
+FROM automation_logs 
+WHERE job_name = 'SMART_PLAN_CACHING' 
+ORDER BY created_at DESC LIMIT 3;
+
+-- 2. 특정 예약 지역(Cluster)별 데이터 분포 확인
+SELECT category, count(*) 
+FROM smart_plan_facts 
+GROUP BY category;
+
+-- 3. 주유소(GAS_STATION) 주소 보정(Geocoding) 실패 사례 확인
+-- 주소가 누락된 데이터가 있는지 점검
+SELECT name, address, lat, lng 
+FROM master_places 
+WHERE category = 'GAS_STATION' AND (address IS NULL OR address = '');
+```
+| | `KAKAO_HP8` (종합병원) | | | | | | |
+| **주유소** | `OPINET` (실내등유) | | | | | | |
+| **축제** | `TOUR_FESTIVAL` | | | | | | |
 
 ### 클러스터링 지표 (Template)
 - **타겟 예약 수**: (예: 3/31 타겟 예약 건수)
@@ -52,9 +126,9 @@
 
 **목적**: 1차 선별(Quota 300)과 카카오 정밀 검증을 거쳐 최종 `smart_plan_facts`에 고품질 데이터가 적재되었는지 확인.
 
-### 점검 지표 (Template)
-| 카테고리 | 마스터DB(Raw) | 1차선별(RPC) | 쿼터적용 후 | 카카오검증 | 최종적재 |
-| :--- | :---: | :---: | :---: | :---: | :---: |
+### 점검 지표 (Simulation Result)
+| 카테고리 | 1번 쿼터 (Raw) | 2번 쿼터 (Top 300) | 카카오 정밀검증 | 최종 적재 | 비고 |
+| :--- | :---: | :---: | :---: | :---: | :--- |
 | RESTAURANT | | | | | |
 | SPOT | | | | | |
 | MART | | | | | |

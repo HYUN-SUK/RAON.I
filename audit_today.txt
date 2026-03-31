@@ -1,190 +1,264 @@
 === 1. Automation Logs ===
 [
   {
-    "id": "a89dda13-e1fc-4c74-96de-f5415d8e38d1",
-    "job_name": "SMART_PLAN_CACHING",
+    "id": "7bd18976-7525-4e74-ba50-aa544ba66cd9",
+    "job_name": "API_HEALTH_CHECK",
     "status": "SUCCESS",
-    "processed_count": 57,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":15,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":18,\"passed_formula\":15},\"HOSPITAL\":{\"discovered\":30,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":676,\"passed_formula\":20}},\"stepC_kakao_attempts\":80,\"stepC_kakao_success\":80,\"stepD_upsert\":0}],\"final_upsert\":57}",
-    "duration_ms": 16756,
-    "target_date": "2026-03-26",
-    "api_status": null,
-    "created_at": "2026-03-22T21:31:36.156666+00:00"
-  },
-  {
-    "id": "895437bb-84c9-4e37-b20c-a135a9ac8518",
-    "job_name": "MASTER_SYNC",
-    "status": "FAILURE",
-    "processed_count": 0,
-    "message": "{\"total_synced\":0,\"geocoded\":0,\"category_breakdown\":{}}",
-    "duration_ms": 95034,
+    "processed_count": 16,
+    "message": "전체 16개 API 중 15개 정상",
+    "duration_ms": 3788,
     "target_date": null,
-    "api_status": null,
-    "created_at": "2026-03-22T21:23:10.709772+00:00"
+    "api_status": [
+      {
+        "name": "MART_LARGE",
+        "error": "",
+        "label": "마트(대형마트)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.568Z",
+        "duration_ms": 1319
+      },
+      {
+        "name": "MART_SSM",
+        "error": "",
+        "label": "마트(준대규모)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:35.599Z",
+        "duration_ms": 2348
+      },
+      {
+        "name": "MART_SUPER",
+        "error": "",
+        "label": "마트(기타식품)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.560Z",
+        "duration_ms": 1308
+      },
+      {
+        "name": "REST_LOCALDATA",
+        "error": "",
+        "label": "식당(모범음식점)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.566Z",
+        "duration_ms": 1312
+      },
+      {
+        "name": "REST_BAEK",
+        "error": "",
+        "label": "식당(백년가게)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:35.076Z",
+        "duration_ms": 1821
+      },
+      {
+        "name": "REST_SAFE",
+        "error": "",
+        "label": "식당(안심식당)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:33.678Z",
+        "duration_ms": 421
+      },
+      {
+        "name": "TOUR_SPOT",
+        "error": "",
+        "label": "관광명소(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.737Z",
+        "duration_ms": 1479
+      },
+      {
+        "name": "FESTIVAL",
+        "error": "",
+        "label": "축제(TourAPI)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.627Z",
+        "duration_ms": 1368
+      },
+      {
+        "name": "HOSPITAL",
+        "error": "",
+        "label": "병원(NMC)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.604Z",
+        "duration_ms": 1344
+      },
+      {
+        "name": "GAS_OPINET",
+        "error": "",
+        "label": "주유소(오피넷)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:35.367Z",
+        "duration_ms": 2107
+      },
+      {
+        "name": "WEATHER_SHORT",
+        "error": "",
+        "label": "날씨(단기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.883Z",
+        "duration_ms": 1622
+      },
+      {
+        "name": "WEATHER_MID",
+        "error": "",
+        "label": "날씨(중기)",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:34.866Z",
+        "duration_ms": 1605
+      },
+      {
+        "name": "KAKAO_LOCAL",
+        "error": "",
+        "label": "카카오로컬",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:35.688Z",
+        "duration_ms": 2426
+      },
+      {
+        "name": "KAKAO_MAP",
+        "error": "",
+        "label": "카카오맵",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:35.744Z",
+        "duration_ms": 2481
+      },
+      {
+        "name": "GOCAMPING",
+        "error": "",
+        "label": "고캠핑",
+        "status": "SUCCESS",
+        "checked_at": "2026-03-31T03:45:35.522Z",
+        "duration_ms": 2258
+      },
+      {
+        "name": "GEMINI",
+        "error": "HTTP 404 (Deferred)",
+        "label": "AI(제미나이)",
+        "status": "FAILURE",
+        "checked_at": "2026-03-31T03:45:35.128Z",
+        "duration_ms": 1864
+      }
+    ],
+    "created_at": "2026-03-31T03:45:36.567408+00:00"
   },
   {
-    "id": "b98526aa-f74c-4a1d-9fa5-b9655e3896bc",
+    "id": "f3b0b7a7-7a4f-4025-b66a-ea1d87a75778",
     "job_name": "SMART_PLAN_CACHING",
     "status": "SUCCESS",
-    "processed_count": 70,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":7,\"passed_formula\":7},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":81,\"stepC_kakao_success\":81,\"stepD_upsert\":0}],\"final_upsert\":70}",
-    "duration_ms": 11488,
-    "target_date": "2026-03-26",
+    "processed_count": 620,
+    "message": "{\"v\":\"11.5\",\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepC_kakao_attempts\":620,\"stepC_kakao_success\":266}}",
+    "duration_ms": 10547,
+    "target_date": "2026-04-02",
     "api_status": null,
-    "created_at": "2026-03-22T09:11:26.718071+00:00"
+    "created_at": "2026-03-30T14:18:09.833408+00:00"
   },
   {
-    "id": "b6d4c941-e041-4a48-af92-687b82d3f897",
+    "id": "b86de1a6-c6b7-4400-b2ab-5c1fa7ec6365",
     "job_name": "SMART_PLAN_CACHING",
     "status": "SUCCESS",
-    "processed_count": 70,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":7,\"passed_formula\":7},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":81,\"stepC_kakao_success\":81,\"stepD_upsert\":0}],\"final_upsert\":70}",
-    "duration_ms": 2639,
-    "target_date": "2026-03-26",
+    "processed_count": 620,
+    "message": "{\"v\":\"11.5\",\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":7},\"stepC_kakao_attempts\":620,\"stepC_kakao_success\":302}}",
+    "duration_ms": 10522,
+    "target_date": "2026-04-02",
     "api_status": null,
-    "created_at": "2026-03-22T09:04:58.869695+00:00"
+    "created_at": "2026-03-30T14:11:03.534176+00:00"
   },
   {
-    "id": "b8351aa2-502c-4b01-aab9-a42dc6eaf0a1",
+    "id": "27676c5a-cd71-4dae-8f9b-eba6e5fe8750",
     "job_name": "SMART_PLAN_CACHING",
     "status": "SUCCESS",
-    "processed_count": 63,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":74,\"stepC_kakao_success\":74,\"stepD_upsert\":0}],\"final_upsert\":63}",
-    "duration_ms": 6040,
-    "target_date": "2026-03-26",
+    "processed_count": 545,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":37},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":645,\"stepC_kakao_success\":337},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 11915,
+    "target_date": "2026-04-02",
     "api_status": null,
-    "created_at": "2026-03-22T09:03:35.753825+00:00"
+    "created_at": "2026-03-30T14:06:22.207649+00:00"
   },
   {
-    "id": "d6623e48-5649-4e36-85e2-5a5bd5aa301a",
+    "id": "a31da481-1783-4a4f-8ce9-42858df3dfd6",
     "job_name": "SMART_PLAN_CACHING",
     "status": "SUCCESS",
-    "processed_count": 63,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":74,\"stepC_kakao_success\":74,\"stepD_upsert\":0}],\"final_upsert\":63}",
-    "duration_ms": 7747,
-    "target_date": "2026-03-26",
+    "processed_count": 541,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":37},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":645,\"stepC_kakao_success\":331},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 15821,
+    "target_date": "2026-04-02",
     "api_status": null,
-    "created_at": "2026-03-22T09:01:58.613874+00:00"
+    "created_at": "2026-03-30T14:01:19.012533+00:00"
   },
   {
-    "id": "6c7a37e7-9551-4c1d-ac4a-da13cbbb3c61",
+    "id": "6f45bd7d-d045-407f-b9fb-6e38dc61eda1",
     "job_name": "SMART_PLAN_CACHING",
     "status": "SUCCESS",
-    "processed_count": 63,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":74,\"stepC_kakao_success\":74,\"stepD_upsert\":0}],\"final_upsert\":63}",
-    "duration_ms": 3842,
-    "target_date": "2026-03-26",
+    "processed_count": 553,
+    "message": "{\"version\":\"11.0\",\"clusters\":1,\"tracking\":{\"stepA_dynamic\":{\"HOSPITAL\":1,\"FESTIVAL\":9,\"GAS_STATION\":37},\"stepB_filter\":{\"MART\":0,\"SPOT\":0,\"FESTIVAL\":0,\"HOSPITAL\":0,\"GAS_STATION\":0,\"RESTAURANT\":0},\"stepC_kakao_attempts\":649,\"stepC_kakao_success\":336},\"note\":\"Quota expanded to 300 for SPOT/RESTAURANT\"}",
+    "duration_ms": 12489,
+    "target_date": "2026-04-02",
     "api_status": null,
-    "created_at": "2026-03-22T08:59:37.153465+00:00"
+    "created_at": "2026-03-30T12:45:56.216571+00:00"
   },
   {
-    "id": "74dcbae4-c3ba-4441-a8f8-9b9deb747bc7",
-    "job_name": "SMART_PLAN_CACHING",
+    "id": "c62c897b-acd9-456c-999c-235e93c2849b",
+    "job_name": "MASTER_SYNC",
     "status": "SUCCESS",
-    "processed_count": 63,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":74,\"stepC_kakao_success\":74,\"stepD_upsert\":0}],\"final_upsert\":63}",
-    "duration_ms": 4647,
-    "target_date": "2026-03-26",
-    "api_status": null,
-    "created_at": "2026-03-22T08:59:00.224471+00:00"
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 16791,
+    "target_date": null,
+    "api_status": [],
+    "created_at": "2026-03-30T12:45:15.206+00:00"
   },
   {
-    "id": "d0b6386d-34e9-4860-9c64-7ab4466fbc87",
-    "job_name": "SMART_PLAN_CACHING",
+    "id": "ecdf44a1-d505-456c-a0fb-135d8f61d2de",
+    "job_name": "MASTER_SYNC",
     "status": "SUCCESS",
-    "processed_count": 63,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":74,\"stepC_kakao_success\":74,\"stepD_upsert\":0}],\"final_upsert\":63}",
-    "duration_ms": 4821,
-    "target_date": "2026-03-26",
-    "api_status": null,
-    "created_at": "2026-03-22T08:57:55.834164+00:00"
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 30298,
+    "target_date": null,
+    "api_status": [],
+    "created_at": "2026-03-30T12:44:43.835+00:00"
   },
   {
-    "id": "452318ff-6dee-4811-8513-c3dc0b110827",
-    "job_name": "SMART_PLAN_CACHING",
+    "id": "34d89862-63ea-4469-b0e8-453dd57ca933",
+    "job_name": "MASTER_SYNC",
     "status": "SUCCESS",
-    "processed_count": 63,
-    "message": "{\"clusters\":[{\"stepA_dynamic\":{\"HOSPITAL\":16,\"FESTIVAL\":9,\"GAS_STATION\":0},\"stepB_filter\":{\"MART\":{\"discovered\":29,\"passed_formula\":15},\"SPOT\":{\"discovered\":100,\"passed_formula\":15},\"FESTIVAL\":{\"discovered\":9,\"passed_formula\":9},\"HOSPITAL\":{\"discovered\":16,\"passed_formula\":15},\"GAS_STATION\":{\"discovered\":0,\"passed_formula\":0},\"RESTAURANT\":{\"discovered\":651,\"passed_formula\":20}},\"stepC_kakao_attempts\":74,\"stepC_kakao_success\":74,\"stepD_upsert\":0}],\"final_upsert\":63}",
-    "duration_ms": 4857,
-    "target_date": "2026-03-26",
-    "api_status": null,
-    "created_at": "2026-03-22T08:55:43.446267+00:00"
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 20038,
+    "target_date": null,
+    "api_status": [],
+    "created_at": "2026-03-30T12:42:59.426+00:00"
+  },
+  {
+    "id": "9bdc2ba3-03ce-43b8-a8cb-3902ed0a063a",
+    "job_name": "MASTER_SYNC",
+    "status": "SUCCESS",
+    "processed_count": 0,
+    "message": "전국 마스터 플레이스 동기화 완료",
+    "duration_ms": 35195,
+    "target_date": null,
+    "api_status": [],
+    "created_at": "2026-03-30T12:42:34.633+00:00"
   }
 ]
 
 === 2. master_places recent updates ===
 Master Places newly created/upserted today: {
-  "HOSPITAL": 15,
-  "FESTIVAL": 9
+  "RESTAURANT": 426,
+  "MART": 498,
+  "SPOT": 76
 }
 
 === 3. smart_plan_facts recent updates ===
 Smart Plan Facts newly created/upserted today: {
-  "HOSPITAL": 15,
-  "FESTIVAL": 9,
-  "RESTAURANT": 20,
+  "RESTAURANT": 37,
+  "HOSPITAL": 16,
   "SPOT": 14,
-  "MART": 11,
-  "GAS_STATION": 7
+  "MART": 14,
+  "GAS_STATION": 14,
+  "FESTIVAL": 9
 }
 Sample Facts:
 [
-  {
-    "category": "HOSPITAL",
-    "trust_score": 20,
-    "name": "경찰공제회 예산의원",
-    "api_source": "MASTER_ENRICHED",
-    "created_at": "2026-03-22T21:31:35.205248+00:00"
-  },
-  {
-    "category": "FESTIVAL",
-    "trust_score": 45,
-    "name": "2025 충청남도 드론 페스타",
-    "api_source": "TOUR_FSTVL",
-    "created_at": "2026-03-22T08:25:04.994289+00:00"
-  },
-  {
-    "category": "FESTIVAL",
-    "trust_score": 45,
-    "name": "예산사과축제",
-    "api_source": "MASTER_ENRICHED",
-    "created_at": "2026-03-22T08:25:04.994289+00:00"
-  },
-  {
-    "category": "FESTIVAL",
-    "trust_score": 45,
-    "name": "홍성 역사인물축제",
-    "api_source": "MASTER_ENRICHED",
-    "created_at": "2026-03-22T08:25:04.994289+00:00"
-  },
-  {
-    "category": "FESTIVAL",
-    "trust_score": 45,
-    "name": "홍성글로벌바비큐페스티벌",
-    "api_source": "MASTER_ENRICHED",
-    "created_at": "2026-03-22T08:25:04.994289+00:00"
-  },
-  {
-    "category": "HOSPITAL",
-    "trust_score": 20,
-    "name": "내포메디컬의원",
-    "api_source": "MASTER_ENRICHED",
-    "created_at": "2026-03-22T08:25:04.994289+00:00"
-  },
-  {
-    "category": "HOSPITAL",
-    "trust_score": 20,
-    "name": "이상석내과의원",
-    "api_source": "MASTER_ENRICHED",
-    "created_at": "2026-03-22T08:25:04.994289+00:00"
-  },
-  {
-    "category": "RESTAURANT",
-    "trust_score": 80,
-    "name": "광천해산물상사",
-    "api_source": "MASTER_ENRICHED",
-    "created_at": "2026-03-22T04:34:36.129617+00:00"
-  },
   {
     "category": "RESTAURANT",
     "trust_score": 80,
@@ -198,5 +272,61 @@ Sample Facts:
     "name": "은정갈비",
     "api_source": "MASTER_ENRICHED",
     "created_at": "2026-03-22T04:34:36.129617+00:00"
+  },
+  {
+    "category": "RESTAURANT",
+    "trust_score": 80,
+    "name": "광천해산물상사",
+    "api_source": "MASTER_ENRICHED",
+    "created_at": "2026-03-22T04:34:36.129617+00:00"
+  },
+  {
+    "category": "HOSPITAL",
+    "trust_score": 20,
+    "name": "이상석내과의원",
+    "api_source": "MASTER_ENRICHED",
+    "created_at": "2026-03-22T08:25:04.994289+00:00"
+  },
+  {
+    "category": "HOSPITAL",
+    "trust_score": 20,
+    "name": "내포메디컬의원",
+    "api_source": "MASTER_ENRICHED",
+    "created_at": "2026-03-22T08:25:04.994289+00:00"
+  },
+  {
+    "category": "HOSPITAL",
+    "trust_score": 20,
+    "name": "내포동물의료센터",
+    "api_source": "MASTER_ENRICHED",
+    "created_at": "2026-03-22T08:25:04.994289+00:00"
+  },
+  {
+    "category": "HOSPITAL",
+    "trust_score": 20,
+    "name": "현대의원",
+    "api_source": "MASTER_ENRICHED",
+    "created_at": "2026-03-22T08:25:04.994289+00:00"
+  },
+  {
+    "category": "RESTAURANT",
+    "trust_score": 80,
+    "name": "굴다리식품 판매장",
+    "api_source": "SMBA_BAEK",
+    "created_at": "2026-03-22T04:34:36.129617+00:00"
+  },
+  {
+    "category": "RESTAURANT",
+    "trust_score": 80,
+    "name": "홍콩반점",
+    "api_source": "MASTER_ENRICHED",
+    "created_at": "2026-03-22T04:34:36.129617+00:00"
+  },
+  {
+    "category": "SPOT",
+    "trust_score": 40,
+    "name": "성삼문선생유허지",
+    "api_source": "MASTER_ENRICHED",
+    "created_at": "2026-03-22T21:31:35.205248+00:00"
   }
 ]

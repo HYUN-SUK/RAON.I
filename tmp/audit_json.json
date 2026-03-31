@@ -1,0 +1,65 @@
+{
+  "logs": [
+    {
+      "id": "acee67b2-a28d-4efd-8ecd-f6df76bbc587",
+      "job_name": "MASTER_SYNC",
+      "status": "SUCCESS",
+      "processed_count": 0,
+      "message": "전국 마스터 플레이스 동기화 완료",
+      "duration_ms": 117854,
+      "target_date": null,
+      "api_status": [
+        {
+          "name": "대규모마트",
+          "label": "대규모마트",
+          "status": "SUCCESS",
+          "new_count": 368,
+          "duration_ms": 2827,
+          "fetched_count": 4154,
+          "updated_count": 0,
+          "existing_count": 3786
+        },
+        {
+          "name": "준대규모마트",
+          "label": "준대규모마트",
+          "status": "SUCCESS",
+          "new_count": 0,
+          "duration_ms": 0,
+          "fetched_count": 0,
+          "updated_count": 0,
+          "existing_count": 0
+        },
+        {
+          "name": "중형슈퍼마켓",
+          "label": "중형슈퍼마켓",
+          "status": "SUCCESS",
+          "new_count": 354,
+          "duration_ms": 4216,
+          "fetched_count": 13688,
+          "updated_count": 0,
+          "existing_count": 13334
+        },
+        {
+          "name": "모범음식점",
+          "label": "모범음식점",
+          "status": "SUCCESS",
+          "new_count": 12487,
+          "duration_ms": 25435,
+          "fetched_count": 65610,
+          "updated_count": 0,
+          "existing_count": 53123
+        }
+      ],
+      "created_at": "2026-03-28T19:22:42.538+00:00"
+    }
+  ],
+  "counts": {
+    "SMBA_BAEK": 1199,
+    "LOCALDATA_RESTAURANT": 54786,
+    "SAFE_RESTAURANT": 29278,
+    "LOCALDATA_MART_SSM": 4043,
+    "LOCALDATA_MART_LARGE": 3653,
+    "LOCALDATA_MART_SUPER": 13303,
+    "TOUR_SPOT": 20601
+  }
+}

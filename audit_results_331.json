@@ -1,0 +1,150 @@
+{
+  "master_places_counts": {},
+  "smart_plan_facts_counts": {},
+  "logs": [
+    {
+      "id": "7bd18976-7525-4e74-ba50-aa544ba66cd9",
+      "job_name": "API_HEALTH_CHECK",
+      "status": "SUCCESS",
+      "processed_count": 16,
+      "message": "전체 16개 API 중 15개 정상",
+      "duration_ms": 3788,
+      "target_date": null,
+      "api_status": [
+        {
+          "name": "MART_LARGE",
+          "error": "",
+          "label": "마트(대형마트)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.568Z",
+          "duration_ms": 1319
+        },
+        {
+          "name": "MART_SSM",
+          "error": "",
+          "label": "마트(준대규모)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:35.599Z",
+          "duration_ms": 2348
+        },
+        {
+          "name": "MART_SUPER",
+          "error": "",
+          "label": "마트(기타식품)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.560Z",
+          "duration_ms": 1308
+        },
+        {
+          "name": "REST_LOCALDATA",
+          "error": "",
+          "label": "식당(모범음식점)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.566Z",
+          "duration_ms": 1312
+        },
+        {
+          "name": "REST_BAEK",
+          "error": "",
+          "label": "식당(백년가게)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:35.076Z",
+          "duration_ms": 1821
+        },
+        {
+          "name": "REST_SAFE",
+          "error": "",
+          "label": "식당(안심식당)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:33.678Z",
+          "duration_ms": 421
+        },
+        {
+          "name": "TOUR_SPOT",
+          "error": "",
+          "label": "관광명소(TourAPI)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.737Z",
+          "duration_ms": 1479
+        },
+        {
+          "name": "FESTIVAL",
+          "error": "",
+          "label": "축제(TourAPI)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.627Z",
+          "duration_ms": 1368
+        },
+        {
+          "name": "HOSPITAL",
+          "error": "",
+          "label": "병원(NMC)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.604Z",
+          "duration_ms": 1344
+        },
+        {
+          "name": "GAS_OPINET",
+          "error": "",
+          "label": "주유소(오피넷)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:35.367Z",
+          "duration_ms": 2107
+        },
+        {
+          "name": "WEATHER_SHORT",
+          "error": "",
+          "label": "날씨(단기)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.883Z",
+          "duration_ms": 1622
+        },
+        {
+          "name": "WEATHER_MID",
+          "error": "",
+          "label": "날씨(중기)",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:34.866Z",
+          "duration_ms": 1605
+        },
+        {
+          "name": "KAKAO_LOCAL",
+          "error": "",
+          "label": "카카오로컬",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:35.688Z",
+          "duration_ms": 2426
+        },
+        {
+          "name": "KAKAO_MAP",
+          "error": "",
+          "label": "카카오맵",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:35.744Z",
+          "duration_ms": 2481
+        },
+        {
+          "name": "GOCAMPING",
+          "error": "",
+          "label": "고캠핑",
+          "status": "SUCCESS",
+          "checked_at": "2026-03-31T03:45:35.522Z",
+          "duration_ms": 2258
+        },
+        {
+          "name": "GEMINI",
+          "error": "HTTP 404 (Deferred)",
+          "label": "AI(제미나이)",
+          "status": "FAILURE",
+          "checked_at": "2026-03-31T03:45:35.128Z",
+          "duration_ms": 1864
+        }
+      ],
+      "created_at": "2026-03-31T03:45:36.567408+00:00"
+    }
+  ],
+  "target_reservations": {
+    "date": "2026-04-03",
+    "count": 1
+  }
+}

@@ -232,6 +232,12 @@
     - [x] **UI Integration**
       - [x] Home Detail Sheet: Add Shuffle Button & Reason Badge.
       - [x] Restore Rich Content (Recipe Steps, Ingredients). 정렬 및 배지 로직 추가.
+    - [x] **Next Session: Post-Execution Audit (Completed: 3/30)**
+        - [x] 3/29 새벽 자동화 실행 로그(`automation_logs`) 성공 확인 (RESTAURANT 286건 등)
+    - [ ] **Tomorrow: Precision Verification & Scoring (4/1)**
+        - [ ] 3/31 새벽(04:00/06:00) 주간배치 및 D-3 캐싱 스텝 1, 2 진행 과정 정밀 점검
+        - [ ] 1차 선별 로직(Step B) 정상 동작 여부 실측 및 튜닝
+        - [ ] 4축 점수화(기상, 페르소나, 동선, 편의) 가중 로직 설계 및 실장
     *   [x] **Critical Fixes (2025-12-30)**: 
         *   Deletion Persistence (RPC Cascade + Self-Healing).
         *   Reverse Cascade (Comment Delete -> Mission Withdraw).
