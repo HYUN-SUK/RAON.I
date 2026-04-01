@@ -34,7 +34,9 @@ AI 어시스턴트는 세션 시작 시 다음 **4대 원칙**을 반드시 준�
    - `SELECT DISTINCT api_source` 쿼리를 통해 현재 DB에 저장된 실제 소스명을 대조하십시오.
 
 4. **표준 감사 도구 활용 (Standardized Tooling)**:
-   - 매번 일회성 코드를 작성하지 말고, `scripts/` 내에 정의된 표준 감사 스크립트를 우선 실행하여 일관된 지표를 도출하십시오.
+   - 매번 일회성 코드를 작성하지 말고, 다음 표준 도구를 실행하여 일관된 지표를 도출하십시오.
+   - **주간 배치 감사**: `node scripts/audit-master-standard.mjs`
+   - **D-3 캐싱 감사**: `node scripts/audit-caching-standard.mjs` (준비 중)
 
 ---
 

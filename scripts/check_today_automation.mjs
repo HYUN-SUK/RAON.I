@@ -1,53 +1,39 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import fs from 'fs';
 dotenv.config({ path: '.env.local' });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const s = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function check() {
-    let report = "=== 1. Automation Logs ===\n";
-    const { data: logs, error: e1 } = await supabase
+    const batStartTime = '2026-03-31T19:00:00Z'; // 4/1 04:00 KST
+    console.log('--- 주간 배치(4/1 04:00 KST) 실행 여부 정밀 진단 ---');
+
+    // 1. 데이터 업데이트 확인
+    const { count: updatedCount } = await s
+        .from('master_places')
+        .select('*', { count: 'exact', head: true })
+        .gte('updated_at', batStartTime);
+    console.log(`오늘 새벽 4시 이후 업데이트된 데이터 수: ${updatedCount} 건`);
+
+    // 2. 로그 존재 여부 확인
+    const { data: logs } = await s
         .from('automation_logs')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .gte('created_at', batStartTime)
+        .order('created_at', { ascending: false });
     
-    report += JSON.stringify(logs, null, 2) + "\n\n";
+    console.log(`오늘 새벽 4시 이후 생성된 로그 건수: ${logs?.length || 0} 건`);
+    if (logs && logs.length > 0) {
+        logs.forEach(l => console.log(` - [${l.created_at}] Job: ${l.job_name}, Status: ${l.status}`));
+    } else {
+        console.log('해당 시간대의 로깅 기록이 전무합니다.');
+    }
 
-    report += "=== 2. master_places recent updates ===\n";
-    const { data: mpData, error: e2 } = await supabase
-        .from('master_places')
-        .select('category, api_source, created_at')
-        .gte('created_at', '2026-03-21T15:00:00Z') // After 00:00 KST
-        .limit(1000);
-    
-    const mpCounts = (mpData || []).reduce((acc, row) => {
-        acc[row.category] = (acc[row.category] || 0) + 1;
-        return acc;
-    }, {});
-    report += "Master Places newly created/upserted today: " + JSON.stringify(mpCounts, null, 2) + "\n";
-    if (e2) report += "MP Error: " + JSON.stringify(e2) + "\n";
-
-    report += "\n=== 3. smart_plan_facts recent updates ===\n";
-    const { data: spData, error: e3 } = await supabase
-        .from('smart_plan_facts')
-        .select('category, trust_score, name, api_source, created_at')
-        .gte('created_at', '2026-03-21T15:00:00Z')
-        .limit(500);
-    
-    const spCounts = (spData || []).reduce((acc, row) => {
-        acc[row.category] = (acc[row.category] || 0) + 1;
-        return acc;
-    }, {});
-    report += "Smart Plan Facts newly created/upserted today: " + JSON.stringify(spCounts, null, 2) + "\n";
-    if (e3) report += "SP Error: " + JSON.stringify(e3) + "\n";
-    report += "Sample Facts:\n" + JSON.stringify((spData || []).slice(0, 10), null, 2);
-
-    fs.writeFileSync('audit_today.txt', report);
-    console.log('Audit complete. Check audit_today.txt');
+    if (updatedCount > 0) {
+        console.log('결론: 배치는 실행되었으나 로깅 시스템에 문제가 발생했을 가능성이 큽니다.');
+    } else {
+        console.log('결론: 주간 배치 자체가 오늘 새벽에 트리거되지 않았거나 초기 단계에서 Crash되었습니다.');
+    }
 }
 
 check();

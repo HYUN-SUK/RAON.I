@@ -23,7 +23,7 @@ dotenv.config({ path: '.env.local' });
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PUBLIC_API_KEY = process.env.PUBLIC_DATA_API_KEY;
-const SAFE_KEY = process.env.SAFE_RESTAURANT_API_KEY;
+const SAFE_KEY = process.env.SAFE_RESTAURANT_API_KEY || process.env.PUBLIC_DATA_API_KEY;
 const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
