@@ -43,8 +43,16 @@ let geocodingCount = 0;
 const syncStats = {}; // Tracks category counts
 let automationLogId = null;
 const sourceMetrics = {}; // { sourceName: { fetched, existing, updated, new, duration } }
+const START_TIME = Date.now();
+const MAX_DURATION = 90 * 60 * 1000; // 90 minutes safety guard
 
-function clean(s) { return String(s || '').trim(); }
+function isTimeUp() {
+    return (Date.now() - START_TIME) > MAX_DURATION;
+}
+
+function clean(s) { 
+    return String(s || '').replace(/\s+/g, ' ').trim(); // 띄어쓰기 중복 제거로 ID 일관성 확보
+}
 
 function generateId(source, name, address) {
     return uuidv5(`${source}|${clean(name)}|${clean(address)}`, MY_NAMESPACE);
@@ -494,37 +502,65 @@ async function syncSafe() {
     }
 
     try {
+        const CONCURRENCY = 10; // 카카오 API 속도 제한 고려
         for (let page = 1; page <= 75; page++) {
+            if (isTimeUp()) {
+                console.warn(`\n    [Safety Guard] Execution time limit (90m) reached. Stopping at page ${page}.`);
+                break;
+            }
+
             const start = (page - 1) * 1000 + 1, end = page * 1000;
             const res = await fetch(`http://211.237.50.150:7080/openapi/${SAFE_KEY}/json/Grid_20200713000000000605_1/${start}/${end}`);
             if (!res.ok) break;
             const data = await res.json().catch(() => ({}));
             const items = data.Grid_20200713000000000605_1?.row || [];
             if (items.length === 0) break;
-            const chunk = [];
-            for (const i of items) {
-                // [v11.6] 지정 취소된 식당은 수집 단계에서 즉시 건너뜀
-                if (i.RELAX_USE_YN !== 'Y') continue;
 
+            const chunk = [];
+            const toGeocode = [];
+
+            // 1차 필터링: 캐시 확인 및 지오코딩 타겟 분류
+            for (const i of items) {
+                if (i.RELAX_USE_YN !== 'Y') continue;
                 const name = i.RELAX_REST_NM, addr = i.RELAX_ADD1;
                 const id = generateId('SAFE_RESTAURANT', name, addr);
-                const hasCoords = geocodeCache.has(clean(addr));
-                if (syncMap.has(id) && hasCoords) {
+                
+                const cachedCoords = geocodeCache.get(clean(addr));
+                if (syncMap.has(id) && cachedCoords) {
                     sourceMetrics['안심식당'].existing++;
                     continue;
                 }
 
-                const coords = geocodeCache.get(String(addr).trim()) || await geocodeAddress(addr);
-                chunk.push({
-                    id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
-                    name, address: addr, lat: coords?.lat || null, lng: coords?.lng || null, trust_score: 60, raw_data: i
+                if (cachedCoords) {
+                    chunk.push({
+                        id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
+                        name, address: addr, lat: cachedCoords.lat, lng: cachedCoords.lng, trust_score: 60, raw_data: i
+                    });
+                } else {
+                    toGeocode.push({ id, name, addr, raw: i });
+                }
+            }
+
+            // 2차: 지오코딩 병렬 처리 (CONCURRENCY 10)
+            for (let i = 0; i < toGeocode.length; i += CONCURRENCY) {
+                const batch = toGeocode.slice(i, i + CONCURRENCY);
+                const results = await Promise.all(batch.map(item => geocodeAddress(item.addr)));
+                
+                results.forEach((coords, idx) => {
+                    const item = batch[idx];
+                    chunk.push({
+                        id: item.id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
+                        name: item.name, address: item.addr, lat: coords?.lat || null, lng: coords?.lng || null, trust_score: 60, raw_data: item.raw
+                    });
                 });
             }
+
             sourceMetrics['안심식당'] = sourceMetrics['안심식당'] || { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
             sourceMetrics['안심식당'].fetched += items.length;
-            await upsertBatch(chunk, '안심식당');
+            if (chunk.length > 0) await upsertBatch(chunk, '안심식당');
+            process.stdout.write(`\r    [SyncSafe] Page ${page}/75 processed... (Total: ${sourceMetrics['안심식당'].fetched})`);
         }
-    } catch (e) { console.error('Safe Error:', e.message); }
+    } catch (e) { console.error('\nSafe Error:', e.message); }
 }
 
 async function main() {
@@ -567,13 +603,26 @@ async function main() {
         }
         console.log(`\n    Initial Cache: ${geocodeCache.size}, Sync Map: ${syncMap.size}`);
 
-        if (!category || category === 'SPOT') await syncTourSpot();
-        if (!category || category === 'BAEK') await syncBaeknyeon();
-        if (!category || category === 'LOCALDATA') await syncLocalData();
-        if (!category || category === 'SAFE_RESTAURANT') await syncSafe();
+        if (!category || category === 'SPOT') {
+            if (isTimeUp()) throw new Error('Time limit reached before SPOT sync');
+            await syncTourSpot();
+        }
+        if (!category || category === 'BAEK') {
+            if (isTimeUp()) throw new Error('Time limit reached before BAEK sync');
+            await syncBaeknyeon();
+        }
+        if (!category || category === 'LOCALDATA') {
+            if (isTimeUp()) throw new Error('Time limit reached before LOCALDATA sync');
+            await syncLocalData();
+        }
+        if (!category || category === 'SAFE_RESTAURANT') {
+            if (isTimeUp()) throw new Error('Time limit reached before SAFE_RESTAURANT sync');
+            await syncSafe();
+        }
         
         console.log(`\n\n🏁 Done. Total ${totalSynced} (Geocoded: ${geocodingCount})`);
-        await finishLogging('SUCCESS', '전국 마스터 플레이스 동기화 완료');
+        const message = isTimeUp() ? '시간 제한(90분)으로 인해 일부 데이터만 동기화되었습니다.' : '전국 마스터 플레이스 동기화 완료';
+        await finishLogging('SUCCESS', message);
         process.exit(0);
     } catch (e) {
         console.error('\n!!! CRITICAL ERROR !!!', e);

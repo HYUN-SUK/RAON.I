@@ -197,7 +197,7 @@ async function main() {
                     s = 10;
                     if (item.api_source === 'SMBA_BAEK') s += 50;
                     if (item.api_source === 'MOIS_GOOD_RESTAURANT') s += 30;
-                    if (item.api_source === 'SAFE_REST') s += 20;
+                    if (item.api_source === 'SAFE_RESTAURANT') s += 20;
                     if (/커피|카페|베이커리/.test(name)) s -= 5;
                 } else if (cat === 'MART') {
                     if (/하나로|NH/.test(name)) s = 90;
