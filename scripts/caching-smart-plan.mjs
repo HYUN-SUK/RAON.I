@@ -33,6 +33,10 @@ async function scrapeKakaoPlace(url) {
     } catch { return { rating: 0, reviewCount: 0, success: false }; }
 }
 
+async function clean(s) { 
+    return String(s || '').trim();
+}
+
 async function main() {
     const args = process.argv.slice(2);
     const dateArg = args.find(a => a.startsWith('--target-date='))?.split('=')[1];

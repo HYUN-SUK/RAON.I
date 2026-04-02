@@ -51,7 +51,7 @@ function isTimeUp() {
 }
 
 function clean(s) { 
-    return String(s || '').replace(/\s+/g, ' ').trim(); // 띄어쓰기 중복 제거로 ID 일관성 확보
+    return String(s || '').trim();
 }
 
 function generateId(source, name, address) {
