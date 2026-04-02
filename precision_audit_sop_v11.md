@@ -36,7 +36,7 @@ AI 어시스턴트는 세션 시작 시 다음 **4대 원칙**을 반드시 준�
 4. **표준 감사 도구 활용 (Standardized Tooling)**:
    - 매번 일회성 코드를 작성하지 말고, 다음 표준 도구를 실행하여 일관된 지표를 도출하십시오.
    - **주간 배치 감사**: `node scripts/audit-master-standard.mjs`
-   - **D-3 캐싱 감사**: `node scripts/audit-caching-standard.mjs` (준비 중)
+   - **D-3 캐싱 감사**: `node scripts/audit-caching-standard.mjs` (v11.9.2 정밀 감사 지표 도출)
 
 ---
 
@@ -129,6 +129,9 @@ WHERE category = 'GAS_STATION' AND (address IS NULL OR address = '');
 **목적**: 1차 선별(Quota 300)과 카카오 정밀 검증을 거쳐 최종 `smart_plan_facts`에 고품질 데이터가 적재되었는지 확인.
 
 ### 점검 지표 (Simulation Result)
+신규 AI 어시스턴트는 다음 표준 도구를 실행하여 즉시 통계 지표를 도출하십시오.
+*   **실행 명령어**: `node scripts/audit-caching-standard.mjs`
+
 | 카테고리 | 1번 쿼터 (Raw) | 2번 쿼터 (Top 300) | 카카오 정밀검증 | 최종 적재 | 비고 |
 | :--- | :---: | :---: | :---: | :---: | :--- |
 | RESTAURANT | | | | | |
@@ -150,4 +153,4 @@ WHERE category = 'GAS_STATION' AND (address IS NULL OR address = '');
 *   **포함 항목**: [번호], [카테고리], [이름], [신뢰점수], [주소], [거리(m)]
 
 ---
-*Last Updated: 2026-03-28 (v11.0 Precision Audit SOP)*
+*Last Updated: 2026-04-02 (v11.9.2 Precision Audit SOP)*
