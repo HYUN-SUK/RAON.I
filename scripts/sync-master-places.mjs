@@ -274,32 +274,39 @@ async function fetchMoisIntegrated(endpoint, label, apiSource, category) {
     console.log(`  -> [API] ${label} 수집 시작...`);
     sourceMetrics[label] = { fetched: 0, existing: 0, updated: 0, new: 0, duration: 0 };
     
-    let pageNo = 1;
-    let hasMore = true;
-    const recordsList = [];
+    // [v12.8.3] 전국 17개 시도별 분할 수집 루프
+    const sidos = ['서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'];
 
-    try {
-        while (hasMore && pageNo <= 1000) { // 안전을 위해 최대 10만건 제한
-            const url = `http://apis.data.go.kr/1741000/${endpoint}/info?serviceKey=${PUBLIC_API_KEY}&pageNo=${pageNo}&numOfRows=100&returnType=json`;
-            const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-            if (!res.ok) {
-                console.error(`    [Error] HTTP ${res.status} on page ${pageNo}`);
-                break;
-            }
-            const data = await res.json();
-            const header = data.response?.header || data.header;
-            if (header?.resultCode !== '00' && header?.resultCode !== '0') {
-                console.error(`    [API Error] ${header?.resultMsg || '알 수 없는 오류'} (Page: ${pageNo})`);
-                break;
-            }
+    for (const sido of sidos) {
+        let pageNo = 1;
+        let hasMore = true;
+        const recordsList = [];
+        console.log(`    -> [Region] ${label} - ${sido} 수집 시작...`);
 
-            const body = data.response?.body || data.body;
-            const items = body?.items?.item || [];
-            const itemList = (Array.isArray(items) ? items : [items]);
-            if (itemList.length === 0) { hasMore = false; break; }
+        try {
+            while (hasMore && pageNo <= 1000) {
+                if (isTimeUp()) break;
+                // [v12.8] 시도 필터 추가
+                const url = `http://apis.data.go.kr/1741000/${endpoint}/info?serviceKey=${PUBLIC_API_KEY}&pageNo=${pageNo}&numOfRows=100&returnType=json&CTPRVN_NM=${encodeURIComponent(sido)}`;
+                const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                if (!res.ok) {
+                    console.error(`    [Error] HTTP ${res.status} on page ${pageNo}`);
+                    break;
+                }
+                const data = await res.json();
+                const header = data.response?.header || data.header;
+                if (header?.resultCode !== '00' && header?.resultCode !== '0') {
+                    console.error(`    [API Error] ${header?.resultMsg || '알 수 없는 오류'} (Page: ${pageNo})`);
+                    break;
+                }
 
-            const validItems = [];
-            for (const i of itemList) {
+                const body = data.response?.body || data.body;
+                const items = body?.items?.item || [];
+                const itemList = (Array.isArray(items) ? items : [items]);
+                if (itemList.length === 0) { hasMore = false; break; }
+
+                const validItems = [];
+                for (const i of itemList) {
                 // [v11.6] 행정안전부(1741000) 새 규격 필드 매핑 및 하이브리드 지원
                 const name = i.BSNSSP_NM || i.BPLC_NM || i.bplcNm || '';
                 const addr = i.ROAD_NM_ADDR || i.RDNWH_ADDR || i.rdnwhAddr || i.SITE_WHL_ADDR || i.siteWhlAddr || '';
@@ -389,27 +396,101 @@ async function fetchMoisIntegrated(endpoint, label, apiSource, category) {
                 chunk = [];
             }
         }
-        if (chunk.length > 0) await upsertBatch(chunk, label);
-        
-        sourceMetrics[label].duration = Date.now() - sourceStartTime;
-        console.log(`\n    Successfully completed ${label} in ${sourceMetrics[label].duration}ms`);
+            if (chunk.length > 0) await upsertBatch(chunk, label);
+        } catch (e) {
+            console.error(`\n    [Error] ${label} - ${sido} Sync Failed:`, e.message);
+        }
+    } // sido loop end
 
-    } catch (e) {
-        console.error(`\n    [Critical Error] ${label}:`, e.message);
-    }
+    sourceMetrics[label].duration = Date.now() - sourceStartTime;
+    console.log(`\n    Successfully completed ${label} in ${sourceMetrics[label].duration}ms`);
 }
 
 async function syncLocalData() {
     console.log('\n[2/3] LocalData (인허가 통합 API) 동기화 (v11.5)...');
     
-    // 1. 대규모/준대규모점포 (OpenAPI)
-    await fetchMoisIntegrated('large_scale_retail_stores', '대규모및준대규모점포', 'LOCALDATA_MART_LARGE', 'MART');
+    // 2. 기타식품판매업 (ZIP - 전국 통합 데이터 07_22_13_P_CSV.zip 로 대량 적재)
+    console.log('  -> Downloading 기타식품판매업 (ZIP)...');
+    try {
+        const url = 'https://www.localdata.go.kr/datafile/each/07_22_13_P_CSV.zip';
+        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const buffer = Buffer.from(await res.arrayBuffer());
+        const directory = await unzipper.Open.buffer(buffer);
+        const csvFile = directory.files.find(f => f.path.toLowerCase().endsWith('.csv'));
+        if (csvFile) {
+            const buf = await csvFile.buffer();
+            const decoder = new TextDecoder('euc-kr');
+            const csvContent = decoder.decode(buf);
+            
+            const workbook = xlsx.read(csvContent, { type: 'string' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const records = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+            console.log(`    Loaded ${records.length} records from Other Food Store ZIP (EUC-KR).`);
+            
+            if (records.length < 2) return;
+            const header = records[0].map(h => String(h || '').trim());
+            
+            // 인덱스 찾기 고도화 (정규표현식 및 하드코딩 인덱스 병행)
+            let nameIdx = header.findIndex(h => /사업장명|BPLCNM/i.test(h) || h.includes('»ç¾÷Àå¸í'));
+            let addrIdx = header.findIndex(h => /도로명전체주소|RDNWHLA/i.test(h) || h.includes('µµ·Î¸íÀüÃ¼ÁÖ¼Ò'));
+            let statusIdx = header.findIndex(h => /상세영업상태명|DTLSTATENM/i.test(h) || h.includes('»ó¼¼¿µ¾÷»óÅÂ¸í'));
+            let xIdx = header.findIndex(h => /좌표정보X|X/i.test(h) || h.includes('ÁÂÇ¥Á¤º¸X'));
+            let yIdx = header.findIndex(h => /좌표정보Y|Y/i.test(h) || h.includes('ÁÂÇ¥Á¤º¸Y'));
+            
+            // 매칭 실패 시 행안부 표준 인덱스 강제 적용 (07_22_13_P 기준)
+            if (nameIdx === -1) nameIdx = 18; 
+            if (addrIdx === -1) addrIdx = 26; 
+            if (statusIdx === -1) statusIdx = 10;
+            if (xIdx === -1) xIdx = 24;
+            if (yIdx === -1) yIdx = 25;
 
-    // 2. 기타식품판매업 (OpenAPI)
-    await fetchMoisIntegrated('other_food_retailers', '기타식품판매업', 'LOCALDATA_MART_OTHER', 'MART');
+            console.log(`    Final Mapping: Name[${nameIdx}], Addr[${addrIdx}], Status[${statusIdx}], X[${xIdx}]`);
 
-    // 3. 모범음식점 (OpenAPI)
-    await fetchMoisIntegrated('excellent_restaurant_info', '모범음식점', 'MOIS_GOOD_RESTAURANT', 'RESTAURANT');
+            let chunk = [];
+            for (let i = 1; i < records.length; i++) {
+                const r = records[i];
+                // 값이 없는 경우 인덱스를 앞뒤로 1~2칸 더 뒤져보는 보정 로직
+                let name = clean(r[nameIdx]);
+                if (!name && r[nameIdx - 1]) name = clean(r[nameIdx - 1]); // 밀림 대비
+                if (!name && r[nameIdx + 1]) name = clean(r[nameIdx + 1]);
+
+                let addr = clean(r[addrIdx]);
+                if (!addr && r[addrIdx - 1]) addr = clean(r[addrIdx - 1]);
+                if (!addr && r[addrIdx + 1]) addr = clean(r[addrIdx + 1]);
+
+                if (!name || (!addr && !r[addrIdx - 8])) continue; // 주소가 여전히 없으면 스킵
+                if (!addr) addr = clean(r[addrIdx - 8] || ''); // 지번주소라도 시도
+
+                const id = generateId('LOCALDATA_MART_OTHER', name, addr);
+                if (syncMap.has(id)) continue;
+
+                const status = String(r[statusIdx] || '');
+                const isOpen = status.includes('영업') || status.includes('¿µ¾÷') || status.includes('정상');
+                
+                let x = parseFloat(r[xIdx] || 0), y = parseFloat(r[yIdx] || 0);
+                let lat = null, lng = null;
+                try {
+                    if (x > 0 && y > 0) {
+                        const coords = proj4(EPSG5174, WGS84, [x, y]);
+                        lng = coords[0]; lat = coords[1];
+                    }
+                } catch(e) {}
+
+                chunk.push({
+                    id, api_source: 'LOCALDATA_MART_OTHER', category: 'MART',
+                    name, address: addr, lat, lng, trust_score: isOpen ? 60 : 0,
+                    raw_data: { source: 'ZIP_GROUND_ZERO', original: r.slice(0, 30) }
+                });
+                if (chunk.length >= 100) { await upsertBatch(chunk, '기타식품판매업'); chunk = []; }
+            }
+            if (chunk.length > 0) await upsertBatch(chunk, '기타식품판매업');
+        }
+    } catch (e) {
+        console.error('    [Error] 기타식품판매업 ZIP Sync Failed:', e.message);
+    }
+
+    // 3. 모범음식점 (OpenAPI 1741000)
+    await fetchMoisIntegrated('GoodRestaurantInd', '모범음식점', 'MOIS_GOOD_RESTAURANT', 'RESTAURANT');
 
     // 4. 중형슈퍼마켓 (ZIP - 기존 유지)
     console.log('  -> Downloading 중형슈퍼마켓 (ZIP)...');
@@ -522,7 +603,7 @@ async function syncSafe() {
             // 1차 필터링: 캐시 확인 및 지오코딩 타겟 분류
             for (const i of items) {
                 if (i.RELAX_USE_YN !== 'Y') continue;
-                const name = i.RELAX_REST_NM, addr = i.RELAX_ADD1;
+                const name = i.RELAX_RSTRNT_NM, addr = i.RELAX_ADD1;
                 const id = generateId('SAFE_RESTAURANT', name, addr);
                 
                 const cachedCoords = geocodeCache.get(clean(addr));

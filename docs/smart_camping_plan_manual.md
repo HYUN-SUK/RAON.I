@@ -164,10 +164,10 @@
 - **거리 가중치**: 반경 30km 확장 검색 결과를 이 계층별 점수와 합산하여 최종 상위 10~15개를 선별합니다.
 
 ### 4.2 대형마트 및 지역 거점 마트 - `[MART]`
-- **데이터 소스 (v11.5 OpenAPI 통합)**:
-    1. **LOCALDATA_MART_LARGE**: 행안부 대규모점포 OpenAPI (1741000).
-    2. **LOCALDATA_MART_SSM**: 행안부 준대규모점포 (OpenAPI/파일데이터 필터링).
-    3. **LOCALDATA_MART_OTHER**: 행안부 기타식품판매업 OpenAPI (1741000).
+- **데이터 소스 (v11.5 Ground Zero Gold Standard)**:
+    1. **LOCALDATA_MART_LARGE**: 행안부 대규모점포 (기초: 전국 CSV / 상시: OpenAPI 1741000).
+    2. **LOCALDATA_MART_SSM**: 행안부 준대규모점포 (기초: 전국 CSV / 상시: OpenAPI 1741000).
+    3. **LOCALDATA_MART_OTHER**: 행안부 기타식품판매업(슈퍼) (기초: 전국 CSV / 상시: OpenAPI 1741000).
 - **브랜드 우선순위 스코어링 (v10.0 고도화)**:
     1. **🥇 하나로마트/NH (90점)**: 지역 농지 거점 및 식재료 구비 강점.
     2. **🥈 대협 3사 (80점)**: 이마트, 롯데마트, 홈플러스, 노브랜드, 트레이더스.
@@ -181,7 +181,7 @@
 - **점수(Score)**: 가중치 `[E:0.30, Q:0.10, CF:0.20, L:0.40]`. 존재 확실성(Existence) 최우선. 영유아 동반 시 '소아/아동' 키워드가 `persona_match=45`로 반영.
 
 ### 4.3 우수 식당 (인증별 가중치 합산 및 중복 제거) - `[RESTAURANT]`
-- **데이터 소스**: (1순위) 소진공 백년가게(SMBA_BAEK), (2순위) **행안부 모범음식점(MOIS_GOOD_RESTAURANT)**, (3순위) 농림축산부 안심식당(SAFE_REST).
+- **데이터 소스**: (1순위) 소진공 백년가게(SMBA_BAEK), (2순위) **행안부 모범음식점(MOIS_GOOD_RESTAURANT - 기초: 전국 CSV / 상시: OpenAPI 1741000)**, (3순위) 농림축산부 안심식당(SAFE_RESTAURANT - 실시간 API).
 - **인증별 가중치 합산 (v10.4 고도화)**: 
     - **병합(Deduplication)**: 상호명과 주소가 동일한 업소는 하나로 통합하여 인증 점수를 누적 합산합니다.
     - **가중치 부여**: `Base 10 + 백년가게(50) + 모범음식점(30) + 안심식당(20)`
@@ -280,6 +280,26 @@
 ---
 
 ## 🏗️ 7. 하이브리드 마스터 DB 동기화 시스템 (Phase 12: Persistent Hybrid Engine)
+
+### 7.1.1 데이터 원천 및 저장소 정밀 명세 (Standard Mapping)
+
+모든 정적 데이터는 `master_places` 테이블에 저장되며, 다음의 표준 매핑을 엄격히 준수합니다.
+
+| 분류 | 공식 API 명칭 (외부) | 코드 식별자 (`api_source`) | 내부 카테고리 | 비고 |
+| :--- | :--- | :--- | :--- | :--- |
+| **마트** | 행정안전부_생활_대규모점포 | `LOCALDATA_MART_LARGE` | `MART` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
+| | 행정안전부_생활_준대규모점포 | `LOCALDATA_MART_SSM` | `MART` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
+| | 행정안전부_식품_식료품판매업(기타) | `LOCALDATA_MART_OTHER` | `MART` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
+| | 중형슈퍼마켓 (ZIP 파일) | `LOCALDATA_MART_SUPER` | `MART` | CSV 기반 보완 데이터 |
+| **식당** | 행정안전부_모범음식점정보 | `MOIS_GOOD_RESTAURANT` | `RESTAURANT` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
+| | 소상공인_전국 백년가게 | `SMBA_BAEK` | `RESTAURANT` | 30년 이상 명맥 유지 맛집 |
+| | 농림축산부 안심식당 | `SAFE_RESTAURANT` | `RESTAURANT` | 농식품부 API (211.237.50.150) |
+| **명소** | 관광공사_관광정보_GW | `TOUR_SPOT` | `SPOT` | 전국 주요 관광명소 |
+
+- **Storage**: `public.master_places` 테이블 (PostgreSQL/PostGIS)
+- **ID Strategy**: `UUID v5 (Namespace: 6ba7b810...)` 기반 `id = uuidv5(api_source + name + address)`
+- **Coordinate**: `EPSG:5174` -> `WGS84` (Proj4 변환 후 `location` 필드 저장)
+
 전국 10만 건 이상의 정적 마스터 데이터와 매주 새롭게 유입되는 동적 데이터를 단일한 영구 데이터베이스(Single Source of Truth)로 관리하여, 고속(10ms) 추천과 데이터 자산화를 동시에 달성하는 하이브리드 엔진입니다.
 
 1. **데이터 스토리지 구조 (Dual-Table)**:

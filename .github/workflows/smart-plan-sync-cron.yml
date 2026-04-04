@@ -1,9 +1,9 @@
 name: Smart Plan Daily Sync
 
 on:
-  schedule:
-    # [v10.7 실험 패치] 매일 새벽 06:00 KST 실행 (UTC 기준 21:00)
-    - cron: '0 21 * * *'
+#  schedule:
+#    # [v10.7 실험 패치] 매일 새벽 06:00 KST 실행 (UTC 기준 21:00)
+#    - cron: '0 21 * * *'
   workflow_dispatch: # Allow manual trigger via GitHub Actions UI
 
 jobs:
