@@ -8,9 +8,10 @@ import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import { v5 as uuidv5 } from 'uuid';
 import proj4 from 'proj4';
+import fs from 'fs';
 
 dotenv.config({ path: '.env.local' });
-const supabase = createClient(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 const PUBLIC_API_KEY = process.env.PUBLIC_DATA_API_KEY;
 const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const OPINET_API_KEY = process.env.OPINET_API_KEY;
@@ -47,16 +48,34 @@ async function main() {
     const { data: schedules } = await supabase.from('user_schedules').select('campground_lat, campground_lng, campground_name, campground_address').eq('check_in', targetStr);
     if (!schedules?.length) process.exit(0);
 
-    const clusters = [];
+    const totalFactMap = new Map();
     for (const s of schedules) {
-        let lat = Number(s.campground_lat), lng = Number(s.campground_lng);
-        if (!lat || !lng) continue;
-        let c = clusters.find(c => Math.sqrt(Math.pow(c.lat-lat,2)+Math.pow(c.lng-lng,2)) <= 0.15);
-        if (c) { if(!c.names.includes(s.campground_name)) c.names.push(s.campground_name); }
-        else clusters.push({ lat, lng, names: [s.campground_name], address: s.campground_address || '' });
+        let lat = Number(s.campground_lat), lng = Number(s.campground_lng), address = s.campground_address || '';
+        let campground_name = s.campground_name || '';
+
+        // [v11.9.5] Location Recovery Fallback
+        if (!lat || !lng) {
+            console.log(`  🔍 Missing location for ${campground_name}, searching campgrounds...`);
+            const { data: masterInfo } = await supabase.from('campgrounds').select('lat, lng, address').ilike('name', `%${campground_name}%`).limit(1).single();
+            if (masterInfo) {
+                lat = masterInfo.lat; lng = masterInfo.lng; address = masterInfo.address;
+                console.log(`  ✅ Recovered ${campground_name} location from campgrounds.`);
+            } else if (address) {
+                console.log(`  🌐 Master missing, attempting Geocoding for: ${address}`);
+                const geoRes = await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
+                if (geoRes.documents?.[0]) {
+                    lat = parseFloat(geoRes.documents[0].y); lng = parseFloat(geoRes.documents[0].x);
+                    console.log(`  ✅ Geocoded ${campground_name} successfully.`);
+                }
+            }
+        }
+        if (!lat || !lng) { console.log(`  ⚠️ Skipping ${campground_name}: No location root found.`); continue; }
+
+        let cluster = clusters.find(c => Math.sqrt(Math.pow(c.lat-lat,2)+Math.pow(c.lng-lng,2)) <= 0.15);
+        if (cluster) { if(!cluster.names.includes(campground_name)) cluster.names.push(campground_name); }
+        else clusters.push({ lat, lng, names: [campground_name], address: address });
     }
 
-    const totalFactMap = new Map();
     for (const cluster of clusters) {
         const { lat, lng, address } = cluster;
         const addr = address.split(' ');
@@ -179,21 +198,32 @@ async function main() {
         }
         
         const categories = [
-            { cat: 'RESTAURANT', limit: 300 }, { cat: 'SPOT', limit: 300 },
-            { cat: 'MART', limit: 20 }, { cat: 'HOSPITAL', limit: 15 },
-            { cat: 'GAS_STATION', limit: 10 }, { cat: 'FESTIVAL', limit: 15 }
+            { cat: 'RESTAURANT', limit: 300, rawLimit: 1000 },
+            { cat: 'SPOT', limit: 300, rawLimit: 500 },
+            { cat: 'MART', limit: 20, rawLimit: 100 },
+            { cat: 'HOSPITAL', limit: 15, rawLimit: 100 },
+            { cat: 'GAS_STATION', limit: 10, rawLimit: 100 },
+            { cat: 'FESTIVAL', limit: 15, rawLimit: 100 }
         ];
 
         let clusterCands = [];
-        for (const { cat, limit } of categories) {
-            const { data } = await supabase.rpc('get_master_places_in_radius', { target_lat: lat, target_lng: lng, radius_meters: 30000, p_category: cat, limit_count: 800 });
+        let rawCandidatesForAudit = []; // spot_final_audit.md 출력용
+
+        for (const { cat, limit, rawLimit } of categories) {
+            const { data } = await supabase.rpc('get_master_places_in_radius', { 
+                target_lat: lat, target_lng: lng, 
+                radius_meters: 30000, p_category: cat, 
+                limit_count: rawLimit 
+            });
             if (!data?.length) continue;
 
-            const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개/;
+            const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용/;
             const map = new Map();
             for (const item of data) {
                 const name = (item.name || '').trim();
                 const induty = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
+                
+                // 12종 블랙리스트 및 정밀 필터링
                 if (noise.test(name) || noise.test(induty)) continue;
 
                 let s = 50;
@@ -207,24 +237,84 @@ async function main() {
                     if (/하나로|NH/.test(name)) s = 90;
                     else if (/이마트|롯데마트|홈플러스|트레이더스|노브랜드/.test(name)) s = isSunday ? 65 : 80;
                     else s = 65;
+                    // 노이즈 필터 (패션/가전/가구)
+                    if (/아울렛|패션|의류|디지털|하이마트|전자랜드|가구/.test(name)) continue;
                 } else if (cat === 'SPOT') {
                     s = 50;
                     if (/국립|수목원|휴양림|관광지|출렁다리|모노레일|케이블카|해수욕장|테마파크|사찰|읍성/.test(name)) s += 45;
                     else if (/박물관|미술관|천문대|역사|향교|전통가옥/.test(name)) s += 30;
                     const rc = parseInt(item.raw_data?.readcount || 0, 10);
                     s += (rc >= 10000 ? 40 : rc >= 5000 ? 30 : rc >= 1000 ? 20 : rc >= 500 ? 10 : 0);
-                    if (item.raw_data?.firstimage) s += 40;
+                    // 미디어 가점 (이미지 + 상세설명)
+                    if (item.raw_data?.firstimage) s += 20;
+                    if (item.raw_data?.overview?.length > 100) s += 20;
                 } else if (cat === 'HOSPITAL') {
                     if (item.api_source === 'NMC_HOSPITAL' || /종합병원|의료원/.test(name)) s = 100;
                     else if (/내과|소아|외과|가정/.test(name) || /내과|소아|외과|가정/.test(induty)) s = 70;
+                    else if (/보건소|보건지소/.test(name)) s = 50; // Tier 3
+                    
                     if (/응급|야간|24시/.test(name)) s += 40;
-                    if (/성형|피부|비만|치과|한의원/.test(name)) continue;
+                    // 정밀 제외 (안과, 치과, 한의원, 산후조리 등)
+                    if (/성형|피부|비만|치과|한의원|안과|산후|요양/.test(name)) continue;
+                } else if (cat === 'FESTIVAL') {
+                    s = 45;
+                    // 기간 매칭 체크 (v10.7)
+                    const start = item.raw_data?.eventstartdate;
+                    const end = item.raw_data?.eventenddate;
+                    if (start && end) {
+                        const targetDateNum = parseInt(targetStr.replace(/-/g, ''));
+                        if (targetDateNum < parseInt(start) - 3 || targetDateNum > parseInt(end) + 2) continue;
+                    }
                 }
+
                 const k = `${name}|${item.address}`;
-                if (map.has(k)) { if(cat==='RESTAURANT') map.get(k).trust_score+=(s-10); else if(s>map.get(k).trust_score) map.get(k).trust_score=s; }
-                else map.set(k, { ...item, trust_score: s });
+                const dist = item.distance || 99999;
+                if (map.has(k)) { 
+                    if(cat==='RESTAURANT') map.get(k).trust_score+=(s-10); 
+                    else if(s>map.get(k).trust_score) map.get(k).trust_score=s; 
+                } else {
+                    map.set(k, { ...item, trust_score: s, distance: dist });
+                }
             }
-            clusterCands.push(...Array.from(map.values()).sort((a,b)=>b.trust_score-a.trust_score).slice(0, limit));
+
+            // 1차 선별 완료본 정렬 및 슬라이싱
+            const sorted = Array.from(map.values()).sort((a,b) => {
+                if (b.trust_score !== a.trust_score) return b.trust_score - a.trust_score;
+                return (a.distance || 0) - (b.distance || 0); // 2순위 거리
+            });
+
+            // 마트 부족 시 편의점 폴백 (Step B-Fallback)
+            if (cat === 'MART' && sorted.length < 3) {
+                console.log(`  -> Mart low (${sorted.length}), triggering CS2 fallback...`);
+                try {
+                    const fallbackRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${lng}&y=${lat}&radius=10000&size=5`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
+                    if (fallbackRes.documents) {
+                        fallbackRes.documents.forEach(d => {
+                            sorted.push({
+                                id: generateFactId('KAKAO_CS2', d.place_name, d.address_name),
+                                api_source: 'KAKAO_CS2', category: 'MART',
+                                name: d.place_name, address: d.address_name, trust_score: 40, isFallback: true, distance: parseInt(d.distance),
+                                lat: parseFloat(d.y), lng: parseFloat(d.x), raw_data: d
+                            });
+                        });
+                    }
+                } catch {}
+            }
+
+            rawCandidatesForAudit.push(...sorted);
+            clusterCands.push(...sorted.slice(0, limit));
+        }
+
+        // 전체 리스트 출력 (SOP 규격)
+        if (rawCandidatesForAudit.length > 0) {
+            let auditContent = `# 3일 전 스마트 플랜 캐싱 1차 선별 리스트 (Quota Applied)\n\n`;
+            auditContent += `| 번호 | 카테고리 | 이름 | 신뢰점수 | 주소 | 거리(m) |\n`;
+            auditContent += `| :--- | :--- | :--- | :---: | :--- | :---: |\n`;
+            rawCandidatesForAudit.forEach((c, idx) => {
+                auditContent += `| ${idx + 1} | ${c.category} | ${c.name} | ${c.trust_score} | ${c.address} | ${Math.round(c.distance)} |\n`;
+            });
+            fs.writeFileSync('C:\\Users\\USER\\Desktop\\RAON.I\\spot_final_audit.md', auditContent, 'utf-8');
+            console.log(`📝 Audit list generated: ${rawCandidatesForAudit.length} items.`);
         }
 
         for (let i = 0; i < clusterCands.length; i += 40) {
