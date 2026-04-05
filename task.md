@@ -1,22 +1,21 @@
-# Task Checklist: v11.0 Smart Camping Plan Pipeline Restoration
+# Task Checklist: v11.8.8 Stable Data Pipeline Restoration
 
-- [x] **RPC Function 정밀 수술 (Critical Infrastructure)**
-    - [x] `p_category` 패치를 통한 매뉴얼 v11.0 규격 동기화
-    - [x] DB 내 중복(Ghost) RPC 함수 전량 제거 (`DROP FUNCTION ... CASCADE`)
-    - [x] `NUMERIC` 타입 기반 단일 표준 함수 재정의
-- [x] **Pipeline Code Sync**
-    - [x] `scripts/caching-smart-plan.mjs` RPC 호출부 수지 (Casting `Number()`, `p_category`)
-    - [x] 로컬 SQL 마이그레이션 파일(`supabase/20260308...`) 동기화
-- [x] **Precision Audit (D-3 Caching Phase 2)**
-    - [x] 3/31 예산군 타겟 정밀 감사 수행
-    - [x] **Quota 300** 확장 정상 작동 실측 (RESTAURANT 286개 수집 성공)
-    - [x] 최종 적재 리스트(`spot_final_audit.md`) 생성 및 검증
-- [x] **Standardization & Automation Patch**
-    - [x] **[SOP 수립]** `precision_audit_sop_v11.md` 작성 및 배포
-    - [x] **[스케줄 패치]** 내일 새벽(3/29) 일요일 04:00 AM(주간), 06:00 AM(D-3) 자동 실행 설정
-- [x] **Next Session: Post-Execution Audit (Completed: 3/31)**
-    - [x] 3/29 새벽 자동화 실행 로그(`automation_logs`) 성공 확인 (RESTAURANT 286건 등)
-- [ ] **Tomorrow: Precision Verification & Scoring (4/1)**
-    - [ ] 3/31 새벽(04:00/06:00) 주간배치 및 D-3 캐싱 스텝 1, 2 진행 과정 정밀 점검
-    - [ ] 1차 선별 로직(Step B) 정상 동작 여부 실측 및 튜닝
-    - [ ] 4축 점수화(기상, 페르소나, 동선, 편의) 가중 로직 설계 및 실장
+- [x] **Ground Zero: 전국 단위 기초 데이터 적재 (SSOT Baseline)**
+    - [x] **[식당]** 행안부 모범음식점 + 농식품부 안심식당(4만 건 복구) + 백년가게 전국 통합
+    - [x] **[마트]** 기타식품판매업(1.3만 ZIP) + 대형마트/SSM 전국 통합 적재
+    - [x] **[명소]** 관광공사 1.2만 건 무결성 검증 및 전수 적재
+    - [x] **[ID]** UUID v5 기반 소스별 독립 ID 체계(7.1.1 명세) 전수 적용
+- [x] **Stabilization & Verification**
+    - [x] 전국 단위 12.4만 건 실물 전수 조사 (Pagination 오류 극복)
+    - [x] `scripts/sync-master-places.mjs` 인코딩 및 필드 매핑 로직 고도화
+    - [x] Production Build (`npm run build`) 무결성 통과
+    - [x] Git Commit (`Ground Zero sync complete`) 수행 (Push 대기)
+- [x] **Next Phase: Daily Rotation & Admin Monitoring**
+    - [x] **[복구]** 캐싱 스크립트 내 캠핑장 조회 테이블 오타 수정 (Location Fallback 정상화)
+    - [ ] **[상시 운영]** 17개 시도별 지역 순환 동기화(Daily Rotation) 정적 데이터 점검
+    - [ ] **[자동 캐싱]** 4일 후 예약 건에 대한 3일 전 캐싱 자동 작동 여부 점검
+    - [ ] **[선별 감사]** 1차 쿼터 전체 리스트 및 1차 선별 로직 실효성 정밀 감사
+    - [ ] **[갱신]** 전국 캠핑장 데이터(campgrounds) 상시 최신화 방안 논의 및 자동 갱신 로직 구현
+    - [ ] **[점수화]** 4축 점수화(기상, 페르소나, 동선, 편의) 가중치 로직 고도화 및 검증
+
+

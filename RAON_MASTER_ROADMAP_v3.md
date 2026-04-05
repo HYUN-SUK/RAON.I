@@ -45,7 +45,7 @@
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | V9.5 하이엔드 파이프라인(나선탐색/병원스코어/쿼터제) 실장 완료. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
-| **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, XP/Deletion 안정화, UI/UX 디테일 보완 완료. 마켓 피벗 대기. |
+| Phase 7 | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, 17일 지역 순환 동기화(Daily Sync) 도입 완료. |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
 
 ---
@@ -128,9 +128,6 @@
 *   **5.3 주문/결제 (Checkout)** ✅:
     *   [x] 배송지 입력 폼 (Daum 주소 API 연동).
     *   [x] 결제 수단 선택 UI (무통장/카드).
-*   **5.5.5 Hybrid Sync Stabilization (Phase 11 & 12) ✅ (2026-03-08)**:
-    *   [x] **Phase 11**: PostGIS 기반 마스터 DB 스캔 및 날씨 가중치 1차 선별 구현.
-    *   [x] **Phase 12**: 카카오맵 별점/리뷰 스크래퍼 및 실시간 팩트 정제 파이프라인 이식.
     *   [x] **v2 Update (2026-03-10)**: Evidence 구조화(Fact Chips), AI 환각 방지 지침 적용, 최신 API 연동 복구 완료.
     *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 자동화 통합('Gold Standard' 초고속 병합 스크립트 교체), UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
     *   [x] **API Resilience (v4-v6) (2026-03-21)**: D-3 캐싱의 좌표 결측 예약 배제 필터 버그 수정(`route.ts`), 전역 에러 로깅 강화, 주간 배치 일요일 임시 실행 스케줄링 및 "영희네" 예약 건 수동 데이터 적재 완료. 
@@ -206,6 +203,11 @@
         *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
         *   [x] **Flow Integration**: 예약, 타캠핑장 일정 등록, 캠핑장 추천(PlanLock), 스마트플랜 4대 엔진 통합 완료.
         *   [x] **UX**: 기존 정보 존재 시 '간편 확인' 버튼 하나로 통과하는 최적화 로직 적용.
+    *   [x] **5.5.10 Pipeline Restoration & Location Recovery ✅ (2026-04-05)**:
+        *   [x] **Table Resolution**: `campgrounds` 테이블 내 3,000건 데이터 온존 확인으로 유실 오해 해소.
+        *   [x] **Logic Fix**: 캐싱 스크립트의 Location Recovery 쿼리를 `master_places`에서 `campgrounds`로 정상화.
+        *   [x] **Verification**: '라온아이오토캠핑장' 공식 주소 및 좌표 DB 무결성 최종 검증 완료.
+
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
 **"더 깊은 연결과 재미"**
@@ -284,6 +286,12 @@
     *   [x] **제휴 중심**: 자체 상품 대신 외부 링크(쿠팡 파트너스 등) 지원 구조 완성. ProductCard 및 상세 페이지에서 "구매처로 이동" 분기 처리.
 *   **7.5 예약 자동화** ✅ (이미 구현됨):
     *   [x] **오픈 로직**: `OpenDayConfig.tsx` 컴포넌트에서 매월 자동 반복 규칙 지원. `open_day_rules` 테이블 + `automation_config` JSONB.
+*   **7.6 상시 운영 체계 (Daily Region Sync v12.0) ✅ (2026-04-04)**:
+    *   [x] **Rotation Engine**: 전국 17개 시도 대상 17일 주기 지역별 순환 동기화 엔진 실장 (`daily-region-sync.mjs`).
+    *   [x] **Category Expansion**: 마트(대형/SSM/기타)를 행안부 OpenAPI 기반 상시 갱신 체계로 통합.
+    *   [x] **Audit Reporting**: 7대 핵심 지표(기존/수신/신규/갱신/총계) 로깅 및 관리자 페이지 전용 리포트 UI 구현.
+    *   [x] **Automation**: GitHub Actions를 통한 매일 04:00 KST 자동 실행 스케줄링 완료.
+    *   [x] **SSOT Consistency**: 매뉴얼 및 정밀 감사 SOP(v11.1)에 상시 운영 지침 반영.
 *   **7.6 외부 API 연동 (Final Polish)** ⬜ (도메인 발급 후):
     *   [ ] **TourAPI/Kakao**: `nearby_events` 및 `site_config` 데이터를 실제 외부 API와 실시간 동기화 (안정화 단계에서 진행).
 

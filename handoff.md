@@ -1,26 +1,22 @@
-# Session Handoff: RAONAI v11.6 Selection Engine & 4-Axis Scoring Prep
+# Handoff: Smart Camping Plan Pipeline Restoration
 
-## 📅 세션 일시
-- 2026-03-31
+## 📅 세션 요약 (2026-04-05)
+이번 세션에서는 '데이터 유실'로 의심되었던 전국의 캠핑장 마스터 데이터가 `campgrounds` 테이블에 **안전하게 보관(3,000건)**되어 있음을 확인하고, 이를 활용해 캐싱 파이프라인의 핵심 결함을 수정했습니다.
 
-## 🏁 현재 상태 요약 (Current Status)
-이번 세션에서는 3/29 자동화 실행 결과를 최종 실측하고, `scripts/caching-smart-plan.mjs`에 **v11.5/v11.6급 6대 카테고리 정밀 선별 로직(Step B)**이 정상적으로 커밋 및 푸시되어 있음을 확인했습니다.
+## ✅ 주요 성과 및 기술적 결정
+- **테이블 오타 복구**: `scripts/caching-smart-plan.mjs`의 Location Recovery 로직이 `master_places`를 조회하던 오류를 발견하여 `campgrounds` 테이블로 정상화했습니다.
+- **데이터 무결성 확인**: 캠핑장 추천 및 캐싱 엔진이 참조하는 `campgrounds` 테이블의 3,000개 레코드가 온전함을 확인했습니다.
+- **주소지 최신화**: '라온아이오토캠핑장'의 공식 주소(`충청남도 예산군 응봉면 응봉서로 280`)가 DB에 정확히 반영되어 있음을 검증했습니다.
+- **빌드 및 커밋**: 수정 사항에 대한 `npm run build` 무결성을 확인하고 로컬 커밋을 완료했습니다.
 
-- **데이터 실측**: 3/29 주간 배치 및 D-3 캐싱 성공 확인 (RESTAURANT 286건 등 Quota 300 정상 동작).
-- **로직 구현 확인**: 식당(인증 가점), 마트(브랜드/일요일 패널티), 명소(인기도/이미지), 병원(계층/응급) 로직이 코드에 반영되어 있습니다.
-- **스케줄 확정**: 3/31 04:00 AM (주간 배치) 및 06:00 AM (D-3 캐싱) 실행을 위한 크론 스케줄이 `* * *` (Daily) 모드로 GitHub Actions에 설정되어 있습니다.
+## 🚀 다음 세션 작업 가이드 (Next Steps)
+1. **정적 데이터 운영 점검**: 17개 시도별 지역 순환 동기화(Daily Rotation) 체계가 정상 작동하는지 모니터링합니다.
+2. **3일 전 캐싱 자동화 점검**: 오늘 예약한 '4일 후' 예약건에 대해, 내일 '3일 전' 시점의 자동 캐싱이 수행되는지 점검합니다.
+3. **캠핑장 데이터 상시 동기화**: `campgrounds` 테이블의 3,000건 데이터를 고캠핑 API와 주기적으로 동기화하여 최신 정보를 유지하는 방안을 논의하고 실제 로직을 구현합니다.
+4. **1차 선별 리스트 감사**: `spot_final_audit.md` 결과물을 통해 1차 쿼터 선별 실효성을 최종 점검합니다.
 
-## 🚀 다음 작업 가이드 (Next Steps)
-1. **3/31 새벽 실행 결과 점검 (04:00 / 06:00)**:
-   - `automation_logs` 테이블에서 Step 1, 2 진행 과정 및 Step B 1차 선별 로직이 예상대로 작동했는지 정밀 점검.
-2. **Personalization Scoring (4-Axis) 실장**:
-   - 기상(Weather), 취향(Persona), 동선(Route), 편의(Convenience) 가중치 로직을 `src/actions/recommendation.ts` 및 `src/lib/persona.ts`에 통합.
-3. **UI 반영**:
-   - `SmartPlanProposal.tsx` 등에서 4축 지표 기반의 추천 사유(Rationale)를 구체적으로 노출.
+4. **로직 고도화**: 4축 점수화(기상, 페르소나, 동선, 편의) 가중치와 날씨/페르소나 연동 로직의 정확도를 정밀 분석합니다.
 
-## ⚠️ 주의 사항 (Warnings)
-- **Git Push 확인**: 현재 로컬과 원격(`origin/main`)이 동기화되어 있으나, Vercel 배포 내역에는 `scripts/` 변경 사항이 나타나지 않을 수 있습니다 (GitHub Actions 전용 스크립트이기 때문).
-- **나선형 검색 보강**: 주유소의 나선형 검색(Spiral Search) 등 일부 전문 로직의 세부 구현 상태를 다음 세션에서 재확인 후 보강 필요.
-
----
-*Created by Antigravity (Advanced Agentic Coding AI)*
+## ⚠️ 주의 사항
+- **캐싱 시뮬레이션**: 오늘은 코드 보완까지만 진행했으므로, 내일 세션 시작 시 시뮬레이션 명령(`node scripts/caching-smart-plan.mjs --target-date=YYYY-MM-DD`)으로 최종 검증이 필요합니다.
+- **Git Push**: 현재 로컬 커밋 상태입니다. 사용자님이 수동으로 `git push`를 진행해 주셔야 배포 환경에 반영됩니다.
