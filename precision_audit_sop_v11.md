@@ -29,56 +29,44 @@ AI 어시스턴트는 세션 시작 시 다음 **4대 원칙**을 반드시 준�
    - **실전 쿼리 (Key 변경 감지)**:
      ```sql
      -- 특정 필드(예: BSNSSP_NM)가 존재하지만 매핑되지 않은 데이터가 있는지 확인
-     SELECT count(*) FROM master_places WHERE raw_data->>'BSNSSP_NM' IS NOT NULL AND api_source = 'MOIS_GOOD_RESTAURANT';
+     SELECT count(*) FROM master_places WHERE raw_data->>'BSNSSP_NM' IS NOT NULL AND api_source = 'LOCALDATA_RESTAURANT_GOOD';
      ```
    - `SELECT DISTINCT api_source` 쿼리를 통해 현재 DB에 저장된 실제 소스명을 대조하십시오.
 
 4. **표준 감사 도구 활용 (Standardized Tooling)**:
    - 매번 일회성 코드를 작성하지 말고, 다음 표준 도구를 실행하여 일관된 지표를 도출하십시오.
-   - **주간 배치 감사**: `node scripts/audit-master-standard.mjs`
+   - **일일 지역 로테이션 감사 (Daily Sync)**: `node scripts/daily-region-sync.mjs` (CSV 및 API 즉석 순환 검증용)
    - **D-3 캐싱 감사**: `node scripts/audit-caching-standard.mjs` (v11.9.2 정밀 감사 지표 도출)
 
 ---
 
-## 📅 1. 주간 배치 (Weekly Master Sync) 점검
-
-**목적**: 전국 규모의 정적 데이터(식당, 마트, 명소)가 각 API 출처별로 누락 없이 `master_places`에 적재되었는지 확인.
-
-### API별 지표 대조 (Static Data)
-| 카테고리 | API 출처 (api_source) | 기존 데이터 수 | 패치 성공 | 신규(New) | 업데이트 | 최종 적재수 | 비고 |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **식당** | `SMBA_BAEK` (백년가게) | | | | | | |
-| | `MOIS_GOOD_RESTAURANT` | | | | | | |
-| | `SAFE_REST` (안심식당) | | | | | | |
-| **마트** | `LOCALDATA_MART_LARGE` | | | | | | |
-| | `LOCALDATA_MART_SSM` | | | | | | |
-| | `LOCALDATA_MART_OTHER` | | | | | | |
-| **명소** | `TOUR_SPOT` (관광공사) | | | | | | |
-
-### 🛠️ 주간 배치 표준 감사 SQL (Standard Audit SQL)
-신규 AI 어시스턴트는 다음 쿼리를 즉시 실행하여 지표를 도출하십시오.
-
-```sql
--- 1. 전체 수집 현황 통계
-SELECT api_source, count(*) 
-FROM master_places 
-GROUP BY api_source 
-ORDER BY count DESC;
-
--- 2. 안심식당(SAFE_REST) 필터 무결성 점검 (0건이어야 정상)
--- '지정취소' 데이터나 RELAX_USE_YN이 Y가 아닌 데이터가 있는지 확인
-SELECT count(*) 
-FROM master_places 
-WHERE api_source = 'SAFE_REST' 
-  AND (raw_data->>'RELAX_USE_YN' != 'Y' OR raw_data->>'RELAX_USE_YN' IS NULL);
-
--- 3. 행안부(MOIS) 규격 불일치 정밀 진단
--- 응답에는 존재하나 매핑 엔진이 놓치고 있는 데이터 수 파악
-SELECT count(*) 
-FROM master_places 
-WHERE raw_data->>'BSNSSP_NM' IS NOT NULL 
-  AND (name IS NULL OR name = '');
-```
+## 📅 1. 일일 지역 로테이션 (Daily Region Sync) 정밀 점검
+ 
+ **목적**: 전국 17개 시도를 순환하며 정적 데이터(식당, 마트, 명소)의 최신성 및 활성 상태(`is_active`)를 매순간 점검.
+ 
+ ### 7대 핵심 지표 점검 (Daily Rotation Audit)
+ `node scripts/daily-region-sync.mjs` 스크립트를 직접 구동하거나 관리자 서버 구동 후 다음 양식에 맞춰 지표가 도출되었는지 검사해야 합니다:
+ 
+ | 갱신 지역 | 카테고리 (세부 소스) | 기존 데이터 수 | 원천 수신 수 | 신규 삽입(New) | 변경 갱신(Upd) | 최종 총계 | 비고 |
+ | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+ | (예: 충청남도) | RESTAURANT (안심식당) | | | | | | MAFRA API |
+ | | RESTAURANT (모범음식점) | | | | | | LocalData CSV |
+ | | RESTAURANT (백년가게) | | | | | | ODCloud API |
+ | | MART (대형마트) | | | | | | LocalData CSV |
+ | | MART (준대규모점포 - SSM) | | | | | | 대규모 데이터셋 내 식별 |
+ | | MART (기타식품판매업) | | | | | | LocalData CSV |
+ | | SPOT (관광명소) | | | | | | TourAPI v2 |
+ 
+ ### 🛠️ 상시 운영 표준 감사 SQL
+ 관리자 페이지 장애 시 다음 쿼리로 지표를 확인하십시오.
+ 
+ ```sql
+ -- 1. 최근 지역 순환 로그 및 7대 지표 확인
+ SELECT created_at, message, api_status 
+ FROM automation_logs 
+ WHERE job_name = 'DAILY_REGION_SYNC' 
+ ORDER BY created_at DESC LIMIT 1;
+ ```
 
 ---
 
@@ -87,9 +75,12 @@ WHERE raw_data->>'BSNSSP_NM' IS NOT NULL
 **목적**: 사용자의 예약 지역을 타겟팅하여 동적 데이터(병원, 주유소, 축제)가 최신 API 원천에서 수집되었는지 확인.
 
 ### API별 지표 대조 (Dynamic Data)
-| 카테고리 | API 출처 (api_source) | 기존 데이터 수 | 패치 성공 | 신규(New) | 업데이트 | 최종 적재수 | 비고 |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **병원** | `NMC_HOSPITAL` (응급실) | | | | | | |
+
+| 카테고리 | 기존 데이터 수 | API 수신 수 | 신규 삽입(New) | 변경 갱신(Upd) | 최종 총계 | 비고 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **HOSPITAL** | | | | | | |
+| **GAS_STATION** | | | | | | |
+| **FESTIVAL** | | | | | | |
 
 ### 🛠️ D-3 캐싱 표준 감사 SQL (Standard Audit SQL)
 동적 캐싱 데이터의 무결성을 다음 쿼리로 검증하십시오.
@@ -114,8 +105,6 @@ FROM master_places
 WHERE category = 'GAS_STATION' AND (address IS NULL OR address = '');
 ```
 | | `KAKAO_HP8` (종합병원) | | | | | | |
-| **주유소** | `OPINET` (실내등유) | | | | | | |
-| **축제** | `TOUR_FESTIVAL` | | | | | | |
 
 ### 클러스터링 지표 (Template)
 - **타겟 예약 수**: (예: 3/31 타겟 예약 건수)
@@ -134,12 +123,19 @@ WHERE category = 'GAS_STATION' AND (address IS NULL OR address = '');
 
 | 카테고리 | 1번 쿼터 (Raw) | 2번 쿼터 (Top 300) | 카카오 정밀검증 | 최종 적재 | 비고 |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| RESTAURANT | | | | | |
-| SPOT | | | | | |
-| MART | | | | | |
-| HOSPITAL | | | | | |
-| GAS_STATION | | | | | |
-| FESTIVAL | | | | | |
+| RESTAURANT | | | | | 1차 1000개 추출 대조 |
+| SPOT | | | | | 1차 500개 추출 대조 |
+| MART | | | | | 1차 100개/최종 20개
+| HOSPITAL | | | | | 1차 100개/최종 15개 |
+| GAS_STATION | | | | | 1차 100개/최종 10개 |
+| FESTIVAL | | | | | 1차 100개/최종 15개 |
+
+### 시뮬레이션 리포트 양식 (Simulation Report)
+| 단계 | 데이터 수 | 검증 성공률 | 오류 코드 | 조치 사항 |
+| :--- | :---: | :---: | :---: | :--- |
+| 1차 쿼터 | | | | |
+| 2차 쿼터 | | | | |
+| 최종 적재 | | | | |
 
 > [!WARNING]
 > **RPC 호출 주의**: 파라미터명은 반드시 **`p_category`**를 사용하며, 좌표/반경 데이터는 **`NUMERIC`** 타입으로 전달해야 에러를 방지할 수 있습니다. (Postgres Overloading 방어)
@@ -147,10 +143,10 @@ WHERE category = 'GAS_STATION' AND (address IS NULL OR address = '');
 ---
 
 ## 📄 4. 보고서 양식 (Standard Report)
-
-모든 리스트 출력 요청 시 반드시 다음 경로에 **마스터 DB 1차 선별 완료본(Quota 300)**을 포함한 전수 리스트를 생성합니다.
-*   **파일 경로**: `C:\Users\USER\Desktop\RAON.I\spot_final_audit.md`
-*   **포함 항목**: [번호], [카테고리], [이름], [신뢰점수], [주소], [거리(m)]
-
----
+ 
+ 모든 리스트 출력 요청 시 반드시 다음 경로에 **1차 선별 로직을 통과한 1차 쿼터(Raw) 적용 리스트 전체**를 생성합니다.
+ *   **파일 경로**: `C:\Users\USER\Desktop\RAON.I\spot_final_audit.md`
+ *   **포함 항목**: `[번호], [카테고리], [이름], [신뢰점수], [주소], [거리(m)]`
+ 
+ ---
 *Last Updated: 2026-04-02 (v11.9.2 Precision Audit SOP)*

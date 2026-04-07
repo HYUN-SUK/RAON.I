@@ -1,0 +1,37 @@
+[
+  {
+    "group": "마트-대규모",
+    "status": 500,
+    "preview": "Unexpected errors\n"
+  },
+  {
+    "group": "마트-준대규모",
+    "status": 500,
+    "preview": "Unexpected errors\n"
+  },
+  {
+    "group": "마트-기타식품",
+    "status": 500,
+    "preview": "Unexpected errors\n"
+  },
+  {
+    "group": "식당-모범",
+    "status": 500,
+    "preview": "Unexpected errors\n"
+  },
+  {
+    "group": "명소(TourAPI)",
+    "status": 500,
+    "preview": "Unexpected errors\n"
+  },
+  {
+    "group": "식당-백년",
+    "status": 400,
+    "preview": "{\"code\":-3,\"msg\":\"등록되지 않은 서비스 입니다.\"}\n"
+  },
+  {
+    "group": "식당-안심",
+    "status": 200,
+    "preview": "{\"Grid_20200713000000000605_1\":{\"totalCnt\":67338,\"startRow\":1,\"endRow\":1,\"result\":{\"code\":\"INFO-000\",\"message\":\"정상 처리되었습니다.\"},\"row\":[{\"ROW_NUM\":1,\"REL"
+  }
+]

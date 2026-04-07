@@ -437,14 +437,11 @@ async function syncLocalData() {
             let xIdx = header.findIndex(h => /좌표정보X|X/i.test(h) || h.includes('ÁÂÇ¥Á¤º¸X'));
             let yIdx = header.findIndex(h => /좌표정보Y|Y/i.test(h) || h.includes('ÁÂÇ¥Á¤º¸Y'));
             
-            // 매칭 실패 시 행안부 표준 인덱스 강제 적용 (07_22_13_P 기준)
             if (nameIdx === -1) nameIdx = 18; 
             if (addrIdx === -1) addrIdx = 26; 
             if (statusIdx === -1) statusIdx = 10;
             if (xIdx === -1) xIdx = 24;
             if (yIdx === -1) yIdx = 25;
-
-            console.log(`    Final Mapping: Name[${nameIdx}], Addr[${addrIdx}], Status[${statusIdx}], X[${xIdx}]`);
 
             let chunk = [];
             for (let i = 1; i < records.length; i++) {

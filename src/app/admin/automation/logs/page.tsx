@@ -325,6 +325,76 @@ export default function AutomationLogsPage() {
           </div>
         );
       }
+      
+      if (log.job_name === 'DAILY_REGION_SYNC') {
+        const apiStatus = log.api_status || [];
+        
+        return (
+          <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
+            <div className="flex justify-between items-center mb-10">
+              <h4 className="text-xl font-black text-gray-900 flex items-center">
+                <RefreshCw className="w-6 h-6 mr-3 text-brand-600 animate-spin-slow" /> 17일 주기 지역 순환 동기화 리포트
+              </h4>
+              <div className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-black rounded-2xl shadow-lg">
+                수신 총계: {log.processed_count.toLocaleString()}건
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">갱신 지역</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {apiStatus.map((s: any, i: number) => (
+                    <tr key={i} className="hover:bg-gray-50/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-full">{s.region}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          {s.name === 'RESTAURANT' && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
+                          {s.name === 'MART' && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
+                          {s.name === 'SPOT' && <MapPin className="w-3.5 h-3.5 mr-2 text-blue-500" />}
+                          <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right text-xs font-bold text-gray-400">{(s.existing_count || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right text-xs font-black text-gray-700">{(s.fetched_count || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-block bg-brand-50 text-brand-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-brand-100">
+                          +{s.new_count || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-block bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-blue-100">
+                           {s.updated_count || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm font-black text-gray-900">{(s.total_count || 0).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-8 flex items-center justify-between px-2">
+              <div className="flex items-center text-[10px] text-gray-400 font-bold">
+                <AlertCircle className="w-3 h-3 mr-1.5" /> * API 수신 수에 존재하지 않는 기존 데이터는 자동으로 비활성화(is_active=false) 처리됩니다.
+              </div>
+              <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Precision Audit Engine v2.0</p>
+            </div>
+          </div>
+        );
+      }
     } catch (e) {
       console.error(e);
       return <div className="mx-10 my-4 text-xs text-red-500 font-bold">상세 데이터를 파싱할 수 없습니다.</div>;
