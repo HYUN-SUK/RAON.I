@@ -31,14 +31,14 @@
     *   **이중 쿼터 시스템 (Dual-Quota System v11.5)**: 서버 부하 방지와 고품질 데이터 선별을 위해 이중 쿼터 체계를 적용합니다.
         1. **1번 쿼터 (DB 추출)**: 마스터 DB(SQL RPC)에서 반경 30km의 데이터를 넉넉하게 확보하는 안전 그물망.
         2. **2번 쿼터 (정예 선별)**: 확보된 데이터를 점수순(Trust Score DESC, Distance ASC)으로 자른 후 카카오 정밀 검증 및 스마트플랜 DB에 적재하는 최종 후보수.
-    *   **전국 데이터 소스 확장 및 API 표준화 (v11.5)**: 403 Forbidden 에러가 발생하는 구형 파일 소스 대신 **행정안전부 통합 OpenAPI(1741000)**를 전국 풀스캔 표준(Gold Standard)으로 채택합니다.
-        - **Target Categories**: 대규모점포, 준대규모점포(SSM), 기타식품판매업, 모범음식점.
+    *   **전이중 지역 로테이션 및 통합 CSV 다이렉트 스트리밍 (v11.8 vNext)**: 잦은 500 에러 및 WAF 차단을 유발하던 과거의 OpenAPI(1741000)를 전면 폐기하고, **LocalData(행정안전부)의 지역별 공식 파일(CSV) 다운로드 엔드포인트**를 `Referer` 우회 기법으로 다이렉트 스트리밍하여 인메모리 파싱하는 무손실 파이프라인으로 전면 개방(Gold Standard)했습니다.
+        - **Target Categories**: 대규모점포, 기타식품판매업, 모범음식점. (순수 CSV 포맷 연동)
         - **DB 레벨 카테고리 Quota 상한 (1번 쿼터)**: 전교 석차를 매기듯이 상위권 데이터를 DB 레벨에서 1차 차단합니다:
           | 카테고리 | 1번 쿼터(DB) | 2번 쿼터(정예) | 비고 |
           |---------|------------|------------|------|
           | RESTAURANT | 1000 | 300 | 1차 석차 1,000위 내외 선별 |
           | SPOT | 500 | 300 | 인지도 기반 500개 추출 |
-          | MART | 100 | 15 | SSM/대형마트 포함 |
+          | MART | 100 | 20|SSM/대형마트 포함 |
           | HOSPITAL | 100 | 15 | 긴급 의료시설 우선 |
           | GAS_STATION | 100 | 10 | 최저가 및 거리 기준 |
           | FESTIVAL | 100 | 15 | 일정 중복 축제 우선 |
@@ -164,10 +164,9 @@
 - **거리 가중치**: 반경 30km 확장 검색 결과를 이 계층별 점수와 합산하여 최종 상위 10~15개를 선별합니다.
 
 ### 4.2 대형마트 및 지역 거점 마트 - `[MART]`
-- **데이터 소스 (v11.5 Ground Zero Gold Standard)**:
-    1. **LOCALDATA_MART_LARGE**: 행안부 대규모점포 (기초: 전국 CSV / 상시: OpenAPI 1741000).
-    2. **LOCALDATA_MART_SSM**: 행안부 준대규모점포 (기초: 전국 CSV / 상시: OpenAPI 1741000).
-    3. **LOCALDATA_MART_OTHER**: 행안부 기타식품판매업(슈퍼) (기초: 전국 CSV / 상시: OpenAPI 1741000).
+- **데이터 소스 (v11.8 vNext Gold Standard)**:
+    1. **LOCALDATA_MART_LARGE**: 행안부 대규모점포 (매일 지역별 CSV 파일 다이렉트 다운로드 및 스트림 파싱).
+    2. **LOCALDATA_MART_OTHER**: 행안부 기타식품판매업(슈퍼) (매일 지역별 CSV 파일 다이렉트 다운로드 및 스트림 파싱).
 - **브랜드 우선순위 스코어링 (v10.0 고도화)**:
     1. **🥇 하나로마트/NH (90점)**: 지역 농지 거점 및 식재료 구비 강점.
     2. **🥈 대협 3사 (80점)**: 이마트, 롯데마트, 홈플러스, 노브랜드, 트레이더스.
@@ -181,7 +180,7 @@
 - **점수(Score)**: 가중치 `[E:0.30, Q:0.10, CF:0.20, L:0.40]`. 존재 확실성(Existence) 최우선. 영유아 동반 시 '소아/아동' 키워드가 `persona_match=45`로 반영.
 
 ### 4.3 우수 식당 (인증별 가중치 합산 및 중복 제거) - `[RESTAURANT]`
-- **데이터 소스**: (1순위) 소진공 백년가게(SMBA_BAEK), (2순위) **행안부 모범음식점(MOIS_GOOD_RESTAURANT - 기초: 전국 CSV / 상시: OpenAPI 1741000)**, (3순위) 농림축산부 안심식당(SAFE_RESTAURANT - 실시간 API).
+- **데이터 소스**: (1순위) 소진공 백년가게(SMBA_BAEK - ODCloud Swagger API UDDI 직접 탐색 탑재), (2순위) **행안부 모범음식점(LOCALDATA_RESTAURANT_GOOD - 지역별 CSV 다이렉트 다운로드 및 스트리밍 파싱)**, (3순위) 농림축산부 안심식당(SAFE_RESTAURANT - 실시간 API).
 - **인증별 가중치 합산 (v10.4 고도화)**: 
     - **병합(Deduplication)**: 상호명과 주소가 동일한 업소는 하나로 통합하여 인증 점수를 누적 합산합니다.
     - **가중치 부여**: `Base 10 + 백년가게(50) + 모범음식점(30) + 안심식당(20)`
@@ -202,7 +201,8 @@
 - **1차 선별 (v10.7)**: 30km 나선형 수집본 중, 최저가순(PRICE)을 1순위로, 최단거리를 2순위로 정렬하여 10~20개를 선별합니다.
 - **점수(Score)**: 가중치 `[E:0.30, Q:0.10, CF:0.20, L:0.40]`. **동절기(11월~3월)** 시 `weather_match=50`으로 ContextFit 축이 만점 근접하여 최상위 배치.
 
-### 4.5 관광 기관 API (현지 명소/관광지) - `[SPOT]` (v10.5 고도화)
+### 4.5 관광 기관 API (현지 명소/관광지) - `[SPOT]` (v11.8 고도화)
+- **TourAPI v2 아키텍처 이관**: 잦은 에러 충돌을 유발했던 구형 파라미터(`listYN` 등)를 폐기하고, 한국관광공사의 차세대 `KorService2/areaBasedList2`로 엔드포인트 세대 교체를 완료하여 200 OK 소통 신뢰성을 완전히 복구했습니다.
 - **1차 선별 및 스코어링 로직 (v10.5)**: 
     1. **S-Tier 키워드 가점 (+45점)**: 국립, 수목원, 휴양림, 관광지, 출렁다리, 모노레일, 케이블카, 해수욕장, 테마파크, 사찰, 읍성 등 상징성이 높은 키워드에 가산점을 부여합니다.
     2. **A-Tier 키워드 가점 (+30점)**: 박물관, 미술관, 천문대, 역사, 향교, 전통가옥 등 문화·교육적 명소에 가산점을 부여합니다.
@@ -235,10 +235,10 @@
    - **NMC (Empty Response)**: 법정동 코드 인코딩 오류 발생 시 반경 기반 공간 쿼리(`get_master_places_in_radius`)로 대체.
    - **TourAPI (XML Data)**: JSON 응답 강제 및 XML 찌꺼기 감지 시 `try-catch`로 파이프라인 중단 방지.
 2. **Open-Meteo 전일 기상 조회 (Fallback)**: KMA 기상청 중기/단기 API가 일 처리량을 초과할 경우 즉각 Open-Meteo로 우회하여 여행 전체의 일자별 `Day 1, Day 2, Day 3` 날씨 요약을 추출합니다. **Open-Meteo는 비상업적 용도의 경우 별도의 인증키(API Key) 없이 작동하므로**, 추가 환경 변수 설정 없이 즉각적인 장애 대응이 가능합니다.
-3. **API Endpoint Resilience (2026-03-14 Post-Mortem)**: 
-    - **MOIS API Issue**: `B552061` 및 `1741000` 일부 엔드포인트는 주기적으로 HTTP 500 에러를 반환하거나 JSON 타입을 지원하지 않는 불안정성을 보입니다.
-     - **Gold Standard (LocalData)**: 이 문제를 해결하기 위해 **`localdata.go.kr`의 CSV/XLSX 원본 파일 직접 동기화**를 상시 동기화의 **Gold Standard(표준)**로 확정했습니다. `scripts/sync-master-places.mjs`(구 `master-sync-reliability.mjs` 로직 통합)를 통해 API 장애 시에도 전국 데이터 동기화의 연속성을 보장합니다.
-     - **Memory-Safe Chunking**: 전국 단위(10만 건+) 대용량 데이터 처리 시 타임아웃을 방지하기 위해 **100건 단위 청크 처리 및 1,000건당 3초의 GC 지연 시간**을 강제 적용하여 인프라 안정성을 확보했습니다.
+3. **API Endpoint Resilience (v11.8 Post-Mortem & Architecture Shift)**: 
+    - **OpenAPI 1741000 WAF 차단 이슈**: 행안부 1741000 계열 API는 지속적으로 HTTP 500 에러와 WAF(방화벽) 차단을 유발했습니다.
+    - **LocalData Direct CSV Streaming**: API를 강제로 찌르는 대신, 사람이 직접 다운받는 URL(`file.localdata.go.kr/...`)에 `Referer` 헤더를 위장 전송하여, **매일 해당 시도(SIDO)의 CSV 파일만을 다운받아 `csv-parser`와 `iconv-lite`로 메모리 상에서 실시간 스트리밍 파싱**하는 기법(Gold Standard)을 전격 도입하여 방화벽 장애와 메모리 폭발을 원천 봉쇄했습니다.
+    - **동적 백년가게 UDDI 경로 복구기**: 소상공인시장진흥공단의 백년가게 API 경로(UDDI)가 임의 수정으로 수시 파괴되던 현상을 탐지하고, `getLatestOdcloudPath`(Swagger 문서 실시간 파싱) 모듈을 통해 어떤 환경에서도 최신의 접근 경로를 자동 복원하는 자가수복(Self-Healing) 로직을 이식했습니다.
 4. **Timezone-Aware Cron Job**:
      - **KST (UTC+9) 고정**: 서버 시간(UTC) 오차로 인한 매칭 실패를 방지하기 위해, 모든 스케줄링 로직은 **한국 시간(KST)으로 보정된 날짜**를 기준으로 '3일 전' 예약자를 정확히 타겟팅합니다.
     - **Safe Restaurant API**: 농식품부 API(`211.237.50.150`)를 유지하되, 일일 쿼터 및 키 오류 발생 시 즉시 `debug_safe_rest.mjs`에서 검증된 키로 복구하는 체계를 유지합니다.
@@ -248,9 +248,9 @@
     - 모든 데이터 질의는 Vercel 배포 시 `get_master_places_in_radius` SQL 함수 1회 호출로 묶여 실행됩니다. 
     - **RPC 파라미터 표준화**: 카테고리 필터링이 누락되거나 잘못된 값이 전달되지 않도록 모든 호출은 **`p_category`** 파라미터를 명시적으로 사용하여 카테고리별 쿼터(Quota)를 엄격히 준수합니다. (2026-03-25 수정보완)
     - 이후 Vercel Node 컴파일 서버에서 분류/가중치 로직이 10 밀리초 단위로 수행됩니다.
-5. **Upsert Conflict Guard (Error 21000 방어) - 'Unique Guard'**: 
-    - **장애 요인**: 수집된 배열 내부에 동일한 ID(`UUID v5`)가 2개 이상 존재할 경우, Supabase의 `.upsert()`는 SQL 규칙에 따라 배열 전체의 적재를 거부(Reject)합니다.
-    - **방어 로직 (v11.4)**: `upsertBatch` 함수 내에서 `dedupeMap`을 사용하여, 동일 배치 내 중복 데이터 발생 시 자바스크립트 레벨에서 사전 병합하여 선제 방어합니다.
+5. **Upsert Conflict Guard & Coordinate Preservation**: 
+    - **UUID 충돌 선제 방어**: 수집된 배열 내부에 동일한 ID(`UUID v5`)가 2개 이상 존재할 경우 Supabase 삽입 거부를 막기 위해 자바스크립트 레벨에서 사전 병합(Grouping)합니다.
+    - **좌표(lat/lng) 무결성 보상 로직 (v11.8 vNext)**: 로테이션 작업 시 기존 팩트들이 텍스트(주소) 단위로 무자비하게 덮어쓰여질 때 `lat`/`lng` 가 NULL 값으로 변질되어 `not-null` DB 제약 조건이 터지는 치명적인 사고를 막기 위해 **1) 기존 데이터의 좌표는 무조건 보존(상속)** 하며, **2) 완전 신규 데이터는 기초 좌표를 `(0.0, 0.0)`으로 바인딩 보호**하는 2중 안전 장치를 구동합니다.
 6. **Audit & Telemetry (파이프라인 모니터링)**:
     - **로그 기록**: `automation_logs` 테이블의 `api_status` 필드를 통해 각 소스별 `fetched`, `existing`, `new` 건수를 대조 모니터링합니다. 
     - **장애 진단**: 파이프라인 응답은 정상이지만 결과 데이터가 없는 경우, `automation_logs`의 `message` 필드(JSON)를 분석하여 단계별 유실 지점을 즉시 파악합니다.
@@ -287,40 +287,77 @@
 
 | 분류 | 공식 API 명칭 (외부) | 코드 식별자 (`api_source`) | 내부 카테고리 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| **마트** | 행정안전부_생활_대규모점포 | `LOCALDATA_MART_LARGE` | `MART` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
-| | 행정안전부_생활_준대규모점포 | `LOCALDATA_MART_SSM` | `MART` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
-| | 행정안전부_식품_식료품판매업(기타) | `LOCALDATA_MART_OTHER` | `MART` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
-| | 중형슈퍼마켓 (ZIP 파일) | `LOCALDATA_MART_SUPER` | `MART` | CSV 기반 보완 데이터 |
-| **식당** | 행정안전부_모범음식점정보 | `MOIS_GOOD_RESTAURANT` | `RESTAURANT` | 기초: 전국 ZIP / 상시: OpenAPI 1741000 |
-| | 소상공인_전국 백년가게 | `SMBA_BAEK` | `RESTAURANT` | 30년 이상 명맥 유지 맛집 |
-| | 농림축산부 안심식당 | `SAFE_RESTAURANT` | `RESTAURANT` | 농식품부 API (211.237.50.150) |
-| **명소** | 관광공사_관광정보_GW | `TOUR_SPOT` | `SPOT` | 전국 주요 관광명소 |
+| **마트** | 행정안전부_생활_대규모점포 | `LOCALDATA_MART_LARGE` | `MART` | **LocalData 지역별 CSV 다이렉트 스트리밍 (17일 순환)** |
+| | 행정안전부_식품_식료품판매업(기타) | `LOCALDATA_MART_OTHER` | `MART` | **LocalData 지역별 CSV 다이렉트 스트리밍 (17일 순환)** |
+| **식당** | 행정안전부_모범음식점정보 | `LOCALDATA_RESTAURANT_GOOD` | `RESTAURANT` | **LocalData 지역별 CSV 다이렉트 스트리밍 (17일 순환)** |
+| | 소상공인_전국 백년가게 | `SMBA_BAEK` | `RESTAURANT` | ODCloud Swagger 자가탐색 `getLatestOdcloudPath` |
+| | 농림축산부 안심식당 | `SAFE_RESTAURANT` | `RESTAURANT` | 농식품부 API (211.237.50.150) 유지 |
+| **명소** | 관광공사_명소정보 | `TOUR_SPOT` | `SPOT` | **TourAPI v2.0 (KorService2) 이관 완료** |
 
 - **Storage**: `public.master_places` 테이블 (PostgreSQL/PostGIS)
 - **ID Strategy**: `UUID v5 (Namespace: 6ba7b810...)` 기반 `id = uuidv5(api_source + name + address)`
 - **Coordinate**: `EPSG:5174` -> `WGS84` (Proj4 변환 후 `location` 필드 저장)
 
-전국 10만 건 이상의 정적 마스터 데이터와 매주 새롭게 유입되는 동적 데이터를 단일한 영구 데이터베이스(Single Source of Truth)로 관리하여, 고속(10ms) 추천과 데이터 자산화를 동시에 달성하는 하이브리드 엔진입니다.
+과거의 주간 전국 단위 배치(Weekly Batch)와 CSV 기반 마트 관리는 폐기되었습니다. 현재 모든 정적 마스터 데이터는 **행안부 OpenAPI(1741000)**를 기반으로 전국 17개 시도를 매일 1곳씩 순환하며 정밀 동기화합니다.
 
-1. **데이터 스토리지 구조 (Dual-Table)**:
-   - `master_places`: 식당, 마트, 명소, 카페 등 일반 장소를 위한 `GIST(geometry)` 인덱스 적용 테이블.
-   - `master_places_gas`: 겨울철 등유 수급이 핵심인 주유소 전용 테이블 (`trust_score` 90점 이상 고정 관리).
-2. **주간 풀-페이지네이션 동기화 (Weekly Batch) - v11.5 API 중심 수집**:
-    - 매주 월요일 04:00 KST, 공공 OpenAPI(1741000)를 통해 전국 데이터를 페이징 수집합니다.
-    - **실행 환경**: `scripts/sync-master-places.mjs` (MOIS Integrated API v11.5).
-    - **핵심 로직**: `fetchMoisIntegrated` 엔진을 통한 전국 풀스캔 수집 (100건/Page).
-   - **결정론적 ID (UUID v5)**: `api_source + 상호 + 주소`를 조합한 고유 ID를 생성합니다. (단일 장소가 여러 인증을 받은 경우 각각 수집하여 신뢰도 지표로 활용 가능)
-   - **지오코딩 중복 스킵**: 배치 시작 시 DB의 기존 주소를 메모리에 캐싱하여, 이미 좌표가 있는 주소는 카카오 API를 호출하지 않습니다. 첫 주에만 수만 건 호출하며 이후에는 신규 항목만 지오코딩을 수행합니다.
-   - **좌표계 표준화 (Proj4)**: 행안부 TM 좌표(`EPSG:5174`)를 위경도(`WGS84`)로 변환하여 적재 실패를 해결합니다.
-   - **Upsert 패턴**: 생성된 고유 ID를 Primary Key로 삼아 `onConflict: id` 전략으로 중복 없이 정보를 업데이트합니다.
-   - **Throttling**: 관공서 서버 부하를 방지하기 위해 0.5~1초의 의도적 지연을 삽입합니다.
-3. **출처 신뢰 계층 (Existence Score의 source_confidence 기반)**:
-   - `55~60점`: 백년가게(SMBA_BAEK), 안심식당(SAFE_RESTAURANT), 병원(NMC_HOSPITAL), 오피넷(OPINET), 카카오 검증(MASTER_ENRICHED)
-   - `45~50점`: 한국관광공사 등록 명소(TOUR_SPOT/TOUR_CAFE), 모범음식점(MOIS_GOOD_RESTAURANT), 대규모점포(MART)
-   - `30~40점`: 일반 상권 정보(LARGE_STORE) 및 기타 데이터
-   - 이 점수는 v2 4축 체계의 **Existence 축**에 반영되며, 카테고리별 가중치와 결합해 `finalScore`를 결정합니다. 공공기관 인증 장소가 자연스럽게 상위에 배치됩니다.
-4. **공간 인덱싱 (GIST Index)**:
-   - 위경도 좌표를 PostGIS의 `geometry(Point, 4326)` 타입으로 변환 저장하여, 반경 20km 검색 시 수십만 건의 레코드 중에서도 10ms 이내에 결과를 반환합니다.
+### 7.1 데이터 원천 및 저장소 정밀 명세 (Standard Mapping)
+
+모든 데이터는 `master_places` 테이블에 저장되며, `is_active` 필드를 통해 사업장 상태를 실시간(17일 주기)으로 관리합니다.
+
+| 분류 | 공식 API 명칭 (외부) | 코드 식별자 (`api_source`) | 내부 카테고리 | 동기화 주기 |
+| :--- | :--- | :--- | :--- | :--- |
+| **마트** | 행안부_대규모점포 (CSV) | `LOCALDATA_MART_LARGE` | `MART` | 17일 지역 로테이션 (CSV 스트리밍) |
+| | 행안부_기타식품판매업 (CSV) | `LOCALDATA_MART_OTHER` | `MART` | 17일 지역 로테이션 (CSV 스트리밍) |
+| **식당** | 행안부_모범음식점 (CSV) | `LOCALDATA_RESTAURANT_GOOD` | `RESTAURANT` | 17일 지역 로테이션 (CSV 스트리밍) |
+| | 소상공인_백년가게 (API) | `SMBA_BAEK` | `RESTAURANT` | 17일 지역 로테이션 (UDDI 자동탐색) |
+| | 농식품부_안심식당 (API) | `SAFE_RESTAURANT` | `RESTAURANT` | 17일 지역 로테이션 |
+| **명소** | 관광공사_명소정보 (API) | `TOUR_SPOT` | `SPOT` | 17일 지역 로테이션 (TourAPI v2.0) |
+
+### 7.1.1 D-3 동적 수집 데이터 상세 명세 (Dynamic Data)
+
+예약 기준 3일 전(D-3)에 실시간으로 수집되어 `master_places`에 업서트되는 동적 데이터 규격입니다.
+
+| 분류 | 공식 API 명칭 (외부) | 코드 식별자 (`api_source`) | 내부 카테고리 | 비고 |
+| :--- | :--- | :--- | :--- | :--- |
+| **병원** | 국립중앙의료원_전국 응급의료기관 정보 | `NMC_HOSPITAL` | `HOSPITAL` | 실시간 응급의료정보 (D-3) |
+| | 카카오 로컬 API (HP8) | `KAKAO_HP8` | `HOSPITAL` | 종합병원/의원 보완 데이터 |
+| **주유소** | 한국석유공사_오피넷(Opinet) | `OPINET_GAS` | `GAS_STATION` | 실내등유(C004) 전용 (D-3) |
+| **축제** | 관광공사_국문 관광정보 서비스_GW | `TOUR_FESTIVAL` | `FESTIVAL` | 지역 축제 및 행사 (D-3) |
+
+### 7.1.2 17개 시도 API 표준화 매핑 (Region Standardization)
+
+지역별로 서로 다른 API 파라미터 기준을 다음과 같이 일치화하여 통합 동기화 엔진에 적용합니다.
+
+| 표준 시도명 (SIDO_ROTATION) | LocalData 시도 코드 (`orgCode`) | 농식품부(MAFRA) 필터링 | NMC(병원) STAGE1 | 비고 |
+| :--- | :--- | :--- | :--- | :--- |
+| **서울특별시** | `6110000_ALL` | 서울특별시 | 서울 | 1:1 지역 스트리밍 |
+| **부산광역시** | `6260000_ALL` | 부산광역시 | 부산 | 1:1 지역 스트리밍 |
+| **대구광역시** | `6270000_ALL` | 대구광역시 | 대구 | 1:1 지역 스트리밍 |
+| **인천광역시** | `6280000_ALL` | 인천광역시 | 인천 | 1:1 지역 스트리밍 |
+| **광주광역시** | `6290000_ALL` | 광주광역시 | 광주 | 1:1 지역 스트리밍 |
+| **대전광역시** | `6300000_ALL` | 대전광역시 | 대전 | 1:1 지역 스트리밍 |
+| **울산광역시** | `6310000_ALL` | 울산광역시 | 울산 | 1:1 지역 스트리밍 |
+| **세종특별자치시** | `5690000_ALL` | 세종특별자치시 | 세종시 | 1:1 지역 스트리밍 |
+| **경기도** | `6410000_ALL` | 경기도 | 경기 | 1:1 지역 스트리밍 |
+| **강원특별자치도** | `6530000_ALL` | 강원특별자치도 | 강원도 | 구 강원도 |
+| **충청북도** | `6430000_ALL` | 충청북도 | 충북 | 1:1 지역 스트리밍 |
+| **충청남도** | `6440000_ALL` | 충청남도 | 충남 | 1:1 지역 스트리밍 |
+| **전북특별자치도** | `6540000_ALL` | 전북특별자치도 | 전북 | 구 전라북도 |
+| **전라남도** | `6460000_ALL` | 전라남도 | 전남 | 1:1 지역 스트리밍 |
+| **경상북도** | `6470000_ALL` | 경상북도 | 경북 | 1:1 지역 스트리밍 |
+| **경상남도** | `6480000_ALL` | 경상남도 | 경남 | 1:1 지역 스트리밍 |
+| **제주특별자치도** | `6500000_ALL` | 제주특별자치도 | 제주 | 1:1 지역 스트리밍 |
+
+- **Storage**: `public.master_places` 테이블 (PostgreSQL/PostGIS)
+- **Soft-Delete (is_active)**: 지역 순환 시 API 응답에 더 이상 존재하지 않는 데이터는 자동으로 `is_active = false` 처리됩니다.
+
+### 7.2 명소 인기도 점진적 정밀화 (Popularity Rotation)
+- 전국 1만여 개의 명소 중 매일 가장 오래된 **800건**의 `readcount`를 실시간 API로 갱신하여 인기도 지형도를 정교하게 유지합니다.
+
+### 7.3 실행 엔진 및 스케줄링
+- **실행 환경**: `scripts/daily-region-sync.mjs` (Vercel Cron / GitHub Actions)
+- **실행 시각**: 매일 04:00 KST
+- **모니터링**: 관리자 페이지(Admin Dashboard) 내 'Automation Logs'에서 7대 핵심 지표(신규, 갱신, 총계 등)를 실시간 확인 가능합니다.
 
 ---
 **라온아이 프로젝트 SSOT 기준 문서 - 9 카테고리 8단계 개편 및 Phase 11/12 하이브리드 엔진 통합 사양**
