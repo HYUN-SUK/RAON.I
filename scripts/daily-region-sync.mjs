@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import { v5 as uuidv5 } from 'uuid';
+import csvParser from 'csv-parser';
+import iconv from 'iconv-lite';
 
 dotenv.config({ path: '.env.local' });
 
@@ -24,6 +26,15 @@ const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 const SIDO_MAP = {
   '서울특별시': 1, '인천광역시': 2, '대전광역시': 3, '대구광역시': 4, '광주광역시': 5, '부산광역시': 6, '울산광역시': 7, '세종특별자치시': 8,
   '경기도': 31, '강원특별자치도': 32, '충청북도': 33, '충청남도': 34, '경상북도': 35, '경상남도': 36, '전북특별자치도': 37, '전라남도': 38, '제주특별자치도': 39
+};
+
+const SIDO_ORG_MAP = {
+  '서울특별시': '6110000_ALL', '부산광역시': '6260000_ALL', '대구광역시': '6270000_ALL',
+  '인천광역시': '6280000_ALL', '광주광역시': '6290000_ALL', '대전광역시': '6300000_ALL',
+  '울산광역시': '6310000_ALL', '세종특별자치시': '5690000_ALL', '경기도': '6410000_ALL',
+  '강원특별자치도': '6530000_ALL', '충청북도': '6430000_ALL', '충청남도': '6440000_ALL',
+  '전북특별자치도': '6540000_ALL', '전라남도': '6460000_ALL', '경상북도': '6470000_ALL',
+  '경상남도': '6480000_ALL', '제주특별자치도': '6500000_ALL'
 };
 
 // --- [Phase 1: 공통 방어막 (Exponential Backoff + Jitter)] ---
@@ -119,12 +130,12 @@ async function dailyRegionSync() {
 
   // 2. 카테고리별 동기화 실행
   // [2.1] 식당군 (모범/안심/백년)
-  await syncMoisGoodRestaurants(targetSido, seenIds, stats.categories.RESTAURANT);
+  await syncLocalDataCSV(targetSido, seenIds, stats.categories.RESTAURANT, 'RESTAURANT');
   await syncSafeRestaurants(targetSido, seenIds, stats.categories.RESTAURANT);
   await syncBaeknyeon(targetSido, seenIds, stats.categories.RESTAURANT);
 
-  // [2.2] 마트군 (대규모/준대규모/기타식품)
-  await syncMoisMarts(targetSido, seenIds, stats.categories.MART);
+  // [2.2] 마트군 (대규모/기타식품)
+  await syncLocalDataCSV(targetSido, seenIds, stats.categories.MART, 'MART');
 
   // [2.3] 명소군 (관광공사 지역기반 동기화) - 보정 추가
   await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
@@ -162,87 +173,64 @@ async function dailyRegionSync() {
 }
 
 /**
- * 행안부 마트 동기화 (대규모/SSM/기타식품)
+ * 행안부 LocalData 지역별 CSV 다이렉트 갱신 엔진 (마트, 모범식당 통합)
  */
-async function syncMoisMarts(sido, seenIds, stat) {
-  console.log(`🛒 [MOIS] ${sido} 마트(대규모/SSM/기타) 동기화 중...`);
-  const endpoints = [
-    { name: '대규모점포', path: 'LargeScaleRetailStore/info', api_source: 'LOCALDATA_MART_LARGE' },
-    { name: '준대규모점포(SSM)', path: 'QuasiWholesaleRetailStore/info', api_source: 'LOCALDATA_MART_SSM' },
-    { name: '기타식품판매업', path: 'OtherFoodSalesInd/info', api_source: 'LOCALDATA_MART_OTHER' }
-  ];
+async function syncLocalDataCSV(sido, seenIds, stat, categoryType) {
+  const orgCode = SIDO_ORG_MAP[sido];
+  if (!orgCode) return;
+
+  const endpoints = categoryType === 'MART' 
+    ? [ { path: 'large_scale_retail_stores', source: 'LOCALDATA_MART_LARGE', name: '대규모점포' },
+        { path: 'other_food_retailers', source: 'LOCALDATA_MART_OTHER', name: '기타식품판매업' } ]
+    : [ { path: 'excellent_restaurant_info', source: 'LOCALDATA_RESTAURANT_GOOD', name: '모범음식점' } ];
 
   for (const ep of endpoints) {
-    let pageNo = 1, hasMore = true;
-    while (hasMore && pageNo <= 10) {
-      const url = `http://apis.data.go.kr/1741000/${ep.path}?serviceKey=${MOIS_API_KEY}&pageNo=${pageNo}&numOfRows=100&returnType=json&CTPRVN_NM=${encodeURIComponent(sido)}`;
-      try {
-        const data = await fetchWithRetry(url);
-        const items = data.response?.body?.items?.item || [];
-        const itemList = Array.isArray(items) ? items : items ? [items] : [];
-        if (itemList.length === 0) break;
-
-        const chunk = [];
-        for (const i of itemList) {
-          const name = i.BSNSSP_NM || i.BPLC_NM || '';
-          const addr = i.ROAD_NM_ADDR || i.SITE_WHL_ADDR || '';
-          if (!name || !addr) continue;
-
-          const id = generateId(ep.api_source, name, addr);
-          seenIds.add(id);
-          stat.fetched++;
-
-          const isOpen = String(i.SALS_STTS_NM || '').includes('영업');
-          chunk.push({
-            id, api_source: ep.api_source, category: 'MART',
-            name, address: addr, trust_score: isOpen ? 60 : 0, is_active: isOpen,
-            sido, sigungu: i.SIGNGU_NM || '', raw_data: i, updated_at: new Date().toISOString()
-          });
-        }
-        await upsertAndTrack(chunk, stat);
-        if (itemList.length < 100) hasMore = false;
-        else pageNo++;
-      } catch (e) {
-        console.error(`  ❌ MOIS Mart (${ep.name}) Final Error:`, e.message); break;
-      }
-    }
-  }
-}
-
-/**
- * 행안부 모범음식점
- */
-async function syncMoisGoodRestaurants(sido, seenIds, stat) {
-  console.log(`🍴 [MOIS] ${sido} 모범음식점 동기화 중...`);
-  let pageNo = 1, hasMore = true;
-  while (hasMore && pageNo <= 50) {
-    const url = `http://apis.data.go.kr/1741000/GoodRestaurantInd/info?serviceKey=${MOIS_API_KEY}&pageNo=${pageNo}&numOfRows=100&returnType=json&CTPRVN_NM=${encodeURIComponent(sido)}`;
+    console.log(`📥 [LocalData CSV] ${sido} ${ep.name} 다운로드 및 파싱 중...`);
+    const url = `https://file.localdata.go.kr/file/download/${ep.path}/info?orgCode=${orgCode}`;
+    
     try {
-      const data = await fetchWithRetry(url);
-      const items = data.response?.body?.items?.item || [];
-      const itemList = Array.isArray(items) ? items : items ? [items] : [];
-      if (itemList.length === 0) break;
-
-      const chunk = [];
-      for (const i of itemList) {
-        const name = i.BSNSSP_NM || i.BPLC_NM || '';
-        const addr = i.ROAD_NM_ADDR || i.SITE_WHL_ADDR || '';
-        const id = generateId('MOIS_GOOD_RESTAURANT', name, addr);
-        seenIds.add(id);
-        stat.fetched++;
-
-        const isOpen = String(i.SALS_STTS_NM || '').includes('영업');
-        chunk.push({
-          id, api_source: 'MOIS_GOOD_RESTAURANT', category: 'RESTAURANT',
-          name, address: addr, trust_score: isOpen ? 70 : 0, is_active: isOpen,
-          sido, sigungu: i.SIGNGU_NM || '', raw_data: i, updated_at: new Date().toISOString()
-        });
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.data.go.kr/' } });
+      if (!res.ok) {
+        console.error(`  ❌ Failed to download ${ep.name}: HTTP ${res.status}`);
+        continue;
       }
-      await upsertAndTrack(chunk, stat);
-      if (itemList.length < 100) hasMore = false;
-      else pageNo++;
-    } catch (e) { 
-        console.error('  ❌ MOIS GoodRestaurant Final Error:', e.message); break; 
+      
+      const chunk = [];
+      await new Promise((resolve, reject) => {
+        res.body
+          .pipe(iconv.decodeStream('EUC-KR'))
+          .pipe(csvParser())
+          .on('data', (row) => {
+            const name = row['사업장명'] || row['업소명'] || '';
+            const addr = row['소재지전체주소'] || row['도로명전체주소'] || '';
+            const status = String(row['영업상태명'] || row['상세영업상태명'] || '');
+            
+            if (!name || !addr) return;
+            const isOpen = status.includes('영업');
+            
+            const id = generateId(ep.source, name, addr);
+            seenIds.add(id);
+            stat.fetched++;
+            
+            chunk.push({
+              id, api_source: ep.source, category: categoryType,
+              name, address: addr, trust_score: isOpen ? (categoryType==='MART'?60:70) : 0, is_active: isOpen,
+              sido, sigungu: addr.split(' ')[1] || '', raw_data: row, updated_at: new Date().toISOString()
+            });
+          })
+          .on('end', resolve)
+          .on('error', reject);
+      });
+      
+      // 대량 데이터 Upsert (500건 단위 쪼개기)
+      if (chunk.length > 0) {
+        console.log(`     -> ${chunk.length}건 파싱 완료, DB 배치 적재 시작...`);
+        for (let i = 0; i < chunk.length; i += 500) {
+          await upsertAndTrack(chunk.slice(i, i + 500), stat);
+        }
+      }
+    } catch (e) {
+      console.error(`  ❌ Parsing Error for ${ep.name}:`, e.message);
     }
   }
 }
@@ -340,7 +328,6 @@ async function syncTourSpots(sido, seenIds, stat) {
       MobileApp: 'RAONAI',
       _type: 'json',
       listYN: 'Y',
-      arrange: 'A',
       areaCode: areaCode.toString(),
       contentTypeId: '12' // 관광지
     });
@@ -407,14 +394,26 @@ async function rotateTourPopularity() {
 async function upsertAndTrack(items, stat) {
   if (items.length === 0) return;
   
-  // 신규 vs 갱신 판별을 위해 ID 존재 여부 확인
+  // 신규 vs 갱신 판별 및 기존 좌표(lat/lng) 보존을 위해 ID 조회
   const ids = items.map(it => it.id);
-  const { data: existing } = await supabase.from('master_places').select('id').in('id', ids);
-  const existingIdSet = new Set(existing?.map(e => e.id) || []);
+  const { data: existing } = await supabase.from('master_places').select('id, lat, lng').in('id', ids);
+  const existingMap = new Map(existing?.map(e => [e.id, { lat: e.lat, lng: e.lng }]) || []);
   
-  const news = items.filter(it => !existingIdSet.has(it.id)).length;
+  const news = items.filter(it => !existingMap.has(it.id)).length;
   const updates = items.length - news;
   
+  // 좌표 무결성 보존 및 땜방(Fallback) 로직
+  for (const it of items) {
+    if (existingMap.has(it.id)) {
+      const ext = existingMap.get(it.id);
+      if (ext.lat) it.lat = ext.lat;
+      if (ext.lng) it.lng = ext.lng;
+    } else {
+      it.lat = 0.0;
+      it.lng = 0.0;
+    }
+  }
+
   stat.new += news;
   stat.updated += updates;
 
