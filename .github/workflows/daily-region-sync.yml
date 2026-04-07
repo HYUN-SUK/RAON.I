@@ -1,0 +1,35 @@
+name: RAONAI Daily Region Sync (17-Day Rotation)
+
+on:
+  schedule:
+    # 04:00 KST 실행 (UTC 19:00)
+    - cron: '0 19 * * *'
+  workflow_dispatch: # 수동 트리거 허용
+
+jobs:
+  sync-region-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci --omit=dev
+
+      - name: Run Daily Region Sync Engine
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUBLIC_DATA_API_KEY: ${{ secrets.PUBLIC_DATA_API_KEY }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+        run: node scripts/daily-region-sync.mjs
+
+      - name: Log Result
+        run: echo "Daily Regional Sync completed at $(date)"

@@ -27,11 +27,13 @@ const SIDO_MAP = {
 };
 
 async function dailyRegionSync() {
+  // KST 타임존 강제 록온 (GitHub Actions UTC 서버 구동 대응)
   const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const diff = now - startOfYear;
-  const oneDay = 1000 * 60 * 60 * 24;
-  const dayOfYear = Math.floor(diff / oneDay) + 1;
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const year = kstNow.getUTCFullYear();
+  const startOfYearKstMs = Date.UTC(year, 0, 1);
+  const diff = kstNow.getTime() - startOfYearKstMs;
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
   
   const targetIndex = (dayOfYear - 1) % SIDO_ROTATION.length;
   const targetSido = SIDO_ROTATION[targetIndex];
