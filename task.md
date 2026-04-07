@@ -10,12 +10,17 @@
     - [x] `scripts/sync-master-places.mjs` 인코딩 및 필드 매핑 로직 고도화
     - [x] Production Build (`npm run build`) 무결성 통과
     - [x] Git Commit (`Ground Zero sync complete`) 수행 (Push 대기)
-- [x] **Next Phase: Daily Rotation & Admin Monitoring**
-    - [x] **[복구]** 캐싱 스크립트 내 캠핑장 조회 테이블 오타 수정 (Location Fallback 정상화)
-    - [ ] **[상시 운영]** 17개 시도별 지역 순환 동기화(Daily Rotation) 정적 데이터 점검
-    - [ ] **[자동 캐싱]** 4일 후 예약 건에 대한 3일 전 캐싱 자동 작동 여부 점검
+- [x] **Phase 3: Daily Rotation 안정화 (2026-04-07 세션)**
+    - [x] **[Throttling]** LocalData CSV 3초, TourAPI detailCommon2 1초 지연 적용
+    - [x] **[지역 필터링]** 안심식당(MAFRA) API 호출 시 `RELAX_SI_NM` 파라미터로 지역 필터링 최적화
+    - [x] **[Soft-Delete Failsafe]** API 응답 0건 시 기존 데이터 삭제 방지 로직
+    - [x] **[SIDO_ROTATION 복구]** 하단 중복 정의 제거, 17개 시도 정렬 정규화
+    - [x] **[시뮬레이션]** 충남 지역 시뮬레이션 완수 (좌표 무결성 + Upsert 정상 확인)
+    - [x] **[진단 도구]** test-api-ping.mjs 개발 → 정리 완료
+    - [x] **[빌드/커밋]** `npm run build` 통과, `feat: stabilize daily region sync` 커밋 완료
+- [ ] **Phase 4: 운영 검증 (다음 세션 예정)**
+    - [ ] **[상시 운영]** 17개 시도별 지역 순환 동기화(Daily Rotation) 실전 검증 - 전북 갱신 결과 확인
+    - [ ] **[자동 캐싱]** 4일 후 예약 건에 대한 D-3 캐싱 1부/2부 자동 작동 여부 점검
     - [ ] **[선별 감사]** 1차 쿼터 전체 리스트 및 1차 선별 로직 실효성 정밀 감사
     - [ ] **[갱신]** 전국 캠핑장 데이터(campgrounds) 상시 최신화 방안 논의 및 자동 갱신 로직 구현
     - [ ] **[점수화]** 4축 점수화(기상, 페르소나, 동선, 편의) 가중치 로직 고도화 및 검증
-
-
