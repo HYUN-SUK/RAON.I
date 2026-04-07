@@ -8,7 +8,7 @@ export async function GET() {
     const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
     const text = await res.text();
     return NextResponse.json({ status: res.status, text: text.substring(0, 200) });
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

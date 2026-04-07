@@ -10,7 +10,8 @@
 3. **Soft-Delete Failsafe**: API 응답 0건 시 기존 데이터 삭제 방지 (데이터 무결성 보전)
 4. **SIDO_ROTATION 정규화**: 중복 정의 제거, 17개 시도 순서를 표준 행정구역 코드 기반으로 정렬
 5. **충남 시뮬레이션 검증**: 좌표 보존 로직, Upsert 정상 동작 확인
-6. **코드 정리**: 임시 테스트 파일 삭제, ESLint 통과, 빌드 통과
+6. **빌드 에러 해결**: `src/app/api/test-mois/route.ts`의 TypeScript 타입 에러(`error` is of type `unknown`) 수정하여 Vercel 배포 차단 요소 제거
+7. **코드 정리**: 임시 테스트 파일 삭제, ESLint 통과, 로컬 빌드(`npm run build`) 무결성 확인
 
 ### 최종 커밋
 - `feat: stabilize daily region sync with throttling and failsafes` (Push 대기 중)
