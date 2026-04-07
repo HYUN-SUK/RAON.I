@@ -1,5 +1,5 @@
 /**
- * 17일 주기 전계통 지역별 동기화 엔진 (Daily Region Sync v2.0)
+ * 17일 주기 전계통 지역별 동기화 엔진 (Daily Region Sync vNext)
  * 통합 카테고리: 식당(모범/안심/백년), 마트(대규모/SSM/기타), 명소(인기도 정밀갱신)
  */
 import { createClient } from '@supabase/supabase-js';
@@ -25,6 +25,63 @@ const SIDO_MAP = {
   '서울특별시': 1, '인천광역시': 2, '대전광역시': 3, '대구광역시': 4, '광주광역시': 5, '부산광역시': 6, '울산광역시': 7, '세종특별자치시': 8,
   '경기도': 31, '강원특별자치도': 32, '충청북도': 33, '충청남도': 34, '경상북도': 35, '경상남도': 36, '전북특별자치도': 37, '전라남도': 38, '제주특별자치도': 39
 };
+
+// --- [Phase 1: 공통 방어막 (Exponential Backoff + Jitter)] ---
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      const res = await fetch(url, options);
+      
+      // 500 에러 처리
+      if (!res.ok) {
+        if (res.status === 500) throw new Error(`HTTP 500 (Server Error)`);
+        if (attempt === maxRetries) return res; // 마지막 시도면 그냥 반환
+      }
+      
+      const text = await res.text();
+      
+      // 방화벽 차단(WAF) 또는 HTML 응답 감지
+      const contentType = res.headers.get('content-type') || '';
+      if (text.trim().startsWith('<') || text.includes('Unexpected errors') || contentType.includes('text/html')) {
+        throw new Error(`Invalid Response (HTML/WAF/Unexpected errors): ${text.substring(0, 50).replace(/\n/g, ' ')}`);
+      }
+      
+      try {
+        const json = JSON.parse(text);
+        return json; // 성공적으로 파싱된 JSON 객체 반환
+      } catch (parseError) {
+        throw new Error(`JSON Parse Error: ${parseError.message}`);
+      }
+    } catch (e) {
+      attempt++;
+      if (attempt > maxRetries) {
+        console.error(`      ❌ Max retries (${maxRetries}) exhausted. Last Error: ${e.message}`);
+        throw e;
+      }
+      // 지수 백오프: 1s -> 2s -> 4s + Jitter
+      const backoffMs = Math.pow(2, attempt-1) * 1000 + (Math.random() * 500);
+      console.warn(`      ⚠️ [Retry ${attempt}/${maxRetries}] Fetch failed: ${e.message}. Waiting ${Math.round(backoffMs)}ms...`);
+      await delay(backoffMs);
+    }
+  }
+}
+
+// 백년가게용 최신 UDDI 자동 탐색 모듈
+async function getLatestOdcloudPath(namespace = "15102255/v1") {
+  try {
+    const spec = await fetchWithRetry(`https://infuser.odcloud.kr/oas/docs?namespace=${encodeURIComponent(namespace)}`);
+    const paths = Object.keys(spec.paths || {});
+    if (paths.length > 0) return paths[0]; 
+  } catch (e) {
+    console.warn(`    ⚠️ Failed to fetch ODCloud Spec. Using offline fallback path.`);
+  }
+  // 기본 백년가게 경로 (2024 최신 기준 fallback)
+  return `/15102255/v1/uddi:c8c0f585-8ee0-47a3-8686-3507119e0780`; 
+}
+
 
 async function dailyRegionSync() {
   // KST 타임존 강제 록온 (GitHub Actions UTC 서버 구동 대응)
@@ -73,7 +130,6 @@ async function dailyRegionSync() {
   await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
 
   // 3. Soft Delete 처리 (이전에는 활성 상태였으나 이번 API 응답에 없는 데이터)
-  // [Failsafe] API 응답이 단 1건이라도 있는 경우에만 삭제 작업을 수행하여 데이터 증발 방지
   if (seenIds.size > 0) {
     const { data: existingActive } = await supabase.from('master_places').select('id').eq('sido', targetSido).in('category', ['RESTAURANT', 'MART']).eq('is_active', true);
     const toDeactivate = (existingActive || []).map(r => r.id).filter(id => !seenIds.has(id));
@@ -102,7 +158,7 @@ async function dailyRegionSync() {
   // 6. 자동화 로그 기록
   await recordAutomationLog(stats);
 
-  console.log(`\n✨ [Daily Rotation] ${targetSido} 전계통 동기화 완료!`);
+  console.log(`\n✨ [Daily Rotation vNext] ${targetSido} 전계통 동기화 완료!`);
 }
 
 /**
@@ -121,8 +177,7 @@ async function syncMoisMarts(sido, seenIds, stat) {
     while (hasMore && pageNo <= 10) {
       const url = `http://apis.data.go.kr/1741000/${ep.path}?serviceKey=${MOIS_API_KEY}&pageNo=${pageNo}&numOfRows=100&returnType=json&CTPRVN_NM=${encodeURIComponent(sido)}`;
       try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchWithRetry(url);
         const items = data.response?.body?.items?.item || [];
         const itemList = Array.isArray(items) ? items : items ? [items] : [];
         if (itemList.length === 0) break;
@@ -147,7 +202,9 @@ async function syncMoisMarts(sido, seenIds, stat) {
         await upsertAndTrack(chunk, stat);
         if (itemList.length < 100) hasMore = false;
         else pageNo++;
-      } catch (e) { console.error(`  ❌ MOIS Mart (${ep.name}) Error:`, e.message); break; }
+      } catch (e) {
+        console.error(`  ❌ MOIS Mart (${ep.name}) Final Error:`, e.message); break;
+      }
     }
   }
 }
@@ -161,8 +218,7 @@ async function syncMoisGoodRestaurants(sido, seenIds, stat) {
   while (hasMore && pageNo <= 50) {
     const url = `http://apis.data.go.kr/1741000/GoodRestaurantInd/info?serviceKey=${MOIS_API_KEY}&pageNo=${pageNo}&numOfRows=100&returnType=json&CTPRVN_NM=${encodeURIComponent(sido)}`;
     try {
-      const res = await fetch(url);
-      const data = await res.json();
+      const data = await fetchWithRetry(url);
       const items = data.response?.body?.items?.item || [];
       const itemList = Array.isArray(items) ? items : items ? [items] : [];
       if (itemList.length === 0) break;
@@ -185,12 +241,14 @@ async function syncMoisGoodRestaurants(sido, seenIds, stat) {
       await upsertAndTrack(chunk, stat);
       if (itemList.length < 100) hasMore = false;
       else pageNo++;
-    } catch (e) { console.error('  ❌ MOIS Error:', e.message); break; }
+    } catch (e) { 
+        console.error('  ❌ MOIS GoodRestaurant Final Error:', e.message); break; 
+    }
   }
 }
 
 /**
- * 안심식당 (농식품부)
+ * 안심식당 (농식품부) - JSON 파싱 오류가 드물어 기존 유지 (안정적)
  */
 async function syncSafeRestaurants(sido, seenIds, stat) {
   console.log(`🥗 [MAFRA] ${sido} 안심식당 동기화 중...`);
@@ -223,20 +281,24 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
 }
 
 /**
- * 백년가게 (소상공인)
+ * 백년가게 (소상공인) - 전국 데이터(1회 취득) 후 DB 기반 로컬 로테이션
  */
 async function syncBaeknyeon(sido, seenIds, stat) {
-  console.log(`🏢 [SMBA] ${sido} 백년가게 동기화 중...`);
+  console.log(`🏢 [SMBA] ${sido} 백년가게 동기화 중 (전국 데이터 취득 후 필터링)...`);
   try {
-    for (let page = 1; page <= 10; page++) {
-      const url = `https://api.odcloud.kr/api/15102255/v1/uddi:6ba7b810-9dad-11d1-80b4-00c04fd430c8?serviceKey=${MOIS_API_KEY}&page=${page}&perPage=100`;
-      const res = await fetch(url);
-      const data = await res.json();
+    const basePath = await getLatestOdcloudPath("15102255/v1");
+    let page = 1, hasMore = true;
+    
+    while(hasMore && page <= 20) {
+      const url = `https://api.odcloud.kr/api${basePath}?serviceKey=${MOIS_API_KEY}&page=${page}&perPage=100`;
+      const data = await fetchWithRetry(url);
+      
       if (!data.data || data.data.length === 0) break;
 
       const chunk = [];
       for (const i of data.data) {
         const addr = i['주소'] || i['기본주소'] || '';
+        // 전국 데이터 중 오늘의 타겟 지역(sido)만 통과시킵니다.
         if (!addr.includes(sido)) continue;
 
         const id = generateId('SMBA_BAEK', i['업체명'], addr);
@@ -250,18 +312,23 @@ async function syncBaeknyeon(sido, seenIds, stat) {
         });
       }
       if (chunk.length > 0) await upsertAndTrack(chunk, stat);
+      
+      if (data.data.length < 100) hasMore = false;
+      else page++;
     }
-  } catch (e) { console.error('  ❌ Baeknyeon Error:', e.message); }
+  } catch (e) {
+    console.error('  ❌ Baeknyeon Final Error:', e.message);
+  }
 }
 
 /**
- * 관광공사 지역기반 명소 동기화 (SPOT)
+ * 관광공사 지역기반 명소 동기화 (SPOT) - KorService2 마이그레이션 완료
  */
 async function syncTourSpots(sido, seenIds, stat) {
   const areaCode = SIDO_MAP[sido];
   if (!areaCode) return;
 
-  console.log(`🏞️  [TOUR] ${sido} 명소(관광지) 동기화 중 (AreaCode: ${areaCode})...`);
+  console.log(`🏞️  [TOUR v2] ${sido} 명소(관광지) 동기화 중 (AreaCode: ${areaCode})...`);
   let pageNo = 1, hasMore = true;
   
   while (hasMore && pageNo <= 10) {
@@ -279,8 +346,7 @@ async function syncTourSpots(sido, seenIds, stat) {
     });
 
     try {
-      const res = await fetch(`https://apis.data.go.kr/B551011/KorService1/areaBasedList1?${params.toString()}`);
-      const data = await res.json();
+      const data = await fetchWithRetry(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`);
       const items = data.response?.body?.items?.item || [];
       const itemList = Array.isArray(items) ? items : items ? [items] : [];
       if (itemList.length === 0) break;
@@ -301,12 +367,14 @@ async function syncTourSpots(sido, seenIds, stat) {
       await upsertAndTrack(chunk, stat);
       if (itemList.length < 100) hasMore = false;
       else pageNo++;
-    } catch (e) { console.error('  ❌ Tour API Error:', e.message); break; }
+    } catch (e) { 
+        console.error('  ❌ Tour API Final Error:', e.message); break; 
+    }
   }
 }
 
 /**
- * 명소 정밀 갱신
+ * 명소 정밀 갱신 (detailCommon2) 
  */
 async function rotateTourPopularity() {
   console.log(`\n🔝 [Popularity] 전국 명소 중 가장 오래된 800건 정밀 갱신 시작...`);
@@ -318,9 +386,8 @@ async function rotateTourPopularity() {
     const contentId = spot.raw_data?.contentid;
     if (!contentId) continue;
     try {
-      const url = `https://apis.data.go.kr/B551011/KorService1/detailCommon2?serviceKey=${TOUR_API_KEY}&_type=json&MobileOS=ETC&MobileApp=RAONAI&contentId=${contentId}&defaultYN=Y&firstImageYN=Y&areacodeYN=Y&catcodeYN=Y&addrinfoYN=Y&mapinfoYN=Y&overviewYN=Y&viewcountYN=Y`;
-      const res = await fetch(url);
-      const data = await res.json();
+      const url = `https://apis.data.go.kr/B551011/KorService2/detailCommon2?serviceKey=${TOUR_API_KEY}&_type=json&MobileOS=ETC&MobileApp=RAONAI&contentId=${contentId}&defaultYN=Y&firstImageYN=Y&areacodeYN=Y&catcodeYN=Y&addrinfoYN=Y&mapinfoYN=Y&overviewYN=Y&viewcountYN=Y`;
+      const data = await fetchWithRetry(url, {}, 1); // 세부조회는 부하가 크므로 재시도 우선순위 낮춤
       const item = data.response?.body?.items?.item?.[0];
       if (item) {
         const realReadCount = parseInt(item.readcount || '0');
