@@ -48,6 +48,7 @@ async function main() {
     const { data: schedules } = await supabase.from('user_schedules').select('campground_lat, campground_lng, campground_name, campground_address').eq('check_in', targetStr);
     if (!schedules?.length) process.exit(0);
 
+    let clusters = [];
     const totalFactMap = new Map();
     for (const s of schedules) {
         let lat = Number(s.campground_lat), lng = Number(s.campground_lng), address = s.campground_address || '';
@@ -112,7 +113,7 @@ async function main() {
                     rawMasterInserts.push({
                         id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
                         api_source: 'KAKAO_HP8', category: 'HOSPITAL',
-                        name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name,
+                        name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name || '주소정보없음',
                         lat: parseFloat(item.y), lng: parseFloat(item.x),
                         trust_score: item.place_name?.match(/종합병원|의료원|대학병원/) ? 50 : 20, raw_data: item
                     });
@@ -130,8 +131,9 @@ async function main() {
                     rawMasterInserts.push({
                         id: generateFactId('TOUR_FSTVL', item.title, item.addr1),
                         api_source: 'TOUR_FSTVL', category: 'FESTIVAL',
-                        name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1,
-                        lat: parseFloat(item.mapy), lng: parseFloat(item.mapx), trust_score: 45, raw_data: item
+                        name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1 || '주소정보없음',
+                        lat: parseFloat(item.mapy), lng: parseFloat(item.mapx),
+                        trust_score: 45, raw_data: item
                     });
                 });
             }
@@ -180,8 +182,9 @@ async function main() {
                                     rawMasterInserts.push({
                                         id: generateFactId('OPINET_GAS', item.OS_NM, address || '주소없음'),
                                         api_source: 'OPINET_GAS', category: 'GAS_STATION',
-                                        name: item.OS_NM, description: `등유: ${price}원`, address: address,
-                                        lat: gLat, lng: gLon, trust_score: 55, raw_data: item
+                                        name: item.OS_NM, description: `등유: ${price}원`, address: address || '주소정보없음',
+                                        lat: gLat, lng: gLon,
+                                        trust_score: 55, raw_data: item
                                     });
                                 }
                             }
@@ -194,7 +197,25 @@ async function main() {
         // A-4. Persist to Master DB (SSOT Organic Growth)
         if (rawMasterInserts.length > 0) {
             console.log(`  -> Persisting ${rawMasterInserts.length} dynamic items to master_places...`);
-            await supabase.from('master_places').upsert(rawMasterInserts, { onConflict: 'id' });
+            const now = new Date().toISOString();
+            // [v11.9.5] DB 제약조건(not-null) 및 공간 데이터 최종 무결성 필터링
+            const sanitized = rawMasterInserts
+                .filter(item => item.id && item.name && item.address && item.lat && item.lng) // 필수 필드 검증
+                .map(item => ({
+                    ...item,
+                    address: item.address.trim(),
+                    location: { type: 'Point', coordinates: [item.lng, item.lat] },
+                    created_at: now,
+                    updated_at: now
+                }));
+
+            if (sanitized.length > 0) {
+                const { error: upsertError } = await supabase.from('master_places').upsert(sanitized, { onConflict: 'id' });
+                if (upsertError) console.error("  ❌ Master Upsert Error:", upsertError);
+                else console.log(`  ✅ Successfully persisted ${sanitized.length} items to database.`);
+            } else {
+                console.log("  ⚠️ No valid dynamic items to persist after sanitization.");
+            }
         }
         
         const categories = [
@@ -210,7 +231,7 @@ async function main() {
         let rawCandidatesForAudit = []; // spot_final_audit.md 출력용
 
         for (const { cat, limit, rawLimit } of categories) {
-            const { data } = await supabase.rpc('get_master_places_in_radius', { 
+            const { data } = await supabase.rpc('get_master_places_in_radius_v2', { 
                 target_lat: lat, target_lng: lng, 
                 radius_meters: 30000, p_category: cat, 
                 limit_count: rawLimit 
@@ -264,6 +285,15 @@ async function main() {
                     if (start && end) {
                         const targetDateNum = parseInt(targetStr.replace(/-/g, ''));
                         if (targetDateNum < parseInt(start) - 3 || targetDateNum > parseInt(end) + 2) continue;
+                    }
+                } else if (cat === 'GAS_STATION') {
+                    s = 50;
+                    // 최저가 가점 (v11.9): 등유 가격이 낮을수록 고득점 부여
+                    const priceMatch = item.description?.match(/(\d+)원/);
+                    if (priceMatch) {
+                        const price = parseInt(priceMatch[1]);
+                        // 기준가(2500원) 대비 10원당 1점 가산 (예: 1500원 -> +100점)
+                        s += Math.max(0, Math.floor((2500 - price) / 10));
                     }
                 }
 
@@ -324,8 +354,19 @@ async function main() {
                 const m = res.documents?.find(d => d.place_name.replace(/\s/g,'') === c.name.replace(/\s/g,'')) || res.documents?.[0];
                 if (m) {
                     const sc = await scrapeKakaoPlace(m.place_url);
-                    const f = { ...c, id: generateFactId('MASTER_ENRICHED', c.name, c.address), api_source: 'MASTER_ENRICHED', target_date: targetStr, raw_data: { ...c.raw_data, kakao_url: m.place_url, scraping: sc } };
-                    totalFactMap.set(f.id, f);
+                    const safeFact = {
+                        id: generateFactId('MASTER_ENRICHED', c.name, c.address),
+                        api_source: 'MASTER_ENRICHED',
+                        category: c.category,
+                        name: c.name,
+                        description: c.description || '',
+                        address: c.address,
+                        lat: c.lat,
+                        lng: c.lng,
+                        trust_score: c.trust_score,
+                        raw_data: { ...c.raw_data, kakao_url: m.place_url, scraping: sc }
+                    };
+                    totalFactMap.set(safeFact.id, safeFact);
                 }
             }));
         }
