@@ -42,6 +42,26 @@ const SIDO_SHORT_MAP = {
   '경기도': '경기', '강원특별자치도': '강원', '충청북도': '충북', '충청남도': '충남', '경상북도': '경북', '경상남도': '경남', '전북특별자치도': '전북', '전라남도': '전남', '제주특별자치도': '제주'
 };
 
+const SIDO_ALIASES = {
+  '서울': ['서울'], '부산': ['부산'], '대구': ['대구'], '인천': ['인천'],
+  '광주': ['광주'], '대전': ['대전'], '울산': ['울산'], '세종': ['세종'],
+  '경기': ['경기'], '강원': ['강원', '강원도', '강원특별자치도'], 
+  '충북': ['충북', '충청북도'], '충남': ['충남', '충청남도'],
+  '전북': ['전북', '전라북도', '전북특별자치도'], '전남': ['전남', '전라남도'],
+  '경북': ['경북', '경상북도'], '경남': ['경남', '경상남도'],
+  '제주': ['제주', '제주도', '제주특별자치도']
+};
+
+function isValidRegion(addr, shortSido) {
+  if (!addr) return false;
+  const aliases = SIDO_ALIASES[shortSido] || [shortSido];
+  return aliases.some(alias => addr.startsWith(alias));
+}
+
+const generateId = (source, name, addr) => {
+  return uuidv5(`${source}_${name}_${addr}`, MY_NAMESPACE);
+};
+
 // --- [Phase 1: 공통 방어막 (Exponential Backoff + Jitter)] ---
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
@@ -135,7 +155,8 @@ async function dailyRegionSync() {
       LARGE_MART: { label: 'MART (대형마트)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
       SSM_MART: { label: 'MART (준대규모 - SSM)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
       OTHER_MART: { label: 'MART (기타식품판매업)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      SPOT: { label: 'SPOT (관광명소)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 }
+      SPOT: { label: 'SPOT (관광명소)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
+      SPOT_READCOUNT: { label: 'SPOT (전국 조회수 갱신)', existing: 0, fetched: 800, new: 0, updated: 0, total: 0 }
     }
   };
 
@@ -190,14 +211,17 @@ async function dailyRegionSync() {
 
   // 4. 명소 인기도 정밀 갱신 (전국 단위 800건, 지역 순환과는 별개로 매일 누적)
   const spotUpdated = await rotateTourPopularity();
-  stats.categories.SPOT.fetched += 800; // 지역 동기화(syncTourSpots) 수치에 가산
-  stats.categories.SPOT.updated += spotUpdated;
+  stats.categories.SPOT_READCOUNT.updated = spotUpdated;
 
   // 5. 최종 카운트 (총 데이터 수)
   for (const [source, key] of Object.entries(sourceToStatKey)) {
     const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('sido', targetSido).eq('api_source', source).eq('is_active', true);
     stats.categories[key].total = count || 0;
   }
+  
+  // SPOT_READCOUNT 의 기존/전체 데이터 수는 SPOT과 동일하게 매핑
+  stats.categories.SPOT_READCOUNT.existing = stats.categories.SPOT.existing;
+  stats.categories.SPOT_READCOUNT.total = stats.categories.SPOT.total;
 
   // 6. 자동화 로그 기록
   await recordAutomationLog(stats);
@@ -237,7 +261,7 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
           .pipe(csvParser())
           .on('data', (row) => {
             const name = row['사업장명'] || row['업소명'] || '';
-            const addr = row['소재지전체주소'] || row['도로명전체주소'] || '';
+            const addr = row['소재지전체주소'] || row['도로명전체주소'] || row['도로명주소'] || row['지번주소'] || '';
             const status = String(row['영업상태명'] || row['상세영업상태명'] || '');
             
             if (!name || !addr) return;
@@ -257,6 +281,7 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
             }
 
             const id = generateId(finalSource, name, addr);
+            if (seenIds.has(id)) return;
             seenIds.add(id);
             targetStat.fetched++;
             
@@ -313,12 +338,12 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
 
       const chunk = [];
       for (const i of items) {
-        // 주소 필터링 강화: '충청남도'뿐만 아니라 '충남'도 허용
         const addr = i.RELAX_ADD1 || '';
-        if (!addr.includes(sido) && !addr.includes(shortSido)) continue;
+        if (!isValidRegion(addr, shortSido)) continue;
         if (i.RELAX_USE_YN !== 'Y') continue;
 
         const id = generateId('SAFE_RESTAURANT', i.RELAX_RSTRNT_NM, addr);
+        if (seenIds.has(id)) continue;
         seenIds.add(id);
         stat.fetched++;
         
@@ -352,10 +377,10 @@ async function syncBaeknyeon(sido, seenIds, stat) {
       const chunk = [];
       for (const i of data.data) {
         const addr = i['주소'] || i['기본주소'] || '';
-        // 주소 필터링 강화: '충남' 등 단축명 대응
-        if (!addr.includes(sido) && !addr.includes(shortSido)) continue;
+        if (!isValidRegion(addr, shortSido)) continue;
 
         const id = generateId('SMBA_BAEK', i['업체명'], addr);
+        if (seenIds.has(id)) continue;
         seenIds.add(id);
         stat.fetched++;
 
@@ -393,13 +418,16 @@ async function syncTourSpots(sido, seenIds, stat) {
       MobileOS: 'ETC',
       MobileApp: 'RAONAI',
       _type: 'json',
-      listYN: 'Y',
       areaCode: areaCode.toString(),
       contentTypeId: '12' // 관광지
     });
 
     try {
       const data = await fetchWithRetry(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`);
+      if (data.response?.header?.resultCode && data.response.header.resultCode !== '0000') {
+        console.error('  ❌ Tour API Error Response:', data.response.header.resultMsg);
+        break;
+      }
       const items = data.response?.body?.items?.item || [];
       const itemList = Array.isArray(items) ? items : items ? [items] : [];
       if (itemList.length === 0) break;
@@ -408,6 +436,7 @@ async function syncTourSpots(sido, seenIds, stat) {
       for (const i of itemList) {
         if (!i.title || !i.addr1) continue;
         const id = generateId('TOUR_SPOT', i.title, i.addr1);
+        if (seenIds.has(id)) continue;
         seenIds.add(id);
         stat.fetched++;
 

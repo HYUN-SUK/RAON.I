@@ -344,42 +344,43 @@ export default function AutomationLogsPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">갱신 지역</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">카테고리</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
+                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">갱신 지역</th>
+                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
+                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
+                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
+                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
+                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {apiStatus.map((s: any, i: number) => (
                     <tr key={i} className="hover:bg-gray-50/30 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <span className="text-xs font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-full">{s.region}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center">
-                          {s.name === 'RESTAURANT' && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
-                          {s.name === 'MART' && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
+                          {s.label?.includes('RESTAURANT') && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
+                          {s.label?.includes('MART') && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
                           {s.name === 'SPOT' && <MapPin className="w-3.5 h-3.5 mr-2 text-blue-500" />}
+                          {s.name === 'SPOT_READCOUNT' && <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
                           <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right text-xs font-bold text-gray-400">{(s.existing_count || 0).toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right text-xs font-black text-gray-700">{(s.fetched_count || 0).toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs font-bold text-gray-400">{(s.existing_count || 0).toLocaleString()}</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs font-black text-gray-700">{(s.fetched_count || 0).toLocaleString()}</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className="inline-block bg-brand-50 text-brand-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-brand-100">
                           +{s.new_count || 0}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-3 whitespace-nowrap text-right">
                         <span className="inline-block bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-blue-100">
                            {s.updated_count || 0}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right text-sm font-black text-gray-900">{(s.total_count || 0).toLocaleString()}</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-black text-gray-900">{(s.total_count || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
