@@ -1,67 +1,22 @@
-# Handoff Document — 2026-04-07 (Session: Pipeline Stabilization)
+# 🤝 RAONAI 세션 인수인계 문서 (Handoff) - 2026-04-08
 
-## 현재 상태 요약
+## 1. 현재 상태 요약
+오늘 세션에서는 **D-3 스마트 캠핑 플랜 캐싱 파이프라인(`caching-smart-plan.mjs`)의 치명적인 결함**을 모두 해결하고, 6대 카테고리에 대한 **1차 선별 로직의 무결성**을 확보했습니다.
 
-이번 세션에서 **Daily Region Sync 엔진(`scripts/daily-region-sync.mjs`)의 전면 안정화**를 완료했습니다.
+- **파이프라인 복구**: `clusters` 미선언 에러 및 `RPC v2` 호출 실패 문제를 해결하여 동적 데이터 수집-적재 프로세스를 완전히 정상화했습니다.
+- **데이터 무결성 강화**: `master_places` 적재 시 발생하는 `not-null` 제약 조건(address, created_at, lat 등)을 전수 방어하고, PostGIS 공간 데이터(`location`) 연동을 완료했습니다.
+- **로직 정합성 일치**: 주유소 최저가 가점 로직을 추가하고, 마트 쿼터를 20개로 상향하여 SSOT 매뉴얼과의 100% 싱크를 맞췄습니다.
 
-### 완료된 작업
-1. **API Throttling 적용**: LocalData CSV 다운로드 3초, TourAPI 상세조회 1초 지연으로 WAF/TPS 차단 근본 해결
-2. **안심식당 지역 필터링**: `RELAX_SI_NM` 파라미터로 전국 5만건 → 지역별 수천건으로 호출량 90% 절감
-3. **Soft-Delete Failsafe**: API 응답 0건 시 기존 데이터 삭제 방지 (데이터 무결성 보전)
-4. **SIDO_ROTATION 정규화**: 중복 정의 제거, 17개 시도 순서를 표준 행정구역 코드 기반으로 정렬
-5. **충남 시뮬레이션 검증**: 좌표 보존 로직, Upsert 정상 동작 확인
-6. **빌드 에러 해결**: `src/app/api/test-mois/route.ts`의 TypeScript 타입 에러(`error` is of type `unknown`) 수정하여 Vercel 배포 차단 요소 제거
-7. **코드 정리**: 임시 테스트 파일 삭제, ESLint 통과, 로컬 빌드(`npm run build`) 무결성 확인
+## 2. 주요 기술적 결정 사항
+- **PostGIS GeoJSON 연동**: Supabase JS 클라이언트를 통해 `geography` 필드 적재 시 GeoJSON 객체 포맷(`{ type: 'Point', coordinates: [lng, lat] }`)이 유효함을 확인하고 전수 적용했습니다.
+- **무결성 필터링 (Sanitization)**: 적재 전 필수 필드(id, name, address, lat, lng)가 하나라도 누락된 데이터는 아예 제외하여 전체 배치 프로세스가 중단되는 것을 방어했습니다.
+- **SSOT 매뉴얼 업데이트**: 사용자 요청에 따라 마트 선별 쿼터를 15개에서 20개로 상향하고 관련 매뉴얼(`smart_camping_plan_manual.md`)을 즉시 갱신했습니다.
 
-### 최종 커밋
-- `feat: stabilize daily region sync with throttling and failsafes` (Push 대기 중)
+## 3. 다음 작업 가이드
+- **운영 모니터링**: 내일(4월 9일) 새벽 06:00 KST에 실행될 자동화 크론(Daily Rotation + D-3 Caching)이 실제 프로덕션 DB에 어떻게 적재되는지 `automation/logs`를 통해 최종 확인이 필요합니다.
+- **추천 로직 고도화 (Phase 5)**: 1차 선별이 안정화되었으므로, 이제 4축 점수화(기상, 페르소나, 동선 등) 및 AI 서사 생성 엔진의 가중치 튜닝 단계로 진입할 수 있습니다.
+- **데이터 최신화**: 전국 캠핑장(`campgrounds`) 데이터의 좌표나 상태가 원천 데이터와 어긋나 있는 경우를 대비한 자동 갱신 로직 구현이 권장됩니다.
 
----
-
-## 기술적 결정 사항
-
-| 결정 | 이유 |
-|------|------|
-| LocalData 3초 딜레이 | WAF(Web Application Firewall)가 빠른 연속 다운로드를 DDoS로 오인, 403 차단 |
-| TourAPI 1초 딜레이 | 공공데이터포털 TPS(초당 처리량) 제한 초과 방지 |
-| 안심식당 지역 필터 | 전국 데이터 전수 조회 → 지역 필터링으로 API 호출량 절감 |
-| Soft-Delete 조건부 실행 | API 장애 시 fetched=0이면 삭제 스킵 (기존 데이터 보호) |
-| SIDO_ROTATION 순서 변경 | 서울→부산→대구→인천 순 (행정구역 코드 기준, 기존 혼재 정리) |
-
----
-
-## 다음 작업 가이드 (4/8 세션 우선순위)
-
-### 🔴 P0: 즉시 확인
-1. **전북특별자치도 갱신 결과 확인** — 새벽 4시 배치 후 `automation_logs` 조회
-   - 7개 카테고리(SAFE, GOOD, BAEK, LARGE_MART, SSM_MART, OTHER_MART, SPOT) 각각 fetched > 0 확인
-   - Throttling이 WAF/TPS 차단을 성공적으로 회피했는지 에러 로그 확인
-2. **Git Push** — 사용자가 직접 진행 (현재 origin/main 대비 커밋 수 ahead 상태)
-
-### 🟡 P1: D-3 캐싱 검증
-3. **D-3 캐싱 1부/2부 자동 작동** — 방금 예약한 4일 후 예약건이 내일 D-3 캐싱에 잡히는지 확인
-4. **1차 선별 로직 점검** — 캐싱된 후보군의 카테고리별 쿼터(300건) 충족 여부
-
-### 🟢 P2: 중기 과제
-5. 캠핑장 데이터 자동 갱신 로직 설계
-6. 4축 점수화 가중치 고도화
-
----
-
-## 주의 사항
-
-- **API 키 일시 정지**: 이전 세션의 과부하 테스트로 일부 API 키가 일시 정지되었으나, 24시간 자동 해제되므로 내일 새벽 배치에는 정상 작동 예상
-- **빌드 경고**: `baseline-browser-mapping` 관련 경고가 출력되나 기능에 영향 없음 (npm 패키지 내부 deprecation)
-- **ESLint 경고**: `.eslintignore` 파일이 ESLint 9에서 더 이상 지원되지 않는다는 경고 → 기능 이슈 아님
-- **SIDO_ROTATION은 단일 정의**: `scripts/daily-region-sync.mjs` L107-110에만 존재. 절대 하단에 중복 정의 금지
-
----
-
-## 핵심 파일 참조
-
-| 파일 | 역할 |
-|------|------|
-| `scripts/daily-region-sync.mjs` | 17일 주기 지역별 동기화 엔진 (SSOT) |
-| `precision_audit_sop_v11.md` | 7점 감사 프레임워크 표준 운영 절차 |
-| `docs/smart_camping_plan_manual.md` | 스마트 캠핑 플랜 기술 매뉴얼 |
-| `.github/workflows/daily-region-sync.yml` | GitHub Actions 스케줄러 (04:00 KST) |
+## 4. 주의 사항
+- **Git Push**: 현재 모든 수정 사항이 `13a6ec2` 커밋으로 로컬에 저장되어 있습니다. 사용자의 최종 Push 작업이 완료되어야 AWS/Vercel 환경에 반영됩니다.
+- **API Quota**: 시뮬레이션 중 카카오 지오코딩 및 오피넷 API 호출이 빈번했으므로, 운영 환경 반영 시 할당량 초과 여부를 관찰해야 합니다.

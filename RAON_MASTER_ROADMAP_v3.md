@@ -207,6 +207,12 @@
         *   [x] **Table Resolution**: `campgrounds` 테이블 내 3,000건 데이터 온존 확인으로 유실 오해 해소.
         *   [x] **Logic Fix**: 캐싱 스크립트의 Location Recovery 쿼리를 `master_places`에서 `campgrounds`로 정상화.
         *   [x] **Verification**: '라온아이오토캠핑장' 공식 주소 및 좌표 DB 무결성 최종 검증 완료.
+    *   [x] **5.5.11 D-3 Pipeline Stabilization & Quota Optimization ✅ (2026-04-08)**:
+        *   [x] **Bug Fix**: `clusters` 미선언 ReferenceError 해결 및 `RPC v2` 표준 파라미터 이식.
+        *   [x] **Constraint Guard**: `master_places` 적재 시 `address`, `created_at`, `lat/lng` 필수값 누락 방어 로직 전수 적용.
+        *   [x] **Geography Sync**: PostGIS `location` 필드(GeoJSON) 실시간 동기화로 공간 검색 가시성 확보.
+        *   [x] **Lowest Price Scoring**: 주유소(GAS_STATION) 등유 가격 기반 신뢰 점수 가점제 도입 및 MART 쿼터 20개 상향 완료.
+        *   [x] **Verification**: 4/11 타겟 시뮬레이션 결과 1,301개 후보군 실측 및 319개 팩트 생성 성공.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
