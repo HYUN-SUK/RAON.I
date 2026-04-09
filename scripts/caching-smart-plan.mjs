@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @file caching-smart-plan.mjs
- * @version 11.6.1 (Deployment Trigger)
+ * @version 11.6.2 (Session Wrap-up)
  */
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
@@ -32,10 +32,6 @@ async function scrapeKakaoPlace(url) {
         const reviewCount = r.reviewCount || 0;
         return { rating, reviewCount, success: rating > 0 || reviewCount > 0 };
     } catch { return { rating: 0, reviewCount: 0, success: false }; }
-}
-
-async function clean(s) { 
-    return String(s || '').trim();
 }
 
 async function main() {

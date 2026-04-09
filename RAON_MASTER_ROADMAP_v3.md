@@ -213,6 +213,11 @@
         *   [x] **Geography Sync**: PostGIS `location` 필드(GeoJSON) 실시간 동기화로 공간 검색 가시성 확보.
         *   [x] **Lowest Price Scoring**: 주유소(GAS_STATION) 등유 가격 기반 신뢰 점수 가점제 도입 및 MART 쿼터 20개 상향 완료.
         *   [x] **Verification**: 4/11 타겟 시뮬레이션 결과 1,301개 후보군 실측 및 319개 팩트 생성 성공.
+    *   [x] **5.5.12 Monitoring High-Visibility (SOP v11) ✅ (2026-04-09)**:
+        *   [x] **SOP Integration**: `precision_audit_sop_v11.md` 규격에 맞춘 API 실적 및 쿼터 지표 수집 연동.
+        *   [x] **Dashboard Upgrade**: 관리자 로그 상세 화면에 Part 1(API), Part 2(Quota Flow) 정밀 대조 테이블 실장.
+        *   [x] **Data Persistence**: JSON 기반 `message` 필드 활용으로 DB 구조 변경 없이 동적 리포팅 체계 완성.
+        *   [x] **Verification**: 4/12 타겟 캐싱 실행 및 관리자 화면 리포트 출력 최종 검증 완료.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)

@@ -7,9 +7,19 @@
     - [x] **[ID]** UUID v5 기반 소스별 독립 ID 체계(7.1.1 명세) 전수 적용
 - [x] **Stabilization & Verification**
     - [x] 전국 단위 12.4만 건 실물 전수 조사 (Pagination 오류 극복)
-    - [x] `scripts/sync-master-places.mjs` 인코딩 및 필드 매핑 로직 고도화
-    - [x] Production Build (`npm run build`) 무결성 통과
-    - [x] Git Commit (`Ground Zero sync complete`) 수행 (Push 대기)
+    - [x] `scripts/caching-smart-plan.mjs` 수정 (지표 수집 및 로깅 추가)
+    - [x] `metrics` 객체 초기화 및 전역 관리
+    - [x] Step A (병원, 주유소, 축제) API 실적 추적 로직 추가
+    - [x] Step B (마스터 쿼터) 및 Step C (카카오 검증) 집계 로직 추가
+    - [x] `recordAutomationLog` 함수 구현 및 시점 삽입
+    - [x] `src/app/admin/automation/logs/page.tsx` 수정 (UI 구현)
+    - [x] `SMART_PLAN_CACHING` 전용 상세 렌더링 로직 추가
+    - [x] SOP 2부(API 대조) 테이블 구현
+    - [x] SOP 3부(단계별 검증) 테이블 구현
+    - [x] 통합 테스트 및 검증
+    - [x] 캐싱 스크립트 시뮬레이션 실행 (2026-04-12 타겟)
+    - [x] 302건의 Facts 생성 및 DB 적재 완료
+    - [x] 관리자 화면 SOP 규격 리포트 렌더링 확인
 - [x] **Phase 3: Daily Rotation 안정화 (2026-04-07 세션)**
     - [x] **[Throttling]** LocalData CSV 3초, TourAPI detailCommon2 1초 지연 적용
     - [x] **[지역 필터링]** 안심식당(MAFRA) API 호출 시 `RELAX_SI_NM` 파라미터로 지역 필터링 최적화
