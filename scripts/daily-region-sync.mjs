@@ -18,7 +18,7 @@ const supabase = createClient(
 
 // API Keys
 const MOIS_API_KEY = process.env.MOIS_API_KEY || process.env.PUBLIC_DATA_API_KEY;
-const SAFE_API_KEY = process.env.SAFE_API_KEY || process.env.PUBLIC_DATA_API_KEY;
+const SAFE_API_KEY = process.env.SAFE_RESTAURANT_API_KEY || process.env.SAFE_API_KEY || process.env.PUBLIC_DATA_API_KEY;
 const TOUR_API_KEY = process.env.TOUR_API_KEY || process.env.PUBLIC_DATA_API_KEY;
 
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
@@ -59,7 +59,7 @@ function isValidRegion(addr, shortSido) {
 }
 
 const generateId = (source, name, addr) => {
-  return uuidv5(`${source}_${name}_${addr}`, MY_NAMESPACE);
+  return uuidv5(`${source}|${String(name || '').trim()}|${String(addr || '').trim()}`, MY_NAMESPACE);
 };
 
 // --- [Phase 1: 공통 방어막 (Exponential Backoff + Jitter)] ---
@@ -160,13 +160,13 @@ async function dailyRegionSync() {
     }
   };
 
-  // 1. 사전 카운트 (기존 데이터 수 - 하위 소스별 매핑)
+  // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 과거 소스명 제거 완료)
   const sourceToStatKey = {
     'SAFE_RESTAURANT': 'SAFE', 
-    'LOCALDATA_RESTAURANT_GOOD': 'GOOD', 'MOIS_GOOD_RESTAURANT': 'GOOD', // 구형 명칭 병합
+    'LOCALDATA_RESTAURANT_GOOD': 'GOOD',
     'SMBA_BAEK': 'BAEK',
     'LOCALDATA_MART_LARGE': 'LARGE_MART', 
-    'LOCALDATA_MART_SSM': 'SSM_MART', 'LOCALDATA_MART_SUPER': 'SSM_MART', // 구형 명칭 병합
+    'LOCALDATA_MART_SSM': 'SSM_MART',
     'LOCALDATA_MART_OTHER': 'OTHER_MART',
     'TOUR_SPOT': 'SPOT'
   };
@@ -190,22 +190,56 @@ async function dailyRegionSync() {
   // [2.3] 명소군 (관광공사 지역기반 동기화) - KorService2
   await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
 
-  // 3. Soft Delete 처리 (API별로 정상 응답이 수신된 경우에만 해당 API 소스 기준으로 스위핑)
+  // 3. Multi-Strike Soft Delete (3진 아웃 방식)
+  // - API에서 확인된 데이터: miss_count를 0으로 리셋
+  // - API에서 미확인된 데이터: miss_count를 +1 증가
+  // - miss_count >= 3 (3회 연속 미확인 = 51일): 비활성화 처리
   for (const [source, key] of Object.entries(sourceToStatKey)) {
     const fetched = stats.categories[key].fetched;
-    // 정상적으로 데이터를 충분히 가져온 소스(최소 1건 이상 수집)에 대해서만 폐업(비활성) 검사 수행
     if (fetched > 0) {
-      const { data: existingActive } = await supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', true);
-      const toDeactivate = (existingActive || []).map(r => r.id).filter(id => !seenIds.has(id));
+      // 해당 소스의 active 데이터 전체 조회
+      const { data: existingActive } = await supabase.from('master_places').select('id, miss_count').eq('sido', targetSido).eq('api_source', source).eq('is_active', true);
       
-      if (toDeactivate.length > 0) {
-        console.log(`\n♻️  Deactivating ${toDeactivate.length} closed businesses in ${targetSido} for [${source}]...`);
-        for (let i = 0; i < toDeactivate.length; i += 100) {
-          await supabase.from('master_places').update({ is_active: false, updated_at: new Date().toISOString() }).in('id', toDeactivate.slice(i, i + 100));
+      const seen = [];      // API에서 확인됨 → miss_count 리셋
+      const unseen = [];    // API에서 미확인 → miss_count 증가
+      const toDeactivate = []; // 3회 연속 미확인 → 비활성화
+      
+      for (const r of (existingActive || [])) {
+        if (seenIds.has(r.id)) {
+          seen.push(r.id);
+        } else {
+          const newMiss = (r.miss_count || 0) + 1;
+          if (newMiss >= 3) {
+            toDeactivate.push(r.id);
+          } else {
+            unseen.push({ id: r.id, miss: newMiss });
+          }
         }
       }
+
+      // 확인된 데이터: miss_count 리셋 (0으로)
+      if (seen.length > 0) {
+        for (let i = 0; i < seen.length; i += 500) {
+          await supabase.from('master_places').update({ miss_count: 0 }).in('id', seen.slice(i, i + 500));
+        }
+      }
+
+      // 미확인 데이터: miss_count 증가 (아직 active 유지)
+      for (const item of unseen) {
+        await supabase.from('master_places').update({ miss_count: item.miss }).eq('id', item.id);
+      }
+
+      // 3진 아웃 데이터: 비활성화
+      if (toDeactivate.length > 0) {
+        console.log(`\n♻️  [3-Strike] Deactivating ${toDeactivate.length} records in ${targetSido} for [${source}] (3회 연속 미확인)...`);
+        for (let i = 0; i < toDeactivate.length; i += 100) {
+          await supabase.from('master_places').update({ is_active: false, miss_count: 3, updated_at: new Date().toISOString() }).in('id', toDeactivate.slice(i, i + 100));
+        }
+      }
+
+      console.log(`  📊 [${source}] 확인: ${seen.length} | 미확인(경고): ${unseen.length} | 비활성화(3진아웃): ${toDeactivate.length}`);
     } else {
-      console.log(`\n⚠️  [Failsafe] Deletion skipped for ${source} (${targetSido}) due to 0 fetched items.`);
+      console.log(`\n⚠️  [Failsafe] miss_count 업데이트 생략: ${source} (${targetSido}) - API 수신 0건 (API 오류 의심)`);
     }
   }
 
@@ -216,7 +250,7 @@ async function dailyRegionSync() {
   // 5. 최종 카운트 (총 데이터 수)
   for (const [source, key] of Object.entries(sourceToStatKey)) {
     const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('sido', targetSido).eq('api_source', source).eq('is_active', true);
-    stats.categories[key].total = count || 0;
+    stats.categories[key].total += (count || 0);
   }
   
   // SPOT_READCOUNT 의 기존/전체 데이터 수는 SPOT과 동일하게 매핑
