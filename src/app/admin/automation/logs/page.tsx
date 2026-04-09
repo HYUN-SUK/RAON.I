@@ -340,26 +340,26 @@ export default function AutomationLogsPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
-              <table className="w-full text-left border-collapse">
+            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">갱신 지역</th>
-                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">카테고리</th>
-                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
-                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
-                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
-                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
-                    <th className="px-3 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">갱신 지역</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {apiStatus.map((s: any, i: number) => (
                     <tr key={i} className="hover:bg-gray-50/30 transition-colors">
-                      <td className="px-3 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span className="text-xs font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-full">{s.region}</span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {s.label?.includes('RESTAURANT') && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
                           {s.label?.includes('MART') && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
@@ -368,19 +368,19 @@ export default function AutomationLogsPage() {
                           <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs font-bold text-gray-400">{(s.existing_count || 0).toLocaleString()}</td>
-                      <td className="px-3 py-3 whitespace-nowrap text-right text-xs font-black text-gray-700">{(s.fetched_count || 0).toLocaleString()}</td>
-                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-xs font-bold text-gray-400">{(s.existing_count || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-xs font-black text-gray-700">{(s.fetched_count || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
                         <span className="inline-block bg-brand-50 text-brand-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-brand-100">
                           +{s.new_count || 0}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-right">
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
                         <span className="inline-block bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-blue-100">
                            {s.updated_count || 0}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-black text-gray-900">{(s.total_count || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-black text-gray-900">{(s.total_count || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -389,9 +389,9 @@ export default function AutomationLogsPage() {
 
             <div className="mt-8 flex items-center justify-between px-2">
               <div className="flex items-center text-[10px] text-gray-400 font-bold">
-                <AlertCircle className="w-3 h-3 mr-1.5" /> * API 수신 수에 존재하지 않는 기존 데이터는 자동으로 비활성화(is_active=false) 처리됩니다.
+                <AlertCircle className="w-3 h-3 mr-1.5" /> * 3진 아웃 방식: API에서 3회 연속(51일) 미확인 시 자동 비활성화 처리됩니다.
               </div>
-              <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Precision Audit Engine v2.0</p>
+              <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Precision Audit Engine v3.0</p>
             </div>
           </div>
         );
@@ -501,7 +501,18 @@ export default function AutomationLogsPage() {
         </div>
       </section>
 
-      {/* 3. 하단 섹션: Timeline & Reminders */}
+      {/* 3. DAILY_REGION_SYNC Full-Width 독립 패널 (타임라인 밖 렌더링) */}
+      {(() => {
+        const selectedLog = logs.find(l => l.id === expandedLogId && l.job_name === 'DAILY_REGION_SYNC');
+        if (!selectedLog) return null;
+        return (
+          <section className="pt-4 animate-in fade-in duration-300">
+            {renderLogDetails(selectedLog)}
+          </section>
+        );
+      })()}
+
+      {/* 4. 하단 섹션: Timeline & Reminders */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
         {/* 히스토리 테이블 */}
         <div className="lg:col-span-8 space-y-6">
@@ -544,7 +555,7 @@ export default function AutomationLogsPage() {
                         {expandedLogId === log.id ? <ChevronUp className="w-4 h-4 text-brand-600" /> : <ChevronDown className="w-4 h-4" />}
                       </td>
                     </tr>
-                    {expandedLogId === log.id && (
+                    {expandedLogId === log.id && log.job_name !== 'DAILY_REGION_SYNC' && (
                       <tr>
                         <td colSpan={4} className="bg-white">
                           {renderLogDetails(log)}
