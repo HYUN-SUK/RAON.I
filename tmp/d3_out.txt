@@ -1,0 +1,38 @@
+{
+  "caching_logs": [
+    {
+      "id": "f3b0b7a7-7a4f-4025-b66a-ea1d87a75778",
+      "job_name": "SMART_PLAN_CACHING",
+      "status": "SUCCESS",
+      "created_at": "2026-03-30T14:18:09.833408+00:00"
+    },
+    {
+      "id": "b86de1a6-c6b7-4400-b2ab-5c1fa7ec6365",
+      "job_name": "SMART_PLAN_CACHING",
+      "status": "SUCCESS",
+      "created_at": "2026-03-30T14:11:03.534176+00:00"
+    },
+    {
+      "id": "27676c5a-cd71-4dae-8f9b-eba6e5fe8750",
+      "job_name": "SMART_PLAN_CACHING",
+      "status": "SUCCESS",
+      "created_at": "2026-03-30T14:06:22.207649+00:00"
+    },
+    {
+      "id": "a31da481-1783-4a4f-8ce9-42858df3dfd6",
+      "job_name": "SMART_PLAN_CACHING",
+      "status": "SUCCESS",
+      "created_at": "2026-03-30T14:01:19.012533+00:00"
+    },
+    {
+      "id": "6f45bd7d-d045-407f-b9fb-6e38dc61eda1",
+      "job_name": "SMART_PLAN_CACHING",
+      "status": "SUCCESS",
+      "created_at": "2026-03-30T12:45:56.216571+00:00"
+    }
+  ],
+  "total_facts": 532,
+  "target_0412_facts": null,
+  "upcoming_reservations": null,
+  "latest_fact_created": "2026-04-08T21:39:09.38859+00:00"
+}

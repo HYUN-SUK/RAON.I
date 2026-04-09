@@ -44,9 +44,35 @@ async function main() {
     let targetStr = dateArg || new Date(new Date().getTime() + 12 * 3600000 + 3 * 86400000).toISOString().split('T')[0];
     const isSunday = new Date(targetStr).getDay() === 0;
 
+    // [v11.9.8] Enhanced Metrics for SOP v11
+    const metrics = {
+        reservations: 0,
+        clusters: 0,
+        dynamic_api: {
+            HOSPITAL: { existing: 0, received: 0, new: 0, updated: 0, total: 0 },
+            GAS_STATION: { existing: 0, received: 0, new: 0, updated: 0, total: 0 },
+            FESTIVAL: { existing: 0, received: 0, new: 0, updated: 0, total: 0 }
+        },
+        quota_flow: {
+            RESTAURANT: { raw: 0, quota: 0, verified: 0, final: 0 },
+            SPOT: { raw: 0, quota: 0, verified: 0, final: 0 },
+            MART: { raw: 0, quota: 0, verified: 0, final: 0 },
+            HOSPITAL: { raw: 0, quota: 0, verified: 0, final: 0 },
+            GAS_STATION: { raw: 0, quota: 0, verified: 0, final: 0 },
+            FESTIVAL: { raw: 0, quota: 0, verified: 0, final: 0 }
+        }
+    };
+
     console.log(`🚀 v11.6 | Target: ${targetStr}`);
     const { data: schedules } = await supabase.from('user_schedules').select('campground_lat, campground_lng, campground_name, campground_address').eq('check_in', targetStr);
-    if (!schedules?.length) process.exit(0);
+    
+    if (!schedules?.length) {
+        console.log(`  ℹ️ No reservations found for ${targetStr}. Skipping...`);
+        await recordAutomationLog(metrics, targetStr, 'SKIPPED');
+        process.exit(0);
+    }
+
+    metrics.reservations = schedules.length;
 
     let clusters = [];
     const totalFactMap = new Map();
@@ -77,11 +103,21 @@ async function main() {
         else clusters.push({ lat, lng, names: [campground_name], address: address });
     }
 
+    metrics.clusters = clusters.length;
+
     for (const cluster of clusters) {
         const { lat, lng, address } = cluster;
         const addr = address.split(' ');
         const doNm = addr[0] || '충청남도';
         const sigunguNm = addr[1] || '예산군';
+
+        // Get existing counts for Part 1 reporting
+        const { count: hCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
+        const { count: gCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
+        const { count: fCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
+        metrics.dynamic_api.HOSPITAL.existing = Math.max(metrics.dynamic_api.HOSPITAL.existing, hCount || 0);
+        metrics.dynamic_api.GAS_STATION.existing = Math.max(metrics.dynamic_api.GAS_STATION.existing, gCount || 0);
+        metrics.dynamic_api.FESTIVAL.existing = Math.max(metrics.dynamic_api.FESTIVAL.existing, fCount || 0);
 
         // Step A: Real-time (Hosp, Fest, Gas) - [v11.8.5 Restore]
         let rawMasterInserts = [];
@@ -92,6 +128,7 @@ async function main() {
             const hData = await hRes.json();
             if (hData.response?.body?.items?.item) {
                 const items = Array.isArray(hData.response.body.items.item) ? hData.response.body.items.item : [hData.response.body.items.item];
+                metrics.dynamic_api.HOSPITAL.received += items.length;
                 items.forEach((item) => {
                     rawMasterInserts.push({
                         id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
@@ -109,6 +146,7 @@ async function main() {
             const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${lng}&y=${lat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
             const kData = await kRes.json();
             if (kData.documents) {
+                metrics.dynamic_api.HOSPITAL.received += kData.documents.length;
                 kData.documents.forEach((item) => {
                     rawMasterInserts.push({
                         id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
@@ -127,6 +165,7 @@ async function main() {
             const fData = await fRes.json();
             if (fData.response?.body?.items?.item) {
                 const items = Array.isArray(fData.response.body.items.item) ? fData.response.body.items.item : [fData.response.body.items.item];
+                metrics.dynamic_api.FESTIVAL.received += items.length;
                 items.forEach((item) => {
                     rawMasterInserts.push({
                         id: generateFactId('TOUR_FSTVL', item.title, item.addr1),
@@ -163,6 +202,7 @@ async function main() {
                     for (const data of results) {
                         if (data?.RESULT?.OIL) {
                             const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
+                            metrics.dynamic_api.GAS_STATION.received += items.length;
                             for (const item of items) {
                                 const key = (item.OS_NM || 'NONE') + (item.VAN_ADR || 'ADDR');
                                 const price = parseFloat(item.PRICE || item.K_PRICE || "0");
@@ -210,11 +250,22 @@ async function main() {
                 }));
 
             if (sanitized.length > 0) {
+                const ids = sanitized.map(s => s.id);
+                const { data: existingIds } = await supabase.from('master_places').select('id').in('id', ids);
+                const existingSet = new Set(existingIds?.map(e => e.id) || []);
+                
+                const news = sanitized.filter(s => !existingSet.has(s.id));
+                const upds = sanitized.filter(s => existingSet.has(s.id));
+
+                metrics.dynamic_api.HOSPITAL.new += news.filter(n => n.category === 'HOSPITAL').length;
+                metrics.dynamic_api.HOSPITAL.updated += upds.filter(u => u.category === 'HOSPITAL').length;
+                metrics.dynamic_api.GAS_STATION.new += news.filter(n => n.category === 'GAS_STATION').length;
+                metrics.dynamic_api.GAS_STATION.updated += upds.filter(u => u.category === 'GAS_STATION').length;
+                metrics.dynamic_api.FESTIVAL.new += news.filter(n => n.category === 'FESTIVAL').length;
+                metrics.dynamic_api.FESTIVAL.updated += upds.filter(u => u.category === 'FESTIVAL').length;
+
                 const { error: upsertError } = await supabase.from('master_places').upsert(sanitized, { onConflict: 'id' });
-                if (upsertError) console.error("  ❌ Master Upsert Error:", upsertError);
-                else console.log(`  ✅ Successfully persisted ${sanitized.length} items to database.`);
-            } else {
-                console.log("  ⚠️ No valid dynamic items to persist after sanitization.");
+                if (upsertError) console.error("  ❌ Master Upsert Error:", upsertError.message);
             }
         }
         
@@ -236,6 +287,7 @@ async function main() {
                 radius_meters: 30000, p_category: cat, 
                 limit_count: rawLimit 
             });
+            metrics.quota_flow[cat].raw += (data?.length || 0);
             if (!data?.length) continue;
 
             const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용/;
@@ -332,7 +384,9 @@ async function main() {
             }
 
             rawCandidatesForAudit.push(...sorted);
-            clusterCands.push(...sorted.slice(0, limit));
+            const sliced = sorted.slice(0, limit);
+            metrics.quota_flow[cat].quota += sliced.length;
+            clusterCands.push(...sliced);
         }
 
         // 전체 리스트 출력 (SOP 규격)
@@ -353,6 +407,7 @@ async function main() {
                 const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(c.name)}&x=${c.lng}&y=${c.lat}&radius=10000`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
                 const m = res.documents?.find(d => d.place_name.replace(/\s/g,'') === c.name.replace(/\s/g,'')) || res.documents?.[0];
                 if (m) {
+                    metrics.quota_flow[c.category].verified++;
                     const sc = await scrapeKakaoPlace(m.place_url);
                     const safeFact = {
                         id: generateFactId('MASTER_ENRICHED', c.name, c.address),
@@ -372,8 +427,59 @@ async function main() {
         }
     }
     const final = Array.from(totalFactMap.values());
+    final.forEach(f => {
+        if (metrics.quota_flow[f.category]) metrics.quota_flow[f.category].final++;
+    });
+
     for (let i = 0; i < final.length; i += 500) await supabase.from('smart_plan_facts').upsert(final.slice(i, i + 500), { onConflict: 'id' });
     console.log(`🏁 Done: ${final.length} facts.`);
+
+    // Update dynamic API total counts
+    const { count: finalH } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
+    const { count: finalG } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
+    const { count: finalF } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
+    metrics.dynamic_api.HOSPITAL.total = finalH || 0;
+    metrics.dynamic_api.GAS_STATION.total = finalG || 0;
+    metrics.dynamic_api.FESTIVAL.total = finalF || 0;
+
+    await recordAutomationLog(metrics, targetStr, 'SUCCESS');
     process.exit(0);
 }
+
+async function recordAutomationLog(metrics, targetDate, status) {
+    console.log(`📊 Recording automation log for ${targetDate}...`);
+    
+    // SOP v11 Part 1 & 2 Structure
+    const apiStatus = Object.entries(metrics.dynamic_api).map(([cat, val]) => ({
+        category: cat,
+        existing: val.existing,
+        received: val.received,
+        new: val.new,
+        updated: val.updated,
+        total: val.total
+    }));
+
+    const quotaFlow = Object.entries(metrics.quota_flow).map(([cat, val]) => ({
+        category: cat,
+        raw_query: val.raw,
+        top_quota: val.quota,
+        verified: val.verified,
+        final: val.final
+    }));
+
+    const { error } = await supabase.from('automation_logs').insert({
+        job_name: 'SMART_PLAN_CACHING',
+        status: status,
+        processed_count: metrics.reservations,
+        message: JSON.stringify({
+            text: `${targetDate} 예약 ${metrics.reservations}건 대상 캐싱 완료 (${metrics.clusters}개 클러스터)`,
+            quota_flow: quotaFlow
+        }),
+        api_status: apiStatus, // Part 1
+        created_at: new Date().toISOString()
+    });
+
+    if (error) console.error("  ❌ Logging Error:", error.message);
+}
+
 main();

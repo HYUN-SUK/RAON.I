@@ -1,0 +1,79 @@
+{
+  "sample_schedule_columns": [
+    "id",
+    "user_id",
+    "source",
+    "reservation_id",
+    "campground_id",
+    "campground_name",
+    "campground_address",
+    "campground_lat",
+    "campground_lng",
+    "check_in",
+    "check_out",
+    "status",
+    "record_written",
+    "record_id",
+    "notification_d4_sent",
+    "notification_d1_sent",
+    "notification_d0_sent",
+    "memo",
+    "created_at",
+    "updated_at",
+    "member_count"
+  ],
+  "sample_schedules": null,
+  "total_schedules": 105,
+  "recent_all_logs": [
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-09T04:48:44.33+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-08T20:15:17.506+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-08T04:17:47.38+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-07T20:13:51.724+00:00"
+    },
+    {
+      "job_name": "API_HEALTH_CHECK",
+      "status": "SUCCESS",
+      "created_at": "2026-04-07T07:56:58.841193+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-07T07:23:46.483+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-07T07:08:53.208+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-07T06:53:47.205+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-07T06:51:58.395+00:00"
+    },
+    {
+      "job_name": "DAILY_REGION_SYNC",
+      "status": "SUCCESS",
+      "created_at": "2026-04-07T06:21:00.487+00:00"
+    }
+  ]
+}

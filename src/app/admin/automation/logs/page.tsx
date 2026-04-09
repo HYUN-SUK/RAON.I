@@ -48,6 +48,7 @@ interface AutomationLog {
   target_date: string | null;
   created_at: string;
   api_status?: ApiStatus[];
+  raw_data?: any;
 }
 
 const INITIAL_API_LIST: ApiStatus[] = [
@@ -207,117 +208,116 @@ export default function AutomationLogsPage() {
       }
 
       if (log.job_name === 'SMART_PLAN_CACHING') {
-        const msg = typeof log.message === 'string' ? JSON.parse(log.message) : log.message;
-        const metrics = msg.metrics || {};
-        const clusters = msg.clusters || [];
+        const apiStatus = log.api_status || [];
+        const parsedMsg = (log.message && typeof log.message === 'string' && log.message.startsWith('{')) 
+          ? JSON.parse(log.message) 
+          : { text: log.message, quota_flow: [] };
+        const quotaFlow = parsedMsg.quota_flow || [];
         
         return (
           <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
             <div className="flex justify-between items-center mb-10">
               <h4 className="text-xl font-black text-gray-900 flex items-center">
-                <Calendar className="w-6 h-6 mr-3 text-brand-600" /> D-3 스마트 플랜 캐싱 리포트
+                <Calendar className="w-6 h-6 mr-3 text-brand-600" /> D-3 스마트 플랜 캐싱 정밀 점검 리포트 (SOP v11)
               </h4>
               <div className="flex items-center space-x-3">
                 <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100 text-center">
                   <p className="text-[9px] font-black text-gray-400 uppercase">대상 예약</p>
-                  <p className="text-sm font-black text-gray-900">{metrics.user_total || 0}건</p>
+                  <p className="text-sm font-black text-gray-900">{log.processed_count || 0}건</p>
                 </div>
                 <div className="bg-brand-600 px-5 py-2 rounded-2xl shadow-lg text-center text-white">
-                  <p className="text-[9px] font-black text-brand-200 uppercase">최종 적재</p>
-                  <p className="text-sm font-black">{msg.final_upsert || 0}건</p>
+                  <p className="text-[9px] font-black text-brand-200 uppercase">작업 결과</p>
+                  <p className="text-sm font-black">{log.status}</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-12">
-              {/* 3일전 캐싱 1부: 신규 API 데이터 fetching (Step A) */}
+              {/* 🎯 2. D-3 캐싱 1부 (API별 지표 대조) */}
               <div className="space-y-4">
                 <h5 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center px-2">
-                  <RefreshCw className="w-4 h-4 mr-2" /> 1부: 실시간 API 실적 (병원/주유소/축제)
+                  <Activity className="w-4 h-4 mr-2" /> 1부: API별 지표 대조 (Dynamic Data)
                 </h5>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  {Object.entries(metrics.stepA_total || {}).map(([cat, count]: [string, any]) => (
-                    <div key={cat} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 text-center">
-                      <p className="text-[10px] font-black text-gray-400 mb-2">{cat}</p>
-                      <p className="text-2xl font-black text-gray-900">{count || 0}</p>
-                    </div>
-                  ))}
+                <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-gray-50/50 border-b border-gray-100">
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">최종 총계</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {apiStatus.map((s: any, i: number) => (
+                        <tr key={i} className="hover:bg-gray-50/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              {s.category === 'HOSPITAL' && <Hospital className="w-3.5 h-3.5 mr-2 text-red-500" />}
+                              {s.category === 'GAS_STATION' && <Activity className="w-3.5 h-3.5 mr-2 text-orange-500" />}
+                              {s.category === 'FESTIVAL' && <Ticket className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
+                              <span className="text-[11px] font-black text-gray-900 uppercase">{s.category}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right text-xs font-bold text-gray-400">{(s.existing || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right text-xs font-black text-gray-700">{(s.received || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="inline-block bg-brand-50 text-brand-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-brand-100">
+                              +{s.new || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="inline-block bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-blue-100">
+                               {s.updated || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm font-black text-gray-900">{(s.total || 0).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* 3일전 캐싱 2부: 권역별 1차 후보군 선별 (Master -> Fact) */}
-              <div className="space-y-6">
-                <div className="flex justify-between items-end px-2">
-                  <h5 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center">
-                    <MapPin className="w-4 h-4 mr-2" /> 2부: 권역별 고신뢰 데이터 선별 (Master DB → Fact DB)
-                  </h5>
-                  <span className="text-[10px] font-bold text-gray-400 bg-gray-200 px-3 py-1 rounded-full">{clusters.length}개 권역 처리됨</span>
-                </div>
-                
-                <div className="overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
-                  <div className="flex gap-6">
-                    {clusters.map((c: any, i: number) => (
-                      <div key={i} className="flex-shrink-0 w-[400px] bg-white p-6 rounded-[2.5rem] shadow-xl border border-brand-50 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <Maximize2 className="w-24 h-24" />
-                        </div>
-                        <div className="mb-6 pb-4 border-b border-gray-50 flex justify-between items-start">
-                          <div>
-                            <p className="text-xs font-black text-brand-600 mb-1">권역 #{i+1}</p>
-                            <p className="text-[10px] text-gray-400 font-bold font-mono">Center: {c.center?.[0].toFixed(3)}, {c.center?.[1].toFixed(3)}</p>
-                          </div>
-                          <div className="bg-brand-50 text-brand-700 px-3 py-1 rounded-xl text-[10px] font-black">
-                            {c.final_facts || 0} Facts Created
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <table className="w-full text-left">
-                            <thead>
-                              <tr className="text-[9px] font-black text-gray-400 uppercase border-b border-gray-50 pb-2">
-                                <th className="pb-2">Category</th>
-                                <th className="pb-2 text-right">Master DB</th>
-                                <th className="pb-2 text-right">Filtered</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                              {Object.entries(c.stepB_master || {}).map(([cat, count]: [string, any]) => (
-                                <tr key={cat}>
-                                  <td className="py-2 text-[10px] font-bold text-gray-600">{cat}</td>
-                                  <td className="py-2 text-[10px] font-black text-gray-900 text-right">{count || 0}</td>
-                                  <td className="py-2 text-[10px] font-black text-brand-600 text-right">
-                                    {c.stepB_master_filtered?.[cat] || 0}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* 총계 요약 카드 */}
-                    <div className="flex-shrink-0 w-[300px] bg-[#224732] p-8 rounded-[2.5rem] shadow-2xl text-white flex flex-col justify-between">
-                      <div>
-                        <p className="text-[10px] font-black text-brand-300 uppercase tracking-widest mb-2">Total Processing</p>
-                        <h6 className="text-2xl font-black mb-6">전체 전처리 합계</h6>
-                        <div className="space-y-4">
-                          {Object.entries(metrics.category_breakdown || {}).map(([cat, obj]: [string, any]) => (
-                            <div key={cat} className="flex justify-between items-center text-xs">
-                              <span className="font-bold text-brand-100/60">{cat}</span>
-                              <span className="font-black">{obj?.passed_formula || 0}개</span>
+              {/* 🔍 3. D-3 캐싱 2부 (Quota & Verification) */}
+              <div className="space-y-4">
+                <h5 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center px-2">
+                  <Maximize2 className="w-4 h-4 mr-2" /> 2부: 단계별 정제 및 검증 지표 (Quota & Verification)
+                </h5>
+                <div className="bg-[#224732] rounded-[3rem] p-8 shadow-2xl overflow-hidden overflow-x-auto border-4 border-[#2d5c41]">
+                  <table className="w-full text-left border-collapse min-w-[700px] text-white">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest">카테고리</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">1번 쿼터 (Raw)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">2번 쿼터 (Top Cap)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">카카오 정밀검증</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right font-black text-brand-400">최종 적재</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {quotaFlow.map((q: any, i: number) => (
+                        <tr key={i} className="hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4 text-xs font-bold text-brand-100">{q.category}</td>
+                          <td className="px-6 py-4 text-right text-xs font-black">{(q.raw_query || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right text-xs font-black">{(q.top_quota || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="inline-flex items-center text-[10px] font-black text-green-400">
+                              <CheckCircle2 className="w-3 h-3 mr-1.5" /> {(q.verified || 0).toLocaleString()}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-end">
-                        <div>
-                          <p className="text-[9px] font-bold text-brand-200 uppercase">Kakao Matching</p>
-                          <p className="text-xl font-black">{Math.round((metrics.kakao_stats?.success / metrics.kakao_stats?.attempts) * 100) || 0}%</p>
-                        </div>
-                        <CheckCircle2 className="w-8 h-8 text-brand-400" />
-                      </div>
-                    </div>
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm font-black text-brand-400 bg-white/5">{(q.final || 0).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-6 flex justify-between items-center px-2">
+                    <p className="text-[10px] font-bold text-brand-300 italic">
+                      * 1차 선별 로직 통과 리스트는 spot_final_audit.md에서 상세 확인 가능합니다.
+                    </p>
+                    <p className="text-[9px] font-black text-brand-500 uppercase tracking-tighter">Precision Audit SOP v11.9.8 Compliant</p>
                   </div>
                 </div>
               </div>
@@ -551,7 +551,11 @@ export default function AutomationLogsPage() {
                         {getStatusBadge(log.status)}
                       </td>
                       <td className="px-10 py-6 whitespace-nowrap text-[11px] text-gray-500 font-bold italic flex justify-between items-center">
-                        <span>{log.message?.length > 50 ? log.message.substring(0, 50) + '...' : log.message}</span>
+                        <span>{(() => {
+                            const m = log.message;
+                            const text = (m && typeof m === 'string' && m.startsWith('{')) ? JSON.parse(m).text : m;
+                            return text?.length > 50 ? text.substring(0, 50) + '...' : text;
+                        })()}</span>
                         {expandedLogId === log.id ? <ChevronUp className="w-4 h-4 text-brand-600" /> : <ChevronDown className="w-4 h-4" />}
                       </td>
                     </tr>
