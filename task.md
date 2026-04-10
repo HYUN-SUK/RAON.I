@@ -8,10 +8,15 @@
 - [x] **Stabilization & Verification**
     - [x] 전국 단위 12.4만 건 실물 전수 조사 (Pagination 오류 극복)
     - [x] `scripts/caching-smart-plan.mjs` 수정 (지표 수집 및 로깅 추가)
-    - [x] `metrics` 객체 초기화 및 전역 관리
-    - [x] Step A (병원, 주유소, 축제) API 실적 추적 로직 추가
-    - [x] Step B (마스터 쿼터) 및 Step C (카카오 검증) 집계 로직 추가
-    - [x] `recordAutomationLog` 함수 구현 및 시점 삽입
+    - [x] daily-region-sync.mjs 로직 고도화
+        - [x] SAFE API 하이브리드(단축/전체) 수집 로직 구현
+        - [x] SIDO 별칭 기반 통합 카운팅 로직 적용 (Existing/Total)
+        - [x] 전 카테고리 Deep-Field Comparison (True Update) 구현
+    - [x] SOP v11.2 ID 안정성 및 데이터 힐링 (Healing)
+        - [x] daily-region-sync.mjs: generateId 가상 정규화 구현
+        - [x] heal-gb-data.mjs: 경상북도 중복 제거 및 비활성 복구
+    - [/] 최종 검증 시뮬레이션 (GB 지역)
+    - [ ] 최종 결과 보고 및 SSOT v11 완료
     - [x] `src/app/admin/automation/logs/page.tsx` 수정 (UI 구현)
     - [x] `SMART_PLAN_CACHING` 전용 상세 렌더링 로직 추가
     - [x] SOP 2부(API 대조) 테이블 구현

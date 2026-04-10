@@ -58,8 +58,41 @@ function isValidRegion(addr, shortSido) {
   return aliases.some(alias => addr.startsWith(alias));
 }
 
+// [SOP v11.2] ID 안정성 확보를 위한 주소 가상 정규화 (Hashing용)
+// [CRITICAL] 기존 12.7만 데이터가 'Full Name(경상북도 등)' 기반이므로, 해싱 시 항상 Full Name으로 확장합니다.
+function getNormalizedAddr(addr) {
+  if (!addr) return '';
+  let normalized = addr.trim();
+  const hashSidoMap = {
+    '서울': '서울특별시', '부산': '부산광역시', '대구': '대구광역시', '인천': '인천광역시', '광주': '광주광역시',
+    '대전': '대전광역시', '울산': '울산광역시', '세종': '세종특별자치시', '경기': '경기도', '강원': '강원특별자치도',
+    '충북': '충청북도', '충남': '충청남도', '전북': '전라북도', '전남': '전라남도', '경북': '경상북도',
+    '경남': '경상남도', '제주': '제주특별자치도'
+  };
+  // 단축명을 전체 명칭으로 치환 (단, 이미 전체 명칭인 경우는 유지)
+  for (const [short, full] of Object.entries(hashSidoMap)) {
+    if (normalized.startsWith(short) && !normalized.startsWith(full)) {
+      normalized = normalized.replace(short, full);
+      break;
+    }
+  }
+  return normalized;
+}
+
+// [SOP v11.3] Aggressive Normalization (Master Key): 공백, 괄호, 소문자 제거로 ID 파생 방지
+function getCleanString(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/\(.+?\)/g, '') // 괄호와 괄호 안 내용 삭제 (예: (중방동), (삼풍점))
+    .replace(/\s+/g, '')     // 모든 공백 제거
+    .toLowerCase();          // 소문자화
+}
+
 const generateId = (source, name, addr) => {
-  return uuidv5(`${source}|${String(name || '').trim()}|${String(addr || '').trim()}`, MY_NAMESPACE);
+  const normalizedAddr = getNormalizedAddr(addr);
+  const cleanName = getCleanString(name);
+  const cleanAddr = getCleanString(normalizedAddr);
+  return uuidv5(`${source}|${cleanName}|${cleanAddr}`, MY_NAMESPACE);
 };
 
 // --- [Phase 1: 공통 방어막 (Exponential Backoff + Jitter)] ---
@@ -159,8 +192,7 @@ async function dailyRegionSync() {
       SPOT_READCOUNT: { label: 'SPOT (전국 조회수 갱신)', existing: 0, fetched: 800, new: 0, updated: 0, total: 0 }
     }
   };
-
-  // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 과거 소스명 제거 완료)
+  // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 별칭 통합 집계)
   const sourceToStatKey = {
     'SAFE_RESTAURANT': 'SAFE', 
     'LOCALDATA_RESTAURANT_GOOD': 'GOOD',
@@ -171,8 +203,30 @@ async function dailyRegionSync() {
     'TOUR_SPOT': 'SPOT'
   };
 
+  const SIDO_ALIASES = {
+    '서울특별시': ['서울특별시', '서울'],
+    '부산광역시': ['부산광역시', '부산'],
+    '대구광역시': ['대구광역시', '대구'],
+    '인천광역시': ['인천광역시', '인천'],
+    '광주광역시': ['광주광역시', '광주'],
+    '대전광역시': ['대전광역시', '대전'],
+    '울산광역시': ['울산광역시', '울산'],
+    '세종특별자치시': ['세종특별자치시', '세종시', '세종'],
+    '경기도': ['경기도', '경기'],
+    '강원특별자치도': ['강원특별자치도', '강원도', '강원'],
+    '충청북도': ['충청북도', '충북'],
+    '충청남도': ['충청남도', '충남'],
+    '전라북도': ['전라북도', '전북특별자치도', '전북'],
+    '전라남도': ['전라남도', '전남'],
+    '경상북도': ['경상북도', '경북'],
+    '경상남도': ['경상남도', '경남'],
+    '제주특별자치도': ['제주특별자치도', '제주도', '제주']
+  };
+
+  const aliases = SIDO_ALIASES[targetSido] || [targetSido];
+
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('sido', targetSido).eq('api_source', source).eq('is_active', true);
+    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
     stats.categories[key].existing += (count || 0);
   }
 
@@ -190,10 +244,15 @@ async function dailyRegionSync() {
   // [2.3] 명소군 (관광공사 지역기반 동기화) - KorService2
   await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
 
-  // 3. Multi-Strike Soft Delete (3진 아웃 방식)
-  // - API에서 확인된 데이터: miss_count를 0으로 리셋
-  // - API에서 미확인된 데이터: miss_count를 +1 증가
-  // - miss_count >= 3 (3회 연속 미확인 = 51일): 비활성화 처리
+  // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화)
+  console.log(`\n📊 [Final Audit] ${targetSido} 지역별 최종 정합성 확인 중...`);
+  for (const [source, key] of Object.entries(sourceToStatKey)) {
+    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    stats.categories[key].total = (count || 0);
+  }
+
+  // 4. Automation Log 기록
+  await recordAutomationLog(stats);
   for (const [source, key] of Object.entries(sourceToStatKey)) {
     const fetched = stats.categories[key].fetched;
     if (fetched > 0) {
@@ -230,32 +289,34 @@ async function dailyRegionSync() {
       }
 
       // 3진 아웃 데이터: 비활성화
-      if (toDeactivate.length > 0) {
-        console.log(`\n♻️  [3-Strike] Deactivating ${toDeactivate.length} records in ${targetSido} for [${source}] (3회 연속 미확인)...`);
-        for (let i = 0; i < toDeactivate.length; i += 100) {
-          await supabase.from('master_places').update({ is_active: false, miss_count: 3, updated_at: new Date().toISOString() }).in('id', toDeactivate.slice(i, i + 100));
-        }
+      // MART 카테고리 세분화 출력
+      if (source.includes('MART')) {
+        console.log(`  📊 [MART detail] ${source} 확인: ${seen.length} | 미확인(경고): ${unseen.length} | 비활성화(3진아웃): ${toDeactivate.length}`);
+      } else {
+        console.log(`  📊 [${source}] 확인: ${seen.length} | 미확인(경고): ${unseen.length} | 비활성화(3진아웃): ${toDeactivate.length}`);
       }
-
-      console.log(`  📊 [${source}] 확인: ${seen.length} | 미확인(경고): ${unseen.length} | 비활성화(3진아웃): ${toDeactivate.length}`);
     } else {
       console.log(`\n⚠️  [Failsafe] miss_count 업데이트 생략: ${source} (${targetSido}) - API 수신 0건 (API 오류 의심)`);
     }
   }
 
   // 4. 명소 인기도 정밀 갱신 (전국 단위 800건, 지역 순환과는 별개로 매일 누적)
+  // [SKIP] 사용자 요청에 따라 인기도 갱신 건너뜀 (API 할당량 관리)
+  /*
   const spotUpdated = await rotateTourPopularity();
   stats.categories.SPOT_READCOUNT.updated = spotUpdated;
-
-  // 5. 최종 카운트 (총 데이터 수)
+  */
+  
+  // 5. 최종 카운트 (총 데이터 수 - 별칭 통합 집계)
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('sido', targetSido).eq('api_source', source).eq('is_active', true);
+    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
     stats.categories[key].total += (count || 0);
   }
   
-  // SPOT_READCOUNT 의 기존/전체 데이터 수는 SPOT과 동일하게 매핑
-  stats.categories.SPOT_READCOUNT.existing = stats.categories.SPOT.existing;
-  stats.categories.SPOT_READCOUNT.total = stats.categories.SPOT.total;
+  // SPOT_READCOUNT 지표 초기화 (생략됨을 명시)
+  stats.categories.SPOT_READCOUNT.existing = 0;
+  stats.categories.SPOT_READCOUNT.total = 0;
+  stats.categories.SPOT_READCOUNT.updated = 0;
 
   // 6. 자동화 로그 기록
   await recordAutomationLog(stats);
@@ -358,36 +419,43 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
 async function syncSafeRestaurants(sido, seenIds, stat) {
   console.log(`🥗 [MAFRA] ${sido} 안심식당 동기화 중...`);
   const shortSido = SIDO_SHORT_MAP[sido] || sido;
+  
+  // [SOP v11.1] 듀얼 쿼리 전략: 지역마다 선호하는 명칭이 다르므로 단축명과 전체 명칭 모두 시도
+  const callNames = [shortSido];
+  if (shortSido !== sido) callNames.push(sido);
+
   try {
-    for (let page = 1; page <= 10; page++) {
-      const start = (page - 1) * 1000 + 1, end = page * 1000;
-      // [OPTIMIZATION] 지역 필터링 파라미터 추가 (RELAX_SI_NM)
-      const params = new URLSearchParams({
-        RELAX_SI_NM: shortSido // '충남' 등 단축명 우선 시도 (MAFRA 표준)
-      });
-      const res = await fetch(`http://211.237.50.150:7080/openapi/${SAFE_API_KEY}/json/Grid_20200713000000000605_1/${start}/${end}?${params.toString()}`);
-      const data = await res.json();
-      const items = data.Grid_20200713000000000605_1?.row || [];
-      if (items.length === 0) break;
+    for (const callName of callNames) {
+      console.log(`   - 🔎 Trying [${callName}] parameter...`);
+      for (let page = 1; page <= 10; page++) {
+        const start = (page - 1) * 1000 + 1, end = page * 1000;
+        const params = new URLSearchParams({ RELAX_SI_NM: callName });
+        const res = await fetch(`http://211.237.50.150:7080/openapi/${SAFE_API_KEY}/json/Grid_20200713000000000605_1/${start}/${end}?${params.toString()}`);
+        const data = await res.json();
+        const items = data.Grid_20200713000000000605_1?.row || [];
+        if (items.length === 0) break;
 
-      const chunk = [];
-      for (const i of items) {
-        const addr = i.RELAX_ADD1 || '';
-        if (!isValidRegion(addr, shortSido)) continue;
-        if (i.RELAX_USE_YN !== 'Y') continue;
+        const chunk = [];
+        for (const i of items) {
+          const addr = i.RELAX_ADD1 || '';
+          // 유효성 체크는 융통성 있게 (수집된 데이터의 주소가 해당 시도를 포함하는지)
+          if (!isValidRegion(addr, shortSido) && !isValidRegion(addr, sido)) continue;
+          if (i.RELAX_USE_YN !== 'Y') continue;
 
-        const id = generateId('SAFE_RESTAURANT', i.RELAX_RSTRNT_NM, addr);
-        if (seenIds.has(id)) continue;
-        seenIds.add(id);
-        stat.fetched++;
-        
-        chunk.push({
-          id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
-          name: i.RELAX_RSTRNT_NM, address: addr, trust_score: 80, is_active: true,
-          sido, raw_data: i, updated_at: new Date().toISOString()
-        });
+          const id = generateId('SAFE_RESTAURANT', i.RELAX_RSTRNT_NM, addr);
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+          stat.fetched++;
+          
+          chunk.push({
+            id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
+            name: i.RELAX_RSTRNT_NM, address: addr, trust_score: 80, is_active: true,
+            sido, sigungu: i.RELAX_SIDO_NM || '', raw_data: i, updated_at: new Date().toISOString()
+          });
+        }
+        if (chunk.length > 0) await upsertAndTrack(chunk, stat);
+        if (items.length < 1000) break; // 페이지 끝
       }
-      if (chunk.length > 0) await upsertAndTrack(chunk, stat);
     }
   } catch (e) { console.error('  ❌ Safe Error:', e.message); }
 }
@@ -523,32 +591,45 @@ async function rotateTourPopularity() {
   return updatedCount;
 }
 
-// Helper: Upsert and Track New/Updated
+// Helper: Upsert and Track New/Updated (Deep-Field Comparison 적용)
 async function upsertAndTrack(items, stat) {
   if (items.length === 0) return;
   
-  // 신규 vs 갱신 판별 및 기존 좌표(lat/lng) 보존을 위해 ID 조회
+  // [SOP v11.1] 정밀 지표 산출을 위해 구형 데이터와 필드값 하드 매칭 수행
   const ids = items.map(it => it.id);
-  const { data: existing } = await supabase.from('master_places').select('id, lat, lng').in('id', ids);
-  const existingMap = new Map(existing?.map(e => [e.id, { lat: e.lat, lng: e.lng }]) || []);
+  const { data: existing } = await supabase.from('master_places').select('id, lat, lng, name, address, trust_score, is_active, raw_data').in('id', ids);
+  const existingMap = new Map(existing?.map(e => [e.id, e]) || []);
   
-  const news = items.filter(it => !existingMap.has(it.id)).length;
-  const updates = items.length - news;
-  
-  // 좌표 무결성 보존 및 땜방(Fallback) 로직
+  let news = 0;
+  let trueUpdates = 0;
+
   for (const it of items) {
     if (existingMap.has(it.id)) {
       const ext = existingMap.get(it.id);
-      if (ext.lat !== undefined && ext.lat !== null) it.lat = ext.lat; else it.lat = 0.0;
-      if (ext.lng !== undefined && ext.lng !== null) it.lng = ext.lng; else it.lng = 0.0;
+      
+      // 1. 기존 좌표 보존
+      if (ext.lat !== undefined && ext.lat !== null) it.lat = ext.lat;
+      if (ext.lng !== undefined && ext.lng !== null) it.lng = ext.lng;
+
+      // 2. [Deep Compare] 진짜 핵심 데이터 변경 사항이 있는지 확인 (노이즈 제거)
+      const isChanged = (
+        getCleanString(it.name) !== getCleanString(ext.name) || 
+        getCleanString(it.address) !== getCleanString(ext.address) || 
+        it.is_active !== ext.is_active
+      );
+
+      if (isChanged) {
+        trueUpdates++;
+      }
     } else {
+      news++;
       it.lat = 0.0;
       it.lng = 0.0;
     }
   }
 
   stat.new += news;
-  stat.updated += updates;
+  stat.updated += trueUpdates;
 
   const { error } = await supabase.from('master_places').upsert(items, { onConflict: 'id' });
   if (error) console.error('  ❌ Upsert Error:', error.message);
