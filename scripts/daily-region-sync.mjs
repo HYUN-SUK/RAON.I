@@ -62,21 +62,26 @@ function isValidRegion(addr, shortSido) {
 // [CRITICAL] 기존 12.7만 데이터가 'Full Name(경상북도 등)' 기반이므로, 해싱 시 항상 Full Name으로 확장합니다.
 function getNormalizedAddr(addr) {
   if (!addr) return '';
-  let normalized = addr.trim();
-  const hashSidoMap = {
-    '서울': '서울특별시', '부산': '부산광역시', '대구': '대구광역시', '인천': '인천광역시', '광주': '광주광역시',
-    '대전': '대전광역시', '울산': '울산광역시', '세종': '세종특별자치시', '경기': '경기도', '강원': '강원특별자치도',
-    '충북': '충청북도', '충남': '충청남도', '전북': '전라북도', '전남': '전라남도', '경북': '경상북도',
-    '경남': '경상남도', '제주': '제주특별자치도'
-  };
-  // 단축명을 전체 명칭으로 치환 (단, 이미 전체 명칭인 경우는 유지)
-  for (const [short, full] of Object.entries(hashSidoMap)) {
-    if (normalized.startsWith(short) && !normalized.startsWith(full)) {
-      normalized = normalized.replace(short, full);
-      break;
-    }
-  }
-  return normalized;
+  let a = addr.replace(/,\s?대한민국$/, '').trim();
+  // Standardize Sido names based on Full Name standards
+  a = a.replace(/^(서울|서울특별시)\s?/, '서울특별시 ');
+  a = a.replace(/^(부산|부산광역시)\s?/, '부산광역시 ');
+  a = a.replace(/^(대구|대구광역시)\s?/, '대구광역시 ');
+  a = a.replace(/^(인천|인천광역시)\s?/, '인천광역시 ');
+  a = a.replace(/^(광주|광주광역시)\s?/, '광주광역시 ');
+  a = a.replace(/^(대전|대전광역시)\s?/, '대전광역시 ');
+  a = a.replace(/^(울산|울산광역시)\s?/, '울산광역시 ');
+  a = a.replace(/^(세종|세종특별자치시)\s?/, '세종특별자치시 ');
+  a = a.replace(/^(경기|경기도)\s?/, '경기도 ');
+  a = a.replace(/^(강원|강원도|강원특별자치도)\s?/, '강원특별자치도 ');
+  a = a.replace(/^(충북|충청북도)\s?/, '충청북도 ');
+  a = a.replace(/^(충남|충청남도)\s?/, '충청남도 ');
+  a = a.replace(/^(전북|전라북도|전북특별자치도)\s?/, '전북특별자치도 '); // Fix: 전라북도특별자치도 방지
+  a = a.replace(/^(전남|전라남도)\s?/, '전라남도 ');
+  a = a.replace(/^(경북|경상북도)\s?/, '경상북도 ');
+  a = a.replace(/^(경남|경상남도)\s?/, '경상남도 ');
+  a = a.replace(/^(제주|제주도|제주특별자치도)\s?/, '제주특별자치도 ');
+  return a.trim();
 }
 
 // [SOP v11.3] Aggressive Normalization (Master Key): 공백, 괄호, 소문자 제거로 ID 파생 방지
@@ -177,19 +182,18 @@ async function dailyRegionSync() {
   console.log(`\n📅 [Day ${dayOfYear}] Target Region: ${targetSido}`);
   console.log(`🚀 Starting Daily Rotation Sync for ${targetSido}...\n`);
 
-  // 지표 추적용 객체 (사용자 요청에 따라 세분화)
+  // [SOP v11.3] 지표 추적용 객체 (7대 핵심 지표 표준 준수)
   const stats = {
     sido: targetSido,
     day_of_year: dayOfYear,
     categories: {
-      SAFE: { label: 'RESTAURANT (안심식당)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      GOOD: { label: 'RESTAURANT (모범음식점)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      BAEK: { label: 'RESTAURANT (백년가게)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      LARGE_MART: { label: 'MART (대형마트)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      SSM_MART: { label: 'MART (준대규모 - SSM)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      OTHER_MART: { label: 'MART (기타식품판매업)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      SPOT: { label: 'SPOT (관광명소)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0 },
-      SPOT_READCOUNT: { label: 'SPOT (전국 조회수 갱신)', existing: 0, fetched: 800, new: 0, updated: 0, total: 0 }
+      SAFE: { label: 'RESTAURANT (안심식당)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'MAFRA API' },
+      GOOD: { label: 'RESTAURANT (모범음식점)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'LocalData CSV' },
+      BAEK: { label: 'RESTAURANT (백년가게)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'ODCloud API' },
+      LARGE_MART: { label: 'MART (대형마트)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'LocalData CSV' },
+      SSM_MART: { label: 'MART (준대규모 - SSM)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: '대규모 내 식별' },
+      OTHER_MART: { label: 'MART (기타식품판매업)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'LocalData CSV' },
+      SPOT: { label: 'SPOT (관광명소)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'TourAPI v2' }
     }
   };
   // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 별칭 통합 집계)
@@ -251,77 +255,84 @@ async function dailyRegionSync() {
     stats.categories[key].total = (count || 0);
   }
 
-  // 4. Automation Log 기록
-  await recordAutomationLog(stats);
+  // 4. [Strike-Out] 미수산 데이터 처리 (백년가게 전용 고수 / 마트&식당은 API 기반 즉시 처리)
+  console.log(`\n⚖️ [Strike-Out Check] 미확인 데이터 업데이트 중...`);
   for (const [source, key] of Object.entries(sourceToStatKey)) {
     const fetched = stats.categories[key].fetched;
-    if (fetched > 0) {
-      // 해당 소스의 active 데이터 전체 조회
-      const { data: existingActive } = await supabase.from('master_places').select('id, miss_count').eq('sido', targetSido).eq('api_source', source).eq('is_active', true);
-      
-      const seen = [];      // API에서 확인됨 → miss_count 리셋
-      const unseen = [];    // API에서 미확인 → miss_count 증가
-      const toDeactivate = []; // 3회 연속 미확인 → 비활성화
-      
-      for (const r of (existingActive || [])) {
-        if (seenIds.has(r.id)) {
-          seen.push(r.id);
-        } else {
-          const newMiss = (r.miss_count || 0) + 1;
-          if (newMiss >= 3) {
-            toDeactivate.push(r.id);
-          } else {
-            unseen.push({ id: r.id, miss: newMiss });
-          }
-        }
-      }
+    // API 수신 0건일 경우 Failsafe (네트워크 오류 방어)
+    if (fetched === 0) {
+      console.warn(`  ⚠️  [Failsafe] ${source} 수신 0건: 상태 업데이트 건너뜀.`);
+      continue;
+    }
 
-      // 확인된 데이터: miss_count 리셋 (0으로)
-      if (seen.length > 0) {
-        for (let i = 0; i < seen.length; i += 500) {
-          await supabase.from('master_places').update({ miss_count: 0 }).in('id', seen.slice(i, i + 500));
-        }
-      }
-
-      // 미확인 데이터: miss_count 증가 (아직 active 유지)
-      for (const item of unseen) {
-        await supabase.from('master_places').update({ miss_count: item.miss }).eq('id', item.id);
-      }
-
-      // 3진 아웃 데이터: 비활성화
-      // MART 카테고리 세분화 출력
-      if (source.includes('MART')) {
-        console.log(`  📊 [MART detail] ${source} 확인: ${seen.length} | 미확인(경고): ${unseen.length} | 비활성화(3진아웃): ${toDeactivate.length}`);
+    const { data: existingActive } = await supabase.from('master_places').select('id, miss_count').in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    
+    const seen = [];      // API에서 확인됨 -> miss_count 리셋
+    const unseen = [];    // API에서 미확인 -> miss_count 증가
+    const toDeactivate = []; // 3회 연속 미확인 -> 비활성화
+    
+    for (const r of (existingActive || [])) {
+      if (seenIds.has(r.id)) {
+        seen.push(r.id);
       } else {
-        console.log(`  📊 [${source}] 확인: ${seen.length} | 미확인(경고): ${unseen.length} | 비활성화(3진아웃): ${toDeactivate.length}`);
+        // 백년가게(BAEK)만 3진 아웃 로직 적용, 나머지는 이번 배치 수신 여부로 비활성화 결정하나 일단 공통 로직 유지하되 조건부 강화 가능
+        if (key === 'BAEK') {
+          const newMiss = (r.miss_count || 0) + 1;
+          if (newMiss >= 3) toDeactivate.push(r.id);
+          else unseen.push({ id: r.id, miss: newMiss });
+        } else {
+          // 마트, 모범, 안심식당은 API에서 상태(영업/폐업)가 명시적으로 오지 않고 
+          // 목록에서 아예 빠지는 경우(Hidden Deactivation)에 대비해 miss_count 로직을 안전장치로 유지함
+          const newMiss = (r.miss_count || 0) + 1;
+          if (newMiss >= 3) toDeactivate.push(r.id);
+          else unseen.push({ id: r.id, miss: newMiss });
+        }
       }
-    } else {
-      console.log(`\n⚠️  [Failsafe] miss_count 업데이트 생략: ${source} (${targetSido}) - API 수신 0건 (API 오류 의심)`);
+    }
+
+    // 일시 업데이트 (500건 단위)
+    if (seen.length > 0) {
+      for (let i = 0; i < seen.length; i += 500) {
+        await supabase.from('master_places').update({ miss_count: 0 }).in('id', seen.slice(i, i + 500));
+      }
+    }
+    for (const item of unseen) {
+      await supabase.from('master_places').update({ miss_count: item.miss }).eq('id', item.id);
+    }
+    if (toDeactivate.length > 0) {
+      console.log(`  🚫 [${key}] 3회 미노출로 인한 비활성화: ${toDeactivate.length}건`);
+      await supabase.from('master_places').update({ is_active: false, miss_count: 0 }).in('id', toDeactivate);
+      stats.categories[key].updated += toDeactivate.length; // 비활성화도 상태 변경이므로 업데이트에 합산
     }
   }
 
-  // 4. 명소 인기도 정밀 갱신 (전국 단위 800건, 지역 순환과는 별개로 매일 누적)
-  // [SKIP] 사용자 요청에 따라 인기도 갱신 건너뜀 (API 할당량 관리)
-  /*
-  const spotUpdated = await rotateTourPopularity();
-  stats.categories.SPOT_READCOUNT.updated = spotUpdated;
-  */
-  
-  // 5. 최종 카운트 (총 데이터 수 - 별칭 통합 집계)
+  // 5. 최종 데이터 건수 리프레시 및 로그 기록
   for (const [source, key] of Object.entries(sourceToStatKey)) {
     const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
-    stats.categories[key].total += (count || 0);
+    stats.categories[key].total = (count || 0);
   }
   
-  // SPOT_READCOUNT 지표 초기화 (생략됨을 명시)
-  stats.categories.SPOT_READCOUNT.existing = 0;
-  stats.categories.SPOT_READCOUNT.total = 0;
-  stats.categories.SPOT_READCOUNT.updated = 0;
-
-  // 6. 자동화 로그 기록
   await recordAutomationLog(stats);
 
+  // 6. [SOP v11.3] 정밀 감사 결과 테이블 출력
+  printAuditTable(stats);
+
   console.log(`\n✨ [Daily Rotation vNext] ${targetSido} 전계통 동기화 완료!`);
+}
+
+/**
+ * [SOP v11.3] 정밀 감사 결과 테이블 출력 함수
+ */
+function printAuditTable(stats) {
+  console.log(`\n📋 [Precision Audit Report] ${stats.sido}`);
+  console.log(`| 갱신 지역 | 카테고리 (세부 소스) | 기존 데이터 수 | 원천 수신 수 | 신규 삽입(New) | 변경 갱신(Upd) | 최종 총계 | 비고 |`);
+  console.log(`| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |`);
+
+  Object.entries(stats.categories).forEach(([key, val]) => {
+    const note = val.note || '';
+    const updNote = val.updated > 0 ? `${note} (상태변경 포함)` : note;
+    console.log(`| ${stats.sido} | ${val.label} | ${val.existing.toLocaleString()} | ${val.fetched.toLocaleString()} | ${val.new.toLocaleString()} | ${val.updated.toLocaleString()} | ${val.total.toLocaleString()} | ${updNote} |`);
+  });
 }
 
 /**
@@ -358,10 +369,7 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
             const name = row['사업장명'] || row['업소명'] || '';
             const addr = row['소재지전체주소'] || row['도로명전체주소'] || row['도로명주소'] || row['지번주소'] || '';
             const status = String(row['영업상태명'] || row['상세영업상태명'] || '');
-            
-            if (!name || !addr) return;
-            // CSV는 이미 지역 코드로 다운받았으므로 sido 체크 생략 혹은 보완
-            const isOpen = status.includes('영업');
+            const isOpen = status.includes('영업'); // [SOP v11.3] 폐업 데이터 수집 허용하되 is_active에 반영
             
             let finalSource = ep.source;
             let targetStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
@@ -431,17 +439,29 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
         const start = (page - 1) * 1000 + 1, end = page * 1000;
         const params = new URLSearchParams({ RELAX_SI_NM: callName });
         const res = await fetch(`http://211.237.50.150:7080/openapi/${SAFE_API_KEY}/json/Grid_20200713000000000605_1/${start}/${end}?${params.toString()}`);
-        const data = await res.json();
+        if (!res.ok) {
+           console.warn(`      ⚠️  SAFE API Request Failed for ${callName}: HTTP ${res.status}`);
+           break;
+        }
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (pe) {
+          console.error(`      ❌ JSON Parsing Error for SAFE (${callName}):`, pe.message);
+          break;
+        }
         const items = data.Grid_20200713000000000605_1?.row || [];
         if (items.length === 0) break;
 
         const chunk = [];
         for (const i of items) {
           const addr = i.RELAX_ADD1 || '';
-          // 유효성 체크는 융통성 있게 (수집된 데이터의 주소가 해당 시도를 포함하는지)
           if (!isValidRegion(addr, shortSido) && !isValidRegion(addr, sido)) continue;
-          if (i.RELAX_USE_YN !== 'Y') continue;
 
+          // [SOP v11.3] 안심식당 인증 해제 여부 실시간 반영
+          const isCertified = i.RELAX_USE_YN === 'Y';
+          
           const id = generateId('SAFE_RESTAURANT', i.RELAX_RSTRNT_NM, addr);
           if (seenIds.has(id)) continue;
           seenIds.add(id);
@@ -449,7 +469,7 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
           
           chunk.push({
             id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
-            name: i.RELAX_RSTRNT_NM, address: addr, trust_score: 80, is_active: true,
+            name: i.RELAX_RSTRNT_NM, address: addr, trust_score: isCertified ? 80 : 0, is_active: isCertified,
             sido, sigungu: i.RELAX_SIDO_NM || '', raw_data: i, updated_at: new Date().toISOString()
           });
         }
@@ -597,8 +617,19 @@ async function upsertAndTrack(items, stat) {
   
   // [SOP v11.1] 정밀 지표 산출을 위해 구형 데이터와 필드값 하드 매칭 수행
   const ids = items.map(it => it.id);
-  const { data: existing } = await supabase.from('master_places').select('id, lat, lng, name, address, trust_score, is_active, raw_data').in('id', ids);
+  const { data: existing, error: selectErr } = await supabase.from('master_places').select('id, lat, lng, name, address, trust_score, is_active, raw_data').in('id', ids);
+  
+  if (selectErr) {
+    throw new Error(`[CRITICAL] DB Existence Check Failed: ${selectErr.message}`);
+  }
+
+  // [Failsafe] 데이터가 100건 이상인데 단 하나도 매칭되지 않는 경우는 쿼리 오류나 비정상 상황으로 간주
+  if (items.length > 50 && (!existing || existing.length === 0)) {
+     console.warn(`  ⚠️  Match rate is 0% for ${items.length} items. This is highly suspicious.`);
+  }
+
   const existingMap = new Map(existing?.map(e => [e.id, e]) || []);
+  console.log(`  🔍 Matching: ${existingMap.size} found / ${items.length} total fetched in this slice.`);
   
   let news = 0;
   let trueUpdates = 0;
@@ -632,7 +663,7 @@ async function upsertAndTrack(items, stat) {
   stat.updated += trueUpdates;
 
   const { error } = await supabase.from('master_places').upsert(items, { onConflict: 'id' });
-  if (error) console.error('  ❌ Upsert Error:', error.message);
+  if (error) throw new Error(`[CRITICAL] DB Upsert Error: ${error.message}`);
 }
 
 // Helper: Record Automation Log

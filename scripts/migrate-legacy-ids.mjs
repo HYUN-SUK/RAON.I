@@ -40,48 +40,83 @@ const generateId = (source, name, addr) => {
 };
 
 async function migrate() {
-  console.log('🚀 Starting Global ID Healing (SOP v11.3)...');
+  console.log('🚀 Starting Global ID Healing (SOP v11.3) with Cursor-based Optimization...');
   
-  let offset = 0;
   const batchSize = 1000;
+  const parallelLimit = 50;
   let totalMigrated = 0;
+  let totalProcessed = 0;
+  let lastId = null;
 
   while (true) {
-    const { data: records, error } = await supabase
+    let query = supabase
       .from('master_places')
-      .select('*')
-      .order('created_at', { ascending: true }) // created_at 기준으로 순차 처리
-      .range(offset, offset + batchSize - 1);
+      .select('id, api_source, category, name, description, address, lat, lng, trust_score, raw_data, sido, sigungu, created_at, updated_at, location, is_active, miss_count')
+      .order('id', { ascending: true })
+      .limit(batchSize);
+
+    if (lastId) {
+      query = query.gt('id', lastId);
+    }
+
+    const { data: records, error } = await query;
 
     if (error) {
       console.error('❌ Fetch Error:', error.message);
-      break;
+      console.log('⏳ Waiting 5 seconds before retry...');
+      await new Promise(r => setTimeout(r, 5000));
+      continue;
     }
+    
     if (!records || records.length === 0) break;
 
+    const migrationTargets = [];
     for (const r of records) {
-      const newId = generateId(r.api_source, r.name, r.address);
-      if (newId !== r.id) {
-        // ID 변경 필요: 신규 삽입 후 기존 삭제
-        const oldId = r.id;
-        const newRecord = { ...r, id: newId, updated_at: new Date().toISOString() };
-        
-        const { error: insErr } = await supabase.from('master_places').upsert(newRecord);
-        if (!insErr) {
-          await supabase.from('master_places').delete().eq('id', oldId);
-          totalMigrated++;
-        } else {
-          console.error(`  ❌ Failed to migrate ${r.name}:`, insErr.message);
-        }
+      const expectedId = generateId(r.api_source, r.name, r.address);
+      if (expectedId !== r.id) {
+        migrationTargets.push({ record: r, newId: expectedId });
       }
     }
 
-    console.log(`  ✅ Batch processed. Migrated so far: ${totalMigrated}`);
-    offset += batchSize;
+    if (migrationTargets.length > 0) {
+      for (let i = 0; i < migrationTargets.length; i += parallelLimit) {
+        const chunk = migrationTargets.slice(i, i + parallelLimit);
+        
+        await Promise.all(chunk.map(async (target) => {
+          const r = target.record;
+          const newId = target.newId;
+          const oldId = r.id;
+          
+          // 위경도 데이터가 null이 되는 현상 방지 (SOP v11.8 vNext 준수)
+          const newRecord = { 
+            ...r, 
+            id: newId, 
+            updated_at: new Date().toISOString() 
+          };
+          
+          const { error: insErr } = await supabase.from('master_places').upsert(newRecord);
+          if (!insErr) {
+            await supabase.from('master_places').delete().eq('id', oldId);
+            totalMigrated++;
+          } else {
+            console.error(`  ❌ Failed: ${r.name} (${insErr.message})`);
+          }
+        }));
+      }
+    }
+
+    totalProcessed += records.length;
+    lastId = records[records.length - 1].id;
+    console.log(`  ✅ Processed: ${totalProcessed} | Migrated: ${totalMigrated} | LastID: ${lastId}`);
+    
+    // DB 부하 방지를 위한 짧은 휴식
+    await new Promise(r => setTimeout(r, 500));
     if (records.length < batchSize) break;
   }
 
-  console.log(`✨ ID Migration Complete! Total migrated: ${totalMigrated}`);
+  console.log(`\n✨ Global ID Migration Complete!`);
+  console.log(`   - Total Processed: ${totalProcessed}`);
+  console.log(`   - Total Migrated: ${totalMigrated}`);
 }
 
 migrate();

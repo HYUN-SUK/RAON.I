@@ -13,6 +13,49 @@
 1.  **UI/Logic Separation**: 추천 로직(`smartPlan.ts`)은 UI 컴포넌트와 완전히 분리되어 순수 데이터(JSON)만 반환합니다.
 2.  **API Monetization Ready**: 생성된 데이터는 외부 에이전트(LLM)가 즉시 이해할 수 있도록 구조화된 JSON 포맷 및 메타데이터를 포함합니다.
 3.  **Zero-Cost High-Fidelity**: 유료 데이터(내비게이션 트래픽 등)와 LLM 다중 호출을 지양하고, 공공데이터와 무료 API를 사용하여 비용 0원의 초정밀 팩트를 추출합니다.
+4.  **Idempotent Data Standardization (SOP v11.3)**: 데이터 원천이 달라도 동일 장소라면 항상 같은 ID를 부여하는 '마스터 키' 전략을 통해 중복을 원천 차단하고 데이터 힐링(Healing)을 자동화합니다.
+
+---
+
+## 🛡️ 1.1 SOP v11.3 글로벌 ID 표준 규격 (Master Key Strategy)
+
+데이터의 노이즈(공백, 괄호, 지역명 약어 등)에 관계없이 **동일한 실제 장소**라면 반드시 **동일한 UUID v5**를 생성해야 합니다. 모든 AI 어시스턴트와 엔진(`daily-sync`, `caching-plan`)은 반드시 아래의 정규화 로직을 따라야 합니다.
+
+### [표준 정규화 코드 스니펫]
+
+```javascript
+// 1. 주소 표준화 (SIDO Unification)
+function getNormalizedAddr(addr) {
+  if (!addr) return '';
+  let normalized = addr.trim();
+  const hashSidoMap = {
+    '서울': '서울특별시', '부산': '부산광역시', '대구': '대구광역시', '인천': '인천광역시',
+    '광주': '광주광역시', '대전': '대전광역시', '울산': '울산광역시', '세종': '세종특별자치시',
+    '경기': '경기도', '강원': '강원특별자치도', '충북': '충청북도', '충남': '충청남도',
+    '전북': '전북특별자치도', '전남': '전라남도', '경북': '경상북도', '경남': '경상남도', '제주': '제주특별자치도'
+  };
+  for (const [short, full] of Object.entries(hashSidoMap)) {
+    if (normalized.startsWith(short) && !normalized.startsWith(full)) {
+      normalized = normalized.replace(short, full);
+      break;
+    }
+  }
+  return normalized;
+}
+
+// 2. 문자열 공격적 정제 (Aggressive Cleaning)
+function getCleanString(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/\(.+?\)/g, '') // 괄호와 그 안의 내용 제거
+    .replace(/\s+/g, '')     // 모든 공백 제거
+    .toLowerCase();          // 소문자 통일
+}
+
+// 3. ID 생성 (UUID v5)
+// MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(getNormalizedAddr(addr))}`, MY_NAMESPACE);
+```
 
 ---
 
@@ -26,7 +69,8 @@
 
 ### [ Phase 2: Hybrid Data Gathering & Enrichment (하이브리드 데이터 수집) ]
 *   **Step 3. Phase 11: Hybrid Master DB Scan (Track A - 현지 팩트)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등은 Supabase 내부 `master_places`에서 PostGIS로 고속 선별합니다. 
-    *   **병원/축제/주유소 예외**: `HOSPITAL`, `FESTIVAL`, `GAS_STATION`(오피넷) 카테고리는 실시간성 및 가격 정보의 정확성이 중요하므로, Phase 11 마스터 DB가 아닌 **Phase 10 동적 권역 파이프라인**을 통해 예약 3일 전(D-3) 실시간 수집된 `smart_plan_facts`에서 가져옵니다.
+    *   **ID 생성 원칙 (SOP v11.3 강제)**: 모든 데이터는 수집 경로(API/CSV)에 상관없이 **1.1절의 표준 정규화 로직(Master Key)**을 거친 후 ID를 부여받습니다.
+    *   **병원/축제/주유소 예외**: `HOSPITAL`, `FESTIVAL`, `GAS_STATION`(오피넷) 카테고리는 실시간성 및 가격 정보의 정확성이 중요하므로, Phase 11 마스터 DB가 아닌 **Phase 10 동적 권역 파이프라인**을 통해 예약 3일 전(D-3) 실시간 수집된 `smart_plan_facts`에서 가져옵니다. 이때도 ID 생성 규격은 SOP v11.3을 엄격히 따릅니다.
     *   **기술 사양**: `GIST` 인덱스가 적용된 공간 쿼리를 통해 **10ms 이하**의 검색 속도를 보장합니다.
     *   **이중 쿼터 시스템 (Dual-Quota System v11.5)**: 서버 부하 방지와 고품질 데이터 선별을 위해 이중 쿼터 체계를 적용합니다.
         1. **1번 쿼터 (DB 추출)**: 마스터 DB(SQL RPC)에서 반경 30km의 데이터를 넉넉하게 확보하는 안전 그물망.
@@ -255,6 +299,10 @@
     - **로그 기록**: `automation_logs` 테이블의 `api_status` 필드를 통해 각 소스별 `fetched`, `existing`, `new` 건수를 대조 모니터링합니다. 
     - **장애 진단**: 파이프라인 응답은 정상이지만 결과 데이터가 없는 경우, `automation_logs`의 `message` 필드(JSON)를 분석하여 단계별 유실 지점을 즉시 파악합니다.
 7. **Prompt Resiliency**: LLM 호출 에러 시, `narration` 문장만 "캠퍼님을 위한 특별한 여정이 준비되었습니다."라는 Fallback 문구로 대체되며, Top 15 리스트를 프론트 화면상에서 그대로 렌더링되도록 보호됩니다.
+8. **Data Lifecycle & Resiliency (3-Strike Out Policy)**:
+    - **Soft Delete**: `daily-region-sync` 도중 API/CSV 원천에서 데이터가 더 이상 발견되지 않으면 즉시 삭제하지 않고 `miss_count`를 1 증가시킵니다.
+    - **3진 아웃**: `miss_count`가 3에 도달하면 `is_active = false`로 변경하여 추천 목록에서 제외합니다.
+    - **Auto-Healing (Instant Recovery)**: 비활성화 상태거나 `miss_count`가 있는 장소가 API에서 다시 발견되면 즉시 `is_active = true`, `miss_count = 0`으로 초기화하여 복구합니다.
 
 ---
 
@@ -295,7 +343,8 @@
 | **명소** | 관광공사_명소정보 | `TOUR_SPOT` | `SPOT` | **TourAPI v2.0 (KorService2) 이관 완료** |
 
 - **Storage**: `public.master_places` 테이블 (PostgreSQL/PostGIS)
-- **ID Strategy**: `UUID v5 (Namespace: 6ba7b810...)` 기반 `id = uuidv5(api_source + name + address)`
+- **ID Strategy**: `UUID v5` (SOP v11.3 Master Key 표준 준수)
+- **Lifecycle Control**: `is_active` (활성 여부), `miss_count` (미발견 횟수) 필드로 관리.
 - **Coordinate**: `EPSG:5174` -> `WGS84` (Proj4 변환 후 `location` 필드 저장)
 
 과거의 주간 전국 단위 배치(Weekly Batch)와 CSV 기반 마트 관리는 폐기되었습니다. 현재 모든 정적 마스터 데이터는 **행안부 OpenAPI(1741000)**를 기반으로 전국 17개 시도를 매일 1곳씩 순환하며 정밀 동기화합니다.
