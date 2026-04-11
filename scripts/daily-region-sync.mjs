@@ -93,6 +93,16 @@ function getCleanString(str) {
     .toLowerCase();          // 소문자화
 }
 
+const extractSido = (addr) => {
+  if (!addr) return null;
+  const normalized = getNormalizedAddr(addr);
+  const standardSidos = [
+    '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', 
+    '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'
+  ];
+  return standardSidos.find(s => normalized.startsWith(s)) || null;
+};
+
 const generateId = (source, name, addr) => {
   const normalizedAddr = getNormalizedAddr(addr);
   const cleanName = getCleanString(name);
@@ -388,7 +398,8 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
             chunk.push({
               id, api_source: finalSource, category: categoryType,
               name, address: addr, trust_score: isOpen ? (categoryType==='MART'?60:70) : 0, is_active: isOpen,
-              sido, sigungu: addr.split(' ')[1] || '', raw_data: row, updated_at: new Date().toISOString()
+              sido: extractSido(addr) || sido, // [상시방어] 주소에서 시도 추출 우선
+              sigungu: addr.split(' ')[1] || '', raw_data: row, updated_at: new Date().toISOString()
             });
           })
           .on('end', resolve)
@@ -427,9 +438,9 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
   console.log(`🥗 [MAFRA] ${sido} 안심식당 동기화 중...`);
   const shortSido = SIDO_SHORT_MAP[sido] || sido;
   
-  // [SOP v11.1] 듀얼 쿼리 전략: 지역마다 선호하는 명칭이 다르므로 단축명과 전체 명칭 모두 시도
-  const callNames = [shortSido];
-  if (shortSido !== sido) callNames.push(sido);
+  // [SOP v11.3] 쿼리 별칭 확장 전략: API 서버마다 선호 명칭이 상이하므로 SIDO_ALIASES(전라북도 등) 전체 시도
+  const callNames = SIDO_ALIASES[shortSido] || [shortSido];
+  if (!callNames.includes(sido)) callNames.push(sido);
 
   try {
     for (const callName of callNames) {
@@ -469,7 +480,8 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
           chunk.push({
             id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
             name: i.RELAX_RSTRNT_NM, address: addr, trust_score: isCertified ? 80 : 0, is_active: isCertified,
-            sido, sigungu: i.RELAX_SIDO_NM || '', raw_data: i, updated_at: new Date().toISOString()
+            sido: extractSido(addr) || sido, // [상시방어] 주소 기반 우선 추출, 실패 시 targetSido
+            sigungu: i.RELAX_SIDO_NM || '', raw_data: i, updated_at: new Date().toISOString()
           });
         }
         if (chunk.length > 0) await upsertAndTrack(chunk, stat);
