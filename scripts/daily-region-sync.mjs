@@ -275,18 +275,15 @@ async function dailyRegionSync() {
       if (seenIds.has(r.id)) {
         seen.push(r.id);
       } else {
-        // 백년가게(BAEK)만 3진 아웃 로직 적용, 나머지는 이번 배치 수신 여부로 비활성화 결정하나 일단 공통 로직 유지하되 조건부 강화 가능
-        if (key === 'BAEK') {
-          const newMiss = (r.miss_count || 0) + 1;
-          if (newMiss >= 3) toDeactivate.push(r.id);
-          else unseen.push({ id: r.id, miss: newMiss });
-        } else {
-          // 마트, 모범, 안심식당은 API에서 상태(영업/폐업)가 명시적으로 오지 않고 
-          // 목록에서 아예 빠지는 경우(Hidden Deactivation)에 대비해 miss_count 로직을 안전장치로 유지함
-          const newMiss = (r.miss_count || 0) + 1;
-          if (newMiss >= 3) toDeactivate.push(r.id);
-          else unseen.push({ id: r.id, miss: newMiss });
+        // [SOP v11.3 Update] 관광명소(SPOT)는 폐업/인증해제 개념이 없으므로 3진 아웃 로직에서 전면 예외 처리
+        if (key === 'SPOT') {
+          continue;
         }
+        
+        // 백년가게(BAEK), 마트, 모범, 안심식당은 API 목록 누락 시 비활성화 안전장치로 유지함
+        const newMiss = (r.miss_count || 0) + 1;
+        if (newMiss >= 3) toDeactivate.push(r.id);
+        else unseen.push({ id: r.id, miss: newMiss });
       }
     }
 
@@ -417,6 +414,8 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
       }
     } catch (e) {
       console.error(`  ❌ Parsing Error for ${ep.name}:`, e.message);
+      const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
+      errStat.note = `💥 ERROR (조회/통신 실패)`;
     }
   }
 }
@@ -435,7 +434,7 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
   try {
     for (const callName of callNames) {
       console.log(`   - 🔎 Trying [${callName}] parameter...`);
-      for (let page = 1; page <= 10; page++) {
+      for (let page = 1; page <= 100; page++) { // [SOP v11.3] 1만개 제한 해제 (최대 10만개 허용, 실질적 무제한)
         const start = (page - 1) * 1000 + 1, end = page * 1000;
         const params = new URLSearchParams({ RELAX_SI_NM: callName });
         const res = await fetch(`http://211.237.50.150:7080/openapi/${SAFE_API_KEY}/json/Grid_20200713000000000605_1/${start}/${end}?${params.toString()}`);
@@ -477,7 +476,10 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
         if (items.length < 1000) break; // 페이지 끝
       }
     }
-  } catch (e) { console.error('  ❌ Safe Error:', e.message); }
+  } catch (e) { 
+    console.error('  ❌ Safe Error:', e.message); 
+    stat.note = '💥 ERROR (조회/통신 실패)';
+  }
 }
 
 /**
@@ -490,7 +492,7 @@ async function syncBaeknyeon(sido, seenIds, stat) {
     const basePath = await getLatestOdcloudPath("15102255/v1");
     let page = 1, hasMore = true;
     
-    while(hasMore && page <= 25) {
+    while(hasMore && page <= 100) { // [SOP v11.3] 25페이지 제한 해제 (최대 1만개 허용, 전국 데이터 실질적 전체 수집)
       const url = `https://api.odcloud.kr/api${basePath}?serviceKey=${MOIS_API_KEY}&page=${page}&perPage=100`;
       const data = await fetchWithRetry(url);
       
@@ -519,6 +521,7 @@ async function syncBaeknyeon(sido, seenIds, stat) {
     }
   } catch (e) {
     console.error('  ❌ Baeknyeon Final Error:', e.message);
+    stat.note = '💥 ERROR (조회/통신 실패)';
   }
 }
 
@@ -532,7 +535,7 @@ async function syncTourSpots(sido, seenIds, stat) {
   console.log(`🏞️  [TOUR v2] ${sido} 명소(관광지) 동기화 중 (AreaCode: ${areaCode})...`);
   let pageNo = 1, hasMore = true;
   
-  while (hasMore && pageNo <= 10) {
+  while (hasMore && pageNo <= 200) { // [SOP v11.3] 10페이지(1천개) 제한 해제 (최대 2만개 허용, 명소 누락 완전 방지)
     const params = new URLSearchParams({
       serviceKey: TOUR_API_KEY,
       numOfRows: '100',
@@ -572,7 +575,9 @@ async function syncTourSpots(sido, seenIds, stat) {
       if (itemList.length < 100) hasMore = false;
       else pageNo++;
     } catch (e) { 
-        console.error('  ❌ Tour API Final Error:', e.message); break; 
+        console.error('  ❌ Tour API Final Error:', e.message); 
+        stat.note = '💥 ERROR (조회/통신 실패)';
+        break; 
     }
   }
 }
@@ -617,11 +622,21 @@ async function upsertAndTrack(items, stat) {
   
   // [SOP v11.1] 정밀 지표 산출을 위해 구형 데이터와 필드값 하드 매칭 수행
   const ids = items.map(it => it.id);
-  const { data: existing, error: selectErr } = await supabase.from('master_places').select('id, lat, lng, name, address, trust_score, is_active, raw_data').in('id', ids);
   
-  if (selectErr) {
-    throw new Error(`[CRITICAL] DB Existence Check Failed: ${selectErr.message}`);
+  let allExisting = [];
+  // [CRITICAL FIX] Supabase URL length limit 방어 (100개씩 청킹하여 조회)
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunkIds = ids.slice(i, i + 100);
+    const { data: existingChunk, error: selectErr } = await supabase.from('master_places')
+      .select('id, lat, lng, name, address, trust_score, is_active, raw_data')
+      .in('id', chunkIds);
+      
+    if (selectErr) {
+      throw new Error(`[CRITICAL] DB Existence Check Failed for chunk: ${selectErr.message}`);
+    }
+    if (existingChunk) allExisting.push(...existingChunk);
   }
+  const existing = allExisting;
 
   // [Failsafe] 데이터가 100건 이상인데 단 하나도 매칭되지 않는 경우는 쿼리 오류나 비정상 상황으로 간주
   if (items.length > 50 && (!existing || existing.length === 0)) {

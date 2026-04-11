@@ -44,10 +44,64 @@ const getCleanString = (str) => {
 };
 
 const generateFactId = (source, name, address) => {
+    const cleanSource = getCleanString(source);
     const cleanName = getCleanString(name);
     const cleanAddr = getCleanString(getNormalizedAddr(address));
-    return uuidv5(`${source}|${cleanName}|${cleanAddr}`, MY_NAMESPACE);
+    return uuidv5(`${cleanSource}|${cleanName}|${cleanAddr}`, MY_NAMESPACE);
 };
+
+async function upsertAndTrack(items, metricObj) {
+    if (items.length === 0) return;
+    
+    const ids = items.map(it => it.id);
+    let allExisting = [];
+    
+    for (let i = 0; i < ids.length; i += 100) {
+        const chunkIds = ids.slice(i, i + 100);
+        const { data, error } = await supabase.from('master_places')
+            .select('id, lat, lng, name, address, trust_score, is_active, raw_data')
+            .in('id', chunkIds);
+            
+        if (error) {
+            console.error(`[CRITICAL] DB Existence Check Failed: ${error.message}`);
+            metricObj.note = '💥 ERROR (조회/통신 실패)';
+            return;
+        }
+        if (data) allExisting.push(...data);
+    }
+    
+    const existingMap = new Map(allExisting.map(e => [e.id, e]));
+    
+    let news = 0;
+    let trueUpdates = 0;
+
+    for (const it of items) {
+        if (existingMap.has(it.id)) {
+            const ext = existingMap.get(it.id);
+            if (ext.lat !== undefined && ext.lat !== null) it.lat = ext.lat;
+            if (ext.lng !== undefined && ext.lng !== null) it.lng = ext.lng;
+
+            const nameChanged = ext.name !== it.name;
+            const addrChanged = ext.address !== it.address;
+            const scoreChanged = ext.trust_score !== it.trust_score;
+            const statusChanged = ext.is_active !== it.is_active;
+            
+            if (nameChanged || addrChanged || scoreChanged || statusChanged) {
+                trueUpdates++;
+            }
+        } else {
+            news++;
+        }
+    }
+    
+    metricObj.new += news;
+    metricObj.updated += trueUpdates;
+    
+    for (let i = 0; i < items.length; i += 500) {
+        const chunk = items.slice(i, i + 500);
+        await supabase.from('master_places').upsert(chunk, { onConflict: 'id' });
+    }
+}
 
 async function scrapeKakaoPlace(url) {
     try {
@@ -276,22 +330,13 @@ async function main() {
                 }));
 
             if (sanitized.length > 0) {
-                const ids = sanitized.map(s => s.id);
-                const { data: existingIds } = await supabase.from('master_places').select('id').in('id', ids);
-                const existingSet = new Set(existingIds?.map(e => e.id) || []);
+                const hops = sanitized.filter(s => s.category === 'HOSPITAL');
+                const gass = sanitized.filter(s => s.category === 'GAS_STATION');
+                const fests = sanitized.filter(s => s.category === 'FESTIVAL');
                 
-                const news = sanitized.filter(s => !existingSet.has(s.id));
-                const upds = sanitized.filter(s => existingSet.has(s.id));
-
-                metrics.dynamic_api.HOSPITAL.new += news.filter(n => n.category === 'HOSPITAL').length;
-                metrics.dynamic_api.HOSPITAL.updated += upds.filter(u => u.category === 'HOSPITAL').length;
-                metrics.dynamic_api.GAS_STATION.new += news.filter(n => n.category === 'GAS_STATION').length;
-                metrics.dynamic_api.GAS_STATION.updated += upds.filter(u => u.category === 'GAS_STATION').length;
-                metrics.dynamic_api.FESTIVAL.new += news.filter(n => n.category === 'FESTIVAL').length;
-                metrics.dynamic_api.FESTIVAL.updated += upds.filter(u => u.category === 'FESTIVAL').length;
-
-                const { error: upsertError } = await supabase.from('master_places').upsert(sanitized, { onConflict: 'id' });
-                if (upsertError) console.error("  ❌ Master Upsert Error:", upsertError.message);
+                await upsertAndTrack(hops, metrics.dynamic_api.HOSPITAL);
+                await upsertAndTrack(gass, metrics.dynamic_api.GAS_STATION);
+                await upsertAndTrack(fests, metrics.dynamic_api.FESTIVAL);
             }
         }
         
@@ -468,6 +513,25 @@ async function main() {
     metrics.dynamic_api.GAS_STATION.total = finalG || 0;
     metrics.dynamic_api.FESTIVAL.total = finalF || 0;
 
+    function printCachingAuditTable() {
+        console.log(`\n📋 [Precision Audit Report] D-3 스마트 캐싱 (권역 API 정밀 동기화)`);
+        console.log(`| 대상 스케줄 | 카테고리 (세부 소스) | 기존 데이터 수 | 원천 수신 수 | 신규 삽입(New) | 변경 갱신(Upd) | 최종 총계 | 비고 |`);
+        console.log(`| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |`);
+        
+        const rows = [
+            { cat: 'HOSPITAL (일반/응급)', val: metrics.dynamic_api.HOSPITAL, source: 'NMC / Kakao' },
+            { cat: 'GAS_STATION (주유소)', val: metrics.dynamic_api.GAS_STATION, source: 'Opinet Spiral' },
+            { cat: 'FESTIVAL (지역행사)', val: metrics.dynamic_api.FESTIVAL, source: 'TourAPI 반경조회' }
+        ];
+
+        for (const r of rows) {
+            const noteStr = r.val.note ? r.val.note : `${r.source} (${metrics.clusters}개 권역 합산)`;
+            console.log(`| ${targetStr} | ${r.cat} | ${r.val.existing.toLocaleString()} | ${r.val.received.toLocaleString()} | ${r.val.new.toLocaleString()} | ${r.val.updated.toLocaleString()} | ${r.val.total.toLocaleString()} | ${noteStr} |`);
+        }
+        console.log(`\n✨ [Smart Plan Caching] 권역 기반 정합성 보완 완료!\n`);
+    }
+
+    printCachingAuditTable();
     await recordAutomationLog(metrics, targetStr, 'SUCCESS');
     process.exit(0);
 }
@@ -477,12 +541,14 @@ async function recordAutomationLog(metrics, targetDate, status) {
     
     // SOP v11 Part 1 & 2 Structure
     const apiStatus = Object.entries(metrics.dynamic_api).map(([cat, val]) => ({
-        category: cat,
+        region: `${targetDate}`,
+        title: cat === 'HOSPITAL' ? 'HOSPITAL (일반/응급)' : (cat === 'GAS_STATION' ? 'GAS_STATION (주유소)' : 'FESTIVAL (지역행사)'),
         existing: val.existing,
-        received: val.received,
+        fetched: val.received,
         new: val.new,
-        updated: val.updated,
-        total: val.total
+        upd: val.updated,
+        final: val.total,
+        note: val.note || '권역 병합(Radius)'
     }));
 
     const quotaFlow = Object.entries(metrics.quota_flow).map(([cat, val]) => ({
