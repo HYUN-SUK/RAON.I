@@ -1,0 +1,70 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?뵍 prevent committing .env to code: https://dotenvx.com/precommit
+
+?뱟 [Day 101] Target Region: 寃쎌긽?⑤룄
+?? Starting Daily Rotation Sync for 寃쎌긽?⑤룄...
+
+?뱿 [LocalData CSV] 寃쎌긽?⑤룄 紐⑤쾾?뚯떇???ㅼ슫濡쒕뱶 諛??뚯떛 以?..
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 39 found / 39 total fetched in this slice.
+?쪞 [MAFRA] 寃쎌긽?⑤룄 ?덉떖?앸떦 ?숆린??以?..
+   - ?뵊 Trying [寃쎈궓] parameter...
+   - ?뵊 Trying [寃쎌긽?⑤룄] parameter...
+  ?뵇 Matching: 999 found / 999 total fetched in this slice.
+  ?뵇 Matching: 994 found / 994 total fetched in this slice.
+  ?뵇 Matching: 1000 found / 1000 total fetched in this slice.
+  ?뵇 Matching: 1000 found / 1000 total fetched in this slice.
+  ?뵇 Matching: 586 found / 586 total fetched in this slice.
+?룫 [SMBA] 寃쎌긽?⑤룄 諛깅뀈媛寃??숆린??以?(?꾧뎅 ?곗씠??痍⑤뱷 ???꾪꽣留?...
+  ?뵇 Matching: 6 found / 6 total fetched in this slice.
+  ?뵇 Matching: 6 found / 6 total fetched in this slice.
+  ?뵇 Matching: 11 found / 11 total fetched in this slice.
+  ?뵇 Matching: 7 found / 7 total fetched in this slice.
+  ?뵇 Matching: 15 found / 15 total fetched in this slice.
+  ?뵇 Matching: 7 found / 7 total fetched in this slice.
+  ?뵇 Matching: 11 found / 11 total fetched in this slice.
+  ?뵇 Matching: 9 found / 9 total fetched in this slice.
+  ?뵇 Matching: 14 found / 14 total fetched in this slice.
+  ?뵇 Matching: 7 found / 7 total fetched in this slice.
+  ?뵇 Matching: 8 found / 8 total fetched in this slice.
+  ?뵇 Matching: 2 found / 2 total fetched in this slice.
+?뱿 [LocalData CSV] 寃쎌긽?⑤룄 ?洹쒕え?먰룷 ?ㅼ슫濡쒕뱶 諛??뚯떛 以?..
+  ?뵇 Matching: 38 found / 38 total fetched in this slice.
+  ?뵇 Matching: 274 found / 274 total fetched in this slice.
+?뱿 [LocalData CSV] 寃쎌긽?⑤룄 湲고??앺뭹?먮ℓ???ㅼ슫濡쒕뱶 諛??뚯떛 以?..
+  ?뵇 Matching: 500 found / 500 total fetched in this slice.
+  ?뵇 Matching: 498 found / 498 total fetched in this slice.
+?룥截? [TOUR v2] 寃쎌긽?⑤룄 紐낆냼(愿愿묒?) ?숆린??以?(AreaCode: 36)...
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 100 found / 100 total fetched in this slice.
+  ?뵇 Matching: 36 found / 36 total fetched in this slice.
+
+?뱤 [Final Audit] 寃쎌긽?⑤룄 吏??퀎 理쒖쥌 ?뺥빀???뺤씤 以?..
+
+?뽳툘 [Strike-Out Check] 誘명솗???곗씠???낅뜲?댄듃 以?..
+
+?뱥 [Precision Audit Report] 寃쎌긽?⑤룄
+| 媛깆떊 吏??| 移댄뀒怨좊━ (?몃? ?뚯뒪) | 湲곗〈 ?곗씠????| ?먯쿇 ?섏떊 ??| ?좉퇋 ?쎌엯(New) | 蹂寃?媛깆떊(Upd) | 理쒖쥌 珥앷퀎 | 鍮꾧퀬 |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| 寃쎌긽?⑤룄 | RESTAURANT (?덉떖?앸떦) | 3,442 | 4,579 | 0 | 0 | 3,442 | MAFRA API |
+| 寃쎌긽?⑤룄 | RESTAURANT (紐⑤쾾?뚯떇?? | 2,076 | 4,039 | 0 | 0 | 2,076 | LocalData CSV |
+| 寃쎌긽?⑤룄 | RESTAURANT (諛깅뀈媛寃? | 103 | 103 | 0 | 0 | 103 | ODCloud API |
+| 寃쎌긽?⑤룄 | MART (??뺣쭏?? | 249 | 274 | 0 | 0 | 249 | LocalData CSV |
+| 寃쎌긽?⑤룄 | MART (以?洹쒕え - SSM) | 24 | 38 | 0 | 0 | 24 | ?洹쒕え ???앸퀎 |
+| 寃쎌긽?⑤룄 | MART (湲고??앺뭹?먮ℓ?? | 527 | 998 | 0 | 0 | 527 | LocalData CSV |
+| 寃쎌긽?⑤룄 | SPOT (愿愿묐챸?? | 1,381 | 936 | 0 | 0 | 1,381 | TourAPI v2 |
+
+??[Daily Rotation vNext] 寃쎌긽?⑤룄 ?꾧퀎???숆린???꾨즺!

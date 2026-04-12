@@ -560,12 +560,12 @@ export default function AutomationLogsPage() {
         </div>
       </section>
 
-      {/* 3. DAILY_REGION_SYNC Full-Width 독립 패널 (타임라인 밖 렌더링) */}
+      {/* 3. 상단 Full-Width 독립 상세 패널 (DAILY_REGION_SYNC, SMART_PLAN_CACHING) */}
       {(() => {
-        const selectedLog = logs.find(l => l.id === expandedLogId && l.job_name === 'DAILY_REGION_SYNC');
+        const selectedLog = logs.find(l => l.id === expandedLogId && (l.job_name === 'DAILY_REGION_SYNC' || l.job_name === 'SMART_PLAN_CACHING'));
         if (!selectedLog) return null;
         return (
-          <section className="pt-4 animate-in fade-in duration-300">
+          <section className="pt-4 animate-in slide-in-from-top-4 fade-in duration-500">
             {renderLogDetails(selectedLog)}
           </section>
         );
@@ -618,7 +618,7 @@ export default function AutomationLogsPage() {
                         {expandedLogId === log.id ? <ChevronUp className="w-4 h-4 text-brand-600" /> : <ChevronDown className="w-4 h-4" />}
                       </td>
                     </tr>
-                    {expandedLogId === log.id && log.job_name !== 'DAILY_REGION_SYNC' && (
+                    {expandedLogId === log.id && !['DAILY_REGION_SYNC', 'SMART_PLAN_CACHING'].includes(log.job_name) && (
                       <tr>
                         <td colSpan={4} className="bg-white">
                           {renderLogDetails(log)}

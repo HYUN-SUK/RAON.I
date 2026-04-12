@@ -8,6 +8,7 @@ import fetch from 'node-fetch';
 import { v5 as uuidv5 } from 'uuid';
 import csvParser from 'csv-parser';
 import iconv from 'iconv-lite';
+import { ADMIN_SIDO_MAP, SIGUNGU_CODE_OVERRIDES, getAdminCodes } from './utils/admin-code-mapping.mjs';
 
 dotenv.config({ path: '.env.local' });
 
@@ -156,6 +157,55 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
       await delay(backoffMs);
     }
   }
+}
+
+// --- [인기도 엔진 v2 Utilities] ---
+
+let CACHED_BASE_YM = null;
+
+async function findLatestBaseYm() {
+  if (CACHED_BASE_YM) return CACHED_BASE_YM;
+  
+  console.log(`🔍 [Popularity] Searching for latest available baseYm for Tmap API...`);
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth(); // Current month (0-11)
+  
+  // Starting from 202504 as a high-probability baseline, then scanning backwards if needed
+  // Or starting from current month - 1
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ym = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0');
+    
+    // Probe call (numRows=1) - using Seoul Jongno (11/11110) as constant probe target
+    const params = new URLSearchParams({
+      serviceKey: process.env.PUBLIC_DATA_API_KEY,
+      numOfRows: '1',
+      pageNo: '1',
+      MobileOS: 'ETC',
+      MobileApp: 'RAONAI',
+      _type: 'json',
+      baseYm: ym,
+      areaCd: '11',
+      signguCd: '11110'
+    });
+    
+    try {
+      const url = `http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?${params.toString()}`;
+      const data = await fetchWithRetry(url, {}, 1); // Only 1 retry for probe
+      if (data?.response?.body?.totalCount > 0) {
+        console.log(`   ✅ Latest valid baseYm found: ${ym}`);
+        CACHED_BASE_YM = ym;
+        return ym;
+      }
+    } catch (e) {
+      // Just continue to next month
+    }
+  }
+  
+  console.warn(`   ⚠️ Failing to find dynamic baseYm. Using fallback 202504.`);
+  CACHED_BASE_YM = '202504';
+  return '202504';
 }
 
 // 백년가게용 최신 UDDI 자동 탐색 모듈
@@ -327,9 +377,14 @@ async function dailyRegionSync() {
     stats.categories[key].total.inactive = (inactCount || 0);
   }
   
-  // 6. [SOP v11.4] 전국 명소 인기도 순환 갱신 (TMAP/KT 기반 고도화 예정)
-  // [Next Session] updateSpotPopularity(targetSido, aliases, stats) 구현 예정
-  // await rotateTourPopularity(stats); 
+  // 6. [SOP v11.4] 전국 명소 인기도 순환 갱신 (TMAP/KT 기반 고도화)
+  await updateSpotPopularity(targetSido, stats);
+
+  // 7. [SOP v11.4] 17일 순환 종료 시 (전국 수집 완료 시) 글로벌 점수 최종 산출
+  // - targetSido가 제주(마지막 지역)일 때 또는 17일 주기 배배수 시점
+  if (targetSido === '제주특별자치도' || (dayOfYear % 17 === 0)) {
+     await finalizePopularityv2();
+  }
 
   await recordAutomationLog(stats);
 
@@ -337,6 +392,190 @@ async function dailyRegionSync() {
   printAuditTable(stats);
 
   console.log(`\n✨ [Daily Rotation vNext] ${targetSido} 전계통 동기화 완료!`);
+}
+
+/**
+ * [명소 실질 인기도 엔진 v2 - Pass 1: 데이터 수집]
+ * - 지역별(Sido) 순환 시점에 실행
+ * - TMAP 연관 관광지 + KT 집중률 API 호출 및 raw_data 저장
+ */
+async function updateSpotPopularity(targetSido, stats) {
+  console.log(`\n🚀 [Popularity Engine v2] Updating popularity metrics for: ${targetSido}`);
+  
+  const aliases = SIDO_ALIASES[targetSido] || [targetSido];
+  const baseYm = await findLatestBaseYm();
+  const { areaCd } = getAdminCodes(targetSido);
+  
+  if (!areaCd) {
+    console.warn(`  - [Popularity] Admin areaCd not found for ${targetSido}. Skipping.`);
+    return;
+  }
+
+  // 1. 해당 지역의 활성화된 TOUR_SPOT 조회
+  const { data: spots, error } = await supabase
+    .from('master_places')
+    .select('id, name, sigungu, raw_data')
+    .eq('api_source', 'TOUR_SPOT')
+    .eq('is_active', true)
+    .in('sido', aliases);
+
+  if (error || !spots || spots.length === 0) {
+    console.warn(`  - [Popularity] No TOUR_SPOT found to update in ${targetSido}.`);
+    return;
+  }
+
+  // 2. 시군구별 그룹화 (API 효율성 증대)
+  const sigungus = [...new Set(spots.map(s => s.sigungu))].filter(Boolean);
+  console.log(`  - Grouping ${spots.length} spots into ${sigungus.length} sigungus.`);
+
+  for (const sigungu of sigungus) {
+    const { signguCd } = getAdminCodes(targetSido, sigungu);
+    if (!signguCd) {
+      console.warn(`    ⚠️ [Popularity] Standard signguCd not found for ${sigungu}. Probing might follow.`);
+      continue;
+    }
+
+    console.log(`    - Processing ${sigungu} (${signguCd})...`);
+
+    // (A) TMAP Associated Attractions
+    try {
+      const tmapUrl = `http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=${areaCd}&signguCd=${signguCd}&baseYm=${baseYm}&numOfRows=1000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
+      const tmapData = await fetchWithRetry(tmapUrl, {}, 2);
+      const tmapItems = tmapData?.response?.body?.items?.item;
+      const tmapList = Array.isArray(tmapItems) ? tmapItems : (tmapItems ? [tmapItems] : []);
+
+      // (B) KT Concentration Rate
+      const ktUrl = `http://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=${areaCd}&signguCd=${signguCd}&numOfRows=1000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
+      const ktData = await fetchWithRetry(ktUrl, {}, 2);
+      const ktItems = ktData?.response?.body?.items?.item;
+      const ktList = Array.isArray(ktItems) ? ktItems : (ktItems ? [ktItems] : []);
+
+      console.log(`      ✅ Received: Tmap=${tmapList.length}, KT=${ktList.length}`);
+
+      // (C) 매칭 및 DB 업데이트 (Memory Batch)
+      const updates = [];
+      const sigunguSpots = spots.filter(s => s.sigungu === sigungu);
+
+      for (const spot of sigunguSpots) {
+        const cleanName = getCleanString(spot.name);
+        
+        // TMAP 매칭 (Source 기준)
+        const tmapMatch = tmapList.filter(t => getCleanString(t.tAtsNm) === cleanName);
+        
+        // KT 매칭
+        const ktMatch = ktList.find(k => getCleanString(k.tAtsNm) === cleanName);
+
+        if (tmapMatch.length > 0 || ktMatch) {
+          const newData = { ...spot.raw_data };
+          if (tmapMatch.length > 0) {
+            newData.tmap_related = tmapMatch.map(m => ({
+              target: m.rlteTatsNm,
+              target_cd: m.rlteTatsCd,
+              rank: parseInt(m.rlteRank),
+              category: m.rlteCtgrySclsNm
+            }));
+          }
+          if (ktMatch) {
+            newData.kt_concentration = parseFloat(ktMatch.cnctrRate);
+          }
+
+          updates.push({
+            id: spot.id,
+            raw_data: newData
+          });
+        }
+      }
+
+      if (updates.length > 0) {
+        const { error: upError } = await supabase.from('master_places').upsert(updates);
+        if (upError) console.error(`      ❌ Error updating ${updates.length} spots:`, upError.message);
+        else console.log(`      ✨ Successfully updated ${updates.length} spots with mobility metrics.`);
+      }
+
+    } catch (e) {
+      console.error(`    ❌ Error fetching API for ${sigungu}:`, e.message);
+    }
+  }
+}
+
+/**
+ * [Pass 2: 전계통 점수 산출 및 가중값 적용]
+ * - 17일 순환이 끝나는 매 17일차(또는 수동 트리거)에 실행
+ * - 전국 BasePop 점수 정규화 및 Final Trust Score 업데이트
+ */
+async function finalizePopularityv2() {
+  console.log(`\n💎 [Popularity Engine v2 - Pass 2] Calculating Global InScore & Normalizing...`);
+  
+  // 1. 모든 TOUR_SPOT의 tmap_related 데이터 로드
+  const { data: allSpots, error } = await supabase
+    .from('master_places')
+    .select('id, name, raw_data, trust_score')
+    .eq('api_source', 'TOUR_SPOT')
+    .eq('is_active', true);
+
+  if (error || !allSpots) return;
+
+  const inScoreMap = new Map(); // id -> score
+
+  // 2. InScore(i) = Σ (1 / log2(rank + 1)) 산출
+  // - 나를 "연관 관광지"로 지목한 모든 곳의 가중치 합산
+  
+  // 명칭 -> ID 역매핑용 맵 (전국 단위)
+  const nameToId = new Map();
+  allSpots.forEach(s => nameToId.set(getCleanString(s.name), s.id));
+
+  for (const spot of allSpots) {
+    const relations = spot.raw_data?.tmap_related || [];
+    for (const rel of relations) {
+      const targetId = nameToId.get(getCleanString(rel.target));
+      if (targetId) {
+        const score = 1 / Math.log2(rel.rank + 1);
+        inScoreMap.set(targetId, (inScoreMap.get(targetId) || 0) + score);
+      }
+    }
+  }
+
+  // 3. 정규화 (0-100) 및 SeasonBoost(KT) 적용
+  const scores = [...inScoreMap.values()];
+  const maxIn = Math.max(...scores, 1);
+  
+  const updates = [];
+  for (const spot of allSpots) {
+    const basePopRaw = inScoreMap.get(spot.id) || 0;
+    const basePopNorm = (basePopRaw / maxIn) * 100; // 0-100
+    
+    // SeasonBoost: KT 집중률 90 이상일 경우 1.25배 가중치 등
+    const ktRate = spot.raw_data?.kt_concentration || 50;
+    const boost = ktRate > 90 ? 1.25 : (ktRate > 70 ? 1.1 : 1.0);
+    
+    const finalPopScore = Math.min(100, Math.round(basePopNorm * boost));
+    
+    // 기존 trust_score 업데이트
+    const newTrustScore = Math.max(50, finalPopScore);
+
+    updates.push({
+      id: spot.id,
+      trust_score: newTrustScore,
+      raw_data: {
+        ...spot.raw_data,
+        popularity_v2: {
+          base_pop: basePopNorm,
+          season_boost: boost,
+          calculated_at: new Date().toISOString()
+        }
+      }
+    });
+  }
+
+  // 4. Batch Upsert
+  if (updates.length > 0) {
+    const batchSize = 100;
+    for (let i = 0; i < updates.length; i += batchSize) {
+      const batch = updates.slice(i, i + batchSize);
+      await supabase.from('master_places').upsert(batch);
+    }
+    console.log(`✅ [Popularity v2] Final Trust Scores updated for ${updates.length} spots.`);
+  }
 }
 
 /**

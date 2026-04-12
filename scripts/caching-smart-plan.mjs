@@ -17,23 +17,29 @@ const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const OPINET_API_KEY = process.env.OPINET_API_KEY;
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
-const getNormalizedAddr = (addr) => {
+function getNormalizedAddr(addr) {
     if (!addr) return '';
-    let normalized = addr.trim();
-    const hashSidoMap = {
-        '서울': '서울특별시', '부산': '부산광역시', '대구': '대구광역시', '인천': '인천광역시', '광주': '광주광역시',
-        '대전': '대전광역시', '울산': '울산광역시', '세종': '세종특별자치시', '경기': '경기도', '강원': '강원특별자치도',
-        '충북': '충청북도', '충남': '충청남도', '전북': '전북특별자치도', '전남': '전라남도', '경북': '경상북도',
-        '경남': '경상남도', '제주': '제주특별자치도'
-    };
-    for (const [short, full] of Object.entries(hashSidoMap)) {
-        if (normalized.startsWith(short) && !normalized.startsWith(full)) {
-            normalized = normalized.replace(short, full);
-            break;
-        }
-    }
-    return normalized;
-};
+    let a = addr.replace(/,\s?대한민국$/, '').trim();
+    // [v11.2 Master Sync Standard] Regularize Sido names to full official names
+    a = a.replace(/^(서울|서울특별시)\s?/, '서울특별시 ');
+    a = a.replace(/^(부산|부산광역시)\s?/, '부산광역시 ');
+    a = a.replace(/^(대구|대구광역시)\s?/, '대구광역시 ');
+    a = a.replace(/^(인천|인천광역시)\s?/, '인천광역시 ');
+    a = a.replace(/^(광주|광주광역시)\s?/, '광주광역시 ');
+    a = a.replace(/^(대전|대전광역시)\s?/, '대전광역시 ');
+    a = a.replace(/^(울산|울산광역시)\s?/, '울산광역시 ');
+    a = a.replace(/^(세종|세종특별자치시)\s?/, '세종특별자치시 ');
+    a = a.replace(/^(경기|경기도)\s?/, '경기도 ');
+    a = a.replace(/^(강원|강원도|강원특별자치도)\s?/, '강원특별자치도 ');
+    a = a.replace(/^(충북|충청북도)\s?/, '충청북도 ');
+    a = a.replace(/^(충남|충청남도)\s?/, '충청남도 ');
+    a = a.replace(/^(전북|전라북도|전북특별자치도)\s?/, '전북특별자치도 ');
+    a = a.replace(/^(전남|전라남도)\s?/, '전라남도 ');
+    a = a.replace(/^(경북|경상북도)\s?/, '경상북도 ');
+    a = a.replace(/^(경남|경상남도)\s?/, '경상남도 ');
+    a = a.replace(/^(제주|제주도|제주특별자치도)\s?/, '제주특별자치도 ');
+    return a.trim();
+}
 
 const extractSido = (addr) => {
     if (!addr) return null;
@@ -43,6 +49,19 @@ const extractSido = (addr) => {
         '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'
     ];
     return standardSidos.find(s => normalized.startsWith(s)) || null;
+};
+
+const extractSigungu = (addr) => {
+    if (!addr) return null;
+    const normalized = getNormalizedAddr(addr);
+    const sido = extractSido(addr);
+    if (!sido) return null;
+    const parts = normalized.replace(sido, '').trim().split(' ');
+    // Handle cases like '수원시 장안구' (takes first 2 words if both are cities/districts)
+    if (parts.length >= 2 && (parts[0].endsWith('시') || parts[0].endsWith('군')) && (parts[1].endsWith('구') || parts[1].endsWith('시'))) {
+        return `${parts[0]} ${parts[1]}`;
+    }
+    return parts[0] || null;
 };
 
 const getCleanString = (str) => {
@@ -197,9 +216,8 @@ async function main() {
 
     for (const cluster of clusters) {
         const { lat, lng, address } = cluster;
-        const addr = address.split(' ');
-        const doNm = addr[0] || '충청남도';
-        const sigunguNm = addr[1] || '예산군';
+        const doNm = extractSido(address) || '충청남도';
+        const sigunguNm = extractSigungu(address) || '예산군';
 
         // Get existing counts for Part 1 reporting
         const { count: hCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
@@ -554,11 +572,12 @@ async function recordAutomationLog(metrics, targetDate, status) {
     const apiStatus = Object.entries(metrics.dynamic_api).map(([cat, val]) => ({
         region: `${targetDate}`,
         title: cat === 'HOSPITAL' ? 'HOSPITAL (일반/응급)' : (cat === 'GAS_STATION' ? 'GAS_STATION (주유소)' : 'FESTIVAL (지역행사)'),
+        category: cat, // UI Table Key
         existing: val.existing,
-        fetched: val.received,
+        received: val.received, // [FIX] Align with UI expecting 'received'
         new: val.new,
-        upd: val.updated,
-        final: val.total,
+        updated: val.updated,
+        total: val.total,
         note: val.note || '권역 병합(Radius)'
     }));
 

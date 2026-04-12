@@ -1,0 +1,18 @@
+﻿[dotenv@17.2.3] injecting env (24) from .env.local -- tip: ?숋툘  specify custom .env file path with { path: '/custom/path/.env' }
+?? v11.6 | Target: 2026-04-14
+  -> Persisting 42 dynamic items to master_places...
+?뱷 Audit list generated: 1391 items.
+  -> Persisting 61 dynamic items to master_places...
+?뱷 Audit list generated: 1359 items.
+?뢾 Done: 557 facts.
+
+?뱥 [Precision Audit Report] D-3 ?ㅻ쭏??罹먯떛 (沅뚯뿭 API ?뺣? ?숆린??
+| ????ㅼ?以?| 移댄뀒怨좊━ (?몃? ?뚯뒪) | 湲곗〈 ?곗씠????| ?먯쿇 ?섏떊 ??| ?좉퇋 ?쎌엯(New) | 蹂寃?媛깆떊(Upd) | 理쒖쥌 珥앷퀎 | 鍮꾧퀬 |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| 2026-04-14 | HOSPITAL (?쇰컲/?묎툒) | 48 | 31 | 30 | 0 | 63 | NMC / Kakao (2媛?沅뚯뿭 ?⑹궛) |
+| 2026-04-14 | GAS_STATION (二쇱쑀?? | 69 | 55 | 53 | 0 | 106 | Opinet Spiral (2媛?沅뚯뿭 ?⑹궛) |
+| 2026-04-14 | FESTIVAL (吏??뻾?? | 28 | 19 | 17 | 2 | 34 | TourAPI 諛섍꼍議고쉶 (2媛?沅뚯뿭 ?⑹궛) |
+
+??[Smart Plan Caching] 沅뚯뿭 湲곕컲 ?뺥빀??蹂댁셿 ?꾨즺!
+
+?뱤 Recording automation log for 2026-04-14...

@@ -118,14 +118,17 @@ function calcExistence(f: FactCard): number {
 
         // [v10.5] Digital Asset & Popularity Index
         const descLen = raw.description?.length || 0;
-        const readcount = parseInt(raw.readcount || "0");
-        if (raw.firstimage) src += 15;
-        if (descLen > 100) src += 15;
-        if (raw.firstimage && descLen > 100) src += 10;
-
-        if (readcount >= 10000) src += 40;
-        else if (readcount >= 5000) src += 25;
-        else if (readcount >= 1000) src += 10;
+        // [v11.4] Mobility-based Popularity Engine v2 Integration
+        const popV2 = raw.popularity_v2?.base_pop;
+        if (popV2 !== undefined) {
+            src += (popV2 / 100) * 40;
+        } else {
+            // Legacy Fallback
+            const readcount = parseInt(raw.readcount || "0");
+            if (readcount >= 10000) src += 40;
+            else if (readcount >= 5000) src += 25;
+            else if (readcount >= 1000) src += 10;
+        }
     } else if (f.category === 'HOSPITAL') {
         const name = f.name || "";
         const raw = f.metadata?.raw_data || {};
