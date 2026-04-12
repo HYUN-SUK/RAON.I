@@ -204,7 +204,8 @@ async function dailyRegionSync() {
       LARGE_MART: { label: 'MART (대형마트)', ...baseStat(), note: 'LocalData CSV' },
       SSM_MART: { label: 'MART (준대규모 - SSM)', ...baseStat(), note: '대규모 내 식별' },
       OTHER_MART: { label: 'MART (기타식품판매업)', ...baseStat(), note: 'LocalData CSV' },
-      SPOT: { label: 'SPOT (관광명소)', ...baseStat(), note: 'TourAPI v2' }
+      SPOT: { label: 'SPOT (관광명소)', ...baseStat(), note: 'TourAPI v2' },
+      SPOT_READCOUNT: { label: 'SPOT (인기도 갱신)', ...baseStat(), note: '전국 순환 정밀갱신' }
     }
   };
   // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 별칭 통합 집계)
@@ -326,6 +327,9 @@ async function dailyRegionSync() {
     stats.categories[key].total.inactive = (inactCount || 0);
   }
   
+  // 6. [SOP v11.4] 전국 명소 리드카운트 순환 정밀 갱신 (별도 지표 관리)
+  await rotateTourPopularity(stats);
+
   await recordAutomationLog(stats);
 
   // 6. [SOP v11.3] 정밀 감사 결과 테이블 출력
@@ -607,35 +611,84 @@ async function syncTourSpots(sido, seenIds, stat) {
 /**
  * 명소 정밀 갱신 (detailCommon2) 
  */
-async function rotateTourPopularity() {
+/**
+ * 명소 정밀 갱신 (detailCommon2) 
+ * [SOP v11.4] Bulk Upsert 및 Parallel Chunking 적용으로 성능 고도화
+ */
+async function rotateTourPopularity(fullStats) {
+  const stat = fullStats.categories.SPOT_READCOUNT;
   console.log(`\n🔝 [Popularity] 전국 명소 중 가장 오래된 800건 정밀 갱신 시작...`);
-  const { data: spots } = await supabase.from('master_places').select('id, raw_data').eq('category', 'SPOT').order('raw_data->>readcount_updated_at', { ascending: true, nullsFirst: true }).limit(800);
-  if (!spots || spots.length === 0) return 0;
   
-  let updatedCount = 0;
-  for (const spot of spots) {
-    const contentId = spot.raw_data?.contentid;
-    if (!contentId) continue;
+  const { data: spots } = await supabase.from('master_places')
+    .select('id, raw_data, trust_score')
+    .eq('category', 'SPOT')
+    .order('raw_data->>readcount_updated_at', { ascending: true, nullsFirst: true })
+    .limit(800);
 
-    // [API 차단 방어] 1건당 상세 호출 시 공공데이터포털 초당 요청량(TPS) 초과 방지를 위한 1초 쓰로틀링
-    await delay(1000);
-
-    try {
-      const url = `https://apis.data.go.kr/B551011/KorService2/detailCommon2?serviceKey=${TOUR_API_KEY}&_type=json&MobileOS=ETC&MobileApp=RAONAI&contentId=${contentId}&defaultYN=Y&firstImageYN=Y&areacodeYN=Y&catcodeYN=Y&addrinfoYN=Y&mapinfoYN=Y&overviewYN=Y&viewcountYN=Y`;
-      const data = await fetchWithRetry(url, {}, 1); // 세부조회는 부하가 크므로 재시도 우선순위 낮춤
-      const item = data.response?.body?.items?.item?.[0];
-      if (item) {
-        const realReadCount = parseInt(item.readcount || '0');
-        await supabase.from('master_places').update({
-          raw_data: { ...spot.raw_data, ...item, readcount: realReadCount.toString(), readcount_synthetic: false, readcount_updated_at: new Date().toISOString() },
-          trust_score: 45 + Math.min(20, Math.floor(realReadCount / 1000))
-        }).eq('id', spot.id);
-        updatedCount++;
-      }
-    } catch (e) { /* ignore individual error */ }
+  if (!spots || spots.length === 0) {
+    console.log(`  ℹ️  갱신할 대상 명소가 없습니다.`);
+    return 0;
   }
-  console.log(`  ✅ Updated ${updatedCount} spots with real readcounts.`);
-  return updatedCount;
+  
+  stat.existing.active = spots.length;
+  const toUpdate = [];
+  const chunkSize = 5; // 한 번에 5개씩 병렬 처리 (WAF 방어 한계치)
+
+  for (let i = 0; i < spots.length; i += chunkSize) {
+    const chunk = spots.slice(i, i + chunkSize);
+    console.log(`  📡 Processing Batch: ${i + 1} ~ ${Math.min(i + chunkSize, spots.length)} / 800...`);
+    
+    await Promise.all(chunk.map(async (spot) => {
+      const contentId = spot.raw_data?.contentid;
+      if (!contentId) return;
+
+      try {
+        const url = `https://apis.data.go.kr/B551011/KorService2/detailCommon2?serviceKey=${TOUR_API_KEY}&_type=json&MobileOS=ETC&MobileApp=RAONAI&contentId=${contentId}&defaultYN=Y&firstImageYN=Y&areacodeYN=Y&catcodeYN=Y&addrinfoYN=Y&mapinfoYN=Y&overviewYN=Y&viewcountYN=Y`;
+        const data = await fetchWithRetry(url, {}, 1);
+        const item = data.response?.body?.items?.item?.[0];
+        
+        if (item) {
+          const realReadCount = parseInt(item.readcount || '0');
+          const updatedRawData = { 
+            ...spot.raw_data, 
+            ...item, 
+            readcount: realReadCount.toString(), 
+            readcount_synthetic: false, 
+            readcount_updated_at: new Date().toISOString() 
+          };
+          const updatedTrustScore = 45 + Math.min(20, Math.floor(realReadCount / 1000));
+
+          toUpdate.push({
+            id: spot.id,
+            raw_data: updatedRawData,
+            trust_score: updatedTrustScore,
+            updated_at: new Date().toISOString()
+          });
+          stat.fetched.active++;
+        }
+      } catch (e) {
+        console.error(`    ❌ ContentID ${contentId} Fetch Error:`, e.message);
+      }
+    }));
+
+    // [WAF 방어] 병렬 묶음 사이 1.5초 휴식
+    await delay(1500);
+  }
+
+  // 대량 데이터 Bulk Upsert (100건 단위)
+  if (toUpdate.length > 0) {
+    console.log(`  💾 Saving ${toUpdate.length} updated readcounts to DB...`);
+    for (let i = 0; i < toUpdate.length; i += 100) {
+      const slice = toUpdate.slice(i, i + 100);
+      const { error } = await supabase.from('master_places').upsert(slice, { onConflict: 'id' });
+      if (error) console.error(`    ❌ Bulk Update Error:`, error.message);
+      else stat.updated.active += slice.length;
+    }
+  }
+
+  stat.total.active = spots.length; // 갱신 대상 수 기준 정합성 확인
+  console.log(`  ✅ Successfully updated ${stat.updated.active} spots.`);
+  return stat.updated.active;
 }
 
 // Helper: Upsert and Track New/Updated (Deep-Field Comparison 적용)
