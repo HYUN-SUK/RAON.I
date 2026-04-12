@@ -45,7 +45,7 @@
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | V9.5 하이엔드 파이프라인(나선탐색/병원스코어/쿼터제) 실장 완료. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
-| Phase 7 | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, 17일 지역 순환 동기화(Daily Sync) 도입 완료. Throttling/Failsafe 안정화(04-07). |
+| Phase 7 | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, 17일 지역 순환 동기화(Daily Sync) 도입 완료. SOP v11.3(정밀 감사 지표 세분화) 적용 완료(04-12). |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
 
 ---
@@ -218,6 +218,11 @@
         *   [x] **Dashboard Upgrade**: 관리자 로그 상세 화면에 Part 1(API), Part 2(Quota Flow) 정밀 대조 테이블 실장.
         *   [x] **Data Persistence**: JSON 기반 `message` 필드 활용으로 DB 구조 변경 없이 동적 리포팅 체계 완성.
         *   [x] **Verification**: 4/12 타겟 캐싱 실행 및 관리자 화면 리포트 출력 최종 검증 완료.
+    *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 설계 ✅ (2026-04-12)**:
+        *   [x] **Metric Splitting**: `Active/Inactive` 지표 분리 로직 전수 적용 및 3진 아웃 로직 고도화.
+        *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
+        *   [x] **UI Support**: 관리자 자동화 로그 페이지 🔴/🟢 상태별 세분화 렌더링 구현 완료.
+        *   [x] **Sync Strategy**: 일일 1,000회 제한 극복을 위한 17일 순환 갱신 체계 확립.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
