@@ -354,35 +354,94 @@ export default function AutomationLogsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {apiStatus.map((s: any, i: number) => (
-                    <tr key={i} className="hover:bg-gray-50/30 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-xs font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-full">{s.region}</span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {s.label?.includes('RESTAURANT') && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
-                          {s.label?.includes('MART') && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
-                          {s.name === 'SPOT' && <MapPin className="w-3.5 h-3.5 mr-2 text-blue-500" />}
-                          {s.name === 'SPOT_READCOUNT' && <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
-                          <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
+                  {apiStatus.map((s: any, i: number) => {
+                    const renderMetric = (val: any, styleType: 'plain' | 'brand' | 'blue', activeLabel: string = '영업', inactiveLabel: string = '폐업') => {
+                      const isObj = val !== null && typeof val === 'object';
+                      const a = isObj ? val.active || 0 : (val || 0);
+                      const inact = isObj ? val.inactive || 0 : 0;
+                      
+                      const showPlus = styleType !== 'plain';
+                      
+                      if (styleType === 'brand') {
+                        return (
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="inline-block bg-brand-50 text-brand-700 border border-brand-100 text-[10px] font-black px-2 py-0.5 rounded-lg">
+                              {showPlus && a > 0 ? '+' : ''}{a.toLocaleString()} {isObj && activeLabel}
+                            </span>
+                            {isObj && (
+                              <span className="inline-block bg-rose-50 text-rose-600 border border-rose-100 text-[9px] font-bold px-2 py-0.5 rounded-lg">
+                                {showPlus && inact > 0 ? '+' : ''}{inact.toLocaleString()} {inactiveLabel}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      }
+                      
+                      if (styleType === 'blue') {
+                        return (
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="inline-block bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-black px-2 py-0.5 rounded-lg">
+                              {a.toLocaleString()} {isObj && activeLabel}
+                            </span>
+                            {isObj && (
+                              <span className="inline-block bg-orange-50 text-orange-600 border border-orange-100 text-[9px] font-bold px-2 py-0.5 rounded-lg">
+                                +{inact.toLocaleString()} {inactiveLabel}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      // plain style
+                      return (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="flex items-center text-xs font-bold text-gray-700">
+                            {isObj && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>}
+                            {a.toLocaleString()}
+                          </span>
+                          {isObj && (
+                            <span className="flex items-center text-[10px] font-bold text-gray-400">
+                              <span className="w-1 h-1 rounded-full bg-rose-400 mr-1.5"></span>
+                              {inact.toLocaleString()}
+                            </span>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-xs font-bold text-gray-400">{(s.existing_count || 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-xs font-black text-gray-700">{(s.fetched_count || 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <span className="inline-block bg-brand-50 text-brand-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-brand-100">
-                          +{s.new_count || 0}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <span className="inline-block bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-blue-100">
-                           {s.updated_count || 0}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-black text-gray-900">{(s.total_count || 0).toLocaleString()}</td>
-                    </tr>
-                  ))}
+                      );
+                    };
+
+                    return (
+                      <tr key={i} className="hover:bg-gray-50/30 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-xs font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-full">{s.region}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {s.label?.includes('RESTAURANT') && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
+                            {s.label?.includes('MART') && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
+                            {s.name === 'SPOT' && <MapPin className="w-3.5 h-3.5 mr-2 text-blue-500" />}
+                            {s.name === 'SPOT_READCOUNT' && <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
+                            <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.existing_count, 'plain')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.fetched_count, 'plain')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.new_count, 'brand', '정상', '폐업')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.updated_count, 'blue', '갱신', '비활성')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-sm font-black text-gray-900">
+                              {(typeof s.total_count === 'object' ? s.total_count?.active || 0 : (s.total_count || 0)).toLocaleString()}
+                            </span>
+                            {typeof s.total_count === 'object' && (
+                              <span className="text-[10px] font-bold text-rose-500/80 line-through">
+                                {(s.total_count?.inactive || 0).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

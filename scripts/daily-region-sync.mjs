@@ -192,18 +192,19 @@ async function dailyRegionSync() {
   console.log(`\n📅 [Day ${dayOfYear}] Target Region: ${targetSido}`);
   console.log(`🚀 Starting Daily Rotation Sync for ${targetSido}...\n`);
 
-  // [SOP v11.3] 지표 추적용 객체 (7대 핵심 지표 표준 준수)
+  // [SOP v11.3] 지표 추적용 객체 (7대 핵심 지표 표준 준수 및 영업/폐업 세분화)
+  const baseStat = () => ({ existing: { active: 0, inactive: 0 }, fetched: { active: 0, inactive: 0 }, new: { active: 0, inactive: 0 }, updated: { active: 0, inactive: 0 }, total: { active: 0, inactive: 0 } });
   const stats = {
     sido: targetSido,
     day_of_year: dayOfYear,
     categories: {
-      SAFE: { label: 'RESTAURANT (안심식당)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'MAFRA API' },
-      GOOD: { label: 'RESTAURANT (모범음식점)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'LocalData CSV' },
-      BAEK: { label: 'RESTAURANT (백년가게)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'ODCloud API' },
-      LARGE_MART: { label: 'MART (대형마트)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'LocalData CSV' },
-      SSM_MART: { label: 'MART (준대규모 - SSM)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: '대규모 내 식별' },
-      OTHER_MART: { label: 'MART (기타식품판매업)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'LocalData CSV' },
-      SPOT: { label: 'SPOT (관광명소)', existing: 0, fetched: 0, new: 0, updated: 0, total: 0, note: 'TourAPI v2' }
+      SAFE: { label: 'RESTAURANT (안심식당)', ...baseStat(), note: 'MAFRA API' },
+      GOOD: { label: 'RESTAURANT (모범음식점)', ...baseStat(), note: 'LocalData CSV' },
+      BAEK: { label: 'RESTAURANT (백년가게)', ...baseStat(), note: 'ODCloud API' },
+      LARGE_MART: { label: 'MART (대형마트)', ...baseStat(), note: 'LocalData CSV' },
+      SSM_MART: { label: 'MART (준대규모 - SSM)', ...baseStat(), note: '대규모 내 식별' },
+      OTHER_MART: { label: 'MART (기타식품판매업)', ...baseStat(), note: 'LocalData CSV' },
+      SPOT: { label: 'SPOT (관광명소)', ...baseStat(), note: 'TourAPI v2' }
     }
   };
   // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 별칭 통합 집계)
@@ -240,8 +241,10 @@ async function dailyRegionSync() {
   const aliases = SIDO_ALIASES[targetSido] || [targetSido];
 
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
-    stats.categories[key].existing += (count || 0);
+    const { count: actCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    const { count: inactCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', false);
+    stats.categories[key].existing.active += (actCount || 0);
+    stats.categories[key].existing.inactive += (inactCount || 0);
   }
 
   const seenIds = new Set();
@@ -261,14 +264,16 @@ async function dailyRegionSync() {
   // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화)
   console.log(`\n📊 [Final Audit] ${targetSido} 지역별 최종 정합성 확인 중...`);
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
-    stats.categories[key].total = (count || 0);
+    const { count: actCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    const { count: inactCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', false);
+    stats.categories[key].total.active = (actCount || 0);
+    stats.categories[key].total.inactive = (inactCount || 0);
   }
 
   // 4. [Strike-Out] 미수산 데이터 처리 (백년가게 전용 고수 / 마트&식당은 API 기반 즉시 처리)
   console.log(`\n⚖️ [Strike-Out Check] 미확인 데이터 업데이트 중...`);
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const fetched = stats.categories[key].fetched;
+    const fetched = stats.categories[key].fetched.active + stats.categories[key].fetched.inactive;
     // API 수신 0건일 경우 Failsafe (네트워크 오류 방어)
     if (fetched === 0) {
       console.warn(`  ⚠️  [Failsafe] ${source} 수신 0건: 상태 업데이트 건너뜀.`);
@@ -309,14 +314,16 @@ async function dailyRegionSync() {
     if (toDeactivate.length > 0) {
       console.log(`  🚫 [${key}] 3회 미노출로 인한 비활성화: ${toDeactivate.length}건`);
       await supabase.from('master_places').update({ is_active: false, miss_count: 0 }).in('id', toDeactivate);
-      stats.categories[key].updated += toDeactivate.length; // 비활성화도 상태 변경이므로 업데이트에 합산
+      stats.categories[key].updated.inactive += toDeactivate.length; // 비활성화도 상태 변경이므로 업데이트에 합산
     }
   }
 
   // 5. 최종 데이터 건수 리프레시 및 로그 기록
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
-    stats.categories[key].total = (count || 0);
+    const { count: actCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    const { count: inactCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', false);
+    stats.categories[key].total.active = (actCount || 0);
+    stats.categories[key].total.inactive = (inactCount || 0);
   }
   
   await recordAutomationLog(stats);
@@ -337,8 +344,11 @@ function printAuditTable(stats) {
 
   Object.entries(stats.categories).forEach(([key, val]) => {
     const note = val.note || '';
-    const updNote = val.updated > 0 ? `${note} (상태변경 포함)` : note;
-    console.log(`| ${stats.sido} | ${val.label} | ${val.existing.toLocaleString()} | ${val.fetched.toLocaleString()} | ${val.new.toLocaleString()} | ${val.updated.toLocaleString()} | ${val.total.toLocaleString()} | ${updNote} |`);
+    const updatedTotal = val.updated.active + val.updated.inactive;
+    const updNote = updatedTotal > 0 ? `${note} (상태변경 포함)` : note;
+    
+    const fmt = (v) => `${v.active}(${v.inactive})`;
+    console.log(`| ${stats.sido} | ${val.label} | ${fmt(val.existing)} | ${fmt(val.fetched)} | ${fmt(val.new)} | ${fmt(val.updated)} | ${fmt(val.total)} | ${updNote} |`);
   });
 }
 
@@ -393,7 +403,7 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
             const id = generateId(finalSource, name, addr);
             if (seenIds.has(id)) return;
             seenIds.add(id);
-            targetStat.fetched++;
+            if (isOpen) targetStat.fetched.active++; else targetStat.fetched.inactive++;
             
             chunk.push({
               id, api_source: finalSource, category: categoryType,
@@ -475,7 +485,7 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
           const id = generateId('SAFE_RESTAURANT', i.RELAX_RSTRNT_NM, addr);
           if (seenIds.has(id)) continue;
           seenIds.add(id);
-          stat.fetched++;
+          if (isCertified) stat.fetched.active++; else stat.fetched.inactive++;
           
           chunk.push({
             id, api_source: 'SAFE_RESTAURANT', category: 'RESTAURANT',
@@ -518,7 +528,7 @@ async function syncBaeknyeon(sido, seenIds, stat) {
         const id = generateId('SMBA_BAEK', i['업체명'], addr);
         if (seenIds.has(id)) continue;
         seenIds.add(id);
-        stat.fetched++;
+        stat.fetched.active++;
 
         chunk.push({
           id, api_source: 'SMBA_BAEK', category: 'RESTAURANT',
@@ -575,7 +585,7 @@ async function syncTourSpots(sido, seenIds, stat) {
         const id = generateId('TOUR_SPOT', i.title, i.addr1);
         if (seenIds.has(id)) continue;
         seenIds.add(id);
-        stat.fetched++;
+        stat.fetched.active++;
 
         chunk.push({
           id, api_source: 'TOUR_SPOT', category: 'SPOT',
@@ -658,8 +668,10 @@ async function upsertAndTrack(items, stat) {
   const existingMap = new Map(existing?.map(e => [e.id, e]) || []);
   console.log(`  🔍 Matching: ${existingMap.size} found / ${items.length} total fetched in this slice.`);
   
-  let news = 0;
-  let trueUpdates = 0;
+  let newsActive = 0;
+  let newsInactive = 0;
+  let updatesActive = 0;
+  let updatesInactive = 0;
 
   for (const it of items) {
     if (existingMap.has(it.id)) {
@@ -677,17 +689,19 @@ async function upsertAndTrack(items, stat) {
       );
 
       if (isChanged) {
-        trueUpdates++;
+        if (it.is_active) updatesActive++; else updatesInactive++;
       }
     } else {
-      news++;
+      if (it.is_active) newsActive++; else newsInactive++;
       it.lat = 0.0;
       it.lng = 0.0;
     }
   }
 
-  stat.new += news;
-  stat.updated += trueUpdates;
+  stat.new.active += newsActive;
+  stat.new.inactive += newsInactive;
+  stat.updated.active += updatesActive;
+  stat.updated.inactive += updatesInactive;
 
   const { error } = await supabase.from('master_places').upsert(items, { onConflict: 'id' });
   if (error) throw new Error(`[CRITICAL] DB Upsert Error: ${error.message}`);
@@ -709,7 +723,7 @@ async function recordAutomationLog(stats) {
   const { error } = await supabase.from('automation_logs').insert({
     job_name: 'DAILY_REGION_SYNC',
     status: 'SUCCESS',
-    processed_count: apiStatusArr.reduce((acc, curr) => acc + curr.fetched_count, 0),
+    processed_count: apiStatusArr.reduce((acc, curr) => acc + (curr.fetched_count?.active || 0) + (curr.fetched_count?.inactive || 0), 0),
     message: `${stats.sido} 지역 순환 동기화 완료 (식당/마트/명소)`,
     api_status: apiStatusArr,
     created_at: new Date().toISOString()
