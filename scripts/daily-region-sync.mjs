@@ -411,15 +411,31 @@ async function updateSpotPopularity(targetSido, stats) {
     return;
   }
 
-  // 1. 해당 지역의 활성화된 TOUR_SPOT 조회
-  const { data: spots, error } = await supabase
-    .from('master_places')
-    .select('id, name, sigungu, api_source, category, sido, address, lat, lng, is_active, trust_score, raw_data') // Added lat, lng
-    .eq('api_source', 'TOUR_SPOT')
-    .eq('is_active', true)
-    .in('sido', aliases);
+  // 1. 해당 지역의 활성화된 TOUR_SPOT 조회 (페이징 처리)
+  let spots = [];
+  let page = 0;
+  const pageSize = 1000;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('master_places')
+      .select('id, name, sigungu, api_source, category, sido, address, lat, lng, is_active, trust_score, raw_data')
+      .eq('api_source', 'TOUR_SPOT')
+      .eq('is_active', true)
+      .in('sido', aliases)
+      .range(page * pageSize, (page + 1) * pageSize - 1);
 
-  if (error || !spots || spots.length === 0) {
+    if (error) {
+      console.error(`    ❌ [Popularity] Error fetching spots page ${page}:`, error.message);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    
+    spots = [...spots, ...data];
+    page++;
+  }
+
+  if (spots.length === 0) {
     console.warn(`  - [Popularity] No TOUR_SPOT found to update in ${targetSido}.`);
     return;
   }
