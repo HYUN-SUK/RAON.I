@@ -402,6 +402,7 @@ async function main() {
                 let s = 50;
                 if (cat === 'RESTAURANT') {
                     s = 10;
+                    if (item.api_source === 'LX_RESTAURANT') s += 50; // SOP v11.6: LX 공사맛집 가중치 부여
                     if (item.api_source === 'SMBA_BAEK') s += 50;
                     if (item.api_source === 'MOIS_GOOD_RESTAURANT') s += 30;
                     if (item.api_source === 'SAFE_RESTAURANT') s += 20;
