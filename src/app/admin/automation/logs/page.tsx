@@ -26,7 +26,9 @@ import {
   UtensilsCrossed,
   Hospital,
   Ticket,
-  Maximize2
+  Maximize2,
+  Share2,
+  TrendingUp
 } from 'lucide-react';
 
 interface ApiStatus {
@@ -67,6 +69,8 @@ const INITIAL_API_LIST: ApiStatus[] = [
   { name: 'KAKAO_LOCAL', label: '카카오로컬', status: 'PENDING', duration_ms: 0 },
   { name: 'KAKAO_MAP', label: '카카오맵', status: 'PENDING', duration_ms: 0 },
   { name: 'GOCAMPING', label: '고캠핑', status: 'PENDING', duration_ms: 0 },
+  { name: 'SPOT_TMAP_REL', label: '명소 연관(Tmap)', status: 'PENDING', duration_ms: 0 },
+  { name: 'SPOT_KT_CONCTR', label: '명소 집중률(KT)', status: 'PENDING', duration_ms: 0 },
   { name: 'GEMINI', label: 'AI(제미나이)', status: 'PENDING', duration_ms: 0 }
 ];
 
@@ -148,6 +152,8 @@ export default function AutomationLogsPage() {
     if (name.includes('GEMINI')) return <Bot className="w-5 h-5" />;
     if (name.includes('HOSPITAL')) return <Hospital className="w-5 h-5" />;
     if (name.includes('FESTIVAL')) return <Ticket className="w-5 h-5" />;
+    if (name.includes('TMAP')) return <Share2 className="w-5 h-5 text-indigo-500" />;
+    if (name.includes('KT_CONCTR')) return <TrendingUp className="w-5 h-5 text-rose-500" />;
     if (name.includes('KAKAO')) return <Wifi className="w-5 h-5" />;
     return <Wifi className="w-5 h-5" />;
   };
@@ -419,6 +425,8 @@ export default function AutomationLogsPage() {
                             {s.label?.includes('RESTAURANT') && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
                             {s.label?.includes('MART') && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
                             {s.name === 'SPOT' && <MapPin className="w-3.5 h-3.5 mr-2 text-blue-500" />}
+                            {s.name === 'SPOT_TMAP_REL' && <Share2 className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
+                            {s.name === 'SPOT_KT_CONCTR' && <TrendingUp className="w-3.5 h-3.5 mr-2 text-rose-500" />}
                             {s.name === 'SPOT_READCOUNT' && <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
                             <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
                           </div>

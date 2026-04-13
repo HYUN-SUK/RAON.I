@@ -255,6 +255,8 @@ async function dailyRegionSync() {
       SSM_MART: { label: 'MART (준대규모 - SSM)', ...baseStat(), note: '대규모 내 식별' },
       OTHER_MART: { label: 'MART (기타식품판매업)', ...baseStat(), note: 'LocalData CSV' },
       SPOT: { label: 'SPOT (관광명소)', ...baseStat(), note: 'TourAPI v2' },
+      SPOT_TMAP_REL: { label: '명소 연관(Tmap)', ...baseStat(), note: '인기도 지표 1' },
+      SPOT_KT_CONCTR: { label: '명소 집중률(KT)', ...baseStat(), note: '인기도 지표 2' },
       SPOT_READCOUNT: { label: 'SPOT (인기도 갱신)', ...baseStat(), note: '전국 순환 정밀갱신' }
     }
   };
@@ -467,6 +469,10 @@ async function updateSpotPopularity(targetSido, stats) {
       const ktList = Array.isArray(ktItems) ? ktItems : (ktItems ? [ktItems] : []);
 
       console.log(`      ✅ Received: Tmap=${tmapList.length}, KT=${ktList.length}`);
+      
+      // 집계 리포트 반영
+      stats.categories.SPOT_TMAP_REL.fetched.active += tmapList.length;
+      stats.categories.SPOT_KT_CONCTR.fetched.active += ktList.length;
 
       // (C) 매칭 및 DB 업데이트 (Memory Batch)
       const updates = [];

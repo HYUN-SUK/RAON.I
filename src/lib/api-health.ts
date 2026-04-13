@@ -35,6 +35,8 @@ export const getApiConfigs = () => {
     { name: 'KAKAO_LOCAL', label: '카카오로컬', url: 'https://dapi.kakao.com/v2/local/search/keyword.json?query=%ED%80%B4%ED%82%A4', headers: { 'Authorization': `KakaoAK ${process.env.KAKAO_REST_API_KEY}` } },
     { name: 'KAKAO_MAP', label: '카카오맵', url: 'https://dapi.kakao.com/v2/local/search/address.json?query=%EC%84%9C%EC%9A%B8', headers: { 'Authorization': `KakaoAK ${process.env.KAKAO_REST_API_KEY}` } },
     { name: 'GOCAMPING', label: '고캠핑', url: `http://apis.data.go.kr/B551011/GoCamping/basedList?serviceKey=${process.env.GOCAMPING_API_KEY}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json` },
+    { name: 'SPOT_TMAP_REL', label: '명소 연관(Tmap)', url: `http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=11&signguCd=11110&baseYm=202403&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=AppTest` },
+    { name: 'SPOT_KT_CONCTR', label: '명소 집중률(KT)', url: `http://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=11&signguCd=11110&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=AppTest` },
     { name: 'GEMINI', label: 'AI(제미나이)', url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`, method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }] }) }
   ];
 };
