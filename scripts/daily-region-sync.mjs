@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 import { v5 as uuidv5 } from 'uuid';
 import csvParser from 'csv-parser';
 import iconv from 'iconv-lite';
-import { ADMIN_SIDO_MAP, SIGUNGU_CODE_OVERRIDES, getAdminCodes } from './utils/admin-code-mapping.mjs';
+import { ADMIN_SIDO_MAP, SIGUNGU_CODE_MASTER, getAdminCodes } from './utils/admin-code-mapping.mjs';
 
 dotenv.config({ path: '.env.local' });
 
@@ -414,7 +414,7 @@ async function updateSpotPopularity(targetSido, stats) {
   // 1. 해당 지역의 활성화된 TOUR_SPOT 조회
   const { data: spots, error } = await supabase
     .from('master_places')
-    .select('id, name, sigungu, raw_data')
+    .select('id, name, sigungu, api_source, category, sido, address, lat, lng, is_active, trust_score, raw_data') // Added lat, lng
     .eq('api_source', 'TOUR_SPOT')
     .eq('is_active', true)
     .in('sido', aliases);
@@ -481,6 +481,15 @@ async function updateSpotPopularity(targetSido, stats) {
 
           updates.push({
             id: spot.id,
+            api_source: spot.api_source,
+            category: spot.category,
+            name: spot.name,
+            address: spot.address,
+            sido: spot.sido,
+            lat: spot.lat,
+            lng: spot.lng,
+            is_active: spot.is_active,
+            trust_score: spot.trust_score,
             raw_data: newData
           });
         }

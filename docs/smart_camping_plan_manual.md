@@ -375,7 +375,7 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 
 ### 7.1.2 17개 시도 API 표준화 매핑 (Region Standardization)
 
-지역별로 서로 다른 API 파라미터 기준을 다음과 같이 일치화하여 통합 동기화 엔진에 적용합니다.
+지역별로 서로 다른 API 파라미터 기준을 다음과 같이 일치화하여 통합 동동 동기화 엔진에 적용합니다.
 
 | 표준 시도명 (SIDO_ROTATION) | LocalData 시도 코드 (`orgCode`) | 농식품부(MAFRA) 필터링 | NMC(병원) STAGE1 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -399,9 +399,21 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 
 - **Storage**: `public.master_places` 테이블 (PostgreSQL/PostGIS)
 - **Soft-Delete (is_active)**: 지역 순환 시 API 응답에 더 이상 존재하지 않는 데이터는 자동으로 `is_active = false` 처리됩니다.
+- **Admin Code Mapping (v11.5)**: 전국 17개 시도 및 250여 개 시군구의 5자리 행정코드를 `scripts/utils/admin-code-mapping.mjs`에 내장하여 TMAP/KT API 연동의 정합성을 보장합니다.
 
-### 7.2 명소 인기도 점진적 정밀화 (Popularity Rotation)
-- 전국 1만여 개의 명소 중 매일 가장 오래된 **800건**의 `readcount`를 실시간 API로 갱신하여 인기도 지형도를 정교하게 유지합니다.
+### 7.2 명소 실질 인기도 엔진 v2 (Real-world Popularity Engine)
+단순한 온라인 조회수(`readcount`)의 한계를 극복하기 위해, 실제 이동 데이터와 통신사 데이터를 결합한 **하이브리드 인기도 지수(Integrated Popularity Index)** 체계를 운영합니다.
+
+1. **TMAP 이동성 데이터 (60%)**: 
+    - SK TMAP의 최근 24개월 이동 데이터를 동적으로 스캔하여 실제 차량 이동이 집중된 '핫플레이스'를 식별합니다. 
+    - `baseYm` (연월) 자동 탐색 로직을 통해 항상 최신 공개 데이터를 유지합니다.
+2. **KT 방문자 집중률 (40%)**: 
+    - 특정 지역(시군구) 내에서 해당 명소가 차지하는 방문객 점유율 및 집중도를 반영합니다.
+3. **통합 스코어링 (Integrated Score)**: 
+    - `(TMAP Rank Score × 0.6) + (KT Concentration × 0.4)` 공식을 통해 최종 인기도를 산출합니다.
+4. **저장 및 연동**:
+    - 산출된 메트릭은 개별 장소의 `raw_data` JSONB 필드(예: `popularity_v2: { tmap_pop, kt_conc, score }`)에 저장되어 `SPOT` 추천 가중치에 즉시 반영됩니다.
+5. **순환 갱신**: 매일 지역 로테이션 시 해당 지역의 명소들을 대상으로 인기도를 자동 갱신합니다.
 
 ### 7.3 실행 엔진 및 스케줄링
 - **실행 환경**: `scripts/daily-region-sync.mjs` (Vercel Cron / GitHub Actions)
