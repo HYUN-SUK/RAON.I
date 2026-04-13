@@ -227,8 +227,8 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 - **데이터 소스**: (1순위) 소진공 백년가게(SMBA_BAEK - ODCloud Swagger API UDDI 직접 탐색 탑재), (2순위) **행안부 모범음식점(LOCALDATA_RESTAURANT_GOOD - 지역별 CSV 다이렉트 다운로드 및 스트리밍 파싱)**, (3순위) 농림축산부 안심식당(SAFE_RESTAURANT - 실시간 API).
 - **인증별 가중치 합산 (v10.4 고도화)**: 
     - **병합(Deduplication)**: 상호명과 주소가 동일한 업소는 하나로 통합하여 인증 점수를 누적 합산합니다.
-    - **가중치 부여**: `Base 10 + 백년가게(50) + 모범음식점(30) + 안심식당(20)`
-    - **예시**: 백년가게이자 안심식당인 경우 **80점**(10+50+20)의 고득점 획득 (변별력 극대화).
+    - **가중치 부여**: `Base 10 + 백년가게(50) + LX공사맛집(50) + 모범음식점(30) + 안심식당(20)`
+    - **예시**: 백년가게이자 LX공사맛집인 경우 **110점**(10+50+50)의 고득점 획득 (변별력 극대화).
 - **Noise Filter (v10.4 강화)**: 백년가게/안심식당 데이터 중 비음식점 업종인 '안경원', '의상실', '장례식장', '보청기', '수선/공방' 등 12종 키워드 원천 제외.
 - **1차 선별 (v11.0 쿼터 확대)**: 위 합산 점수를 기준으로 정렬하되, 동일 점수 시 거리(Logistics) 점수를 합산하여 최종 **300개**를 선별하여 카카오 정밀 검증(Step C)에 진입시킵니다.
 - **점수(Score)**: 가중치 `[E:0.20, Q:0.30, CF:0.30, L:0.20]`. 품질(Quality)과 적합성(ContextFit) 균형. 비 날 '탕/찌개/국밥'의 `weather_match=45`, 맑은 날 '막국수/냉면'의 `weather_match=40`, 아이동반 시 '돈까스/어린이'의 `persona_match=40`.
@@ -266,6 +266,7 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 
 ### 4.8 Fact Verification UI & Card - `[UI/UX Enhancement]`
 - **Fact Chips**: 장소 카드 상단에 별점(⭐), 리뷰 수(💬), 공공 인증(🏆) 배지를 노출하여 데이터의 출처와 신뢰도를 사용자에게 시각적으로 즉시 증명합니다.
+    - **LX공사 연동**: `공사추천맛집`, `LX공사 추천맛집` 배지를 추가하여 공공 큐레이션 신뢰도를 강조합니다.
 - **Verified Badge**: 4축 점수 및 `verificationStatus`가 임계치 이상인 장소에는 'Verified' 마크를 부여하여 추천의 근거를 명확히 합니다.
 - **Role Display**: 여정 내 각 장소의 역할(가는 길, 현지 추천 등)을 카테고리 칩으로 표시하여 동선 이해를 돕습니다.
 
@@ -339,6 +340,7 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 | | 행정안전부_식품_식료품판매업(기타) | `LOCALDATA_MART_OTHER` | `MART` | **LocalData 지역별 CSV 다이렉트 스트리밍 (17일 순환)** |
 | **식당** | 행정안전부_모범음식점정보 | `LOCALDATA_RESTAURANT_GOOD` | `RESTAURANT` | **LocalData 지역별 CSV 다이렉트 스트리밍 (17일 순환)** |
 | | 소상공인_전국 백년가게 | `SMBA_BAEK` | `RESTAURANT` | ODCloud Swagger 자가탐색 `getLatestOdcloudPath` |
+| | 한국국토정보공사_공사맛집 | `LX_RESTAURANT` | `RESTAURANT` | **17일 지역 로테이션 (로컬 CSV 스트리밍)** |
 | | 농림축산부 안심식당 | `SAFE_RESTAURANT` | `RESTAURANT` | 농식품부 API (211.237.50.150) 유지 |
 | **명소** | 관광공사_명소정보 | `TOUR_SPOT` | `SPOT` | **TourAPI v2.0 (KorService2) 이관 완료** |
 
