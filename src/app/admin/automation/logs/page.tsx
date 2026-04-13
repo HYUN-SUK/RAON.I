@@ -99,7 +99,12 @@ export default function AutomationLogsPage() {
         setLogs(data);
         const latestHealthCheck = data.find(l => l.job_name === 'API_HEALTH_CHECK');
         if (latestHealthCheck?.api_status) {
-          setLocalApiStatus(latestHealthCheck.api_status);
+          // Merge logic: Use INITIAL_API_LIST as base, update with DB results if match
+          const mergedStatus = INITIAL_API_LIST.map(initial => {
+            const dbMatch = latestHealthCheck.api_status.find((s: any) => s.name === initial.name);
+            return dbMatch ? (dbMatch as ApiStatus) : initial;
+          });
+          setLocalApiStatus(mergedStatus);
         }
       }
     } catch (e) {
