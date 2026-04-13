@@ -97,7 +97,8 @@ function calcExistence(f: FactCard): number {
     if (f.category === 'RESTAURANT') {
         const sources = s.split(',').map(item => item.trim());
         if (sources.includes('SMBA_BAEK')) src += 50;
-        if (sources.includes('MOIS_GOOD_RESTAURANT')) src += 30;
+        if (sources.includes('LX_RESTAURANT')) src += 50;
+        if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD')) src += 30;
         if (sources.includes('SAFE_RESTAURANT')) src += 20;
     } else if (f.category === 'SPOT') {
         const name = f.name || "";
@@ -172,7 +173,8 @@ function calcQuality(f: FactCard): number {
     let cert = 10;
     const s = f.provenance.sourceName;
     if (s === 'SMBA_BAEK') cert = 45;
-    if (s === 'SAFE_RESTAURANT' || s === 'MOIS_GOOD_RESTAURANT') cert = 35;
+    if (s === 'LX_RESTAURANT') cert = 40;
+    if (s === 'SAFE_RESTAURANT' || s === 'MOIS_GOOD_RESTAURANT' || s === 'LOCALDATA_RESTAURANT_GOOD') cert = 35;
     if (s === 'NMC_HOSPITAL') cert = 30;
     if (s === 'OPINET') cert = 40;
     if (s === 'TOUR_SPOT' || s === 'TOUR_CAFE') cert = 25;

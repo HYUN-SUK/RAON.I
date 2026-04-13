@@ -45,7 +45,7 @@
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
 | **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | V9.5 하이엔드 파이프라인(나선탐색/병원스코어/쿼터제) 실장 완료. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
-| Phase 7 | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | Admin Ops, 17일 지역 순환 동기화(Daily Sync) 도입 완료. SOP v11.3(정밀 감사 지표 세분화) 적용 완료(04-12). |
+| Phase 7 | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | 전국 인기도 엔진 v2(12.7k 명소) 전국 보급 및 모니터링 통합 완료(04-13). |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
 
 ---
@@ -252,10 +252,14 @@
       - [x] Restore Rich Content (Recipe Steps, Ingredients). 정렬 및 배지 로직 추가.
     - [x] **Next Session: Post-Execution Audit (Completed: 3/30)**
         - [x] 3/29 새벽 자동화 실행 로그(`automation_logs`) 성공 확인 (RESTAURANT 286건 등)
-    - [ ] **Tomorrow: Precision Verification & Scoring (4/1)**
-        - [ ] 3/31 새벽(04:00/06:00) 주간배치 및 D-3 캐싱 스텝 1, 2 진행 과정 정밀 점검
-        - [ ] 1차 선별 로직(Step B) 정상 동작 여부 실측 및 튜닝
-        - [ ] 4축 점수화(기상, 페르소나, 동선, 편의) 가중 로직 설계 및 실장
+    - [x] **Nationwide Popularity Engine v2 (4/13)** ✅
+        - [x] 전국 12,753개 명소 대상 Tmap 연관 관광지/KT 집중률 데이터 수집 완료
+        - [x] 전국 데이터 기반 `trust_score` 정규화 및 `finalizePopularityv2` 고도화 완료
+        - [x] 대규모 지역(경기 등 1000건 초과) 수집 누락 방지 무제한 페이징(Range) 적용 완료
+        - [x] 관리자 모니터링 보드(API 소통 상세) Tmap/KT 실시간 점검 기능 통합 완료
+    - [ ] **Next: D-3 Caching Audit & Selection Logic (Upcoming)**
+        - [ ] 3일 전 캐싱 1부, 2부 진행 상태 및 1차 선별 로직 정밀 점검
+        - [ ] 인기도 v2 점수가 반영된 스마트 플랜 후보군의 실효성 및 안착 상태 확인
     *   [x] **Critical Fixes (2025-12-30)**: 
         *   Deletion Persistence (RPC Cascade + Self-Healing).
         *   Reverse Cascade (Comment Delete -> Mission Withdraw).

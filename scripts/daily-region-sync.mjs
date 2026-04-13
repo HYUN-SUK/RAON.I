@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import { v5 as uuidv5 } from 'uuid';
+import fs from 'fs';
 import csvParser from 'csv-parser';
 import iconv from 'iconv-lite';
 import { ADMIN_SIDO_MAP, SIGUNGU_CODE_MASTER, getAdminCodes } from './utils/admin-code-mapping.mjs';
@@ -21,6 +22,7 @@ const supabase = createClient(
 const MOIS_API_KEY = process.env.MOIS_API_KEY || process.env.PUBLIC_DATA_API_KEY;
 const SAFE_API_KEY = process.env.SAFE_RESTAURANT_API_KEY || process.env.SAFE_API_KEY || process.env.PUBLIC_DATA_API_KEY;
 const TOUR_API_KEY = process.env.TOUR_API_KEY || process.env.PUBLIC_DATA_API_KEY;
+const KAKAO_API_KEY = process.env.KAKAO_REST_API_KEY;
 
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
@@ -255,6 +257,7 @@ async function dailyRegionSync() {
       SSM_MART: { label: 'MART (준대규모 - SSM)', ...baseStat(), note: '대규모 내 식별' },
       OTHER_MART: { label: 'MART (기타식품판매업)', ...baseStat(), note: 'LocalData CSV' },
       SPOT: { label: 'SPOT (관광명소)', ...baseStat(), note: 'TourAPI v2' },
+      LX: { label: 'RESTAURANT (LX공사맛집)', ...baseStat(), note: '전국 직원 추천 기반' },
       SPOT_TMAP_REL: { label: '명소 연관(Tmap)', ...baseStat(), note: '인기도 지표 1' },
       SPOT_KT_CONCTR: { label: '명소 집중률(KT)', ...baseStat(), note: '인기도 지표 2' },
       SPOT_READCOUNT: { label: 'SPOT (인기도 갱신)', ...baseStat(), note: '전국 순환 정밀갱신' }
@@ -268,7 +271,8 @@ async function dailyRegionSync() {
     'LOCALDATA_MART_LARGE': 'LARGE_MART', 
     'LOCALDATA_MART_SSM': 'SSM_MART',
     'LOCALDATA_MART_OTHER': 'OTHER_MART',
-    'TOUR_SPOT': 'SPOT'
+    'TOUR_SPOT': 'SPOT',
+    'LX_RESTAURANT': 'LX'
   };
 
   const SIDO_ALIASES = {
@@ -303,9 +307,10 @@ async function dailyRegionSync() {
   const seenIds = new Set();
 
   // 2. 카테고리별 동기화 실행
-  // [2.1] 식당군 (모범/안심/백년)
+  // [2.1] 식당군 (모범/안심/백년/LX)
   await syncLocalDataCSV(targetSido, seenIds, stats, 'RESTAURANT');
   await syncSafeRestaurants(targetSido, seenIds, stats.categories.SAFE);
+  await syncLXRestaurants(targetSido, seenIds, stats.categories.LX);
   await syncBaeknyeon(targetSido, seenIds, stats.categories.BAEK);
 
   // [2.2] 마트군 (대규모/기타식품)
@@ -390,17 +395,88 @@ async function dailyRegionSync() {
 
   await recordAutomationLog(stats);
 
-  // 6. [SOP v11.3] 정밀 감사 결과 테이블 출력
+  // 8. [SOP v11.3] 정밀 감사 결과 테이블 출력
   printAuditTable(stats);
 
   console.log(`\n✨ [Daily Rotation vNext] ${targetSido} 전계통 동기화 완료!`);
 }
 
 /**
- * [명소 실질 인기도 엔진 v2 - Pass 1: 데이터 수집]
- * - 지역별(Sido) 순환 시점에 실행
- * - TMAP 연관 관광지 + KT 집중률 API 호출 및 raw_data 저장
+ * LX 공사맛집리스트 (로컬 CSV) - 17일 로테이션 통합 수집
  */
+async function syncLXRestaurants(sido, seenIds, stat) {
+  console.log(`🏠 [LX] ${sido} 공사맛집 동기화 중 (로컬 CSV)...`);
+  const csvPath = 'LX_RESTAURANT_LIST.csv';
+  if (!fs.existsSync(csvPath)) {
+    console.warn(`  ⚠️  LX CSV file not found at ${csvPath}. Skipping.`);
+    return;
+  }
+
+  const shortSido = SIDO_SHORT_MAP[sido] || sido;
+  const chunk = [];
+
+  try {
+    const records = [];
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(csvPath)
+        .pipe(iconv.decodeStream('euc-kr'))
+        .pipe(csvParser())
+        .on('data', (data) => records.push(data))
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    for (const i of records) {
+      const addr = i['주소'] || '';
+      // [상시방어] 도로명/상호 클렌징 후 지역 일치 여부 확인
+      if (!isValidRegion(addr, shortSido) && !isValidRegion(addr, sido)) continue;
+
+      const name = i['상호'] || '';
+      const id = generateId('LX_RESTAURANT', name, addr);
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+      stat.fetched.active++;
+
+      // 신규 등록을 위한 좌표 확보 (LX는 원본에 좌표가 없으므로 지오코딩 필수)
+      // daily-rotation에서는 속도를 위해 신규 ID인 경우만 지오코딩 권장되나, LX는 수량이 적으므로 매번 시도 후 DB 캐시 활용
+      const coords = await getKakaoCoordinates(addr);
+
+      chunk.push({
+        id, api_source: 'LX_RESTAURANT', category: 'RESTAURANT',
+        name, address: addr, trust_score: 50, is_active: true,
+        sido, lat: coords.lat, lng: coords.lng,
+        raw_data: i, updated_at: new Date().toISOString()
+      });
+    }
+
+    if (chunk.length > 0) await upsertAndTrack(chunk, stat);
+  } catch (e) {
+    console.error('  ❌ LX Sync Error:', e.message);
+    stat.note = '💥 ERROR (파일/파싱 실패)';
+  }
+}
+
+/**
+ * 카카오 로컬 API를 통한 좌표 변환 (Geocoding)
+ */
+async function getKakaoCoordinates(addr) {
+  if (!KAKAO_API_KEY) return { lat: 0, lng: 0 };
+  try {
+    const url = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(addr)}`;
+    const data = await fetchWithRetry(url, { headers: { 'Authorization': `KakaoAK ${KAKAO_API_KEY}` } }, 1);
+    if (data?.documents?.[0]) {
+      return {
+        lat: parseFloat(data.documents[0].y),
+        lng: parseFloat(data.documents[0].x)
+      };
+    }
+  } catch (e) {
+    console.warn(`    ⚠️ Kakao Geocoding Failed for: ${addr}`);
+  }
+  return { lat: 0, lng: 0 };
+}
+
+// 명소 엔진 유틸리티 (기존 로직 유지)
 async function updateSpotPopularity(targetSido, stats) {
   console.log(`\n🚀 [Popularity Engine v2] Updating popularity metrics for: ${targetSido}`);
   

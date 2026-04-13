@@ -60,6 +60,7 @@ const INITIAL_API_LIST: ApiStatus[] = [
   { name: 'REST_LOCALDATA', label: '식당(모범음식점)', status: 'PENDING', duration_ms: 0 },
   { name: 'REST_BAEK', label: '식당(백년가게)', status: 'PENDING', duration_ms: 0 },
   { name: 'REST_SAFE', label: '식당(안심식당)', status: 'PENDING', duration_ms: 0 },
+  { name: 'LX_RESTAURANT', label: '식당(LX공사맛집)', status: 'PENDING', duration_ms: 0 },
   { name: 'TOUR_SPOT', label: '관광명소(TourAPI)', status: 'PENDING', duration_ms: 0 },
   { name: 'FESTIVAL', label: '축제(TourAPI)', status: 'PENDING', duration_ms: 0 },
   { name: 'HOSPITAL', label: '병원(NMC)', status: 'PENDING', duration_ms: 0 },

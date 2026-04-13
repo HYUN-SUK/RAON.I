@@ -112,9 +112,13 @@ export function groupAndScorePlaces(places: RawPlace[]): MergedPlace[] {
     uniqueSources.forEach(s => {
       if (s === 'SMBA_BAEK') { badges.push('백년가게'); certs.push('중기부 백년가게'); }
       if (s === 'SAFE_RESTAURANT') { badges.push('안심식당'); certs.push('농식품부 안심식당'); }
-      if (s === 'MOIS_GOOD_RESTAURANT' || s === 'LOCALDATA_RESTAURANT') { 
+      if (s === 'MOIS_GOOD_RESTAURANT' || s === 'LOCALDATA_RESTAURANT' || s === 'LOCALDATA_RESTAURANT_GOOD') { 
         badges.push('모범음식점'); 
         certs.push('행안부 모범음식점'); 
+      }
+      if (s === 'LX_RESTAURANT') {
+        badges.push('공사추천맛집');
+        certs.push('LX공사 추천맛집');
       }
       if (s === 'NMC_HOSPITAL') { badges.push('응급의료기관'); certs.push('응급의료기관'); }
       if (s === 'OPINET') { badges.push('공인주유소'); }
