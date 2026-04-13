@@ -515,14 +515,33 @@ async function updateSpotPopularity(targetSido, stats) {
 async function finalizePopularityv2() {
   console.log(`\n💎 [Popularity Engine v2 - Pass 2] Calculating Global InScore & Normalizing...`);
   
-  // 1. 모든 TOUR_SPOT의 tmap_related 데이터 로드
-  const { data: allSpots, error } = await supabase
-    .from('master_places')
-    .select('id, name, raw_data, trust_score')
-    .eq('api_source', 'TOUR_SPOT')
-    .eq('is_active', true);
+  // 1. 모든 TOUR_SPOT의 tmap_related 데이터 로드 (페이칭 처리)
+  let allSpots = [];
+  let page = 0;
+  const pageSize = 1000;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('master_places')
+      .select('id, name, api_source, category, address, lat, lng, sido, is_active, raw_data, trust_score')
+      .eq('api_source', 'TOUR_SPOT')
+      .eq('is_active', true)
+      .range(page * pageSize, (page + 1) * pageSize - 1);
 
-  if (error || !allSpots) return;
+    if (error) {
+      console.error(`❌ Error fetching spots page ${page}:`, error.message);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    
+    allSpots = [...allSpots, ...data];
+    page++;
+  }
+
+  if (allSpots.length === 0) {
+    console.warn('⚠️ No TOUR_SPOT data found for normalization.');
+    return;
+  }
 
   const inScoreMap = new Map(); // id -> score
 
@@ -564,6 +583,14 @@ async function finalizePopularityv2() {
 
     updates.push({
       id: spot.id,
+      api_source: spot.api_source,
+      category: spot.category,
+      name: spot.name,
+      address: spot.address,
+      lat: spot.lat,
+      lng: spot.lng,
+      sido: spot.sido,
+      is_active: spot.is_active,
       trust_score: newTrustScore,
       raw_data: {
         ...spot.raw_data,
@@ -581,7 +608,8 @@ async function finalizePopularityv2() {
     const batchSize = 100;
     for (let i = 0; i < updates.length; i += batchSize) {
       const batch = updates.slice(i, i + batchSize);
-      await supabase.from('master_places').upsert(batch);
+      const { error: upError } = await supabase.from('master_places').upsert(batch);
+      if (upError) console.error(`❌ [Popularity v2] Error in batch ${i}:`, upError.message);
     }
     console.log(`✅ [Popularity v2] Final Trust Scores updated for ${updates.length} spots.`);
   }
