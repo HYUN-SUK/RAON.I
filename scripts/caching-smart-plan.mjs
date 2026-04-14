@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @file caching-smart-plan.mjs
- * @version 11.6.2 (Session Wrap-up)
+ * @version 11.6.3 (Recovery & Optimization)
  */
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
@@ -79,6 +79,8 @@ const generateFactId = (source, name, address) => {
     return uuidv5(`${cleanSource}|${cleanName}|${cleanAddr}`, MY_NAMESPACE);
 };
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function upsertAndTrack(items, metricObj) {
     if (items.length === 0) return;
     
@@ -128,7 +130,8 @@ async function upsertAndTrack(items, metricObj) {
     
     for (let i = 0; i < items.length; i += 500) {
         const chunk = items.slice(i, i + 500);
-        await supabase.from('master_places').upsert(chunk, { onConflict: 'id' });
+        const { error } = await supabase.from('master_places').upsert(chunk, { onConflict: 'id' });
+        if (error) console.error(`[ERROR] UPSERT Failed: ${error.message}`);
     }
 }
 
@@ -214,161 +217,156 @@ async function main() {
 
     metrics.clusters = clusters.length;
 
-    for (const cluster of clusters) {
+    // [v11.9.8 Optimization] Step A-0. Accumulators for Bulk Persistence
+    const aggregatedMaster = {
+        HOSPITAL: new Map(),
+        FESTIVAL: new Map(),
+        GAS_STATION: new Map()
+    };
+
+    // [v11.9.8 Optimization] Step A-0.1 Get initial counts from Master DB (Once per run)
+    const { count: hCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
+    const { count: gCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
+    const { count: fCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
+    metrics.dynamic_api.HOSPITAL.existing = hCount || 0;
+    metrics.dynamic_api.GAS_STATION.existing = gCount || 0;
+    metrics.dynamic_api.FESTIVAL.existing = fCount || 0;
+
+    for (let idx = 0; idx < clusters.length; idx++) {
+        const cluster = clusters[idx];
         const { lat, lng, address } = cluster;
         const doNm = extractSido(address) || '충청남도';
         const sigunguNm = extractSigungu(address) || '예산군';
 
-        // Get existing counts for Part 1 reporting
-        const { count: hCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
-        const { count: gCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
-        const { count: fCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
-        metrics.dynamic_api.HOSPITAL.existing = Math.max(metrics.dynamic_api.HOSPITAL.existing, hCount || 0);
-        metrics.dynamic_api.GAS_STATION.existing = Math.max(metrics.dynamic_api.GAS_STATION.existing, gCount || 0);
-        metrics.dynamic_api.FESTIVAL.existing = Math.max(metrics.dynamic_api.FESTIVAL.existing, fCount || 0);
+        console.log(`🎡 Processing Cluster ${idx + 1}/${clusters.length}: ${cluster.names[0]}...`);
 
-        // Step A: Real-time (Hosp, Fest, Gas) - [v11.8.5 Restore]
-        let rawMasterInserts = [];
+        // Step A: Real-time (Hosp, Fest, Gas) - [v11.8.5 Restore + v11.9.8 Parallel]
+        const fetchTasks = [];
 
         // A-1. Hospital (Local City Fetch)
-        try {
-            const hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${PUBLIC_API_KEY}&STAGE1=${encodeURIComponent(doNm)}&STAGE2=${encodeURIComponent(sigunguNm)}&pageNo=1&numOfRows=100&_type=json`);
-            const hData = await hRes.json();
-            if (hData.response?.body?.items?.item) {
-                const items = Array.isArray(hData.response.body.items.item) ? hData.response.body.items.item : [hData.response.body.items.item];
-                metrics.dynamic_api.HOSPITAL.received += items.length;
-                items.forEach((item) => {
-                    rawMasterInserts.push({
-                        id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
-                        api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
-                        name: item.dutyName, description: '응급실 가동 응급의료기관', address: item.dutyAddr,
-                        lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
-                        trust_score: item.dutyName?.includes('소아') ? 100 : 55, raw_data: item
+        fetchTasks.push((async () => {
+            try {
+                const hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${PUBLIC_API_KEY}&STAGE1=${encodeURIComponent(doNm)}&STAGE2=${encodeURIComponent(sigunguNm)}&pageNo=1&numOfRows=100&_type=json`);
+                const hData = await hRes.json();
+                if (hData.response?.body?.items?.item) {
+                    const items = Array.isArray(hData.response.body.items.item) ? hData.response.body.items.item : [hData.response.body.items.item];
+                    metrics.dynamic_api.HOSPITAL.received += items.length;
+                    items.forEach((item) => {
+                        const fact = {
+                            id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
+                            api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
+                            name: item.dutyName, description: '응급실 가동 응급의료기관', address: item.dutyAddr,
+                            lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
+                            trust_score: item.dutyName?.includes('소아') ? 100 : 55, raw_data: item
+                        };
+                        aggregatedMaster.HOSPITAL.set(fact.id, fact);
                     });
-                });
-            }
-        } catch (e) { console.error("Hospital Fetch Error:", e.message); }
+                }
+            } catch (e) { console.error("Hospital Fetch Error:", e.message); }
+        })());
 
         // A-1-2. Kakao Hospital (HP8)
-        try {
-            const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${lng}&y=${lat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
-            const kData = await kRes.json();
-            if (kData.documents) {
-                metrics.dynamic_api.HOSPITAL.received += kData.documents.length;
-                kData.documents.forEach((item) => {
-                    rawMasterInserts.push({
-                        id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
-                        api_source: 'KAKAO_HP8', category: 'HOSPITAL',
-                        name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name || '주소정보없음',
-                        lat: parseFloat(item.y), lng: parseFloat(item.x),
-                        trust_score: item.place_name?.match(/종합병원|의료원|대학병원/) ? 50 : 20, raw_data: item
+        fetchTasks.push((async () => {
+            try {
+                const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${lng}&y=${lat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                const kData = await kRes.json();
+                if (kData.documents) {
+                    metrics.dynamic_api.HOSPITAL.received += kData.documents.length;
+                    kData.documents.forEach((item) => {
+                        const fact = {
+                            id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
+                            api_source: 'KAKAO_HP8', category: 'HOSPITAL',
+                            name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name || '주소정보없음',
+                            lat: parseFloat(item.y), lng: parseFloat(item.x),
+                            trust_score: item.place_name?.match(/종합병원|의료원|대학병원/) ? 50 : 20, raw_data: item
+                        };
+                        aggregatedMaster.HOSPITAL.set(fact.id, fact);
                     });
-                });
-            }
-        } catch (e) { console.error("Kakao HP8 Error:", e.message); }
+                }
+            } catch (e) { console.error("Kakao HP8 Error:", e.message); }
+        })());
 
         // A-2. Festival
-        try {
-            const fRes = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${PUBLIC_API_KEY}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${lng}&mapY=${lat}&radius=20000`);
-            const fData = await fRes.json();
-            if (fData.response?.body?.items?.item) {
-                const items = Array.isArray(fData.response.body.items.item) ? fData.response.body.items.item : [fData.response.body.items.item];
-                metrics.dynamic_api.FESTIVAL.received += items.length;
-                items.forEach((item) => {
-                    rawMasterInserts.push({
-                        id: generateFactId('TOUR_FSTVL', item.title, item.addr1),
-                        api_source: 'TOUR_FSTVL', category: 'FESTIVAL',
-                        name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1 || '주소정보없음',
-                        lat: parseFloat(item.mapy), lng: parseFloat(item.mapx),
-                        trust_score: 45, raw_data: item
+        fetchTasks.push((async () => {
+            try {
+                const fRes = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${PUBLIC_API_KEY}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${lng}&mapY=${lat}&radius=20000`);
+                const fData = await fRes.json();
+                if (fData.response?.body?.items?.item) {
+                    const items = Array.isArray(fData.response.body.items.item) ? fData.response.body.items.item : [fData.response.body.items.item];
+                    metrics.dynamic_api.FESTIVAL.received += items.length;
+                    items.forEach((item) => {
+                        const fact = {
+                            id: generateFactId('TOUR_FSTVL', item.title, item.addr1),
+                            api_source: 'TOUR_FSTVL', category: 'FESTIVAL',
+                            name: item.title, description: '주변 로컬 축제/이벤트', address: item.addr1 || '주소정보없음',
+                            lat: parseFloat(item.mapy), lng: parseFloat(item.mapx),
+                            trust_score: 45, raw_data: item
+                        };
+                        aggregatedMaster.FESTIVAL.set(fact.id, fact);
                     });
-                });
-            }
-        } catch (e) { console.error("Festival Fetch Error:", e.message); }
+                }
+            } catch (e) { console.error("Festival Fetch Error:", e.message); }
+        })());
 
         // A-3. Gas Station (Spiral Search v11.8.5)
-        try {
-            if (OPINET_API_KEY) {
-                proj4.defs("TM128", "+proj=tmerc +lat_0=38 +lon_0=128 +k=0.9999 +x_0=400000 +y_0=600000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43");
-                const [wtmX, wtmY] = proj4("EPSG:4326", "TM128", [lng, lat]);
-                const seenGas = new Set();
-                const spiralShifts = [
-                    [{x:0, y:0}],
-                    [{x:10000,y:0}, {x:-10000,y:0}, {x:0,y:10000}, {x:0,y:-10000}],
-                    [{x:25000,y:0}, {x:-25000,y:0}, {x:0,y:25000}, {x:0,y:-25000}]
-                ];
-                const currentMonth = new Date().getMonth() + 1;
-                const isWinter = [11, 12, 1, 2, 3].includes(currentMonth);
-                
-                for (const group of spiralShifts) {
-                    if (seenGas.size >= 15) break;
-                    const results = await Promise.all(group.map(s => {
-                        const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`;
-                        return fetch(url).then(r => r.json()).catch(() => null);
-                    }));
+        fetchTasks.push((async () => {
+            try {
+                if (OPINET_API_KEY) {
+                    proj4.defs("TM128", "+proj=tmerc +lat_0=38 +lon_0=128 +k=0.9999 +x_0=400000 +y_0=600000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43");
+                    const [wtmX, wtmY] = proj4("EPSG:4326", "TM128", [lng, lat]);
+                    const seenGas = new Set();
+                    const spiralShifts = [
+                        [{x:0, y:0}],
+                        [{x:10000,y:0}, {x:-10000,y:0}, {x:0,y:10000}, {x:0,y:-10000}],
+                        [{x:25000,y:0}, {x:-25000,y:0}, {x:0,y:25000}, {x:0,y:-25000}]
+                    ];
                     
-                    for (const data of results) {
-                        if (data?.RESULT?.OIL) {
-                            const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
-                            metrics.dynamic_api.GAS_STATION.received += items.length;
-                            for (const item of items) {
-                                const key = (item.OS_NM || 'NONE') + (item.VAN_ADR || 'ADDR');
-                                const price = parseFloat(item.PRICE || item.K_PRICE || "0");
-                                if (!seenGas.has(key) && price > 0) {
-                                    seenGas.add(key);
-                                    const [gLon, gLat] = proj4("TM128", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
-                                    let address = item.VAN_ADR || item.NEW_ADR || '';
-                                    if (!address && KAKAO_KEY) {
-                                        try {
-                                            const rgr = await fetch(`https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${gLon}&y=${gLat}`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
-                                            if (rgr.documents?.[0]) {
-                                                const d = rgr.documents[0];
-                                                address = d.road_address?.address_name || d.address?.address_name || '';
-                                            }
-                                        } catch {}
+                    for (const group of spiralShifts) {
+                        if (seenGas.size >= 15) break;
+                        const results = await Promise.all(group.map(s => {
+                            const url = `http://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_API_KEY}&x=${Math.round(wtmX+s.x)}&y=${Math.round(wtmY+s.y)}&radius=5000&sort=1&prodcd=C004&out=json`;
+                            return fetch(url).then(r => r.json()).catch(() => null);
+                        }));
+                        
+                        for (const data of results) {
+                            if (data?.RESULT?.OIL) {
+                                const items = Array.isArray(data.RESULT.OIL) ? data.RESULT.OIL : [data.RESULT.OIL];
+                                metrics.dynamic_api.GAS_STATION.received += items.length;
+                                for (const item of items) {
+                                    const key = (item.OS_NM || 'NONE') + (item.VAN_ADR || 'ADDR');
+                                    const price = parseFloat(item.PRICE || item.K_PRICE || "0");
+                                    if (!seenGas.has(key) && price > 0) {
+                                        seenGas.add(key);
+                                        const [gLon, gLat] = proj4("TM128", "EPSG:4326", [parseFloat(item.GIS_X_COOR), parseFloat(item.GIS_Y_COOR)]);
+                                        let gasAddress = item.VAN_ADR || item.NEW_ADR || '';
+                                        if (!gasAddress && KAKAO_KEY) {
+                                            try {
+                                                const rgr = await fetch(`https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${gLon}&y=${gLat}`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
+                                                if (rgr.documents?.[0]) {
+                                                    const d = rgr.documents[0];
+                                                    gasAddress = d.road_address?.address_name || d.address?.address_name || '';
+                                                }
+                                            } catch {}
+                                        }
+                                        const fact = {
+                                            id: generateFactId('OPINET_GAS', item.OS_NM, gasAddress || '주소없음'),
+                                            api_source: 'OPINET_GAS', category: 'GAS_STATION',
+                                            name: item.OS_NM, description: `등유: ${price}원`, address: gasAddress || '주소정보없음',
+                                            lat: gLat, lng: gLon,
+                                            trust_score: 55, raw_data: item
+                                        };
+                                        aggregatedMaster.GAS_STATION.set(fact.id, fact);
                                     }
-                                    rawMasterInserts.push({
-                                        id: generateFactId('OPINET_GAS', item.OS_NM, address || '주소없음'),
-                                        api_source: 'OPINET_GAS', category: 'GAS_STATION',
-                                        name: item.OS_NM, description: `등유: ${price}원`, address: address || '주소정보없음',
-                                        lat: gLat, lng: gLon,
-                                        trust_score: 55, raw_data: item
-                                    });
                                 }
                             }
                         }
                     }
                 }
-            }
-        } catch (e) { console.error("Gas Fetch Error:", e.message); }
+            } catch (e) { console.error("Gas Fetch Error:", e.message); }
+        })());
 
-        // A-4. Persist to Master DB (SSOT Organic Growth)
-        if (rawMasterInserts.length > 0) {
-            console.log(`  -> Persisting ${rawMasterInserts.length} dynamic items to master_places...`);
-            const now = new Date().toISOString();
-            // [v11.9.5] DB 제약조건(not-null) 및 공간 데이터 최종 무결성 필터링
-            const sanitized = rawMasterInserts
-                .filter(item => item.id && item.name && item.address && item.lat && item.lng) // 필수 필드 검증
-                .map(item => ({
-                    ...item,
-                    address: item.address.trim(),
-                    sido: extractSido(item.address), // [상시방어] 주소 기반 시도 자동 추출 가드
-                    location: { type: 'Point', coordinates: [item.lng, item.lat] },
-                    created_at: now,
-                    updated_at: now
-                }));
+        await Promise.all(fetchTasks);
 
-            if (sanitized.length > 0) {
-                const hops = sanitized.filter(s => s.category === 'HOSPITAL');
-                const gass = sanitized.filter(s => s.category === 'GAS_STATION');
-                const fests = sanitized.filter(s => s.category === 'FESTIVAL');
-                
-                await upsertAndTrack(hops, metrics.dynamic_api.HOSPITAL);
-                await upsertAndTrack(gass, metrics.dynamic_api.GAS_STATION);
-                await upsertAndTrack(fests, metrics.dynamic_api.FESTIVAL);
-            }
-        }
-        
         const categories = [
             { cat: 'RESTAURANT', limit: 300, rawLimit: 1000 },
             { cat: 'SPOT', limit: 300, rawLimit: 500 },
@@ -526,16 +524,41 @@ async function main() {
                 }
             }));
         }
+
+        // [v11.9.8 Optimization] 6.3 Throttling - 3s Delay between clusters
+        if (idx < clusters.length - 1) {
+            console.log(`  🕒 Throttling: Resting 3s before next cluster...`);
+            await sleep(3000);
+        }
     }
+
+    // [v11.9.8 Optimization] Step A-4. Final Bulk Persistence to Master DB
+    const nowBulk = new Date().toISOString();
+    const sanitizeAndMap = (map) => Array.from(map.values())
+        .filter(item => item.id && item.name && item.address && item.lat && item.lng)
+        .map(item => ({
+            ...item,
+            address: item.address.trim(),
+            sido: extractSido(item.address),
+            location: { type: 'Point', coordinates: [item.lng, item.lat] },
+            created_at: nowBulk,
+            updated_at: nowBulk
+        }));
+
+    console.log(`🚀 Step A-4. Starting Bulk Upsert to master_places...`);
+    await upsertAndTrack(sanitizeAndMap(aggregatedMaster.HOSPITAL), metrics.dynamic_api.HOSPITAL);
+    await upsertAndTrack(sanitizeAndMap(aggregatedMaster.GAS_STATION), metrics.dynamic_api.GAS_STATION);
+    await upsertAndTrack(sanitizeAndMap(aggregatedMaster.FESTIVAL), metrics.dynamic_api.FESTIVAL);
+
     const final = Array.from(totalFactMap.values());
     final.forEach(f => {
         if (metrics.quota_flow[f.category]) metrics.quota_flow[f.category].final++;
     });
 
     for (let i = 0; i < final.length; i += 500) await supabase.from('smart_plan_facts').upsert(final.slice(i, i + 500), { onConflict: 'id' });
-    console.log(`🏁 Done: ${final.length} facts.`);
+    console.log(`🏁 Done: ${final.length} facts cached in smart_plan_facts.`);
 
-    // Update dynamic API total counts
+    // Update dynamic API final total counts (Post-Upsert)
     const { count: finalH } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
     const { count: finalG } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
     const { count: finalF } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
