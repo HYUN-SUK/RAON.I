@@ -210,9 +210,12 @@ async function main() {
         }
         if (!lat || !lng) { console.log(`  ⚠️ Skipping ${campground_name}: No location root found.`); continue; }
 
-        let cluster = clusters.find(c => Math.sqrt(Math.pow(c.lat-lat,2)+Math.pow(c.lng-lng,2)) <= 0.15);
-        if (cluster) { if(!cluster.names.includes(campground_name)) cluster.names.push(campground_name); }
-        else clusters.push({ lat, lng, names: [campground_name], address: address });
+        let cluster = clusters.find(c => Math.sqrt(Math.pow(c.points[0].lat-lat,2)+Math.pow(c.points[0].lng-lng,2)) <= 0.15);
+        if (cluster) { 
+            if(!cluster.names.includes(campground_name)) cluster.names.push(campground_name); 
+            cluster.points.push({ lat, lng });
+        }
+        else clusters.push({ points: [{ lat, lng }], names: [campground_name], address: address });
     }
 
     metrics.clusters = clusters.length;
@@ -234,7 +237,7 @@ async function main() {
 
     for (let idx = 0; idx < clusters.length; idx++) {
         const cluster = clusters[idx];
-        const { lat, lng, address } = cluster;
+        const { lats, lngs, address } = cluster;
         const doNm = extractSido(address) || '충청남도';
         const sigunguNm = extractSigungu(address) || '예산군';
 
@@ -268,7 +271,7 @@ async function main() {
         // A-1-2. Kakao Hospital (HP8)
         fetchTasks.push((async () => {
             try {
-                const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${lng}&y=${lat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${lngs[0]}&y=${lats[0]}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
                 const kData = await kRes.json();
                 if (kData.documents) {
                     metrics.dynamic_api.HOSPITAL.received += kData.documents.length;
@@ -289,7 +292,7 @@ async function main() {
         // A-2. Festival
         fetchTasks.push((async () => {
             try {
-                const fRes = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${PUBLIC_API_KEY}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${lng}&mapY=${lat}&radius=20000`);
+                const fRes = await fetch(`http://apis.data.go.kr/B551011/KorService2/locationBasedList2?serviceKey=${PUBLIC_API_KEY}&numOfRows=50&pageNo=1&MobileOS=ETC&MobileApp=AppTest&_type=json&contentTypeId=15&mapX=${lngs[0]}&mapY=${lats[0]}&radius=20000`);
                 const fData = await fRes.json();
                 if (fData.response?.body?.items?.item) {
                     const items = Array.isArray(fData.response.body.items.item) ? fData.response.body.items.item : [fData.response.body.items.item];
@@ -313,7 +316,7 @@ async function main() {
             try {
                 if (OPINET_API_KEY) {
                     proj4.defs("TM128", "+proj=tmerc +lat_0=38 +lon_0=128 +k=0.9999 +x_0=400000 +y_0=600000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43");
-                    const [wtmX, wtmY] = proj4("EPSG:4326", "TM128", [lng, lat]);
+                    const [wtmX, wtmY] = proj4("EPSG:4326", "TM128", [lngs[0], lats[0]]);
                     const seenGas = new Set();
                     const spiralShifts = [
                         [{x:0, y:0}],
@@ -376,120 +379,122 @@ async function main() {
             { cat: 'FESTIVAL', limit: 15, rawLimit: 100 }
         ];
 
+        // [v11.9.12 Optimization] Multi-Point Extraction to avoid Distance Bias
+        // 클러스터 내 캠핑장들 중 서로 5km 이상 떨어진 대표 지점들만 선별
+        const repPoints = [];
+        cluster.points.forEach(p => {
+            if (!repPoints.some(rp => {
+                const dist = Math.sqrt(Math.pow(rp.lat - p.lat, 2) + Math.pow(rp.lng - p.lng, 2)) * 111; // Approx km
+                return dist < 5;
+            })) {
+                repPoints.push(p);
+            }
+        });
+        console.log(`  🔍 Cluster Cluster Center Selection: ${repPoints.length} representative points from ${cluster.points.length} campgrounds.`);
+
         let clusterCands = [];
         let rawCandidatesForAudit = []; // spot_final_audit.md 출력용
 
         for (const { cat, limit, rawLimit } of categories) {
-            // [v11.9.9 Fix] RPC 호출 + 에러 핸들링 + 자동 재시도 (최대 3회)
-            let data = null;
-            let lastError = null;
-            for (let attempt = 1; attempt <= 3; attempt++) {
-                const result = await supabase.rpc('get_master_places_in_radius_v2', { 
-                    target_lat: lat, target_lng: lng, 
-                    radius_meters: 30000, p_category: cat, 
-                    limit_count: rawLimit 
-                });
-                if (result.error) {
-                    lastError = result.error;
-                    console.warn(`  ⚠️ [RPC Retry ${attempt}/3] ${cat} 조회 실패: ${result.error.message} (code: ${result.error.code})`);
-                    if (attempt < 3) await sleep(Math.pow(2, attempt) * 1000); // 2s, 4s backoff
-                    continue;
-                }
-                data = result.data;
-                lastError = null;
-                break;
-            }
-            if (lastError) {
-                console.error(`  ❌ [RPC FAILED] ${cat} 최종 실패 (3회 재시도 소진): ${lastError.message}`);
-                metrics.quota_flow[cat].error = lastError.message;
-            }
-            metrics.quota_flow[cat].raw += (data?.length || 0);
-            if (!data?.length) continue;
-
-            const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용/;
             const map = new Map();
-            for (const item of data) {
-                const name = (item.name || '').trim();
-                const induty = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
-                
-                // 12종 블랙리스트 및 정밀 필터링
-                if (noise.test(name) || noise.test(induty)) continue;
-
-                let s = 50;
-                if (cat === 'RESTAURANT') {
-                    s = 10;
-                    if (item.api_source === 'LX_RESTAURANT') s += 50; // SOP v11.6: LX 공사맛집 가중치 부여
-                    if (item.api_source === 'SMBA_BAEK') s += 50;
-                    if (item.api_source === 'MOIS_GOOD_RESTAURANT') s += 30;
-                    if (item.api_source === 'SAFE_RESTAURANT') s += 20;
-                    if (/커피|카페|베이커리/.test(name)) s -= 5;
-                } else if (cat === 'MART') {
-                    if (/하나로|NH/.test(name)) s = 90;
-                    else if (/이마트|롯데마트|홈플러스|트레이더스|노브랜드/.test(name)) s = isSunday ? 65 : 80;
-                    else s = 65;
-                    // 노이즈 필터 (패션/가전/가구)
-                    if (/아울렛|패션|의류|디지털|하이마트|전자랜드|가구/.test(name)) continue;
-                } else if (cat === 'SPOT') {
-                    s = 50;
-                    if (/국립|수목원|휴양림|관광지|출렁다리|모노레일|케이블카|해수욕장|테마파크|사찰|읍성/.test(name)) s += 45;
-                    else if (/박물관|미술관|천문대|역사|향교|전통가옥/.test(name)) s += 30;
-                    const rc = parseInt(item.raw_data?.readcount || 0, 10);
-                    s += (rc >= 10000 ? 40 : rc >= 5000 ? 30 : rc >= 1000 ? 20 : rc >= 500 ? 10 : 0);
-                    // 미디어 가점 (이미지 + 상세설명)
-                    if (item.raw_data?.firstimage) s += 20;
-                    if (item.raw_data?.overview?.length > 100) s += 20;
-                } else if (cat === 'HOSPITAL') {
-                    if (item.api_source === 'NMC_HOSPITAL' || /종합병원|의료원/.test(name)) s = 100;
-                    else if (/내과|소아|외과|가정/.test(name) || /내과|소아|외과|가정/.test(induty)) s = 70;
-                    else if (/보건소|보건지소/.test(name)) s = 50; // Tier 3
-                    
-                    if (/응급|야간|24시/.test(name)) s += 40;
-                    // 정밀 제외 (안과, 치과, 한의원, 산후조리 등)
-                    if (/성형|피부|비만|치과|한의원|안과|산후|요양/.test(name)) continue;
-                } else if (cat === 'FESTIVAL') {
-                    s = 45;
-                    // 기간 매칭 체크 (v10.7)
-                    const start = item.raw_data?.eventstartdate;
-                    const end = item.raw_data?.eventenddate;
-                    if (start && end) {
-                        const targetDateNum = parseInt(targetStr.replace(/-/g, ''));
-                        if (targetDateNum < parseInt(start) - 3 || targetDateNum > parseInt(end) + 2) continue;
-                    }
-                } else if (cat === 'GAS_STATION') {
-                    s = 50;
-                    // 최저가 가점 (v11.9): 등유 가격이 낮을수록 고득점 부여
-                    const priceMatch = item.description?.match(/(\d+)원/);
-                    if (priceMatch) {
-                        const price = parseInt(priceMatch[1]);
-                        // 기준가(2500원) 대비 10원당 1점 가산 (예: 1500원 -> +100점)
-                        s += Math.max(0, Math.floor((2500 - price) / 10));
-                    }
+            
+            // 각 대표 지점별로 RPC 호출하여 광범위하게 수집 (데이터 편향 완벽 해소)
+            for (const pt of repPoints) {
+                let data = null;
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    const result = await supabase.rpc('get_master_places_in_radius_v2', { 
+                        target_lat: pt.lat, target_lng: pt.lng, 
+                        radius_meters: 25000, p_category: cat, 
+                        limit_count: 3000 // [v11.9.13] 원격 품질 데이터 확보를 위해 limit 대폭 상향
+                    });
+                    if (!result.error) { data = result.data; break; }
+                    await sleep(1000);
                 }
+                
+                if (!data) continue;
+                metrics.quota_flow[cat].raw += data.length;
 
-                const k = `${name}|${item.address}`;
-                const dist = item.distance || 99999;
-                if (map.has(k)) { 
-                    if(cat==='RESTAURANT') map.get(k).trust_score+=(s-10); 
-                    else if(s>map.get(k).trust_score) map.get(k).trust_score=s; 
-                } else {
-                    map.set(k, { ...item, trust_score: s, distance: dist });
+                const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용/;
+                for (const item of data) {
+                    const name = (item.name || '').trim();
+                    const induty = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
+                    if (noise.test(name) || noise.test(induty)) continue;
+
+                    let s = 10; // Base score
+                    if (cat === 'RESTAURANT') {
+                        if (item.api_source === 'LX_RESTAURANT') s += 50;
+                        if (item.api_source === 'SMBA_BAEK') s += 50;
+                        if (item.api_source === 'MOIS_GOOD_RESTAURANT') s += 30;
+                        if (item.api_source === 'SAFE_RESTAURANT') s += 20;
+                        
+                        // [v11.9.13] 인증 없는 식당(10점)은 리스트에서 즉시 제거
+                        if (s <= 10) continue; 
+                    } else if (cat === 'MART') {
+                        if (/하나로|NH/.test(name)) s = 90;
+                        else if (/이마트|롯데마트|홈플러스|트레이더스|노브랜드/.test(name)) s = isSunday ? 65 : 80;
+                        else s = 65;
+                        if (/아울렛|패션|의류|디지털|하이마트|전자랜드|가구/.test(name)) continue;
+                    } else if (cat === 'SPOT') {
+                        const popV2 = parseFloat(item.raw_data?.popularity_v2?.base_pop || 0);
+                        s = popV2 > 0 ? Math.round(popV2) : 10; 
+                    } else if (cat === 'HOSPITAL') {
+                        if (item.api_source === 'NMC_HOSPITAL' || /종합병원|의료원/.test(name)) s = 100;
+                        else if (/내과|소아|외과|가정/.test(name) || /내과|소아|외과|가정/.test(induty)) s = 70;
+                        else if (/보건소|보건지소/.test(name)) s = 50;
+                        if (/응급|야간|24시/.test(name)) s += 40;
+                        if (/성형|피부|비만|치과|한의원|안과|산후|요양/.test(name)) continue;
+                    } else if (cat === 'FESTIVAL') {
+                        s = 45;
+                        const start = item.raw_data?.eventstartdate;
+                        const end = item.raw_data?.eventenddate;
+                        if (start && end) {
+                            const targetDateNum = parseInt(targetStr.replace(/-/g, ''));
+                            if (targetDateNum < parseInt(start) - 3 || targetDateNum > parseInt(end) + 2) continue;
+                        }
+                    } else if (cat === 'GAS_STATION') {
+                        s = 50;
+                        const priceMatch = item.description?.match(/(\d+)원/);
+                        if (priceMatch) s += Math.max(0, Math.floor((2500 - parseInt(priceMatch[1])) / 10));
+                    }
+
+                    const k = `${name}|${item.address}`;
+                    const dist = item.distance_meters || 99999;
+                    if (map.has(k)) { 
+                        // [User Request] 동일 장소(상호+주소) 중복 시 점수 누적 합산
+                        if(cat==='RESTAURANT') map.get(k).trust_score += (s - 10); 
+                        else if(s > map.get(k).trust_score) map.get(k).trust_score = s; 
+                        // 거리는 해당 캠핑장에서 가장 가까운 거리 유지
+                        if(dist < map.get(k).distance) map.get(k).distance = dist;
+                    } else {
+                        map.set(k, { ...item, trust_score: s, distance: dist });
+                    }
                 }
             }
 
-            // 1차 선별 완료본 정렬 및 슬라이싱
-            const sorted = Array.from(map.values()).sort((a,b) => {
-                if (b.trust_score !== a.trust_score) return b.trust_score - a.trust_score;
-                return (a.distance || 0) - (b.distance || 0); // 2순위 거리
+            const penaltyMap = { RESTAURANT: 1.0, SPOT: 0.5, MART: 2.0, HOSPITAL: 5.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
+            
+            // [v11.9.13] Stage 1: Raw Aggregated Result (Sort by Quality only for logging)
+            const stage1 = Array.from(map.values()).sort((a,b) => b.trust_score - a.trust_score);
+            rawCandidatesForAudit.push(...stage1.map(x => ({ ...x, stage: 1 })));
+
+            // [v11.9.13] Stage 2: Hybrid Priority (Quality - Distance Penalty)
+            const stage2 = Array.from(map.values()).map(x => {
+                const distKm = x.distance / 1000;
+                const penalty = distKm * (penaltyMap[cat] || 1.0);
+                return { ...x, final_score: parseFloat((x.trust_score - penalty).toFixed(2)) };
+            }).sort((a,b) => {
+                if (b.final_score !== a.final_score) return b.final_score - a.final_score;
+                return a.distance - b.distance;
             });
 
             // 마트 부족 시 편의점 폴백 (Step B-Fallback)
-            if (cat === 'MART' && sorted.length < 3) {
-                console.log(`  -> Mart low (${sorted.length}), triggering CS2 fallback...`);
+            if (cat === 'MART' && stage2.length < 3) {
+                console.log(`  -> Mart low (${stage2.length}), triggering CS2 fallback...`);
                 try {
-                    const fallbackRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${lng}&y=${lat}&radius=10000&size=5`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
+                    const fallbackRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${lngs[0]}&y=${lats[0]}&radius=10000&size=5`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
                     if (fallbackRes.documents) {
                         fallbackRes.documents.forEach(d => {
-                            sorted.push({
+                            stage2.push({
                                 id: generateFactId('KAKAO_CS2', d.place_name, d.address_name),
                                 api_source: 'KAKAO_CS2', category: 'MART',
                                 name: d.place_name, address: d.address_name, trust_score: 40, isFallback: true, distance: parseInt(d.distance),
@@ -500,22 +505,34 @@ async function main() {
                 } catch {}
             }
 
-            rawCandidatesForAudit.push(...sorted);
-            const sliced = sorted.slice(0, limit);
+            const sliced = stage2.slice(0, limit);
+            rawCandidatesForAudit.push(...sliced.map(x => ({ ...x, stage: 2 })));
             metrics.quota_flow[cat].quota += sliced.length;
             clusterCands.push(...sliced);
         }
 
-        // 전체 리스트 출력 (SOP 규격)
+        // [v11.9.13] Audit Report Upgrade: Dual Section (Stage 1 vs Stage 2)
         if (rawCandidatesForAudit.length > 0) {
-            let auditContent = `# 3일 전 스마트 플랜 캐싱 1차 선별 리스트 (Quota Applied)\n\n`;
-            auditContent += `| 번호 | 카테고리 | 이름 | 신뢰점수 | 주소 | 거리(m) |\n`;
+            let auditContent = `# 3일 전 스마트 플랜 캐싱 정밀 분석 리포트 (4/18)\n\n`;
+            
+            auditContent += `## [SECTION 1] 1차 쿼터 DB 수집 리스트 (품질 우선 정제 전)\n`;
+            auditContent += `| 번호 | 카테고리 | 이름 | 품질 점수 | 주소 | 거리(m) |\n`;
             auditContent += `| :--- | :--- | :--- | :---: | :--- | :---: |\n`;
-            rawCandidatesForAudit.forEach((c, idx) => {
-                auditContent += `| ${idx + 1} | ${c.category} | ${c.name} | ${c.trust_score} | ${c.address} | ${Math.round(c.distance)} |\n`;
+            let s1Idx = 1;
+            rawCandidatesForAudit.filter(x => x.stage === 1).forEach(c => {
+                auditContent += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${c.address} | ${Math.round(c.distance)} |\n`;
             });
+
+            auditContent += `\n---\n\n## [SECTION 2] 2차 쿼터 하이브리드 최종 리스트 (품질-거리 최적화)\n`;
+            auditContent += `| 번호 | 카테고리 | 이름 | 최종 점수 | 품질 점수 | 거리(km) | 주소 |\n`;
+            auditContent += `| :--- | :--- | :--- | :---: | :---: | :---: | :--- |\n`;
+            let s2Idx = 1;
+            rawCandidatesForAudit.filter(x => x.stage === 2).forEach(c => {
+                auditContent += `| ${s2Idx++} | ${c.category} | ${c.name} | **${c.final_score}** | ${c.trust_score} | ${(c.distance/1000).toFixed(1)} | ${c.address} |\n`;
+            });
+
             fs.writeFileSync('C:\\Users\\USER\\Desktop\\RAON.I\\spot_final_audit.md', auditContent, 'utf-8');
-            console.log(`📝 Audit list generated: ${rawCandidatesForAudit.length} items.`);
+            console.log(`📝 Dual-stage Audit list generated: ${rawCandidatesForAudit.length} items.`);
         }
 
         for (let i = 0; i < clusterCands.length; i += 40) {
