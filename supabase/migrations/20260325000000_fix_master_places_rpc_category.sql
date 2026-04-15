@@ -3,6 +3,8 @@
 -- RESTAURANT가 항상 상위를 독점하는 문제가 있었음.
 -- 이 마이그레이션으로 p_category 필터를 추가하여 카테고리별 정확한 조회를 지원합니다.
 
+DROP FUNCTION IF EXISTS get_master_places_in_radius(DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, INTEGER);
+
 CREATE OR REPLACE FUNCTION get_master_places_in_radius(
   target_lat DOUBLE PRECISION,
   target_lng DOUBLE PRECISION,

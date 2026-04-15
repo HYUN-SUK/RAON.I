@@ -11,6 +11,7 @@ UPDATE public.master_places_gas SET is_active = false WHERE trust_score = 0;
 CREATE INDEX IF NOT EXISTS idx_master_places_is_active ON public.master_places(is_active) WHERE is_active = true;
 
 -- 4. Update get_master_places_in_radius (v1)
+DROP FUNCTION IF EXISTS get_master_places_in_radius(DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, INTEGER);
 CREATE OR REPLACE FUNCTION get_master_places_in_radius(
   target_lat DOUBLE PRECISION,
   target_lng DOUBLE PRECISION,
@@ -53,6 +54,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 5. Update get_master_places_in_radius_v2 (v2)
+DROP FUNCTION IF EXISTS get_master_places_in_radius_v2(DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, INTEGER, BOOLEAN);
 CREATE OR REPLACE FUNCTION get_master_places_in_radius_v2(
   target_lat DOUBLE PRECISION,
   target_lng DOUBLE PRECISION,

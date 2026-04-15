@@ -43,7 +43,7 @@
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
 | **Phase 4** | **미래 기능 (Future)** | ✅ **완료** | 100% | 웹 푸시(FCM), 상황별 알림 시스템, 인앱 배지 구현 완료. |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
-| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | V9.5 하이엔드 파이프라인(나선탐색/병원스코어/쿼터제) 실장 완료. |
+| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | V11.6 하이엔드 최적화(스로틀링/병렬수집/벌크적재) 실장 완료. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | 전국 LX 공사맛집(2k) 통합 및 자동화 로테이션 인기도 v2 전국 보급 완료(04-13). |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 98% | Deep Refactoring 완료. Push 시스템(예약변경/템플릿/Edge Function) 구현 완료. 배포 대기. |
@@ -218,6 +218,12 @@
         *   [x] **Dashboard Upgrade**: 관리자 로그 상세 화면에 Part 1(API), Part 2(Quota Flow) 정밀 대조 테이블 실장.
         *   [x] **Data Persistence**: JSON 기반 `message` 필드 활용으로 DB 구조 변경 없이 동적 리포팅 체계 완성.
         *   [x] **Verification**: 4/12 타겟 캐싱 실행 및 관리자 화면 리포트 출력 최종 검증 완료.
+    *   [x] **5.5.14 Pipeline Scale-Up Optimization ✅ (2026-04-15)**:
+        *   [x] **Throttling**: 권역 간 3초 지연 로직 실장으로 외부 API 차단 리스크 해소.
+        *   [x] **Parallelism**: 권역 내 카테고리별 API 수집 병렬화(`Promise.all`)로 처리 속도 극대화.
+        *   [x] **Bulk Persistence**: 즉시 적재 방식을 '메모리 통합 후 벌크 적재'로 전환하여 DB 부하 최소화.
+        *   [x] **LX Weights**: LX 공사맛집 가점(+50) 로직 정밀 실장 및 1차 선별 정합성 확보.
+        *   [x] **Verification**: 4/17 타겟 시뮬레이션 성공 및 정밀 감사 보고서 생성 성공.
     *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 설계 ✅ (2026-04-12)**:
         *   [x] **Metric Splitting**: `Active/Inactive` 지표 분리 로직 전수 적용 및 3진 아웃 로직 고도화.
         *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
@@ -322,6 +328,9 @@
     *   [x] `any` 타입 제거 및 `Next/Image` 최적화.
 *   **8.2 Hook Refactoring** ✅:
     *  - [x] **2.5. Structure & Cleanup** (Completed - Runtime Stable)
+    - [x] **8.2.3 DB Migration Normalization ✅ (2026-04-15)**:
+        - [x] RPC 반환 형식 충돌 해결 (`DROP FUNCTION` idempotent 처리) 및 126개 전체 마이그레이션 적용.
+        - [x] 원격 DB 스키마 드리프트(`user_campground_hearts`) 복구 완료.
     - [x] Global Import Cleanup (Partially done for Admin/Core modules)
     - [x] Global Linting (Critical Admin Modules Cleaned)
     - [x] Unused Component Removal (Alert restored, others verified)

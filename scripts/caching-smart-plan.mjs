@@ -380,11 +380,29 @@ async function main() {
         let rawCandidatesForAudit = []; // spot_final_audit.md 출력용
 
         for (const { cat, limit, rawLimit } of categories) {
-            const { data } = await supabase.rpc('get_master_places_in_radius_v2', { 
-                target_lat: lat, target_lng: lng, 
-                radius_meters: 30000, p_category: cat, 
-                limit_count: rawLimit 
-            });
+            // [v11.9.9 Fix] RPC 호출 + 에러 핸들링 + 자동 재시도 (최대 3회)
+            let data = null;
+            let lastError = null;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                const result = await supabase.rpc('get_master_places_in_radius_v2', { 
+                    target_lat: lat, target_lng: lng, 
+                    radius_meters: 30000, p_category: cat, 
+                    limit_count: rawLimit 
+                });
+                if (result.error) {
+                    lastError = result.error;
+                    console.warn(`  ⚠️ [RPC Retry ${attempt}/3] ${cat} 조회 실패: ${result.error.message} (code: ${result.error.code})`);
+                    if (attempt < 3) await sleep(Math.pow(2, attempt) * 1000); // 2s, 4s backoff
+                    continue;
+                }
+                data = result.data;
+                lastError = null;
+                break;
+            }
+            if (lastError) {
+                console.error(`  ❌ [RPC FAILED] ${cat} 최종 실패 (3회 재시도 소진): ${lastError.message}`);
+                metrics.quota_flow[cat].error = lastError.message;
+            }
             metrics.quota_flow[cat].raw += (data?.length || 0);
             if (!data?.length) continue;
 
