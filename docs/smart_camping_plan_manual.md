@@ -77,16 +77,17 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
         2. **2번 쿼터 (정예 선별)**: 확보된 데이터를 점수순(Trust Score DESC, Distance ASC)으로 자른 후 카카오 정밀 검증 및 스마트플랜 DB에 적재하는 최종 후보수.
     *   **전이중 지역 로테이션 및 통합 CSV 다이렉트 스트리밍 (v11.8 vNext)**: 잦은 500 에러 및 WAF 차단을 유발하던 과거의 OpenAPI(1741000)를 전면 폐기하고, **LocalData(행정안전부)의 지역별 공식 파일(CSV) 다운로드 엔드포인트**를 `Referer` 우회 기법으로 다이렉트 스트리밍하여 인메모리 파싱하는 무손실 파이프라인으로 전면 개방(Gold Standard)했습니다.
         - **Target Categories**: 대규모점포, 기타식품판매업, 모범음식점. (순수 CSV 포맷 연동)
-        - **DB 레벨 카테고리 Quota 상한 (1번 쿼터)**: 전교 석차를 매기듯이 상위권 데이터를 DB 레벨에서 1차 차단합니다:
-          | 카테고리 | 1번 쿼터(DB) | 2번 쿼터(정예) | 비고 |
+        - **Safe Mode 2단계 정밀 선별 시스템 (v11.9.13 개정)**: 
+          DB의 정렬 기준에 의존하지 않고 고품질 데이터를 전국 단위로 확보하기 위해 1차 수집량을 대폭 상향한 후, JS 단계에서 하이브리드 선별을 수행합니다.
+          | 카테고리 | 1차 쿼터(DB) | 2차 쿼터(정예) | 비고 |
           |---------|------------|------------|------|
-          | RESTAURANT | 1000 | 300 | 1차 석차 1,000위 내외 선별 |
-          | SPOT | 500 | 300 | 인지도 기반 500개 추출 |
-          | MART | 100 | 20|SSM/대형마트 포함 |
-          | HOSPITAL | 100 | 15 | 긴급 의료시설 우선 |
-          | GAS_STATION | 100 | 10 | 최저가 및 거리 기준 |
-          | FESTIVAL | 100 | 15 | 일정 중복 축제 우선 |
-        - 이후 Step 5.5의 v2 4축 점수 계산을 거쳐 최종 Top 15(Top 3 Priority)를 선별합니다.
+          | RESTAURANT | **3,000** | 300 | 품질순 확보를 위해 상한 대폭 상향 |
+          | SPOT | **3,000** | 300 | 인기도 기반 와이드 페칭 |
+          | MART | **3,000** | 20 | SSM/대형마트 전국망 확보 |
+          | HOSPITAL | **3,000** | 15 | 긴급 의료시설 반경 확장 |
+          | GAS_STATION | **3,000** | 10 | 최저가 나선형 수집 통합 |
+          | FESTIVAL | **3,000** | 15 | 일정 중복 축제 전수 조사 |
+        - 이후 하이브리드 스코어링(품질-거리 최적화)을 거쳐 최종 Top 15(Top 3 Priority)를 선별합니다.
 *   **Step 4. Phase 12: Real-time Verification (Track B - 가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페], [명소]를 조회합니다. 
     *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com`의 비공개 JSON 엔드포인트(`/places/panel3/`, `/places/reviews/kakaomap/meta/`)를 직접 호출하여 별점/리뷰 수를 JSON 형태로 추출합니다. (**cheerio HTML 파싱이 아닌 JSON API 직접 호출 방식**)
     *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
@@ -137,9 +138,21 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 
     **최종 공식 (v3.2 개정):**
     ```
-    finalScore = round(Existence×W1 + Quality×W2 + ContextFit×W3 + Logistics×W4) - riskPenalty + diversityBonus
+    finalScore = QualityScore - (Distance_km * CategoryFactor)
     ```
-    `FactCard.trustScore`에는 하위 호환을 위해 `finalScore`가 채워지며, **100점 상한제(Cap)를 전면 폐지**하여 우수한 장소가 100점 이상의 높은 변별력을 갖도록 합니다. (카카오 검증 자체에 대한 일괄 가산점은 부여하지 않으며, 실시간 별점/리뷰 데이터는 Phase 3 엔진에서 반영합니다.)
+    품질 중심의 변별력을 확보하기 위해 100점 상한제(Cap)를 폐지하고, 거리에 따른 합리적인 감점을 적용합니다.
+
+    **카테고리별 거리 감점 계수 (CategoryFactor):**
+    | 카테고리 | 감점 계수 (per km) | 설계 의도 |
+    |---|---|---|
+    | RESTAURANT | 1.0 | 품질이 좋다면 10km 이상 이동 가능 |
+    | MART | 2.0 | 마트는 접근 편의성이 중요 |
+    | SPOT | 0.5 | 명소는 20km 거리도 방문 가치 충분 |
+    | HOSPITAL | 5.0 | 의료시설은 가장 가까운 곳이 최우선 |
+    | GAS_STATION | 2.0 | 주유소는 동선 효율 우선 |
+    | FESTIVAL | 1.0 | 축제는 지역성 고려 |
+
+    `FactCard.trustScore`에는 하위 호환을 위해 `finalScore`가 채워지며, **100점 상한제(Cap)를 전면 폐지**하여 우수한 장소가 100점 이상의 높은 변별력을 갖도록 합니다.
     - **v2.1 Evidence Extractor**: `FactCard.evidence` 필드에 별점(`stars`), 리뷰 수(`reviews`), 공공 인증 항목(`badges`), 출처 라벨(`sourceLabel`), 검증 시각(`verifiedAt`), 개별 `verificationStatus`를 구조화하여 저장합니다.
     - **v2.1 Quality.live_rating 별점 세분화**: `calcQuality()`의 `live_rating` 하위지표가 출처 기반 일괄 점수에서 **실제 별점 기반 세분화**로 개선되었습니다:
       | 별점 | live_rating 점수 |
@@ -225,11 +238,13 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 
 ### 4.3 우수 식당 (인증별 가중치 합산 및 중복 제거) - `[RESTAURANT]`
 - **데이터 소스**: (1순위) 소진공 백년가게(SMBA_BAEK - ODCloud Swagger API UDDI 직접 탐색 탑재), (2순위) **행안부 모범음식점(LOCALDATA_RESTAURANT_GOOD - 지역별 CSV 다이렉트 다운로드 및 스트리밍 파싱)**, (3순위) 농림축산부 안심식당(SAFE_RESTAURANT - 실시간 API).
-- **인증별 가중치 합산 (v10.4 고도화)**: 
+- **인증별 가중치 합산 (v11.9.13)**: 
     - **병합(Deduplication)**: 상호명과 주소가 동일한 업소는 하나로 통합하여 인증 점수를 누적 합산합니다.
     - **가중치 부여**: `Base 10 + 백년가게(50) + LX공사맛집(50) + 모범음식점(30) + 안심식당(20)`
-    - **예시**: 백년가게이자 LX공사맛집인 경우 **110점**(10+50+50)의 고득점 획득 (변별력 극대화).
-- **Noise Filter (v10.4 강화)**: 백년가게/안심식당 데이터 중 비음식점 업종인 '안경원', '의상실', '장례식장', '보청기', '수선/공방' 등 12종 키워드 원천 제외.
+    - **품질 필터링**: 위 4대 인증이 하나도 없는 일반 식당(10점)은 최종 리브랜딩 및 선별 대상에서 **즉시 제외**합니다. 
+- **Noise Filter (v11.9.13)**: 
+    - 식당 카테고리로 분류되었으나 실제로는 음식점이 아닌 12종 키워드 원천 제외.
+    - (키워드: 안경원, 의상실, 장례식장, 보청기, 수선, 공방, 세탁, 사진관, 약국, 학원, 미용, 목공)
 - **1차 선별 (v11.0 쿼터 확대)**: 위 합산 점수를 기준으로 정렬하되, 동일 점수 시 거리(Logistics) 점수를 합산하여 최종 **300개**를 선별하여 카카오 정밀 검증(Step C)에 진입시킵니다.
 - **점수(Score)**: 가중치 `[E:0.20, Q:0.30, CF:0.30, L:0.20]`. 품질(Quality)과 적합성(ContextFit) 균형. 비 날 '탕/찌개/국밥'의 `weather_match=45`, 맑은 날 '막국수/냉면'의 `weather_match=40`, 아이동반 시 '돈까스/어린이'의 `persona_match=40`.
 
@@ -313,10 +328,11 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 1. **예약 기반 동적 타겟팅 (D-3 Focus)**
    - 매일 새벽 6시 Cron Job은 무의미하게 전국 데이터를 긁어오지 않습니다. 오직 **캠핑일 기준 정확히 3일 전(D-3)** 에 해당하는 예약건들만 색인(Index)하여 타겟 목적지(캠핑장) 좌표를 추출합니다.
     - **실시간 API 수집 & 하이브리드 폴백(v10.4)**: 추출된 좌표를 기반으로 국립중앙의료원(`HOSPITAL`) 및 한국관광공사(`FESTIVAL`) API를 실시간 호출합니다. 특히 **마트 데이터 부족 시 실시간 카카오 `CS2` API를 즉각 호출**하여 정적 데이터와 실시간 데이터를 병합해 `smart_plan_facts`에 캐싱합니다.
-2. **Geo-Clustering 병합 (20km 반경)**
-   - 추출된 예약자 좌표들 중 임의의 좌표간 거리가 20km 이내로 겹칠 경우, 하나의 거점(Cluster Node)으로 강제 병합합니다. (예: 예약자가 10만 명이라도 거점은 50개 이내로 압축됨)
+2. **Geo-Clustering 병합 및 다중 대표 지점 (v11.9.13)**
+   - 추출된 예약자 좌표들 중 임의의 좌표간 거리가 20km 이내인 경우 하나의 클러스터로 병합합니다.
+   - **대표 지점 선별(Representative Points)**: 클러스터 내부에서 **상호 5km 이상 이격된 캠핑장**들을 독립적인 수집 기점으로 선정합니다. 이를 통해 한 권역 내 캠핑장이 넓게 분포되어 있더라도 특정 한 지점에 데이터가 편중되지 않고 권역 전반의 우수 데이터를 확보할 수 있습니다.
 3. **API 스로틀링 딜레이 (Throttling)**
-   - 병합된 각 거점을 순회하며 공공데이터 API를 호출할 때, `setTimeout`을 통해 3초(3000ms)의 비동기 지연을 발생시켜 관공서 서버의 DDoS 및 HTTP 429 차단을 원천 회피합니다.
+   - 수집된 대표 지점들을 순회하며 공공데이터 API를 호출할 때, `setTimeout`을 통해 3초(3000ms)의 비동기 지연을 발생시켜 관공서 서버의 DDoS 및 HTTP 429 차단을 원천 회피합니다.
 4. **듀얼 DB 통합 영구 보존 및 쿼터 정책 (Dual-Persistence & Quota)**
    - **`master_places` 유기적 증식**: D-3 크론잡이 실시간 수집한 병원, 주유소, 축제 API 원문 데이터를 `master_places`에 업서트합니다. 
    - **카테고리별 병렬 쿼터(Parallel Fetch)**: 대규모 트래픽 하에서도 데이터가 잘리지 않도록 **식당(1000개), 마트(100개), 명소(100개)** 등 카테고리별로 독립적인 수집 쿼터를 보장하는 병렬 조회 파이프라인(SQL RPC 기반)을 운영합니다.

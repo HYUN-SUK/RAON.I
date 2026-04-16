@@ -224,6 +224,11 @@
         *   [x] **Bulk Persistence**: 즉시 적재 방식을 '메모리 통합 후 벌크 적재'로 전환하여 DB 부하 최소화.
         *   [x] **LX Weights**: LX 공사맛집 가점(+50) 로직 정밀 실장 및 1차 선별 정합성 확보.
         *   [x] **Verification**: 4/17 타겟 시뮬레이션 성공 및 정밀 감사 보고서 생성 성공.
+    *   [x] **5.5.15 Hybrid Quality Selection (v11.9.13) ✅ (2026-04-16)**:
+        *   [x] **Hybrid Scoring**: 품질 점수 - 거리 감점 최적화 엔진 구축.
+        *   [x] **Safe Mode**: RPC 3,000개 수집 + JS 하이브리드 선별로 정합성 확보.
+        *   [x] **Audit v2**: 1차(품질) vs 2차(하이브리드) 대조 리포트 엔진 탑재.
+        *   [x] **SSOT**: 매뉴얼 최신화 및 12종 블랙리스트 필터 강화.
     *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 설계 ✅ (2026-04-12)**:
         *   [x] **Metric Splitting**: `Active/Inactive` 지표 분리 로직 전수 적용 및 3진 아웃 로직 고도화.
         *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
