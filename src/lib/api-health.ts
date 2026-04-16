@@ -75,12 +75,12 @@ export async function performHealthCheck() {
       const response = await fetch(api.url, {
         method: api.method || 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
           ...(api.headers || {}),
           ...(api.method === 'POST' ? { 'Content-Type': 'application/json' } : {})
         },
         body: api.body,
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(api.name === 'LX_RESTAURANT' ? 20000 : 10000)
       } as any);
 
       const duration = Date.now() - apiStartTime;
