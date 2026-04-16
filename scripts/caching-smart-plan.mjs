@@ -210,7 +210,12 @@ async function main() {
         }
         if (!lat || !lng) { console.log(`  ⚠️ Skipping ${campground_name}: No location root found.`); continue; }
 
-        let cluster = clusters.find(c => Math.sqrt(Math.pow(c.points[0].lat-lat,2)+Math.pow(c.points[0].lng-lng,2)) <= 0.15);
+        // [v11.9.13] Clustering based on 20km Radius (Geo-Clustering 병합)
+        let cluster = clusters.find(c => {
+            const dLine = Math.sqrt(Math.pow(c.points[0].lat - lat, 2) + Math.pow(c.points[0].lng - lng, 2)) * 111;
+            return dLine <= 20; 
+        });
+        
         if (cluster) { 
             if(!cluster.names.includes(campground_name)) cluster.names.push(campground_name); 
             cluster.points.push({ lat, lng });
@@ -422,11 +427,12 @@ async function main() {
                 if (!data) continue;
                 metrics.quota_flow[cat].raw += data.length;
 
-                const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용/;
+                const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용|사진관|약국|목공/;
                 for (const item of data) {
                     const name = (item.name || '').trim();
                     const induty = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
-                    if (noise.test(name) || noise.test(induty)) continue;
+                    const biz = (item.raw_data?.biz_name || item.raw_data?.BIZPLC_NM || '').trim();
+                    if (noise.test(name) || noise.test(induty) || noise.test(biz)) continue;
 
                     let s = 10; // Base score
                     if (cat === 'RESTAURANT') {
@@ -540,7 +546,7 @@ async function main() {
             });
 
             fs.writeFileSync('C:\\Users\\USER\\Desktop\\RAON.I\\spot_final_audit.md', auditContent, 'utf-8');
-            console.log(`📝 Dual-stage Audit list generated: ${rawCandidatesForAudit.length} items.`);
+            console.log(`📝 Dual-stage Audit list generated with 1st Quota (3,000) -> 2nd Quota refinement.`);
         }
 
         for (let i = 0; i < clusterCands.length; i += 40) {
