@@ -495,14 +495,7 @@ async function main() {
                             // Season Boost (KT 0-100)
                             const seasonScore = parseFloat(spot.raw_data?.kt_concentration || spot.raw_data?.popularity_v2?.base_pop || 10);
 
-                            // [v12.2] Prestige Score (Landmark Weight)
-                            let prestigeBonus = 0;
-                            const t1 = /수덕사|해미읍성|공산성|무령왕릉|부소산성|궁남지|대천해수욕장|안면도|꽃지|청남대|의림지|법주사|한밭수목원|세종수목원/;
-                            const t2 = /예당호|가야산|충의사|삽교평야|추사고택|임존성|황새공원|현충사|외암민속마을|신정호|곡교천|공세리성당/;
-                            if (t1.test(spot.name)) prestigeBonus = 50;
-                            else if (t2.test(spot.name)) prestigeBonus = 30;
-
-                            return { id: spot.id, rawRelated, authRaw, seasonScore, confMultiplier, prestigeBonus };
+                            return { id: spot.id, rawRelated, authRaw, seasonScore, confMultiplier };
                         });
 
                         // Local Percentile Normalization for RelatedCore
@@ -514,7 +507,7 @@ async function main() {
                             
                             const behavioralPop = (0.70 * relatedPercentile) + (0.15 * m.seasonScore) + (0.15 * m.authRaw);
                             const effectivePop = behavioralPop * m.confMultiplier;
-                            finalSpotMap.set(m.id, Math.round(effectivePop + m.prestigeBonus));
+                            finalSpotMap.set(m.id, Math.round(effectivePop));
                         });
 
                         s = finalSpotMap.get(item.id) || 10;
