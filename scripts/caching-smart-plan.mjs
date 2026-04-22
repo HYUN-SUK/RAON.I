@@ -141,6 +141,48 @@ const generateFactId = (source, name, address) => {
     return uuidv5(`${cleanSource}|${cleanName}|${cleanAddr}`, MY_NAMESPACE);
 };
 
+// [v11.9.16] Spatial Merge Engine (Internal)
+async function performSpatialMerge() {
+    console.log('📡 [Auto-Merge] Checking for spatial duplicates in SPOT category...');
+    const { data: allData, error } = await supabase.from('master_places').select('*').eq('category', 'SPOT');
+    if (error || !allData) return 0;
+
+    const getDist = (lat1, lng1, lat2, lng2) => {
+        const R = 6371e3;
+        const f1 = lat1 * Math.PI/180, f2 = lat2 * Math.PI/180;
+        const df = (lat2-lat1) * Math.PI/180, dl = (lng2-lng1) * Math.PI/180;
+        const a = Math.sin(df/2) * Math.sin(df/2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl/2) * Math.sin(dl/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    };
+    const clean = (s) => (s || '').replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\s/g, '').toLowerCase();
+
+    let mergedCount = 0;
+    const processed = new Set();
+    for (let i = 0; i < allData.length; i++) {
+        if (processed.has(allData[i].id)) continue;
+        for (let j = i + 1; j < allData.length; j++) {
+            if (processed.has(allData[j].id)) continue;
+            const dist = getDist(allData[i].lat, allData[i].lng, allData[j].lat, allData[j].lng);
+            const n1 = clean(allData[i].name), n2 = clean(allData[j].name);
+            if (dist < 500 && (n1.includes(n2) || n2.includes(n1))) {
+                const winner = (allData[i].raw_data?.tier || 99) <= (allData[j].raw_data?.tier || 99) ? allData[i] : allData[j];
+                const loser = winner.id === allData[i].id ? allData[j] : allData[i];
+                // Simple Merge: Capture tier if loser has it
+                if (loser.raw_data?.tier && (!winner.raw_data?.tier || loser.raw_data.tier < winner.raw_data.tier)) {
+                    winner.raw_data.tier = loser.raw_data.tier;
+                    await supabase.from('master_places').update({ raw_data: winner.raw_data }).eq('id', winner.id);
+                }
+                await supabase.from('master_places').delete().eq('id', loser.id);
+                processed.add(loser.id);
+                mergedCount++;
+                break; 
+            }
+        }
+    }
+    if (mergedCount > 0) console.log(`  ✨ [Auto-Merge] Successfully merged ${mergedCount} duplicates.`);
+    return mergedCount;
+}
+
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function upsertAndTrack(items, metricObj) {
@@ -783,22 +825,29 @@ async function main() {
     metrics.dynamic_api.GAS_STATION.total = finalG || 0;
     metrics.dynamic_api.FESTIVAL.total = finalF || 0;
 
+    // [v11.9.16] Execute Auto-Merge for SPOT (Final Cleanliness)
+    const mergedSpots = await performSpatialMerge();
+    metrics.dynamic_api.SPOT = { existing: 0, received: 0, new: 0, updated: 0, total: 0, merged: mergedSpots, note: '공간 병합 완료' };
+    const { count: finalS } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'SPOT');
+    metrics.dynamic_api.SPOT.total = finalS || 0;
+
     function printCachingAuditTable() {
         console.log(`\n📋 [Precision Audit Report] D-3 스마트 캐싱 (권역 API 정밀 동기화)`);
-        console.log(`| 대상 스케줄 | 카테고리 (세부 소스) | 기존 데이터 수 | 원천 수신 수 | 신규 삽입(New) | 변경 갱신(Upd) | 최종 총계 | 비고 |`);
-        console.log(`| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |`);
+        console.log(`| 대상 스케줄 | 카테고리 | 기존 | 수신 | 신규 | 갱신 | 병합 | 최종 총계 | 비고 |`);
+        console.log(`| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |`);
         
         const rows = [
-            { cat: 'HOSPITAL (일반/응급)', val: metrics.dynamic_api.HOSPITAL, source: 'NMC / Kakao' },
-            { cat: 'GAS_STATION (주유소)', val: metrics.dynamic_api.GAS_STATION, source: 'Opinet Spiral' },
-            { cat: 'FESTIVAL (지역행사)', val: metrics.dynamic_api.FESTIVAL, source: 'TourAPI 반경조회' }
+            { cat: 'HOSPITAL', val: metrics.dynamic_api.HOSPITAL, source: 'NMC / Kakao' },
+            { cat: 'GAS_STATION', val: metrics.dynamic_api.GAS_STATION, source: 'Opinet' },
+            { cat: 'FESTIVAL', val: metrics.dynamic_api.FESTIVAL, source: 'TourAPI' },
+            { cat: 'SPOT (Master)', val: metrics.dynamic_api.SPOT, source: 'Internal' }
         ];
 
         for (const r of rows) {
-            const noteStr = r.val.note ? r.val.note : `${r.source} (${metrics.clusters}개 권역 합산)`;
-            console.log(`| ${targetStr} | ${r.cat} | ${r.val.existing.toLocaleString()} | ${r.val.received.toLocaleString()} | ${r.val.new.toLocaleString()} | ${r.val.updated.toLocaleString()} | ${r.val.total.toLocaleString()} | ${noteStr} |`);
+            const mergedStr = r.val.merged !== undefined ? r.val.merged.toLocaleString() : '-';
+            console.log(`| ${targetStr} | ${r.cat} | ${r.val.existing.toLocaleString()} | ${r.val.received.toLocaleString()} | ${r.val.new.toLocaleString()} | ${r.val.updated.toLocaleString()} | ${mergedStr} | ${r.val.total.toLocaleString()} | ${r.val.note || r.source} |`);
         }
-        console.log(`\n✨ [Smart Plan Caching] 권역 기반 정합성 보완 완료!\n`);
+        console.log(`\n✨ [Smart Plan Caching] 중복 제거 및 공간 병합 정규화 완료!\n`);
     }
 
     printCachingAuditTable();
@@ -813,11 +862,12 @@ async function recordAutomationLog(metrics, targetDate, status) {
     const apiStatus = Object.entries(metrics.dynamic_api).map(([cat, val]) => ({
         region: `${targetDate}`,
         title: cat === 'HOSPITAL' ? 'HOSPITAL (일반/응급)' : (cat === 'GAS_STATION' ? 'GAS_STATION (주유소)' : 'FESTIVAL (지역행사)'),
-        category: cat, // UI Table Key
+        category: cat,
         existing: val.existing,
-        received: val.received, // [FIX] Align with UI expecting 'received'
+        received: val.received,
         new: val.new,
         updated: val.updated,
+        merged: val.merged || 0,
         total: val.total,
         note: val.note || '권역 병합(Radius)'
     }));
