@@ -257,6 +257,7 @@ async function dailyRegionSync() {
       SSM_MART: { label: 'MART (준대규모 - SSM)', ...baseStat(), note: '대규모 내 식별' },
       OTHER_MART: { label: 'MART (기타식품판매업)', ...baseStat(), note: 'LocalData CSV' },
       SPOT: { label: 'SPOT (관광명소)', ...baseStat(), note: 'TourAPI v2' },
+      SPOT_KTO_POP: { label: 'SPOT (KTO 공식 순위)', ...baseStat(), note: '기초지자체 중심 인기도' },
       LX: { label: 'RESTAURANT (LX공사맛집)', ...baseStat(), note: '전국 직원 추천 기반' },
       SPOT_TMAP_REL: { label: '명소 연관(Tmap)', ...baseStat(), note: '인기도 지표 1' },
       SPOT_KT_CONCTR: { label: '명소 집중률(KT)', ...baseStat(), note: '인기도 지표 2' },
@@ -318,6 +319,68 @@ async function dailyRegionSync() {
 
   // [2.3] 명소군 (관광공사 지역기반 동기화) - KorService2
   await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
+
+    // --- [SOP v12.0 Step 9: KTO Municipality Popularity Sync (Robust)] --- 
+    console.log(`\n9. [Popularity] Fetching KTO Official Ranking (Original Code Tracking)...`);
+    
+    // Find unique KTO area/sigungu codes within the target Sido
+    const { data: regions, error: regError } = await supabase
+        .from('master_places')
+        .select('sigungu, areaCode:raw_data->>areaCode, sigunguCode:raw_data->>sigunguCode')
+        .in('sido', aliases)
+        .not('raw_data->>areaCode', 'is', null)
+        .not('raw_data->>sigunguCode', 'is', null);
+
+    if (regError || !regions || regions.length === 0) {
+        console.warn(`  ⚠️ No KTO area mapping found for ${targetSido}. Skipping.`);
+    } else {
+        // Unique region map within the Sido
+        const seen = new Set();
+        const regionMap = regions.filter(r => {
+            const key = `${r.areaCode}|${r.sigunguCode}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        console.log(`   - Detected ${regionMap.length} KTO-standard sigungus in ${targetSido}.`);
+
+        for (const reg of regionMap) {
+            try {
+                const params = new URLSearchParams({ 
+                    serviceKey: PUBLIC_API_KEY, 
+                    numOfRows: '100', 
+                    pageNo: '1', 
+                    MobileOS: 'ETC', 
+                    MobileApp: 'RAONAI', 
+                    _type: 'json', 
+                    baseYm: CACHED_BASE_YM || '202504',
+                    areaCd: reg.areaCode, 
+                    signguCd: reg.sigunguCode 
+                });
+                const url = `http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?${params.toString()}`;
+                const res = await fetchWithRetry(url);
+                const data = await res.json();
+                const items = data.response?.body?.items?.item || [];
+
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    const contentId = String(item.contentId);
+                    const rank = i + 1;
+
+                    await supabase.rpc('patch_place_raw_data_by_contentid', {
+                        p_contentid: contentId,
+                        p_patch: { kto_official: { rank, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } }
+                    });
+                }
+                stats.categories.SPOT_KTO_POP.updated.active += items.length;
+                console.log(`      ✅ Updated ${items.length} items for ${reg.areaCode}/${reg.sigunguCode}.`);
+            } catch (e) {
+                console.error(`      ⚠️ Failed KTO Sync for ${reg.areaCode}/${reg.sigunguCode}: ${e.message}`);
+            }
+            await delay(100); // Throttling
+        }
+    }
 
   // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화)
   console.log(`\n📊 [Final Audit] ${targetSido} 지역별 최종 정합성 확인 중...`);

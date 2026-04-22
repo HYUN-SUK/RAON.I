@@ -450,14 +450,14 @@ async function main() {
                         else s = 65;
                         if (/아울렛|패션|의류|디지털|하이마트|전자랜드|가구|가전|타운/.test(name)) continue;
                     } else if (cat === 'SPOT') {
-                        // [v12.1] behavioral_popularity_score Engine
+                        // [v2.6 Hybrid Engine] Prestige & Popularity Synthesis
                         const spotData = data.filter(d => d.category === 'SPOT');
                         const inScoreMap = new Map();
                         const freqMap = new Map();
                         const nameToId = new Map();
                         spotData.forEach(x => nameToId.set(x.name.trim(), x.id));
 
-                        // 1. Related-Core Pre-calculation (Centrality)
+                        // 1. Popularity Sub-Metrics Pre-calculation (TMAP Centrality)
                         spotData.forEach(spot => {
                             const relations = spot.raw_data?.tmap_related || [];
                             relations.forEach(rel => {
@@ -470,44 +470,51 @@ async function main() {
                             });
                         });
 
-                        // 2. Local Percentile & Component Calculation
-                        const spotMetrics = spotData.map(spot => {
-                            const relatedSum = inScoreMap.get(spot.id) || 0;
-                            const freq = freqMap.get(spot.id) || 0;
-                            const rawRelated = relatedSum * (1 + Math.log1p(freq));
-                            
-                            // Confidence (0.75 - 1.0)
-                            const hasRel = (spot.raw_data?.tmap_related?.length > 0) ? 0.4 : 0;
-                            const hasConc = (spot.raw_data?.kt_concentration > 0 || spot.raw_data?.popularity_v2?.base_pop > 0) ? 0.3 : 0;
-                            const hasId = spot.raw_data?.contentid ? 0.2 : 0;
-                            const hasCoord = (spot.lat && spot.lng) ? 0.1 : 0;
-                            const confMultiplier = 0.75 + (0.25 * (hasRel + hasConc + hasId + hasCoord));
+                        // 2. Hybrid Score Synthesis (60% Prestige / 40% Popularity)
+                        const finalSpotMap = new Map();
+                        const sortedRawRelated = spotData.map(s => {
+                            const relatedSum = inScoreMap.get(s.id) || 0;
+                            const freq = freqMap.get(s.id) || 0;
+                            return { id: s.id, val: relatedSum * (1 + Math.log1p(freq)) };
+                        }).sort((a,b) => b.val - a.val);
 
-                            // Authority (Rule-Table 0-100 Normalized)
-                            let authRaw = 0;
-                            const c2 = spot.raw_data?.cat2;
-                            if (spot.raw_data?.contentid) {
-                                if ((c2 === 'A0101' || c2 === 'A0201') && /국립|도립|유네스코/.test(spot.name)) {
-                                    authRaw = 100;
-                                }
+                        spotData.forEach(spot => {
+                            // A. Prestige Component (60%)
+                            let prestigeScore = 15; // Base
+                            const tier = spot.raw_data?.prestige?.tier;
+                            if (tier === 1) prestigeScore = 100;      // 한국관광 100선
+                            else if (tier === 2) prestigeScore = 80;  // 지역 8경
+
+                            // B. Popularity Component (40%) - [KTO 60 : TMAP 20 : KT 20]
+                            // B-1. KTO Official (Fallback to TMAP dynamic rank if missing)
+                            let ktoScore = 10; 
+                            const ktoRank = spot.raw_data?.kto_official?.rank;
+                            if (ktoRank && ktoRank <= 100) {
+                                ktoScore = 100 * (1 - (ktoRank - 1) / 100);
+                            } else {
+                                // Fallback: Use pool-wide TMAP rank
+                                const tmapRank = sortedRawRelated.findIndex(x => x.id === spot.id);
+                                ktoScore = ((sortedRawRelated.length - 1 - tmapRank) / Math.max(1, sortedRawRelated.length - 1)) * 100;
                             }
 
-                            // Season Boost (KT 0-100)
-                            const seasonScore = parseFloat(spot.raw_data?.kt_concentration || spot.raw_data?.popularity_v2?.base_pop || 10);
+                            // B-2. TMAP Centrality (20%)
+                            const tmapIdx = sortedRawRelated.findIndex(x => x.id === spot.id);
+                            const tmapScore = ((sortedRawRelated.length - 1 - tmapIdx) / Math.max(1, sortedRawRelated.length - 1)) * 100;
 
-                            return { id: spot.id, rawRelated, authRaw, seasonScore, confMultiplier };
-                        });
+                            // B-3. KT Concentration / Demographic (20%)
+                            const ktScore = parseFloat(spot.raw_data?.kt_concentration || spot.raw_data?.popularity_v2?.base_pop || 10);
 
-                        // Local Percentile Normalization for RelatedCore
-                        const sortedRelated = [...spotMetrics].sort((a,b) => b.rawRelated - a.rawRelated);
-                        const finalSpotMap = new Map();
-                        spotMetrics.forEach(m => {
-                            const rank = sortedRelated.findIndex(x => x.id === m.id);
-                            const relatedPercentile = spotMetrics.length > 1 ? ((spotMetrics.length - 1 - rank) / (spotMetrics.length - 1)) * 100 : 50;
+                            const combinedPop = (ktoScore * 0.6) + (tmapScore * 0.2) + (ktScore * 0.2);
                             
-                            const behavioralPop = (0.70 * relatedPercentile) + (0.15 * m.seasonScore) + (0.15 * m.authRaw);
-                            const effectivePop = behavioralPop * m.confMultiplier;
-                            finalSpotMap.set(m.id, Math.round(effectivePop));
+                            // C. Confidence Multiplier (Consistency check)
+                            const hasRel = (spot.raw_data?.tmap_related?.length > 0) ? 0.4 : 0;
+                            const hasConc = (spot.raw_data?.kt_concentration > 0 || spot.raw_data?.popularity_v2?.base_pop > 0) ? 0.3 : 0;
+                            const hasPrestige = tier ? 0.3 : 0;
+                            const confMultiplier = 0.80 + (0.20 * (hasRel + hasConc + hasPrestige));
+
+                            // D. Final Quality Score Synthesis
+                            const qualityScore = (prestigeScore * 0.6) + (combinedPop * 0.4);
+                            finalSpotMap.set(spot.id, Math.round(qualityScore * confMultiplier));
                         });
 
                         s = finalSpotMap.get(item.id) || 10;

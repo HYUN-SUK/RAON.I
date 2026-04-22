@@ -260,15 +260,22 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 - **1차 선별 (v10.7)**: 30km 나선형 수집본 중, 최저가순(PRICE)을 1순위로, 최단거리를 2순위로 정렬하여 10~20개를 선별합니다.
 - **점수(Score)**: 가중치 `[E:0.30, Q:0.10, CF:0.20, L:0.40]`. **동절기(11월~3월)** 시 `weather_match=50`으로 ContextFit 축이 만점 근접하여 최상위 배치.
 
-### 4.5 관광 기관 API (현지 명소/관광지) - `[SPOT]` (v11.8 고도화)
-- **TourAPI v2 아키텍처 이관**: 잦은 에러 충돌을 유발했던 구형 파라미터(`listYN` 등)를 폐기하고, 한국관광공사의 차세대 `KorService2/areaBasedList2`로 엔드포인트 세대 교체를 완료하여 200 OK 소통 신뢰성을 완전히 복구했습니다.
-- **1차 선별 및 스코어링 로직 (v10.5)**: 
-    1. **S-Tier 키워드 가점 (+45점)**: 국립, 수목원, 휴양림, 관광지, 출렁다리, 모노레일, 케이블카, 해수욕장, 테마파크, 사찰, 읍성 등 상징성이 높은 키워드에 가산점을 부여합니다.
-    2. **A-Tier 키워드 가점 (+30점)**: 박물관, 미술관, 천문대, 역사, 향교, 전통가옥 등 문화·교육적 명소에 가산점을 부여합니다.
-    3. **인기도 지표 (ReadCount)**: TourAPI에서 제공하는 통계 기반 조회수(`readcount`) 필드를 연동하여 실제 인기도에 따라 차등 가점(최대 +40)을 부여합니다.
-    4. **디지털 자산 가점**: 선명한 대표 이미지(`firstimage`) 및 상세 설명(100자 이상) 보유 시 최대 +40점의 가점을 통해 정보 신뢰도가 높은 곳을 우선 노출합니다.
-- **1차 선별 (v11.0 쿼터 확대)**: 위 스코어링을 통해 산출된 상위 **300개**를 선별하여 카카오 정밀 검증(Step C)에 진입시킵니다.
-- **점수(Score)**: 가중치 `[E:0.20, Q:0.20, CF:0.35, L:0.25]`. ContextFit 최우선. 비 날 실내/박물관 `weather_match=45`, 맑은 날 수목원/야외 `weather_match=45`. 비 날 야외 명소는 `weather_match=10`으로 자연 감점.
+### 4.5 관광 기관 API 및 명성 시스템 - `[SPOT]` (v12.0 하이브리드 개편)
+- **데이터 소스**: (1순위) `prestige_landmarks` (정부 100선 및 지역 8경), (2순위) TourAPI v2.0 (KorService2).
+- **Hybrid v2.6 스코어링 아키텍처**: 
+    1. **Prestige Score (60%)**: 
+        - **Tier 1 (100점)**: 한국관광 100선 등 국가급 명소.
+        - **Tier 2 (80점)**: 지역 8경/10경 및 지자체 공식 숨은 명소.
+        - **General (15점)**: 일반 공공데이터 명소.
+    2. **Popularity Index (40%)**: 
+        - **KTO Official (60%)**: 한국관광공사 기초지자체 중심 인기도 랭킹 (TarRlteTarService1).
+        - **TMAP Centrality (20%)**: 실시간 차량 이동 중심성 데이터.
+        - **KT Concentration (20%)**: 통신사 유동인구 집중도.
+- **최종 공식**: `Score = (Prestige * 0.6) + (Popularity * 0.4) - (Distance_km * 0.5)`
+- **데이터 보호막 (Protection Shield)**: 명성 데이터는 `is_protected: true` 속성을 부여받아 자동 동기화 시 유실되지 않도록 SSOT로 관리됩니다.
+- **Legacy Cleanup**: 과거의 온라인 조회수(`readcount`) 지표는 완전히 폐기되었으며 더 이상 가점에 반영되지 않습니다.
+
+
 
 ### 4.6 지역 축제 / 오일장 - `[FESTIVAL]` (v10.7 고도화)
 - **일정 연동 필터링 (v10.7)**: 사용자의 실제 캠핑 일정(`startDate`~`endDate`)과 축제 개최 기간(`eventstartdate`~`eventenddate`)이 1일이라도 겹치는 항목만 노출하도록 지능형 기간 필터링을 적용합니다.
@@ -419,21 +426,29 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 - **Soft-Delete (is_active)**: 지역 순환 시 API 응답에 더 이상 존재하지 않는 데이터는 자동으로 `is_active = false` 처리됩니다.
 - **Admin Code Mapping (v11.5)**: 전국 17개 시도 및 250여 개 시군구의 5자리 행정코드를 `scripts/utils/admin-code-mapping.mjs`에 내장하여 TMAP/KT API 연동의 정합성을 보장합니다.
 
-### 7.2 명소 실질 인기도 엔진 v2 (Real-world Popularity Engine)
-단순한 온라인 조회수(`readcount`)의 한계를 극복하기 위해, 실제 이동 데이터와 통신사 데이터를 결합한 **하이브리드 인기도 지수(Integrated Popularity Index)** 체계를 운영합니다.
+### 7.2 명소 실질 인기도 엔진 v5 (Hybrid Popularity Engine)
+단순한 온라인 조회수(`readcount`)를 영구 폐기하고, 정부 공인/모빌리티/통신 데이터를 결합한 **6:2:2 하이브리드 지표(Standardized Popularity Index)** 체계를 운영합니다.
 
-1. **TMAP 이동성 데이터 (60%)**: 
-    - SK TMAP의 최근 24개월 이동 데이터를 동적으로 스캔하여 실제 차량 이동이 집중된 '핫플레이스'를 식별합니다. 
-    - `baseYm` (연월) 자동 탐색 로직을 통해 항상 최신 공개 데이터를 유지합니다.
-2. **KT 방문자 집중률 (40%)**: 
-    - 특정 지역(시군구) 내에서 해당 명소가 차지하는 방문객 점유율 및 집중도를 반영합니다.
-3. **통합 스코어링 (Integrated Score)**: 
-    - `(TMAP Rank Score × 0.6) + (KT Concentration × 0.4)` 공식을 통해 최종 인기도를 산출합니다.
-4. **저장 및 연동**:
-    - 산출된 메트릭은 개별 장소의 `raw_data` JSONB 필드(예: `popularity_v2: { tmap_pop, kt_conc, score }`)에 저장되어 `SPOT` 추천 가중치에 즉시 반영됩니다.
-5. **순환 갱신**: 매일 지역 로테이션 시 해당 지역의 명소들을 대상으로 인기도를 자동 갱신합니다.
+1. **KTO 기초지자체 인기 관광지 (60%)**: 
+    - 한국관광공사(TourAPI)의 `TarRlteTarService1`을 통해 수집된 해당 시군구 내의 공식 인기도 랭킹을 반영합니다.
+    - 법정동/KTO 레거시 코드 하이브리드 맵핑을 통해 전국 250개 시군구의 데이터를 무결하게 수집합니다.
+2. **TMAP 이동성 데이터 (20%)**: 
+    - SK TMAP의 차량 이동 중심성 데이터를 정규화하여 실시간 '핫플레이스' 시그널을 추출합니다.
+3. **KT 방문자 집중률 (20%)**: 
+    - 통신사 유동인구 격자 데이터를 분석하여 명소 내 인구 밀집도를 인기도에 반영합니다.
+4. **통합 스코어링 (Integrated Score)**: 
+    - `(KTO Score × 0.6) + (TMAP Score × 0.2) + (KT Score × 0.2)`
+5. **저장 및 연동**:
+    - 산출된 메트릭은 개별 장소의 `raw_data.popularity_v2` 필드에 저장되어 `SPOT` 하이브리드 엔진의 기초 인자로 활용됩니다.
 
-### 7.3 실행 엔진 및 스케줄링
+### 7.3 명성 데이터 보호 및 동기화 (Prestige Protection Shield)
+고가치 랜드마크(Tier 1, 2)의 신뢰성을 유지하기 위한 특수 보호 정책입니다.
+
+1. **단일 진실 공급원 (SSOT)**: `prestige_landmarks` 테이블에 수동 검증된 데이터만 적재합니다.
+2. **무손실 적재 (is_protected)**: `master_places` 테이블의 `is_protected` 필드가 `true`인 경우, 일일 지역 로테이션(`daily-region-sync`) 시 어떠한 경우에도 삭제되거나 정보가 훼손되지 않습니다.
+3. **고속 동기화**: `sync-prestige-data.mjs`를 통해 마스터 데이터와 명성 리스트를 UUID v5 기준으로 항상 일치시킵니다.
+
+### 7.4 실행 엔진 및 스케줄링
 - **실행 환경**: `scripts/daily-region-sync.mjs` (Vercel Cron / GitHub Actions)
 - **실행 시각**: 매일 04:00 KST
 - **모니터링**: 관리자 페이지(Admin Dashboard) 내 'Automation Logs'에서 7대 핵심 지표(신규, 갱신, 총계 등)를 실시간 확인 가능합니다.

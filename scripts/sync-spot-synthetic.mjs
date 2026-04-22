@@ -70,10 +70,12 @@ async function syncSpotSynthetic() {
           .update({
             // raw_data를 보존하면서 인기도 필드 및 가상 플래그 추가
             raw_data: { 
-              ...item, 
-              readcount: syntheticScore.toString(),
-              readcount_synthetic: true,
-              readcount_updated_at: new Date().toISOString()
+              ...item,
+              popularity_v2: {
+                base_pop: syntheticScore,
+                synthetic: true
+              },
+              pop_updated_at: new Date().toISOString()
             }
           })
           .eq('category', 'SPOT')

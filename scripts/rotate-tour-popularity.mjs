@@ -42,28 +42,25 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
 async function main() {
     console.log('🚀 [Rolling-800] 관광명소 인기도 순환 수집 엔진 가동...');
 
-    // 1. 갱신이 필요한 800건 추출 (readcount_updated_at이 없거나 오래된 순)
-    // SQL: ORDER BY (raw_data->>'readcount_updated_at') ASC NULLS FIRST
-    // 수동 정렬을 위해 fetch 후 클라이언트 사이드 처리가 필요하지만, 
-    // Supabase 쿼리에서 JSON 필드 정렬을 시도합니다.
+    // 1. 갱신이 필요한 800건 추출 (pop_updated_at이 없거나 오래된 순)
     const { data: targets, error: fetchError } = await supabase
         .from('master_places')
         .select('id, name, raw_data')
         .eq('api_source', 'TOUR_SPOT')
-        .order('id') // 기본 정렬
-        .limit(2000); // 넉넉히 가져와서 클라이언트에서 필터링
+        .order('id') 
+        .limit(2000); 
 
     if (fetchError || !targets) {
         console.error('❌ 대상 목록 추출 실패:', fetchError?.message);
         return;
     }
 
-    // 갱신일 기준 정렬 (raw_data 내 기록된 시간 기준)
+    // 갱신일 기준 정렬
     const sortedTargets = targets.sort((a, b) => {
-        const tA = a.raw_data?.readcount_updated_at || '1970-01-01';
-        const tB = b.raw_data?.readcount_updated_at || '1970-01-01';
+        const tA = a.raw_data?.pop_updated_at || '1970-01-01';
+        const tB = b.raw_data?.pop_updated_at || '1970-01-01';
         return tA.localeCompare(tB);
-    }).slice(0, 800); // 일일 800건 초과 금지
+    }).slice(0, 800); 
 
     console.log(`🎯 이번 턴 업데이트 대상: ${sortedTargets.length}건 선별 완료.`);
 
@@ -81,12 +78,19 @@ async function main() {
             const info = data.response?.body?.items?.item?.[0];
 
             if (info) {
-                const readcount = parseInt(info.readcount || '0', 10);
+                const viewCount = parseInt(info.readcount || '0', 10);
                 const newRawData = {
                     ...target.raw_data,
-                    readcount: readcount,
-                    readcount_updated_at: new Date().toISOString()
+                    popularity_v2: {
+                        ...(target.raw_data?.popularity_v2 || {}),
+                        official_view_count: viewCount
+                    },
+                    pop_updated_at: new Date().toISOString()
                 };
+
+                // Remove legacy readcount if exists
+                delete newRawData.readcount;
+                delete newRawData.readcount_updated_at;
 
                 batch.push({
                     id: target.id,
@@ -100,10 +104,8 @@ async function main() {
             console.error(`\n❌ [${target.name}] 수집 실패:`, e.message);
         }
 
-        // 지연 (API 부하 방지 및 Throttling: 초당 약 10건)
         await new Promise(r => setTimeout(r, 100));
 
-        // 100건 단위로 DB 저장
         if (batch.length >= 100) {
             const chunk = batch.splice(0, 100);
             await supabase.from('master_places').upsert(chunk, { onConflict: 'id' });
