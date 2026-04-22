@@ -17,6 +17,63 @@ const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const OPINET_API_KEY = process.env.OPINET_API_KEY;
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
+// [v11.9.15] Dynamic Prestige Matching System
+let PRESTIGE_MAP = new Map();
+
+function loadPrestigeLists() {
+    try {
+        const t1 = fs.readFileSync('korea_tourism_100_official.md', 'utf8');
+        const t2 = fs.readFileSync('regional_8_sceneries_FULL.md', 'utf8');
+        
+        // Tier 1 Parsing
+        let currentSido = '', currentSigungu = '';
+        t1.split('\n').forEach(line => {
+            const sidoMatch = line.match(/^## \d+\. (.+?) /);
+            if (sidoMatch) currentSido = sidoMatch[1];
+            const sigunguMatch = line.match(/^### (.+?) \(/);
+            if (sigunguMatch) currentSigungu = sigunguMatch[1];
+            if (line.startsWith('- ')) {
+                const names = line.includes('5대 고궁') ? ['경복궁', '창덕궁', '창경궁', '덕수궁', '경희궁'] : [line.replace('- ', '').split('(')[0].trim()];
+                names.forEach(n => {
+                    const key = getCleanString(n) + '|' + (currentSigungu || currentSido).replace(/[시군구]$/, '');
+                    PRESTIGE_MAP.set(key, 1);
+                });
+            }
+        });
+
+        // Tier 2 Parsing (v11.9.15 Ultimate Fix)
+        let t2Sigungu = '';
+        t2.split('\n').forEach(line => {
+            const h3Match = line.match(/^### (.+?)(?:\s+\(|$)/);
+            const listMatch = line.match(/^- \*\*(.+?)(?:\(.+?\))?:\*\*\s+(.+)$/);
+            
+            if (h3Match) {
+                t2Sigungu = h3Match[1].trim().replace(/[시군구]$/, '');
+            } else if (listMatch) {
+                const sigungu = listMatch[1].trim().replace(/[시군구]$/, '');
+                const names = listMatch[2].split(',').map(n => n.trim()).filter(n => n);
+                names.forEach(n => {
+                    const key = getCleanString(n) + '|' + sigungu;
+                    PRESTIGE_MAP.set(key, 2);
+                });
+            } else if (line.startsWith('- ') && t2Sigungu) {
+                const names = line.replace('- ', '').split(',').map(n => n.trim()).filter(n => n);
+                names.forEach(n => {
+                    const key = getCleanString(n) + '|' + t2Sigungu;
+                    PRESTIGE_MAP.set(key, 2);
+                });
+            }
+        });
+        
+        // Debug: Check if Yesan is loaded
+        const checkKey = getCleanString('예당호 출렁다리') + '|예산';
+        console.log(`🔍 Map Check [예당호 출렁다리|예산]: ${PRESTIGE_MAP.has(checkKey) ? '✅ FOUND' : '❌ NOT FOUND'} (Tier: ${PRESTIGE_MAP.get(checkKey)})`);
+        console.log(`✅ Prestige List Loaded: ${PRESTIGE_MAP.size} items mapped.`);
+    } catch (e) {
+        console.warn(`⚠️ Failed to load prestige lists: ${e.message}`);
+    }
+}
+
 function getNormalizedAddr(addr) {
     if (!addr) return '';
     let a = addr.replace(/,\s?대한민국$/, '').trim();
@@ -66,10 +123,15 @@ const extractSigungu = (addr) => {
 
 const getCleanString = (str) => {
     if (!str) return '';
-    return String(str)
-        .replace(/[()]/g, '') // SOP v11.3: Aggressive parenthesis removal
-        .replace(/\s+/g, '')
-        .toLowerCase();
+    let s = String(str);
+    // [v11.9.15] Ultimate Cleaning: Remove prefixes, Bold, and Parentheses
+    if (s.includes(':')) s = s.split(':').pop();
+    return s
+        .replace(/\*\*.*?\*\*/g, '') 
+        .replace(/\(.*?\)/g, '')    // Remove (mangled) or (sub-name)
+        .replace(/[^a-z0-9가-힣]/gi, '') 
+        .toLowerCase()
+        .trim();
 };
 
 const generateFactId = (source, name, address) => {
@@ -176,6 +238,9 @@ async function main() {
     };
 
     console.log(`🚀 v11.6 | Target: ${targetStr}`);
+    
+    loadPrestigeLists(); // [v11.9.15] Load MD lists once at start
+    
     const { data: schedules } = await supabase.from('user_schedules').select('campground_lat, campground_lng, campground_name, campground_address').eq('check_in', targetStr);
     
     if (!schedules?.length) {
@@ -481,9 +546,20 @@ async function main() {
                         spotData.forEach(spot => {
                             // A. Prestige Component (60%)
                             let prestigeScore = 15; // Base
-                            const tier = spot.raw_data?.prestige?.tier;
+                            
+                            // [v11.9.15] Runtime Matching (Dynamic)
+                            const cleanName = getCleanString(spot.name);
+                            const normSigungu = (spot.sigungu || '').replace(/[시군구]$/, '');
+                            const matchKey = `${cleanName}|${normSigungu}`;
+                            
+                            const dynamicTier = PRESTIGE_MAP.get(matchKey);
+                            const dbTier = spot.raw_data?.prestige_tier; // [v11.9.15] SSOT Sync
+                            const tier = dbTier || dynamicTier;
+
                             if (tier === 1) prestigeScore = 100;      // 한국관광 100선
                             else if (tier === 2) prestigeScore = 80;  // 지역 8경
+                            
+                            if (dynamicTier) console.log(`   ✨ Prestige Match: ${spot.name} (${spot.sigungu}) -> Tier ${dynamicTier}`);
 
                             // B. Popularity Component (40%) - [KTO 60 : TMAP 20 : KT 20]
                             // B-1. KTO Official (Fallback to TMAP dynamic rank if missing)
@@ -552,17 +628,42 @@ async function main() {
                 }
             }
 
-            const penaltyMap = { RESTAURANT: 4.0, SPOT: 0.5, MART: 2.0, HOSPITAL: 5.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
+            const penaltyMap = { RESTAURANT: 3.0, SPOT: 0.5, MART: 2.0, HOSPITAL: 5.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
             
             // [v11.9.13] Stage 1: Raw Aggregated Result (Sort by Quality only for logging)
             const stage1 = Array.from(map.values()).sort((a,b) => b.trust_score - a.trust_score);
             rawCandidatesForAudit.push(...stage1.map(x => ({ ...x, stage: 1 })));
 
-            // [v11.9.13] Stage 2: Hybrid Priority (Quality - Distance Penalty)
+            // [v11.9.13] Stage 2: Hybrid Priority (Quality + Prestige - Distance Penalty)
             const stage2 = Array.from(map.values()).map(x => {
                 const distKm = x.distance / 1000;
                 const penalty = distKm * (penaltyMap[cat] || 1.0);
-                return { ...x, final_score: parseFloat((x.trust_score - penalty).toFixed(2)) };
+                
+                let prestigeScore = 0;
+                if (cat === 'SPOT') {
+                    // [v11.9.15] SSOT-first Scoring: Trust the Unified Master DB Tier
+                    let tier = x.raw_data?.tier;
+                    
+                    // Fallback to real-time matching only if DB has no tier (Safety Net)
+                    if (!tier) {
+                        const rawSigungu = x.sigungu || extractSigungu(x.address) || '';
+                        const cleanName = getCleanString(x.name);
+                        const normSigungu = rawSigungu.replace(/[시군구]$/, '');
+                        const matchKey = `${cleanName}|${normSigungu}`;
+                        tier = PRESTIGE_MAP.get(matchKey);
+                        
+                        if (!tier) {
+                            for (let [key, val] of PRESTIGE_MAP.entries()) {
+                                if (key.startsWith(cleanName + '|')) { tier = val; break; }
+                            }
+                        }
+                    }
+                    
+                    if (tier === 1) prestigeScore = 100;
+                    else if (tier === 2) prestigeScore = 80;
+                }
+
+                return { ...x, prestigeScore, final_score: parseFloat((x.trust_score + prestigeScore - penalty).toFixed(2)) };
             }).sort((a,b) => {
                 if (b.final_score !== a.final_score) return b.final_score - a.final_score;
                 return a.distance - b.distance;
@@ -605,11 +706,11 @@ async function main() {
             });
 
             auditContent += `\n---\n\n## [SECTION 2] 2차 쿼터 하이브리드 최종 리스트 (품질-거리 최적화)\n`;
-            auditContent += `| 번호 | 카테고리 | 이름 | 최종 점수 | 품질 점수 | 거리(km) | 주소 |\n`;
-            auditContent += `| :--- | :--- | :--- | :---: | :---: | :---: | :--- |\n`;
+            auditContent += `| 번호 | 카테고리 | 이름 | 최종 점수 | 명성 점수 | 품질 점수 | 거리(km) | 주소 |\n`;
+            auditContent += `| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n`;
             let s2Idx = 1;
             rawCandidatesForAudit.filter(x => x.stage === 2).forEach(c => {
-                auditContent += `| ${s2Idx++} | ${c.category} | ${c.name} | **${c.final_score}** | ${c.trust_score} | ${(c.distance/1000).toFixed(1)} | ${c.address} |\n`;
+                auditContent += `| ${s2Idx++} | ${c.category} | ${c.name} | **${c.final_score}** | ${c.prestigeScore || 0} | ${c.trust_score} | ${(c.distance/1000).toFixed(1)} | ${c.address} |\n`;
             });
 
             fs.writeFileSync('spot_final_audit.md', auditContent, 'utf-8');

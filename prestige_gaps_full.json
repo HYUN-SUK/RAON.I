@@ -1,0 +1,4227 @@
+[
+  {
+    "name": "서울숲",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "서울스카이 & 롯데월드",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "익선동",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "경복궁",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "창덕궁",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "창경궁",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "덕수궁",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "경희궁",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "청와대 앞길 & 서촌마을",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "동대문디자인플라자",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "남산서울타워",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "스타필드 코엑스몰",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "홍대거리",
+    "tier": 1,
+    "sigungu": "서울특별시"
+  },
+  {
+    "name": "개항장 문화지구",
+    "tier": 1,
+    "sigungu": "인천광역시"
+  },
+  {
+    "name": "고려도성",
+    "tier": 1,
+    "sigungu": "인천광역시"
+  },
+  {
+    "name": "송도 센트럴파크",
+    "tier": 1,
+    "sigungu": "인천광역시"
+  },
+  {
+    "name": "백령도 & 대청도",
+    "tier": 1,
+    "sigungu": "인천광역시"
+  },
+  {
+    "name": "자라섬",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "광명동굴",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "수원화성",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "헤이리 예술마을",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "양평 두물머리",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "파주 임진각",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "서울 LAND",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "한국민속촌",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "안성팜랜드",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "화성 제부도",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "포천 아트밸리",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "춘천 삼악산 호수 케이블카",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "원주 소금산 그랜드밸리",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "강릉 커피거리",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "강릉 월화거리",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "평창 대관령",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "속초 영금정",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "동해 도째비골 스카이밸리 & 해랑전망대",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "인제 원대리 자작나무숲",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "철원 한탄강 주상절리길",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "고성 통일전망대",
+    "tier": 1,
+    "sigungu": "경기도"
+  },
+  {
+    "name": "대청호 오백리길",
+    "tier": 1,
+    "sigungu": "대전광역시"
+  },
+  {
+    "name": "엑스포과학공원",
+    "tier": 1,
+    "sigungu": "대전광역시"
+  },
+  {
+    "name": "국립세종수목원",
+    "tier": 1,
+    "sigungu": "세종특별자치시"
+  },
+  {
+    "name": "청주 문화제조창",
+    "tier": 1,
+    "sigungu": "충청북도"
+  },
+  {
+    "name": "제천 의림지 & 제천비행장",
+    "tier": 1,
+    "sigungu": "충청북도"
+  },
+  {
+    "name": "충주 중앙탑 사적공원 & 탄금호 무지개길",
+    "tier": 1,
+    "sigungu": "충청북도"
+  },
+  {
+    "name": "단양 만천하 스카이워크 & 단양강 잔도",
+    "tier": 1,
+    "sigungu": "충청북도"
+  },
+  {
+    "name": "천안 독립기념관",
+    "tier": 1,
+    "sigungu": "충청남도"
+  },
+  {
+    "name": "안면도 꽃지해변",
+    "tier": 1,
+    "sigungu": "충청남도"
+  },
+  {
+    "name": "대천해수욕장",
+    "tier": 1,
+    "sigungu": "충청남도"
+  },
+  {
+    "name": "공주 백제역사유적지구",
+    "tier": 1,
+    "sigungu": "충청남도"
+  },
+  {
+    "name": "부여 백제역사유적지구",
+    "tier": 1,
+    "sigungu": "충청남도"
+  },
+  {
+    "name": "서산 해미읍성",
+    "tier": 1,
+    "sigungu": "충청남도"
+  },
+  {
+    "name": "국립아시아문화전당",
+    "tier": 1,
+    "sigungu": "광주광역시"
+  },
+  {
+    "name": "무등산국립공원",
+    "tier": 1,
+    "sigungu": "광주광역시"
+  },
+  {
+    "name": "전주 한옥마을",
+    "tier": 1,
+    "sigungu": "전라북도"
+  },
+  {
+    "name": "군산 고군산군도",
+    "tier": 1,
+    "sigungu": "전라북도"
+  },
+  {
+    "name": "익산 왕궁리유적",
+    "tier": 1,
+    "sigungu": "전라북도"
+  },
+  {
+    "name": "진안 마이산 도립공원",
+    "tier": 1,
+    "sigungu": "전라북도"
+  },
+  {
+    "name": "고창 고인돌 유적 & 운곡습지",
+    "tier": 1,
+    "sigungu": "전라북도"
+  },
+  {
+    "name": "무주 태권도원 & 반디랜드",
+    "tier": 1,
+    "sigungu": "전라북도"
+  },
+  {
+    "name": "여수 오동도 & 엑스포해양공원",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "순천만 습지",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "담양 죽녹원",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "곡성 섬진강 기차마을",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "보성 대한다원",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "강진 가우도",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "해남 미황사",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "신안 퍼플섬",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "목포 근대역사문화공간 & 해상케이블카",
+    "tier": 1,
+    "sigungu": "전라남도"
+  },
+  {
+    "name": "해운대 해수욕장 & 송정해변",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "감천문화마을",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "태종대 유원지",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "용두산공원 & 자갈치 관광특구",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "송도 해수욕장",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "오시리아 관광단지",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "엑스더스카이 & 블루라인파크",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "광안리 해변",
+    "tier": 1,
+    "sigungu": "부산광역시"
+  },
+  {
+    "name": "수성못",
+    "tier": 1,
+    "sigungu": "대구광역시"
+  },
+  {
+    "name": "서문시장 & 동성로",
+    "tier": 1,
+    "sigungu": "대구광역시"
+  },
+  {
+    "name": "앞산공원",
+    "tier": 1,
+    "sigungu": "대구광역시"
+  },
+  {
+    "name": "태화강 국가정원",
+    "tier": 1,
+    "sigungu": "울산광역시"
+  },
+  {
+    "name": "영남알프스",
+    "tier": 1,
+    "sigungu": "울산광역시"
+  },
+  {
+    "name": "대왕암공원",
+    "tier": 1,
+    "sigungu": "울산광역시"
+  },
+  {
+    "name": "장생포 고래문화특구",
+    "tier": 1,
+    "sigungu": "울산광역시"
+  },
+  {
+    "name": "경주 대릉원 & 황리단길",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "경주 불국사 & 석굴암",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "울릉도 & 독도",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "울산 죽변 해안스카이레일",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "문경 단산모노레일",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "포항 스페이스워크 & 환호공원",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "안동 하회마을",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "영주 소수서원",
+    "tier": 1,
+    "sigungu": "경상북도"
+  },
+  {
+    "name": "창원 여좌천",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "진주 진주성",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "통영 디피랑",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "거제 바람의언덕",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "고성 당항포 관광지",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "남해 독일마을",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "합천 황매산군립공원",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "성산일출봉",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "한라산국립공원",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "제주 올레길",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "우도",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "비자림",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "제주돌문화공원",
+    "tier": 1,
+    "sigungu": "경상남도"
+  },
+  {
+    "name": "식장산 야경",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "대청호반",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "중앙시장",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "대전역 탐방",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "무등산 국립공원(증심사 지구)",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "국립아시아문화전당(ACC)",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "동명동 카페거리(동리단길)",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "차이나타운",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "유치환의 우체통",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "안창마을",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "정란각",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "부산항대교 조망",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "조방낙지골목",
+    "tier": 2,
+    "sigungu": "동구"
+  },
+  {
+    "name": "대흥동 문화예술거리",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "으능정이 스카이로드",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "중앙로 지하상가",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "유천동 음식특화거리",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "선화동 전문음식특화거리",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "중촌동 맞춤패션거리",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "보문산공원",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "단재 신채호 생가",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "자갈치시장",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "국제시장",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "40계단 거리",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "보수동 책방골목",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "부산근현대역사관",
+    "tier": 2,
+    "sigungu": "중구"
+  },
+  {
+    "name": "갑천 누리길",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "유등천",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "도안생태호수공원",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "남선공원 종합체육관",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "서구문화원",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "대전선사박물관",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "금당산",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "서창들녘 낙조",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "용두동 지석묘",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "양동시장",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "송도해수욕장",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "암남공원",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "천마산 하늘길",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "임시수도기념관",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "아미동 비석마을",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "부산서구청 전망대",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "부용동 음악분수",
+    "tier": 2,
+    "sigungu": "서구"
+  },
+  {
+    "name": "유성온천",
+    "tier": 2,
+    "sigungu": "유성구"
+  },
+  {
+    "name": "국립중앙과학관",
+    "tier": 2,
+    "sigungu": "유성구"
+  },
+  {
+    "name": "엑스포과학공원(엑스포다리)",
+    "tier": 2,
+    "sigungu": "유성구"
+  },
+  {
+    "name": "대덕연구단지",
+    "tier": 2,
+    "sigungu": "유성구"
+  },
+  {
+    "name": "화암사",
+    "tier": 2,
+    "sigungu": "유성구"
+  },
+  {
+    "name": "수통골",
+    "tier": 2,
+    "sigungu": "유성구"
+  },
+  {
+    "name": "대청호반길",
+    "tier": 2,
+    "sigungu": "대덕구"
+  },
+  {
+    "name": "계족산 황톳길",
+    "tier": 2,
+    "sigungu": "대덕구"
+  },
+  {
+    "name": "동춘당",
+    "tier": 2,
+    "sigungu": "대덕구"
+  },
+  {
+    "name": "신탄진 벚꽃길",
+    "tier": 2,
+    "sigungu": "대덕구"
+  },
+  {
+    "name": "송촌동 먹자골목",
+    "tier": 2,
+    "sigungu": "대덕구"
+  },
+  {
+    "name": "세종호수공원",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "국립세종수목원",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "이응다리(금강보행교)",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "정부세종청사 옥상정원",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "베어트리파크",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "고복자연공원",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "금강자연휴휴양림",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "뒤웅박고을",
+    "tier": 2,
+    "sigungu": "세종시"
+  },
+  {
+    "name": "독립기념관",
+    "tier": 2,
+    "sigungu": "천안시"
+  },
+  {
+    "name": "성환 배꽃들",
+    "tier": 2,
+    "sigungu": "천안시"
+  },
+  {
+    "name": "유관순열사 사적지",
+    "tier": 2,
+    "sigungu": "천안시"
+  },
+  {
+    "name": "공산성",
+    "tier": 2,
+    "sigungu": "공주시"
+  },
+  {
+    "name": "무령왕릉과 왕릉원",
+    "tier": 2,
+    "sigungu": "공주시"
+  },
+  {
+    "name": "마곡사",
+    "tier": 2,
+    "sigungu": "공주시"
+  },
+  {
+    "name": "계룡산",
+    "tier": 2,
+    "sigungu": "공주시"
+  },
+  {
+    "name": "공주국립박물관",
+    "tier": 2,
+    "sigungu": "공주시"
+  },
+  {
+    "name": "박찬호기념관",
+    "tier": 2,
+    "sigungu": "공주시"
+  },
+  {
+    "name": "석장리박물관",
+    "tier": 2,
+    "sigungu": "공주시"
+  },
+  {
+    "name": "무창포신비의바닷길",
+    "tier": 2,
+    "sigungu": "보령시"
+  },
+  {
+    "name": "오서산",
+    "tier": 2,
+    "sigungu": "보령시"
+  },
+  {
+    "name": "죽도 상화원",
+    "tier": 2,
+    "sigungu": "보령시"
+  },
+  {
+    "name": "온양민속박물관",
+    "tier": 2,
+    "sigungu": "아산시"
+  },
+  {
+    "name": "온양온천",
+    "tier": 2,
+    "sigungu": "아산시"
+  },
+  {
+    "name": "피나클랜드",
+    "tier": 2,
+    "sigungu": "아산시"
+  },
+  {
+    "name": "공세리성당",
+    "tier": 2,
+    "sigungu": "아산시"
+  },
+  {
+    "name": "신정호",
+    "tier": 2,
+    "sigungu": "아산시"
+  },
+  {
+    "name": "영인산자연휴양림",
+    "tier": 2,
+    "sigungu": "아산시"
+  },
+  {
+    "name": "해미읍성",
+    "tier": 2,
+    "sigungu": "서산시"
+  },
+  {
+    "name": "유기방가옥",
+    "tier": 2,
+    "sigungu": "서산시"
+  },
+  {
+    "name": "서산한우목장",
+    "tier": 2,
+    "sigungu": "서산시"
+  },
+  {
+    "name": "탑정호 출렁다리",
+    "tier": 2,
+    "sigungu": "논산시"
+  },
+  {
+    "name": "명재고택",
+    "tier": 2,
+    "sigungu": "논산시"
+  },
+  {
+    "name": "돈암서원",
+    "tier": 2,
+    "sigungu": "논산시"
+  },
+  {
+    "name": "강경근대역사거리",
+    "tier": 2,
+    "sigungu": "논산시"
+  },
+  {
+    "name": "노성산성",
+    "tier": 2,
+    "sigungu": "논산시"
+  },
+  {
+    "name": "옥녀봉",
+    "tier": 2,
+    "sigungu": "논산시"
+  },
+  {
+    "name": "대둔산 수락계곡",
+    "tier": 2,
+    "sigungu": "논산시"
+  },
+  {
+    "name": "계룡산국립공원",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "사계고택",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "향적산 치유의 숲",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "암용추",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "입암저수지",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "신도내 초석",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "군문화엑스포기념관",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "엄사문화쉼터",
+    "tier": 2,
+    "sigungu": "계룡시"
+  },
+  {
+    "name": "삽교호관광지",
+    "tier": 2,
+    "sigungu": "당진시"
+  },
+  {
+    "name": "왜목마을 일출",
+    "tier": 2,
+    "sigungu": "당진시"
+  },
+  {
+    "name": "필경사",
+    "tier": 2,
+    "sigungu": "당진시"
+  },
+  {
+    "name": "심훈기념관",
+    "tier": 2,
+    "sigungu": "당진시"
+  },
+  {
+    "name": "아그로랜드 태신목장",
+    "tier": 2,
+    "sigungu": "당진시"
+  },
+  {
+    "name": "아미미술관",
+    "tier": 2,
+    "sigungu": "당진시"
+  },
+  {
+    "name": "기지시줄다리기박물관",
+    "tier": 2,
+    "sigungu": "당진시"
+  },
+  {
+    "name": "인삼약초시장",
+    "tier": 2,
+    "sigungu": "금산군"
+  },
+  {
+    "name": "칠백의총",
+    "tier": 2,
+    "sigungu": "금산군"
+  },
+  {
+    "name": "대둔산",
+    "tier": 2,
+    "sigungu": "금산군"
+  },
+  {
+    "name": "개삼터",
+    "tier": 2,
+    "sigungu": "금산군"
+  },
+  {
+    "name": "지구상상그림책마을",
+    "tier": 2,
+    "sigungu": "금산군"
+  },
+  {
+    "name": "부소산성(낙화암)",
+    "tier": 2,
+    "sigungu": "부여군"
+  },
+  {
+    "name": "정림사지",
+    "tier": 2,
+    "sigungu": "부여군"
+  },
+  {
+    "name": "궁남지",
+    "tier": 2,
+    "sigungu": "부여군"
+  },
+  {
+    "name": "국립부여박물관",
+    "tier": 2,
+    "sigungu": "부여군"
+  },
+  {
+    "name": "구드래나루터",
+    "tier": 2,
+    "sigungu": "부여군"
+  },
+  {
+    "name": "장항송림산림욕장&스카이워크",
+    "tier": 2,
+    "sigungu": "서천군"
+  },
+  {
+    "name": "한산모시관",
+    "tier": 2,
+    "sigungu": "서천군"
+  },
+  {
+    "name": "마량리동백나무숲",
+    "tier": 2,
+    "sigungu": "서천군"
+  },
+  {
+    "name": "씨큐리움",
+    "tier": 2,
+    "sigungu": "서천군"
+  },
+  {
+    "name": "금강하구둑",
+    "tier": 2,
+    "sigungu": "서천군"
+  },
+  {
+    "name": "칠갑산",
+    "tier": 2,
+    "sigungu": "청양군"
+  },
+  {
+    "name": "칠갑산천문대",
+    "tier": 2,
+    "sigungu": "청양군"
+  },
+  {
+    "name": "다락골 거북이마을",
+    "tier": 2,
+    "sigungu": "청양군"
+  },
+  {
+    "name": "홍주읍성",
+    "tier": 2,
+    "sigungu": "홍성군"
+  },
+  {
+    "name": "한용운선사 생가지",
+    "tier": 2,
+    "sigungu": "홍성군"
+  },
+  {
+    "name": "이응노의 집",
+    "tier": 2,
+    "sigungu": "홍성군"
+  },
+  {
+    "name": "홍성전통시장",
+    "tier": 2,
+    "sigungu": "홍성군"
+  },
+  {
+    "name": "만해한용운공원",
+    "tier": 2,
+    "sigungu": "홍성군"
+  },
+  {
+    "name": "추사고택",
+    "tier": 2,
+    "sigungu": "예산군"
+  },
+  {
+    "name": "임존성",
+    "tier": 2,
+    "sigungu": "예산군"
+  },
+  {
+    "name": "예당평야",
+    "tier": 2,
+    "sigungu": "예산군"
+  },
+  {
+    "name": "가야산",
+    "tier": 2,
+    "sigungu": "예산군"
+  },
+  {
+    "name": "덕산온천",
+    "tier": 2,
+    "sigungu": "예산군"
+  },
+  {
+    "name": "황새공원",
+    "tier": 2,
+    "sigungu": "예산군"
+  },
+  {
+    "name": "봉수산자연휴양림",
+    "tier": 2,
+    "sigungu": "예산군"
+  },
+  {
+    "name": "안흥성",
+    "tier": 2,
+    "sigungu": "태안군"
+  },
+  {
+    "name": "안면송림",
+    "tier": 2,
+    "sigungu": "태안군"
+  },
+  {
+    "name": "신두리해안사구",
+    "tier": 2,
+    "sigungu": "태안군"
+  },
+  {
+    "name": "몽산포해변",
+    "tier": 2,
+    "sigungu": "태안군"
+  },
+  {
+    "name": "상당산성",
+    "tier": 2,
+    "sigungu": "청주시"
+  },
+  {
+    "name": "문의문화재단지",
+    "tier": 2,
+    "sigungu": "청주시"
+  },
+  {
+    "name": "정북동토성",
+    "tier": 2,
+    "sigungu": "청주시"
+  },
+  {
+    "name": "국립현대미술관 청주",
+    "tier": 2,
+    "sigungu": "청주시"
+  },
+  {
+    "name": "초정행궁",
+    "tier": 2,
+    "sigungu": "청주시"
+  },
+  {
+    "name": "중앙탑사적공원",
+    "tier": 2,
+    "sigungu": "충주시"
+  },
+  {
+    "name": "탄금대",
+    "tier": 2,
+    "sigungu": "충주시"
+  },
+  {
+    "name": "수안보온천",
+    "tier": 2,
+    "sigungu": "충주시"
+  },
+  {
+    "name": "활옥동굴",
+    "tier": 2,
+    "sigungu": "충주시"
+  },
+  {
+    "name": "게으른악어",
+    "tier": 2,
+    "sigungu": "충주시"
+  },
+  {
+    "name": "비내섬",
+    "tier": 2,
+    "sigungu": "충주시"
+  },
+  {
+    "name": "의림지",
+    "tier": 2,
+    "sigungu": "제천시"
+  },
+  {
+    "name": "박달재",
+    "tier": 2,
+    "sigungu": "제천시"
+  },
+  {
+    "name": "월악산",
+    "tier": 2,
+    "sigungu": "제천시"
+  },
+  {
+    "name": "청풍문화재단지",
+    "tier": 2,
+    "sigungu": "제천시"
+  },
+  {
+    "name": "금수산",
+    "tier": 2,
+    "sigungu": "제천시"
+  },
+  {
+    "name": "옥순봉",
+    "tier": 2,
+    "sigungu": "제천시"
+  },
+  {
+    "name": "속리산 법주사",
+    "tier": 2,
+    "sigungu": "보은군"
+  },
+  {
+    "name": "정이품송",
+    "tier": 2,
+    "sigungu": "보은군"
+  },
+  {
+    "name": "세조길",
+    "tier": 2,
+    "sigungu": "보은군"
+  },
+  {
+    "name": "삼년산성",
+    "tier": 2,
+    "sigungu": "보은군"
+  },
+  {
+    "name": "오장환문학관",
+    "tier": 2,
+    "sigungu": "보은군"
+  },
+  {
+    "name": "서당골관광농원",
+    "tier": 2,
+    "sigungu": "보은군"
+  },
+  {
+    "name": "둔주봉 한반도지형",
+    "tier": 2,
+    "sigungu": "옥천군"
+  },
+  {
+    "name": "구 37번 국도 벚꽃길",
+    "tier": 2,
+    "sigungu": "옥천군"
+  },
+  {
+    "name": "용암사 일출",
+    "tier": 2,
+    "sigungu": "옥천군"
+  },
+  {
+    "name": "장령산자연휴양림",
+    "tier": 2,
+    "sigungu": "옥천군"
+  },
+  {
+    "name": "향수호수길",
+    "tier": 2,
+    "sigungu": "옥천군"
+  },
+  {
+    "name": "옥천구읍",
+    "tier": 2,
+    "sigungu": "옥천군"
+  },
+  {
+    "name": "비봉산",
+    "tier": 2,
+    "sigungu": "영동군"
+  },
+  {
+    "name": "봉황대",
+    "tier": 2,
+    "sigungu": "영동군"
+  },
+  {
+    "name": "함벽정",
+    "tier": 2,
+    "sigungu": "영동군"
+  },
+  {
+    "name": "여의정",
+    "tier": 2,
+    "sigungu": "영동군"
+  },
+  {
+    "name": "자풍당",
+    "tier": 2,
+    "sigungu": "영동군"
+  },
+  {
+    "name": "벨포레 리조트",
+    "tier": 2,
+    "sigungu": "증평군"
+  },
+  {
+    "name": "좌구산 휴양림",
+    "tier": 2,
+    "sigungu": "증평군"
+  },
+  {
+    "name": "증평민속체험박물관",
+    "tier": 2,
+    "sigungu": "증평군"
+  },
+  {
+    "name": "연병호선생 생가",
+    "tier": 2,
+    "sigungu": "증평군"
+  },
+  {
+    "name": "도안 은행나무길",
+    "tier": 2,
+    "sigungu": "증평군"
+  },
+  {
+    "name": "증평온천",
+    "tier": 2,
+    "sigungu": "증평군"
+  },
+  {
+    "name": "율리 석조관음보살입상",
+    "tier": 2,
+    "sigungu": "증평군"
+  },
+  {
+    "name": "농다리",
+    "tier": 2,
+    "sigungu": "진천군"
+  },
+  {
+    "name": "배티성지",
+    "tier": 2,
+    "sigungu": "진천군"
+  },
+  {
+    "name": "초평호",
+    "tier": 2,
+    "sigungu": "진천군"
+  },
+  {
+    "name": "종박물관",
+    "tier": 2,
+    "sigungu": "진천군"
+  },
+  {
+    "name": "길상사",
+    "tier": 2,
+    "sigungu": "진천군"
+  },
+  {
+    "name": "만뢰산 자연생태공원",
+    "tier": 2,
+    "sigungu": "진천군"
+  },
+  {
+    "name": "이월 화풍이월",
+    "tier": 2,
+    "sigungu": "진천군"
+  },
+  {
+    "name": "산막이옛길",
+    "tier": 2,
+    "sigungu": "괴산군"
+  },
+  {
+    "name": "고부나기 계곡",
+    "tier": 2,
+    "sigungu": "괴산군"
+  },
+  {
+    "name": "조령산 휴양림",
+    "tier": 2,
+    "sigungu": "괴산군"
+  },
+  {
+    "name": "감곡매괴성당",
+    "tier": 2,
+    "sigungu": "음성군"
+  },
+  {
+    "name": "큰산",
+    "tier": 2,
+    "sigungu": "음성군"
+  },
+  {
+    "name": "무극전적관광지",
+    "tier": 2,
+    "sigungu": "음성군"
+  },
+  {
+    "name": "수정산성",
+    "tier": 2,
+    "sigungu": "음성군"
+  },
+  {
+    "name": "구담봉",
+    "tier": 2,
+    "sigungu": "단양군"
+  },
+  {
+    "name": "옥순봉",
+    "tier": 2,
+    "sigungu": "단양군"
+  },
+  {
+    "name": "사인암",
+    "tier": 2,
+    "sigungu": "단양군"
+  },
+  {
+    "name": "하선암",
+    "tier": 2,
+    "sigungu": "단양군"
+  },
+  {
+    "name": "양림동 펭귄마을",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "무등산 무돌길",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "금당산(남구 구간)",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "광주천",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "양림동 근대역사문화마을",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "고싸움놀이테마공원",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "이기대 공원",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "부산박물관",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "광안대교 조망지",
+    "tier": 2,
+    "sigungu": "남구"
+  },
+  {
+    "name": "양산호수공원",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "패밀리랜드",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "광주 중외공원",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "금정산 고당봉",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "대천천 계곡",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "화명장미원",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "부산어촌민속관",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "만덕고개 누리길",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "구포장터",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "가람낙조길",
+    "tier": 2,
+    "sigungu": "북구"
+  },
+  {
+    "name": "월봉서원",
+    "tier": 2,
+    "sigungu": "광산구"
+  },
+  {
+    "name": "평동호반",
+    "tier": 2,
+    "sigungu": "광산구"
+  },
+  {
+    "name": "1913송정역시장",
+    "tier": 2,
+    "sigungu": "광산구"
+  },
+  {
+    "name": "황룡강 친수공원",
+    "tier": 2,
+    "sigungu": "광산구"
+  },
+  {
+    "name": "어등산",
+    "tier": 2,
+    "sigungu": "광산구"
+  },
+  {
+    "name": "본량 들녘",
+    "tier": 2,
+    "sigungu": "광산구"
+  },
+  {
+    "name": "덕진공원",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "전주 영화의 거리",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "오목대/이목대",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "전동성당",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "경기전",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "국립무형유산원",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "모악산",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "기린봉 달맞이",
+    "tier": 2,
+    "sigungu": "전주시"
+  },
+  {
+    "name": "고군산군도(선유도)",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "월명공원",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "은파호수공원",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "군산내항",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "경암동 철길마을",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "근대역사박물관",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "구암동산",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "오성산",
+    "tier": 2,
+    "sigungu": "군산시"
+  },
+  {
+    "name": "미륵사지",
+    "tier": 2,
+    "sigungu": "익산시"
+  },
+  {
+    "name": "왕궁리유적",
+    "tier": 2,
+    "sigungu": "익산시"
+  },
+  {
+    "name": "보석박물관",
+    "tier": 2,
+    "sigungu": "익산시"
+  },
+  {
+    "name": "원불교총부",
+    "tier": 2,
+    "sigungu": "익산시"
+  },
+  {
+    "name": "나바위성당",
+    "tier": 2,
+    "sigungu": "익산시"
+  },
+  {
+    "name": "고스락",
+    "tier": 2,
+    "sigungu": "익산시"
+  },
+  {
+    "name": "웅포 곰개나루",
+    "tier": 2,
+    "sigungu": "익산시"
+  },
+  {
+    "name": "내장산 국립공원",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "옥정호 구절초 테마공원",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "동학농민혁명기념관",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "정읍천",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "김명관 고택",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "전봉준 유적지",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "백정기 의사 기념관",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "충렬사",
+    "tier": 2,
+    "sigungu": "정읍시"
+  },
+  {
+    "name": "지리산 바래봉",
+    "tier": 2,
+    "sigungu": "남원시"
+  },
+  {
+    "name": "만인의총",
+    "tier": 2,
+    "sigungu": "남원시"
+  },
+  {
+    "name": "교룡산성",
+    "tier": 2,
+    "sigungu": "남원시"
+  },
+  {
+    "name": "실상사",
+    "tier": 2,
+    "sigungu": "남원시"
+  },
+  {
+    "name": "서도역",
+    "tier": 2,
+    "sigungu": "남원시"
+  },
+  {
+    "name": "국악성지",
+    "tier": 2,
+    "sigungu": "남원시"
+  },
+  {
+    "name": "김병종미술관",
+    "tier": 2,
+    "sigungu": "남원시"
+  },
+  {
+    "name": "벽골제(쌍룡)",
+    "tier": 2,
+    "sigungu": "김제시"
+  },
+  {
+    "name": "금산사",
+    "tier": 2,
+    "sigungu": "김제시"
+  },
+  {
+    "name": "망해사",
+    "tier": 2,
+    "sigungu": "김제시"
+  },
+  {
+    "name": "심포항 낙조",
+    "tier": 2,
+    "sigungu": "김제시"
+  },
+  {
+    "name": "청운사 하소백련지",
+    "tier": 2,
+    "sigungu": "김제시"
+  },
+  {
+    "name": "금만평야 일출",
+    "tier": 2,
+    "sigungu": "김제시"
+  },
+  {
+    "name": "모악산 종교성지",
+    "tier": 2,
+    "sigungu": "김제시"
+  },
+  {
+    "name": "대둔산",
+    "tier": 2,
+    "sigungu": "완주군"
+  },
+  {
+    "name": "송광사",
+    "tier": 2,
+    "sigungu": "완주군"
+  },
+  {
+    "name": "고산자연휴양림",
+    "tier": 2,
+    "sigungu": "완주군"
+  },
+  {
+    "name": "대아수목원",
+    "tier": 2,
+    "sigungu": "완주군"
+  },
+  {
+    "name": "산속여우빛",
+    "tier": 2,
+    "sigungu": "완주군"
+  },
+  {
+    "name": "마이산",
+    "tier": 2,
+    "sigungu": "진안군"
+  },
+  {
+    "name": "운일암반일암",
+    "tier": 2,
+    "sigungu": "진안군"
+  },
+  {
+    "name": "풍혈냉천",
+    "tier": 2,
+    "sigungu": "진안군"
+  },
+  {
+    "name": "성수산",
+    "tier": 2,
+    "sigungu": "진안군"
+  },
+  {
+    "name": "백운 백운동계곡",
+    "tier": 2,
+    "sigungu": "진안군"
+  },
+  {
+    "name": "덕유산 구천동",
+    "tier": 2,
+    "sigungu": "무주군"
+  },
+  {
+    "name": "적상산 단풍",
+    "tier": 2,
+    "sigungu": "무주군"
+  },
+  {
+    "name": "무주 반디랜드",
+    "tier": 2,
+    "sigungu": "무주군"
+  },
+  {
+    "name": "머루와인동굴",
+    "tier": 2,
+    "sigungu": "무주군"
+  },
+  {
+    "name": "태권도원",
+    "tier": 2,
+    "sigungu": "무주군"
+  },
+  {
+    "name": "향로산 전망대",
+    "tier": 2,
+    "sigungu": "무주군"
+  },
+  {
+    "name": "수성대",
+    "tier": 2,
+    "sigungu": "무주군"
+  },
+  {
+    "name": "의암사",
+    "tier": 2,
+    "sigungu": "장수군"
+  },
+  {
+    "name": "방화동가족휴가촌",
+    "tier": 2,
+    "sigungu": "장수군"
+  },
+  {
+    "name": "장안산",
+    "tier": 2,
+    "sigungu": "장수군"
+  },
+  {
+    "name": "수분 공소",
+    "tier": 2,
+    "sigungu": "장수군"
+  },
+  {
+    "name": "봉화산",
+    "tier": 2,
+    "sigungu": "장수군"
+  },
+  {
+    "name": "장수목장",
+    "tier": 2,
+    "sigungu": "장수군"
+  },
+  {
+    "name": "옥정호(붕어섬)",
+    "tier": 2,
+    "sigungu": "임실군"
+  },
+  {
+    "name": "사선대",
+    "tier": 2,
+    "sigungu": "임실군"
+  },
+  {
+    "name": "성수산",
+    "tier": 2,
+    "sigungu": "임실군"
+  },
+  {
+    "name": "오수의견공원",
+    "tier": 2,
+    "sigungu": "임실군"
+  },
+  {
+    "name": "강변사리길",
+    "tier": 2,
+    "sigungu": "임실군"
+  },
+  {
+    "name": "운암대교",
+    "tier": 2,
+    "sigungu": "임실군"
+  },
+  {
+    "name": "구담마을",
+    "tier": 2,
+    "sigungu": "임실군"
+  },
+  {
+    "name": "강천산",
+    "tier": 2,
+    "sigungu": "순창군"
+  },
+  {
+    "name": "회문산",
+    "tier": 2,
+    "sigungu": "순창군"
+  },
+  {
+    "name": "고추장익는마을",
+    "tier": 2,
+    "sigungu": "순창군"
+  },
+  {
+    "name": "향가유원지",
+    "tier": 2,
+    "sigungu": "순창군"
+  },
+  {
+    "name": "채계산출렁다리",
+    "tier": 2,
+    "sigungu": "순창군"
+  },
+  {
+    "name": "장군목",
+    "tier": 2,
+    "sigungu": "순창군"
+  },
+  {
+    "name": "순창장류박물관",
+    "tier": 2,
+    "sigungu": "순창군"
+  },
+  {
+    "name": "선운사",
+    "tier": 2,
+    "sigungu": "고창군"
+  },
+  {
+    "name": "고인돌유적지",
+    "tier": 2,
+    "sigungu": "고창군"
+  },
+  {
+    "name": "고창 청보리밭",
+    "tier": 2,
+    "sigungu": "고창군"
+  },
+  {
+    "name": "구시포해수욕장",
+    "tier": 2,
+    "sigungu": "고창군"
+  },
+  {
+    "name": "동호해수욕장",
+    "tier": 2,
+    "sigungu": "고창군"
+  },
+  {
+    "name": "고창갯벌",
+    "tier": 2,
+    "sigungu": "고창군"
+  },
+  {
+    "name": "운곡습지",
+    "tier": 2,
+    "sigungu": "고창군"
+  },
+  {
+    "name": "채석강/적벽강",
+    "tier": 2,
+    "sigungu": "부안군"
+  },
+  {
+    "name": "격포해수욕장",
+    "tier": 2,
+    "sigungu": "부안군"
+  },
+  {
+    "name": "솔섬",
+    "tier": 2,
+    "sigungu": "부안군"
+  },
+  {
+    "name": "유산기암",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "고도설송",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "달사모종",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "학도청람",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "금강추월",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "입암반조",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "아산춘우",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "용당귀범",
+    "tier": 2,
+    "sigungu": "목포시"
+  },
+  {
+    "name": "진남관",
+    "tier": 2,
+    "sigungu": "여수시"
+  },
+  {
+    "name": "오동도",
+    "tier": 2,
+    "sigungu": "여수시"
+  },
+  {
+    "name": "백도",
+    "tier": 2,
+    "sigungu": "여수시"
+  },
+  {
+    "name": "영취산진달래",
+    "tier": 2,
+    "sigungu": "여수시"
+  },
+  {
+    "name": "여수 밤바다(여수해양공원)",
+    "tier": 2,
+    "sigungu": "여수시"
+  },
+  {
+    "name": "습지",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "낙안읍성",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "선암사",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "순천야생차체험관",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "고인돌공원",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "주암호",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "상사호",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "와온/화포해변",
+    "tier": 2,
+    "sigungu": "순천시"
+  },
+  {
+    "name": "금성관 및 나주읍성권",
+    "tier": 2,
+    "sigungu": "나주시"
+  },
+  {
+    "name": "영산강 등대와 황포돛배",
+    "tier": 2,
+    "sigungu": "나주시"
+  },
+  {
+    "name": "반남고분군",
+    "tier": 2,
+    "sigungu": "나주시"
+  },
+  {
+    "name": "도래한옥마을",
+    "tier": 2,
+    "sigungu": "나주시"
+  },
+  {
+    "name": "나주영상테마파크",
+    "tier": 2,
+    "sigungu": "나주시"
+  },
+  {
+    "name": "영산포 근대유산 거리",
+    "tier": 2,
+    "sigungu": "나주시"
+  },
+  {
+    "name": "나주호 관광단지",
+    "tier": 2,
+    "sigungu": "나주시"
+  },
+  {
+    "name": "백운산 4대 계곡",
+    "tier": 2,
+    "sigungu": "광양시"
+  },
+  {
+    "name": "망덕포구 및 윤동주 유고 보존 정병욱 가옥",
+    "tier": 2,
+    "sigungu": "광양시"
+  },
+  {
+    "name": "광양만 야경",
+    "tier": 2,
+    "sigungu": "광양시"
+  },
+  {
+    "name": "옥룡사지 동백나무숲",
+    "tier": 2,
+    "sigungu": "광양시"
+  },
+  {
+    "name": "광양읍수와 이팝나무",
+    "tier": 2,
+    "sigungu": "광양시"
+  },
+  {
+    "name": "가마골용소",
+    "tier": 2,
+    "sigungu": "담양군"
+  },
+  {
+    "name": "금성산성",
+    "tier": 2,
+    "sigungu": "담양군"
+  },
+  {
+    "name": "삼인산",
+    "tier": 2,
+    "sigungu": "담양군"
+  },
+  {
+    "name": "메타세쿼이아 가로수길",
+    "tier": 2,
+    "sigungu": "담양군"
+  },
+  {
+    "name": "식영정/소쇄원",
+    "tier": 2,
+    "sigungu": "담양군"
+  },
+  {
+    "name": "동악조일(동악산)",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "도림효종(도림사)",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "순강청풍",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "압록귀범",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "태안두견",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "대황어화",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "통명숙우",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "설산낙조",
+    "tier": 2,
+    "sigungu": "곡성군"
+  },
+  {
+    "name": "노고단운해",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "반야봉낙조",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "피아골단풍",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "섬진강청류",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "산동 산수유꽃",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "섬진강 벚꽃길",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "오산과 사성암",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "노고단 설경",
+    "tier": 2,
+    "sigungu": "구례군"
+  },
+  {
+    "name": "팔영산",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "고흥만",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "나로도 해상경관",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "비자나무숲",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "영남 龍바위",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "금산 해안경관",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "마복산 기암절경",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "남열리 일출",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "중산 일몰",
+    "tier": 2,
+    "sigungu": "고흥군"
+  },
+  {
+    "name": "보성녹차밭",
+    "tier": 2,
+    "sigungu": "보성군"
+  },
+  {
+    "name": "소설태백산맥문학관",
+    "tier": 2,
+    "sigungu": "보성군"
+  },
+  {
+    "name": "율포관광단지",
+    "tier": 2,
+    "sigungu": "보성군"
+  },
+  {
+    "name": "일림산/용추계곡",
+    "tier": 2,
+    "sigungu": "보성군"
+  },
+  {
+    "name": "비봉 공룡알화석지",
+    "tier": 2,
+    "sigungu": "보성군"
+  },
+  {
+    "name": "주암호/서재필기념관",
+    "tier": 2,
+    "sigungu": "보성군"
+  },
+  {
+    "name": "백아산 하늘다리",
+    "tier": 2,
+    "sigungu": "화순군"
+  },
+  {
+    "name": "고인돌유적지",
+    "tier": 2,
+    "sigungu": "화순군"
+  },
+  {
+    "name": "만연산 철쭉공원",
+    "tier": 2,
+    "sigungu": "화순군"
+  },
+  {
+    "name": "연둔리 숲정이",
+    "tier": 2,
+    "sigungu": "화순군"
+  },
+  {
+    "name": "천관산",
+    "tier": 2,
+    "sigungu": "장흥군"
+  },
+  {
+    "name": "정남진 장흥 토요시장",
+    "tier": 2,
+    "sigungu": "장흥군"
+  },
+  {
+    "name": "정남진 전망대",
+    "tier": 2,
+    "sigungu": "장흥군"
+  },
+  {
+    "name": "하늘빛수목정원",
+    "tier": 2,
+    "sigungu": "장흥군"
+  },
+  {
+    "name": "강진만 생태공원",
+    "tier": 2,
+    "sigungu": "강진군"
+  },
+  {
+    "name": "영랑생가",
+    "tier": 2,
+    "sigungu": "강진군"
+  },
+  {
+    "name": "마량항",
+    "tier": 2,
+    "sigungu": "강진군"
+  },
+  {
+    "name": "백운동 원림",
+    "tier": 2,
+    "sigungu": "강진군"
+  },
+  {
+    "name": "전라병영성",
+    "tier": 2,
+    "sigungu": "강진군"
+  },
+  {
+    "name": "한국민화뮤지엄",
+    "tier": 2,
+    "sigungu": "강진군"
+  },
+  {
+    "name": "주광낙조",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "육단조범",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "우항괴룡",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "연봉녹우",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "명량노도",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "두륜연사",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "달마도솔",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "고천후조",
+    "tier": 2,
+    "sigungu": "해남군"
+  },
+  {
+    "name": "월출산 천황봉",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "월출산 구름다리",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "기찬뫼길",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "기찬랜드",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "왕인박사유적지",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "구림한옥마을",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "가야금테마파크",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "하춘화 노래비",
+    "tier": 2,
+    "sigungu": "영암군"
+  },
+  {
+    "name": "식영정",
+    "tier": 2,
+    "sigungu": "무안군"
+  },
+  {
+    "name": "회산백련지",
+    "tier": 2,
+    "sigungu": "무안군"
+  },
+  {
+    "name": "무안대교",
+    "tier": 2,
+    "sigungu": "무안군"
+  },
+  {
+    "name": "못난이 미술관",
+    "tier": 2,
+    "sigungu": "무안군"
+  },
+  {
+    "name": "영산강 사창야화",
+    "tier": 2,
+    "sigungu": "무안군"
+  },
+  {
+    "name": "황금박쥐 생태전시관",
+    "tier": 2,
+    "sigungu": "함평군"
+  },
+  {
+    "name": "밀재 일출",
+    "tier": 2,
+    "sigungu": "함평군"
+  },
+  {
+    "name": "안악해변",
+    "tier": 2,
+    "sigungu": "함평군"
+  },
+  {
+    "name": "고막천 석교",
+    "tier": 2,
+    "sigungu": "함평군"
+  },
+  {
+    "name": "4대종교 문화유적지",
+    "tier": 2,
+    "sigungu": "영광군"
+  },
+  {
+    "name": "축령산휴양림",
+    "tier": 2,
+    "sigungu": "장성군"
+  },
+  {
+    "name": "장성호",
+    "tier": 2,
+    "sigungu": "장성군"
+  },
+  {
+    "name": "필암서원",
+    "tier": 2,
+    "sigungu": "장성군"
+  },
+  {
+    "name": "입암산성",
+    "tier": 2,
+    "sigungu": "장성군"
+  },
+  {
+    "name": "금곡영화촌",
+    "tier": 2,
+    "sigungu": "장성군"
+  },
+  {
+    "name": "청해진 유적지",
+    "tier": 2,
+    "sigungu": "완도군"
+  },
+  {
+    "name": "정도리 구계등",
+    "tier": 2,
+    "sigungu": "완도군"
+  },
+  {
+    "name": "소안도 항일운동기념관",
+    "tier": 2,
+    "sigungu": "완도군"
+  },
+  {
+    "name": "장보고 기념관",
+    "tier": 2,
+    "sigungu": "완도군"
+  },
+  {
+    "name": "세방낙조",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "신비의 바닷길",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "운림산방",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "용장성",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "남진미술관",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "진도개테마공원",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "조도 만물상",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "관매도 8경",
+    "tier": 2,
+    "sigungu": "진도군"
+  },
+  {
+    "name": "퍼플섬",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "자은도 무한의 다리",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "증도 태평염전",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "임자도 튤립공원",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "비금도 하누넘해수욕장",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "도초도 수국공원",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "흑산도 상라산 전망대",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "김대중 대통령 부부 생가",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "홍도십경",
+    "tier": 2,
+    "sigungu": "신안군"
+  },
+  {
+    "name": "저도비치로드",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "봉암저수지",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "주남저수지",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "창원가로수길",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "여좌천",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "제황산공원",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "진해해양공원",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "마창대교",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "창원NC파크",
+    "tier": 2,
+    "sigungu": "창원특례시"
+  },
+  {
+    "name": "남강 의암",
+    "tier": 2,
+    "sigungu": "진주시"
+  },
+  {
+    "name": "뒤벼리",
+    "tier": 2,
+    "sigungu": "진주시"
+  },
+  {
+    "name": "새벼리",
+    "tier": 2,
+    "sigungu": "진주시"
+  },
+  {
+    "name": "망진산 봉수대",
+    "tier": 2,
+    "sigungu": "진주시"
+  },
+  {
+    "name": "비봉산의 봄",
+    "tier": 2,
+    "sigungu": "진주시"
+  },
+  {
+    "name": "월아산 해돋이",
+    "tier": 2,
+    "sigungu": "진주시"
+  },
+  {
+    "name": "진양호 노을",
+    "tier": 2,
+    "sigungu": "진주시"
+  },
+  {
+    "name": "달아공원 석양",
+    "tier": 2,
+    "sigungu": "통영시"
+  },
+  {
+    "name": "미륵산 한려수도",
+    "tier": 2,
+    "sigungu": "통영시"
+  },
+  {
+    "name": "사량도 옥녀봉",
+    "tier": 2,
+    "sigungu": "통영시"
+  },
+  {
+    "name": "연화도 용머리",
+    "tier": 2,
+    "sigungu": "통영시"
+  },
+  {
+    "name": "제승당 앞바다",
+    "tier": 2,
+    "sigungu": "통영시"
+  },
+  {
+    "name": "통영운하 야경",
+    "tier": 2,
+    "sigungu": "통영시"
+  },
+  {
+    "name": "창선-삼천포대교",
+    "tier": 2,
+    "sigungu": "사천시"
+  },
+  {
+    "name": "선진리성 벚꽃",
+    "tier": 2,
+    "sigungu": "사천시"
+  },
+  {
+    "name": "와룡산 철쭉",
+    "tier": 2,
+    "sigungu": "사천시"
+  },
+  {
+    "name": "봉명산 다솔사",
+    "tier": 2,
+    "sigungu": "사천시"
+  },
+  {
+    "name": "사천읍성 명월",
+    "tier": 2,
+    "sigungu": "사천시"
+  },
+  {
+    "name": "비토섬 갯벌",
+    "tier": 2,
+    "sigungu": "사천시"
+  },
+  {
+    "name": "클레이아크 김해미술관",
+    "tier": 2,
+    "sigungu": "김해시"
+  },
+  {
+    "name": "수로왕릉",
+    "tier": 2,
+    "sigungu": "김해시"
+  },
+  {
+    "name": "화포천습지",
+    "tier": 2,
+    "sigungu": "김해시"
+  },
+  {
+    "name": "분성산성",
+    "tier": 2,
+    "sigungu": "김해시"
+  },
+  {
+    "name": "경남도립미술관 상남지소",
+    "tier": 2,
+    "sigungu": "김해시"
+  },
+  {
+    "name": "대성동고분박물관",
+    "tier": 2,
+    "sigungu": "김해시"
+  },
+  {
+    "name": "영남루 야경",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "시례 호박소",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "표충사 사계",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "월연정 풍경",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "위양지 이팝나무",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "만어사 운해",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "종남산 진달래",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "재약산 억새",
+    "tier": 2,
+    "sigungu": "밀양시"
+  },
+  {
+    "name": "해금강",
+    "tier": 2,
+    "sigungu": "거제시"
+  },
+  {
+    "name": "바람의 언덕/신선대",
+    "tier": 2,
+    "sigungu": "거제시"
+  },
+  {
+    "name": "포로수용소 유적공원",
+    "tier": 2,
+    "sigungu": "거제시"
+  },
+  {
+    "name": "여차-홍포 해안",
+    "tier": 2,
+    "sigungu": "거제시"
+  },
+  {
+    "name": "천성산 일출",
+    "tier": 2,
+    "sigungu": "양산시"
+  },
+  {
+    "name": "오봉산 임경대",
+    "tier": 2,
+    "sigungu": "양산시"
+  },
+  {
+    "name": "대운산 시명골",
+    "tier": 2,
+    "sigungu": "양산시"
+  },
+  {
+    "name": "벽계관광지",
+    "tier": 2,
+    "sigungu": "의령군"
+  },
+  {
+    "name": "안희제 생가",
+    "tier": 2,
+    "sigungu": "의령군"
+  },
+  {
+    "name": "이병철 생가",
+    "tier": 2,
+    "sigungu": "의령군"
+  },
+  {
+    "name": "말이산고분군",
+    "tier": 2,
+    "sigungu": "함안군"
+  },
+  {
+    "name": "악양 노을",
+    "tier": 2,
+    "sigungu": "함안군"
+  },
+  {
+    "name": "연꽃테마파크",
+    "tier": 2,
+    "sigungu": "함안군"
+  },
+  {
+    "name": "합강정/반구정",
+    "tier": 2,
+    "sigungu": "함안군"
+  },
+  {
+    "name": "대평늪",
+    "tier": 2,
+    "sigungu": "함안군"
+  },
+  {
+    "name": "우포늪",
+    "tier": 2,
+    "sigungu": "창녕군"
+  },
+  {
+    "name": "화왕산",
+    "tier": 2,
+    "sigungu": "창녕군"
+  },
+  {
+    "name": "부곡온천",
+    "tier": 2,
+    "sigungu": "창녕군"
+  },
+  {
+    "name": "남지개비리길",
+    "tier": 2,
+    "sigungu": "창녕군"
+  },
+  {
+    "name": "만옥정공원",
+    "tier": 2,
+    "sigungu": "창녕군"
+  },
+  {
+    "name": "교동/송현동 고분군",
+    "tier": 2,
+    "sigungu": "창녕군"
+  },
+  {
+    "name": "영산만년교",
+    "tier": 2,
+    "sigungu": "창녕군"
+  },
+  {
+    "name": "송학동고분군",
+    "tier": 2,
+    "sigungu": "고성군"
+  },
+  {
+    "name": "장산숲",
+    "tier": 2,
+    "sigungu": "고성군"
+  },
+  {
+    "name": "금산/보리암",
+    "tier": 2,
+    "sigungu": "남해군"
+  },
+  {
+    "name": "남해대교",
+    "tier": 2,
+    "sigungu": "남해군"
+  },
+  {
+    "name": "지족해협 죽방렴",
+    "tier": 2,
+    "sigungu": "남해군"
+  },
+  {
+    "name": "독일마을",
+    "tier": 2,
+    "sigungu": "남해군"
+  },
+  {
+    "name": "남해 유배문학관",
+    "tier": 2,
+    "sigungu": "남해군"
+  },
+  {
+    "name": "남해도 해안드라이브",
+    "tier": 2,
+    "sigungu": "남해군"
+  },
+  {
+    "name": "화개장터 십리벚꽃",
+    "tier": 2,
+    "sigungu": "하동군"
+  },
+  {
+    "name": "금오산 일출",
+    "tier": 2,
+    "sigungu": "하동군"
+  },
+  {
+    "name": "쌍계사 가을",
+    "tier": 2,
+    "sigungu": "하동군"
+  },
+  {
+    "name": "하동포구",
+    "tier": 2,
+    "sigungu": "하동군"
+  },
+  {
+    "name": "야생차밭",
+    "tier": 2,
+    "sigungu": "하동군"
+  },
+  {
+    "name": "청학동마을",
+    "tier": 2,
+    "sigungu": "하동군"
+  },
+  {
+    "name": "하동 송림",
+    "tier": 2,
+    "sigungu": "하동군"
+  },
+  {
+    "name": "황매산 철쭉",
+    "tier": 2,
+    "sigungu": "산청군"
+  },
+  {
+    "name": "구형왕릉",
+    "tier": 2,
+    "sigungu": "산청군"
+  },
+  {
+    "name": "남명 조식 유적",
+    "tier": 2,
+    "sigungu": "산청군"
+  },
+  {
+    "name": "동의보감촌",
+    "tier": 2,
+    "sigungu": "산청군"
+  },
+  {
+    "name": "상림사계",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "금대지리",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "용추비경",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "화림풍류",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "칠선시류",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "서암석물",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "덕유운해",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "대봉철쭉",
+    "tier": 2,
+    "sigungu": "함양군"
+  },
+  {
+    "name": "수승대",
+    "tier": 2,
+    "sigungu": "거창군"
+  },
+  {
+    "name": "금원산 유림숲",
+    "tier": 2,
+    "sigungu": "거창군"
+  },
+  {
+    "name": "가북 산촌마을",
+    "tier": 2,
+    "sigungu": "거창군"
+  },
+  {
+    "name": "건흥산",
+    "tier": 2,
+    "sigungu": "거창군"
+  },
+  {
+    "name": "아림대",
+    "tier": 2,
+    "sigungu": "거창군"
+  },
+  {
+    "name": "가야산 해인사",
+    "tier": 2,
+    "sigungu": "합천군"
+  },
+  {
+    "name": "남명 조식 유적",
+    "tier": 2,
+    "sigungu": "합천군"
+  },
+  {
+    "name": "정양늪",
+    "tier": 2,
+    "sigungu": "합천군"
+  },
+  {
+    "name": "황매산",
+    "tier": 2,
+    "sigungu": "합천군"
+  },
+  {
+    "name": "국립해양박물관",
+    "tier": 2,
+    "sigungu": "영도구"
+  },
+  {
+    "name": "중리 해녀촌",
+    "tier": 2,
+    "sigungu": "영도구"
+  },
+  {
+    "name": "어린이대공원(성지곡)",
+    "tier": 2,
+    "sigungu": "부산진구"
+  },
+  {
+    "name": "서면일번가",
+    "tier": 2,
+    "sigungu": "부산진구"
+  },
+  {
+    "name": "황령산 봉수대",
+    "tier": 2,
+    "sigungu": "부산진구"
+  },
+  {
+    "name": "서면 롯데백화점 분수",
+    "tier": 2,
+    "sigungu": "부산진구"
+  },
+  {
+    "name": "온천천 시민공원",
+    "tier": 2,
+    "sigungu": "동래구"
+  },
+  {
+    "name": "복천동 고분군",
+    "tier": 2,
+    "sigungu": "동래구"
+  },
+  {
+    "name": "온천장",
+    "tier": 2,
+    "sigungu": "동래구"
+  },
+  {
+    "name": "미남교차로",
+    "tier": 2,
+    "sigungu": "동래구"
+  },
+  {
+    "name": "동백섬",
+    "tier": 2,
+    "sigungu": "해운대구"
+  },
+  {
+    "name": "달맞이길",
+    "tier": 2,
+    "sigungu": "해운대구"
+  },
+  {
+    "name": "영화의 거리",
+    "tier": 2,
+    "sigungu": "해운대구"
+  },
+  {
+    "name": "APEC 나루공원",
+    "tier": 2,
+    "sigungu": "해운대구"
+  },
+  {
+    "name": "미포철길",
+    "tier": 2,
+    "sigungu": "해운대구"
+  },
+  {
+    "name": "블루라인파크",
+    "tier": 2,
+    "sigungu": "해운대구"
+  },
+  {
+    "name": "감천문화마을",
+    "tier": 2,
+    "sigungu": "사하구"
+  },
+  {
+    "name": "을숙도",
+    "tier": 2,
+    "sigungu": "사하구"
+  },
+  {
+    "name": "승학산 억새",
+    "tier": 2,
+    "sigungu": "사하구"
+  },
+  {
+    "name": "무지개공단 무지개길",
+    "tier": 2,
+    "sigungu": "사하구"
+  },
+  {
+    "name": "서동미로시장",
+    "tier": 2,
+    "sigungu": "금정구"
+  },
+  {
+    "name": "요산문학관",
+    "tier": 2,
+    "sigungu": "금정구"
+  },
+  {
+    "name": "오륜대",
+    "tier": 2,
+    "sigungu": "금정구"
+  },
+  {
+    "name": "부산대학로",
+    "tier": 2,
+    "sigungu": "금정구"
+  },
+  {
+    "name": "을숙도철새도래지",
+    "tier": 2,
+    "sigungu": "강서구"
+  },
+  {
+    "name": "눌차도",
+    "tier": 2,
+    "sigungu": "강서구"
+  },
+  {
+    "name": "화명대교 전망",
+    "tier": 2,
+    "sigungu": "강서구"
+  },
+  {
+    "name": "렛츠런파크",
+    "tier": 2,
+    "sigungu": "강서구"
+  },
+  {
+    "name": "명지오션시티",
+    "tier": 2,
+    "sigungu": "강서구"
+  },
+  {
+    "name": "연산동 고분군",
+    "tier": 2,
+    "sigungu": "연제구"
+  },
+  {
+    "name": "배산",
+    "tier": 2,
+    "sigungu": "연제구"
+  },
+  {
+    "name": "화지공원",
+    "tier": 2,
+    "sigungu": "연제구"
+  },
+  {
+    "name": "연제구청",
+    "tier": 2,
+    "sigungu": "연제구"
+  },
+  {
+    "name": "배산 편백숲",
+    "tier": 2,
+    "sigungu": "연제구"
+  },
+  {
+    "name": "거제동 돌방무덤",
+    "tier": 2,
+    "sigungu": "연제구"
+  },
+  {
+    "name": "광안대교",
+    "tier": 2,
+    "sigungu": "수영구"
+  },
+  {
+    "name": "광안리 카페거리",
+    "tier": 2,
+    "sigungu": "수영구"
+  },
+  {
+    "name": "남천동 벚꽃길",
+    "tier": 2,
+    "sigungu": "수영구"
+  },
+  {
+    "name": "사상명품가로공원",
+    "tier": 2,
+    "sigungu": "사상구"
+  },
+  {
+    "name": "괘법르네시떼",
+    "tier": 2,
+    "sigungu": "사상구"
+  },
+  {
+    "name": "백양산",
+    "tier": 2,
+    "sigungu": "사상구"
+  },
+  {
+    "name": "학장천",
+    "tier": 2,
+    "sigungu": "사상구"
+  },
+  {
+    "name": "사상구청 야경",
+    "tier": 2,
+    "sigungu": "사상구"
+  },
+  {
+    "name": "감전동 벚꽃길",
+    "tier": 2,
+    "sigungu": "사상구"
+  },
+  {
+    "name": "죽성드림성당",
+    "tier": 2,
+    "sigungu": "기장군"
+  },
+  {
+    "name": "시랑대",
+    "tier": 2,
+    "sigungu": "기장군"
+  },
+  {
+    "name": "달음산",
+    "tier": 2,
+    "sigungu": "기장군"
+  },
+  {
+    "name": "호미곶 일출",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "내연산 12폭포",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "운제산 오어사",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "호미반도 해안둘레길",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "영일대&포스코 야경",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "경북수목원",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "연오랑세오녀 테마공원",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "죽장 하옥계곡",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "장기읍성&유배문화체험촌",
+    "tier": 2,
+    "sigungu": "포항시"
+  },
+  {
+    "name": "불국사/석굴암",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "동궁과 월지/첨성대",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "대릉원/황리단길",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "월정교/교촌마을",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "보문관광단지",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "경주세계문화엑스포공원",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "양동마을",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "문무대왕릉/주상절리",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "불국사 겹벚꽃/진평왕릉",
+    "tier": 2,
+    "sigungu": "경주시"
+  },
+  {
+    "name": "연화지 벚꽃",
+    "tier": 2,
+    "sigungu": "김천시"
+  },
+  {
+    "name": "오봉저수지 둘레길",
+    "tier": 2,
+    "sigungu": "김천시"
+  },
+  {
+    "name": "난함산 일출/일몰",
+    "tier": 2,
+    "sigungu": "김천시"
+  },
+  {
+    "name": "직지사 단풍나무길",
+    "tier": 2,
+    "sigungu": "김천시"
+  },
+  {
+    "name": "청암사 인현왕후길",
+    "tier": 2,
+    "sigungu": "김천시"
+  },
+  {
+    "name": "수도산 자작나무숲",
+    "tier": 2,
+    "sigungu": "김천시"
+  },
+  {
+    "name": "선어대",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "귀래정",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "서악사 저녁종소리",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "임청각 전탑",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "학가산",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "제비원",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "도산서원",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "하회마을",
+    "tier": 2,
+    "sigungu": "안동시"
+  },
+  {
+    "name": "낙동강 구미보",
+    "tier": 2,
+    "sigungu": "구미시"
+  },
+  {
+    "name": "송정자연휴양림",
+    "tier": 2,
+    "sigungu": "구미시"
+  },
+  {
+    "name": "태조산",
+    "tier": 2,
+    "sigungu": "구미시"
+  },
+  {
+    "name": "낙동강 체육공원",
+    "tier": 2,
+    "sigungu": "구미시"
+  },
+  {
+    "name": "신라불교초전지",
+    "tier": 2,
+    "sigungu": "구미시"
+  },
+  {
+    "name": "장천 산동 참생태숲",
+    "tier": 2,
+    "sigungu": "구미시"
+  },
+  {
+    "name": "부석사",
+    "tier": 2,
+    "sigungu": "영주시"
+  },
+  {
+    "name": "소백산",
+    "tier": 2,
+    "sigungu": "영주시"
+  },
+  {
+    "name": "소수서원",
+    "tier": 2,
+    "sigungu": "영주시"
+  },
+  {
+    "name": "풍기온천",
+    "tier": 2,
+    "sigungu": "영주시"
+  },
+  {
+    "name": "치산관광지",
+    "tier": 2,
+    "sigungu": "영천시"
+  },
+  {
+    "name": "보현산댐 짚와이어",
+    "tier": 2,
+    "sigungu": "영천시"
+  },
+  {
+    "name": "영천댐 벚꽃길",
+    "tier": 2,
+    "sigungu": "영천시"
+  },
+  {
+    "name": "별별미술마을",
+    "tier": 2,
+    "sigungu": "영천시"
+  },
+  {
+    "name": "경천대",
+    "tier": 2,
+    "sigungu": "상주시"
+  },
+  {
+    "name": "백화산 호국길",
+    "tier": 2,
+    "sigungu": "상주시"
+  },
+  {
+    "name": "상주보/낙단보",
+    "tier": 2,
+    "sigungu": "상주시"
+  },
+  {
+    "name": "낙동강 자전거길",
+    "tier": 2,
+    "sigungu": "상주시"
+  },
+  {
+    "name": "상주국제승마장",
+    "tier": 2,
+    "sigungu": "상주시"
+  },
+  {
+    "name": "새재계곡",
+    "tier": 2,
+    "sigungu": "문경시"
+  },
+  {
+    "name": "용추계곡",
+    "tier": 2,
+    "sigungu": "문경시"
+  },
+  {
+    "name": "쌍용계곡",
+    "tier": 2,
+    "sigungu": "문경시"
+  },
+  {
+    "name": "운달계곡",
+    "tier": 2,
+    "sigungu": "문경시"
+  },
+  {
+    "name": "경천호",
+    "tier": 2,
+    "sigungu": "문경시"
+  },
+  {
+    "name": "봉암사 백운대",
+    "tier": 2,
+    "sigungu": "문경시"
+  },
+  {
+    "name": "팔공산 갓바위",
+    "tier": 2,
+    "sigungu": "경산시"
+  },
+  {
+    "name": "영남대 민속촌",
+    "tier": 2,
+    "sigungu": "경산시"
+  },
+  {
+    "name": "삼성현역사문화공원",
+    "tier": 2,
+    "sigungu": "경산시"
+  },
+  {
+    "name": "문천지",
+    "tier": 2,
+    "sigungu": "경산시"
+  },
+  {
+    "name": "경산수성테마공원",
+    "tier": 2,
+    "sigungu": "경산시"
+  },
+  {
+    "name": "백자산",
+    "tier": 2,
+    "sigungu": "경산시"
+  },
+  {
+    "name": "대구한의대 한학촌",
+    "tier": 2,
+    "sigungu": "경산시"
+  },
+  {
+    "name": "고운사 천년숲길",
+    "tier": 2,
+    "sigungu": "의성군"
+  },
+  {
+    "name": "사촌리 가로숲",
+    "tier": 2,
+    "sigungu": "의성군"
+  },
+  {
+    "name": "만취당",
+    "tier": 2,
+    "sigungu": "의성군"
+  },
+  {
+    "name": "조문국 사적지",
+    "tier": 2,
+    "sigungu": "의성군"
+  },
+  {
+    "name": "금성산 고분군",
+    "tier": 2,
+    "sigungu": "의성군"
+  },
+  {
+    "name": "산운 생태공원",
+    "tier": 2,
+    "sigungu": "의성군"
+  },
+  {
+    "name": "나계리 향나무",
+    "tier": 2,
+    "sigungu": "의성군"
+  },
+  {
+    "name": "수정사 계곡",
+    "tier": 2,
+    "sigungu": "청송군"
+  },
+  {
+    "name": "주왕산",
+    "tier": 2,
+    "sigungu": "청송군"
+  },
+  {
+    "name": "절골계곡",
+    "tier": 2,
+    "sigungu": "청송군"
+  },
+  {
+    "name": "월매계곡",
+    "tier": 2,
+    "sigungu": "청송군"
+  },
+  {
+    "name": "신성계곡",
+    "tier": 2,
+    "sigungu": "청송군"
+  },
+  {
+    "name": "일월산 일출",
+    "tier": 2,
+    "sigungu": "영양군"
+  },
+  {
+    "name": "선바위/남이포",
+    "tier": 2,
+    "sigungu": "영양군"
+  },
+  {
+    "name": "곡강 척금대",
+    "tier": 2,
+    "sigungu": "영양군"
+  },
+  {
+    "name": "감천 측백수림",
+    "tier": 2,
+    "sigungu": "영양군"
+  },
+  {
+    "name": "맹동산",
+    "tier": 2,
+    "sigungu": "영양군"
+  },
+  {
+    "name": "상계/하계폭포",
+    "tier": 2,
+    "sigungu": "영양군"
+  },
+  {
+    "name": "해맞이공원",
+    "tier": 2,
+    "sigungu": "영덕군"
+  },
+  {
+    "name": "삼사해상공원",
+    "tier": 2,
+    "sigungu": "영덕군"
+  },
+  {
+    "name": "도천숲",
+    "tier": 2,
+    "sigungu": "영덕군"
+  },
+  {
+    "name": "팔각산",
+    "tier": 2,
+    "sigungu": "영덕군"
+  },
+  {
+    "name": "사월의 복사꽃",
+    "tier": 2,
+    "sigungu": "영덕군"
+  },
+  {
+    "name": "죽도산",
+    "tier": 2,
+    "sigungu": "영덕군"
+  },
+  {
+    "name": "나옹왕사 사적비",
+    "tier": 2,
+    "sigungu": "영덕군"
+  },
+  {
+    "name": "신라지 연꽃",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "용각산 안개비",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "유천 고기잡이 불빛",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "운문사 새벽종소리",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "낙대폭포",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "공암풍벽",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "남산 일출",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "자계서원 보름달",
+    "tier": 2,
+    "sigungu": "청도군"
+  },
+  {
+    "name": "대가야박물관",
+    "tier": 2,
+    "sigungu": "고령군"
+  },
+  {
+    "name": "지산동 고분군",
+    "tier": 2,
+    "sigungu": "고령군"
+  },
+  {
+    "name": "대가야 문화누리",
+    "tier": 2,
+    "sigungu": "고령군"
+  },
+  {
+    "name": "개경포 공원",
+    "tier": 2,
+    "sigungu": "고령군"
+  },
+  {
+    "name": "어북실",
+    "tier": 2,
+    "sigungu": "고령군"
+  },
+  {
+    "name": "대가야교",
+    "tier": 2,
+    "sigungu": "고령군"
+  },
+  {
+    "name": "가야산 만물상",
+    "tier": 2,
+    "sigungu": "성주군"
+  },
+  {
+    "name": "성밖숲",
+    "tier": 2,
+    "sigungu": "성주군"
+  },
+  {
+    "name": "세종대왕자태실",
+    "tier": 2,
+    "sigungu": "성주군"
+  },
+  {
+    "name": "한개마을",
+    "tier": 2,
+    "sigungu": "성주군"
+  },
+  {
+    "name": "비닐하우스 들판",
+    "tier": 2,
+    "sigungu": "성주군"
+  },
+  {
+    "name": "가산산성",
+    "tier": 2,
+    "sigungu": "칠곡군"
+  },
+  {
+    "name": "송정자연휴양림",
+    "tier": 2,
+    "sigungu": "칠곡군"
+  },
+  {
+    "name": "가산바위",
+    "tier": 2,
+    "sigungu": "칠곡군"
+  },
+  {
+    "name": "한티순례길",
+    "tier": 2,
+    "sigungu": "칠곡군"
+  },
+  {
+    "name": "왜관철교",
+    "tier": 2,
+    "sigungu": "칠곡군"
+  },
+  {
+    "name": "삼강주막",
+    "tier": 2,
+    "sigungu": "예천군"
+  },
+  {
+    "name": "금당실마을",
+    "tier": 2,
+    "sigungu": "예천군"
+  },
+  {
+    "name": "곤충생태원",
+    "tier": 2,
+    "sigungu": "예천군"
+  },
+  {
+    "name": "석송령",
+    "tier": 2,
+    "sigungu": "예천군"
+  },
+  {
+    "name": "청량산",
+    "tier": 2,
+    "sigungu": "봉화군"
+  },
+  {
+    "name": "백두대간수목원",
+    "tier": 2,
+    "sigungu": "봉화군"
+  },
+  {
+    "name": "산수유마을",
+    "tier": 2,
+    "sigungu": "봉화군"
+  },
+  {
+    "name": "낙동강세평길",
+    "tier": 2,
+    "sigungu": "봉화군"
+  },
+  {
+    "name": "불영사 계곡",
+    "tier": 2,
+    "sigungu": "울진군"
+  },
+  {
+    "name": "백암온천",
+    "tier": 2,
+    "sigungu": "울진군"
+  },
+  {
+    "name": "도동항 석양",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "저동 어화",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "사동 명월",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "남양 설경",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "태하 낙조",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "추산 용수",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "나리동 홍업",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "알봉 홍엽",
+    "tier": 2,
+    "sigungu": "울릉군"
+  },
+  {
+    "name": "사봉낙조(사라봉)",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "귤림추색(제주목 관아)",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "산포조어(산지등대)",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "고수목마(한라산 초원)",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "도두동 무지개 해안도로",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "월령선인장군락",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "사려니 숲길",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "삼양 검은모래해변",
+    "tier": 2,
+    "sigungu": "제주시"
+  },
+  {
+    "name": "성산일출봉",
+    "tier": 2,
+    "sigungu": "서귀포시"
+  },
+  {
+    "name": "영실기암",
+    "tier": 2,
+    "sigungu": "서귀포시"
+  },
+  {
+    "name": "주상절리대",
+    "tier": 2,
+    "sigungu": "서귀포시"
+  },
+  {
+    "name": "황우지 12동굴",
+    "tier": 2,
+    "sigungu": "서귀포시"
+  }
+]

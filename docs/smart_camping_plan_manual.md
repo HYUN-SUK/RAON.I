@@ -145,7 +145,7 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
     **카테고리별 거리 감점 계수 (CategoryFactor):**
     | 카테고리 | 감점 계수 (per km) | 설계 의도 |
     |---|---|---|
-    | RESTAURANT | 1.0 | 품질이 좋다면 10km 이상 이동 가능 |
+    | RESTAURANT | 3.0 | 품질이 좋더라도 가까운 동선을 우선함 |
     | MART | 2.0 | 마트는 접근 편의성이 중요 |
     | SPOT | 0.5 | 명소는 20km 거리도 방문 가치 충분 |
     | HOSPITAL | 5.0 | 의료시설은 가장 가까운 곳이 최우선 |
@@ -454,4 +454,29 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 - **모니터링**: 관리자 페이지(Admin Dashboard) 내 'Automation Logs'에서 7대 핵심 지표(신규, 갱신, 총계 등)를 실시간 확인 가능합니다.
 
 ---
-**라온아이 프로젝트 SSOT 기준 문서 - 9 카테고리 8단계 개편 및 Phase 11/12 하이브리드 엔진 통합 사양**
+
+## 10. 랜드마크(프리스티지) 데이터 유지보수 가이드
+
+전국 랜드마크(Tier 1/2) 리스트가 변경되거나 추가되었을 때, 마스터 DB에 이를 반영하는 방법입니다.
+
+### 10.1 리스트 파일 업데이트
+다음 두 파일을 최신 내용으로 수정합니다.
+- `korea_tourism_100_official.md` (한국관광 100선 - Tier 1)
+- `regional_8_sceneries_FULL.md` (전국 지자체 8경 - Tier 2)
+
+### 10.2 DB 동기화 실행
+터미널에서 아래 명령어를 실행하면, 수정된 리스트를 기반으로 마스터 DB의 명칭이 정제되고 등급 표식(`prestige_tier`)이 일괄 갱신됩니다.
+
+```bash
+# 1. DB 명칭 정제 (필요 시 실행)
+node scratch/national-name-cleaner.mjs
+
+# 2. 프리스티지 등급 동기화 (필수 실행)
+node scripts/sync-prestige-metadata.mjs
+```
+
+### 10.3 확인 방법
+마스터 DB(`master_places`)의 `raw_data` 필드 내에 `prestige_tier` 값이 정상적으로 주입되었는지 확인합니다. 이후 실행되는 모든 스마트 캠핑 캐싱 로직은 이 값을 기준으로 자동 점수(100/80)를 부여합니다.
+
+---
+**라온아이 프로젝트 SSOT 기준 문서 - 10 랜드마크 통합 및 Phase 12 하이브리드 엔진 동기화 사양**
