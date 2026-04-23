@@ -595,7 +595,7 @@ async function main() {
                             const matchKey = `${cleanName}|${normSigungu}`;
                             
                             const dynamicTier = PRESTIGE_MAP.get(matchKey);
-                            const dbTier = spot.raw_data?.prestige_tier; // [v11.9.15] SSOT Sync
+                            const dbTier = spot.raw_data?.tier; // [v11.9.15] SSOT Sync (tier로 수정)
                             const tier = dbTier || dynamicTier;
 
                             if (tier === 1) prestigeScore = 100;      // 한국관광 100선
@@ -631,7 +631,7 @@ async function main() {
                             const confMultiplier = 0.80 + (0.20 * (hasRel + hasConc + hasPrestige));
 
                             // D. Final Quality Score Synthesis
-                            const qualityScore = (prestigeScore * 0.6) + (combinedPop * 0.4);
+                            const qualityScore = (prestigeScore * 0.5) + (combinedPop * 0.5); // [v11.9.15] Final SSOT: 50:50 Hybrid Synthesis
                             finalSpotMap.set(spot.id, Math.round(qualityScore * confMultiplier));
                         });
 
@@ -705,7 +705,7 @@ async function main() {
                     else if (tier === 2) prestigeScore = 80;
                 }
 
-                return { ...x, prestigeScore, final_score: parseFloat((x.trust_score + prestigeScore - penalty).toFixed(2)) };
+                return { ...x, prestigeScore, final_score: parseFloat((x.trust_score - penalty).toFixed(2)) };
             }).sort((a,b) => {
                 if (b.final_score !== a.final_score) return b.final_score - a.final_score;
                 return a.distance - b.distance;

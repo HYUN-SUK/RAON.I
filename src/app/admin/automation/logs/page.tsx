@@ -72,6 +72,7 @@ const INITIAL_API_LIST: ApiStatus[] = [
   { name: 'GOCAMPING', label: '고캠핑', status: 'PENDING', duration_ms: 0 },
   { name: 'SPOT_TMAP_REL', label: '명소 연관(Tmap)', status: 'PENDING', duration_ms: 0 },
   { name: 'SPOT_KT_CONCTR', label: '명소 집중률(KT)', status: 'PENDING', duration_ms: 0 },
+  { name: 'KTO_POPULARITY', label: '명소(지자체 인기도)', status: 'PENDING', duration_ms: 0 },
   { name: 'GEMINI', label: 'AI(제미나이)', status: 'PENDING', duration_ms: 0 }
 ];
 
@@ -160,6 +161,7 @@ export default function AutomationLogsPage() {
     if (name.includes('FESTIVAL')) return <Ticket className="w-5 h-5" />;
     if (name.includes('TMAP')) return <Share2 className="w-5 h-5 text-indigo-500" />;
     if (name.includes('KT_CONCTR')) return <TrendingUp className="w-5 h-5 text-rose-500" />;
+    if (name.includes('KTO_POPULARITY')) return <Share2 className="w-5 h-5 text-blue-500" />;
     if (name.includes('KAKAO')) return <Wifi className="w-5 h-5" />;
     return <Wifi className="w-5 h-5" />;
   };
@@ -263,7 +265,7 @@ export default function AutomationLogsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {apiStatus.map((s: any, i: number) => (
+                      {apiStatus.filter((s: any) => s.category !== 'SPOT').map((s: any, i: number) => (
                         <tr key={i} className="hover:bg-gray-50/30 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center">

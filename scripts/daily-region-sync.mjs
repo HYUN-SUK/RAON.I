@@ -347,14 +347,15 @@ async function dailyRegionSync() {
 
         for (const reg of regionMap) {
             try {
+                const baseYm = await findLatestBaseYm();
                 const params = new URLSearchParams({ 
-                    serviceKey: PUBLIC_API_KEY, 
+                    serviceKey: TOUR_API_KEY, 
                     numOfRows: '100', 
                     pageNo: '1', 
                     MobileOS: 'ETC', 
                     MobileApp: 'RAONAI', 
                     _type: 'json', 
-                    baseYm: CACHED_BASE_YM || '202504',
+                    baseYm: baseYm,
                     areaCd: reg.areaCode, 
                     signguCd: reg.sigunguCode 
                 });
