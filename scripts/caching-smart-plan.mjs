@@ -36,38 +36,41 @@ function loadPrestigeLists() {
                 const names = line.includes('5대 고궁') ? ['경복궁', '창덕궁', '창경궁', '덕수궁', '경희궁'] : [line.replace('- ', '').split('(')[0].trim()];
                 names.forEach(n => {
                     const key = getCleanString(n) + '|' + (currentSigungu || currentSido).replace(/[시군구]$/, '');
-                    PRESTIGE_MAP.set(key, 1);
+                    PRESTIGE_MAP.set(key, { tier: 1, name: '한국관광 100선' });
                 });
             }
         });
 
         // Tier 2 Parsing (v11.9.15 Ultimate Fix)
-        let t2Sigungu = '';
+        let t2Sigungu = '', t2BadgeName = '';
         t2.split('\n').forEach(line => {
             const h3Match = line.match(/^### (.+?)(?:\s+\(|$)/);
             const listMatch = line.match(/^- \*\*(.+?)(?:\(.+?\))?:\*\*\s+(.+)$/);
             
             if (h3Match) {
                 t2Sigungu = h3Match[1].trim().replace(/[시군구]$/, '');
+                t2BadgeName = `${t2Sigungu} 8경`;
             } else if (listMatch) {
                 const sigungu = listMatch[1].trim().replace(/[시군구]$/, '');
+                const badge = `${sigungu} 8경`;
                 const names = listMatch[2].split(',').map(n => n.trim()).filter(n => n);
                 names.forEach(n => {
                     const key = getCleanString(n) + '|' + sigungu;
-                    PRESTIGE_MAP.set(key, 2);
+                    PRESTIGE_MAP.set(key, { tier: 2, name: badge });
                 });
             } else if (line.startsWith('- ') && t2Sigungu) {
                 const names = line.replace('- ', '').split(',').map(n => n.trim()).filter(n => n);
                 names.forEach(n => {
                     const key = getCleanString(n) + '|' + t2Sigungu;
-                    PRESTIGE_MAP.set(key, 2);
+                    PRESTIGE_MAP.set(key, { tier: 2, name: t2BadgeName });
                 });
             }
         });
         
         // Debug: Check if Yesan is loaded
         const checkKey = getCleanString('예당호 출렁다리') + '|예산';
-        console.log(`🔍 Map Check [예당호 출렁다리|예산]: ${PRESTIGE_MAP.has(checkKey) ? '✅ FOUND' : '❌ NOT FOUND'} (Tier: ${PRESTIGE_MAP.get(checkKey)})`);
+        const match = PRESTIGE_MAP.get(checkKey);
+        console.log(`🔍 Map Check [예당호 출렁다리|예산]: ${match ? '✅ FOUND' : '❌ NOT FOUND'} (Badge: ${match?.name})`);
         console.log(`✅ Prestige List Loaded: ${PRESTIGE_MAP.size} items mapped.`);
     } catch (e) {
         console.warn(`⚠️ Failed to load prestige lists: ${e.message}`);
@@ -186,6 +189,8 @@ async function performSpatialMerge() {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function upsertAndTrack(items, metricObj) {
+    if (!items || items.length === 0) return;
+    items = items.filter(it => it.id && it.name && it.address && it.lat && it.lng);
     if (items.length === 0) return;
     
     const ids = items.map(it => it.id);
@@ -347,6 +352,7 @@ async function main() {
     metrics.dynamic_api.GAS_STATION.existing = gCount || 0;
     metrics.dynamic_api.FESTIVAL.existing = fCount || 0;
 
+    let rawCandidatesForAudit = []; // [v11.9.19] Moved outside to aggregate all clusters
     for (let idx = 0; idx < clusters.length; idx++) {
         const cluster = clusters[idx];
         const address = cluster.address || '';
@@ -503,6 +509,15 @@ async function main() {
             await sleep(500);
         }
 
+        // [v11.9.18] Step A-1. Persist Dynamically Fetched Data BEFORE RPC/Audit
+        for (const cat of ['HOSPITAL', 'FESTIVAL', 'GAS_STATION']) {
+            const items = Array.from(aggregatedMaster[cat].values());
+            if (items.length > 0) {
+                console.log(`  💾 Persisting ${items.length} dynamically fetched ${cat} items...`);
+                await upsertAndTrack(items, metrics.dynamic_api[cat]);
+            }
+        }
+
         const categories = [
             { cat: 'RESTAURANT', limit: 300, rawLimit: 1000 },
             { cat: 'SPOT', limit: 300, rawLimit: 500 },
@@ -513,10 +528,11 @@ async function main() {
         ];
 
         let clusterCands = [];
-        let rawCandidatesForAudit = []; // spot_final_audit.md 출력용
+        // [v11.9.19] Audit Report Scope: Move outside cluster loop to aggregate all data
 
         for (const { cat, limit, rawLimit } of categories) {
             const map = new Map();
+            let globalSpotScores = null; // Cache scores for SPOT within this cluster/category
             
             // 각 대표 지점별로 RPC 호출하여 광범위하게 수집 (데이터 편향 완벽 해소)
             for (const pt of repPoints) {
@@ -544,133 +560,155 @@ async function main() {
 
                     let s = 10; // Base score
                     if (cat === 'RESTAURANT') {
-                        if (item.api_source === 'LX_RESTAURANT') s += 50;
-                        if (item.api_source === 'SMBA_BAEK') s += 50;
-                        if (item.api_source === 'LOCALDATA_RESTAURANT_GOOD') s += 30;
-                        if (item.api_source === 'SAFE_RESTAURANT' || item.api_source === 'LOCALDATA_RESTAURANT_SAFE') s += 20;
+                        if (!item.raw_data) item.raw_data = {};
+                        if (!item.raw_data.badges) item.raw_data.badges = [];
                         
-                        // [v11.9.13] 인증 없는 식당(10점)은 리스트에서 즉시 제거
+                        // [Cumulative Certification Logic]
+                        if (item.api_source === 'LX_RESTAURANT') { s += 50; item.raw_data.badges.push('LX인증맛집'); }
+                        if (item.api_source === 'SMBA_BAEK') { s += 50; item.raw_data.badges.push('백년가게'); }
+                        if (item.api_source === 'LOCALDATA_RESTAURANT_GOOD') { s += 30; item.raw_data.badges.push('모범음식점'); }
+                        if (item.api_source === 'SAFE_RESTAURANT' || item.api_source === 'LOCALDATA_RESTAURANT_SAFE') { s += 20; item.raw_data.badges.push('안심식당'); }
+                        
+                        // [Vignette keywords for premium branding]
+                        const nameCerts = { '미쉐린': '미쉐린 가이드', '미슐랭': '미쉐린 가이드', '블루리본': '블루리본', '식신': '식신 더베스트' };
+                        for (const [kw, b] of Object.entries(nameCerts)) {
+                            if (name.includes(kw)) {
+                                if (!item.raw_data.badges.includes(b)) {
+                                    item.raw_data.badges.push(b);
+                                    if (s < 110) s = 110; 
+                                }
+                            }
+                        }
+
                         if (s <= 10) continue; 
                     } else if (cat === 'MART') {
-                        if (/하나로|NH/.test(name)) s = 90;
-                        else if (/이마트|롯데마트|홈플러스|트레이더스|노브랜드/.test(name)) s = isSunday ? 65 : 80;
-                        else s = 65;
+                        // [v11.9.22] Big Brands first but EXCLUDING SSM sub-brands
+                        if (/이마트|롯데마트|홈플러스|트레이더스|하나로|NH/.test(name)) {
+                            if (/에브리데이|익스프레스|노브랜드|GS더프레시/.test(name)) s = 70;
+                            else s = 80;
+                        } else {
+                            s = 70; // General Mart/Super
+                        }
                         if (/아울렛|패션|의류|디지털|하이마트|전자랜드|가구|가전|타운/.test(name)) continue;
                     } else if (cat === 'SPOT') {
-                        // [v2.6 Hybrid Engine] Prestige & Popularity Synthesis
-                        const spotData = data.filter(d => d.category === 'SPOT');
-                        const inScoreMap = new Map();
-                        const freqMap = new Map();
-                        const nameToId = new Map();
-                        spotData.forEach(x => nameToId.set(x.name.trim(), x.id));
-
-                        // 1. Popularity Sub-Metrics Pre-calculation (TMAP Centrality)
-                        spotData.forEach(spot => {
-                            const relations = spot.raw_data?.tmap_related || [];
-                            relations.forEach(rel => {
-                                const targetId = nameToId.get(rel.target.trim());
-                                if (targetId) {
-                                    const score = 1 / Math.log2(rel.rank + 1);
-                                    inScoreMap.set(targetId, (inScoreMap.get(targetId) || 0) + score);
-                                    freqMap.set(targetId, (freqMap.get(targetId) || 0) + 1);
-                                }
+                        // [v2.6 Hybrid Engine] Prestige & Popularity Synthesis (v11.9.18 Optimized Outside)
+                        if (!globalSpotScores) {
+                            const spotData = data.filter(d => d.category === 'SPOT');
+                            const inScoreMap = new Map();
+                            const freqMap = new Map();
+                            const nameToId = new Map();
+                            spotData.forEach(x => nameToId.set(x.name.trim(), x.id));
+                            
+                            spotData.forEach(spot => {
+                                (spot.raw_data?.tmap_related || []).forEach(rel => {
+                                    const targetId = nameToId.get(rel.target.trim());
+                                    if (targetId) {
+                                        const score = 1 / Math.log2(rel.rank + 1);
+                                        inScoreMap.set(targetId, (inScoreMap.get(targetId) || 0) + score);
+                                        freqMap.set(targetId, (freqMap.get(targetId) || 0) + 1);
+                                    }
+                                });
                             });
-                        });
 
-                        // 2. Hybrid Score Synthesis (60% Prestige / 40% Popularity)
-                        const finalSpotMap = new Map();
-                        const sortedRawRelated = spotData.map(s => {
-                            const relatedSum = inScoreMap.get(s.id) || 0;
-                            const freq = freqMap.get(s.id) || 0;
-                            return { id: s.id, val: relatedSum * (1 + Math.log1p(freq)) };
-                        }).sort((a,b) => b.val - a.val);
+                            const sortedRawRelated = spotData.map(s => ({ id: s.id, val: (inScoreMap.get(s.id) || 0) * (1 + Math.log1p(freqMap.get(s.id) || 0)) })).sort((a,b) => b.val - a.val);
 
-                        spotData.forEach(spot => {
-                            // A. Prestige Component (60%)
-                            let prestigeScore = 15; // Base
-                            
-                            // [v11.9.15] Runtime Matching (Dynamic)
-                            const cleanName = getCleanString(spot.name);
-                            const normSigungu = (spot.sigungu || '').replace(/[시군구]$/, '');
-                            const matchKey = `${cleanName}|${normSigungu}`;
-                            
-                            const dynamicTier = PRESTIGE_MAP.get(matchKey);
-                            const dbTier = spot.raw_data?.tier; // [v11.9.15] SSOT Sync (tier로 수정)
-                            const tier = dbTier || dynamicTier;
+                            globalSpotScores = new Map();
+                            spotData.forEach(spot => {
+                                let prestigeScore = 15;
+                                const cleanName = getCleanString(spot.name);
+                                const normSigungu = (spot.sigungu || extractSigungu(spot.address) || '').replace(/[시군구]$/, '');
+                                const matchKey = `${cleanName}|${normSigungu}`;
+                                const dynamicMatch = PRESTIGE_MAP.get(matchKey);
+                                const dbTier = spot.raw_data?.tier;
+                                const tier = dbTier || dynamicMatch?.tier;
+                                
+                                if (!spot.raw_data) spot.raw_data = { badges: [] };
+                                if (!spot.raw_data.badges) spot.raw_data.badges = [];
+                                
+                                if (dynamicMatch) {
+                                    if (!spot.raw_data.badges.includes(dynamicMatch.name)) spot.raw_data.badges.push(dynamicMatch.name);
+                                } else if (dbTier) {
+                                    const badge = dbTier === 1 ? '한국관광 100선' : '지역 8경';
+                                    if (!spot.raw_data.badges.includes(badge)) spot.raw_data.badges.push(badge);
+                                }
 
-                            if (tier === 1) prestigeScore = 100;      // 한국관광 100선
-                            else if (tier === 2) prestigeScore = 80;  // 지역 8경
-                            
-                            if (dynamicTier) console.log(`   ✨ Prestige Match: ${spot.name} (${spot.sigungu}) -> Tier ${dynamicTier}`);
+                                if (tier === 1) prestigeScore = 100; else if (tier === 2) prestigeScore = 80;
 
-                            // B. Popularity Component (40%) - [KTO 60 : TMAP 20 : KT 20]
-                            // B-1. KTO Official (Fallback to TMAP dynamic rank if missing)
-                            let ktoScore = 10; 
-                            const ktoRank = spot.raw_data?.kto_official?.rank;
-                            if (ktoRank && ktoRank <= 100) {
-                                ktoScore = 100 * (1 - (ktoRank - 1) / 100);
-                            } else {
-                                // Fallback: Use pool-wide TMAP rank
-                                const tmapRank = sortedRawRelated.findIndex(x => x.id === spot.id);
-                                ktoScore = ((sortedRawRelated.length - 1 - tmapRank) / Math.max(1, sortedRawRelated.length - 1)) * 100;
-                            }
-
-                            // B-2. TMAP Centrality (20%)
-                            const tmapIdx = sortedRawRelated.findIndex(x => x.id === spot.id);
-                            const tmapScore = ((sortedRawRelated.length - 1 - tmapIdx) / Math.max(1, sortedRawRelated.length - 1)) * 100;
-
-                            // B-3. KT Concentration / Demographic (20%)
-                            const ktScore = parseFloat(spot.raw_data?.kt_concentration || spot.raw_data?.popularity_v2?.base_pop || 10);
-
-                            const combinedPop = (ktoScore * 0.6) + (tmapScore * 0.2) + (ktScore * 0.2);
-                            
-                            // C. Confidence Multiplier (Consistency check)
-                            const hasRel = (spot.raw_data?.tmap_related?.length > 0) ? 0.4 : 0;
-                            const hasConc = (spot.raw_data?.kt_concentration > 0 || spot.raw_data?.popularity_v2?.base_pop > 0) ? 0.3 : 0;
-                            const hasPrestige = tier ? 0.3 : 0;
-                            const confMultiplier = 0.80 + (0.20 * (hasRel + hasConc + hasPrestige));
-
-                            // D. Final Quality Score Synthesis
-                            const qualityScore = (prestigeScore * 0.5) + (combinedPop * 0.5); // [v11.9.15] Final SSOT: 50:50 Hybrid Synthesis
-                            finalSpotMap.set(spot.id, Math.round(qualityScore * confMultiplier));
-                        });
-
-                        s = finalSpotMap.get(item.id) || 10;
-                    } else if (cat === 'HOSPITAL') {
-                        if (item.api_source === 'NMC_HOSPITAL' || /종합병원|의료원/.test(name)) s = 100;
-                        else if (/내과|소아|외과|가정/.test(name) || /내과|소아|외과|가정/.test(induty)) s = 70;
-                        else if (/보건소|보건지소/.test(name)) s = 50;
-                        if (/응급|야간|24시/.test(name)) s += 40;
-                        if (/성형|피부|비만|치과|한의원|안과|산후|요양/.test(name)) continue;
-                    } else if (cat === 'FESTIVAL') {
-                        s = 45;
-                        const start = item.raw_data?.eventstartdate;
-                        const end = item.raw_data?.eventenddate;
-                        if (start && end) {
-                            const targetDateNum = parseInt(targetStr.replace(/-/g, ''));
-                            if (targetDateNum < parseInt(start) - 3 || targetDateNum > parseInt(end) + 2) continue;
+                                let ktoScore = 10;
+                                const ktoRank = spot.raw_data?.kto_official?.rank;
+                                if (ktoRank && ktoRank <= 100) ktoScore = 100 * (1 - (ktoRank - 1) / 100);
+                                else {
+                                    const tmapRank = sortedRawRelated.findIndex(x => x.id === spot.id);
+                                    ktoScore = ((sortedRawRelated.length - 1 - tmapRank) / Math.max(1, sortedRawRelated.length - 1)) * 100;
+                                }
+                                const tmapIdx = sortedRawRelated.findIndex(x => x.id === spot.id);
+                                const tmapScore = ((sortedRawRelated.length - 1 - tmapIdx) / Math.max(1, sortedRawRelated.length - 1)) * 100;
+                                const ktScore = parseFloat(spot.raw_data?.kt_concentration || spot.raw_data?.popularity_v2?.base_pop || 10);
+                                const combinedPop = (ktoScore * 0.6) + (tmapScore * 0.2) + (ktScore * 0.2);
+                                const confMultiplier = 0.8 + (0.2 * ((spot.raw_data?.tmap_related?.length > 0 ? 0.4 : 0) + (ktScore > 10 ? 0.3 : 0) + (tier ? 0.3 : 0)));
+                                globalSpotScores.set(spot.id, Math.round(((prestigeScore * 0.5) + (combinedPop * 0.5)) * confMultiplier));
+                            });
                         }
+                        s = globalSpotScores.get(item.id) || 10;
+                    } else if (cat === 'HOSPITAL') {
+                        if (!item.raw_data) item.raw_data = {};
+                        if (!item.raw_data.badges) item.raw_data.badges = [];
+
+                        const indutyH = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
+                        if (item.api_source === 'NMC_HOSPITAL' || /종합병원|의료원|대학병원/.test(name)) {
+                            s = 100;
+                            if (item.api_source === 'NMC_HOSPITAL') item.raw_data.badges.push('응급의료센터');
+                            if (/종합병원/.test(name)) item.raw_data.badges.push('종합병원');
+                            if (/의료원/.test(name)) item.raw_data.badges.push('의료원');
+                            if (/대학병원/.test(name)) item.raw_data.badges.push('대학병원');
+                        }
+                        else if (/의원|병원/.test(name) || /내과|소아|외과|가정|일반|마취|응급|야간/.test(name) || /의원|병원/.test(indutyH)) s = 50;
+                        else if (/보건소|보건지소/.test(name)) s = 40;
+                        
+                        if (/응급|야간|24시/.test(name)) {
+                            s += 40;
+                            if (!item.raw_data.badges.includes('24시 응급')) item.raw_data.badges.push('24시 응급');
+                        }
+                        if (/성형|피부|비만|치과|한의원|안과|산후|요양|동물/.test(name)) continue;
                     } else if (cat === 'GAS_STATION') {
                         s = 50;
                         const priceMatch = item.description?.match(/(\d+)원/);
                         if (priceMatch) s += Math.max(0, Math.floor((2500 - parseInt(priceMatch[1])) / 10));
+                    } else if (cat === 'FESTIVAL') {
+                        s = 45;
+                        const start = item.raw_data?.eventstartdate;
+                        const end = item.raw_data?.eventenddate;
+                        if (!start || !end) continue; 
+                        
+                        const targetDateNum = parseInt(targetStr.replace(/-/g, ''));
+                        if (targetDateNum < parseInt(start) - 3 || targetDateNum > parseInt(end) + 2) continue;
                     }
 
-                    const k = `${name}|${item.address}`;
+                    // [v11.9.21] MART는 주소를 키로 사용 (상호 미세 불일치 중복 제거)
+                    const k = (cat === 'MART') ? `ADDR|${item.address}` : `${name}|${item.address}`;
                     const dist = item.distance_meters || 99999;
                     if (map.has(k)) { 
-                        // [User Request] 동일 장소(상호+주소) 중복 시 점수 누적 합산
-                        if(cat==='RESTAURANT') map.get(k).trust_score += (s - 10); 
-                        else if(s > map.get(k).trust_score) map.get(k).trust_score = s; 
-                        // 거리는 해당 캠핑장에서 가장 가까운 거리 유지
-                        if(dist < map.get(k).distance) map.get(k).distance = dist;
+                        const existing = map.get(k);
+                        if(cat==='RESTAURANT') {
+                            existing.trust_score += (s - 10); 
+                            const oldBadges = existing.raw_data?.badges || [];
+                            const newBadges = item.raw_data?.badges || [];
+                            existing.raw_data.badges = Array.from(new Set([...oldBadges, ...newBadges]));
+                        }
+                        else if(cat === 'MART') {
+                            if(name.length > existing.name.length) existing.name = name;
+                            if(s > existing.trust_score) existing.trust_score = s;
+                        }
+                        else if(s > existing.trust_score) existing.trust_score = s; 
+                        
+                        if(dist < existing.distance) existing.distance = dist;
                     } else {
-                        map.set(k, { ...item, trust_score: s, distance: dist });
+                        map.set(k, { ...item, name, trust_score: s, distance: dist });
                     }
                 }
             }
 
-            const penaltyMap = { RESTAURANT: 3.0, SPOT: 0.5, MART: 2.0, HOSPITAL: 5.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
+            const penaltyMap = { RESTAURANT: 3.0, SPOT: 2.0, MART: 3.0, HOSPITAL: 3.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
             
             // [v11.9.13] Stage 1: Raw Aggregated Result (Sort by Quality only for logging)
             const stage1 = Array.from(map.values()).sort((a,b) => b.trust_score - a.trust_score);
@@ -735,30 +773,6 @@ async function main() {
             clusterCands.push(...sliced);
         }
 
-        // [v11.9.13] Audit Report Upgrade: Dual Section (Stage 1 vs Stage 2)
-        if (rawCandidatesForAudit.length > 0) {
-            let auditContent = `# 3일 전 스마트 플랜 캐싱 정밀 분석 리포트 (${targetStr})\n\n`;
-            
-            auditContent += `## [SECTION 1] 1차 쿼터 DB 수집 리스트 (품질 우선 정제 전)\n`;
-            auditContent += `| 번호 | 카테고리 | 이름 | 품질 점수 | 주소 | 거리(m) |\n`;
-            auditContent += `| :--- | :--- | :--- | :---: | :--- | :---: |\n`;
-            let s1Idx = 1;
-            rawCandidatesForAudit.filter(x => x.stage === 1).forEach(c => {
-                auditContent += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${c.address} | ${Math.round(c.distance)} |\n`;
-            });
-
-            auditContent += `\n---\n\n## [SECTION 2] 2차 쿼터 하이브리드 최종 리스트 (품질-거리 최적화)\n`;
-            auditContent += `| 번호 | 카테고리 | 이름 | 최종 점수 | 명성 점수 | 품질 점수 | 거리(km) | 주소 |\n`;
-            auditContent += `| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n`;
-            let s2Idx = 1;
-            rawCandidatesForAudit.filter(x => x.stage === 2).forEach(c => {
-                auditContent += `| ${s2Idx++} | ${c.category} | ${c.name} | **${c.final_score}** | ${c.prestigeScore || 0} | ${c.trust_score} | ${(c.distance/1000).toFixed(1)} | ${c.address} |\n`;
-            });
-
-            fs.writeFileSync('spot_final_audit.md', auditContent, 'utf-8');
-            console.log(`📝 Dual-stage Audit list generated: spot_final_audit.md`);
-        }
-
         for (let i = 0; i < clusterCands.length; i += 40) {
             const chunk = clusterCands.slice(i, i + 40);
             await Promise.all(chunk.map(async (c) => {
@@ -819,6 +833,32 @@ async function main() {
 
     // Update dynamic API final total counts (Post-Upsert)
     const { count: finalH } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
+    
+    // [v11.9.19] Final Audit Write (Outside loops)
+    if (rawCandidatesForAudit.length > 0) {
+        let auditContent = `# 3일 전 스마트 플랜 캐싱 정밀 분석 리포트 (통합)\n\n`;
+        
+        auditContent += `## [SECTION 1] 1차 쿼터 DB 수집 리스트 (품질 우선 정제 전)\n`;
+        auditContent += `| 번호 | 카테고리 | 이름 | 품질 점수 | 인증/명성 | 주소 | 거리(m) |\n`;
+        auditContent += `| :--- | :--- | :--- | :---: | :---: | :--- | :---: |\n`;
+        let s1Idx = 1;
+        rawCandidatesForAudit.filter(x => x.stage === 1).forEach(c => {
+            const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
+            auditContent += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${Math.round(c.distance)} |\n`;
+        });
+
+        auditContent += `\n---\n\n## [SECTION 2] 2차 쿼터 하이브리드 최종 리스트 (품질-거리 최적화)\n`;
+        auditContent += `| 번호 | 카테고리 | 이름 | 최종 점수 | 명성 점수 | 품질 점수 | 인증/명성 | 거리(km) | 주소 |\n`;
+        auditContent += `| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n`;
+        let s2Idx = 1;
+        rawCandidatesForAudit.filter(x => x.stage === 2).forEach(c => {
+            const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
+            auditContent += `| ${s2Idx++} | ${c.category} | ${c.name} | **${c.final_score}** | ${c.prestigeScore || 0} | ${c.trust_score} | ${b} | ${(c.distance/1000).toFixed(1)} | ${c.address} |\n`;
+        });
+
+        fs.writeFileSync('spot_final_audit.md', auditContent, 'utf-8');
+        console.log(`📝 Unified Audit list generated: spot_final_audit.md (${rawCandidatesForAudit.length} items)`);
+    }
     const { count: finalG } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
     const { count: finalF } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
     metrics.dynamic_api.HOSPITAL.total = finalH || 0;
