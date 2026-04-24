@@ -188,6 +188,15 @@ async function performSpatialMerge() {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// [v11.9.23] Haversine 거리 계산 (km 단위)
+function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 async function upsertAndTrack(items, metricObj) {
     if (!items || items.length === 0) return;
     items = items.filter(it => it.id && it.name && it.address && it.lat && it.lng);
@@ -288,7 +297,7 @@ async function main() {
     
     loadPrestigeLists(); // [v11.9.15] Load MD lists once at start
     
-    const { data: schedules } = await supabase.from('user_schedules').select('campground_lat, campground_lng, campground_name, campground_address').eq('check_in', targetStr);
+    const { data: schedules } = await supabase.from('user_schedules').select('id, campground_lat, campground_lng, campground_name, campground_address').eq('check_in', targetStr);
     
     if (!schedules?.length) {
         console.log(`  ℹ️ No reservations found for ${targetStr}. Skipping...`);
@@ -331,8 +340,9 @@ async function main() {
         if (cluster) { 
             if(!cluster.names.includes(campground_name)) cluster.names.push(campground_name); 
             cluster.points.push({ lat, lng });
+            cluster.reservations.push({ id: s.id, lat, lng, name: campground_name });
         }
-        else clusters.push({ points: [{ lat, lng }], names: [campground_name], address: address });
+        else clusters.push({ points: [{ lat, lng }], names: [campground_name], address: address, reservations: [{ id: s.id, lat, lng, name: campground_name }] });
     }
 
     metrics.clusters = clusters.length;
@@ -353,6 +363,7 @@ async function main() {
     metrics.dynamic_api.FESTIVAL.existing = fCount || 0;
 
     let rawCandidatesForAudit = []; // [v11.9.19] Moved outside to aggregate all clusters
+    let allCandidateRows = []; // [v11.9.23] Stage 4 결과 전체 클러스터 누적
     for (let idx = 0; idx < clusters.length; idx++) {
         const cluster = clusters[idx];
         const address = cluster.address || '';
@@ -518,24 +529,26 @@ async function main() {
             }
         }
 
+        // [v11.9.23] 1차 쿼터: 지점별 독립 스코어링 후 병합
         const categories = [
-            { cat: 'RESTAURANT', limit: 300, rawLimit: 1000 },
-            { cat: 'SPOT', limit: 300, rawLimit: 500 },
-            { cat: 'MART', limit: 20, rawLimit: 100 },
-            { cat: 'HOSPITAL', limit: 15, rawLimit: 100 },
-            { cat: 'GAS_STATION', limit: 10, rawLimit: 100 },
-            { cat: 'FESTIVAL', limit: 15, rawLimit: 100 }
+            { cat: 'RESTAURANT', limit: 50 },
+            { cat: 'SPOT', limit: 50 },
+            { cat: 'MART', limit: 20 },
+            { cat: 'HOSPITAL', limit: 10 },
+            { cat: 'GAS_STATION', limit: 10 },
+            { cat: 'FESTIVAL', limit: 10 }
         ];
 
         let clusterCands = [];
         // [v11.9.19] Audit Report Scope: Move outside cluster loop to aggregate all data
 
-        for (const { cat, limit, rawLimit } of categories) {
-            const map = new Map();
-            let globalSpotScores = null; // Cache scores for SPOT within this cluster/category
+        for (const { cat, limit } of categories) {
+            const unionPool = new Map(); // [v11.9.23] 지점별 1차 쿼터 결과를 병합하는 최종 풀
             
             // 각 대표 지점별로 RPC 호출하여 광범위하게 수집 (데이터 편향 완벽 해소)
             for (const pt of repPoints) {
+                const localMap = new Map(); // [v11.9.23] 지점별 독립 map
+                let globalSpotScores = null;
                 let data = null;
                 for (let attempt = 1; attempt <= 2; attempt++) {
                     const result = await supabase.rpc('get_master_places_in_radius_v2', { 
@@ -687,8 +700,8 @@ async function main() {
                     // [v11.9.21] MART는 주소를 키로 사용 (상호 미세 불일치 중복 제거)
                     const k = (cat === 'MART') ? `ADDR|${item.address}` : `${name}|${item.address}`;
                     const dist = item.distance_meters || 99999;
-                    if (map.has(k)) { 
-                        const existing = map.get(k);
+                    if (localMap.has(k)) { 
+                        const existing = localMap.get(k);
                         if(cat==='RESTAURANT') {
                             existing.trust_score += (s - 10); 
                             const oldBadges = existing.raw_data?.badges || [];
@@ -703,60 +716,46 @@ async function main() {
                         
                         if(dist < existing.distance) existing.distance = dist;
                     } else {
-                        map.set(k, { ...item, name, trust_score: s, distance: dist });
+                        localMap.set(k, { ...item, name, trust_score: s, distance: dist });
+                    }
+                }
+
+                // [v11.9.23] 지점별 1차 쿼터: trust_score 순 정렬 → 상위 N개
+                const localStage1 = Array.from(localMap.values())
+                    .sort((a, b) => b.trust_score - a.trust_score)
+                    .slice(0, limit);
+
+                // unionPool에 병합 (중복 시 높은 점수 유지 + 인증 합산)
+                for (const item of localStage1) {
+                    const uk = (cat === 'MART') ? `ADDR|${item.address}` : `${item.name}|${item.address}`;
+                    if (unionPool.has(uk)) {
+                        const ex = unionPool.get(uk);
+                        if (cat === 'RESTAURANT') {
+                            if (item.trust_score > ex.trust_score) ex.trust_score = item.trust_score;
+                            const oldB = ex.raw_data?.badges || [];
+                            const newB = item.raw_data?.badges || [];
+                            ex.raw_data.badges = Array.from(new Set([...oldB, ...newB]));
+                        } else if (item.trust_score > ex.trust_score) {
+                            unionPool.set(uk, item);
+                        }
+                    } else {
+                        unionPool.set(uk, item);
                     }
                 }
             }
 
-            const penaltyMap = { RESTAURANT: 3.0, SPOT: 2.0, MART: 3.0, HOSPITAL: 3.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
-            
-            // [v11.9.13] Stage 1: Raw Aggregated Result (Sort by Quality only for logging)
-            const stage1 = Array.from(map.values()).sort((a,b) => b.trust_score - a.trust_score);
-            rawCandidatesForAudit.push(...stage1.map(x => ({ ...x, stage: 1 })));
-
-            // [v11.9.13] Stage 2: Hybrid Priority (Quality + Prestige - Distance Penalty)
-            const stage2 = Array.from(map.values()).map(x => {
-                const distKm = x.distance / 1000;
-                const penalty = distKm * (penaltyMap[cat] || 1.0);
-                
-                let prestigeScore = 0;
-                if (cat === 'SPOT') {
-                    // [v11.9.15] SSOT-first Scoring: Trust the Unified Master DB Tier
-                    let tier = x.raw_data?.tier;
-                    
-                    // Fallback to real-time matching only if DB has no tier (Safety Net)
-                    if (!tier) {
-                        const rawSigungu = x.sigungu || extractSigungu(x.address) || '';
-                        const cleanName = getCleanString(x.name);
-                        const normSigungu = rawSigungu.replace(/[시군구]$/, '');
-                        const matchKey = `${cleanName}|${normSigungu}`;
-                        tier = PRESTIGE_MAP.get(matchKey);
-                        
-                        if (!tier) {
-                            for (let [key, val] of PRESTIGE_MAP.entries()) {
-                                if (key.startsWith(cleanName + '|')) { tier = val; break; }
-                            }
-                        }
-                    }
-                    
-                    if (tier === 1) prestigeScore = 100;
-                    else if (tier === 2) prestigeScore = 80;
-                }
-
-                return { ...x, prestigeScore, final_score: parseFloat((x.trust_score - penalty).toFixed(2)) };
-            }).sort((a,b) => {
-                if (b.final_score !== a.final_score) return b.final_score - a.final_score;
-                return a.distance - b.distance;
-            });
+            // [v11.9.23] Union Pool 출력: 지점별 1차 쿼터 병합 결과
+            const poolArray = Array.from(unionPool.values()).sort((a, b) => b.trust_score - a.trust_score);
+            rawCandidatesForAudit.push(...poolArray.map(x => ({ ...x, stage: 1 })));
 
             // 마트 부족 시 편의점 폴백 (Step B-Fallback)
-            if (cat === 'MART' && stage2.length < 3) {
-                console.log(`  -> Mart low (${stage2.length}), triggering CS2 fallback...`);
+            if (cat === 'MART' && poolArray.length < 3) {
+                console.log(`  -> Mart low (${poolArray.length}), triggering CS2 fallback...`);
                 try {
-                    const fallbackRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${lngs[0]}&y=${lats[0]}&radius=10000&size=5`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
+                    const fallbackRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${repPoints[0].lng}&y=${repPoints[0].lat}&radius=10000&size=5`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
                     if (fallbackRes.documents) {
                         fallbackRes.documents.forEach(d => {
-                            stage2.push({
+                            poolArray.push({
                                 id: generateFactId('KAKAO_CS2', d.place_name, d.address_name),
                                 api_source: 'KAKAO_CS2', category: 'MART',
                                 name: d.place_name, address: d.address_name, trust_score: 40, isFallback: true, distance: parseInt(d.distance),
@@ -767,10 +766,8 @@ async function main() {
                 } catch {}
             }
 
-            const sliced = stage2.slice(0, limit);
-            rawCandidatesForAudit.push(...sliced.map(x => ({ ...x, stage: 2 })));
-            metrics.quota_flow[cat].quota += sliced.length;
-            clusterCands.push(...sliced);
+            metrics.quota_flow[cat].quota += poolArray.length;
+            clusterCands.push(...poolArray);
         }
 
         for (let i = 0; i < clusterCands.length; i += 40) {
@@ -796,6 +793,57 @@ async function main() {
                     totalFactMap.set(safeFact.id, safeFact);
                 }
             }));
+        }
+
+        // ━━━━ [v11.9.23] Stage 4: 예약자별 개인화 (거리감점 + 2차 쿼터) ━━━━
+        const penaltyFactors = { RESTAURANT: 3.0, SPOT: 2.0, MART: 3.0, HOSPITAL: 3.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
+        const secondQuota = { RESTAURANT: 15, SPOT: 15, MART: 12, HOSPITAL: 6, GAS_STATION: 6, FESTIVAL: 6 };
+        const verifiedPool = Array.from(totalFactMap.values());
+        const candidateRows = [];
+
+        console.log(`  📊 Stage 4: Personalizing ${verifiedPool.length} verified facts for ${cluster.reservations.length} reservations...`);
+
+        for (const reservation of cluster.reservations) {
+            for (const [cat, quota] of Object.entries(secondQuota)) {
+                const catItems = verifiedPool.filter(f => f.category === cat);
+                const scored = catItems.map(item => {
+                    const distKm = haversineKm(reservation.lat, reservation.lng, item.lat, item.lng);
+                    const penalty = distKm * (penaltyFactors[cat] || 1.0);
+                    return {
+                        ...item,
+                        distance_km: distKm,
+                        final_score: parseFloat((item.trust_score - penalty).toFixed(2))
+                    };
+                })
+                .sort((a, b) => b.final_score - a.final_score)
+                .slice(0, quota);
+
+                candidateRows.push(...scored.map(s => ({
+                    reservation_id: reservation.id,
+                    fact_id: s.id,
+                    category: cat,
+                    name: s.name,
+                    address: s.address,
+                    lat: s.lat,
+                    lng: s.lng,
+                    quality_score: s.trust_score,
+                    distance_meters: Math.round(s.distance_km * 1000),
+                    penalty_score: parseFloat((s.trust_score - s.final_score).toFixed(2)),
+                    final_score: s.final_score,
+                    raw_data: s.raw_data
+                })));
+            }
+        }
+
+        // Stage 4 Bulk Upsert to smart_plan_candidates
+        if (candidateRows.length > 0) {
+            for (let i = 0; i < candidateRows.length; i += 500) {
+                const { error: candErr } = await supabase.from('smart_plan_candidates')
+                    .upsert(candidateRows.slice(i, i + 500), { onConflict: 'reservation_id,fact_id' });
+                if (candErr) console.error(`  ❌ Candidate Upsert Error: ${candErr.message}`);
+            }
+            console.log(`  ✅ Stage 4 Complete: ${candidateRows.length} candidates for ${cluster.reservations.length} reservations.`);
+            allCandidateRows.push(...candidateRows);
         }
 
         // [v11.9.8 Optimization] 6.3 Throttling - 3s Delay between clusters
@@ -858,6 +906,52 @@ async function main() {
 
         fs.writeFileSync('spot_final_audit.md', auditContent, 'utf-8');
         console.log(`📝 Unified Audit list generated: spot_final_audit.md (${rawCandidatesForAudit.length} items)`);
+
+        // [v11.9.23] 1차 쿼터 전체 리스트 별도 파일
+        let q1Content = `# 1차 쿼터 전체 리스트 (Union Pool — 품질순)\n`;
+        q1Content += `> 생성: ${new Date().toISOString()} | 대상: ${targetStr}\n\n`;
+        const catOrder = ['RESTAURANT', 'SPOT', 'MART', 'HOSPITAL', 'GAS_STATION', 'FESTIVAL'];
+        for (const cat of catOrder) {
+            const items = rawCandidatesForAudit.filter(x => x.stage === 1 && x.category === cat);
+            q1Content += `## ${cat} (${items.length}건)\n`;
+            q1Content += `| # | 이름 | 품질점수 | 인증/뱃지 | 주소 | 거리(km) |\n`;
+            q1Content += `| :---: | :--- | :---: | :--- | :--- | :---: |\n`;
+            items.forEach((c, i) => {
+                const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
+                q1Content += `| ${i+1} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${(c.distance/1000).toFixed(1)} |\n`;
+            });
+            q1Content += `\n`;
+        }
+        fs.writeFileSync('1st_quota_raw_list.md', q1Content, 'utf-8');
+        console.log(`📝 1st Quota list: 1st_quota_raw_list.md`);
+    }
+
+    // [v11.9.23] Stage 4 개인화 결과 리포트
+    if (allCandidateRows.length > 0) {
+        let q2Content = `# Stage 4 개인화 최종 리스트 (예약자별 거리감점 적용)\n`;
+        q2Content += `> 생성: ${new Date().toISOString()} | 대상: ${targetStr}\n`;
+        q2Content += `> 감점계수: RESTAURANT=3.0, SPOT=2.0, MART=3.0, HOSPITAL=3.0, GAS_STATION=2.0, FESTIVAL=1.0\n\n`;
+
+        const reservationIds = [...new Set(allCandidateRows.map(r => r.reservation_id))];
+        for (const rid of reservationIds) {
+            const rows = allCandidateRows.filter(r => r.reservation_id === rid);
+            const rName = rows[0]?.name || rid;
+            q2Content += `---\n## 예약자: ${rid}\n\n`;
+            const catOrder2 = ['RESTAURANT', 'SPOT', 'MART', 'HOSPITAL', 'GAS_STATION', 'FESTIVAL'];
+            for (const cat of catOrder2) {
+                const catRows = rows.filter(r => r.category === cat);
+                if (catRows.length === 0) continue;
+                q2Content += `### ${cat} (${catRows.length}건)\n`;
+                q2Content += `| # | 이름 | 품질점수 | 거리(km) | 감점 | 최종점수 | 주소 |\n`;
+                q2Content += `| :---: | :--- | :---: | :---: | :---: | :---: | :--- |\n`;
+                catRows.forEach((c, i) => {
+                    q2Content += `| ${i+1} | ${c.name} | ${c.quality_score} | ${(c.distance_meters/1000).toFixed(1)} | -${c.penalty_score} | **${c.final_score}** | ${c.address} |\n`;
+                });
+                q2Content += `\n`;
+            }
+        }
+        fs.writeFileSync('2nd_quota_final_list.md', q2Content, 'utf-8');
+        console.log(`📝 2nd Quota (personalized): 2nd_quota_final_list.md (${allCandidateRows.length} items, ${reservationIds.length} reservations)`);
     }
     const { count: finalG } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
     const { count: finalF } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
