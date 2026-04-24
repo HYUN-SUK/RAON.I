@@ -120,7 +120,15 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
-      const res = await fetch(url, options);
+      const mergedOptions = {
+        ...options,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.data.go.kr/',
+          ...(options.headers || {})
+        }
+      };
+      const res = await fetch(url, mergedOptions);
       
       // 500 에러 처리
       if (!res.ok) {
@@ -193,7 +201,7 @@ async function findLatestBaseYm() {
     });
     
     try {
-      const url = `http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?${params.toString()}`;
+      const url = `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?${params.toString()}`;
       const data = await fetchWithRetry(url, {}, 1); // Only 1 retry for probe
       if (data?.response?.body?.totalCount > 0) {
         console.log(`   ✅ Latest valid baseYm found: ${ym}`);
@@ -260,8 +268,7 @@ async function dailyRegionSync() {
       SPOT_KTO_POP: { label: 'SPOT (KTO 공식 순위)', ...baseStat(), note: '기초지자체 중심 인기도' },
       LX: { label: 'RESTAURANT (LX공사맛집)', ...baseStat(), note: '전국 직원 추천 기반' },
       SPOT_TMAP_REL: { label: '명소 연관(Tmap)', ...baseStat(), note: '인기도 지표 1' },
-      SPOT_KT_CONCTR: { label: '명소 집중률(KT)', ...baseStat(), note: '인기도 지표 2' },
-      SPOT_READCOUNT: { label: 'SPOT (인기도 갱신)', ...baseStat(), note: '전국 순환 정밀갱신' }
+      SPOT_KT_CONCTR: { label: '명소 집중률(KT)', ...baseStat(), note: '인기도 지표 2' }
     }
   };
   // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 별칭 통합 집계)
@@ -359,7 +366,7 @@ async function dailyRegionSync() {
                     areaCd: reg.areaCode, 
                     signguCd: reg.sigunguCode 
                 });
-                const url = `http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?${params.toString()}`;
+                const url = `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?${params.toString()}`;
                 const res = await fetchWithRetry(url);
                 const data = await res.json();
                 const items = data.response?.body?.items?.item || [];
@@ -374,8 +381,9 @@ async function dailyRegionSync() {
                         p_patch: { kto_official: { rank, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } }
                     });
                 }
+                stats.categories.SPOT_KTO_POP.fetched.active += items.length;
                 stats.categories.SPOT_KTO_POP.updated.active += items.length;
-                console.log(`      ✅ Updated ${items.length} items for ${reg.areaCode}/${reg.sigunguCode}.`);
+                console.log(`      ✅ Received/Updated ${items.length} items for ${reg.areaCode}/${reg.sigunguCode}.`);
             } catch (e) {
                 console.error(`      ⚠️ Failed KTO Sync for ${reg.areaCode}/${reg.sigunguCode}: ${e.message}`);
             }
@@ -597,13 +605,13 @@ async function updateSpotPopularity(targetSido, stats) {
 
     // (A) TMAP Associated Attractions
     try {
-      const tmapUrl = `http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=${areaCd}&signguCd=${signguCd}&baseYm=${baseYm}&numOfRows=1000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
+      const tmapUrl = `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=${areaCd}&signguCd=${signguCd}&baseYm=${baseYm}&numOfRows=1000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
       const tmapData = await fetchWithRetry(tmapUrl, {}, 2);
       const tmapItems = tmapData?.response?.body?.items?.item;
       const tmapList = Array.isArray(tmapItems) ? tmapItems : (tmapItems ? [tmapItems] : []);
 
       // (B) KT Concentration Rate
-      const ktUrl = `http://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=${areaCd}&signguCd=${signguCd}&numOfRows=1000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
+      const ktUrl = `https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=${areaCd}&signguCd=${signguCd}&numOfRows=1000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
       const ktData = await fetchWithRetry(ktUrl, {}, 2);
       const ktItems = ktData?.response?.body?.items?.item;
       const ktList = Array.isArray(ktItems) ? ktItems : (ktItems ? [ktItems] : []);
