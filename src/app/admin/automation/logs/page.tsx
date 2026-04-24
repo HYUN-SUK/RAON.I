@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -54,27 +54,27 @@ interface AutomationLog {
 }
 
 const INITIAL_API_LIST: ApiStatus[] = [
-  { name: 'MART_LARGE', label: '留덊듃(??뺣쭏??', status: 'PENDING', duration_ms: 0 },
-  { name: 'MART_SSM', label: '留덊듃(以?洹쒕え)', status: 'PENDING', duration_ms: 0 },
-  { name: 'MART_SUPER', label: '留덊듃(湲고??앺뭹)', status: 'PENDING', duration_ms: 0 },
-  { name: 'REST_LOCALDATA', label: '?앸떦(紐⑤쾾?뚯떇??', status: 'PENDING', duration_ms: 0 },
-  { name: 'REST_BAEK', label: '?앸떦(諛깅뀈媛寃?', status: 'PENDING', duration_ms: 0 },
-  { name: 'REST_SAFE', label: '?앸떦(?덉떖?앸떦)', status: 'PENDING', duration_ms: 0 },
-  { name: 'LX_RESTAURANT', label: '?앸떦(LX怨듭궗留쏆쭛)', status: 'PENDING', duration_ms: 0 },
-  { name: 'TOUR_SPOT', label: '愿愿묐챸??TourAPI)', status: 'PENDING', duration_ms: 0 },
-  { name: 'FESTIVAL', label: '異뺤젣(TourAPI)', status: 'PENDING', duration_ms: 0 },
-  { name: 'HOSPITAL', label: '蹂묒썝(NMC)', status: 'PENDING', duration_ms: 0 },
-  { name: 'GAS_OPINET', label: '二쇱쑀???ㅽ뵾??', status: 'PENDING', duration_ms: 0 },
-  { name: 'WEATHER_SHORT', label: '?좎뵪(?④린)', status: 'PENDING', duration_ms: 0 },
-  { name: 'WEATHER_MID', label: '?좎뵪(以묎린)', status: 'PENDING', duration_ms: 0 },
-  { name: 'KAKAO_LOCAL', label: '移댁뭅?ㅻ줈而?, status: 'PENDING', duration_ms: 0 },
-  { name: 'KAKAO_MAP', label: '移댁뭅?ㅻ㏊', status: 'PENDING', duration_ms: 0 },
-  { name: 'GOCAMPING', label: '怨좎틺??, status: 'PENDING', duration_ms: 0 },
-  { name: 'SPOT_TMAP_REL', label: '紐낆냼 ?곌?(Tmap)', status: 'PENDING', duration_ms: 0 },
-  { name: 'SPOT_KT_CONCTR', label: '紐낆냼 吏묒쨷瑜?KT)', status: 'PENDING', duration_ms: 0 },
-  { name: 'KTO_POPULARITY', label: '紐낆냼(吏?먯껜 ?멸린??', status: 'PENDING', duration_ms: 0 },
-  { name: 'SPOT_KTO_POP', label: '紐낆냼(KTO 怨듭떇 ?쒖쐞)', status: 'PENDING', duration_ms: 0 },
-  { name: 'GEMINI', label: 'AI(?쒕??섏씠)', status: 'PENDING', duration_ms: 0 }
+  { name: 'MART_LARGE', label: '마트(대형마트)', status: 'PENDING', duration_ms: 0 },
+  { name: 'MART_SSM', label: '마트(준대규모)', status: 'PENDING', duration_ms: 0 },
+  { name: 'MART_SUPER', label: '마트(기타식품)', status: 'PENDING', duration_ms: 0 },
+  { name: 'REST_LOCALDATA', label: '식당(모범음식점)', status: 'PENDING', duration_ms: 0 },
+  { name: 'REST_BAEK', label: '식당(백년가게)', status: 'PENDING', duration_ms: 0 },
+  { name: 'REST_SAFE', label: '식당(안심식당)', status: 'PENDING', duration_ms: 0 },
+  { name: 'LX_RESTAURANT', label: '식당(LX공사맛집)', status: 'PENDING', duration_ms: 0 },
+  { name: 'TOUR_SPOT', label: '관광명소(TourAPI)', status: 'PENDING', duration_ms: 0 },
+  { name: 'FESTIVAL', label: '축제(TourAPI)', status: 'PENDING', duration_ms: 0 },
+  { name: 'HOSPITAL', label: '병원(NMC)', status: 'PENDING', duration_ms: 0 },
+  { name: 'GAS_OPINET', label: '주유소(오피넷)', status: 'PENDING', duration_ms: 0 },
+  { name: 'WEATHER_SHORT', label: '날씨(단기)', status: 'PENDING', duration_ms: 0 },
+  { name: 'WEATHER_MID', label: '날씨(중기)', status: 'PENDING', duration_ms: 0 },
+  { name: 'KAKAO_LOCAL', label: '카카오로컬', status: 'PENDING', duration_ms: 0 },
+  { name: 'KAKAO_MAP', label: '카카오맵', status: 'PENDING', duration_ms: 0 },
+  { name: 'GOCAMPING', label: '고캠핑', status: 'PENDING', duration_ms: 0 },
+  { name: 'SPOT_TMAP_REL', label: '명소 연관(Tmap)', status: 'PENDING', duration_ms: 0 },
+  { name: 'SPOT_KT_CONCTR', label: '명소 집중률(KT)', status: 'PENDING', duration_ms: 0 },
+  { name: 'KTO_POPULARITY', label: '명소(지자체 인기도)', status: 'PENDING', duration_ms: 0 },
+  { name: 'SPOT_KTO_POP', label: '명소(KTO 공식 순위)', status: 'PENDING', duration_ms: 0 },
+  { name: 'GEMINI', label: 'AI(제미나이)', status: 'PENDING', duration_ms: 0 }
 ];
 
 export default function AutomationLogsPage() {
@@ -131,11 +131,11 @@ export default function AutomationLogsPage() {
         setLocalApiStatus(result.data);
         await fetchLogs();
       } else {
-        alert(result.error || 'API ?먭? 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
+        alert(result.error || 'API 점검 중 오류가 발생했습니다.');
       }
     } catch (e) {
       console.error(e);
-      alert('API ?먭? ?붿껌???ㅽ뙣?덉뒿?덈떎.');
+      alert('API 점검 요청에 실패했습니다.');
     } finally {
       setCheckingHealth(false);
     }
@@ -144,11 +144,11 @@ export default function AutomationLogsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'SUCCESS':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800">?깃났</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800">성공</span>;
       case 'FAILURE':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">?ㅽ뙣</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">실패</span>;
       default:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-800">?湲?/span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-800">대기</span>;
     }
   };
 
@@ -192,8 +192,8 @@ export default function AutomationLogsPage() {
                     <span className="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-lg">+{s.new_count || 0}</span>
                   </div>
                   <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-50 text-[10px] text-gray-400 font-bold">
-                    <span>?議? {(s.existing_count || 0).toLocaleString()}</span>
-                    <span>媛깆떊: {s.updated_count || 0}</span>
+                    <span>대조: {(s.existing_count || 0).toLocaleString()}</span>
+                    <span>갱신: {s.updated_count || 0}</span>
                   </div>
                 </div>
               ))}
@@ -205,18 +205,18 @@ export default function AutomationLogsPage() {
           <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
             <div className="flex justify-between items-center mb-10">
               <h4 className="text-xl font-black text-gray-900 flex items-center">
-                <Database className="w-6 h-6 mr-3 text-brand-600" /> 二쇨컙 諛곗튂 ?숆린??由ы룷??(MASTER_SYNC)
+                <Database className="w-6 h-6 mr-3 text-brand-600" /> 주간 배치 동기화 리포트 (MASTER_SYNC)
               </h4>
               <div className="px-4 py-2 bg-brand-600 text-white text-[11px] font-black rounded-2xl shadow-lg">
-                珥??곸옱: {log.processed_count.toLocaleString()}嫄?
+                총 적재: {log.processed_count.toLocaleString()}건
               </div>
             </div>
             
             <div className="space-y-12">
-              {restaurantSources.length > 0 && renderSourceGroup('?앸떦 API 洹몃９ (3媛??댁긽)', restaurantSources, <UtensilsCrossed className="w-4 h-4" />)}
-              {martSources.length > 0 && renderSourceGroup('留덊듃 API 洹몃９ (LARGE/SSM/SUPER)', martSources, <ShoppingCart className="w-4 h-4" />)}
-              {spotSources.length > 0 && renderSourceGroup('愿愿묐챸??API', spotSources, <MapPin className="w-4 h-4" />)}
-              {otherSources.length > 0 && renderSourceGroup('湲고? ?숆린???뚯뒪', otherSources, <Activity className="w-4 h-4" />)}
+              {restaurantSources.length > 0 && renderSourceGroup('식당 API 그룹 (3개 이상)', restaurantSources, <UtensilsCrossed className="w-4 h-4" />)}
+              {martSources.length > 0 && renderSourceGroup('마트 API 그룹 (LARGE/SSM/SUPER)', martSources, <ShoppingCart className="w-4 h-4" />)}
+              {spotSources.length > 0 && renderSourceGroup('관광명소 API', spotSources, <MapPin className="w-4 h-4" />)}
+              {otherSources.length > 0 && renderSourceGroup('기타 동기화 소스', otherSources, <Activity className="w-4 h-4" />)}
             </div>
           </div>
         );
@@ -233,36 +233,36 @@ export default function AutomationLogsPage() {
           <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
             <div className="flex justify-between items-center mb-10">
               <h4 className="text-xl font-black text-gray-900 flex items-center">
-                <Calendar className="w-6 h-6 mr-3 text-brand-600" /> D-3 ?ㅻ쭏???뚮옖 罹먯떛 ?뺣? ?먭? 由ы룷??(SOP v11)
+                <Calendar className="w-6 h-6 mr-3 text-brand-600" /> D-3 스마트 플랜 캐싱 정밀 점검 리포트 (SOP v11)
               </h4>
               <div className="flex items-center space-x-3">
                 <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100 text-center">
-                  <p className="text-[9px] font-black text-gray-400 uppercase">????덉빟</p>
-                  <p className="text-sm font-black text-gray-900">{log.processed_count || 0}嫄?/p>
+                  <p className="text-[9px] font-black text-gray-400 uppercase">대상 예약</p>
+                  <p className="text-sm font-black text-gray-900">{log.processed_count || 0}건</p>
                 </div>
                 <div className="bg-brand-600 px-5 py-2 rounded-2xl shadow-lg text-center text-white">
-                  <p className="text-[9px] font-black text-brand-200 uppercase">?묒뾽 寃곌낵</p>
+                  <p className="text-[9px] font-black text-brand-200 uppercase">작업 결과</p>
                   <p className="text-sm font-black">{log.status}</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-12">
-              {/* ?렞 2. D-3 罹먯떛 1遺 (API蹂?吏???議? */}
+              {/* 🎯 2. D-3 캐싱 1부 (API별 지표 대조) */}
               <div className="space-y-4">
                 <h5 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center px-2">
-                  <Activity className="w-4 h-4 mr-2" /> 1遺: API蹂?吏???議?(Dynamic Data)
+                  <Activity className="w-4 h-4 mr-2" /> 1부: API별 지표 대조 (Dynamic Data)
                 </h5>
                 <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr className="bg-gray-50/50 border-b border-gray-100">
-                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">移댄뀒怨좊━</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">湲곗〈 ?곗씠????/th>
-                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">API ?섏떊 ??/th>
-                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">?좉퇋 ?쎌엯(New)</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">蹂寃?媛깆떊(Upd)</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">理쒖쥌 珥앷퀎</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">최종 총계</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -296,20 +296,20 @@ export default function AutomationLogsPage() {
                 </div>
               </div>
 
-              {/* ?뵇 3. D-3 罹먯떛 2遺 (Quota & Verification) */}
+              {/* 🔍 3. D-3 캐싱 2부 (Quota & Verification) */}
               <div className="space-y-4">
                 <h5 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center px-2">
-                  <Maximize2 className="w-4 h-4 mr-2" /> 2遺: ?④퀎蹂??뺤젣 諛?寃利?吏??(Quota & Verification)
+                  <Maximize2 className="w-4 h-4 mr-2" /> 2부: 단계별 정제 및 검증 지표 (Quota & Verification)
                 </h5>
                 <div className="bg-[#224732] rounded-[3rem] p-8 shadow-2xl overflow-hidden overflow-x-auto border-4 border-[#2d5c41]">
                   <table className="w-full text-left border-collapse min-w-[700px] text-white">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest">移댄뀒怨좊━</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">1踰?荑쇳꽣 (Raw)</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">2踰?荑쇳꽣 (Top Cap)</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">移댁뭅???뺣?寃利?/th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right font-black text-brand-400">理쒖쥌 ?곸옱</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest">카테고리</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">1번 쿼터 (Raw)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">2번 쿼터 (Top Cap)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">카카오 정밀검증</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right font-black text-brand-400">최종 적재</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -330,7 +330,7 @@ export default function AutomationLogsPage() {
                   </table>
                   <div className="mt-6 flex justify-between items-center px-2">
                     <p className="text-[10px] font-bold text-brand-300 italic">
-                      * 1李??좊퀎 濡쒖쭅 ?듦낵 由ъ뒪?몃뒗 spot_final_audit.md?먯꽌 ?곸꽭 ?뺤씤 媛?ν빀?덈떎.
+                      * 1차 선별 로직 통과 리스트는 spot_final_audit.md에서 상세 확인 가능합니다.
                     </p>
                     <p className="text-[9px] font-black text-brand-500 uppercase tracking-tighter">Precision Audit SOP v11.9.8 Compliant</p>
                   </div>
@@ -348,10 +348,10 @@ export default function AutomationLogsPage() {
           <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
             <div className="flex justify-between items-center mb-10">
               <h4 className="text-xl font-black text-gray-900 flex items-center">
-                <RefreshCw className="w-6 h-6 mr-3 text-brand-600 animate-spin-slow" /> 17??二쇨린 吏???쒗솚 ?숆린??由ы룷??
+                <RefreshCw className="w-6 h-6 mr-3 text-brand-600 animate-spin-slow" /> 17일 주기 지역 순환 동기화 리포트
               </h4>
               <div className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-black rounded-2xl shadow-lg">
-                ?섏떊 珥앷퀎: {log.processed_count.toLocaleString()}嫄?
+                수신 총계: {log.processed_count.toLocaleString()}건
               </div>
             </div>
 
@@ -359,18 +359,18 @@ export default function AutomationLogsPage() {
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">媛깆떊 吏??/th>
-                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">移댄뀒怨좊━</th>
-                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">湲곗〈 ?곗씠????/th>
-                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">API ?섏떊 ??/th>
-                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">?좉퇋 ?쎌엯(New)</th>
-                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">蹂寃?媛깆떊(Upd)</th>
-                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right font-black">理쒖쥌 珥앷퀎</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">갱신 지역</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {apiStatus.map((s: any, i: number) => {
-                    const renderMetric = (val: any, styleType: 'plain' | 'brand' | 'blue', activeLabel: string = '?곸뾽', inactiveLabel: string = '?먯뾽') => {
+                    const renderMetric = (val: any, styleType: 'plain' | 'brand' | 'blue', activeLabel: string = '영업', inactiveLabel: string = '폐업') => {
                       const isObj = val !== null && typeof val === 'object';
                       const a = isObj ? val.active || 0 : (val || 0);
                       const inact = isObj ? val.inactive || 0 : 0;
@@ -436,14 +436,14 @@ export default function AutomationLogsPage() {
                             {s.name === 'SPOT' && <MapPin className="w-3.5 h-3.5 mr-2 text-blue-500" />}
                             {s.name === 'SPOT_TMAP_REL' && <Share2 className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
                             {s.name === 'SPOT_KT_CONCTR' && <TrendingUp className="w-3.5 h-3.5 mr-2 text-rose-500" />}
-                            {s.name === 'SPOT_KTO_POP' && <TrendingUp className="w-3.5 h-3.5 mr-2 text-blue-500" />}
+                            {s.name === 'SPOT_KTO_POP' && <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
                             <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.existing_count, 'plain')}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.fetched_count, 'plain')}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.new_count, 'brand', '?뺤긽', '?먯뾽')}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.updated_count, 'blue', '媛깆떊', '鍮꾪솢??)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.new_count, 'brand', '정상', '폐업')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.updated_count, 'blue', '갱신', '비활성')}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           <div className="flex flex-col items-end gap-0.5">
                             <span className="text-sm font-black text-gray-900">
@@ -465,7 +465,7 @@ export default function AutomationLogsPage() {
 
             <div className="mt-8 flex items-center justify-between px-2">
               <div className="flex items-center text-[10px] text-gray-400 font-bold">
-                <AlertCircle className="w-3 h-3 mr-1.5" /> * 3吏??꾩썐 諛⑹떇: API?먯꽌 3???곗냽(51?? 誘명솗?????먮룞 鍮꾪솢?깊솕 泥섎━?⑸땲??
+                <AlertCircle className="w-3 h-3 mr-1.5" /> * 3진 아웃 방식: API에서 3회 연속(51일) 미확인 시 자동 비활성화 처리됩니다.
               </div>
               <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Precision Audit Engine v3.0</p>
             </div>
@@ -474,14 +474,14 @@ export default function AutomationLogsPage() {
       }
     } catch (e) {
       console.error(e);
-      return <div className="mx-10 my-4 text-xs text-red-500 font-bold">?곸꽭 ?곗씠?곕? ?뚯떛?????놁뒿?덈떎.</div>;
+      return <div className="mx-10 my-4 text-xs text-red-500 font-bold">상세 데이터를 파싱할 수 없습니다.</div>;
     }
     return null;
   };
 
   return (
     <div className="p-8 max-w-screen-2xl mx-auto space-y-8 bg-[#f8fafc] min-h-screen">
-      {/* 1. 理쒖긽???ㅻ뜑 & 而⑦듃濡?*/}
+      {/* 1. 최상단 헤더 & 컨트롤 */}
       <div className="bg-[#224732] p-8 rounded-[2.5rem] text-white shadow-2xl shadow-brand-100 flex justify-between items-center relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center space-x-3 mb-2">
@@ -490,7 +490,7 @@ export default function AutomationLogsPage() {
           </div>
           <p className="text-brand-100/70 font-bold flex items-center">
             <span className="w-2.4 h-2.5 bg-green-400 rounded-full mr-2 animate-pulse" />
-            SSOT v9 湲곕컲 ?꾧퀎??API 諛??먮룞??諛곗튂 ?ㅼ떆媛??먭? ?꾪솴
+            SSOT v9 기반 전계통 API 및 자동화 배치 실시간 점검 현황
           </p>
         </div>
         <div className="flex gap-4 relative z-10">
@@ -500,24 +500,24 @@ export default function AutomationLogsPage() {
             className="px-8 py-4 bg-brand-500 text-white rounded-2xl text-base font-black hover:bg-brand-400 transition-all flex items-center shadow-xl disabled:opacity-50 active:scale-95 group"
           >
             {checkingHealth ? <RefreshCw className="w-5 h-5 mr-3 animate-spin" /> : <Wifi className="w-5 h-5 mr-3 group-hover:animate-bounce" />}
-            ?꾧퀎???ㅼ떆媛??먭? ?ㅽ뻾
+            전계통 실시간 점검 실행
           </button>
           <button 
             onClick={fetchLogs}
             className="px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-base font-black text-white hover:bg-white/20 transition-all flex items-center active:scale-95"
           >
             <RefreshCw className="w-5 h-5 mr-3" />
-            ?덈줈怨좎묠
+            새로고침
           </button>
         </div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
       </div>
 
-      {/* 2. ?듭떖 ?뱀뀡: ?ㅼ떆媛?API ?뚰넻 蹂대뱶 (?좎? ?붿껌 理쒖슦??諛섏쁺?섏뿬 ?곷떒 諛곗튂) */}
+      {/* 2. 핵심 섹션: 실시간 API 소통 보드 (유저 요청 최우선 반영하여 상단 배치) */}
       <section className="space-y-6">
         <div className="flex items-center justify-between px-2">
           <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center">
-            <Server className="w-7 h-7 mr-3 text-brand-600" /> ?ㅼ떆媛?API ?뚰넻 ?곸꽭 蹂대뱶
+            <Server className="w-7 h-7 mr-3 text-brand-600" /> 실시간 API 소통 상세 보드
             <span className="ml-4 px-3 py-1 bg-gray-200 text-gray-500 text-xs font-black rounded-full uppercase tracking-widest">
               Live Metrics
             </span>
@@ -577,7 +577,7 @@ export default function AutomationLogsPage() {
         </div>
       </section>
 
-      {/* 3. ?곷떒 Full-Width ?낅┰ ?곸꽭 ?⑤꼸 (DAILY_REGION_SYNC, SMART_PLAN_CACHING) */}
+      {/* 3. 상단 Full-Width 독립 상세 패널 (DAILY_REGION_SYNC, SMART_PLAN_CACHING) */}
       {(() => {
         const selectedLog = logs.find(l => l.id === expandedLogId && (l.job_name === 'DAILY_REGION_SYNC' || l.job_name === 'SMART_PLAN_CACHING'));
         if (!selectedLog) return null;
@@ -588,12 +588,12 @@ export default function AutomationLogsPage() {
         );
       })()}
 
-      {/* 4. ?섎떒 ?뱀뀡: Timeline & Reminders */}
+      {/* 4. 하단 섹션: Timeline & Reminders */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
-        {/* ?덉뒪?좊━ ?뚯씠釉?*/}
+        {/* 히스토리 테이블 */}
         <div className="lg:col-span-8 space-y-6">
           <h3 className="text-xl font-black text-gray-800 tracking-tight flex items-center px-1">
-            <Clock className="w-6 h-6 mr-2 text-brand-600" /> 理쒓렐 ?먮룞???묒뾽 ??꾨씪??
+            <Clock className="w-6 h-6 mr-2 text-brand-600" /> 최근 자동화 작업 타임라인
           </h3>
           <div className="bg-white rounded-[3rem] border-4 border-white shadow-xl overflow-hidden">
             <table className="min-w-full">
@@ -646,7 +646,7 @@ export default function AutomationLogsPage() {
                 )) : (
                   <tr>
                     <td colSpan={4} className="px-10 py-24 text-center">
-                      <p className="text-gray-300 font-bold">吏묎퀎 ?곗씠???놁쓬</p>
+                      <p className="text-gray-300 font-bold">집계 데이터 없음</p>
                     </td>
                   </tr>
                 )}
@@ -655,16 +655,16 @@ export default function AutomationLogsPage() {
           </div>
         </div>
 
-        {/* 由щ쭏?몃뜑 ?붿쭊 ?곹깭 */}
+        {/* 리마인더 엔진 상태 */}
         <div className="lg:col-span-4 space-y-6">
           <h3 className="text-xl font-black text-gray-800 tracking-tight flex items-center px-1">
-            <Bell className="w-6 h-6 mr-2 text-brand-600" /> ?몄떆 ?쒕퉬???곹깭
+            <Bell className="w-6 h-6 mr-2 text-brand-600" /> 푸시 서비스 상태
           </h3>
           <div className="bg-white p-8 rounded-[3rem] border-4 border-white shadow-xl space-y-6">
             {[
-              { label: 'D-4 ?λ퉬 泥댄겕', time: '08:15', status: 'READY', color: 'bg-green-500' },
-              { label: 'D-1 硫붾돱 異붿쿇', time: '08:15', status: 'READY', color: 'bg-green-500' },
-              { label: 'D-Day ?낆떎 ?덈궡', time: '08:30', status: 'ACTIVE', color: 'bg-blue-500 animate-pulse' }
+              { label: 'D-4 장비 체크', time: '08:15', status: 'READY', color: 'bg-green-500' },
+              { label: 'D-1 메뉴 추천', time: '08:15', status: 'READY', color: 'bg-green-500' },
+              { label: 'D-Day 입실 안내', time: '08:30', status: 'ACTIVE', color: 'bg-blue-500 animate-pulse' }
             ].map((item, i) => (
               <div key={i} className="flex justify-between items-center p-5 rounded-[1.5rem] bg-gray-50 border border-transparent hover:border-gray-200 transition-all">
                 <div className="flex items-center space-x-4">
