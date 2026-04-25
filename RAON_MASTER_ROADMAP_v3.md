@@ -184,9 +184,11 @@
         *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
         *   [x] **UI Support**: 관리자 자동화 로그 페이지 🔴/🟢 상태별 세분화 렌더링 구현 완료.
         *   [x] **Sync Strategy**: 일일 1,000회 제한 극복을 위한 17일 순환 갱신 체계 확립.
-    *   [ ] **5.5.16 Personalized Journey v2.2 (Refinement) 🔄 (2026-04-24)**:
-        *   [x] **Audit**: 로직 간소화 시도 중 원본 엔진 훼손 이슈 발견 및 **전체 롤백** 완료.
-        *   [ ] **Next**: 원본 루프 보존형 Stage 4 개인화 레이어(감점 계수 3/2/1) 정밀 주입 예정.
+    *   [x] **5.5.16 Personalized Journey v2.3 (Refinement) ✅ (2026-04-26)**:
+        *   [x] **Track B Engine**: 실시간 경로상 중복 제거 및 데이터 병합(Merge) 로직 구현.
+        *   [x] **Scoring**: 백년/LX/모범/안심식당 인증 가점 누적 합산 및 명소 티어 가점(100/80) 고정.
+        *   [x] **Visuals**: 8경 텍스트 자동 추출 및 왕관(👑) 이모지 동적 부여 체계 실장.
+        *   [x] **Filtering**: 비식당(정비소/부동산 등) 강력 블랙리스트 필터링 이식 완료.
 *   **5.5.4 UI Component (`SmartPlanProposal.tsx`)** ✅:
     *   [x] Citational UI (서사 + 팩트 카드) 및 교체 상호작용 개발.
     *   [x] `Fallback Mock Data` 주입 로직 탑재 (미연결 또는 API Key 부재 시 무중단 렌더링).
@@ -698,6 +700,7 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 
 ### Phase 12.6: 스마트 캠핑 파이프라인 최적화 (진행중)
 *   [x] **KTO 공식 순위 복구**: 2024년 12월 최신 가용 데이터 기반 전국 189개 시군구 랭킹 동기화 완료 (2026-04-25)
+*   [x] **실시간 엔진 고도화 (v11.9.24)**: Track B 중복 제거, 인증 합산, 8경 이모지 및 티어 가점 로직 최종 안착 (2026-04-26)
 *   [x] **관리자 대시보드 개편**: 3일전 캐싱 로그를 3단계 쿼터(수집량 -> 1차 쿼터 -> 2차 쿼터) Funnel 구조로 개선 완료
 *   [ ] **KTO API 고도화 (차후 점검)**:
     *   [ ] **신규 API 전환**: `LocgoHubTarService1` (기초지자체 중심) 전환 및 실시간성(2025/2026) 확보 검토

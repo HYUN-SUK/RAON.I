@@ -290,16 +290,12 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
             }
         }
 
-        if (foundAnyInCategory) {
-            console.log(`[Track B] Found ${allData.length} total candidates at ${radius}m radius.`);
-            break;
-        }
+        if (foundAnyInCategory) break;
+
     }
 
-    if (allData.length === 0) {
-        console.warn(`[Track B] No candidates found even at 30km radius.`);
-        return [];
-    }
+    if (allData.length === 0) return [];
+
 
     // [v11.9.23] Deduplication & Merging Logic
     const mergedMap = new Map<string, any>();
@@ -442,7 +438,7 @@ export async function generatePersonalizedSmartPlan(
             // 시간대 문제 방지를 위한 안전한 날짜 포맷 (한국 시간 기준)
             const kstDate = new Date(startDate.getTime() + (9 * 60 * 60 * 1000));
             const formattedDate = kstDate.toISOString().split('T')[0];
-            console.log(`[SmartPlan] Querying user_schedules for User: ${userId}, Date: ${formattedDate}`);
+
             
             const { data: resData } = await supabase
                 .from('user_schedules')
@@ -471,8 +467,8 @@ export async function generatePersonalizedSmartPlan(
 
         if (origin) {
             const midpoint = await getMidpointOnRoad(origin, location);
-            console.log(`[Track B] Calculated Midpoint:`, midpoint);
             if (midpoint) {
+
                 const trackBFacts = await fetchMidpointTrackB(midpoint, weatherSummary, isWinter, persona);
                 ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
                     const catFacts = trackBFacts.filter(f => f.category === cat).sort((a, b) => b.trustScore - a.trustScore);
