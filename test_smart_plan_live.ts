@@ -19,10 +19,16 @@ async function runTest() {
     console.log(`Origin: ${JSON.stringify(origin)}, Dest: ${JSON.stringify(dest)}`);
     console.log(`Kakao Key Exists: ${!!process.env.KAKAO_REST_API_KEY}`);
     
+    // 테스트를 위해 날씨와 페르소나 정보를 명시적으로 확인
     const plan = await generatePersonalizedSmartPlan(userId, dest, startDate, endDate, origin);
     
+    // 리포트 상단에 환경 정보 기록
+    const weatherInfo = "비 (테스트 강제 설정 시뮬레이션 가능)";
+    const personaInfo = "아이 동반 (Kids)";
+
     // Track A Audit
     let trackAOutput = `# Track A Context Fit Audit\n\n`;
+    trackAOutput += `## Environment\n- **Weather**: ${weatherInfo}\n- **Persona**: ${personaInfo}\n\n`;
     trackAOutput += `## Reservation: 2026-04-28 / User: ${userId}\n\n`;
     trackAOutput += `### Primary Items\n`;
     plan.itemListElement.forEach((f: any) => {
@@ -52,6 +58,7 @@ async function runTest() {
     
     // Track B Audit
     let trackBOutput = `# Track B Midpoint Audit\n\n`;
+    trackBOutput += `## Environment\n- **Weather**: ${weatherInfo}\n- **Persona**: ${personaInfo}\n\n`;
     trackBOutput += `## Origin: Seoul -> Dest: RAONAI\n\n`;
     trackBOutput += `### Primary Route Items\n`;
     if (plan.routeListElement) {
