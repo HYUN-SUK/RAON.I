@@ -42,6 +42,7 @@ interface ReservationState {
         requests?: string;
         guestDetails?: {
             adults: number;
+            seniors?: number;
             kids: {
                 preschool: number;
                 elementary: number;

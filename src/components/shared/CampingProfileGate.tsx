@@ -49,6 +49,7 @@ export default function CampingProfileGate({
     const [originLat, setOriginLat] = useState<number | null>(null);
     const [originLng, setOriginLng] = useState<number | null>(null);
     const [adults, setAdults] = useState(2);
+    const [seniors, setSeniors] = useState(0);
     const [kidsPreschool, setKidsPreschool] = useState(0);
     const [kidsElementary, setKidsElementary] = useState(0);
     const [kidsTeen, setKidsTeen] = useState(0);
@@ -70,6 +71,7 @@ export default function CampingProfileGate({
                 setOriginLat(profile.originLat);
                 setOriginLng(profile.originLng);
                 setAdults(profile.adults);
+                setSeniors(profile.seniors || 0);
                 setKidsPreschool(profile.kidsPreschool);
                 setKidsElementary(profile.kidsElementary);
                 setKidsTeen(profile.kidsTeen);
@@ -114,6 +116,7 @@ export default function CampingProfileGate({
         originLat,
         originLng,
         adults,
+        seniors,
         kidsPreschool,
         kidsElementary,
         kidsTeen,
@@ -225,6 +228,7 @@ export default function CampingProfileGate({
                         <Users className="w-3.5 h-3.5 text-gray-400" />
                         <span>
                             성인 {existingProfile.adults}명
+                            {existingProfile.seniors ? `, 부모님 ${existingProfile.seniors}명` : ''}
                             {totalKids > 0 && `, 아이 ${totalKids}명`}
                         </span>
                     </div>
@@ -349,6 +353,7 @@ export default function CampingProfileGate({
                     </label>
                     <div className="space-y-3 bg-gray-50 rounded-xl p-3">
                         <Counter label="성인" value={adults} onChange={setAdults} min={1} />
+                        <Counter label="부모님/어르신" value={seniors} onChange={setSeniors} />
                         <Counter label="미취학 아동" value={kidsPreschool} onChange={setKidsPreschool} />
                         <Counter label="초등학생" value={kidsElementary} onChange={setKidsElementary} />
                         <Counter label="청소년" value={kidsTeen} onChange={setKidsTeen} />
@@ -382,6 +387,7 @@ export default function CampingProfileGate({
                                 setOriginLat(existingProfile.originLat);
                                 setOriginLng(existingProfile.originLng);
                                 setAdults(existingProfile.adults);
+                                setSeniors(existingProfile.seniors || 0);
                                 setKidsPreschool(existingProfile.kidsPreschool);
                                 setKidsElementary(existingProfile.kidsElementary);
                                 setKidsTeen(existingProfile.kidsTeen);

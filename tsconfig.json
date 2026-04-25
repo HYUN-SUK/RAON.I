@@ -39,6 +39,12 @@
   "exclude": [
     "node_modules",
     "supabase",
-    "scripts"
+    "scripts",
+    "test_*.ts",
+    "test-*.ts",
+    "check_*.ts",
+    "verify_*.ts",
+    "restored_supabase.ts",
+    "supabase_types.ts"
   ]
 }

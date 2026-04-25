@@ -26,6 +26,7 @@ export interface Reservation {
     guests: number; // 총 인원 (가족 구성원 + 방문객)
     guestDetails?: { // [Phase 1: Smart Camping Plan] 세분화된 인원 구조
         adults: number;
+        seniors?: number; // 시니어(부모님 동반) 인원
         kids: {
             preschool: number;
             elementary: number;

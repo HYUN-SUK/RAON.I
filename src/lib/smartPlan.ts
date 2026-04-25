@@ -1,514 +1,395 @@
 // ========================================================================================
-// Smart Camping Plan Phase 1: Guided Journey Headless Engine
+// Smart Camping Plan Phase 2: Live Engine with Deep Scoring & Track B Deep Filtering
 // ========================================================================================
 import { UserPersona, extractUserPersona } from './persona';
 import { getForecast } from '@/lib/weather';
-import { groupAndScorePlaces, RawPlace } from './reliability';
-import { v4 as uuidv4 } from 'uuid';
-import { computePersonaMatch } from './personaBridge';
-import crypto from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
 
+// ========================================================================================
+// Interfaces
+// ========================================================================================
 export interface StandardizedPlanJSON {
     "@context": "https://schema.org",
     "@type": "ItemList",
     narration: string;
-    itemListElement: FactCard[]; // Track A: Destination Core Facts
-    routeListElement?: FactCard[]; // Track B: Journey (Route/Midpoint) Facts
-    featuredFestival?: FactCard[];  // v2.1: FESTIVAL featured 슬롯 (일정 겹침 시만)
+    itemListElement: FactCard[]; // Track A: Destination Core Facts (Day 2, 3)
+    routeListElement?: FactCard[]; // Track B: Journey (Route/Midpoint) Facts (Day 1)
+    featuredFestival?: FactCard[]; 
     alternatives: Record<string, FactCard[]>;
 }
 
 export interface FactCard {
     "@type": string;
     id: string;
-    category: 'ROUTE_CAFE' | 'ROUTE_RESTAURANT' | 'ROUTE_SPOT' | 'HOSPITAL' | 'MART' | 'RESTAURANT' | 'GAS_STATION' | 'SPOT' | 'FESTIVAL' | 'FACILITY';
+    category: 'ROUTE_CAFE' | 'ROUTE_RESTAURANT' | 'ROUTE_SPOT' | 'HOSPITAL' | 'FACILITY' | 'MART' | 'RESTAURANT' | 'GAS_STATION' | 'SPOT' | 'FESTIVAL';
     lat: number;
     lng: number;
     name: string;
     description: string;
-    reasoning?: string;      // AI가 생성한 추천 이유 (Persona Match)
+    reasoning?: string;
     trustScore: number;
     scoreBreakdown?: {
-        existence: number;    // 0~100: 출처 신뢰도 + 좌표 신뢰도
-        quality: number;      // 0~100: 공공 인증 + 실시간 평점
-        contextFit: number;   // 0~100: 날씨 적합 + 페르소나 적합
-        logistics: number;    // 0~100: 거리 접근성
-        riskPenalty: number;  // 0~40: 리스크 감점
-        finalScore: number;   // 가중합 - 페널티
+        baseScore: number; // DB에서 가져온 기본 품질 점수
+        contextFit: number; // 날씨/페르소나 딥 스코어
+        distanceBonus?: number; // Track B 거리 가점
+        certBonus?: number; // 인증 가점 (백년/LX/모범/안심)
+        tierBonus?: number; // 명소 티어 가점
+        riskPenalty: number;
+        finalScore: number;
     };
     verificationStatus?: 'VERIFIED' | 'UNVERIFIED';
-    roleName?: string;       // 여정 내 역할명 (예: "가는 길 점심")
+    roleName?: string;
     evidence?: {
         stars?: number;
         reviews?: number;
-        badges?: string[];          // ["백년가게", "모범음식점"]
-        sourceLabel?: string;       // "SMBA_BAEK", "MASTER_ENRICHED"
+        badges?: string[];
         certifications: string[];
-        verifiedAt?: string | null;
-        verificationStatus?: 'VERIFIED' | 'UNVERIFIED';
+        emojiString?: string; // 프롬프트용 (🎖️백년가게) 등
     };
-    riskFlags?: string[];            // ["SUNDAY_BIG_MART", "UNVERIFIED", "MISSING_DESC"]
     selectionTier?: 'PRIMARY' | 'ALTERNATIVE' | 'FEATURED' | 'HIDDEN';
     distanceKm?: number;
     metadata: Record<string, any>;
     provenance: {
         sourceName: string;
-        sourceUrl?: string;
     };
 }
 
-import { createClient } from '@supabase/supabase-js';
-
 // ========================================================================================
-// v2 4축 점수 체계 (Existence / Quality / ContextFit / Logistics + Risk Penalty)
+// Deep Scoring Logic (ContextFit)
 // ========================================================================================
 
-// 카테고리별 가중치 (v10.4 고도화): [Existence, Quality, ContextFit, Logistics]
-const CATEGORY_WEIGHTS: Record<string, [number, number, number, number]> = {
-    HOSPITAL: [0.50, 0.10, 0.20, 0.20], // 존재 확실성(v55) + 거리 가중치
-    MART: [0.25, 0.05, 0.10, 0.60],    // 거리 가중치 60pt (v10.3 개편)
-    GAS_STATION: [0.30, 0.10, 0.10, 0.50], // 거리 가중치 상향
-    RESTAURANT: [0.20, 0.35, 0.25, 0.20], // 품질(별점) 및 적합성 중심
-    SPOT: [0.20, 0.20, 0.40, 0.20],      // 테마별 적합성 최우선
-    FESTIVAL: [0.25, 0.10, 0.45, 0.20],  // 적합성 최우선
-    ROUTE_RESTAURANT: [0.20, 0.25, 0.20, 0.35],
-    ROUTE_CAFE: [0.20, 0.20, 0.25, 0.35],
-    ROUTE_SPOT: [0.20, 0.20, 0.25, 0.35],
-};
+function calcContextFitDeep(f: FactCard, weather: string, isWinter: boolean, persona: UserPersona): number {
+    let score = 25; // Base contextFit
+    const name = f.name || '';
+    const desc = f.description || '';
+    const text = name + ' ' + desc;
 
-// v2.1: 카테고리별 1차 후보 상한 (도시 근처에서 식당이 전체를 독점하는 것을 방지)
-const CATEGORY_SHORTLIST_CAP: Record<string, number> = {
-    HOSPITAL: 20,
-    MART: 20,
-    GAS_STATION: 15,
-    RESTAURANT: 40,
-    SPOT: 20,
-    FESTIVAL: 10,
-    ROUTE_RESTAURANT: 20,
-    ROUTE_CAFE: 20,
-    ROUTE_SPOT: 20,
-};
+    const adults = persona.guestDetails?.adults || 2;
+    const seniors = persona.guestDetails?.seniors || 0;
+    const preschool = persona.guestDetails?.kids?.preschool || 0;
+    const elementary = persona.guestDetails?.kids?.elementary || 0;
+    const hasKids = preschool > 0 || elementary > 0;
+    const hasPet = persona.guestDetails?.hasPet || false;
+    const isCouple = adults === 2 && seniors === 0 && !hasKids;
 
-function calcExistence(f: FactCard): number {
-    // source_confidence (0~60)
-    let src = 10; // Base score
-    const s = f.provenance.sourceName || '';
-
-    if (f.category === 'RESTAURANT') {
-        const sources = s.split(',').map(item => item.trim());
-        if (sources.includes('SMBA_BAEK')) src += 50;
-        if (sources.includes('LX_RESTAURANT')) src += 50;
-        if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD')) src += 30;
-        if (sources.includes('SAFE_RESTAURANT')) src += 20;
-    } else if (f.category === 'SPOT') {
-        const name = f.name || "";
-        const raw = f.metadata?.raw_data || {};
-        const contentId = raw.contentTypeId || "";
-        
-        src = 10; // Base Prestige
-        if (['12', '14', '28'].includes(contentId) || f.provenance.sourceName === 'TOUR_SPOT') src += 20;
-
-        // [v10.5.1] Universal Core Keyword Tiering
-        if (/국립|도립|군립|수목원|휴양림|관광지|출렁다리|모노레일|케이블카|해수욕장|테마파크|사($|[\s({])|사찰|읍성|성지/.test(name)) { 
-            src += 45; 
-        } else if (/박물관|미술관|기념관|천문대|생태|역사|향교|서원|고택|생가|가옥|민속촌/.test(name)) { 
-            src += 30; 
-        } else if (/공원|체험관|조각|예술|문화촌/.test(name)) {
-            src += 15;
-        }
-
-        // [v10.5] Digital Asset & Popularity Index
-        const descLen = raw.description?.length || 0;
-        // [v11.4] Mobility-based Popularity Engine v2 Integration
-        const popV2 = raw.popularity_v2?.base_pop;
-        if (popV2 !== undefined) {
-            src += (popV2 / 100) * 40;
-        } else {
-            // Legacy Fallback
-            const readcount = parseInt(raw.readcount || "0");
-            if (readcount >= 10000) src += 40;
-            else if (readcount >= 5000) src += 25;
-            else if (readcount >= 1000) src += 10;
-        }
-    } else if (f.category === 'HOSPITAL') {
-        const name = f.name || "";
-        const raw = f.metadata?.raw_data || {};
-        const isNoise = /동물|반려|정신|행정관|피부|치과|요양|성형|한의원|뷰티|비만|디톡스|안과|산후|산부인과|한복|항문/.test(name);
-        if (isNoise) src = 0;
-        else {
-            src = 30; // Default Base
-            if (f.provenance.sourceName?.includes('NMC') || /종합병원|의료원/.test(name)) src = 100;
-            else if (/내과|소아과|외과|가정의학/.test(name)) src = 70;
-            else if (/보건소|보건지소/.test(name)) src = 50;
-
-            // [v10.6] Emergency / Night-time Bonus (+40)
-            if (/응급|야간|24시/.test(name) || /응급실/.test(raw.description || '')) {
-                src += 40;
-            }
-
-            // Digital Assets
-            if (raw.firstimage) src += 10;
-            if (raw.description?.length > 50) src += 10;
-        }
-    } else if (f.category === 'FESTIVAL') {
-        src = 50; // Festival Base (Higher than spot)
-        if (f.metadata?.raw_data?.firstimage) src += 15;
-        if (f.metadata?.raw_data?.readcount >= 5000) src += 25;
-    } else {
-        // Other categories legacy mapping
-        src = 30;
-        if (s === 'NMC_HOSPITAL' || s === 'OPINET' || f.category === 'GAS_STATION') src = 55;
-        if (s === 'MASTER_ENRICHED') src = 60;
-        if (s === 'LARGE_STORE') src = 40;
-    }
-
-    // geo_confidence (0~40)
-    const geo = (f.distanceKm !== undefined && f.distanceKm > 0) ? 35 : 15;
-
-    return Math.min(100, src + geo);
-}
-
-function calcQuality(f: FactCard): number {
-    // official_cert (0~50): 공공 인증 기반
-    let cert = 10;
-    const s = f.provenance.sourceName;
-    if (s === 'SMBA_BAEK') cert = 45;
-    if (s === 'LX_RESTAURANT') cert = 40;
-    if (s === 'SAFE_RESTAURANT' || s === 'MOIS_GOOD_RESTAURANT' || s === 'LOCALDATA_RESTAURANT_GOOD') cert = 35;
-    if (s === 'NMC_HOSPITAL') cert = 30;
-    if (s === 'OPINET') cert = 40;
-    if (s === 'TOUR_SPOT' || s === 'TOUR_CAFE') cert = 25;
-
-    // v2.1: live_rating (0~50) — 실제 별점 기반 세분화
-    let live = 0;
-    const stars = f.metadata?.raw_data?.scraping?.rating || f.evidence?.stars;
-    if (stars && stars > 0) {
-        if (stars >= 4.5) live = 50;
-        else if (stars >= 4.2) live = 40;
-        else if (stars >= 4.0) live = 30;
-        else if (stars >= 3.8) live = 20;
-        else live = 10; // 별점 확인은 됐지만 낮은 경우
-    } else if (s === 'MASTER_ENRICHED') {
-        live = 40; // 카카오 검증됐지만 별점 파싱 실패 시 기존값 유지
-    } else {
-        live = 0; // 데이터 없음
-    }
-
-    // Reliability Bonus (Group & Weight)
-    const certBonus = f.metadata?.certificationBonus || 0;
-
-    return Math.min(100, cert + live + certBonus);
-}
-
-function calcContextFit(
-    f: FactCard, weather: string, isWinter: boolean, persona: UserPersona
-): number {
-    // 1. weather_match (0~50)
-    let wm = 25;
-    if (weather.includes('비')) {
-        if (f.name.match(/탕|찌개|칼국수|국밥|전골/)) wm = 45;
-        if (f.name.match(/박물관|실내|미술관/)) wm = 45;
-        if (f.category === 'SPOT' && !f.name.match(/박물관|실내|미술관/)) wm = 10;
+    // 1. Weather Deep Score
+    if (weather.includes('비') || weather.includes('눈')) {
+        if (text.match(/탕|찌개|칼국수|국밥|전골/)) score += 20;
+        if (text.match(/박물관|실내|미술관/)) score += 20;
+        if (f.category === 'SPOT' && !text.match(/박물관|실내|미술관/)) score -= 20;
     }
     if (weather.includes('맑음')) {
-        if (f.name.match(/막국수|냉면|구이/)) wm = 40;
-        if (f.name.match(/수목원|둘레길|계곡|야외/)) wm = 45;
+        if (text.match(/막국수|냉면|구이/)) score += 15;
+        if (text.match(/수목원|둘레길|계곡|야외|산책/)) score += 15;
     }
-    if (isWinter && f.category === 'GAS_STATION') wm = 50;
+    if (isWinter && f.category === 'GAS_STATION') score += 20;
 
-    // 2. persona_match (0~50) - AI 고도화 엔진 (v2.0)
-    // topTags 배열을 Record<string, number>로 변환하여 브리지 엔진에 전달
-    const personaTagsMap = persona.topTags.reduce((acc, curr) => {
-        acc[curr.tagId] = curr.weight;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const pm = computePersonaMatch(f, personaTagsMap);
-
-    return Math.min(100, wm + pm);
-}
-
-function calcLogistics(f: FactCard, maxDistanceKm: number): number {
-    if (!f.distanceKm || maxDistanceKm === 0) return 50;
-    const ratio = f.distanceKm / maxDistanceKm;
-    return Math.max(0, Math.round(100 * (1 - ratio)));
-}
-
-function calcRiskPenalty(f: FactCard, isSundayIncluded: boolean): number {
-    let penalty = 0;
-    const riskFlags: string[] = [];
-    const s = f.provenance.sourceName;
-
-    // 일요일 대형마트 휴무 위험 (-15)
-    if (isSundayIncluded && f.category === 'MART'
-        && f.name.match(/이마트|홈플러스|롯데마트/)) {
-        penalty += 15;
-        riskFlags.push('SUNDAY_BIG_MART');
+    // 2. Persona Deep Score
+    // 👶 아이 동반 (Kids)
+    if (hasKids) {
+        if (f.category === 'HOSPITAL' && text.match(/소아과|아동병원/)) score += 50;
+        if (text.match(/돈까스|피자|어린이|불고기|뷔페|놀이방/)) score += 30;
+        if (f.category === 'SPOT' && text.match(/동물|목장|아쿠아리움|체험|공룡|생태|과학관/)) score += 30;
+        if (text.match(/매운|곱창|술집|노키즈존|이자카야/)) score -= 30;
     }
 
-    // v2.1: 미검증 감점 세분화 — 공공출처는 경감, 일반출처만 -5
-    const TRUSTED_PUBLIC = ['MASTER_ENRICHED', 'NMC_HOSPITAL', 'SMBA_BAEK', 'SAFE_RESTAURANT'];
-    const SEMI_PUBLIC = ['OPINET', 'MOIS_GOOD_RESTAURANT', 'TOUR_SPOT', 'TOUR_CAFE', 'TOUR_FSTVL'];
-    if (!TRUSTED_PUBLIC.includes(s)) {
-        if (SEMI_PUBLIC.includes(s)) {
-            penalty += 2; // 공공 인증 출처이나 실시간 미검증
-            riskFlags.push('SEMI_PUBLIC_UNVERIFIED');
-        } else {
-            penalty += 5; // 일반 출처 + 미검증
-            riskFlags.push('UNVERIFIED');
+    // 🐶 반려견 동반 (Pets)
+    if (hasPet) {
+        if (text.match(/애견동반|야외테라스|반려견|산책|운동장|해변|반려/)) score += 30;
+        if (text.match(/국립공원|휴양림|실내|박물관|미술관/)) score -= 40; // 출입금지 확률 높음
+    }
+
+    // 👵 부모님 동반 (Seniors)
+    if (seniors > 0) {
+        if (text.match(/한정식|백숙|보양식|장어|한우|전통|향토/)) score += 30;
+        if (f.category === 'SPOT' && text.match(/온천|사찰|절|유적지|재래시장|경관|시장/)) score += 30;
+        if (text.match(/계단|등산|액티비티|패스트푸드|웨이팅/)) score -= 20;
+    }
+
+    // 👩‍❤️‍👨 커플/감성 (Couples)
+    if (isCouple) {
+        if (text.match(/파스타|오션뷰|브런치|베이커리|와인|감성|루프탑/)) score += 25;
+        if (f.category === 'SPOT' && text.match(/야경|포토존|스냅|벽화|전시관/)) score += 25;
+    }
+
+    // 🍲 미식가 / 태그 기반
+    const tags = persona.topTags || [];
+    const isFoodie = tags.some(t => t.tagId.includes('FOOD') && t.weight > 5);
+    if (isFoodie || seniors > 0) {
+        if (text.match(/백년가게|명인|원조|노포|시장/)) score += 30;
+    }
+
+    return Math.max(0, Math.min(100, score)); // 0 ~ 100 
+}
+
+// ========================================================================================
+// Evidence & Certifications Parser
+// ========================================================================================
+
+function buildEvidence(raw: any, category: string): FactCard['evidence'] {
+    const certs: string[] = [];
+    const badges: string[] = [];
+    const emojis: string[] = [];
+    
+    // 카카오 검증 등에서 넘어온 평점
+    let stars = 0;
+    if (raw.kakao_rating) stars = raw.kakao_rating;
+    else if (raw.scraping?.rating) stars = raw.scraping.rating;
+
+    let source = raw.api_source || raw.sourceName || '';
+
+    // [v11.9.23] 개별 인증 보장 및 중복 표기 로직
+    if (source === 'SMBA_BAEK' || raw.badges?.includes('백년가게')) {
+        certs.push('중기부 백년가게'); badges.push('백년가게'); emojis.push('🎖️백년가게');
+    }
+    if (source === 'LX_RESTAURANT') {
+        certs.push('LX한국국토정보공사 인증'); badges.push('LX인증'); emojis.push('🎖️LX인증');
+    }
+    if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || raw.badges?.includes('모범음식점')) {
+        certs.push('행안부 모범음식점'); badges.push('모범음식점'); emojis.push('🎖️모범음식점');
+    }
+    if (source === 'SAFE_RESTAURANT' || raw.badges?.includes('안심식당')) {
+        certs.push('농식품부 안심식당'); badges.push('안심식당'); emojis.push('🎖️안심식당');
+    }
+    const isHospital = category === 'HOSPITAL' || category === 'ROUTE_HOSPITAL';
+    if (isHospital && (source === 'NMC_HOSPITAL' || raw.name?.includes('의료원') || raw.name?.match(/종합병원|응급/))) {
+        certs.push('응급의료기관'); badges.push('응급의료기관'); emojis.push('🚨응급의료기관');
+    }
+    const isSpot = category === 'SPOT' || category === 'ROUTE_SPOT';
+    if (isSpot) {
+        // [v11.9.23] 티어 점수가 70점 이상이면 무조건 지역명소 마크 부여
+        const ts = raw.trust_score || 0;
+        const fullText = (raw.name || '') + ' ' + (raw.description || '') + ' ' + (raw.raw_data?.description || '');
+        const match8 = fullText.match(/([가-힣]+)\s*(8경|구경|팔경)/);
+        
+        if (match8) {
+            emojis.push(`👑${match8[1]} ${match8[2]}!`);
+        } else if (ts >= 70) {
+            emojis.push('👑지역명소');
         }
     }
 
-    // v2.1: 필수 필드 누락 감점 (이름/좌표/카테고리/출처)
-    let missingFields = 0;
-    if (!f.name) missingFields++;
-    if (!f.distanceKm && f.distanceKm !== 0) missingFields++;
-    if (!f.category) missingFields++;
-    if (!s) missingFields++;
-    if (missingFields >= 3) { penalty += 10; riskFlags.push('SEVERE_MISSING_FIELDS'); }
-    else if (missingFields >= 2) { penalty += 5; riskFlags.push('MISSING_FIELDS'); }
-
-    // 설명 매우 빈약 (-2)
-    if (!f.description || f.description.length < 3) {
-        penalty += 2;
-        riskFlags.push('WEAK_DESC');
-    }
-
-    f.riskFlags = riskFlags;
-    return Math.min(40, penalty);
+    return {
+        stars: stars > 0 ? stars : undefined,
+        reviews: raw.kakao_reviews || raw.scraping?.reviewCount || undefined,
+        certifications: certs,
+        badges,
+        emojiString: emojis.length > 0 ? emojis.join(' ') : undefined
+    };
 }
 
-function computeFinalScore(
-    f: FactCard, weather: string, isWinter: boolean,
-    persona: UserPersona, isSunday: boolean, maxDistKm: number,
-    origin?: { lat: number, lng: number }
-): FactCard {
-    const existence = calcExistence(f);
-    const quality = calcQuality(f);
-    const contextFit = calcContextFit(f, weather, isWinter, persona);
-    const logistics = calcLogistics(f, maxDistKm);
-    const riskPenalty = calcRiskPenalty(f, isSunday);
+function parseFactCard(row: any, mapCategory?: FactCard['category']): FactCard {
+    const cat = mapCategory || row.category as FactCard['category'];
+    // [v11.9.23] row 전체를 넘겨서 api_source 컬럼을 직접 참조할 수 있게 수정
+    const evidence = buildEvidence(row, cat);
 
-    const w = CATEGORY_WEIGHTS[f.category] || [0.25, 0.25, 0.25, 0.25];
-    const raw = existence * w[0] + quality * w[1] + contextFit * w[2] + logistics * w[3];
-    
-    // v3: Origin-based Road-trip Bonus (+10 max)
-    // Favors places closer to the travel route (if origin is known)
-    let originBonus = 0;
-    if (origin && f.metadata?.raw_data) {
-        try {
-            const getDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-                const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                return R * c;
-            };
-            const distFromOrigin = getDist(origin.lat, origin.lng, f.metadata.raw_data.lat, f.metadata.raw_data.lng);
-            // If the place is "on the way" (closer to origin than the destination is, relatively), 
-            // we give a small boost to favor the beginning of the local area search
-            if (distFromOrigin < 100) originBonus = 5; 
-        } catch(e) {}
-    }
-
-    const finalScore = Math.max(0, Math.round(raw - riskPenalty + originBonus));
-
-    // 일요일 하나로마트 Diversity Bonus (+5)
-    let bonus = 0;
-    if (isSunday && f.category === 'MART' && f.name.includes('하나로마트')) bonus = 5;
-
-    f.scoreBreakdown = { existence, quality, contextFit, logistics, riskPenalty, finalScore: finalScore + bonus };
-    f.trustScore = finalScore + bonus;
-
-    // --- v2.1 Phase 2: Evidence & Verification ---
-    const s = f.provenance.sourceName;
-    const VERIFIED_SOURCES = ['MASTER_ENRICHED', 'NMC_HOSPITAL', 'SMBA_BAEK', 'SAFE_RESTAURANT'];
-    f.verificationStatus = VERIFIED_SOURCES.includes(s) ? 'VERIFIED' : 'UNVERIFIED';
-
-    const evidence: FactCard['evidence'] = { certifications: [], badges: [], sourceLabel: s };
-    if (s === 'SMBA_BAEK') { evidence.certifications.push('중기부 백년가게'); evidence.badges!.push('백년가게'); }
-    if (s === 'SAFE_RESTAURANT') { evidence.certifications.push('농식품부 안심식당'); evidence.badges!.push('안심식당'); }
-    if (s === 'MOIS_GOOD_RESTAURANT') { evidence.certifications.push('행안부 모범음식점'); evidence.badges!.push('모범음식점'); }
-    if (s === 'NMC_HOSPITAL') { evidence.certifications.push('응급의료기관'); evidence.badges!.push('응급의료기관'); }
-    if (s === 'OPINET') evidence.badges!.push('공인주유소');
-
-    // Kakao Scraping Data 추출
-    const scraping = f.metadata?.raw_data?.scraping;
-    if (scraping && scraping.success) {
-        evidence.stars = scraping.rating;
-        evidence.reviews = scraping.reviewCount;
-        evidence.verifiedAt = new Date().toISOString();
-        evidence.verificationStatus = 'VERIFIED';
-        f.verificationStatus = 'VERIFIED'; // 스크래핑 성공 시 상태 승격
-    } else {
-        evidence.verificationStatus = VERIFIED_SOURCES.includes(s) ? 'VERIFIED' : 'UNVERIFIED';
-    }
-
-    // Merge multi-source evidence
-    if (f.metadata?.badges) {
-        evidence.badges = Array.from(new Set([...(evidence.badges || []), ...f.metadata.badges]));
-    }
-    if (f.metadata?.certifications) {
-        evidence.certifications = Array.from(new Set([...(evidence.certifications || []), ...f.metadata.certifications]));
-    }
-
-    f.evidence = evidence;
-
-    // Role Name Mapping
+    // 역할 매핑
     const ROLE_MAP: Record<string, string> = {
         'ROUTE_RESTAURANT': '가는 길 식사',
         'ROUTE_CAFE': '여정의 쉼표',
-        'ROUTE_SPOT': '기분 전환 명소',
+        'ROUTE_SPOT': '가벼운 나들이',
         'HOSPITAL': '안전 가디언',
         'MART': '든든한 보급소',
-        'GAS_STATION': '따뜻한 온도(등유)',
+        'GAS_STATION': '따뜻한 온도',
         'RESTAURANT': '캠핑장 맛집',
         'SPOT': '현지 명소',
         'FESTIVAL': '로컬 축제'
     };
-    f.roleName = ROLE_MAP[f.category] || '추천 장소';
 
-    return f;
+    return {
+        "@type": cat === 'HOSPITAL' ? 'Hospital' : cat.includes('RESTAURANT') ? 'Restaurant' : cat === 'SPOT' ? 'TouristAttraction' : 'Store',
+        id: row.fact_id || row.id,
+        category: cat,
+        name: row.name,
+        lat: parseFloat(row.lat) || 0,
+        lng: parseFloat(row.lng) || 0,
+        description: row.raw_data?.description || row.description || '',
+        trustScore: row.final_score || 50,
+        scoreBreakdown: {
+            baseScore: row.quality_score || 50,
+            contextFit: 25,
+            riskPenalty: row.penalty_score || 0,
+            finalScore: row.final_score || 50
+        },
+        verificationStatus: (evidence?.certifications?.length ?? 0) > 0 ? 'VERIFIED' : 'UNVERIFIED',
+        roleName: ROLE_MAP[cat],
+        evidence,
+        distanceKm: row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0,
+        metadata: row.raw_data || {},
+        provenance: { sourceName: row.api_source || row.raw_data?.api_source || '' }
+    };
 }
 
-async function fetchHighTrustCandidates(lat: number, lng: number): Promise<FactCard[]> {
-    try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-        const supabase = createClient(supabaseUrl, supabaseKey);
+// ========================================================================================
+// Track A: D-3 Cached Destination Candidates (from smart_plan_candidates)
+// ========================================================================================
 
-        let currentRadius = 15000;
-        let facts: any[] = [];
-        let rpcDynamicFn = 'get_smart_plan_facts_in_radius';
-        let rpcMasterFn = 'get_master_places_in_radius_v2';
+async function fetchCachedTrackA(reservationId: string, weather: string, isWinter: boolean, persona: UserPersona): Promise<FactCard[]> {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-        while (currentRadius <= 30000) {
-            // 1. Fetch Dynamic Data (HOSPITAL, FESTIVAL)
-            const { data: dynamicData, error: dynamicErr } = await supabase.rpc(rpcDynamicFn, {
-                center_lat: lat,
-                center_lng: lng,
-                radius_meters: currentRadius
-            });
-            if (dynamicErr) console.error("Dynamic RPC Error:", dynamicErr);
+    const { data, error } = await supabase
+        .from('smart_plan_candidates')
+        .select('*')
+        .eq('reservation_id', reservationId);
 
-            // 2. Fetch Static Master Data (RESTAURANT, MART, GAS_STATION, SPOT)
-            const { data: masterData, error: masterErr } = await supabase.rpc(rpcMasterFn, {
-                target_lat: lat,
-                target_lng: lng,
-                radius_meters: currentRadius,
-                limit_count: 200 // v2.1: 후보 회수량 확대 (recall 중심) → 4축 점수로 정밀 선별
-            });
-            if (masterErr) console.error("Master RPC Error:", masterErr);
-
-            const combinedRaw = [...(dynamicData || []), ...(masterData || [])];
-            
-            // Reliability Engine 적용: 그룹화 및 보너스 점수 산출
-            const groupedFacts = groupAndScorePlaces(combinedRaw as RawPlace[]);
-
-            if (currentRadius === 15000) {
-                facts = groupedFacts;
-            } else {
-                // 이미 있는 장소(이름+주소) 중복 제거 로직 강화
-                const existingKeys = new Set(facts.map(f => `${f.name}|${f.address}`));
-                const newFacts = groupedFacts.filter((f: any) => !existingKeys.has(`${f.name}|${f.address}`));
-                facts = [...facts, ...newFacts];
-            }
-
-            const presentCategories = new Set(facts.map(f => f.category));
-            // Break early if we have core categories
-            const hasHospital = presentCategories.has('HOSPITAL') || presentCategories.has('MART_HOSPITAL');
-            const hasRestaurant = presentCategories.has('RESTAURANT');
-            const hasEnriched = facts.some(f => f.api_source === 'MASTER_ENRICHED');
-
-            if (hasHospital && hasRestaurant && (hasEnriched || currentRadius >= 20000)) {
-                break;
-            }
-            currentRadius += 5000;
-        }
-
-        if (!facts || facts.length === 0) {
-            // No facts at all, return empty but could try emergency fetch here too
-            return [];
-        }
-
-        // v10.4: Mart Fallback Logic in Live Engine
-        const martsCount = facts.filter(f => f.category === 'MART' || f.category === 'MART_HOSPITAL').length;
-        if (martsCount < 3) {
-            console.log(`[v10.4 Live Fallback] Mart shortfall: ${3 - martsCount}. Fetching Kakao CS2...`);
-            const shortfall = 3 - martsCount;
-            const kakaoKey = process.env.KAKAO_REST_API_KEY;
-            if (kakaoKey) {
-                try {
-                    const res = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=CS2&x=${lng}&y=${lat}&radius=20000&size=${shortfall}&sort=distance`, {
-                        headers: { 'Authorization': `KakaoAK ${kakaoKey}` }
-                    });
-                    const data = await res.json();
-                    if (data.documents) {
-                        data.documents.forEach((item: any) => {
-                            facts.push({
-                                id: `kakao-cs2-${item.id}`,
-                                name: item.place_name,
-                                address: item.road_address_name || item.address_name,
-                                category: 'MART',
-                                api_source: 'KAKAO_CS2',
-                                lat: parseFloat(item.y),
-                                lng: parseFloat(item.x),
-                                distance_meters: parseInt(item.distance),
-                                trust_score: 50,
-                                description: `[편의점 폴백] ${item.category_name || '편의점'}`,
-                                raw_data: { ...item, isFallback: true },
-                                badges: ['편의점'],
-                                certifications: [],
-                                totalTrustScore: 50
-                            });
-                        });
-                    }
-                } catch (e) { console.error("Live Fallback Error:", e); }
-            }
-        }
-
-        return facts.map((row: any) => {
-            let mappedCategory: FactCard['category'] = row.category as any;
-
-            // Legacy DB mapping split into 6 Categories (in case old dynamic data still exists)
-            if (row.category === 'MART_HOSPITAL') {
-                if (row.api_source === 'NMC_HOSPITAL' || row.name.includes('병원') || row.name.includes('의원') || row.name.includes('보건소') || row.name.includes('약국')) {
-                    mappedCategory = 'HOSPITAL';
-                } else if (row.api_source === 'OPINET' || row.name.includes('주유소') || (row.description && row.description.includes('등유'))) {
-                    mappedCategory = 'GAS_STATION';
-                } else {
-                    mappedCategory = 'MART';
-                }
-            }
-
-            return {
-                "@type": mappedCategory === 'HOSPITAL' ? 'Hospital' :
-                    mappedCategory === 'RESTAURANT' ? 'Restaurant' :
-                        mappedCategory === 'GAS_STATION' ? 'GasStation' :
-                            mappedCategory === 'SPOT' ? 'TouristAttraction' :
-                                mappedCategory === 'FESTIVAL' ? 'Festival' : 'Store',
-                id: row.id,
-                category: mappedCategory,
-                name: row.name,
-                lat: row.lat || (row.raw_data?.lat),
-                lng: row.lng || (row.raw_data?.lng),
-                description: row.description || '',
-                address: row.address || '',
-                trustScore: row.totalTrustScore || row.trust_score || 50,
-                distanceKm: row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0,
-                metadata: { 
-                  ...(row.raw_data || {}), 
-                  certificationBonus: row.certificationBonus,
-                  badges: row.badges,
-                  certifications: row.certifications
-                },
-                provenance: { sourceName: row.api_source }
-            };
-        });
-
-    } catch (e) {
-        console.error("Failed to fetch real candidates:", e);
+    if (error || !data) {
+        console.error("Track A Fetch Error:", error);
         return [];
     }
+
+    const facts = data.map(row => {
+        const f = parseFactCard(row);
+        // Deep ContextFit 적용 (기존 캐싱 점수에 ContextFit 추가 병합)
+        const cFit = calcContextFitDeep(f, weather, isWinter, persona);
+        f.scoreBreakdown!.contextFit = cFit;
+        // 최종 점수 = 캐싱된 (Quality - Penalty) + ContextFit
+        f.trustScore = (row.quality_score || 50) + cFit - (row.penalty_score || 0);
+        f.scoreBreakdown!.finalScore = f.trustScore;
+        return f;
+    });
+
+    return facts;
+}
+
+// ========================================================================================
+// Track B: Midpoint Simple Spot Deep Filtering
+// ========================================================================================
+
+async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather: string, isWinter: boolean, persona: UserPersona): Promise<FactCard[]> {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // 5km 내의 마스터 장소 호출 (카카오 API 안 씀)
+    const searchRadii = [5000, 10000, 15000, 20000, 25000, 30000];
+    const categories = ['RESTAURANT', 'SPOT'];
+    let allData: any[] = [];
+
+    for (const radius of searchRadii) {
+        let foundAnyInCategory = false;
+
+        for (const cat of categories) {
+            const { data: rpcData, error } = await supabase.rpc('get_master_places_in_radius_v2', {
+                target_lat: midpoint.lat,
+                target_lng: midpoint.lng,
+                radius_meters: radius,
+                limit_count: 30,
+                p_category: cat
+            });
+
+            if (error) {
+                console.error(`[Track B] RPC Error for ${cat} at ${radius}m:`, error.message);
+                continue;
+            }
+
+            if (rpcData && rpcData.length > 0) {
+                allData.push(...rpcData);
+                foundAnyInCategory = true;
+            }
+        }
+
+        if (foundAnyInCategory) {
+            console.log(`[Track B] Found ${allData.length} total candidates at ${radius}m radius.`);
+            break;
+        }
+    }
+
+    if (allData.length === 0) {
+        console.warn(`[Track B] No candidates found even at 30km radius.`);
+        return [];
+    }
+
+    // [v11.9.23] Deduplication & Merging Logic
+    const mergedMap = new Map<string, any>();
+    allData.forEach((row: any) => {
+        const name = row.name || '';
+        const cleanAddr = (row.address || '').replace(/\s/g, '');
+        const key = `${name}_${cleanAddr}`;
+        if (mergedMap.has(key)) {
+            const existing = mergedMap.get(key);
+            if (!existing.allSources) existing.allSources = [existing.api_source];
+            if (row.api_source && !existing.allSources.includes(row.api_source)) {
+                existing.allSources.push(row.api_source);
+            }
+            if (row.badges) existing.badges = [...(existing.badges || []), ...row.badges];
+            if (row.trust_score > (existing.trust_score || 0)) existing.trust_score = row.trust_score;
+        } else {
+            mergedMap.set(key, { ...row, allSources: [row.api_source].filter(Boolean) });
+        }
+    });
+
+    const facts: FactCard[] = [];
+    mergedMap.forEach((row: any) => {
+        const name = row.name || '';
+        const address = row.address || '';
+        
+        // [v11.9.23] 강력 블랙리스트 (식당이 아닌 것들 제거)
+        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소/;
+        if (globalBlacklist.test(name)) return;
+
+        if (!['RESTAURANT', 'SPOT'].includes(row.category) && !name.includes('카페')) return;
+        
+        let cat: FactCard['category'] = 'ROUTE_SPOT';
+        if (row.category === 'RESTAURANT') cat = 'ROUTE_RESTAURANT';
+        if (name.includes('카페') || row.category === 'CAFE') cat = 'ROUTE_CAFE';
+
+        const f = parseFactCard({ ...row, id: row.id, fact_id: row.id, quality_score: 50, penalty_score: 0 }, cat);
+        const nameDesc = (f.name + ' ' + (f.description || '')).toLowerCase();
+
+        // [Deep Filtering]: 간단 명소 로직
+        let simpleSpotBonus = 0;
+        if (cat === 'ROUTE_SPOT') {
+            const spotBlacklist = /산$|봉$|산맥|국립공원|도립공원|군립공원|자연휴양림|해수욕장|계곡|섬$|둘레길|트래킹|오름|테마파크|워터파크|리조트|민속촌|수목원|산성|읍성|대교|터널|IC|휴게소/;
+            const whitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|베이커리|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대/;
+            
+            if (spotBlacklist.test(nameDesc)) simpleSpotBonus -= 100; // 사실상 제거
+            if (whitelistRegex.test(nameDesc)) simpleSpotBonus += 40; 
+        }
+
+        // 5km 거리 페널티 (5000m = 0점, 0m = +30점)
+        const dist = row.distance_meters || 5000;
+        const distScore = Math.max(0, 30 * (1 - dist / 5000));
+
+        const cFit = calcContextFitDeep(f, weather, isWinter, persona);
+        
+        // [v11.9.23] 중복 인증 가점 합산
+        let certBonus = 0;
+        const sources = row.allSources || [];
+        const badges = row.badges || [];
+        
+        if (sources.includes('SMBA_BAEK') || badges.includes('백년가게')) certBonus += 50;
+        if (sources.includes('LX_RESTAURANT')) certBonus += 50;
+        if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || badges.includes('모범음식점')) certBonus += 30;
+        if (sources.includes('SAFE_RESTAURANT') || badges.includes('안심식당')) certBonus += 20;
+        
+        // [v11.9.23] 명소 티어 반영 (1티어 100점, 2티어 80점)
+        let tierBonus = 0;
+        if (row.category === 'SPOT') {
+            const ts = row.trust_score || 0;
+            if (ts >= 90) tierBonus = 100;
+            else if (ts >= 70) tierBonus = 80;
+            else tierBonus = ts; // 그 외는 원래 점수 유지
+        }
+
+        f.trustScore = 50 + cFit + distScore + simpleSpotBonus + certBonus + tierBonus;
+        f.scoreBreakdown = {
+            baseScore: 50,
+            contextFit: cFit,
+            distanceBonus: distScore,
+            certBonus: certBonus,
+            tierBonus: tierBonus,
+            riskPenalty: simpleSpotBonus < 0 ? Math.abs(simpleSpotBonus) : 0,
+            finalScore: f.trustScore
+        };
+
+        if (f.trustScore > 40) { // 기준선 통과한 곳만
+            facts.push(f);
+        }
+    });
+
+    return facts;
 }
 
 async function getMidpointOnRoad(origin: { lat: number, lng: number }, dest: { lat: number, lng: number }): Promise<{ lat: number, lng: number } | null> {
@@ -519,6 +400,7 @@ async function getMidpointOnRoad(origin: { lat: number, lng: number }, dest: { l
         const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${dest.lng},${dest.lat}&priority=RECOMMEND`;
         const res = await fetch(url, { headers: { 'Authorization': `KakaoAK ${apiKey}` } });
         const data = await res.json();
+        // console.log("Kakao API Response:", JSON.stringify(data).slice(0, 100));
 
         if (data.routes && data.routes[0] && data.routes[0].sections[0]) {
             const section = data.routes[0].sections[0];
@@ -533,254 +415,13 @@ async function getMidpointOnRoad(origin: { lat: number, lng: number }, dest: { l
         }
         return null;
     } catch (e) {
-        console.error("Kakao Mobility Path sampling failed:", e);
         return null;
     }
 }
 
-export async function generateSmartPlan(
-    context: UserPersona,
-    location: { lat: number; lng: number },
-    startDate: Date,
-    endDate: Date,
-    origin?: { lat: number; lng: number }
-): Promise<StandardizedPlanJSON> {
-
-    // 1. Weather Context Aggregation (Whole trip day-by-day)
-    const tripDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) + 1;
-    let weatherSummary = "";
-
-    let day1Weather = "맑음";
-    let day2Weather = "맑음";
-    let day3Weather = "맑음";
-
-    let isWinterOrCold = false;
-
-    try {
-        const weatherList = [];
-        for (let i = 0; i < Math.min(tripDays, 3); i++) {
-            const checkDate = new Date(startDate);
-            checkDate.setDate(startDate.getDate() + i);
-            const w = await getForecast(location.lat, location.lng, checkDate.toISOString().split('T')[0]);
-            if (w) {
-                const dayWeatherStr = `${w.sky}(${w.temp_min}~${w.temp_max}도)`;
-                weatherList.push(`Day ${i + 1}: ${dayWeatherStr}`);
-                if (i === 0) day1Weather = w.sky;
-                if (i === 1) day2Weather = w.sky;
-                if (i === 2) day3Weather = w.sky;
-
-                if (w.temp_min <= 5) isWinterOrCold = true;
-            }
-        }
-        if (weatherList.length > 0) weatherSummary = weatherList.join(', ');
-
-        // Month fallback for winter (Nov ~ Mar)
-        const startMonth = startDate.getMonth() + 1;
-        if (startMonth >= 11 || startMonth <= 3) isWinterOrCold = true;
-    } catch (e) {
-        console.error("Weather Aggregation Failed:", e);
-    }
-
-    // 2. Journey Sampling (Kakao)
-    let midpoint = null;
-    if (origin) {
-        midpoint = await getMidpointOnRoad(origin, location);
-    }
-
-    // 3. Gathering 
-    const destCandidates = await fetchHighTrustCandidates(location.lat, location.lng);
-    let journeyCandidates: FactCard[] = [];
-    if (midpoint) {
-        const midpointFacts = await fetchHighTrustCandidates(midpoint.lat, midpoint.lng);
-        journeyCandidates = midpointFacts.map(f => {
-            if (f.category === 'RESTAURANT') f.category = 'ROUTE_RESTAURANT';
-            if (f.category === 'SPOT') f.category = 'ROUTE_SPOT';
-            if ((f.category as string) !== 'ROUTE_CAFE' && f.name.includes('카페')) {
-                f.category = 'ROUTE_CAFE';
-            }
-            return f;
-        }).filter(f => f.category === 'ROUTE_RESTAURANT' || f.category === 'ROUTE_CAFE' || f.category === 'ROUTE_SPOT');
-    }
-
-    // === v2 4축 점수 체계 컨텍스트 ===
-    const hasKids = !!(context.guestDetails?.kids && (context.guestDetails.kids.preschool > 0 || context.guestDetails.kids.elementary > 0));
-    const isSundayIncluded = startDate.getDay() === 0 || endDate.getDay() === 0 || tripDays >= 7;
-
-    // 4. Fill Track B (Day 1 - 가는 길) — v2 4축 점수 적용
-    const routeFacts: FactCard[] = [];
-    const routeMaxDist = Math.max(...journeyCandidates.map(f => f.distanceKm || 0), 1);
-
-    ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
-        let catFacts = journeyCandidates.filter(f => f.category === cat);
-
-        // v2: 4축 점수 계산 (Day1 날씨 기준)
-        catFacts = catFacts.map(f => computeFinalScore(
-            f, day1Weather, isWinterOrCold, context, isSundayIncluded, routeMaxDist, origin
-        ));
-
-        if (catFacts.length > 0) {
-            const sorted = catFacts.sort((a, b) => b.trustScore - a.trustScore);
-            routeFacts.push(sorted[0]);
-        }
-    });
-
-    // 5. Fill Track A (Day 2/3 - 현지) — v2.1 4축 점수 적용
-    const activeFacts: FactCard[] = [];
-    const alternatives: Record<string, FactCard[]> = {};
-    // v2.1: FESTIVAL은 정규 경쟁에서 분리 → featured 슬롯으로 독립 처리
-    const destCategories: FactCard['category'][] = ['HOSPITAL', 'MART', 'RESTAURANT', 'GAS_STATION', 'SPOT'];
-    const destMaxDist = Math.max(...destCandidates.map(f => f.distanceKm || 0), 1);
-
-    // Day 2/3 날씨 합산 (둘 중 하나라도 비/맑음이면 적용)
-    const destWeather = [day2Weather, day3Weather].find(w => w.includes('비'))
-        || [day2Weather, day3Weather].find(w => w.includes('맑음'))
-        || '중립';
-
-    destCategories.forEach(cat => {
-        let catFacts = destCandidates.filter(f => f.category === cat);
-
-        // v2.1: 카테고리별 상한 적용 (trust_score 기준 정렬 후 cap)
-        const cap = CATEGORY_SHORTLIST_CAP[cat] || 20;
-        if (catFacts.length > cap) {
-            catFacts = catFacts.sort((a, b) => b.trustScore - a.trustScore).slice(0, cap);
-        }
-
-        // v2.1: 4축 점수 계산 (Day2/3 날씨 기준)
-        catFacts = catFacts.map(f => computeFinalScore(
-            f, destWeather, isWinterOrCold, context, isSundayIncluded, destMaxDist, origin
-        ));
-
-        const sorted = catFacts.sort((a, b) => b.trustScore - a.trustScore);
-        const unique = Array.from(new Set(sorted.map(s => s.id))).map(id => sorted.find(s => s.id === id)!);
-
-        if (unique.length > 0) {
-            unique[0].selectionTier = 'PRIMARY';
-            activeFacts.push(unique[0]);
-            alternatives[cat] = unique.slice(1, 3).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
-        }
-    });
-
-    // v2.1: FESTIVAL featured 슬롯 — 칠핑 일정 겹침 시만 포함
-    let featuredFestival: FactCard[] = [];
-    const festivalCandidates = destCandidates.filter(f => f.category === 'FESTIVAL');
-    if (festivalCandidates.length > 0) {
-        // 축제 날짜와 캐핑 일정 겹침 여부 확인 (날짜 정보 없으면 일단 포함)
-        const scoredFestivals = festivalCandidates.map(f => computeFinalScore(
-            f, destWeather, isWinterOrCold, context, isSundayIncluded, destMaxDist, origin
-        ));
-        featuredFestival = scoredFestivals
-            .sort((a, b) => b.trustScore - a.trustScore)
-            .slice(0, 2)
-            .map(f => { f.selectionTier = 'FEATURED'; f.roleName = '투데이 로컬 축제'; return f; });
-    }
-
-    // 6. AI Narration with 3-Part Timeline Prompt
-    let narration = "";
-    try {
-        const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-        if (!geminiKey) throw new Error("Missing Gemini API Key");
-
-        // v2.1: AI에게 전달할 장소 정보를 evidence 기반으로 풍부하게 구성
-        const formatFactForAI = (f: FactCard): string => {
-            const ev = f.evidence;
-            const starInfo = ev?.stars ? ` (별점 ${ev.stars}점, 리뷰 ${ev?.reviews || 0}건)` : '';
-            const badge = ev?.badges?.length ? ` [${ev.badges.join(', ')}]` : '';
-            const vStatus = f.verificationStatus === 'VERIFIED' ? ' ✅검증완료' : ' ⚠문의권장';
-            return `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}${starInfo}${badge}${vStatus}`;
-        };
-
-        const routeContext = routeFacts.length > 0
-            ? routeFacts.map(formatFactForAI).join('\n')
-            : '중간 경로 데이터가 없습니다. 조심히 바로 오시길 안내해주세요.';
-        const destContext = activeFacts.map(formatFactForAI).join('\n');
-        const festivalContext = featuredFestival.length > 0
-            ? '\n[Context 2.5: 지역 축제/행사]\n' + featuredFestival.map(f => `- [🎉FESTIVAL] ||${f.id}|${f.name}||: ${f.description}`).join('\n')
-            : '';
-
-        const prompt = `
-당신은 '라온아이'의 수석 캠핑 플래너입니다.
-
-[여정 기본 정보]
-- 전체 날씨 요약: ${weatherSummary}
-- 성향(페르소나): ${context.description}
-
-위 일자별 날씨와 페르소나를 완벽히 반영하여 아래 3가지 타임라인 컨텍스트로 나누어 가장 감성적이고 따뜻한 여정 서사를 작성해주세요. 각 일자에 맞는 날씨를 언급하며 자연스럽게 추천 장소를 이유와 함께 연결하세요.
-
-[Context 1: 가는 길 추천]
-${routeContext}
-
-[Context 2: 캠핑장 주변 현지 추천]
-${destContext}
-${festivalContext}
-
-[Context 3: 오는 길 추천]
-(위 가는 길 추천 중 선택하지 못한 대안이나 가벼운 명소를 귀갓길 컨텍스트로 따뜻하게 제안해주세요. 특히 별점이 높고 검증된 장소가 있다면 그 이유를 강조하세요. 맑은 날씨라면 뷰 좋은 카페를 추천해도 좋습니다.)
-
-[작성 지침 (엄격 준수)]
-1. 장소 이름 언급 시 무조건 ||ID|이름|| 규격을 지켜주세요.
-2. 팩트 데이터의 '별점', '리뷰' 정보를 적극 인용하여 "이곳은 평점이 4.5점으로 아주 높아요" 같은 구체적인 신뢰감을 제공하세요.
-3. [verificationStatus 규칙] ✅검증완료 장소만 "검증된" 표현을 사용하세요. ⚠문의권장 장소는 "방문 전 확인 권장" 수준으로만 표현하세요.
-4. [금지 규칙] 영업시간, 메뉴 가격, 실시간 잔여석 정보는 데이터에 명시되지 않았다면 절대로 임의로 지어내지 마세요.
-5. [톤 가이드] 휴무 위험 등 리스크 언급 시 "방문 전 전화를 통해 운영 여부를 한 번 더 확인하시면 더 완벽한 여정이 될 거예요"와 같이 부드러운 권유형을 사용하세요.
-6. 길지 않은 3문단의 수필 형식으로 작성하세요.
-7. 만약 추천 장소에 병원(HOSPITAL) 정보가 포함되지 않았다면, 응급 상황 발생 시 119 구급대를 이용하거나 가장 가까운 시내 의료기관으로 이동하도록 따뜻하게 안내를 포함해주세요.
-8. [추천 이유 생성] 각 추천 카드(ID 별로)에 대해 사용자의 페르소나와 해당 장소의 특성이 왜 어울리는지 1문장(20자 이내)으로 핵심 이유를 작성해주세요.
-
-[출력 형식]
-반드시 아래 JSON 형식을 지켜주세요.
-{
-  "narration": "전체 여정 서사 텍스트",
-  "reasons": {
-    "ID1": "추천 이유 1",
-    "ID2": "추천 이유 2",
-    ...
-  }
-}
-`.trim();
-
-        const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { response_mime_type: "application/json" }
-            })
-        });
-
-        const apiData = await apiRes.json();
-        const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (responseText) {
-            const parsed = JSON.parse(responseText);
-            narration = parsed.narration;
-            
-            // Apply reasons to cards
-            const allCards = [...routeFacts, ...activeFacts];
-            if (featuredFestival) allCards.push(...featuredFestival);
-            
-            allCards.forEach(card => {
-                if (parsed.reasons && parsed.reasons[card.id]) {
-                    card.reasoning = parsed.reasons[card.id];
-                }
-            });
-        } else {
-            console.error("Gemini API Error Response:", JSON.stringify(apiData));
-            throw new Error("Invalid Gemini API response");
-        }
-    } catch (e) {
-        console.error("AI Narration Failed:", e);
-        narration = "캠퍼님을 위한 특별한 여정이 준비되었습니다. 날씨와 성향에 맞춘 6가지 추천 리스트를 하단에서 확인해 보세요.";
-    }
-
-    return {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        narration,
-        itemListElement: activeFacts,
-        routeListElement: routeFacts,
-        featuredFestival: featuredFestival.length > 0 ? featuredFestival : undefined,
-        alternatives
-    };
-}
+// ========================================================================================
+// Main Generation
+// ========================================================================================
 
 export async function generatePersonalizedSmartPlan(
     userId: string | undefined,
@@ -791,13 +432,177 @@ export async function generatePersonalizedSmartPlan(
 ): Promise<StandardizedPlanJSON> {
     try {
         const persona = await extractUserPersona(userId);
-        return await generateSmartPlan(persona, location, startDate, endDate, origin);
-    } catch (err) {
-        console.error("Smart Plan generation wrapper failed:", err);
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // 1. Find Reservation ID for Track A
+        let reservationId: string | null = null;
+        if (userId) {
+            // 시간대 문제 방지를 위한 안전한 날짜 포맷 (한국 시간 기준)
+            const kstDate = new Date(startDate.getTime() + (9 * 60 * 60 * 1000));
+            const formattedDate = kstDate.toISOString().split('T')[0];
+            console.log(`[SmartPlan] Querying user_schedules for User: ${userId}, Date: ${formattedDate}`);
+            
+            const { data: resData } = await supabase
+                .from('user_schedules')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('check_in', formattedDate)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (resData && resData.length > 0) reservationId = resData[0].id;
+        }
+
+        // 2. Weather
+        let weatherSummary = "맑음";
+        let isWinter = false;
+        try {
+            const w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
+            if (w) {
+                weatherSummary = `${w.sky}(${w.temp_min}~${w.temp_max}도)`;
+                if (w.temp_min <= 5) isWinter = true;
+            }
+        } catch(e) {}
+
+        // 3. Track B (Midpoint / Day 1)
+        const routeFacts: FactCard[] = [];
+        const alternatives: Record<string, FactCard[]> = {};
+
+        if (origin) {
+            const midpoint = await getMidpointOnRoad(origin, location);
+            console.log(`[Track B] Calculated Midpoint:`, midpoint);
+            if (midpoint) {
+                const trackBFacts = await fetchMidpointTrackB(midpoint, weatherSummary, isWinter, persona);
+                ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
+                    const catFacts = trackBFacts.filter(f => f.category === cat).sort((a, b) => b.trustScore - a.trustScore);
+                    if (catFacts.length > 0) {
+                        catFacts[0].selectionTier = 'PRIMARY';
+                        routeFacts.push(catFacts[0]);
+                        // Paging UI를 위해 15개 꽉꽉 채워 넣음
+                        alternatives[cat] = catFacts.slice(1, 15).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
+                    }
+                });
+            }
+        }
+
+        // 4. Track A (Destination / Day 2, 3)
+        const activeFacts: FactCard[] = [];
+        let featuredFestival: FactCard[] = [];
+        
+        if (reservationId) {
+            const trackAFacts = await fetchCachedTrackA(reservationId, weatherSummary, isWinter, persona);
+            
+            ['HOSPITAL', 'MART', 'RESTAURANT', 'GAS_STATION', 'SPOT'].forEach(cat => {
+                const catFacts = trackAFacts.filter(f => f.category === cat).sort((a, b) => b.trustScore - a.trustScore);
+                if (catFacts.length > 0) {
+                    catFacts[0].selectionTier = 'PRIMARY';
+                    activeFacts.push(catFacts[0]);
+                    // 15개 전체 제공하여 페이징 뷰 가능하게 함
+                    alternatives[cat] = catFacts.slice(1, 15).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
+                }
+            });
+
+            // 축제
+            const fests = trackAFacts.filter(f => f.category === 'FESTIVAL').sort((a, b) => b.trustScore - a.trustScore);
+            if (fests.length > 0) {
+                fests[0].selectionTier = 'FEATURED';
+                fests[0].roleName = '투데이 로컬 축제';
+                featuredFestival.push(fests[0]);
+            }
+        } else {
+            // No reservation ID (Fallback or Just View)
+            // 실제 서비스에서는 에러처리하거나 실시간으로 대체 조회해야 하지만, D-3 컨셉이므로 일단 빈 배열
+            console.warn("No reservation ID found. Track A is empty.");
+        }
+
+        // 5. AI Narration with 5-Part Timeline Prompt
+        let narration = "데이터를 분석하여 완벽한 여정을 짰습니다. 리스트를 스와이프하여 확인해 보세요!";
+        try {
+            const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+            if (geminiKey) {
+                const formatAI = (f: FactCard): string => {
+                    const emj = f.evidence?.emojiString ? ` ${f.evidence.emojiString}` : '';
+                    return `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}${emj}`;
+                };
+
+                const routeContext = routeFacts.length > 0 ? routeFacts.map(formatAI).join('\n') : '중간 경로 추천이 없습니다.';
+                const destContext = activeFacts.map(formatAI).join('\n');
+                const festContext = featuredFestival.map(formatAI).join('\n');
+
+                const prompt = `
+당신은 '라온아이'의 수석 캠핑 플래너입니다.
+[날씨]: ${weatherSummary} / [페르소나]: ${persona.description}
+
+아래 5단계 서사 구조로 가장 감성적이고 따뜻한 여정 가이드를 작성해주세요.
+[1. 가는 길] 중간 지점의 식당/카페/간단 명소를 소개합니다.
+${routeContext}
+
+[2. 장보기]
+${activeFacts.filter(f=>f.category==='MART').map(formatAI).join('\n')}
+
+[3. 도착 식사]
+${activeFacts.filter(f=>f.category==='RESTAURANT').map(formatAI).join('\n')}
+
+[4. 현지 힐링] 주변 명소와 축제
+${activeFacts.filter(f=>f.category==='SPOT').map(formatAI).join('\n')}
+${festContext}
+
+[5. 귀갓길]
+(여정의 마무리를 따뜻하게 장식할 인사를 남겨주세요. 남은 명소 중 하나를 가볍게 들르라고 제안해도 좋습니다.)
+
+[필수 규칙]
+1. 장소 이름은 무조건 ||ID|이름|| 규격 사용
+2. 프롬프트에 제공된 인증마크 이모지(예: 🎖️백년가게)가 있다면 산출물에 그대로 복사해서 노출하세요.
+3. 각 장소가 위 페르소나와 왜 잘 맞는지 핵심 이유 1줄을 작성하세요. JSON 출력.
+
+{
+  "narration": "5단계 감성 서사...",
+  "reasons": {
+    "ID1": "추천 이유 1"
+  }
+}
+                `.trim();
+
+                const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { response_mime_type: "application/json" }
+                    })
+                });
+
+                const apiData = await apiRes.json();
+                const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (responseText) {
+                    const parsed = JSON.parse(responseText.replace(/\`\`\`json/g,'').replace(/\`\`\`/g,''));
+                    narration = parsed.narration;
+                    [...routeFacts, ...activeFacts, ...featuredFestival].forEach(card => {
+                        if (parsed.reasons && parsed.reasons[card.id]) card.reasoning = parsed.reasons[card.id];
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("AI Narration Failed", e);
+        }
+
         return {
             "@context": "https://schema.org",
             "@type": "ItemList",
-            narration: "여정 정보를 불러오는데 잠시 문제가 발생했습니다.",
+            narration,
+            itemListElement: activeFacts,
+            routeListElement: routeFacts,
+            featuredFestival: featuredFestival.length > 0 ? featuredFestival : undefined,
+            alternatives
+        };
+
+    } catch (err) {
+        console.error("Smart Plan generation failed:", err);
+        return {
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            narration: "여정 정보를 불러오는데 문제가 발생했습니다.",
             itemListElement: [],
             alternatives: {}
         };

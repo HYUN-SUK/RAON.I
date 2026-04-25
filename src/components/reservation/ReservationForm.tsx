@@ -26,6 +26,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
     // [Phase 1: Smart Camping Plan] 세분화된 인원
     const [adults, setAdults] = useState(2);
+    const [seniors, setSeniors] = useState(0);
     const [kidsPreschool, setKidsPreschool] = useState(0);
     const [kidsElementary, setKidsElementary] = useState(0);
     const [kidsTeen, setKidsTeen] = useState(0);
@@ -48,6 +49,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 const profile = await getCampingProfile();
                 if (profile) {
                     setAdults(profile.adults);
+                    setSeniors(profile.seniors || 0);
                     setKidsPreschool(profile.kidsPreschool);
                     setKidsElementary(profile.kidsElementary);
                     setKidsTeen(profile.kidsTeen);
@@ -71,6 +73,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 // 재예약 데이터에 상세 인원 정보가 포함되어 있다면 덮어씀 (예약별 특수성 반영)
                 if (rebookData.guestDetails) {
                     if (rebookData.guestDetails.adults !== undefined) setAdults(rebookData.guestDetails.adults);
+                    if (rebookData.guestDetails.seniors !== undefined) setSeniors(rebookData.guestDetails.seniors);
                     if (rebookData.guestDetails.kids) {
                         if (rebookData.guestDetails.kids.preschool !== undefined) setKidsPreschool(rebookData.guestDetails.kids.preschool);
                         if (rebookData.guestDetails.kids.elementary !== undefined) setKidsElementary(rebookData.guestDetails.kids.elementary);
@@ -153,6 +156,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 requests: requests || undefined,
                 guestDetails: {
                     adults,
+                    seniors,
                     kids: {
                         preschool: kidsPreschool,
                         elementary: kidsElementary,
@@ -167,7 +171,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 try {
                     await saveCampingProfile({
                         originLabel: null, originLat: null, originLng: null,
-                        adults, kidsPreschool, kidsElementary, kidsTeen, hasPet,
+                        adults, seniors, kidsPreschool, kidsElementary, kidsTeen, hasPet,
                     });
                 } catch (saveErr) {
                     console.error('[ReservationForm] Profile sync failed', saveErr);
@@ -321,6 +325,14 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                                 <button type="button" onClick={() => setAdults(Math.max(0, adults - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
                                 <span className="text-white flex-1 text-center">{adults}명</span>
                                 <button type="button" onClick={() => setAdults(adults + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-white/70 mb-1">부모님/어르신</label>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setSeniors(Math.max(0, seniors - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
+                                <span className="text-white flex-1 text-center">{seniors}명</span>
+                                <button type="button" onClick={() => setSeniors(seniors + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
                             </div>
                         </div>
                         <div>

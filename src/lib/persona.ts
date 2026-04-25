@@ -18,11 +18,13 @@ export interface UserPersona {
     topTags: TagWeight[];  // 활동 기반 상위 태그
     guestDetails?: {       // 최신 예약 기반 인원 구성
         adults: number;
+        seniors: number;   // 부모님/어르신 동반
         kids: {
             preschool: number;
             elementary: number;
             teen: number;
         };
+        hasPet?: boolean;  // 반려견 동반 여부
     };
     tripContext?: any;     // 이번 여행 특수성 (Phase 1 추가)
 }
@@ -233,7 +235,7 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
             { tagId: 'STYLE_COUPLE', weight: 3.0 },
             { tagId: 'MOOD_QUIET', weight: 2.5 }
         ],
-        guestDetails: { adults: 2, kids: { preschool: 0, elementary: 0, teen: 0 } }
+        guestDetails: { adults: 2, seniors: 0, kids: { preschool: 0, elementary: 0, teen: 0 } }
     };
 
     if (!userId) return defaultPersona;

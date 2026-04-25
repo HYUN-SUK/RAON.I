@@ -883,19 +883,29 @@ async function main() {
     for (let i = 0; i < final.length; i += 500) await supabase.from('smart_plan_facts').upsert(final.slice(i, i + 500), { onConflict: 'id' });
     console.log(`🏁 Done: ${final.length} facts cached in smart_plan_facts.`);
 
-    // [v11.9.23] Generate Audit Reports
+    // [v11.9.23] Generate Audit Reports (Enhanced Stage 1 & Stage 4)
     if (rawCandidatesForAudit.length > 0) {
-        let auditContent = `# 3일 전 스마트 플랜 캐싱 정밀 분석 리포트 (통합)\n\n`;
-        auditContent += `## [SECTION 1] 1차 쿼터 DB 수집 리스트 (품질 우선 정제 전)\n`;
-        auditContent += `| 번호 | 카테고리 | 이름 | 품질 점수 | 인증/명성 | 주소 | 거리(m) |\n`;
-        auditContent += `| :--- | :--- | :--- | :---: | :---: | :--- | :---: |\n`;
+        let stage1Content = `# 1차 쿼터 DB 수집 리스트 (D-3 캐싱: ${targetStr})\n\n`;
+        stage1Content += `| 번호 | 카테고리 | 이름 | 품질 점수 | 인증/명성 | 주소 | 거리(m) |\n`;
+        stage1Content += `| :--- | :--- | :--- | :---: | :---: | :--- | :---: |\n`;
         let s1Idx = 1;
         rawCandidatesForAudit.filter(x => x.stage === 1).forEach(c => {
             const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
-            auditContent += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${Math.round(c.distance)} |\n`;
+            stage1Content += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${Math.round(c.distance)} |\n`;
         });
-        fs.writeFileSync('spot_final_audit.md', auditContent, 'utf-8');
-        console.log(`📝 Audit report generated: spot_final_audit.md`);
+        fs.writeFileSync('smart_plan_stage1_full.md', stage1Content, 'utf-8');
+        console.log(`📝 Stage 1 report generated: smart_plan_stage1_full.md`);
+    }
+
+    if (allCandidateRows.length > 0) {
+        let stage4Content = `# 2차 쿼터 개인화 적용 리스트 (D-3 캐싱: ${targetStr})\n\n`;
+        stage4Content += `| 번호 | 예약ID | 카테고리 | 이름 | 품질 | 거리(km) | 감점 | 최종 점수 | 주소 |\n`;
+        stage4Content += `| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n`;
+        allCandidateRows.forEach((c, i) => {
+            stage4Content += `| ${i+1} | ${c.reservation_id.slice(0,8)} | ${c.category} | ${c.name} | ${c.quality_score} | ${(c.distance_meters/1000).toFixed(2)} | -${c.penalty_score.toFixed(1)} | **${c.final_score.toFixed(1)}** | ${c.address} |\n`;
+        });
+        fs.writeFileSync('smart_plan_stage4_personalized.md', stage4Content, 'utf-8');
+        console.log(`📝 Stage 4 report generated: smart_plan_stage4_personalized.md`);
     }
 
     // Update dynamic API final total counts (Post-Upsert)

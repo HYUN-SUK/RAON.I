@@ -56,6 +56,7 @@ export default function SmartPlanProposal({
     const [plan, setPlan] = useState<StandardizedPlanJSON | null>(mockData || null);
     const [isLoading, setIsLoading] = useState(!mockData);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
+    const [swapPage, setSwapPage] = useState(0);
     const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
@@ -235,7 +236,7 @@ export default function SmartPlanProposal({
         <Card
             key={card.id}
             className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white ml-10`}
-            onClick={() => setSwapCategory(card.category)}
+            onClick={() => { setSwapCategory(card.category); setSwapPage(0); }}
         >
             <CardContent className="p-4">
                 <div className="flex gap-4 items-center">
@@ -393,7 +394,12 @@ export default function SmartPlanProposal({
             </div>
 
             {/* 3. Swap / Alternatives Bottom Sheet */}
-            <Sheet open={!!swapCategory} onOpenChange={(open) => !open && setSwapCategory(null)}>
+            <Sheet open={!!swapCategory} onOpenChange={(open) => {
+                if (!open) {
+                    setSwapCategory(null);
+                    setSwapPage(0);
+                }
+            }}>
                 <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto bg-[#F7F5EF] px-4 pb-8">
                     <SheetHeader className="pb-4 border-b border-gray-200">
                         <SheetTitle className="text-left text-lg font-bold text-[#224732]">
@@ -405,63 +411,100 @@ export default function SmartPlanProposal({
                     </SheetHeader>
 
                     <div className="py-5 space-y-3">
-                        {swapOptions.map((opt, idx) => {
-                            const isCurrentActive = idx === 0;
-                            return (
-                                <Card
-                                    key={opt.id}
-                                    className={`cursor-pointer transition-all border ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] shadow-sm bg-[#224732]/5' : 'border-gray-200 hover:border-[#224732]/40 bg-white'}`}
-                                    onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
-                                >
-                                    <CardContent className="p-4 flex items-start gap-3">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-bold text-gray-900 text-sm truncate">{opt.name}</h4>
-                                                {isCurrentActive && (
-                                                    <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium tracking-wide">
-                                                        현재 선택됨
-                                                    </span>
-                                                )}
-                                                {opt.metadata?.isTakeout && <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-sm">포장특화</span>}
-                                                {opt.metadata?.hasNightView && <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-sm">야경명소</span>}
-                                            </div>
-                                            <p className="text-xs text-gray-600 leading-snug line-clamp-1">
-                                                {opt.description}
-                                            </p>
-                                            
-                                            {/* AI Reasoning in Bottom Sheet */}
-                                            {opt.reasoning && (
-                                                <p className="text-[10px] text-blue-600 font-medium mt-1 italic">
-                                                    " {opt.reasoning} "
-                                                </p>
-                                            )}
+                        {(() => {
+                            const pageSize = 3;
+                            const totalPages = Math.ceil(swapOptions.length / pageSize);
+                            const paginatedOptions = swapOptions.slice(swapPage * pageSize, (swapPage + 1) * pageSize);
 
-                                            {/* Fact Chips in Bottom Sheet */}
-                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                                {opt.evidence?.stars && (
-                                                    <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold">
-                                                        ⭐ {opt.evidence.stars.toFixed(1)}
-                                                    </span>
-                                                )}
-                                                {opt.evidence?.certifications.map((c, i) => (
-                                                    <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">
-                                                        {c}
-                                                    </span>
-                                                ))}
-                                                <span className="text-[9px] text-gray-400 ml-auto">
-                                                    추천도 {opt.trustScore}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {!isCurrentActive && (
-                                            <Button size="sm" variant="outline" className="shrink-0 h-8 text-[11px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">
-                                                이걸로 변경
+                            return (
+                                <>
+                                    {paginatedOptions.map((opt, idx) => {
+                                        const globalIdx = swapPage * pageSize + idx;
+                                        const isCurrentActive = opt.id === (plan.itemListElement.find(c => c.category === swapCategory)?.id || plan.routeListElement?.find(c => c.category === swapCategory)?.id);
+                                        return (
+                                            <Card
+                                                key={opt.id}
+                                                className={`cursor-pointer transition-all border ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] shadow-sm bg-[#224732]/5' : 'border-gray-200 hover:border-[#224732]/40 bg-white'}`}
+                                                onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
+                                            >
+                                                <CardContent className="p-4 flex items-start gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <h4 className="font-bold text-gray-900 text-sm truncate">
+                                                                <span className="text-[10px] text-gray-400 mr-1">{globalIdx + 1}위</span>
+                                                                {opt.name}
+                                                            </h4>
+                                                            {isCurrentActive && (
+                                                                <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium tracking-wide">
+                                                                    현재 선택됨
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-gray-600 leading-snug line-clamp-1">
+                                                            {opt.description}
+                                                        </p>
+                                                        {opt.reasoning && (
+                                                            <p className="text-[10px] text-blue-600 font-medium mt-1 italic">
+                                                                " {opt.reasoning} "
+                                                            </p>
+                                                        )}
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                            {opt.evidence?.stars && (
+                                                                <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold">
+                                                                    ⭐ {opt.evidence.stars.toFixed(1)}
+                                                                </span>
+                                                            )}
+                                                            {opt.evidence?.certifications.map((c, i) => (
+                                                                <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">
+                                                                    {c}
+                                                                </span>
+                                                            ))}
+                                                            <span className="text-[9px] text-gray-400 ml-auto">
+                                                                추천도 {opt.trustScore}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    {!isCurrentActive && (
+                                                        <Button size="sm" variant="outline" className="shrink-0 h-8 text-[11px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">
+                                                            변경
+                                                        </Button>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+
+                                    {/* Pagination Controls */}
+                                    {totalPages > 1 && (
+                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200/60">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSwapPage(Math.max(0, swapPage - 1))}
+                                                disabled={swapPage === 0}
+                                                className="text-[#224732]"
+                                            >
+                                                이전 3개
                                             </Button>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )
-                        })}
+                                            <div className="flex gap-1.5">
+                                                {Array.from({ length: totalPages }).map((_, i) => (
+                                                    <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === swapPage ? 'bg-[#224732]' : 'bg-gray-300'}`} />
+                                                ))}
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSwapPage(Math.min(totalPages - 1, swapPage + 1))}
+                                                disabled={swapPage === totalPages - 1}
+                                                className="text-[#224732]"
+                                            >
+                                                다음 3개
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 </SheetContent>
             </Sheet>

@@ -12,6 +12,7 @@ export interface CampingProfile {
     originLat: number | null;
     originLng: number | null;
     adults: number;
+    seniors?: number;
     kidsPreschool: number;
     kidsElementary: number;
     kidsTeen: number;
@@ -46,6 +47,7 @@ export async function getCampingProfile(): Promise<CampingProfile | null> {
         originLat: data.origin_lat,
         originLng: data.origin_lng,
         adults: data.adults ?? 2,
+        seniors: 0, // DB schema update needed for full support
         kidsPreschool: data.kids_preschool ?? 0,
         kidsElementary: data.kids_elementary ?? 0,
         kidsTeen: data.kids_teen ?? 0,
