@@ -306,24 +306,24 @@ export default function AutomationLogsPage() {
                     <thead>
                       <tr className="border-b border-white/10">
                         <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest">카테고리</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">1번 쿼터 (Raw)</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">2번 쿼터 (Top Cap)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">Step 1. 수집량 (Raw Pool)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">Step 2. 1차 쿼터 (Union Pool)</th>
                         <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">카카오 정밀검증</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right font-black text-brand-400">최종 적재</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right font-black text-brand-400">Step 3. 2차 쿼터 (Personalized)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {quotaFlow.map((q: any, i: number) => (
                         <tr key={i} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4 text-xs font-bold text-brand-100">{q.category}</td>
-                          <td className="px-6 py-4 text-right text-xs font-black">{(q.raw_query || 0).toLocaleString()}</td>
-                          <td className="px-6 py-4 text-right text-xs font-black">{(q.top_quota || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right text-xs font-black">{(q.raw_pool || q.raw_query || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right text-xs font-black">{(q.union_pool || q.top_quota || 0).toLocaleString()}</td>
                           <td className="px-6 py-4 text-right">
                             <div className="inline-flex items-center text-[10px] font-black text-green-400">
                               <CheckCircle2 className="w-3 h-3 mr-1.5" /> {(q.verified || 0).toLocaleString()}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-right text-sm font-black text-brand-400 bg-white/5">{(q.final || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right text-sm font-black text-brand-400 bg-white/5">{(q.personalized || q.final || 0).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>

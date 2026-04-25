@@ -269,6 +269,7 @@ async function scrapeKakaoPlace(url) {
 }
 
 async function main() {
+    const startTime = Date.now();
     const args = process.argv.slice(2);
     const dateArg = args.find(a => a.startsWith('--target-date='))?.split('=')[1];
     let targetStr = dateArg || new Date(new Date().getTime() + 12 * 3600000 + 3 * 86400000).toISOString().split('T')[0];
@@ -284,12 +285,12 @@ async function main() {
             FESTIVAL: { existing: 0, received: 0, new: 0, updated: 0, total: 0 }
         },
         quota_flow: {
-            RESTAURANT: { raw: 0, quota: 0, verified: 0, final: 0 },
-            SPOT: { raw: 0, quota: 0, verified: 0, final: 0 },
-            MART: { raw: 0, quota: 0, verified: 0, final: 0 },
-            HOSPITAL: { raw: 0, quota: 0, verified: 0, final: 0 },
-            GAS_STATION: { raw: 0, quota: 0, verified: 0, final: 0 },
-            FESTIVAL: { raw: 0, quota: 0, verified: 0, final: 0 }
+            RESTAURANT: { category: 'RESTAURANT', raw_pool: 0, union_pool: 0, verified: 0, personalized: 0 },
+            SPOT: { category: 'SPOT', raw_pool: 0, union_pool: 0, verified: 0, personalized: 0 },
+            MART: { category: 'MART', raw_pool: 0, union_pool: 0, verified: 0, personalized: 0 },
+            HOSPITAL: { category: 'HOSPITAL', raw_pool: 0, union_pool: 0, verified: 0, personalized: 0 },
+            GAS_STATION: { category: 'GAS_STATION', raw_pool: 0, union_pool: 0, verified: 0, personalized: 0 },
+            FESTIVAL: { category: 'FESTIVAL', raw_pool: 0, union_pool: 0, verified: 0, personalized: 0 }
         }
     };
 
@@ -561,7 +562,7 @@ async function main() {
                 }
                 
                 if (!data) continue;
-                metrics.quota_flow[cat].raw += data.length;
+                metrics.quota_flow[cat].raw_pool += data.length;
 
                 const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용|사진관|약국|목공/;
                 const mart_blacklist = ['패션', '아울렛', '의류', '가전', '가구', '전자', '디지털프라자', '하이마트', '전자랜드'];
@@ -747,6 +748,7 @@ async function main() {
             // [v11.9.23] Union Pool 출력: 지점별 1차 쿼터 병합 결과
             const poolArray = Array.from(unionPool.values()).sort((a, b) => b.trust_score - a.trust_score);
             rawCandidatesForAudit.push(...poolArray.map(x => ({ ...x, stage: 1 })));
+            metrics.quota_flow[cat].union_pool += poolArray.length;
 
             // 마트 부족 시 편의점 폴백 (Step B-Fallback)
             if (cat === 'MART' && poolArray.length < 3) {
@@ -766,7 +768,6 @@ async function main() {
                 } catch {}
             }
 
-            metrics.quota_flow[cat].quota += poolArray.length;
             clusterCands.push(...poolArray);
         }
 
@@ -832,6 +833,9 @@ async function main() {
                     final_score: s.final_score,
                     raw_data: s.raw_data
                 })));
+
+                // [v11.9.23] Stage 4: 예약자별 최종 적재량 카운트 (개인별 쿼터 누적)
+                metrics.quota_flow[cat].personalized += scored.length;
             }
         }
 
@@ -873,19 +877,15 @@ async function main() {
 
     const final = Array.from(totalFactMap.values());
     final.forEach(f => {
-        if (metrics.quota_flow[f.category]) metrics.quota_flow[f.category].final++;
+        metrics.quota_flow[f.category].final++;
     });
 
     for (let i = 0; i < final.length; i += 500) await supabase.from('smart_plan_facts').upsert(final.slice(i, i + 500), { onConflict: 'id' });
     console.log(`🏁 Done: ${final.length} facts cached in smart_plan_facts.`);
 
-    // Update dynamic API final total counts (Post-Upsert)
-    const { count: finalH } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
-    
-    // [v11.9.19] Final Audit Write (Outside loops)
+    // [v11.9.23] Generate Audit Reports
     if (rawCandidatesForAudit.length > 0) {
         let auditContent = `# 3일 전 스마트 플랜 캐싱 정밀 분석 리포트 (통합)\n\n`;
-        
         auditContent += `## [SECTION 1] 1차 쿼터 DB 수집 리스트 (품질 우선 정제 전)\n`;
         auditContent += `| 번호 | 카테고리 | 이름 | 품질 점수 | 인증/명성 | 주소 | 거리(m) |\n`;
         auditContent += `| :--- | :--- | :--- | :---: | :---: | :--- | :---: |\n`;
@@ -894,65 +894,12 @@ async function main() {
             const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
             auditContent += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${Math.round(c.distance)} |\n`;
         });
-
-        auditContent += `\n---\n\n## [SECTION 2] 2차 쿼터 하이브리드 최종 리스트 (품질-거리 최적화)\n`;
-        auditContent += `| 번호 | 카테고리 | 이름 | 최종 점수 | 명성 점수 | 품질 점수 | 인증/명성 | 거리(km) | 주소 |\n`;
-        auditContent += `| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n`;
-        let s2Idx = 1;
-        rawCandidatesForAudit.filter(x => x.stage === 2).forEach(c => {
-            const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
-            auditContent += `| ${s2Idx++} | ${c.category} | ${c.name} | **${c.final_score}** | ${c.prestigeScore || 0} | ${c.trust_score} | ${b} | ${(c.distance/1000).toFixed(1)} | ${c.address} |\n`;
-        });
-
         fs.writeFileSync('spot_final_audit.md', auditContent, 'utf-8');
-        console.log(`📝 Unified Audit list generated: spot_final_audit.md (${rawCandidatesForAudit.length} items)`);
-
-        // [v11.9.23] 1차 쿼터 전체 리스트 별도 파일
-        let q1Content = `# 1차 쿼터 전체 리스트 (Union Pool — 품질순)\n`;
-        q1Content += `> 생성: ${new Date().toISOString()} | 대상: ${targetStr}\n\n`;
-        const catOrder = ['RESTAURANT', 'SPOT', 'MART', 'HOSPITAL', 'GAS_STATION', 'FESTIVAL'];
-        for (const cat of catOrder) {
-            const items = rawCandidatesForAudit.filter(x => x.stage === 1 && x.category === cat);
-            q1Content += `## ${cat} (${items.length}건)\n`;
-            q1Content += `| # | 이름 | 품질점수 | 인증/뱃지 | 주소 | 거리(km) |\n`;
-            q1Content += `| :---: | :--- | :---: | :--- | :--- | :---: |\n`;
-            items.forEach((c, i) => {
-                const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
-                q1Content += `| ${i+1} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${(c.distance/1000).toFixed(1)} |\n`;
-            });
-            q1Content += `\n`;
-        }
-        fs.writeFileSync('1st_quota_raw_list.md', q1Content, 'utf-8');
-        console.log(`📝 1st Quota list: 1st_quota_raw_list.md`);
+        console.log(`📝 Audit report generated: spot_final_audit.md`);
     }
 
-    // [v11.9.23] Stage 4 개인화 결과 리포트
-    if (allCandidateRows.length > 0) {
-        let q2Content = `# Stage 4 개인화 최종 리스트 (예약자별 거리감점 적용)\n`;
-        q2Content += `> 생성: ${new Date().toISOString()} | 대상: ${targetStr}\n`;
-        q2Content += `> 감점계수: RESTAURANT=3.0, SPOT=2.0, MART=3.0, HOSPITAL=3.0, GAS_STATION=2.0, FESTIVAL=1.0\n\n`;
-
-        const reservationIds = [...new Set(allCandidateRows.map(r => r.reservation_id))];
-        for (const rid of reservationIds) {
-            const rows = allCandidateRows.filter(r => r.reservation_id === rid);
-            const rName = rows[0]?.name || rid;
-            q2Content += `---\n## 예약자: ${rid}\n\n`;
-            const catOrder2 = ['RESTAURANT', 'SPOT', 'MART', 'HOSPITAL', 'GAS_STATION', 'FESTIVAL'];
-            for (const cat of catOrder2) {
-                const catRows = rows.filter(r => r.category === cat);
-                if (catRows.length === 0) continue;
-                q2Content += `### ${cat} (${catRows.length}건)\n`;
-                q2Content += `| # | 이름 | 품질점수 | 거리(km) | 감점 | 최종점수 | 주소 |\n`;
-                q2Content += `| :---: | :--- | :---: | :---: | :---: | :---: | :--- |\n`;
-                catRows.forEach((c, i) => {
-                    q2Content += `| ${i+1} | ${c.name} | ${c.quality_score} | ${(c.distance_meters/1000).toFixed(1)} | -${c.penalty_score} | **${c.final_score}** | ${c.address} |\n`;
-                });
-                q2Content += `\n`;
-            }
-        }
-        fs.writeFileSync('2nd_quota_final_list.md', q2Content, 'utf-8');
-        console.log(`📝 2nd Quota (personalized): 2nd_quota_final_list.md (${allCandidateRows.length} items, ${reservationIds.length} reservations)`);
-    }
+    // Update dynamic API final total counts (Post-Upsert)
+    const { count: finalH } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'HOSPITAL');
     const { count: finalG } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'GAS_STATION');
     const { count: finalF } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'FESTIVAL');
     metrics.dynamic_api.HOSPITAL.total = finalH || 0;
@@ -964,6 +911,20 @@ async function main() {
     metrics.dynamic_api.SPOT = { existing: 0, received: 0, new: 0, updated: 0, total: 0, merged: mergedSpots, note: '공간 병합 완료' };
     const { count: finalS } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).eq('category', 'SPOT');
     metrics.dynamic_api.SPOT.total = finalS || 0;
+
+    const finalLog = {
+        job_name: 'SMART_PLAN_CACHING',
+        status: 'SUCCESS',
+        processed_count: metrics.reservations,
+        target_date: targetStr,
+        message: JSON.stringify({
+            text: `D-3 Caching Completed for ${targetStr}`,
+            quota_flow: Object.values(metrics.quota_flow)
+        }),
+        duration_ms: Date.now() - startTime,
+        api_status: Object.values(metrics.dynamic_api)
+    };
+    await supabase.from('automation_logs').insert([finalLog]);
 
     function printCachingAuditTable() {
         console.log(`\n📋 [Precision Audit Report] D-3 스마트 캐싱 (권역 API 정밀 동기화)`);

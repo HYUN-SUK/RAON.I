@@ -179,6 +179,14 @@
     *   [x] **내 공간 (`LBS`, `Record`)**: 키워드 기록 및 위치 탐색 시그널.
     *   [x] **마켓 & 마이스페이스 (`Market`)**: 감성 장비 클릭 및 LNT 미션 시그널.
     *   [x] **Phase 3 센서 고도화 (Completed)**: 커뮤니티 체류 시간(No 22), 큐레이션 카드 클릭(No 26-28), 날씨/LBS 상세 클릭(No 29, 35) 실장 완료.
+    *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 설계 ✅ (2026-04-12)**:
+        *   [x] **Metric Splitting**: `Active/Inactive` 지표 분리 로직 전수 적용 및 3진 아웃 로직 고도화.
+        *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
+        *   [x] **UI Support**: 관리자 자동화 로그 페이지 🔴/🟢 상태별 세분화 렌더링 구현 완료.
+        *   [x] **Sync Strategy**: 일일 1,000회 제한 극복을 위한 17일 순환 갱신 체계 확립.
+    *   [ ] **5.5.16 Personalized Journey v2.2 (Refinement) 🔄 (2026-04-24)**:
+        *   [x] **Audit**: 로직 간소화 시도 중 원본 엔진 훼손 이슈 발견 및 **전체 롤백** 완료.
+        *   [ ] **Next**: 원본 루프 보존형 Stage 4 개인화 레이어(감점 계수 3/2/1) 정밀 주입 예정.
 *   **5.5.4 UI Component (`SmartPlanProposal.tsx`)** ✅:
     *   [x] Citational UI (서사 + 팩트 카드) 및 교체 상호작용 개발.
     *   [x] `Fallback Mock Data` 주입 로직 탑재 (미연결 또는 API Key 부재 시 무중단 렌더링).
@@ -687,4 +695,12 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 ### Phase 12.5: 프라이빗 커뮤니티 (~16시간)
 *   [ ] **캠핑 노트 방식**: 실시간 채팅 대신 게시판형
 *   [ ] **그룹 타입 확장**
+
+### Phase 12.6: 스마트 캠핑 파이프라인 최적화 (진행중)
+*   [x] **KTO 공식 순위 복구**: 2024년 12월 최신 가용 데이터 기반 전국 189개 시군구 랭킹 동기화 완료 (2026-04-25)
+*   [x] **관리자 대시보드 개편**: 3일전 캐싱 로그를 3단계 쿼터(수집량 -> 1차 쿼터 -> 2차 쿼터) Funnel 구조로 개선 완료
+*   [ ] **KTO API 고도화 (차후 점검)**:
+    *   [ ] **신규 API 전환**: `LocgoHubTarService1` (기초지자체 중심) 전환 및 실시간성(2025/2026) 확보 검토
+    *   [ ] **매칭 엔진 고도화**: 이름+주소 기반의 퍼지 매칭(Fuzzy Matching) 로직 도입
+    *   [ ] **데이터 소스 단일화**: 연관 정보와 공식 순위 데이터 소스 분리 및 정합성 강화
 
