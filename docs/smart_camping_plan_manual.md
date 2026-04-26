@@ -59,129 +59,70 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 
 ---
 
-## ⚙️ 2. 핵심 로직 파이프라인 (The 8-Step Pipeline)
+## ⚙️ 2. 핵심 로직 파이프라인 (The Dual-Track Pipeline)
 
-사용자가 '캠핑 여정 계획 세우기' 버튼을 누른 순간부터 데이터를 수집, 정제하여 최종적으로 AI에게 프롬프트로 넘기기 직전까지의 8단계 흐름입니다.
+스마트 캠핑 플랜은 **[Track A: 목적지 중심 캐싱]**과 **[Track B: 여정 중심 실시간 엔진]**이 결합된 하이브리드 구조입니다.
 
-### [ Phase 1: Context Gathering (유저 상황 수집) ]
-*   **Step 1. Weather & Persona Context (일자별 날씨 및 페르소나 파악)**: 사용자가 버튼을 누르면, 캠핑 예정일의 일자별 날씨(Day 1~3)를 수집하고 유저의 활동 성향(아이 동반, 미식가 등) 페르소나를 식별합니다. 이 때 `user_camping_profiles`의 최신 데이터(인원 구성, 반려견 유무 등)를 동시 참조합니다.
-*   **Step 2. Journey Sampling (여정 중간지점 좌표 추출)**: 카카오 내비 API를 활용해 실제 출발지-캠핑장 주행 경로상의 50% 지점(Midpoint)을 추출하여 '가는 길' 추천의 기준점으로 삼습니다.
+### [ Phase 1: D-3 Strategic Caching (사전 캐싱) ]
+사용자가 버튼을 누르기 3일 전, 시스템은 미리 목적지 주변의 데이터를 확보합니다.
+*   **파일**: `scripts/caching-smart-plan.mjs` (GitHub Actions 정기 실행)
+*   **동작**:
+    *   **Step 1. Geo-Clustering**: 3일 후 예약자들의 위치를 20km 단위로 클러스터링합니다.
+    *   **Step 2. Multi-Source Fetch**: `master_places` DB에서 6대 카테고리(식당, 마트, 명소 등) 데이터를 수집합니다.
+    *   **Step 3. Base Scoring**: 장소의 기본 품질(`quality_score`)과 캠핑장으로부터의 거리를 계산하여 `smart_plan_candidates` 테이블에 미리 적재합니다.
+    *   **주의**: 이 단계에서는 사용자 개인의 페르소나나 실시간 날씨는 반영되지 않은 '정제된 원석' 상태의 데이터입니다.
 
-### [ Phase 2: Hybrid Data Gathering & Enrichment (하이브리드 데이터 수집) ]
-*   **Step 3. Phase 11: Hybrid Master DB Scan (Track A - 현지 팩트)**: 캠핑장 반경 내 [식당], [마트], [명소], [주유소] 등은 Supabase 내부 `master_places`에서 PostGIS로 고속 선별합니다. 
-    *   **ID 생성 원칙 (SOP v11.3 강제)**: 모든 데이터는 수집 경로(API/CSV)에 상관없이 **1.1절의 표준 정규화 로직(Master Key)**을 거친 후 ID를 부여받습니다.
-    *   **병원/축제/주유소 예외**: `HOSPITAL`, `FESTIVAL`, `GAS_STATION`(오피넷) 카테고리는 실시간성 및 가격 정보의 정확성이 중요하므로, Phase 11 마스터 DB가 아닌 **Phase 10 동적 권역 파이프라인**을 통해 예약 3일 전(D-3) 실시간 수집된 `smart_plan_facts`에서 가져옵니다. 이때도 ID 생성 규격은 SOP v11.3을 엄격히 따릅니다.
-    *   **기술 사양**: `GIST` 인덱스가 적용된 공간 쿼리를 통해 **10ms 이하**의 검색 속도를 보장합니다.
-    *   **이중 쿼터 시스템 (Dual-Quota System v11.5)**: 서버 부하 방지와 고품질 데이터 선별을 위해 이중 쿼터 체계를 적용합니다.
-        1. **1번 쿼터 (DB 추출)**: 마스터 DB(SQL RPC)에서 반경 30km의 데이터를 넉넉하게 확보하는 안전 그물망.
-        2. **2번 쿼터 (정예 선별)**: 확보된 데이터를 점수순(Trust Score DESC, Distance ASC)으로 자른 후 카카오 정밀 검증 및 스마트플랜 DB에 적재하는 최종 후보수.
-    *   **전이중 지역 로테이션 및 통합 CSV 다이렉트 스트리밍 (v11.8 vNext)**: 잦은 500 에러 및 WAF 차단을 유발하던 과거의 OpenAPI(1741000)를 전면 폐기하고, **LocalData(행정안전부)의 지역별 공식 파일(CSV) 다운로드 엔드포인트**를 `Referer` 우회 기법으로 다이렉트 스트리밍하여 인메모리 파싱하는 무손실 파이프라인으로 전면 개방(Gold Standard)했습니다.
-        - **Target Categories**: 대규모점포, 기타식품판매업, 모범음식점. (순수 CSV 포맷 연동)
-        - **Safe Mode 2단계 정밀 선별 시스템 (v11.9.13 개정)**: 
-          DB의 정렬 기준에 의존하지 않고 고품질 데이터를 전국 단위로 확보하기 위해 1차 수집량을 대폭 상향한 후, JS 단계에서 하이브리드 선별을 수행합니다.
-          | 카테고리 | 1차 쿼터(DB) | 2차 쿼터(정예) | 비고 |
-          |---------|------------|------------|------|
-          | RESTAURANT | **3,000** | 300 | 품질순 확보를 위해 상한 대폭 상향 |
-          | SPOT | **3,000** | 300 | 인기도 기반 와이드 페칭 |
-          | MART | **3,000** | 20 | SSM/대형마트 전국망 확보 |
-          | HOSPITAL | **3,000** | 15 | 긴급 의료시설 반경 확장 |
-          | GAS_STATION | **3,000** | 10 | 최저가 나선형 수집 통합 |
-          | FESTIVAL | **3,000** | 15 | 일정 중복 축제 전수 조사 |
-        - 이후 하이브리드 스코어링(품질-거리 최적화)을 거쳐 최종 Top 15(Top 3 Priority)를 선별합니다.
-*   **Step 4. Phase 12: Real-time Verification (Track B - 가는 길 팩트)**: 중간지점(Midpoint) 반경 내에서 [식당], [카페], [명소]를 조회합니다. 
-    *   **기술 사양 (Anti-Bot)**: 카카오맵의 CSR 렌더링 및 봇 차단을 우회하기 위해 `User-Agent`, `Referer` 헤더를 위조하고, `place-api.map.kakao.com`의 비공개 JSON 엔드포인트(`/places/panel3/`, `/places/reviews/kakaomap/meta/`)를 직접 호출하여 별점/리뷰 수를 JSON 형태로 추출합니다. (**cheerio HTML 파싱이 아닌 JSON API 직접 호출 방식**)
-    *   **카페 데이터**: 식당 API 데이터 중 업종 분류가 '카페'인 항목과 카카오 검색을 결합하여 추출합니다.
-    *   **2차 정제 (v2.1 Fail-soft 정책)**: 선별된 후보군에 대해 카카오 스크래퍼(`scraper.ts`)를 가동하여 **실시간 별점 및 리뷰 수**를 획득합니다. **실시간 검증 성공 여부와 관계없이 후보 자체는 유지**하며, 검증 결과는 `FactCard.evidence`와 `verificationStatus`에 기록합니다.
-        - 검증 성공: `verificationStatus = VERIFIED`, `api_source = MASTER_ENRICHED`. **1차 선별 점수를 그대로 유지하되 100점 상한(Cap)을 적용하지 않음.**
-        - 카카오 매칭 실패/스크래핑 에러: `verificationStatus = UNVERIFIED`, 원본 `api_source` 유지
-        - 즉, **실시간 검증 실패가 후보 탈락으로 직접 이어지지 않습니다.**
-    *   **특수 항목(HOSPITAL) 실시간 갱신 & 계층형 선별**: 국립중앙의료원(NMC) API + **카카오 HP8(종합병원 등급)** API를 결합 수집합니다. 행정구역 경계선 문제를 피하기 위해 **PostGIS 반경 20km~30km 확장 검색**을 수행하며, 응급실 유무와 병원 등급에 따른 **계층형 가중치 스코어링**으로 정예 후보를 추출합니다.
-    *   **동적 데이터 PostGIS 색인 지연 우회(Bypass)**: D-3 수집 직후 DB에 적합된 데이터가 인덱싱 시간차로 인해 즉시 조회되지 않는 현상을 방지하기 위해, **동적 수집본을 백엔드 메모리 배열에 직접 주입(Direct Merge)**하여 단 1건의 누락도 허용하지 않습니다.
+### [ Phase 2: On-Demand Live Generation (실시간 엔진 가동) ]
+사용자가 '캠핑 여정 계획 세우기' 버튼을 누른 순간, 최신 환경 정보와 개인화 로직이 결합됩니다.
+*   **파일**: `src/lib/smartPlan.ts` (API 호출 시 실행)
+*   **동작**:
+    *   **Step 4. Context Gathering**: 현재 시점의 **실시간 날씨**와 유저의 **페르소나**를 수집합니다.
+    *   **Step 5. Track A (Destination) Activation**: DB에 저장된 후보군을 불러와 실시간 날씨/페르소나 점수(`ContextFit`)를 즉시 합산하여 랭킹을 재정렬합니다.
+    *   **Step 6. Track B (Midpoint) Engine**: 
+        *   카카오 내비 API로 출발지-목적지 사이의 **중간지점(Midpoint)**을 산출합니다.
+        *   중간지점 5~30km 반경의 검증된 명소/식당을 실시간으로 검색 및 병합(Merge)합니다.
+    *   **Step 7. Deep Scoring & Emoji**: 인증 합산, 명소 티어 가점, **8경 이모지 추출** 로직이 작동하여 최종 팩트를 완성합니다.
+    *   **Step 8. AI Timeline Assembly**: 정제된 팩트들을 **5단계 감성 서사(가는길-장보기-도착식사-현지힐링-귀갓길)** 프롬프트로 변환하여 AI(Gemini)에게 전달합니다.
 
+---
 
-### [ Phase 3: Filtering & Day-by-day Weight Logic (가중치 부여) ]
-*   **Step 5. Category Segregation (9카테고리 분류)**: 정제된 데이터를 `HOSPITAL`, `MART`, `RESTAURANT`, `GAS_STATION`, `SPOT`, `FESTIVAL`(현지 6종) 및 `ROUTE_RESTAURANT`, `ROUTE_CAFE`, `ROUTE_SPOT`(경로 3종)의 **총 9개 카테고리**로 엄격히 분류합니다. 
+## 📊 3. 통합 스코어링 엔진 (Deep Scoring Engine v12.0)
 
-*   **Step 5.5. v2 4축 점수 체계 (Multi-Axis Scoring v2)**:
-    기존 `trust_score` 단일값 가감 방식을 폐기하고, **4개 축의 가중합 - Risk Penalty** 공식으로 `finalScore`를 산출합니다.
+모든 장소는 다음의 공식에 따라 최종 점수(`trustScore`)가 결정됩니다.
 
-    **4축 구성:**
-    | 축 | 의미 | 하위 지표 | 범위 |
-    |---|---|---|---|
-    | **Existence** | 실제 존재/출처 신뢰도 | `source_confidence` + `geo_confidence` | 0~100 |
-    | **Quality** | 장소 품질 | `official_cert` + `live_rating` | 0~100 |
-    | **ContextFit** | 이번 캠핑 적합도 | `weather_match` + `persona_match` | 0~100 |
-    | **Logistics** | 접근 편의성 | `distance` | 0~100 |
+### [ 기본 공식 ]
+`Final Score = Base(50) + ContextFit(0~100) + Bonus(인증/티어) + Logistics(거리) - Penalty`
 
-    **카테고리별 가중치 (W1:Existence, W2:Quality, W3:ContextFit, W4:Logistics):**
-    | 카테고리 | W1 | W2 | W3 | W4 | 설계 의도 |
-    |---|---|---|---|---|---|
-    | HOSPITAL | 0.40 | 0.10 | 0.25 | 0.25 | 존재 확실성 최우선 |
-    | MART | 0.30 | 0.10 | 0.20 | 0.40 | 가까운 곳 우선 |
-    | GAS_STATION | 0.30 | 0.10 | 0.20 | 0.40 | 가까운 곳 우선 |
-    | RESTAURANT | 0.20 | 0.30 | 0.30 | 0.20 | 품질+적합성 균형 |
-    | SPOT | 0.20 | 0.20 | 0.35 | 0.25 | 적합성 최우선 |
-    | FESTIVAL | 0.25 | 0.10 | 0.40 | 0.25 | 적합성 최우선 |
-    | ROUTE_* | 0.20 | 0.20~0.25 | 0.20~0.25 | 0.35 | 동선 접근성 우선 |
+#### **1. ContextFit (실시간 개인화/날씨 - 최대 100점)**
+*   **날씨**: 비/눈 시 실내 명소 및 국물 요리 가점(+20), 맑음 시 야외 활동 가점(+15).
+*   **페르소나**: 아이 동반 시 체험형 명소(+30), 반려견 동반 시 테라스/운동장(+30), 시니어 동반 시 보양식/온천(+30).
 
-    **Risk Penalty (v2.1 세분화, 최대 -40점):**
-    | 조건 | 감점 | 비고 |
-    |------|------|------|
-    | 일요일 포함 일정 + 대형마트(이마트/홈플러스/롯데마트) | **-15** | `SUNDAY_BIG_MART` |
-    | 공공 인증 출처이나 실시간 미검증 (OPINET, MOIS, TOUR_* 등) | **-2** | `SEMI_PUBLIC_UNVERIFIED` |
-    | 일반 출처 + 미검증 (LARGE_STORE, 기타) | **-5** | `UNVERIFIED` |
-    | 필수 필드 2개 이상 누락 (이름/좌표/카테고리/출처) | **-5** | `MISSING_FIELDS` |
-    | 필수 필드 3개 이상 누락 | **-10** | `SEVERE_MISSING_FIELDS` |
-    | 설명 없음 또는 매우 빈약 (3자 미만) | **-2** | `WEAK_DESC` |
+#### **2. Bonus (검증 및 명성 가점)**
+*   **음식점 인증 합산 (Cumulative)**: 
+    *   백년가게(+50) + LX공사맛집(+50) + 모범음식점(+30) + 안심식당(+20) 중복 시 모두 합산.
+*   **명소 티어 가점 (Fixed Tier)**: 
+    *   **1티어 (100점)**: 한국관광 100선 등 국가 대표 명소.
+    *   **2티어 (80점)**: 지자체 공식 8경/10경 및 우수 명소.
 
-    감점 사유는 `FactCard.riskFlags` 배열에 기록되어 AI 서사 작성 시 부드러운 권유형 문장 변환에 활용됩니다.
+#### **3. Smart Labeling (이모지 자동 부여)**
+*   **👑 [지역] 8경!**: 장소 이름이나 설명글에서 `[지역명] 8경/팔경/구경` 패턴을 감지하여 자동 부여.
+*   **👑 지역명소**: 티어 점수가 70점 이상인 검증된 명소에 자동 부여.
+*   **🎖️ 인증마크**: 백년가게, LX인증, 모범음식점, 안심식당 배지 자동 부여.
 
-    **최종 공식 (v3.2 개정):**
-    ```
-    finalScore = QualityScore - (Distance_km * CategoryFactor)
-    ```
-    품질 중심의 변별력을 확보하기 위해 100점 상한제(Cap)를 폐지하고, 거리에 따른 합리적인 감점을 적용합니다.
+---
 
-    **카테고리별 거리 감점 계수 (CategoryFactor):**
-    | 카테고리 | 감점 계수 (per km) | 설계 의도 |
-    |---|---|---|
-    | RESTAURANT | 3.0 | 품질이 좋더라도 가까운 동선을 우선함 |
-    | MART | 2.0 | 마트는 접근 편의성이 중요 |
-    | SPOT | 0.5 | 명소는 20km 거리도 방문 가치 충분 |
-    | HOSPITAL | 5.0 | 의료시설은 가장 가까운 곳이 최우선 |
-    | GAS_STATION | 2.0 | 주유소는 동선 효율 우선 |
-    | FESTIVAL | 1.0 | 축제는 지역성 고려 |
+## 📁 4. 사용자 페르소나 및 5단계 서사 시스템
 
-    `FactCard.trustScore`에는 하위 호환을 위해 `finalScore`가 채워지며, **100점 상한제(Cap)를 전면 폐지**하여 우수한 장소가 100점 이상의 높은 변별력을 갖도록 합니다.
-    - **v2.1 Evidence Extractor**: `FactCard.evidence` 필드에 별점(`stars`), 리뷰 수(`reviews`), 공공 인증 항목(`badges`), 출처 라벨(`sourceLabel`), 검증 시각(`verifiedAt`), 개별 `verificationStatus`를 구조화하여 저장합니다.
-    - **v2.1 Quality.live_rating 별점 세분화**: `calcQuality()`의 `live_rating` 하위지표가 출처 기반 일괄 점수에서 **실제 별점 기반 세분화**로 개선되었습니다:
-      | 별점 | live_rating 점수 |
-      |------|------------------|
-      | 4.5 이상 | 50 |
-      | 4.2 ~ 4.49 | 40 |
-      | 4.0 ~ 4.19 | 30 |
-      | 3.8 ~ 3.99 | 20 |
-      | 확인 불가 | 10 |
-      | 데이터 없음 | 0 |
-      - `MASTER_ENRICHED` 출처이나 별점 파싱 실패 시 기존값(40) 유지 (하위 호환).
-    - **v2.1 FactCard 확장 필드**: `riskFlags` (감점 사유 배열), `selectionTier` (`PRIMARY`/`ALTERNATIVE`/`FEATURED`/`HIDDEN`), `evidence.badges` (배지 배열), `evidence.sourceLabel` (출처 라벨)이 추가되었습니다.
+### 4.1 개인화 센서 연동
+*   `UserPersona`: `guestDetails`의 성인/아이/시니어/반려견 유무를 정밀 분석하여 `ContextFit` 점수에 반영합니다.
 
-*   **Step 6. Day-by-Day Weather & Persona Weighting (일자별 기상/성향 가중치)**: 
-    *   v2 4축 체계에서 **ContextFit 축**의 `weather_match`와 `persona_match`로 반영됩니다.
-    *   **Day 1 (가는 길)**: 비 예보 시 국물 요리/실내 명소의 `weather_match`가 45/50으로 상승, 맑음 시 야외 40~45.
-    *   **Day 2~3 (현지)**: **최저 기온 5도 이하** 또는 11월~3월인 경우 '겨울 모드'가 활성화되어 주유소는 `weather_match=50`으로 최상위 배치. 아이 동반 시 소아과/어린이 식당의 `persona_match`가 40~45로 상승.
-*   **Step 7. Exception Guard (휴무일 및 장기 숙박 방어)**: v2 체계에서 **Risk Penalty**로 통합. 일요일 포함 + 대형마트일 때 -15점 감점, 하나로마트에는 Diversity Bonus +5점 부여.
-
-### [ Phase 4: Final Selection & AI Assembly (최종 선별) ]
-*   **Step 8. Final Selection & AI Assembly (정예 선별 및 서사 조립)**: 
-    *   **Top 3 선별**: 4축 `finalScore` 기준으로 카테고리별 **Top 3 (1개 메인 `PRIMARY`, 2개 대안 `ALTERNATIVE`)**을 최종 선별합니다.
-    *   **v2.1 FESTIVAL featured 슬롯 분리**: FESTIVAL은 일반 카테고리 경쟁 랭킹과 별도로 **`FEATURED` 슬롯**으로 우선 배치됩니다. 즉, FESTIVAL은 RESTAURANT/MART/SPOT과 같은 일반 Top 3 경쟁군이 아니라, 지역성 강조용 별도 추천 카드(`featuredFestival`)로 노출됩니다.
-    *   **AI Narration & Reasoning (v3.0 고도화)**: Gemini LLM에 전달하는 프롬프트에 **`evidence` 기반 정보(별점, 리뷰 수, 배지, 검증상태)를 직접 포함**하여, 더 정확한 팩트를 인용한 감성적 **3파트 타임라인(가는 길, 현지, 오는 길)**을 전체 여정 서사뿐만 아니라 각 카드별 **"왜 이 장소를 추천했는지(Reasoning)"** 1문장 핵심 사유를 동적으로 생성하여 AI에게 전달합니다.
-    *   **오는 길 추천**: 가는 길 추천 중 선택되지 않은 대안이나 근처의 명소를 '귀갓길의 따뜻한 제안'으로 서사에 포함하도록 가이드합니다.
-    *   **AI Guardrails (환각 방지)**: 데이터에 존재하지 않는 **영업시간, 메뉴 가격, 실시간 잔여석** 정보를 임의로 지어내지 않도록 엄격한 프롬프트 지침을 준수합니다.
-    *   **v2.1 verificationStatus 규칙**: `VERIFIED` 장소만 "검증된" 표현을 사용하며, `UNVERIFIED` 장소는 "방문 전 확인 권장" 수준으로만 표현합니다.
-    *   **Tone Guide**: 휴무 위험 등 리스크 언급 시 "방문 전 확인 권장"과 같은 따뜻한 권유형 문장을 사용하며, 장소 이름 언급 시 `||ID|이름||` 규격을 엄수합니다. **서사는 사용자의 편안함과 동선 부담 감소를 먼저 말합니다.**
-    *   **Emergency Guide**: 추천 리스트에 병원이 포함되지 않은 경우, 119 이용 및 시내 이동 안내를 서사에 자동 포함합니다.
+### 4.2 5단계 감성 서사 구조 (AI Prompt)
+AI는 다음 5단계의 타임라인에 맞춰 나레이션을 작성합니다.
+1.  **[가는 길]**: 여정의 시작, 중간지점의 가벼운 나들이와 식사.
+2.  **[장보기]**: 캠핑장 도착 전 신선한 식재료 보급 (하나로마트 우선).
+3.  **[도착 식사]**: 텐트 설치 전후 즐기는 현지 맛집.
+4.  **[현지 힐링]**: 캠핑 중 즐기는 주변 명소와 로컬 축제.
+5.  **[귀갓길]**: 여정의 여운을 달래는 마지막 추천과 인사.
 
 ---
 
@@ -430,14 +371,16 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 단순한 온라인 조회수(`readcount`)를 영구 폐기하고, 정부 공인/모빌리티/통신 데이터를 결합한 **6:2:2 하이브리드 지표(Standardized Popularity Index)** 체계를 운영합니다.
 
 1. **KTO 기초지자체 인기 관광지 (60%)**: 
-    - 한국관광공사(TourAPI)의 `TarRlteTarService1`을 통해 수집된 해당 시군구 내의 공식 인기도 랭킹을 반영합니다.
-    - 법정동/KTO 레거시 코드 하이브리드 맵핑을 통해 전국 250개 시군구의 데이터를 무결하게 수집합니다.
+    - **자동 가용 월 스캔 (`getLatestValidBaseYm`)**: 공공데이터 포털의 시차(Lag)를 고려하여, 고정된 날짜가 아닌 최근 4개월을 역순으로 자동 스캔하여 데이터가 존재하는 최신 월(현재 2024.12)을 타겟팅합니다.
+    - **리전 코드 정규화**: `master_places`에 복구된 `areaCode` 및 `sigunguCode`를 기반으로 전국 189개 표준 권역의 랭킹 데이터를 무결하게 매칭합니다.
+    - 한국관광공사의 `TarRlteTarService1`을 통해 수집된 해당 시군구 내의 공식 인기도 랭킹을 반영합니다.
 2. **TMAP 이동성 데이터 (20%)**: 
     - SK TMAP의 차량 이동 중심성 데이터를 정규화하여 실시간 '핫플레이스' 시그널을 추출합니다.
 3. **KT 방문자 집중률 (20%)**: 
     - 통신사 유동인구 격자 데이터를 분석하여 명소 내 인구 밀집도를 인기도에 반영합니다.
 4. **통합 스코어링 (Integrated Score)**: 
     - `(KTO Score × 0.6) + (TMAP Score × 0.2) + (KT Score × 0.2)`
+    - **데이터 부재 시 Fallback**: 특정 월 데이터가 0건인 경우 시스템은 자동으로 최하점(10점)을 부여하여 품질 하락을 방지합니다.
 5. **저장 및 연동**:
     - 산출된 메트릭은 개별 장소의 `raw_data.popularity_v2` 필드에 저장되어 `SPOT` 하이브리드 엔진의 기초 인자로 활용됩니다.
 
@@ -451,7 +394,22 @@ const expectedId = uuidv5(`${source}|${getCleanString(name)}|${getCleanString(ge
 ### 7.4 실행 엔진 및 스케줄링
 - **실행 환경**: `scripts/daily-region-sync.mjs` (Vercel Cron / GitHub Actions)
 - **실행 시각**: 매일 04:00 KST
-- **모니터링**: 관리자 페이지(Admin Dashboard) 내 'Automation Logs'에서 7대 핵심 지표(신규, 갱신, 총계 등)를 실시간 확인 가능합니다.
+- **모니터링**: 관리자 페이지(Admin Dashboard) 내 'Automation Logs'에서 아래 **3단계 Funnel 지표**를 실시간 확인 가능합니다.
+    - **Step 1 (수집량)**: API 원천 수신 데이터 총합
+    - **Step 2 (1차 쿼터)**: 지점별 선별 및 병합이 완료된 공용 풀 (Union Pool)
+    - **Step 3 (2차 쿼터)**: 개인화(Stage 4)가 적용되어 예약자별로 최종 적재된 수량
+
+### 7.5 3단계 쿼터 Funnel 시스템 (The 3-Step Quota Funnel)
+초정밀 개인화 추천을 위해 데이터의 양을 단계별로 압축하고 검증하는 체계입니다.
+
+1.  **Step 1. 수집량 (Raw Collection Pool)**: 
+    - 클러스터링된 캠핑장 주변에서 API를 통해 가져온 순수 원천 데이터입니다. (약 1,000~3,000건)
+2.  **Step 2. 1차 쿼터 (Union Pool)**: 
+    - `master_places` 및 `caching-smart-plan` 엔진이 지점별 쿼터(식당 300개 등)에 맞춰 중복을 제거하고 통합한 공용 데이터셋입니다. 
+    - 이 단계에서 카카오 별점 및 리뷰 수 등 **품질 검증**이 완료됩니다.
+3.  **Step 3. 2차 쿼터 (Personalized Delivery)**: 
+    - **Stage 4 개인화 레이어**가 가동되어, 각 예약자의 출발지 및 페르소나에 맞춘 거리 감점과 필터링이 적용된 최종 추천 후보군입니다.
+    - 예약자 1인당 카테고리별 최대 15개(식당/명소 기준) 등 엄격한 쿼터를 준수하여 `smart_plan_candidates` 테이블에 최종 적재됩니다.
 
 ---
 
