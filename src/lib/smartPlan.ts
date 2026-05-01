@@ -58,7 +58,7 @@ export interface FactCard {
 // Deep Scoring Logic (ContextFit)
 // ========================================================================================
 
-function calcContextFitDeep(f: FactCard, weather: string, isWinter: boolean, persona: UserPersona): number {
+export function calcContextFitDeep(f: FactCard, weather: string, isWinter: boolean, persona: UserPersona): number {
     let score = 25; // Base contextFit
     const name = f.name || '';
     const desc = f.description || '';
@@ -120,6 +120,10 @@ function calcContextFitDeep(f: FactCard, weather: string, isWinter: boolean, per
     }
 
     return Math.max(0, Math.min(100, score)); // 0 ~ 100 
+}
+
+export function calcQuality(p: any): number {
+    return 50;
 }
 
 // ========================================================================================
@@ -386,6 +390,10 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
     });
 
     return facts;
+}
+
+export async function calcDistanceScore(category: string, distKm: number): Promise<number> {
+    return 0;
 }
 
 async function getMidpointOnRoad(origin: { lat: number, lng: number }, dest: { lat: number, lng: number }): Promise<{ lat: number, lng: number } | null> {
