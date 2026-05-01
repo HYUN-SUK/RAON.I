@@ -58,6 +58,8 @@ export interface FactCard {
 // Deep Scoring Logic (ContextFit)
 // ========================================================================================
 
+import { computePersonaMatch } from './personaBridge';
+
 export function calcContextFitDeep(f: FactCard, weather: string, isWinter: boolean, persona: UserPersona): number {
     let score = 25; // Base contextFit
     const name = f.name || '';
@@ -70,9 +72,8 @@ export function calcContextFitDeep(f: FactCard, weather: string, isWinter: boole
     const elementary = persona.guestDetails?.kids?.elementary || 0;
     const hasKids = preschool > 0 || elementary > 0;
     const hasPet = persona.guestDetails?.hasPet || false;
-    const isCouple = adults === 2 && seniors === 0 && !hasKids;
 
-    // 1. Weather Deep Score
+    // 1. Weather Deep Score (기존 유지)
     if (weather.includes('비') || weather.includes('눈')) {
         if (text.match(/탕|찌개|칼국수|국밥|전골/)) score += 20;
         if (text.match(/박물관|실내|미술관/)) score += 20;
@@ -84,43 +85,26 @@ export function calcContextFitDeep(f: FactCard, weather: string, isWinter: boole
     }
     if (isWinter && f.category === 'GAS_STATION') score += 20;
 
-    // 2. Persona Deep Score
-    // 👶 아이 동반 (Kids)
+    // 2. Behavior-Tag System Integration (신규 브릿지 연동)
+    // 누적된 태그 장부(tagMap)를 기반으로 정교한 규칙 매칭 수행
+    const tagMap = persona.tagMap || {};
+    const bridgeScore = computePersonaMatch(f, tagMap);
+
+    // 3. Strong Signal Safety Score (인원 구성 기반 보조 점수)
+    let safetyScore = 0;
     if (hasKids) {
-        if (f.category === 'HOSPITAL' && text.match(/소아과|아동병원/)) score += 50;
-        if (text.match(/돈까스|피자|어린이|불고기|뷔페|놀이방/)) score += 30;
-        if (f.category === 'SPOT' && text.match(/동물|목장|아쿠아리움|체험|공룡|생태|과학관/)) score += 30;
-        if (text.match(/매운|곱창|술집|노키즈존|이자카야/)) score -= 30;
+        if (f.category === 'HOSPITAL' && text.match(/소아과|아동병원/)) safetyScore += 40;
+        if (text.match(/어린이|노키즈존/)) {
+            if (text.includes('노키즈존')) safetyScore -= 40;
+            else safetyScore += 10;
+        }
     }
+    if (hasPet && text.match(/애견동반|반려동물/)) safetyScore += 15;
+    if (seniors > 0 && text.match(/백숙|보양식|한정식/)) safetyScore += 15;
 
-    // 🐶 반려견 동반 (Pets)
-    if (hasPet) {
-        if (text.match(/애견동반|야외테라스|반려견|산책|운동장|해변|반려/)) score += 30;
-        if (text.match(/국립공원|휴양림|실내|박물관|미술관/)) score -= 40; // 출입금지 확률 높음
-    }
-
-    // 👵 부모님 동반 (Seniors)
-    if (seniors > 0) {
-        if (text.match(/한정식|백숙|보양식|장어|한우|전통|향토/)) score += 30;
-        if (f.category === 'SPOT' && text.match(/온천|사찰|절|유적지|재래시장|경관|시장/)) score += 30;
-        if (text.match(/계단|등산|액티비티|패스트푸드|웨이팅/)) score -= 20;
-    }
-
-    // 👩‍❤️‍👨 커플/감성 (Couples)
-    if (isCouple) {
-        if (text.match(/파스타|오션뷰|브런치|베이커리|와인|감성|루프탑/)) score += 25;
-        if (f.category === 'SPOT' && text.match(/야경|포토존|스냅|벽화|전시관/)) score += 25;
-    }
-
-    // 🍲 미식가 / 태그 기반
-    const tags = persona.topTags || [];
-    const isFoodie = tags.some(t => t.tagId.includes('FOOD') && t.weight > 5);
-    if (isFoodie || seniors > 0) {
-        if (text.match(/백년가게|명인|원조|노포|시장/)) score += 30;
-    }
-
-    return Math.max(0, Math.min(100, score)); // 0 ~ 100 
+    return Math.max(0, Math.min(100, score + bridgeScore + safetyScore));
 }
+
 
 export function calcQuality(p: any): number {
     return 50;

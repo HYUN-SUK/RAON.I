@@ -16,6 +16,7 @@ export interface TagWeight {
 export interface UserPersona {
     description: string;   // LLM에 주입될 요약 문장
     topTags: TagWeight[];  // 활동 기반 상위 태그
+    tagMap?: Record<string, number>; // [v11.9.23] 브릿지 엔진용 원본 태그 맵
     guestDetails?: {       // 최신 예약 기반 인원 구성
         adults: number;
         seniors: number;   // 부모님/어르신 동반
@@ -28,6 +29,7 @@ export interface UserPersona {
     };
     tripContext?: any;     // 이번 여행 특수성 (Phase 1 추가)
 }
+
 
 /**
  * [Phase 2] 미리 정의된 액션과 해당 태그/가중치 매핑 세트 (Action-to-Tag Mapping v2.0)
@@ -235,6 +237,7 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
             { tagId: 'STYLE_COUPLE', weight: 3.0 },
             { tagId: 'MOOD_QUIET', weight: 2.5 }
         ],
+        tagMap: { 'STYLE_COUPLE': 3.0, 'MOOD_QUIET': 2.5 },
         guestDetails: { adults: 2, seniors: 0, kids: { preschool: 0, elementary: 0, teen: 0 } }
     };
 
@@ -299,6 +302,7 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
                 ? `해당 캠퍼는 ${topTags.slice(0, 3).map(t => t.tagId).join(', ')} 스타일을 선호하는 것으로 보입니다.`
                 : defaultPersona.description,
             topTags,
+            tagMap: mergedTagsMap,
             guestDetails,
             tripContext: tripSnapshot?.tags
         };

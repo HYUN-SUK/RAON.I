@@ -17,28 +17,28 @@ export const PERSONA_RULES: PersonaRule[] = [
     {
         tagId: 'FAMILY_INFANT',
         appliesTo: ['HOSPITAL', 'RESTAURANT', 'SPOT'],
-        keywordBoost: ['소아', '아동', '수유', '어린이', '유아', '돈까스', '키즈'],
+        keywordBoost: ['소아', '아동', '수유', '어린이', '유아', '돈까스', '키즈', '체험', '박물관', '생태', '황새', '물놀이', '놀이터'],
         negativeKeywords: ['노키즈', '성인전용', '포차', '술집'],
         scoreBoost: 40
     },
     {
         tagId: 'FAMILY_PET',
         appliesTo: ['HOSPITAL', 'RESTAURANT', 'SPOT', 'MART'],
-        keywordBoost: ['반려동물', '애견', '동물병원', '강아지', '펫'],
+        keywordBoost: ['반려동물', '애견', '동물병원', '강아지', '펫', '동반가능', '테라스'],
         negativeKeywords: ['반려동물 금지', '애견 미동반'],
         scoreBoost: 40
     },
     {
         tagId: 'FOOD_LOCAL',
         appliesTo: ['RESTAURANT', 'MART', 'ROUTE_RESTAURANT'],
-        keywordBoost: ['백년가게', '향토', '지역특산', '시장', '노포'],
+        keywordBoost: ['백년가게', '향토', '지역특산', '시장', '노포', '전통', '원조'],
         negativeKeywords: ['프랜차이즈', '체인점'],
         scoreBoost: 30
     },
     {
         tagId: 'MOOD_QUIET',
         appliesTo: ['SPOT', 'ROUTE_SPOT', 'ROUTE_CAFE'],
-        keywordBoost: ['숨은', '한적한', '조용한', '사색', '힐링', '프라이빗'],
+        keywordBoost: ['숨은', '한적한', '조용한', '사색', '힐링', '프라이빗', '산책', '숲길', '수목원'],
         negativeKeywords: ['인파', '북적이는', '유명한', '관광객많은'],
         scoreBoost: 35
     },
@@ -52,7 +52,7 @@ export const PERSONA_RULES: PersonaRule[] = [
     {
         tagId: 'VIEW_OCEAN',
         appliesTo: ['SPOT', 'ROUTE_CAFE', 'RESTAURANT'],
-        keywordBoost: ['오션뷰', '바다전망', '해수욕장', '수평선'],
+        keywordBoost: ['오션뷰', '바다전망', '해수욕장', '수평선', '항구', '해변'],
         negativeKeywords: ['빌딩뷰', '시티뷰'],
         scoreBoost: 30
     },
@@ -73,17 +73,18 @@ export const PERSONA_RULES: PersonaRule[] = [
     {
         tagId: 'FOOD_CAFE',
         appliesTo: ['ROUTE_CAFE', 'RESTAURANT'],
-        keywordBoost: ['베이커리', '로스터리', '핸드드립', '케이크'],
+        keywordBoost: ['베이커리', '로스터리', '핸드드립', '케이크', '커피'],
         negativeKeywords: ['식사위주', '밥집'],
         scoreBoost: 30
     },
     {
         tagId: 'ACTIVITY_PHOTO',
         appliesTo: ['SPOT', 'ROUTE_SPOT', 'ROUTE_CAFE'],
-        keywordBoost: ['인생샷', '포토존', '경치좋은', '예쁜', '인스타'],
+        keywordBoost: ['인생샷', '포토존', '경치좋은', '예쁜', '인스타', '뷰맛집', '야경'],
         negativeKeywords: [],
         scoreBoost: 25
     }
+
 ];
 
 /**
