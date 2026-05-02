@@ -9,11 +9,14 @@ import { createClient } from '@supabase/supabase-js';
 // Interfaces
 // ========================================================================================
 export interface StandardizedPlanJSON {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
+    "@context": "https://schema.org";
+    "@type": "ItemList";
     narration: string;
+    stageIntros?: Record<string, string>;  // [v11.9.25] 5단계 모듈형 연결 문구
+    target_date?: string;
     itemListElement: FactCard[]; // Track A: Destination Core Facts (Day 2, 3)
     routeListElement?: FactCard[]; // Track B: Journey (Route/Midpoint) Facts (Day 1)
+    returnListElement?: FactCard[]; // [v11.9.25] Stage 5: 귀갓길 추천 (Track B 2위)
     featuredFestival?: FactCard[]; 
     alternatives: Record<string, FactCard[]>;
 }
@@ -60,11 +63,19 @@ export interface FactCard {
 
 import { computePersonaMatch } from './personaBridge';
 
+export function isCafeItem(name: string, subCategory: string = ''): boolean {
+    const cafeKeywords = /카페|커피|베이커리|제과|다방|디저트|찻집|로스터리/;
+    return cafeKeywords.test(name) || cafeKeywords.test(subCategory);
+}
+
 export function calcContextFitDeep(f: FactCard, weather: string, isWinter: boolean, persona: UserPersona): number {
     let score = 25; // Base contextFit
     const name = f.name || '';
     const desc = f.description || '';
     const text = name + ' ' + desc;
+    
+    // [v11.9.24] 카페 여부 판별
+    const isCafe = isCafeItem(name, (f.metadata?.sub_category as string) || '');
 
     const adults = persona.guestDetails?.adults || 2;
     const seniors = persona.guestDetails?.seniors || 0;
@@ -82,11 +93,12 @@ export function calcContextFitDeep(f: FactCard, weather: string, isWinter: boole
     if (weather.includes('맑음')) {
         if (text.match(/막국수|냉면|구이/)) score += 15;
         if (text.match(/수목원|둘레길|계곡|야외|산책/)) score += 15;
+        // 맑은 날 카페/베이커리 가산
+        if (isCafe) score += 10;
     }
     if (isWinter && f.category === 'GAS_STATION') score += 20;
 
     // 2. Behavior-Tag System Integration (신규 브릿지 연동)
-    // 누적된 태그 장부(tagMap)를 기반으로 정교한 규칙 매칭 수행
     const tagMap = persona.tagMap || {};
     const bridgeScore = computePersonaMatch(f, tagMap);
 
@@ -104,6 +116,7 @@ export function calcContextFitDeep(f: FactCard, weather: string, isWinter: boole
 
     return Math.max(0, Math.min(100, score + bridgeScore + safetyScore));
 }
+
 
 
 export function calcQuality(p: any): number {
@@ -252,37 +265,54 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
 
     // 5km 내의 마스터 장소 호출 (카카오 API 안 씀)
     const searchRadii = [5000, 10000, 15000, 20000, 25000, 30000];
-    const categories = ['RESTAURANT', 'SPOT'];
     let allData: any[] = [];
 
+    // [v11.9.24] 각 카테고리별 독립 검색 로직
+    // 1. 식당 & 명소 검색 (최대 30km)
     for (const radius of searchRadii) {
-        let foundAnyInCategory = false;
-
-        for (const cat of categories) {
-            const { data: rpcData, error } = await supabase.rpc('get_master_places_in_radius_v2', {
+        let foundAny = false;
+        for (const cat of ['RESTAURANT', 'SPOT']) {
+            const { data } = await supabase.rpc('get_master_places_in_radius_v2', {
                 target_lat: midpoint.lat,
                 target_lng: midpoint.lng,
                 radius_meters: radius,
                 limit_count: 30,
                 p_category: cat
             });
-
-            if (error) {
-                console.error(`[Track B] RPC Error for ${cat} at ${radius}m:`, error.message);
-                continue;
-            }
-
-            if (rpcData && rpcData.length > 0) {
-                allData.push(...rpcData);
-                foundAnyInCategory = true;
+            if (data && data.length > 0) {
+                allData.push(...data);
+                foundAny = true;
             }
         }
+        if (foundAny) break; // 식당/명소는 발견 즉시 중단
+    }
 
-        if (foundAnyInCategory) break;
+    // 2. 카페 별도 검색 (키워드 기반, 최대 30km 확장)
+    for (const radius of searchRadii) {
+        const { data: cafeData } = await supabase.rpc('get_master_places_in_radius_v2', {
+            target_lat: midpoint.lat,
+            target_lng: midpoint.lng,
+            radius_meters: radius,
+            limit_count: 50, // 충분히 가져옴
+            p_category: 'RESTAURANT',
+            p_keyword: '카페' 
+        });
 
+        if (cafeData && cafeData.length > 0) {
+            allData.push(...cafeData);
+            
+            // 현재까지 수집된 고유 카페 개수 확인
+            const uniqueCafes = new Set(allData.filter(item => 
+                (item.name || '').includes('카페') || item.category === 'CAFE'
+            ).map(i => i.id));
+
+            if (uniqueCafes.size >= 12) break; // [v11.9.25] 유의미한 수(12개) 확보 시 중단
+        }
     }
 
     if (allData.length === 0) return [];
+
+
 
 
     // [v11.9.23] Deduplication & Merging Logic
@@ -427,11 +457,11 @@ export async function generatePersonalizedSmartPlan(
         // 1. Find Reservation ID for Track A
         let reservationId: string | null = null;
         if (userId) {
-            // 시간대 문제 방지를 위한 안전한 날짜 포맷 (한국 시간 기준)
-            const kstDate = new Date(startDate.getTime() + (9 * 60 * 60 * 1000));
-            const formattedDate = kstDate.toISOString().split('T')[0];
+            // 날짜 포맷: startDate 그대로 사용 (이미 KST인 경우 이중 변환 방지)
+            const formattedDate = startDate.toISOString().split('T')[0];
+            console.log(`[SmartPlan] Searching reservation: userId=${userId}, check_in=${formattedDate}`);
 
-            
+            // 1차: user_schedules에서 조회
             const { data: resData } = await supabase
                 .from('user_schedules')
                 .select('id')
@@ -439,7 +469,42 @@ export async function generatePersonalizedSmartPlan(
                 .eq('check_in', formattedDate)
                 .order('created_at', { ascending: false })
                 .limit(1);
-            if (resData && resData.length > 0) reservationId = resData[0].id;
+            if (resData && resData.length > 0) {
+                reservationId = resData[0].id;
+                console.log(`[SmartPlan] Found reservation in user_schedules: ${reservationId}`);
+            }
+
+            // 2차 Fallback: blocked_dates에서 조회 (D-3 캐싱은 이 테이블 기준)
+            if (!reservationId) {
+                const { data: bdData } = await supabase
+                    .from('blocked_dates')
+                    .select('reservation_id')
+                    .eq('start_date', formattedDate)
+                    .limit(1);
+                if (bdData && bdData.length > 0) {
+                    reservationId = bdData[0].reservation_id;
+                    console.log(`[SmartPlan] Found reservation in blocked_dates (fallback): ${reservationId}`);
+                }
+            }
+            
+            // 3차 Fallback: 날짜를 ±1일 범위로 확장 검색
+            if (!reservationId) {
+                const prevDate = new Date(startDate.getTime() - 86400000).toISOString().split('T')[0];
+                const nextDate = new Date(startDate.getTime() + 86400000).toISOString().split('T')[0];
+                console.log(`[SmartPlan] Expanding search range: ${prevDate} ~ ${nextDate}`);
+                const { data: expandData } = await supabase
+                    .from('user_schedules')
+                    .select('id, check_in')
+                    .eq('user_id', userId)
+                    .gte('check_in', prevDate)
+                    .lte('check_in', nextDate)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                if (expandData && expandData.length > 0) {
+                    reservationId = expandData[0].id;
+                    console.log(`[SmartPlan] Found reservation via expanded range: ${reservationId} (check_in: ${expandData[0].check_in})`);
+                }
+            }
         }
 
         // 2. Weather
@@ -467,8 +532,9 @@ export async function generatePersonalizedSmartPlan(
                     if (catFacts.length > 0) {
                         catFacts[0].selectionTier = 'PRIMARY';
                         routeFacts.push(catFacts[0]);
-                        // Paging UI를 위해 15개 꽉꽉 채워 넣음
-                        alternatives[cat] = catFacts.slice(1, 15).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
+                        // [v11.9.25] 카페 12개, 식당/명소 15개 제공
+                        const maxAlts = cat === 'ROUTE_CAFE' ? 12 : 15;
+                        alternatives[cat] = catFacts.slice(1, maxAlts).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
                     }
                 });
             }
@@ -500,75 +566,112 @@ export async function generatePersonalizedSmartPlan(
             }
         } else {
             // No reservation ID (Fallback or Just View)
-            // 실제 서비스에서는 에러처리하거나 실시간으로 대체 조회해야 하지만, D-3 컨셉이므로 일단 빈 배열
             console.warn("No reservation ID found. Track A is empty.");
         }
 
-        // 5. AI Narration with 5-Part Timeline Prompt
+        // [v11.9.25] Stage 5: 귀갓길 추천 (Track B alternatives 2위)
+        const returnFacts: FactCard[] = [];
+        ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
+            const alts = alternatives[cat];
+            if (alts && alts.length > 0) {
+                const returnCard = { ...alts[0], selectionTier: 'PRIMARY' as const, roleName: '귀갓길 추천' };
+                returnFacts.push(returnCard);
+            }
+        });
+
+        // 5. [v11.9.25] AI Narration with Modular 5-Stage Prompt
         let narration = "데이터를 분석하여 완벽한 여정을 짰습니다. 리스트를 스와이프하여 확인해 보세요!";
+        let stageIntros: Record<string, string> = {};
         try {
             const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
             if (geminiKey) {
                 const formatAI = (f: FactCard): string => {
                     const emj = f.evidence?.emojiString ? ` ${f.evidence.emojiString}` : '';
-                    return `- [${f.category}] ||${f.id}|${f.name}||: ${f.description}${emj}`;
+                    return `- ID:${f.id} | ${f.name}: ${f.description || '설명 없음'}${emj}`;
                 };
 
-                const routeContext = routeFacts.length > 0 ? routeFacts.map(formatAI).join('\n') : '중간 경로 추천이 없습니다.';
-                const destContext = activeFacts.map(formatAI).join('\n');
+                // Track B: PRIMARY + alternatives 전체
+                const allRouteCards = [...routeFacts, ...Object.values(alternatives).flat().filter(f => 
+                    ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].includes(f.category)
+                )];
+                const routeContext = allRouteCards.length > 0 ? allRouteCards.map(formatAI).join('\n') : '없음';
+
+                // Track A: PRIMARY + alternatives 전체
+                const allDestCards = [...activeFacts, ...Object.values(alternatives).flat().filter(f => 
+                    ['RESTAURANT', 'SPOT', 'MART', 'HOSPITAL', 'GAS_STATION'].includes(f.category)
+                )];
+                const destContext = allDestCards.length > 0 ? allDestCards.map(formatAI).join('\n') : '없음';
                 const festContext = featuredFestival.map(formatAI).join('\n');
+                const returnContext = returnFacts.length > 0 ? returnFacts.map(formatAI).join('\n') : '없음';
 
                 const prompt = `
-당신은 '라온아이'의 수석 캠핑 플래너입니다.
-[날씨]: ${weatherSummary} / [페르소나]: ${persona.description}
+당신은 '라온아이' 캠핑장의 전속 여행 가이드예요.
+따뜻하고 친근한 해요체로, 캠핑을 떠나는 여행자에게 이야기하듯 안내해 주세요.
 
-아래 5단계 서사 구조로 가장 감성적이고 따뜻한 여정 가이드를 작성해주세요.
-[1. 가는 길] 중간 지점의 식당/카페/간단 명소를 소개합니다.
+[조건]
+- 날씨: ${weatherSummary}
+- 여행자: ${persona.description}
+
+[장소 목록]
+중요: 아래 장소들의 ID(예: ID:123)를 키로 사용하여 한 줄 소개를 작성해야 합니다.
+
+1. 가는 길 중간지점:
 ${routeContext}
 
-[2. 장보기]
-${activeFacts.filter(f=>f.category==='MART').map(formatAI).join('\n')}
+2. 캠핑장 주변:
+${destContext}
+${festContext ? `\n3. 축제:\n${festContext}` : ''}
 
-[3. 도착 식사]
-${activeFacts.filter(f=>f.category==='RESTAURANT').map(formatAI).join('\n')}
+3. 귀갓길 추천:
+${returnContext}
 
-[4. 현지 힐링] 주변 명소와 축제
-${activeFacts.filter(f=>f.category==='SPOT').map(formatAI).join('\n')}
-${festContext}
-
-[5. 귀갓길]
-(여정의 마무리를 따뜻하게 장식할 인사를 남겨주세요. 남은 명소 중 하나를 가볍게 들르라고 제안해도 좋습니다.)
-
-[필수 규칙]
-1. 장소 이름은 무조건 ||ID|이름|| 규격 사용
-2. 프롬프트에 제공된 인증마크 이모지(예: 🎖️백년가게)가 있다면 산출물에 그대로 복사해서 노출하세요.
-3. 각 장소가 위 페르소나와 왜 잘 맞는지 핵심 이유 1줄을 작성하세요. JSON 출력.
+[출력 규칙]
+1. 반드시 아래 JSON 구조로만 응답하세요. 다른 텍스트는 포함하지 마세요.
+2. stageIntros: 5단계 여정의 연결 문구 (해요체, 장소명 언급 금지)
+3. oneLiners: 장소 ID를 키로 하여 15~30자 이내의 한 줄 소개 작성 (해요체)
 
 {
-  "narration": "5단계 감성 서사...",
-  "reasons": {
-    "ID1": "추천 이유 1"
+  "stageIntros": {
+    "1": "여정 시작 문구",
+    "2": "장보기 문구",
+    "3": "식사 문구",
+    "4": "힐링 문구",
+    "5": "귀가 문구"
+  },
+  "oneLiners": {
+    "장소ID": "설명"
   }
 }
                 `.trim();
 
-                const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+                const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { response_mime_type: "application/json" }
+                        generationConfig: { 
+                            response_mime_type: "application/json"
+                        }
                     })
                 });
 
                 const apiData = await apiRes.json();
                 const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
+                
                 if (responseText) {
-                    const parsed = JSON.parse(responseText.replace(/\`\`\`json/g,'').replace(/\`\`\`/g,''));
-                    narration = parsed.narration;
-                    [...routeFacts, ...activeFacts, ...featuredFestival].forEach(card => {
-                        if (parsed.reasons && parsed.reasons[card.id]) card.reasoning = parsed.reasons[card.id];
+                    const parsed = JSON.parse(responseText);
+                    stageIntros = parsed.stageIntros || {};
+                    const allCards = [
+                        ...routeFacts, ...activeFacts, ...featuredFestival, ...returnFacts,
+                        ...Object.values(alternatives).flat()
+                    ];
+                    allCards.forEach(card => {
+                        // "ID:123" 형태에서 숫자 ID만 추출하거나 전체 매칭 시도
+                        if (parsed.oneLiners?.[card.id]) {
+                            card.reasoning = parsed.oneLiners[card.id];
+                        }
                     });
+                    narration = Object.values(stageIntros).join('\n');
                 }
             }
         } catch (e) {
@@ -579,8 +682,11 @@ ${festContext}
             "@context": "https://schema.org",
             "@type": "ItemList",
             narration,
+            target_date: startDate.toISOString().split('T')[0], // 날짜 정보 추가
+            stageIntros: Object.keys(stageIntros).length > 0 ? stageIntros : undefined,
             itemListElement: activeFacts,
             routeListElement: routeFacts,
+            returnListElement: returnFacts.length > 0 ? returnFacts : undefined,
             featuredFestival: featuredFestival.length > 0 ? featuredFestival : undefined,
             alternatives
         };

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2 } from 'lucide-react';
-import { generatePersonalizedSmartPlan, StandardizedPlanJSON, FactCard } from '@/lib/smartPlan';
+import { StandardizedPlanJSON, FactCard } from '@/lib/smartPlan';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
@@ -77,21 +77,26 @@ export default function SmartPlanProposal({
         }
     }, [mockData, origin]);
 
-    // 2. Fetch Plan based on Journey (Origin -> Destination)
+    // 2. Fetch Plan via Server API Route
     useEffect(() => {
         if (mockData) return;
 
         async function fetchPlan() {
             setIsLoading(true);
             try {
-                // Pass userOrigin if available
-                const generatedPlan = await generatePersonalizedSmartPlan(
-                    userId,
-                    location,
-                    startDate,
-                    endDate,
-                    userOrigin
-                );
+                const res = await fetch('/api/smart-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId,
+                        location,
+                        startDate: startDate.toISOString(),
+                        endDate: endDate.toISOString(),
+                        origin: userOrigin
+                    })
+                });
+                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                const generatedPlan = await res.json();
                 setPlan(generatedPlan);
             } catch (error) {
                 console.error("Failed to fetch smart plan:", error);
@@ -263,14 +268,11 @@ export default function SmartPlanProposal({
                             {card.description}
                         </p>
 
-                        {/* AI Reasoning (Phase 3) */}
+                        {/* [v11.9.25] 한 줄 소개 */}
                         {card.reasoning && (
-                            <div className="mt-2 py-1.5 px-2 bg-blue-50/50 rounded-lg border border-blue-100/30 flex items-start gap-1.5">
-                                <span className="text-[10px] bg-blue-500 text-white px-1 rounded-sm font-bold shrink-0 mt-0.5">AI</span>
-                                <p className="text-[11px] text-blue-700 font-medium leading-tight">
-                                    {card.reasoning}
-                                </p>
-                            </div>
+                            <p className="text-[12px] text-gray-600 mt-0.5 leading-snug italic">
+                                "{card.reasoning}"
+                            </p>
                         )}
 
                         {/* Fact Chips (v2 Phase 2) */}
@@ -338,9 +340,16 @@ export default function SmartPlanProposal({
                         <span>AI 스마트 여정 가이드</span>
                     </div>
 
-                    <p className="text-lg leading-loose font-medium text-white/90 tracking-tight whitespace-pre-wrap">
-                        {renderNarration(plan.narration)}
-                    </p>
+                    {/* [v11.9.25] stageIntros 모듈형 연동 (Fallback: narration) */}
+                    {plan.stageIntros ? (
+                        <p className="text-lg leading-loose font-medium text-white/90 tracking-tight">
+                            {plan.stageIntros['1'] || ''}
+                        </p>
+                    ) : (
+                        <p className="text-lg leading-loose font-medium text-white/90 tracking-tight whitespace-pre-wrap">
+                            {renderNarration(plan.narration)}
+                        </p>
+                    )}
 
                     <div className="pt-2 flex justify-end">
                         <Button
@@ -356,38 +365,93 @@ export default function SmartPlanProposal({
                 </div>
             </div>
 
-            {/* 2. Fact List / Timeline UI */}
-            <div className="space-y-4 pt-2">
+            {/* 2. Fact List / 5-Stage Emotional Timeline UI */}
+            <div className="space-y-6 pt-2">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-2 flex items-center justify-between">
-                    <span>최종 추천 일정표 (여정 타임라인)</span>
+                    <span>{plan.target_date || ''} 최종 추천 일정표</span>
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">카드를 터치해 일정을 교체하세요</span>
                 </h3>
 
-                <div className="grid gap-4 relative before:absolute before:inset-0 before:left-[35px] md:before:left-[35px] before:w-0.5 before:bg-[#224732]/10 before:z-0">
+                <div className="grid gap-8 relative before:absolute before:inset-0 before:left-[35px] md:before:left-[35px] before:w-0.5 before:bg-[#224732]/10 before:z-0">
 
-                    {/* Track B: Journey / Route Facts (가는 길) */}
-                    {plan.routeListElement && plan.routeListElement.length > 0 && (
-                        <div className="space-y-3 relative z-10 w-full pl-2">
-                            <div className="flex items-center gap-2 mb-2 ml-4">
+                    {/* Stage 1: 출발 (Intro) */}
+                    <div className="space-y-3 relative z-10 w-full pl-2">
+                        <div className="flex flex-col gap-1 mb-2 ml-4">
+                            <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
-                                <span className="text-xs font-bold text-[#224732]">가는 길 (추천 경유지)</span>
+                                <span className="text-xs font-bold text-[#224732]">Stage 1. 설레는 출발</span>
                             </div>
-                            {plan.routeListElement.map((card, index) => renderFactCard(card))}
+                            {plan.stageIntros?.['1'] && (
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['1']}"</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Stage 2: 가는 길 (Route Facts) */}
+                    {(plan.routeListElement || []).length > 0 && (
+                        <div className="space-y-3 relative z-10 w-full pl-2">
+                            <div className="flex flex-col gap-1 mb-2 ml-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
+                                    <span className="text-xs font-bold text-[#224732]">Stage 2. 여정의 즐거움 (경유지)</span>
+                                </div>
+                                {plan.stageIntros?.['2'] && (
+                                    <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['2']}"</p>
+                                )}
+                            </div>
+                            {plan.routeListElement?.map((card) => renderFactCard(card))}
                         </div>
                     )}
 
-                    {/* Track A: Destination Core Facts (캠핑장 주변 현지) */}
-                    <div className="space-y-3 relative z-10 w-full pl-2 mt-2">
-                        <div className="flex items-center gap-2 mb-2 ml-4">
-                            <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
-                            <span className="text-xs font-bold text-[#224732]">캠핑장 주변 (현지 체류)</span>
+                    {/* Stage 3: 캠프 준비 (Mart / Restaurant) */}
+                    <div className="space-y-3 relative z-10 w-full pl-2">
+                        <div className="flex flex-col gap-1 mb-2 ml-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <span className="text-xs font-bold text-[#224732]">Stage 3. 든든한 준비 (식사/장보기)</span>
+                            </div>
+                            {plan.stageIntros?.['3'] && (
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['3']}"</p>
+                            )}
                         </div>
-                        {plan.itemListElement.map((card, index) => renderFactCard(card))}
+                        {plan.itemListElement
+                            .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
+                            .map((card) => renderFactCard(card))}
+                    </div>
 
-                        {/* 여정 종료 (집으로) */}
+                    {/* Stage 4: 캠핑장 주변 (Spot / Hospital / Gas) */}
+                    <div className="space-y-3 relative z-10 w-full pl-2">
+                        <div className="flex flex-col gap-1 mb-2 ml-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <span className="text-xs font-bold text-[#224732]">Stage 4. 온전한 힐링 (현지 체류)</span>
+                            </div>
+                            {plan.stageIntros?.['4'] && (
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['4']}"</p>
+                            )}
+                        </div>
+                        {plan.itemListElement
+                            .filter(c => !['MART', 'RESTAURANT'].includes(c.category))
+                            .map((card) => renderFactCard(card))}
+                    </div>
+
+                    {/* Stage 5: 안전한 귀가 (Return Trip) */}
+                    <div className="space-y-3 relative z-10 w-full pl-2">
+                        <div className="flex flex-col gap-1 mb-2 ml-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#224732] bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <span className="text-xs font-bold text-[#224732]">Stage 5. 아쉬움을 뒤로하고 (귀갓길)</span>
+                            </div>
+                            {plan.stageIntros?.['5'] && (
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['5']}"</p>
+                            )}
+                        </div>
+                        {(plan.returnListElement || []).map((card) => renderFactCard(card))}
+                        
+                        {/* 여정 종료 마커 */}
                         <div className="flex items-center gap-2 mt-4 ml-4 pb-2">
                             <div className="w-3 h-3 rounded-full border-2 border-dashed border-gray-400 bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
-                            <span className="text-xs font-semibold text-gray-400">안전한 귀가</span>
+                            <span className="text-[10px] font-semibold text-gray-400">안전하게 집에 도착했습니다.</span>
                         </div>
                     </div>
                 </div>

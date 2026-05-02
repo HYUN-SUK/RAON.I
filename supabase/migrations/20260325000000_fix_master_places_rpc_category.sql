@@ -10,7 +10,8 @@ CREATE OR REPLACE FUNCTION get_master_places_in_radius(
   target_lng DOUBLE PRECISION,
   radius_meters DOUBLE PRECISION,
   p_category TEXT DEFAULT NULL,
-  limit_count INTEGER DEFAULT 50
+  limit_count INTEGER DEFAULT 50,
+  p_keyword TEXT DEFAULT NULL
 )
 RETURNS TABLE (
   id UUID,
@@ -35,6 +36,7 @@ BEGIN
     public.master_places m
   WHERE 
     (p_category IS NULL OR m.category = p_category)
+    AND (p_keyword IS NULL OR m.name ILIKE '%' || p_keyword || '%')
     AND ST_DWithin(m.location::geography, ST_SetSRID(ST_MakePoint(target_lng, target_lat), 4326)::geography, radius_meters)
   ORDER BY 
     m.trust_score DESC, 
@@ -42,3 +44,4 @@ BEGIN
   LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql;
+
