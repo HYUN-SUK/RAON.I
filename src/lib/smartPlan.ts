@@ -532,11 +532,30 @@ export async function generatePersonalizedSmartPlan(
         // 2. Weather
         let weatherSummary = "맑음";
         let isWinter = false;
+        let isRainy = false; // [v11.9.30] 비/눈 판정 추가
         try {
+            // [v11.9.30] 다중 일자 날씨 추출 (startDate ~ endDate)
             const w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
-            if (w) {
-                weatherSummary = `${w.sky}(${w.temp_min}~${w.temp_max}도)`;
-                if (w.temp_min <= 5) isWinter = true;
+            if (w && w.daily && Array.isArray(w.daily)) {
+                const startStr = startDate.toISOString().split('T')[0];
+                const endStr = endDate.toISOString().split('T')[0];
+                
+                const weatherList: string[] = [];
+                for (const dayForecast of w.daily) {
+                    if (dayForecast.date >= startStr && dayForecast.date <= endStr) {
+                        const shortDate = dayForecast.date.substring(5).replace('-', '/');
+                        const isPrecipitation = dayForecast.pop >= 50 || ['rainy', 'snowy'].includes(dayForecast.weatherCode);
+                        const skyText = isPrecipitation ? (dayForecast.weatherCode === 'snowy' ? '눈' : '비') : '맑음/구름';
+                        
+                        weatherList.push(`${shortDate}: ${skyText} (${dayForecast.min}~${dayForecast.max}도)`);
+                        
+                        if (dayForecast.min <= 5) isWinter = true;
+                        if (isPrecipitation) isRainy = true;
+                    }
+                }
+                if (weatherList.length > 0) {
+                    weatherSummary = weatherList.join(', ');
+                }
             }
         } catch(e) {}
 
@@ -550,7 +569,18 @@ export async function generatePersonalizedSmartPlan(
 
                 const trackBFacts = await fetchMidpointTrackB(midpoint, weatherSummary, isWinter, persona);
                 ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
-                    const catFacts = trackBFacts.filter(f => f.category === cat).sort((a, b) => b.trustScore - a.trustScore);
+                    let catFacts = trackBFacts.filter(f => f.category === cat);
+                    
+                    // [v11.9.30] 우천 시 실내 장소(카페, 박물관 등) 가중치 +20점 부여
+                    if (isRainy && cat === 'ROUTE_SPOT') {
+                        catFacts = catFacts.map(f => {
+                            const desc = f.description || '';
+                            const isIndoor = desc.includes('박물관') || desc.includes('전시') || desc.includes('미술관') || desc.includes('실내');
+                            return { ...f, trustScore: isIndoor ? f.trustScore + 20 : f.trustScore };
+                        });
+                    }
+                    
+                    catFacts.sort((a, b) => b.trustScore - a.trustScore);
                     if (catFacts.length > 0) {
                         catFacts[0].selectionTier = 'PRIMARY';
                         catFacts[0].roleName = cat === 'ROUTE_CAFE' ? '여행의 쉼표, 카페' : 
@@ -572,7 +602,18 @@ export async function generatePersonalizedSmartPlan(
             const trackAFacts = await fetchCachedTrackA(reservationId, weatherSummary, isWinter, persona);
             
             ['HOSPITAL', 'MART', 'RESTAURANT', 'GAS_STATION', 'SPOT'].forEach(cat => {
-                const catFacts = trackAFacts.filter(f => f.category === cat).sort((a, b) => b.trustScore - a.trustScore);
+                let catFacts = trackAFacts.filter(f => f.category === cat);
+                
+                // [v11.9.30] 우천 시 실내 장소 가중치 부여
+                if (isRainy && cat === 'SPOT') {
+                    catFacts = catFacts.map(f => {
+                        const desc = f.description || '';
+                        const isIndoor = desc.includes('박물관') || desc.includes('전시') || desc.includes('미술관') || desc.includes('실내');
+                        return { ...f, trustScore: isIndoor ? f.trustScore + 20 : f.trustScore };
+                    });
+                }
+                
+                catFacts.sort((a, b) => b.trustScore - a.trustScore);
                 if (catFacts.length > 0) {
                     catFacts[0].selectionTier = 'PRIMARY';
                     activeFacts.push(catFacts[0]);
@@ -633,7 +674,7 @@ export async function generatePersonalizedSmartPlan(
 따뜻하고 친근한 해요체로, 캠핑을 떠나는 여행자에게 이야기하듯 안내해 주세요.
 
 [조건]
-- 날씨: ${weatherSummary}
+- 전체 일정 날씨: ${weatherSummary} (주의: 일정에 비나 눈이 온다면, 야외 활동을 주의하고 실내를 추천하는 뉘앙스를, 춥다면 따뜻한 표현을 담아주세요.)
 - 여행자: ${persona.description}
 
 [여정 구성 (5단계)]

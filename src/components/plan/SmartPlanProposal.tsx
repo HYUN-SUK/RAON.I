@@ -78,6 +78,14 @@ export default function SmartPlanProposal({
         }
     }, [mockData, origin]);
 
+    // [v11.9.29] 무한 루프 방지: 객체/Date 대신 원시값으로 의존성 배열 비교
+    const locLat = location.lat;
+    const locLng = location.lng;
+    const startStr = startDate.toISOString();
+    const endStr = endDate.toISOString();
+    const originLat = userOrigin?.lat;
+    const originLng = userOrigin?.lng;
+
     // 2. Fetch Plan via Server API Route
     useEffect(() => {
         if (mockData) return;
@@ -90,10 +98,10 @@ export default function SmartPlanProposal({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId,
-                        location,
-                        startDate: startDate.toISOString(),
-                        endDate: endDate.toISOString(),
-                        origin: userOrigin
+                        location: { lat: locLat, lng: locLng },
+                        startDate: startStr,
+                        endDate: endStr,
+                        origin: originLat && originLng ? { lat: originLat, lng: originLng } : undefined
                     })
                 });
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -107,7 +115,7 @@ export default function SmartPlanProposal({
         }
 
         fetchPlan();
-    }, [userId, location, startDate, endDate, userOrigin, mockData]);
+    }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData]);
 
     const handleSwapOptionSelected = (category: string, newCardId: string) => {
         if (!plan) return;
