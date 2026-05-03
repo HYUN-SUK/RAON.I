@@ -620,8 +620,7 @@ export async function generatePersonalizedSmartPlan(
                     ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].includes(f.category)
                 )];
                 const routeContext = allRouteCards.length > 0 ? allRouteCards.map(formatAI).join('\n') : '없음';
-
-                // Track A: PRIMARY + alternatives 전체
+                
                 const allDestCards = [...activeFacts, ...Object.values(alternatives).flat().filter(f => 
                     ['RESTAURANT', 'SPOT', 'MART', 'HOSPITAL', 'GAS_STATION'].includes(f.category)
                 )];
@@ -637,33 +636,38 @@ export async function generatePersonalizedSmartPlan(
 - 날씨: ${weatherSummary}
 - 여행자: ${persona.description}
 
+[여정 구성 (5단계)]
+아래의 5단계 흐름에 맞춰서 각 단계의 시작을 알리는 인트로 문구(stageIntros)를 작성해 주세요.
+1단계: 출발 (여행의 시작과 설렘)
+2단계: 경유지 (가는 길 중간지점의 맛집, 카페, 명소)
+3단계: 캠핑 준비 (캠핑장 근처 마트 및 식사)
+4단계: 캠핑 즐기기 (캠핑장 주변 명소 및 축제)
+5단계: 귀갓길 (집으로 돌아가는 길의 추천 장소)
+
 [장소 목록]
-중요: 아래 장소들의 ID(예: ID:123)를 키로 사용하여 한 줄 소개를 작성해야 합니다.
+중요: 아래 장소들의 ID(예: ID:123)를 키로 사용하여 한 줄 소개(oneLiners)를 작성해야 합니다.
 
-1. 가는 길 중간지점:
+- 가는 길 및 귀갓길 관련:
 ${routeContext}
-
-2. 캠핑장 주변:
-${destContext}
-${festContext ? `\n3. 축제:\n${festContext}` : ''}
-
-3. 귀갓길 추천:
 ${returnContext}
+
+- 캠핑장 주변 및 축제:
+${destContext}
+${festContext ? `\n- 축제:\n${festContext}` : ''}
 
 [출력 규칙]
 1. 반드시 아래 JSON 구조로만 응답하세요. 다른 텍스트는 포함하지 마세요.
-2. stageIntros: 5단계 여정의 연결 문구 (해요체, 장소명 언급 금지)
+2. stageIntros: 1~5단계 각각의 여정 연결 문구 (해요체, 시적인 표현 권장, 장소명 언급 금지)
 3. oneLiners: 장소 ID를 키로 하여 15~30자 이내의 한 줄 소개 작성 (해요체)
 
 {
   "stageIntros": {
-    "1": "여행의 설렘을 담은 문학적이고 시적인 한 줄 문구 (해요체, 예: '길 위에서 만나는 모든 순간이 당신의 시가 됩니다.')",
-    "2": "여행의 오고 가는 길을 더 풍요롭게 채워줄 맛집과 명소, 카페를 찾아 떠나는 즐거움을 강조하는 문구",
-    "3": "캠핑장 근처의 든든한 로컬 마트와 입소문 난 지역 맛집을 탐방하는 설렘을 담은 문구",
-    "4": "캠핑장 주변의 힐링 명소와 축제를 즐기며 온전한 휴식을 취하는 여유를 담은 문구",
-    "5": "아쉬운 마음을 달래며 귀갓길에 들르기 좋은 풍요로운 장소와 카페를 안내하는 따뜻한 문구"
+    "1": "1단계 인트로 문구",
+    "2": "2단계 인트로 문구",
+    "3": "3단계 인트로 문구",
+    "4": "4단계 인트로 문구",
+    "5": "5단계 인트로 문구"
   },
-
   "oneLiners": {
     "장소ID": "설명"
   }

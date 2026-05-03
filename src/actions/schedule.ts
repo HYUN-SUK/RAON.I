@@ -129,11 +129,13 @@ export async function getMySchedules(status?: 'scheduled' | 'completed' | 'cance
     let query = supabase
         .from('user_schedules')
         .select('*')
-        .eq('user_id', userData.user.id)
-        .order('check_in', { ascending: true });
+        .eq('user_id', userData.user.id);
 
-    if (status) {
-        query = query.eq('status', status);
+    // 날짜 기준 정렬 (예정된 일정은 빠른 순, 완료/취소는 최신 순)
+    if (status === 'scheduled') {
+        query = query.order('check_in', { ascending: true });
+    } else {
+        query = query.order('check_in', { ascending: false });
     }
 
     const { data, error } = await query;
@@ -143,7 +145,23 @@ export async function getMySchedules(status?: 'scheduled' | 'completed' | 'cance
         return [];
     }
 
-    return data || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // [v11.9.27] 날짜 기반 자동 상태 분류 로직 적용
+    const schedules = (data || []).map(s => {
+        const checkOutDate = new Date(s.check_out);
+        if (s.status === 'scheduled' && checkOutDate < today) {
+            return { ...s, status: 'completed' as const };
+        }
+        return s;
+    });
+
+    if (status) {
+        return schedules.filter(s => s.status === status);
+    }
+
+    return schedules;
 }
 
 /**

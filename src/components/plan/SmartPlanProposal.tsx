@@ -58,6 +58,7 @@ export default function SmartPlanProposal({
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
     const [swapPage, setSwapPage] = useState(0);
     const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
+    const [navTargetCard, setNavTargetCard] = useState<FactCard | null>(null);
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
@@ -168,12 +169,45 @@ export default function SmartPlanProposal({
         }
     };
 
+    // [v11.9.27] 카드 클릭 시 외부 링크 또는 검색 연동
+    const handleCardClick = (card: FactCard) => {
+        if (userId) {
+            dispatchPersonaAction(userId, 'PLAN_CARD_DETAIL').catch(console.error);
+        }
+        const officialUrl = card.metadata?.url || card.metadata?.homepage || card.metadata?.link;
+        if (officialUrl && officialUrl !== '없음') {
+            window.open(officialUrl, '_blank');
+        } else {
+            const query = encodeURIComponent(card.name);
+            // 1순위 네이버 검색, 2순위 구글 검색 (필요시)
+            window.open(`https://search.naver.com/search.naver?query=${query}`, '_blank');
+        }
+    };
+
     const handleNavClick = (e: React.MouseEvent, card: FactCard) => {
         e.stopPropagation();
+        setNavTargetCard(card);
+    };
+
+    const handleNavChoice = (app: 'kakao' | 'tmap') => {
+        if (!navTargetCard) return;
+        
         if (userId) {
             dispatchPersonaAction(userId, 'PLAN_CLICK_NAVI').catch(console.error);
         }
-        window.open(`https://map.kakao.com/link/to/${card.name},${card.lat},${card.lng}`, '_blank');
+
+        const { name, lat, lng } = navTargetCard;
+        if (app === 'kakao') {
+            window.open(`https://map.kakao.com/link/to/${name},${lat},${lng}`, '_blank');
+        } else if (app === 'tmap') {
+            // T-Map URL Scheme (Mobile)
+            window.open(`tmap://route?goalname=${encodeURIComponent(name)}&goallat=${lat}&goallng=${lng}`, '_blank');
+            // Fallback for non-mobile or app not installed
+            setTimeout(() => {
+                window.open(`https://map.naver.com/v5/directions/-/,,${lng},${lat},${name}/-`, '_blank');
+            }, 500);
+        }
+        setNavTargetCard(null);
     };
 
     const handleShareClick = () => {
@@ -245,7 +279,7 @@ export default function SmartPlanProposal({
         <Card
             key={card.id}
             className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white ml-10`}
-            onClick={() => { setSwapCategory(card.category); setSwapPage(0); }}
+            onClick={() => handleCardClick(card)}
         >
             <CardContent className="p-4">
                 <div className="flex gap-4 items-center">
@@ -312,7 +346,11 @@ export default function SmartPlanProposal({
                         <Button
                             size="icon"
                             variant="ghost"
-                            onClick={(e) => { e.stopPropagation(); setSwapCategory(card.category); }}
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setSwapCategory(card.category); 
+                                setSwapPage(0); 
+                            }}
                             className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
                         >
                             <ArrowRightLeft className="w-4 h-4" />
@@ -591,6 +629,38 @@ export default function SmartPlanProposal({
                                 </>
                             );
                         })()}
+                    </div>
+                </SheetContent>
+            </Sheet>
+            {/* 내비게이션 앱 선택 시트 */}
+            <Sheet open={!!navTargetCard} onOpenChange={() => setNavTargetCard(null)}>
+                <SheetContent side="bottom" className="rounded-t-3xl p-6">
+                    <SheetHeader className="mb-6">
+                        <SheetTitle className="text-left flex items-center gap-2">
+                            <Navigation className="w-5 h-5 text-blue-600" />
+                            길찾기 서비스 선택
+                        </SheetTitle>
+                        <SheetDescription className="text-left">
+                            '{navTargetCard?.name}'(으)로 안내할 앱을 선택해주세요.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="grid grid-cols-2 gap-4 pb-4">
+                        <Button
+                            variant="outline"
+                            className="h-24 flex flex-col gap-2 rounded-2xl border-gray-100 hover:border-yellow-400 hover:bg-yellow-50/30"
+                            onClick={() => handleNavChoice('kakao')}
+                        >
+                            <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center text-white text-xs font-bold">K</div>
+                            <span className="text-sm font-bold text-gray-900">카카오맵</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-24 flex flex-col gap-2 rounded-2xl border-gray-100 hover:border-red-500 hover:bg-red-50/30"
+                            onClick={() => handleNavChoice('tmap')}
+                        >
+                            <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">T</div>
+                            <span className="text-sm font-bold text-gray-900">티맵</span>
+                        </Button>
                     </div>
                 </SheetContent>
             </Sheet>
