@@ -10,7 +10,9 @@ import { MapPin, Search, Plus, Loader2, Navigation, Check, X, Locate } from 'luc
 import PlaceDetailSheet from './PlaceDetailSheet';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } from 'react-kakao-maps-sdk';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { toast } from 'sonner';
+
 
 // Kakao Maps SDK Type Augmentation for TypeScript
 declare global {
@@ -39,6 +41,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     const { reservations } = useReservationStore();
     const { mapItems, addMapItem, updateMapItem } = useMySpaceStore();
+    const { config } = useSiteConfig();
+
 
     // UI States
     const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
@@ -151,7 +155,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     rating: 0,
                     isFavorite: false,
                     tags: ['라온캠핑장'],
-                    address: '충청남도 예산군 응봉면 입침리 341'
+                    address: config?.address_main || '충청남도 예산군 응봉면 응봉서로 280'
+
                 });
             }
         });
@@ -165,7 +170,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     updateMapItem(item.id, {
                         lat: DEFAULT_CAMPING_LOCATION.latitude + jitter(),
                         lng: DEFAULT_CAMPING_LOCATION.longitude + jitter(),
-                        address: '충청남도 예산군 응봉면 입침리 341'
+                        address: config?.address_main || '충청남도 예산군 응봉면 응봉서로 280'
+
                     });
                 } else {
                     // For unknown legacy items, default to Seoul or Raon? 

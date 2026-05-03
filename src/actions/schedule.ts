@@ -7,7 +7,8 @@ import { dispatchPersonaAction } from '@/lib/persona';
 import { SITES } from '@/constants/sites';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 
-const RAON_I_ADDRESS = '충청남도 예산군 응봉면 입침리 341';
+import { getSiteConfigServer } from '@/lib/siteConfigServer';
+
 // ═══════════════════════════════════════════════════════════
 
 export interface ScheduleFormData {
@@ -516,19 +517,24 @@ export async function ensureScheduleFromReservation(reservationId: string): Prom
     // 3. 일정 생성
     const siteName = SITES.find(s => s.id === reservation.site_id)?.name || reservation.site_id;
 
-    // upsert_schedule RPC 사용 (이미 createSchedule에서 사용중인 로직 재사용)
-    // 주의: reservation의 날짜 포맷이 DB마다 다를 수 있으므로 확인 필요하지만, 보통 string 그대로 넘김
+    // Get dynamic site config
+    const config = await getSiteConfigServer();
+    const address = config?.address_main || '충청남도 예산군 응봉면 응봉서로 280'; // Fallback to current address
+    const lat = config?.nearby_places ? (config as any).lat || DEFAULT_CAMPING_LOCATION.latitude : DEFAULT_CAMPING_LOCATION.latitude;
+    const lng = config?.nearby_places ? (config as any).lng || DEFAULT_CAMPING_LOCATION.longitude : DEFAULT_CAMPING_LOCATION.longitude;
+
+    // upsert_schedule RPC 사용
     const { data: newScheduleId, error: createError } = await supabase.rpc('upsert_schedule', {
         p_user_id: userData.user.id,
         p_source: 'raonai',
         p_campground_name: siteName,
-        p_campground_address: RAON_I_ADDRESS, // 기본 예산 주소 저장
-        p_campground_lat: DEFAULT_CAMPING_LOCATION.latitude,
-        p_campground_lng: DEFAULT_CAMPING_LOCATION.longitude,
+        p_campground_address: address,
+        p_campground_lat: lat,
+        p_campground_lng: lng,
         p_check_in: reservation.check_in_date,
         p_check_out: reservation.check_out_date,
         p_memo: null,
-        p_campground_id: null, // 외부 API ID가 아님
+        p_campground_id: null,
         p_reservation_id: reservationId,
     });
 
@@ -580,13 +586,19 @@ export async function ensureScheduleFromReservationAdmin(reservationId: string, 
 
     const siteName = SITES.find(s => s.id === siteId)?.name || siteId;
 
+    // Get dynamic site config
+    const config = await getSiteConfigServer();
+    const address = config?.address_main || '충청남도 예산군 응봉면 응봉서로 280';
+    const lat = config?.nearby_places ? (config as any).lat || DEFAULT_CAMPING_LOCATION.latitude : DEFAULT_CAMPING_LOCATION.latitude;
+    const lng = config?.nearby_places ? (config as any).lng || DEFAULT_CAMPING_LOCATION.longitude : DEFAULT_CAMPING_LOCATION.longitude;
+
     const { data: newScheduleId, error: createError } = await supabase.rpc('upsert_schedule', {
         p_user_id: userId,
         p_source: 'raonai',
         p_campground_name: siteName,
-        p_campground_address: RAON_I_ADDRESS,
-        p_campground_lat: DEFAULT_CAMPING_LOCATION.latitude,
-        p_campground_lng: DEFAULT_CAMPING_LOCATION.longitude,
+        p_campground_address: address,
+        p_campground_lat: lat,
+        p_campground_lng: lng,
         p_check_in: checkIn,
         p_check_out: checkOut,
         p_memo: null,

@@ -1,90 +1,15 @@
-# Task Checklist: v11.8.8 Stable Data Pipeline Restoration
+# Task Checklist: v11.9.25 Gemini 2.5 Flash-Lite & 5-Stage Timeline
 
-- [x] **Ground Zero: 전국 단위 기초 데이터 적재 (SSOT Baseline)**
-    - [x] **[식당]** 행안부 모범음식점 + 농식품부 안심식당(4만 건 복구) + 백년가게 전국 통합
-    - [x] **[마트]** 기타식품판매업(1.3만 ZIP) + 대형마트/SSM 전국 통합 적재
-    - [x] **[명소]** 관광공사 1.2만 건 무결성 검증 및 전수 적재
-    - [x] **[ID]** UUID v5 기반 소스별 독립 ID 체계(7.1.1 명세) 전수 적용
-    - [x] **전국 관광명소 100선 조사 및 개별 파일 생성 완료**
-- [/] **korea_prestige_landmark_master_v1.md (통합 마스터) 구축**
-- [x] **Stabilization & Verification**
-    - [x] 전국 단위 12.4만 건 실물 전수 조사 (Pagination 오류 극복)
-    - [x] `scripts/caching-smart-plan.mjs` 수정 (지표 수집 및 로깅 추가)
-    - [x] daily-region-sync.mjs 로직 고도화
-        - [x] SAFE API 하이브리드(단축/전체) 수집 로직 구현
-        - [x] SIDO 별칭 기반 통합 카운팅 로직 적용 (Existing/Total)
-        - [x] 전 카테고리 Deep-Field Comparison (True Update) 구현
-    - [x] SOP v11.2 ID 안정성 및 데이터 힐링 (Healing)
-        - [x] daily-region-sync.mjs: generateId 가상 정규화 구현
-        - [x] heal-gb-data.mjs: 경상북도 중복 제거 및 비활성 복구
-    - [x] **1단계: 경기도 업데이트 (31개 시·군)**
-    - [x] **2단계: 강원도 업데이트 (18개 시·군)**
-    - [x] **3단계: 충청권 업데이트 (충북 11 / 충남 15)**
-    - [x] **4단계: 전라권 업데이트 (전북 14 / 전남 22)**
-    - [x] **5단계: 경상권 업데이트 (경북 22 / 경남 18)**
-    - [x] **6단계: 제주특별자치도 및 광역시 최종 보강**
-    - [x] 최종 결과 보고 및 SSOT v11 완료
-    - [x] `src/app/admin/automation/logs/page.tsx` 수정 (UI 구현)
-    - [x] Stage 1: 전국 250여개 시군구별 8경/10경 전수 보강 절차 수행
-    - [x] 서울/경기/인천 (66개 구역) 보강 및 기록
-    - [x] 강원특별자치도 (18개 시군) 보강 및 기록
-    - [x] 충청권 (32개 시군구) 보강 및 기록
-    - [x] 전라권 (41개 시군구 - 광주/전남/전북특별자치도) 보강 및 기록
-    - [x] 경상권 (70개 시군구 - 부산/대구/울산/경남/경북) 보강 및 기록
-    - [x] 제주특별자치도 (2개 시) 보강 및 기록
-- [x] Stage 2: 명성 데이터 DB 통합 및 6:4 하이브리드 추천 엔진 구현 (v14.1 계획 기반)
-    - [x] `SMART_PLAN_CACHING` 전용 상세 렌더링 로직 추가
-    - [x] SOP 2부(API 대조) 테이블 구현
-    - [x] SOP 3부(단계별 검증) 테이블 구현
-    - [x] 통합 테스트 및 검증
-    - [x] 캐싱 스크립트 시뮬레이션 실행 (2026-04-12 타겟)
-    - [x] 302건의 Facts 생성 및 DB 적재 완료
-    - [x] 관리자 화면 SOP 규격 리포트 렌더링 확인
-- [x] **Phase 3: Daily Rotation 안정화 (2026-04-07 세션)**
-    - [x] **[Throttling]** LocalData CSV 3초, TourAPI detailCommon2 1초 지연 적용
-    - [x] **[지역 필터링]** 안심식당(MAFRA) API 호출 시 `RELAX_SI_NM` 파라미터로 지역 필터링 최적화
-    - [x] **[Soft-Delete Failsafe]** API 응답 0건 시 기존 데이터 삭제 방지 로직
-    - [x] **[SIDO_ROTATION 복구]** 하단 중복 정의 제거, 17개 시도 정렬 정규화
-    - [x] **[시뮬레이션]** 충남 지역 시뮬레이션 완수 (좌표 무결성 + Upsert 정상 확인)
-    - [x] **[진단 도구]** test-api-ping.mjs 개발 → 정리 완료
-    - [x] **[빌드/커밋]** `npm run build` 통과, `feat: stabilize daily region sync` 커밋 완료
-- [x] **Phase 4: 스마트 캐싱 및 선별 로직 안정화 (2026-04-08 세션)**
-    - [x] **[버그 수정]** `caching-smart-plan.mjs` 내 clusters 변수 미선언 및 RPC v2 호출 오류 해결
-    - [x] **[데이터 무결성]** master_places 적재 시 address, lat, lng, location 제약 조건 위반 방어 (v11.9.5)
-    - [x] **[주유소]** 최저가 기반 trust_score 가점 로직 도입 및 1차 선별 리스트 정렬 확인
-    - [x] **[매뉴얼]** MART 쿼터 20개 상향 및 SSOT 매뉴얼 일치화
-    - [x] **[시뮬레이션]** 4/11 예약자 타겟 1,301개 후보군 및 319개 팩트 생성 검증 완료
-    - [x] **[RPC]** RPC(v11913) 품질 우선 정렬 SQL 배포 (JS Fallback으로 대체 완료)
-    - [x] **[리팩토링]** caching-smart-plan.mjs 하이브리드 스코어링 및 필터링 리팩토링
-    - [x] **[감사]** 감사 리포트 출력 로직 보완 (1차 쿼터 vs 2차 쿼터 비교)
-    - [x] **[검증]** 4/18 인벤토리 재생성 및 최종 검증
-- [x] **Phase 5: 추천 고도화 및 운영 검증 (2026-04-15/16)**
-    - [x] **[하이브리드]** 품질 점수 - 거리 감점 기반의 JS 하이브리드 선별 엔진 구축 완료
-    - [x] **[쿼터]** 1차 DB 수집 쿼터 3,000개로 대폭 상향 (Safe Mode 안정성 확보)
-    - [x] **[검증]** SQL 수집과 JS 선별을 대조하는 Dual-Stage Audit 리포트 시스템 실장
-    - [x] **[매뉴얼]** SSOT 매뉴얼에 하이브리드 공식 및 거리 감점 계수 명문화
-- [x] **Phase 6: 관리자 모니터링 및 API 정합성 최적화 (2026-04-23 세션)**
-    - [x] **[UI 최적화]** 3일 전 캐싱 1부 리포트에서 명소(SPOT) 제거 (동적 데이터 전용으로 정규화)
-    - [x] **[버그 수정]** `daily-region-sync.mjs` KTO 수집 변수명 수정 및 데이터 누락 해결
-    - [x] **[Dashboard]** API 소통 보드에 `KTO_POPULARITY` 추가 및 실시간 점검 에러(안심식당 등) 해결
-    - [x] **[빌드/검증]** `npm run build` 통과 및 깃 커밋 완료
-- [x] **Phase 7: 카테고리별 세부 선별 로직 검증 (2026-04-24/25)**
-    - [x] **[마트/병원/주유소/축제]** 3일 전 캐싱 2부 선별 로직 정밀 점검 및 Funnel 개편
-    - [x] **[리스트 검증]** 수집량(Step 1) -> 1차 쿼터(Step 2) -> 2차 쿼터(Step 3) 3단계 검증 시스템 구축
-- [x] **Phase 8: KTO 공식 랭킹 복구 및 파이프라인 안정화 (현재 세션)**
-    - [x] **[KTO 복구]** 전국 189개 시군구 KTO 공식 순위(SPOT) 데이터 최신화 (2024.12 기준)
-    - [x] **[Backfill]** master_places 내 유실된 KTO 리전 코드(areaCode/sigunguCode) 전수 복구
-    - [x] **[Dashboard]** 관리자 모니터링 화면 3단계 쿼터 체계 도입 및 데이터 연동 완료
-- [x] **Phase 9: 개인화 알고리즘 및 Track B 실시간 엔진 고도화 (완료)**
-    - [x] **[Track B 통합]** 실시간 경로 추천 엔진(Midpoint) 내 중복 제거 및 데이터 병합(Merge) 로직 구현
-    - [x] **[인증 통합]** 백년/LX/모범/안심식당 가점 누적 합산 로직 적용
-    - [x] **[명소 티어]** 1티어(100점), 2티어(80점) 고정 가점 및 왕관(👑) 이모지 자동 부여
-    - [x] **[8경 추출]** 데이터 본문 기반 "XX 8경" 패턴 매칭 및 이모지 동적 생성
-    - [x] **[필터링]** 비식당(정비소/부동산 등) 강력 블랙리스트 필터링 이식
-    - [x] **[타입 안전]** FactCard, UserPersona, Reservation 타입 불일치 해결 및 빌드 통과
-    - [x] **[매뉴얼]** `smart_camping_plan_manual.md` v12.0 전면 개편 (Dual-Track 로직 명세화)
-- [ ] **Phase 10: 5단계 감성 서사 및 인터랙티브 UI (다음 세션 예정)**
-    - [ ] **[데이터 정제]** 정제된 Track A/B 데이터를 AI 프롬프트 규격으로 정리
-    - [ ] **[서사 구조]** (가는길-장보기-도착식사-현지힐링-귀갓길) 5단계 타임라인 구축
-    - [ ] **[인터랙티브]** 장소 교체(Swap) 및 외부 내비(카카오/Tmap) 연동 로직 설계
-    - [ ] **[프롬프트 튜닝]** 페르소나와 장소 간의 '추천 이유' 서술 능력 강화
+- [x] **Phase 10: 5단계 감성 서사 엔진 구축 및 Gemini 2.5 전환**
+    - [x] **[Model Upgrade]** Gemini 1.5 Flash -> Gemini 2.5 Flash-Lite 전환 및 API Route 안정화
+    - [x] **[Prompt Engineering]** 100+ 후보지 일괄 Reasoning 생성을 위한 모듈형 프롬프트 설계
+    - [x] **[Timeline UI]** (출발-경유-준비-힐링-귀가) 5단계 감성 타임라인 프론트엔드 실장
+    - [x] **[Stage 5]** Track B 대안 리스트 기반 "귀갓길 추천" 섹션 자동화
+    - [x] **[Security]** 클라이언트 사이드 환경 변수 접근 문제 해결을 위한 `/api/smart-plan` 구현
+    - [x] **[Fix]** 예약 ID 조회 로직 개선 (KST 이중 변환 제거 및 Blocked Dates Fallback)
+- [ ] **Phase 11: UI/UX 디테일 완성 및 내비게이션 연동 (다음 세션 예정)**
+    - [ ] **[UI Fix]** 장소 카드 내 '인증 마크' 및 '한 줄 추천 문구' 렌더링 누락 해결
+    - [ ] **[Navigation]** 카카오맵, Tmap, 카카오내비 다이렉트 연동 버튼 구현
+    - [ ] **[Persona]** 사용자의 구체적인 상황(아이 동반 등)에 따른 한 줄 문구 개인화 품질 점검
+    - [ ] **[Polishing]** 장소 교체(Swap) 시 AI 문구가 즉각적으로 매칭되는지 최종 검증
+    - [ ] **[Verification]** 실제 예약 데이터를 통한 5단계 서사 흐름의 자연스러움 최종 테스트

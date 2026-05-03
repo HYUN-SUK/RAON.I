@@ -53,7 +53,7 @@ async function migrateMapItems() {
         const newLng = DEFAULT_LNG + jitter();
 
         // Default address if missing
-        const newAddress = item.address && item.address.length > 5 ? item.address : '충청남도 예산군 응봉면 입침리 341';
+        const newAddress = item.address && item.address.length > 5 ? item.address : '충청남도 예산군 응봉면 응봉서로 280';
 
         const { error: updateError } = await supabase
             .from('map_items')

@@ -47,6 +47,7 @@ export interface FactCard {
         reviews?: number;
         badges?: string[];
         certifications: string[];
+        displayBadges?: { emoji: string; label: string }[];
         emojiString?: string; // 프롬프트용 (🎖️백년가게) 등
     };
     selectionTier?: 'PRIMARY' | 'ALTERNATIVE' | 'FEATURED' | 'HIDDEN';
@@ -136,46 +137,67 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     let stars = 0;
     if (raw.kakao_rating) stars = raw.kakao_rating;
     else if (raw.scraping?.rating) stars = raw.scraping.rating;
+    else if (raw.raw_data?.scraping?.rating) stars = raw.raw_data.scraping.rating;
 
     let source = raw.api_source || raw.sourceName || '';
+    // [v11.9.26] smart_plan_candidates는 raw_data.badges에 인증 정보 저장
+    const rawBadges: string[] = raw.badges || raw.raw_data?.badges || [];
 
-    // [v11.9.23] 개별 인증 보장 및 중복 표기 로직
-    if (source === 'SMBA_BAEK' || raw.badges?.includes('백년가게')) {
+    // [v11.9.26] 개별 인증 보장 및 중복 표기 로직 (api_source + raw_data.badges 통합 참조)
+    if (source === 'SMBA_BAEK' || rawBadges.includes('백년가게')) {
         certs.push('중기부 백년가게'); badges.push('백년가게'); emojis.push('🎖️백년가게');
     }
-    if (source === 'LX_RESTAURANT') {
+    if (source === 'LX_RESTAURANT' || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증')) {
         certs.push('LX한국국토정보공사 인증'); badges.push('LX인증'); emojis.push('🎖️LX인증');
     }
-    if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || raw.badges?.includes('모범음식점')) {
+    if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || rawBadges.includes('모범음식점')) {
         certs.push('행안부 모범음식점'); badges.push('모범음식점'); emojis.push('🎖️모범음식점');
     }
-    if (source === 'SAFE_RESTAURANT' || raw.badges?.includes('안심식당')) {
+    if (source === 'SAFE_RESTAURANT' || rawBadges.includes('안심식당')) {
         certs.push('농식품부 안심식당'); badges.push('안심식당'); emojis.push('🎖️안심식당');
     }
     const isHospital = category === 'HOSPITAL' || category === 'ROUTE_HOSPITAL';
-    if (isHospital && (source === 'NMC_HOSPITAL' || raw.name?.includes('의료원') || raw.name?.match(/종합병원|응급/))) {
+    if (isHospital && (source === 'NMC_HOSPITAL' || rawBadges.includes('응급의료센터') || rawBadges.includes('응급의료기관') || raw.name?.includes('의료원') || raw.name?.match(/종합병원|응급/))) {
         certs.push('응급의료기관'); badges.push('응급의료기관'); emojis.push('🚨응급의료기관');
+    }
+    if (isHospital && (rawBadges.includes('종합병원') || rawBadges.includes('의료원') || rawBadges.includes('대학병원'))) {
+        const hLabel = rawBadges.find(b => ['종합병원', '의료원', '대학병원'].includes(b)) || '종합병원';
+        if (!certs.includes(hLabel)) { certs.push(hLabel); badges.push(hLabel); emojis.push(`🏥${hLabel}`); }
+    }
+    if (isHospital && (rawBadges.includes('24시 응급'))) {
+        if (!certs.includes('24시 응급')) { certs.push('24시 응급'); badges.push('24시 응급'); emojis.push('🚑24시 응급'); }
     }
     const isSpot = category === 'SPOT' || category === 'ROUTE_SPOT';
     if (isSpot) {
-        // [v11.9.23] 티어 점수가 70점 이상이면 무조건 지역명소 마크 부여
-        const ts = raw.trust_score || 0;
+        // [v11.9.26] raw_data.badges에서 명소 인증 정보 추출
+        const spotBadge = rawBadges.find(b => ['한국관광 100선', '지역 8경'].includes(b));
+        if (spotBadge) {
+            certs.push(spotBadge); badges.push(spotBadge); emojis.push(`👑${spotBadge}`);
+        }
+        // 티어 점수가 70점 이상이면 무조건 지역명소 마크 부여
+        const ts = raw.trust_score || raw.quality_score || 0;
         const fullText = (raw.name || '') + ' ' + (raw.description || '') + ' ' + (raw.raw_data?.description || '');
         const match8 = fullText.match(/([가-힣]+)\s*(8경|구경|팔경)/);
         
-        if (match8) {
+        if (match8 && !emojis.some(e => e.includes('경'))) {
             emojis.push(`👑${match8[1]} ${match8[2]}!`);
-        } else if (ts >= 70) {
-            emojis.push('👑지역명소');
+        } else if (ts >= 70 && !emojis.some(e => e.includes('👑'))) {
+            certs.push('지역명소'); badges.push('지역명소'); emojis.push('👑지역명소');
         }
     }
+
+    const displayBadges = certs.map((c, i) => ({
+        emoji: emojis[i] || '🏅',
+        label: c
+    }));
 
     return {
         stars: stars > 0 ? stars : undefined,
         reviews: raw.kakao_reviews || raw.scraping?.reviewCount || undefined,
         certifications: certs,
         badges,
-        emojiString: emojis.length > 0 ? emojis.join(' ') : undefined
+        displayBadges,
+        emojiString: Array.from(new Set(emojis)).join(' ')
     };
 }
 
@@ -262,6 +284,8 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const radiusLat = midpoint.lat;
+    const radiusLng = midpoint.lng;
 
     // 5km 내의 마스터 장소 호출 (카카오 API 안 씀)
     const searchRadii = [5000, 10000, 15000, 20000, 25000, 30000];
@@ -288,25 +312,28 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
     }
 
     // 2. 카페 별도 검색 (키워드 기반, 최대 30km 확장)
+    const cafeRegex = /카페|커피|베이커리|빵집|디저트|로스터리|cafe|coffee|bakery|dessert/i;
     for (const radius of searchRadii) {
         const { data: cafeData } = await supabase.rpc('get_master_places_in_radius_v2', {
             target_lat: midpoint.lat,
             target_lng: midpoint.lng,
             radius_meters: radius,
-            limit_count: 50, // 충분히 가져옴
-            p_category: 'RESTAURANT',
-            p_keyword: '카페' 
+            limit_count: 500, // [v11.9.26] 대폭 상향하여 카페 누락 방지
+            p_category: 'RESTAURANT'
         });
 
         if (cafeData && cafeData.length > 0) {
-            allData.push(...cafeData);
+            // [v11.9.26] 이름 또는 설명에 카페 키워드가 있는 것들만 선별
+            const filtered = cafeData.filter((item: any) => 
+                cafeRegex.test(item.name || '') || cafeRegex.test(item.description || '') || item.category === 'CAFE'
+            );
+            allData.push(...filtered);
             
-            // 현재까지 수집된 고유 카페 개수 확인
             const uniqueCafes = new Set(allData.filter(item => 
-                (item.name || '').includes('카페') || item.category === 'CAFE'
+                cafeRegex.test(item.name || '') || item.category === 'CAFE'
             ).map(i => i.id));
 
-            if (uniqueCafes.size >= 12) break; // [v11.9.25] 유의미한 수(12개) 확보 시 중단
+            if (uniqueCafes.size >= 12) break;
         }
     }
 
@@ -343,11 +370,12 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
         const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소/;
         if (globalBlacklist.test(name)) return;
 
-        if (!['RESTAURANT', 'SPOT'].includes(row.category) && !name.includes('카페')) return;
+        const cafeRegex = /카페|커피|베이커리|빵집|디저트|로스터리|cafe|coffee|bakery|dessert/i;
+        if (!['RESTAURANT', 'SPOT', 'CAFE'].includes(row.category) && !cafeRegex.test(name)) return;
         
         let cat: FactCard['category'] = 'ROUTE_SPOT';
         if (row.category === 'RESTAURANT') cat = 'ROUTE_RESTAURANT';
-        if (name.includes('카페') || row.category === 'CAFE') cat = 'ROUTE_CAFE';
+        if (cafeRegex.test(name) || row.category === 'CAFE') cat = 'ROUTE_CAFE';
 
         const f = parseFactCard({ ...row, id: row.id, fact_id: row.id, quality_score: 50, penalty_score: 0 }, cat);
         const nameDesc = (f.name + ' ' + (f.description || '')).toLowerCase();
@@ -457,9 +485,7 @@ export async function generatePersonalizedSmartPlan(
         // 1. Find Reservation ID for Track A
         let reservationId: string | null = null;
         if (userId) {
-            // 날짜 포맷: startDate 그대로 사용 (이미 KST인 경우 이중 변환 방지)
             const formattedDate = startDate.toISOString().split('T')[0];
-            console.log(`[SmartPlan] Searching reservation: userId=${userId}, check_in=${formattedDate}`);
 
             // 1차: user_schedules에서 조회
             const { data: resData } = await supabase
@@ -471,10 +497,9 @@ export async function generatePersonalizedSmartPlan(
                 .limit(1);
             if (resData && resData.length > 0) {
                 reservationId = resData[0].id;
-                console.log(`[SmartPlan] Found reservation in user_schedules: ${reservationId}`);
             }
 
-            // 2차 Fallback: blocked_dates에서 조회 (D-3 캐싱은 이 테이블 기준)
+            // 2차 Fallback: blocked_dates에서 조회
             if (!reservationId) {
                 const { data: bdData } = await supabase
                     .from('blocked_dates')
@@ -483,7 +508,6 @@ export async function generatePersonalizedSmartPlan(
                     .limit(1);
                 if (bdData && bdData.length > 0) {
                     reservationId = bdData[0].reservation_id;
-                    console.log(`[SmartPlan] Found reservation in blocked_dates (fallback): ${reservationId}`);
                 }
             }
             
@@ -491,7 +515,6 @@ export async function generatePersonalizedSmartPlan(
             if (!reservationId) {
                 const prevDate = new Date(startDate.getTime() - 86400000).toISOString().split('T')[0];
                 const nextDate = new Date(startDate.getTime() + 86400000).toISOString().split('T')[0];
-                console.log(`[SmartPlan] Expanding search range: ${prevDate} ~ ${nextDate}`);
                 const { data: expandData } = await supabase
                     .from('user_schedules')
                     .select('id, check_in')
@@ -502,7 +525,6 @@ export async function generatePersonalizedSmartPlan(
                     .limit(1);
                 if (expandData && expandData.length > 0) {
                     reservationId = expandData[0].id;
-                    console.log(`[SmartPlan] Found reservation via expanded range: ${reservationId} (check_in: ${expandData[0].check_in})`);
                 }
             }
         }
@@ -531,6 +553,8 @@ export async function generatePersonalizedSmartPlan(
                     const catFacts = trackBFacts.filter(f => f.category === cat).sort((a, b) => b.trustScore - a.trustScore);
                     if (catFacts.length > 0) {
                         catFacts[0].selectionTier = 'PRIMARY';
+                        catFacts[0].roleName = cat === 'ROUTE_CAFE' ? '여행의 쉼표, 카페' : 
+                                               cat === 'ROUTE_RESTAURANT' ? '가는 길 식사' : '가벼운 나들이';
                         routeFacts.push(catFacts[0]);
                         // [v11.9.25] 카페 12개, 식당/명소 15개 제공
                         const maxAlts = cat === 'ROUTE_CAFE' ? 12 : 15;
@@ -569,15 +593,16 @@ export async function generatePersonalizedSmartPlan(
             console.warn("No reservation ID found. Track A is empty.");
         }
 
-        // [v11.9.25] Stage 5: 귀갓길 추천 (Track B alternatives 2위)
+        // [v11.9.26] Stage 5: 귀갓길 추천 (Track B에서 식당, 카페, 명소 1개씩 선정)
         const returnFacts: FactCard[] = [];
         ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
             const alts = alternatives[cat];
             if (alts && alts.length > 0) {
-                const returnCard = { ...alts[0], selectionTier: 'PRIMARY' as const, roleName: '귀갓길 추천' };
+                const returnCard = { ...alts[0], selectionTier: 'PRIMARY' as const, roleName: cat === 'ROUTE_CAFE' ? '귀갓길의 여유, 카페' : '귀갓길 추천' };
                 returnFacts.push(returnCard);
             }
         });
+
 
         // 5. [v11.9.25] AI Narration with Modular 5-Stage Prompt
         let narration = "데이터를 분석하여 완벽한 여정을 짰습니다. 리스트를 스와이프하여 확인해 보세요!";
@@ -632,12 +657,13 @@ ${returnContext}
 
 {
   "stageIntros": {
-    "1": "여정 시작 문구",
-    "2": "장보기 문구",
-    "3": "식사 문구",
-    "4": "힐링 문구",
-    "5": "귀가 문구"
+    "1": "여행의 설렘을 담은 문학적이고 시적인 한 줄 문구 (해요체, 예: '길 위에서 만나는 모든 순간이 당신의 시가 됩니다.')",
+    "2": "여행의 오고 가는 길을 더 풍요롭게 채워줄 맛집과 명소, 카페를 찾아 떠나는 즐거움을 강조하는 문구",
+    "3": "캠핑장 근처의 든든한 로컬 마트와 입소문 난 지역 맛집을 탐방하는 설렘을 담은 문구",
+    "4": "캠핑장 주변의 힐링 명소와 축제를 즐기며 온전한 휴식을 취하는 여유를 담은 문구",
+    "5": "아쉬운 마음을 달래며 귀갓길에 들르기 좋은 풍요로운 장소와 카페를 안내하는 따뜻한 문구"
   },
+
   "oneLiners": {
     "장소ID": "설명"
   }
@@ -660,13 +686,18 @@ ${returnContext}
                 
                 if (responseText) {
                     const parsed = JSON.parse(responseText);
-                    stageIntros = parsed.stageIntros || {};
+                    // [v11.9.26] 키 정규화 (1, 2, 3... 또는 stage1, stage2... 대응)
+                    const rawIntros = parsed.stageIntros || {};
+                    Object.entries(rawIntros).forEach(([k, v]) => {
+                        const numKey = k.replace(/[^0-9]/g, '');
+                        if (numKey) stageIntros[numKey] = v as string;
+                    });
+
                     const allCards = [
                         ...routeFacts, ...activeFacts, ...featuredFestival, ...returnFacts,
                         ...Object.values(alternatives).flat()
                     ];
                     allCards.forEach(card => {
-                        // "ID:123" 형태에서 숫자 ID만 추출하거나 전체 매칭 시도
                         if (parsed.oneLiners?.[card.id]) {
                             card.reasoning = parsed.oneLiners[card.id];
                         }

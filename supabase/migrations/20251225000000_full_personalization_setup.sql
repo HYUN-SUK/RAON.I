@@ -2,7 +2,7 @@
 create table if not exists site_config (
   id bigint primary key default 1 check (id = 1), -- Enforce singleton
   camp_name text not null default 'RAON.I',
-  address_main text not null default '강원 춘천시 사북면 화악지암길 570',
+  address_main text not null default '충청남도 예산군 응봉면 응봉서로 280',
   address_detail text default '지암리 277-1',
   phone_number text not null default '010-1234-5678',
   layout_image_url text,
@@ -23,19 +23,6 @@ create policy "Allow public read access" on site_config for select using (true);
 drop policy if exists "Allow admin update access" on site_config;
 DROP POLICY IF EXISTS "Allow admin update access" ON site_config;
 create policy "Allow admin update access" on site_config for update using (auth.role() = 'authenticated');
-
--- Insert Default Row for site_config
-insert into site_config (id, camp_name, address_main, address_detail, phone_number, nearby_places)
-values (
-  1, 
-  'RAON.I', 
-  '강원 춘천시 사북면 화악지암길 570', 
-  '지암리 277-1', 
-  '010-1234-5678',
-  '[
-    {"title": "이상원 미술관", "desc": "차량 10분 거리 | 예술과 자연이 만나는 곳", "lat": 37.123, "lng": 127.123},
-    {"title": "춘천 애니메이션 박물관", "desc": "차량 20분 거리 | 아이들과 함께하기 좋은 곳", "lat": 37.145, "lng": 127.155}
-  ]'::jsonb
 )
 on conflict (id) do nothing;
 

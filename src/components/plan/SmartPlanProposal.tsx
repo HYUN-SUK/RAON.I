@@ -144,8 +144,12 @@ export default function SmartPlanProposal({
                 }
             }
 
-            const newAltsList = alternativeCards.filter(c => c.id !== newCardId);
-            newAltsList.push(currentActiveInfo);
+            // [v11.9.26] 선택한 위치에 기존 장소를 그대로 맞교환 (순위 유지)
+            const newAltsList = [...alternativeCards];
+            const targetIdx = alternativeCards.findIndex(c => c.id === newCardId);
+            if (targetIdx !== -1) {
+                newAltsList[targetIdx] = currentActiveInfo;
+            }
 
             const updatedPlan = { ...plan, alternatives: { ...plan.alternatives, [category]: newAltsList } };
 
@@ -237,7 +241,7 @@ export default function SmartPlanProposal({
         });
     };
 
-    const renderFactCard = (card: FactCard) => (
+    const renderFactCard = (card: FactCard, stage?: string) => (
         <Card
             key={card.id}
             className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white ml-10`}
@@ -287,18 +291,21 @@ export default function SmartPlanProposal({
                                     💬 리뷰 {card.evidence.reviews >= 100 ? '100+' : card.evidence.reviews}
                                 </span>
                             )}
-                            {card.evidence?.certifications.map((cert, idx) => (
-                                <span key={idx} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold border border-blue-100/50">
-                                    인증: {cert}
+                            {/* [v11.9.26] 인증 이모지만 노출 (기존 스타일 복구) */}
+                            {(card.evidence?.displayBadges || []).map((badge, idx) => (
+                                <span key={idx} className="text-[12px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center justify-center leading-none shadow-sm" title={badge.label}>
+                                    {badge.emoji}
                                 </span>
                             ))}
-                            {!card.evidence?.stars && !card.evidence?.certifications.length && card.distanceKm && (
+                            {/* [v11.9.26] 스테이지 2, 5(경유지)는 거리 제거 */}
+                            {!['2', '5'].includes(stage || '') && card.distanceKm && (
                                 <span className="text-[10px] text-gray-400 font-medium">
                                     📍 {card.distanceKm}km 거리
                                 </span>
                             )}
                         </div>
                     </div>
+
 
                     {/* Actions */}
                     <div className="flex flex-col gap-2 shrink-0">
@@ -399,7 +406,8 @@ export default function SmartPlanProposal({
                                     <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['2']}"</p>
                                 )}
                             </div>
-                            {plan.routeListElement?.map((card) => renderFactCard(card))}
+                            {plan.routeListElement?.map((card) => renderFactCard(card, '2'))}
+
                         </div>
                     )}
 
@@ -416,7 +424,7 @@ export default function SmartPlanProposal({
                         </div>
                         {plan.itemListElement
                             .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
-                            .map((card) => renderFactCard(card))}
+                            .map((card) => renderFactCard(card, '3'))}
                     </div>
 
                     {/* Stage 4: 캠핑장 주변 (Spot / Hospital / Gas) */}
@@ -430,9 +438,22 @@ export default function SmartPlanProposal({
                                 <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['4']}"</p>
                             )}
                         </div>
+                        {/* 힐링 장소 (Spot, Festival) 우선 노출 */}
                         {plan.itemListElement
-                            .filter(c => !['MART', 'RESTAURANT'].includes(c.category))
-                            .map((card) => renderFactCard(card))}
+                            .filter(c => ['SPOT', 'FESTIVAL'].includes(c.category))
+                            .map((card) => renderFactCard(card, '4'))}
+
+                        {/* 편의 시설 (Hospital, Gas) 하단 노출 */}
+                        {(plan.itemListElement.some(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))) && (
+                            <div className="mt-4 pt-4 border-t-2 border-blue-200 bg-blue-50/30 rounded-xl p-3">
+                                <p className="text-[11px] font-bold text-blue-600 mb-3 ml-10 flex items-center gap-1.5">
+                                    🛡️ 안전을 위한 편의시설
+                                </p>
+                                {plan.itemListElement
+                                    .filter(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))
+                                    .map((card) => renderFactCard(card, '4'))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Stage 5: 안전한 귀가 (Return Trip) */}
@@ -446,7 +467,8 @@ export default function SmartPlanProposal({
                                 <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['5']}"</p>
                             )}
                         </div>
-                        {(plan.returnListElement || []).map((card) => renderFactCard(card))}
+                        {(plan.returnListElement || []).map((card) => renderFactCard(card, '5'))}
+
                         
                         {/* 여정 종료 마커 */}
                         <div className="flex items-center gap-2 mt-4 ml-4 pb-2">
