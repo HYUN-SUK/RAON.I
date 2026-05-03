@@ -497,6 +497,8 @@ export default function ScheduleDetailPage() {
                         );
                     })() : (
                         <SmartPlanProposal
+                            scheduleId={schedule.id}
+                            initialPlan={schedule.smart_plan_data}
                             userId={userId}
                             location={{
                                 lat: schedule.campground_lat || 36.67,

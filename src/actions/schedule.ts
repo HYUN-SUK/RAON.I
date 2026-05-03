@@ -42,6 +42,7 @@ export interface Schedule {
     member_count?: number;
     created_at: string;
     updated_at: string;
+    smart_plan_data?: any; // [v11.9.31] 스마트 플랜 저장용 JSON
 }
 
 export interface ChecklistItem {
@@ -631,4 +632,29 @@ export async function ensureScheduleFromReservationAdmin(reservationId: string, 
 
     revalidatePath('/myspace/schedule');
     return { success: true, scheduleId: newScheduleId };
+}
+
+// ============================================================================
+// 스마트 플랜 데이터 영구 저장 [v11.9.31]
+// ============================================================================
+export async function updateSmartPlanData(scheduleId: string, planData: any): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient();
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+        return { success: false, error: '로그인이 필요합니다' };
+    }
+
+    const { error } = await supabase
+        .from('user_schedules')
+        .update({ smart_plan_data: planData })
+        .eq('id', scheduleId)
+        .eq('user_id', userData.user.id);
+
+    if (error) {
+        console.error('[updateSmartPlanData] Failed to save smart plan:', error);
+        return { success: false, error: error.message };
+    }
+
+    return { success: true };
 }

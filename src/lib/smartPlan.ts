@@ -366,9 +366,13 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
         const name = row.name || '';
         const address = row.address || '';
         
-        // [v11.9.23] 강력 블랙리스트 (식당이 아닌 것들 제거)
-        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소/;
+        // [v11.9.32] 강력 블랙리스트 (식당이 아닌 것들 제거 + 지물포/건재 추가)
+        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재/;
         if (globalBlacklist.test(name)) return;
+
+        // [v11.9.32] 폐업, 블랙리스트, 과도한 페널티 데이터 원천 차단
+        if (row.is_closed === true || row.is_blacklisted === true) return;
+        if (row.penalty_score && row.penalty_score >= 50) return;
 
         const cafeRegex = /카페|커피|베이커리|빵집|디저트|로스터리|cafe|coffee|bakery|dessert/i;
         if (!['RESTAURANT', 'SPOT', 'CAFE'].includes(row.category) && !cafeRegex.test(name)) return;

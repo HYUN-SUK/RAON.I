@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2 } from 'lucide-react';
 import { StandardizedPlanJSON, FactCard } from '@/lib/smartPlan';
 import { dispatchPersonaAction } from '@/lib/persona';
+import { updateSmartPlanData } from '@/actions/schedule';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 
 interface SmartPlanProposalProps {
+    scheduleId?: string;
+    initialPlan?: any;
     userId?: string;
     location: { lat: number; lng: number };
     startDate: Date;
@@ -45,6 +48,8 @@ const CATEGORY_NAMES: Record<string, string> = {
 };
 
 export default function SmartPlanProposal({
+    scheduleId,
+    initialPlan,
     userId,
     location,
     startDate,
@@ -53,8 +58,8 @@ export default function SmartPlanProposal({
     mockData,
     origin
 }: SmartPlanProposalProps) {
-    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(mockData || null);
-    const [isLoading, setIsLoading] = useState(!mockData);
+    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(initialPlan || mockData || null);
+    const [isLoading, setIsLoading] = useState(!initialPlan && !mockData);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
     const [swapPage, setSwapPage] = useState(0);
     const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
@@ -88,7 +93,7 @@ export default function SmartPlanProposal({
 
     // 2. Fetch Plan via Server API Route
     useEffect(() => {
-        if (mockData) return;
+        if (mockData || initialPlan) return;
 
         async function fetchPlan() {
             setIsLoading(true);
@@ -107,6 +112,9 @@ export default function SmartPlanProposal({
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
                 const generatedPlan = await res.json();
                 setPlan(generatedPlan);
+                if (scheduleId) {
+                    updateSmartPlanData(scheduleId, generatedPlan).catch(console.error);
+                }
             } catch (error) {
                 console.error("Failed to fetch smart plan:", error);
             } finally {
@@ -173,6 +181,9 @@ export default function SmartPlanProposal({
             }
 
             setPlan(updatedPlan);
+            if (scheduleId) {
+                updateSmartPlanData(scheduleId, updatedPlan).catch(console.error);
+            }
             setSwapCategory(null);
         }
     };
