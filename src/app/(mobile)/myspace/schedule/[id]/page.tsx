@@ -512,6 +512,10 @@ export default function ScheduleDetailPage() {
                             startDate={new Date(schedule.check_in)}
                             endDate={new Date(schedule.check_out)}
                             origin={smartPlanOrigin}
+                            onReset={() => {
+                                setShowSmartPlan(false);
+                                setShowProfileGate(true);
+                            }}
                         />
                     )}
                 </div>

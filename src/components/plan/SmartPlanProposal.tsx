@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2 } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw } from 'lucide-react';
 import { StandardizedPlanJSON, FactCard } from '@/lib/smartPlan';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { updateSmartPlanData } from '@/actions/schedule';
@@ -21,6 +21,7 @@ interface SmartPlanProposalProps {
     mockData?: StandardizedPlanJSON;
     /** 출발지 좌표 (캠핑 프로필에서 전달). 없으면 브라우저 geolocation fallback */
     origin?: { lat: number; lng: number };
+    onReset?: () => void;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -56,7 +57,8 @@ export default function SmartPlanProposal({
     endDate,
     weatherContext,
     mockData,
-    origin
+    origin,
+    onReset
 }: SmartPlanProposalProps) {
     const [plan, setPlan] = useState<StandardizedPlanJSON | null>(initialPlan || mockData || null);
     const [isLoading, setIsLoading] = useState(!initialPlan && !mockData);
@@ -411,7 +413,22 @@ export default function SmartPlanProposal({
                     <MapIcon className="w-40 h-40 text-white" />
                 </div>
 
-                <div className="relative z-10 space-y-5">
+                <div className="relative pt-6 pb-12 px-6">
+                    {/* [v11.9.32] 실험용 재구성 버튼 (tootg 전용) */}
+                    {userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' && onReset && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm('플랜을 처음부터 다시 구성할까요? (실험용)')) {
+                                    onReset();
+                                }
+                            }}
+                            className="absolute top-6 right-6 z-20 p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group"
+                            title="플랜 재구성 (실험용)"
+                        >
+                            <RefreshCcw className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:rotate-180 duration-700" />
+                        </button>
+                    )}
                     <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold tracking-wide backdrop-blur-sm">
                         <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
