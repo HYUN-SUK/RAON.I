@@ -238,7 +238,10 @@ function parseFactCard(row: any, mapCategory?: FactCard['category']): FactCard {
         roleName: ROLE_MAP[cat],
         evidence,
         distanceKm: row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0,
-        metadata: row.raw_data || {},
+        metadata: { 
+            ...(row.raw_data || {}), 
+            address: row.address || row.raw_data?.address 
+        },
         provenance: { sourceName: row.api_source || row.raw_data?.api_source || '' }
     };
 }
@@ -450,7 +453,6 @@ async function getMidpointOnRoad(origin: { lat: number, lng: number }, dest: { l
         const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${dest.lng},${dest.lat}&priority=RECOMMEND`;
         const res = await fetch(url, { headers: { 'Authorization': `KakaoAK ${apiKey}` } });
         const data = await res.json();
-        // console.log("Kakao API Response:", JSON.stringify(data).slice(0, 100));
 
         if (data.routes && data.routes[0] && data.routes[0].sections[0]) {
             const section = data.routes[0].sections[0];
@@ -683,11 +685,8 @@ export async function generatePersonalizedSmartPlan(
 
 [여정 구성 (5단계)]
 아래의 5단계 흐름에 맞춰서 각 단계의 시작을 알리는 인트로 문구(stageIntros)를 작성해 주세요.
-1단계: 출발 (여행의 시작과 설렘)
-2단계: 경유지 (가는 길 중간지점의 맛집, 카페, 명소)
-3단계: 캠핑 준비 (캠핑장 근처 마트 및 식사)
-4단계: 캠핑 즐기기 (캠핑장 주변 명소 및 축제)
-5단계: 귀갓길 (집으로 돌아가는 길의 추천 장소)
+- 1단계 (필수): '전체 여정 브리핑' 역할을 합니다. 반드시 여행자의 상황(${persona.description})과 전체 일정의 날씨(${weatherSummary})를 구체적으로 언급하며, 이를 근거로 왜 이런 장소들을 추천했는지 전체적인 흐름을 설명해 주세요. (예: "아이와 함께하는 이번 여행은 첫날 맑은 날씨에 맞춰 체험형 명소를, 둘째 날 비 소식에 대비해 실내 맛집 위주로 구성한 맞춤형 일정입니다.")
+- 2~5단계: 각 단계로 넘어가는 따뜻한 연결 문구 (해요체, 시적인 표현 권장)
 
 [장소 목록]
 중요: 아래 장소들의 ID(예: ID:123)를 키로 사용하여 한 줄 소개(oneLiners)를 작성해야 합니다.
@@ -702,16 +701,16 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
 
 [출력 규칙]
 1. 반드시 아래 JSON 구조로만 응답하세요. 다른 텍스트는 포함하지 마세요.
-2. stageIntros: 1~5단계 각각의 여정 연결 문구 (해요체, 시적인 표현 권장, 장소명 언급 금지)
+2. stageIntros: 1단계는 '종합 브리핑 서사(150자 내외)', 2~5단계는 '여정 연결 문구' (해요체, 장소명 직접 언급 금지)
 3. oneLiners: 장소 ID를 키로 하여 15~30자 이내의 한 줄 소개 작성 (해요체)
 
 {
   "stageIntros": {
-    "1": "1단계 인트로 문구",
-    "2": "2단계 인트로 문구",
-    "3": "3단계 인트로 문구",
-    "4": "4단계 인트로 문구",
-    "5": "5단계 인트로 문구"
+    "1": "1단계 종합 브리핑 문구",
+    "2": "2단계 연결 문구",
+    "3": "3단계 연결 문구",
+    "4": "4단계 연결 문구",
+    "5": "5단계 연결 문구"
   },
   "oneLiners": {
     "장소ID": "설명"

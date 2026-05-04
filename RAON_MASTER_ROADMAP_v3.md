@@ -43,7 +43,7 @@
 | **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
 | **Phase 4** | **미래 기능 (Future)** | ✅ **완료** | 100% | 웹 푸시(FCM), 상황별 알림 시스템, 인앱 배지 구현 완료. |
 | **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
-| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | 🏗️ **진행 중** | 95% | v11.9.25 Gemini 2.5 Flash-Lite & 5단계 서사 타임라인 실장. |
+| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | v11.9.32 스마트 플랜 영구 저장 및 엔진 고도화 완료. |
 | **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
 | **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | 전국 LX 공사맛집(2k) 통합 및 자동화 로테이션 인기도 v2 전국 보급 완료(04-13). |
 | **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 100% | 관리자 자동화 모니터링 UI 최적화 및 API 소통 정합성 확보 완료 (04-23). |
@@ -245,6 +245,11 @@
         *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
         *   [x] **UI Support**: 관리자 자동화 로그 페이지 🔴/🟢 상태별 세분화 렌더링 구현 완료.
         *   [x] **Sync Strategy**: 일일 1,000회 제한 극복을 위한 17일 순환 갱신 체계 확립.
+    *   [x] **5.5.17 Persistence & Optimization (v11.9.32) ✅ (2026-05-04)**:
+        *   [x] **Smart Plan Persistence**: `user_schedules` DB 연동을 통한 플랜 영구 저장 및 Zero-API 로딩 실장.
+        *   [x] **Swap Synchronization**: 사용자 장소 교체(Swap) 시 즉시 DB 상태 동기화 및 유지 로직 구현.
+        *   [x] **Multi-Day Weather**: 입실~퇴실 전체 일정 기상 데이터 기반 딥 스코어링 및 프롬프트 최적화.
+        *   [x] **Reinforced Blacklist**: 트랙 B 검색 시 폐업, 지물포, 건재 등 부적절 키워드 필터링 로직 강화.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)

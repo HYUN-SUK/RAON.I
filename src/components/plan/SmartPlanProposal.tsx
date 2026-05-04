@@ -208,7 +208,7 @@ export default function SmartPlanProposal({
         setNavTargetCard(card);
     };
 
-    const handleNavChoice = (app: 'kakao' | 'tmap') => {
+    const handleNavChoice = (app: 'kakao' | 'tmap' | 'kakaonavi') => {
         if (!navTargetCard) return;
         
         if (userId) {
@@ -224,6 +224,13 @@ export default function SmartPlanProposal({
             // Fallback for non-mobile or app not installed
             setTimeout(() => {
                 window.open(`https://map.naver.com/v5/directions/-/,,${lng},${lat},${name}/-`, '_blank');
+            }, 500);
+        } else if (app === 'kakaonavi') {
+            // KakaoNavi URL Scheme (Mobile)
+            window.open(`kakaonavi://navigate?name=${encodeURIComponent(name)}&x=${lng}&y=${lat}&coord_type=wgs84`, '_blank');
+            // Fallback: KakaoMap URL
+            setTimeout(() => {
+                window.open(`https://map.kakao.com/link/to/${name},${lat},${lng}`, '_blank');
             }, 500);
         }
         setNavTargetCard(null);
@@ -321,6 +328,15 @@ export default function SmartPlanProposal({
                             )}
                         </div>
                         <h4 className="font-bold text-gray-900 text-[15px] truncate">{card.name}</h4>
+                        
+                        {/* [v11.9.32] Stage 2, 5 주소 표기 추가 */}
+                        {['2', '5'].includes(stage || '') && (card.metadata?.address || card.metadata?.addr) && (
+                            <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1 truncate">
+                                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                {card.metadata.address || card.metadata.addr}
+                            </p>
+                        )}
+
                         <p className="text-xs text-gray-500 mt-1 line-clamp-1 leading-relaxed">
                             {card.description}
                         </p>
@@ -445,9 +461,7 @@ export default function SmartPlanProposal({
                                 <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
                                 <span className="text-xs font-bold text-[#224732]">Stage 1. 설레는 출발</span>
                             </div>
-                            {plan.stageIntros?.['1'] && (
-                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['1']}"</p>
-                            )}
+                            {/* 1단계 서사는 상단 히어로 영역에서 '종합 브리핑'으로 제공되므로 하단 리스트에서는 생략합니다. */}
                         </div>
                     </div>
 
@@ -663,14 +677,22 @@ export default function SmartPlanProposal({
                             '{navTargetCard?.name}'(으)로 안내할 앱을 선택해주세요.
                         </SheetDescription>
                     </SheetHeader>
-                    <div className="grid grid-cols-2 gap-4 pb-4">
+                    <div className="grid grid-cols-3 gap-3 pb-4">
                         <Button
                             variant="outline"
                             className="h-24 flex flex-col gap-2 rounded-2xl border-gray-100 hover:border-yellow-400 hover:bg-yellow-50/30"
                             onClick={() => handleNavChoice('kakao')}
                         >
                             <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center text-white text-xs font-bold">K</div>
-                            <span className="text-sm font-bold text-gray-900">카카오맵</span>
+                            <span className="text-[13px] font-bold text-gray-900">카카오맵</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-24 flex flex-col gap-2 rounded-2xl border-gray-100 hover:border-yellow-600 hover:bg-yellow-50/50"
+                            onClick={() => handleNavChoice('kakaonavi')}
+                        >
+                            <div className="w-10 h-10 rounded-full bg-[#FFCD00] flex items-center justify-center text-[#3C1E1E] text-xs font-black italic">NAV</div>
+                            <span className="text-[13px] font-bold text-gray-900">카카오내비</span>
                         </Button>
                         <Button
                             variant="outline"
@@ -678,7 +700,7 @@ export default function SmartPlanProposal({
                             onClick={() => handleNavChoice('tmap')}
                         >
                             <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">T</div>
-                            <span className="text-sm font-bold text-gray-900">티맵</span>
+                            <span className="text-[13px] font-bold text-gray-900">티맵</span>
                         </Button>
                     </div>
                 </SheetContent>
