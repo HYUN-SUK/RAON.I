@@ -39,7 +39,7 @@ export const getApiConfigs = () => {
     { name: 'SPOT_TMAP_REL', label: '명소 연관(Tmap)', url: `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=11&signguCd=11110&baseYm=202504&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=RAONAI` },
     { name: 'SPOT_KT_CONCTR', label: '명소 집중률(KT)', url: `https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=11&signguCd=11110&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=RAONAI` },
     { name: 'KTO_POPULARITY', label: '명소(지자체 인기도)', url: `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=34&signguCd=34330&baseYm=202504&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=RAONAI` },
-    { name: 'GEMINI', label: 'AI(제미나이)', url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`, method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }] }) }
+    { name: 'GEMINI', label: 'AI(제미나이)', url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`, method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }] }) }
   ];
 };
 
