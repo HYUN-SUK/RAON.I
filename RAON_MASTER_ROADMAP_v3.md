@@ -248,6 +248,11 @@
     *   [x] **5.5.17 Persistence & Optimization (v11.9.32) ✅ (2026-05-04)**:
         *   [x] **Smart Plan Persistence**: `user_schedules` DB 연동을 통한 플랜 영구 저장 및 Zero-API 로딩 실장.
         *   [x] **Swap Synchronization**: 사용자 장소 교체(Swap) 시 즉시 DB 상태 동기화 및 유지 로직 구현.
+        *   [x] **UI Restoration**: 저장된 플랜 데이터 존재 시 "자동 완성" 버튼 대신 결과 화면 즉시 노출 로직 복구.
+    *   [x] **5.5.18 Smart Plan UX/UI Refinement (v11.9.35) ✅ (2026-05-05)**:
+        *   [x] **Mobile Alignment**: 타임라인 세로줄 및 장소 카드 너비(`w-[calc(100%-3rem)]`) 최적화로 모바일 가시성 확보.
+        *   [x] **Swap Stability**: 중복 제거 맵핑 및 활성 장소 필터링으로 스테이지 5 스와프 버그 완벽 해결.
+        *   [x] **AI Personalization**: `guestDetails`(인원/반려견) 데이터를 프롬프트에 직접 주입하여 초개인화 서사 구현.
         *   [x] **Multi-Day Weather**: 입실~퇴실 전체 일정 기상 데이터 기반 딥 스코어링 및 프롬프트 최적화.
         *   [x] **Reinforced Blacklist**: 트랙 B 검색 시 폐업, 지물포, 건재 등 부적절 키워드 필터링 로직 강화.
 

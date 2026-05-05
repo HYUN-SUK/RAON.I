@@ -140,7 +140,7 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     else if (raw.scraping?.rating) stars = raw.scraping.rating;
     else if (raw.raw_data?.scraping?.rating) stars = raw.raw_data.scraping.rating;
 
-    let source = raw.api_source || raw.sourceName || '';
+    const source = raw.api_source || raw.sourceName || '';
     // [v11.9.26] smart_plan_candidates는 raw_data.badges에 인증 정보 저장
     const rawBadges: string[] = raw.badges || raw.raw_data?.badges || [];
 
@@ -299,7 +299,7 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
 
     // 5km 내의 마스터 장소 호출 (카카오 API 안 씀)
     const searchRadii = [5000, 10000, 15000, 20000, 25000, 30000];
-    let allData: any[] = [];
+    const allData: any[] = [];
 
     // [v11.9.24] 각 카테고리별 독립 검색 로직
     // 1. 식당 & 명소 검색 (최대 30km)
@@ -609,7 +609,7 @@ export async function generatePersonalizedSmartPlan(
 
         // 4. Track A (Destination / Day 2, 3)
         const activeFacts: FactCard[] = [];
-        let featuredFestival: FactCard[] = [];
+        const featuredFestival: FactCard[] = [];
         
         if (reservationId) {
             const trackAFacts = await fetchCachedTrackA(reservationId, weatherSummary, isWinter, persona);
@@ -660,7 +660,7 @@ export async function generatePersonalizedSmartPlan(
 
         // 5. [v11.9.25] AI Narration with Modular 5-Stage Prompt
         let narration = "데이터를 분석하여 완벽한 여정을 짰습니다. 리스트를 스와이프하여 확인해 보세요!";
-        let stageIntros: Record<string, string> = {};
+        const stageIntros: Record<string, string> = {};
         try {
             const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
             if (geminiKey) {
