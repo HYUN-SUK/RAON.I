@@ -138,7 +138,7 @@ export default function CampingProfileGate({
             setExistingProfile(profile);
             setIsEditing(false);
             toast.success('캠핑 프로필이 저장되었어요!');
-            onComplete(profile);
+            // onComplete를 바로 호출하지 않고, 요약 카드에서 "이대로 진행"을 누르도록 유도
         } else {
             toast.error(result.error || '저장에 실패했습니다');
         }
@@ -413,7 +413,7 @@ export default function CampingProfileGate({
                         ) : (
                             <>
                                 <Check className="w-4 h-4 mr-1" />
-                                {existingProfile ? '수정 후 진행' : '저장 후 진행하기'}
+                                {existingProfile ? '수정 완료' : '저장 완료'}
                             </>
                         )}
                     </Button>

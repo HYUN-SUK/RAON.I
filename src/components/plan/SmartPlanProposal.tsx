@@ -66,6 +66,8 @@ export default function SmartPlanProposal({
     const [swapPage, setSwapPage] = useState(0);
     const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
     const [navTargetCard, setNavTargetCard] = useState<FactCard | null>(null);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [swapTargetId, setSwapTargetId] = useState<string | null>(null);
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
@@ -95,7 +97,7 @@ export default function SmartPlanProposal({
 
     // 2. Fetch Plan via Server API Route
     useEffect(() => {
-        if (mockData || initialPlan) return;
+        if (mockData) return;
 
         async function fetchPlan() {
             setIsLoading(true);
@@ -129,13 +131,18 @@ export default function SmartPlanProposal({
 
     const handleSwapOptionSelected = (category: string, newCardId: string) => {
         if (!plan) return;
-        // Find if it's in itemListElement or routeListElement
-        const inItemIndex = plan.itemListElement.findIndex(c => c.category === category);
-        const inRouteIndex = plan.routeListElement?.findIndex(c => c.category === category) ?? -1;
+        // [v11.9.32] 카테고리가 아닌 고유 ID(swapTargetId)로 정확한 대상 매칭 (스테이지 2/5 구분 해결)
+        const inItemIndex = plan.itemListElement.findIndex(c => c.id === swapTargetId);
+        const inRouteIndex = plan.routeListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
+        const inReturnIndex = plan.returnListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
 
         const isRoute = inRouteIndex !== -1;
-        const currentActiveInfo = isRoute && plan.routeListElement ? plan.routeListElement[inRouteIndex] :
-            (inItemIndex !== -1 ? plan.itemListElement[inItemIndex] : null);
+        const isReturn = inReturnIndex !== -1;
+        
+        let currentActiveInfo = null;
+        if (isRoute && plan.routeListElement) currentActiveInfo = plan.routeListElement[inRouteIndex];
+        else if (isReturn && plan.returnListElement) currentActiveInfo = plan.returnListElement[inReturnIndex];
+        else if (inItemIndex !== -1) currentActiveInfo = plan.itemListElement[inItemIndex];
 
         const alternativeCards = plan.alternatives?.[category] || [];
         const newActiveInfo = alternativeCards.find(c => c.id === newCardId);
@@ -170,13 +177,19 @@ export default function SmartPlanProposal({
                 newAltsList[targetIdx] = currentActiveInfo;
             }
 
-            const updatedPlan = { ...plan, alternatives: { ...plan.alternatives, [category]: newAltsList } };
+            // 중복 방지를 위한 안전 장치
+            const uniqueAlts = Array.from(new Map(newAltsList.map(c => [c.id, c])).values());
+            const updatedPlan = { ...plan, alternatives: { ...plan.alternatives, [category]: uniqueAlts } };
 
             if (isRoute && updatedPlan.routeListElement) {
                 const newRouteList = [...updatedPlan.routeListElement];
                 newRouteList[inRouteIndex] = newActiveInfo;
                 updatedPlan.routeListElement = newRouteList;
-            } else {
+            } else if (isReturn && updatedPlan.returnListElement) {
+                const newReturnList = [...updatedPlan.returnListElement];
+                newReturnList[inReturnIndex] = newActiveInfo;
+                updatedPlan.returnListElement = newReturnList;
+            } else if (inItemIndex !== -1) {
                 const newActiveList = [...updatedPlan.itemListElement];
                 newActiveList[inItemIndex] = newActiveInfo;
                 updatedPlan.itemListElement = newActiveList;
@@ -260,7 +273,7 @@ export default function SmartPlanProposal({
     if (!plan) return null;
 
     const swapOptions = swapCategory ? [
-        (plan.itemListElement.find(c => c.category === swapCategory) || plan.routeListElement?.find(c => c.category === swapCategory))!, // Current Active
+        (plan.itemListElement.find(c => c.category === swapCategory) || plan.routeListElement?.find(c => c.category === swapCategory) || plan.returnListElement?.find(c => c.category === swapCategory))!, // Current Active
         ...(plan.alternatives?.[swapCategory] || []) // 2 Alternatives
     ] : [];
 
@@ -306,7 +319,7 @@ export default function SmartPlanProposal({
     const renderFactCard = (card: FactCard, stage?: string) => (
         <Card
             key={card.id}
-            className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white ml-10`}
+            className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white w-[calc(100%-3rem)] ml-6`}
             onClick={() => handleCardClick(card)}
         >
             <CardContent className="p-4">
@@ -386,6 +399,7 @@ export default function SmartPlanProposal({
                             onClick={(e) => { 
                                 e.stopPropagation(); 
                                 setSwapCategory(card.category); 
+                                setSwapTargetId(card.id);
                                 setSwapPage(0); 
                             }}
                             className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
@@ -414,20 +428,48 @@ export default function SmartPlanProposal({
                 </div>
 
                 <div className="relative pt-6 pb-12 px-6">
-                    {/* [v11.9.32] 실험용 재구성 버튼 (tootg 전용) */}
-                    {userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' && onReset && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm('플랜을 처음부터 다시 구성할까요? (실험용)')) {
-                                    onReset();
-                                }
-                            }}
-                            className="absolute top-6 right-6 z-20 p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group"
-                            title="플랜 재구성 (실험용)"
-                        >
-                            <RefreshCcw className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:rotate-180 duration-700" />
-                        </button>
+                    {/* [v11.9.32] 실험용 재구성 버튼 (tootg 전용, 로컬 개발 환경 허용) */}
+                    {(userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' || process.env.NODE_ENV === 'development') && onReset && (
+                        <div className="absolute top-6 right-6 z-30 flex items-center">
+                            {showResetConfirm ? (
+                                <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#224732]/20 shadow-xl animate-in fade-in zoom-in duration-200">
+                                    <span className="text-[10px] font-bold text-[#224732] px-1">재구성할까요?</span>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowResetConfirm(false);
+                                            onReset();
+                                        }}
+                                        className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"
+                                    >
+                                        네
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowResetConfirm(false);
+                                        }}
+                                        className="text-[10px] px-2.5 py-1.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200"
+                                    >
+                                        아니오
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowResetConfirm(true);
+                                    }}
+                                    className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group"
+                                    title="플랜 재구성 (실험용)"
+                                >
+                                    <RefreshCcw className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:rotate-180 duration-700" />
+                                </button>
+                            )}
+                        </div>
                     )}
                     <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold tracking-wide backdrop-blur-sm">
                         <span className="relative flex h-2 w-2">
@@ -469,25 +511,27 @@ export default function SmartPlanProposal({
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">카드를 터치해 일정을 교체하세요</span>
                 </h3>
 
-                <div className="grid gap-8 relative before:absolute before:inset-0 before:left-[35px] md:before:left-[35px] before:w-0.5 before:bg-[#224732]/10 before:z-0">
+                <div className="grid gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0">
 
                     {/* Stage 1: 출발 (Intro) */}
-                    <div className="space-y-3 relative z-10 w-full pl-2">
+                    <div className="space-y-3 relative z-10 w-full">
                         <div className="flex flex-col gap-1 mb-2 ml-4">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
                                 <span className="text-xs font-bold text-[#224732]">Stage 1. 설레는 출발</span>
                             </div>
-                            {/* 1단계 서사는 상단 히어로 영역에서 '종합 브리핑'으로 제공되므로 하단 리스트에서는 생략합니다. */}
+                            {plan.stage1_timeline && (
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stage1_timeline}"</p>
+                            )}
                         </div>
                     </div>
 
                     {/* Stage 2: 가는 길 (Route Facts) */}
                     {(plan.routeListElement || []).length > 0 && (
-                        <div className="space-y-3 relative z-10 w-full pl-2">
+                        <div className="space-y-3 relative z-10 w-full">
                             <div className="flex flex-col gap-1 mb-2 ml-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
+                                    <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
                                     <span className="text-xs font-bold text-[#224732]">Stage 2. 여정의 즐거움 (경유지)</span>
                                 </div>
                                 {plan.stageIntros?.['2'] && (
@@ -500,10 +544,10 @@ export default function SmartPlanProposal({
                     )}
 
                     {/* Stage 3: 캠프 준비 (Mart / Restaurant) */}
-                    <div className="space-y-3 relative z-10 w-full pl-2">
+                    <div className="space-y-3 relative z-10 w-full">
                         <div className="flex flex-col gap-1 mb-2 ml-4">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
                                 <span className="text-xs font-bold text-[#224732]">Stage 3. 든든한 준비 (식사/장보기)</span>
                             </div>
                             {plan.stageIntros?.['3'] && (
@@ -516,10 +560,10 @@ export default function SmartPlanProposal({
                     </div>
 
                     {/* Stage 4: 캠핑장 주변 (Spot / Hospital / Gas) */}
-                    <div className="space-y-3 relative z-10 w-full pl-2">
+                    <div className="space-y-3 relative z-10 w-full">
                         <div className="flex flex-col gap-1 mb-2 ml-4">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
                                 <span className="text-xs font-bold text-[#224732]">Stage 4. 온전한 힐링 (현지 체류)</span>
                             </div>
                             {plan.stageIntros?.['4'] && (
@@ -545,14 +589,14 @@ export default function SmartPlanProposal({
                     </div>
 
                     {/* Stage 5: 안전한 귀가 (Return Trip) */}
-                    <div className="space-y-3 relative z-10 w-full pl-2">
+                    <div className="space-y-3 relative z-10 w-full">
                         <div className="flex flex-col gap-1 mb-2 ml-4">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#224732] bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
                                 <span className="text-xs font-bold text-[#224732]">Stage 5. 아쉬움을 뒤로하고 (귀갓길)</span>
                             </div>
                             {plan.stageIntros?.['5'] && (
-                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed">"{plan.stageIntros['5']}"</p>
+                                <p className="text-[11px] text-gray-500 italic ml-[38px] leading-relaxed">"{plan.stageIntros['5']}"</p>
                             )}
                         </div>
                         {(plan.returnListElement || []).map((card) => renderFactCard(card, '5'))}
@@ -580,73 +624,79 @@ export default function SmartPlanProposal({
                             {swapCategory ? CATEGORY_NAMES[swapCategory] : ''} 일정 교체
                         </SheetTitle>
                         <SheetDescription className="text-left text-xs text-gray-500">
-                            캠퍼님의 취향에 맞는 다른 선택지를 골라보세요. (최대 3개 제공)
+                            캠퍼님의 취향에 맞는 다른 선택지를 골라보세요.
                         </SheetDescription>
                     </SheetHeader>
 
-                    <div className="py-5 space-y-3">
+                    <div className="py-5 space-y-4">
                         {(() => {
+                            if (!swapCategory) return null;
+                            const currentActive = plan.itemListElement.find(c => c.id === swapTargetId) || 
+                                                 plan.routeListElement?.find(c => c.id === swapTargetId) || 
+                                                 plan.returnListElement?.find(c => c.id === swapTargetId);
+                            
+                            const rawAlternatives = plan.alternatives?.[swapCategory] || [];
+                            const uniqueAlternatives = Array.from(new Map(rawAlternatives.map(c => [c.id, c])).values());
+                            
+                            const activeIds = [
+                                ...(plan.itemListElement?.map(c => c.id) || []),
+                                ...(plan.routeListElement?.map(c => c.id) || []),
+                                ...(plan.returnListElement?.map(c => c.id) || [])
+                            ];
+                            
+                            const availableAlternatives = uniqueAlternatives.filter(c => !activeIds.includes(c.id));
+                            const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
+                            
                             const pageSize = 3;
-                            const totalPages = Math.ceil(swapOptions.length / pageSize);
-                            const paginatedOptions = swapOptions.slice(swapPage * pageSize, (swapPage + 1) * pageSize);
+                            const totalPages = Math.ceil(allOptions.length / pageSize);
+                            const paginatedOptions = allOptions.slice(swapPage * pageSize, (swapPage + 1) * pageSize);
 
                             return (
                                 <>
-                                    {paginatedOptions.map((opt, idx) => {
-                                        const globalIdx = swapPage * pageSize + idx;
-                                        const isCurrentActive = opt.id === (plan.itemListElement.find(c => c.category === swapCategory)?.id || plan.routeListElement?.find(c => c.category === swapCategory)?.id);
-                                        return (
-                                            <Card
-                                                key={opt.id}
-                                                className={`cursor-pointer transition-all border ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] shadow-sm bg-[#224732]/5' : 'border-gray-200 hover:border-[#224732]/40 bg-white'}`}
-                                                onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
-                                            >
-                                                <CardContent className="p-4 flex items-start gap-3">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <h4 className="font-bold text-gray-900 text-sm truncate">
-                                                                <span className="text-[10px] text-gray-400 mr-1">{globalIdx + 1}위</span>
-                                                                {opt.name}
-                                                            </h4>
-                                                            {isCurrentActive && (
-                                                                <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium tracking-wide">
-                                                                    현재 선택됨
-                                                                </span>
+                                    {/* 추천 후보 리스트 (현재 장소 포함 3개씩 페이징) */}
+                                    <div className="space-y-3">
+                                        {paginatedOptions.map((opt, idx) => {
+                                            const globalIdx = swapPage * pageSize + idx;
+                                            const isCurrentActive = opt.id === currentActive?.id;
+                                            return (
+                                                <Card
+                                                    key={opt.id}
+                                                    className={`cursor-pointer transition-all border ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] shadow-sm bg-[#224732]/5' : 'border-gray-200 hover:border-[#224732]/40 bg-white'}`}
+                                                    onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
+                                                >
+                                                    <CardContent className="p-4 flex items-start gap-3">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <h4 className="font-bold text-gray-900 text-sm truncate">
+                                                                    <span className="text-[10px] text-gray-400 mr-1">{globalIdx + 1}위</span>
+                                                                    {opt.name}
+                                                                </h4>
+                                                                {isCurrentActive && (
+                                                                    <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-gray-600 line-clamp-1">{opt.description}</p>
+                                                            {opt.reasoning && (
+                                                                <p className="text-[10px] text-blue-600 font-medium mt-1 italic">" {opt.reasoning} "</p>
                                                             )}
+                                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                                {opt.evidence?.stars && (
+                                                                    <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold">⭐ {opt.evidence.stars.toFixed(1)}</span>
+                                                                )}
+                                                                {opt.evidence?.certifications.map((c, i) => (
+                                                                    <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">{c}</span>
+                                                                ))}
+                                                                <span className="text-[9px] text-gray-400 ml-auto">추천도 {opt.trustScore}</span>
+                                                            </div>
                                                         </div>
-                                                        <p className="text-xs text-gray-600 leading-snug line-clamp-1">
-                                                            {opt.description}
-                                                        </p>
-                                                        {opt.reasoning && (
-                                                            <p className="text-[10px] text-blue-600 font-medium mt-1 italic">
-                                                                " {opt.reasoning} "
-                                                            </p>
+                                                        {!isCurrentActive && (
+                                                            <Button size="sm" variant="outline" className="shrink-0 h-8 text-[11px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">변경</Button>
                                                         )}
-                                                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                                            {opt.evidence?.stars && (
-                                                                <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold">
-                                                                    ⭐ {opt.evidence.stars.toFixed(1)}
-                                                                </span>
-                                                            )}
-                                                            {opt.evidence?.certifications.map((c, i) => (
-                                                                <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">
-                                                                    {c}
-                                                                </span>
-                                                            ))}
-                                                            <span className="text-[9px] text-gray-400 ml-auto">
-                                                                추천도 {opt.trustScore}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    {!isCurrentActive && (
-                                                        <Button size="sm" variant="outline" className="shrink-0 h-8 text-[11px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">
-                                                            변경
-                                                        </Button>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        );
-                                    })}
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
 
                                     {/* Pagination Controls */}
                                     {totalPages > 1 && (

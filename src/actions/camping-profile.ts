@@ -116,25 +116,38 @@ export async function searchAddressAction(query: string): Promise<{ label: strin
     }
 
     try {
-        const res = await fetch(
-            `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=5`,
-            {
-                headers: { Authorization: `KakaoAK ${kakaoKey}` },
-                next: { revalidate: 3600 } // Cache for 1 hour
-            }
-        );
+        const headers = { Authorization: `KakaoAK ${kakaoKey}` };
+        const queryEncoded = encodeURIComponent(query);
+        
+        // 1. 키워드 검색 (장소명 위주)
+        const keywordPromise = fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
+        // 2. 주소 검색 (도로명/지번 위주)
+        const addressPromise = fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
 
-        if (!res.ok) {
-            console.error('[CampingProfile] Kakao API error:', res.status);
-            return [];
+        const [keywordData, addressData] = await Promise.all([keywordPromise, addressPromise]);
+
+        const results: { label: string; lat: number; lng: number }[] = [];
+        const seen = new Set<string>();
+
+        // 키워드 결과 먼저 추가
+        for (const doc of (keywordData.documents || [])) {
+            const label = doc.place_name || doc.address_name;
+            if (label && !seen.has(label)) {
+                seen.add(label);
+                results.push({ label, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+            }
+        }
+        
+        // 주소 결과 추가
+        for (const doc of (addressData.documents || [])) {
+            const label = doc.address_name;
+            if (label && !seen.has(label)) {
+                seen.add(label);
+                results.push({ label, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+            }
         }
 
-        const data = await res.json();
-        return (data.documents || []).map((doc: any) => ({
-            label: doc.place_name || doc.address_name,
-            lat: parseFloat(doc.y),
-            lng: parseFloat(doc.x),
-        }));
+        return results.slice(0, 5); // 최대 5개까지만
     } catch (err) {
         console.error('[CampingProfile] Address search failed:', err);
         return [];

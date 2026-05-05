@@ -13,6 +13,7 @@ export interface StandardizedPlanJSON {
     "@type": "ItemList";
     narration: string;
     stageIntros?: Record<string, string>;  // [v11.9.25] 5단계 모듈형 연결 문구
+    stage1_timeline?: string; // [v11.9.32] Stage 1 타임라인 감성 멘트
     target_date?: string;
     itemListElement: FactCard[]; // Track A: Destination Core Facts (Day 2, 3)
     routeListElement?: FactCard[]; // Track B: Journey (Route/Midpoint) Facts (Day 1)
@@ -265,7 +266,13 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
         return [];
     }
 
-    const facts = data.map(row => {
+    const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|의원|병원|디지털/;
+
+    const facts = data.filter(row => {
+        const name = row.name || '';
+        if (globalBlacklist.test(name)) return false;
+        return true;
+    }).map(row => {
         const f = parseFactCard(row);
         // Deep ContextFit 적용 (기존 캐싱 점수에 ContextFit 추가 병합)
         const cFit = calcContextFitDeep(f, weather, isWinter, persona);
@@ -369,8 +376,8 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
         const name = row.name || '';
         const address = row.address || '';
         
-        // [v11.9.32] 강력 블랙리스트 (식당이 아닌 것들 제거 + 지물포/건재 추가)
-        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재/;
+        // [v11.9.32] 강력 블랙리스트 (식당이 아닌 것들 제거 + 지물포/건재/디지털/스튜디오 추가)
+        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|의원|병원|디지털/;
         if (globalBlacklist.test(name)) return;
 
         // [v11.9.32] 폐업, 블랙리스트, 과도한 페널티 데이터 원천 차단
@@ -680,12 +687,17 @@ export async function generatePersonalizedSmartPlan(
 따뜻하고 친근한 해요체로, 캠핑을 떠나는 여행자에게 이야기하듯 안내해 주세요.
 
 [조건]
-- 전체 일정 날씨: ${weatherSummary} (주의: 일정에 비나 눈이 온다면, 야외 활동을 주의하고 실내를 추천하는 뉘앙스를, 춥다면 따뜻한 표현을 담아주세요.)
-- 여행자: ${persona.description}
+- 전체 일정 날씨: ${weatherSummary} (주의: 비/눈 등 악천후나 기온을 종합적으로 고려하여 추천 근거를 설명해 주세요.)
+- 여행자 구성: ${(() => {
+    if (!persona.guestDetails) return persona.description;
+    const { adults, kids, hasPet } = persona.guestDetails;
+    const kidCount = kids.preschool + kids.elementary + kids.teen;
+    return `성인 ${adults}명${kidCount > 0 ? `, 아이 ${kidCount}명` : ''}${hasPet ? ', 반려견 1마리' : ''}와 함께하는 여행 (${persona.description})`;
+})()} (주의: 아이 동반, 반려견 동반 등 여행자의 인원 구성을 반드시 문장에 포함하여 '맞춤형'임을 실감나게 표현해 주세요.)
 
 [여정 구성 (5단계)]
 아래의 5단계 흐름에 맞춰서 각 단계의 시작을 알리는 인트로 문구(stageIntros)를 작성해 주세요.
-- 1단계 (필수): '전체 여정 브리핑' 역할을 합니다. 반드시 여행자의 상황(${persona.description})과 전체 일정의 날씨(${weatherSummary})를 구체적으로 언급하며, 이를 근거로 왜 이런 장소들을 추천했는지 전체적인 흐름을 설명해 주세요. (예: "아이와 함께하는 이번 여행은 첫날 맑은 날씨에 맞춰 체험형 명소를, 둘째 날 비 소식에 대비해 실내 맛집 위주로 구성한 맞춤형 일정입니다.")
+- 1단계 (MANDATORY): '전체 여정 브리핑' 역할을 합니다. 반드시! 무조건! 첫 문장에 위에서 설명한 '여행자 구성(예: 아이와 함께하는 가족)'과 전체 일정의 날씨 요약(${weatherSummary})을 구체적으로 언급하며 시작하세요. "새로운 캠핑 경험을 찾아 떠나는 호기심 많은 캠퍼"와 같은 기본 멘트는 지양하고, 구체적인 인원 상황을 언급해 주세요. (예: "아이와 함께하는 이번 여행은...")
 - 2~5단계: 각 단계로 넘어가는 따뜻한 연결 문구 (해요체, 시적인 표현 권장)
 
 [장소 목록]
@@ -702,7 +714,8 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
 [출력 규칙]
 1. 반드시 아래 JSON 구조로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 2. stageIntros: 1단계는 '종합 브리핑 서사(150자 내외)', 2~5단계는 '여정 연결 문구' (해요체, 장소명 직접 언급 금지)
-3. oneLiners: 장소 ID를 키로 하여 15~30자 이내의 한 줄 소개 작성 (해요체)
+3. stage1_timeline: 타임라인 화면에 노출될 짧고 감성적인 1단계 출발 인사말 (예: "드디어 기다리던 캠핑 당일! 안전하고 즐겁게 출발해 볼까요?")
+4. oneLiners: 장소 ID를 키로 하여 15~30자 이내의 한 줄 소개 작성 (해요체)
 
 {
   "stageIntros": {
@@ -712,6 +725,7 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
     "4": "4단계 연결 문구",
     "5": "5단계 연결 문구"
   },
+  "stage1_timeline": "1단계 타임라인 인사말",
   "oneLiners": {
     "장소ID": "설명"
   }
@@ -740,6 +754,10 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
                         const numKey = k.replace(/[^0-9]/g, '');
                         if (numKey) stageIntros[numKey] = v as string;
                     });
+                    
+                    if (parsed.stage1_timeline) {
+                        stageIntros['stage1_timeline'] = parsed.stage1_timeline;
+                    }
 
                     const allCards = [
                         ...routeFacts, ...activeFacts, ...featuredFestival, ...returnFacts,
@@ -763,6 +781,7 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
             narration,
             target_date: startDate.toISOString().split('T')[0], // 날짜 정보 추가
             stageIntros: Object.keys(stageIntros).length > 0 ? stageIntros : undefined,
+            stage1_timeline: stageIntros['stage1_timeline'],
             itemListElement: activeFacts,
             routeListElement: routeFacts,
             returnListElement: returnFacts.length > 0 ? returnFacts : undefined,

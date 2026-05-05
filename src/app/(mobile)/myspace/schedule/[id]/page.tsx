@@ -243,10 +243,7 @@ export default function ScheduleDetailPage() {
             setSchedule(scheduleData);
             setChecklist(checklistData);
 
-            // [v11.9.32] 이미 생성된 스마트 플랜이 있다면 즉시 표시 모드로 전환
-            if (scheduleData?.smart_plan_data) {
-                setShowSmartPlan(true);
-            }
+
         } catch (error) {
             console.error('Load schedule detail error:', error);
             toast.error('일정을 불러오는데 실패했어요');
@@ -258,6 +255,13 @@ export default function ScheduleDetailPage() {
     useEffect(() => {
         loadData();
     }, [loadData]);
+
+    // [v11.9.32] 저장된 스마트 플랜 데이터가 있다면 자동으로 표시 (복구)
+    useEffect(() => {
+        if (schedule?.smart_plan_data && !showSmartPlan && !showProfileGate) {
+            setShowSmartPlan(true);
+        }
+    }, [schedule, showSmartPlan, showProfileGate]);
 
     // 체크리스트 아이템 추가
     const handleAddItem = async () => {
