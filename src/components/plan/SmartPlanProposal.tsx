@@ -9,6 +9,7 @@ import { dispatchPersonaAction } from '@/lib/persona';
 import { updateSmartPlanData } from '@/actions/schedule';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
+import RouteSelector from './RouteSelector';
 
 interface SmartPlanProposalProps {
     scheduleId?: string;
@@ -22,6 +23,7 @@ interface SmartPlanProposalProps {
     /** 출발지 좌표 (캠핑 프로필에서 전달). 없으면 브라우저 geolocation fallback */
     origin?: { lat: number; lng: number };
     onReset?: () => void;
+    onGenerated?: () => void; // [v11.9.40] 생성 완료 시 호출
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -58,16 +60,19 @@ export default function SmartPlanProposal({
     weatherContext,
     mockData,
     origin,
-    onReset
+    onReset,
+    onGenerated
 }: SmartPlanProposalProps) {
     const [plan, setPlan] = useState<StandardizedPlanJSON | null>(initialPlan || mockData || null);
-    const [isLoading, setIsLoading] = useState(!initialPlan && !mockData);
+    const [isLoading, setIsLoading] = useState(false);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
     const [swapPage, setSwapPage] = useState(0);
     const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
+    const [selectedMidpoint, setSelectedMidpoint] = useState<{ lat: number; lng: number } | null>(null);
     const [navTargetCard, setNavTargetCard] = useState<FactCard | null>(null);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [swapTargetId, setSwapTargetId] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
@@ -97,10 +102,10 @@ export default function SmartPlanProposal({
 
     // 2. Fetch Plan via Server API Route
     useEffect(() => {
-        if (mockData) return;
+        if (mockData || plan || !selectedMidpoint) return;
 
         async function fetchPlan() {
-            setIsLoading(true);
+            setIsGenerating(true);
             try {
                 const res = await fetch('/api/smart-plan', {
                     method: 'POST',
@@ -110,7 +115,8 @@ export default function SmartPlanProposal({
                         location: { lat: locLat, lng: locLng },
                         startDate: startStr,
                         endDate: endStr,
-                        origin: originLat && originLng ? { lat: originLat, lng: originLng } : undefined
+                        origin: originLat && originLng ? { lat: originLat, lng: originLng } : undefined,
+                        predefinedMidpoint: selectedMidpoint
                     })
                 });
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -119,15 +125,22 @@ export default function SmartPlanProposal({
                 if (scheduleId) {
                     updateSmartPlanData(scheduleId, generatedPlan).catch(console.error);
                 }
+                if (onGenerated) onGenerated();
             } catch (error) {
                 console.error("Failed to fetch smart plan:", error);
+                toast.error("플랜 생성에 실패했습니다. 다시 시도해 주세요.");
+                setSelectedMidpoint(null); // 다시 경로 선택으로 복귀
             } finally {
-                setIsLoading(false);
+                setIsGenerating(false);
             }
         }
 
         fetchPlan();
-    }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData]);
+    }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData, selectedMidpoint, plan, scheduleId]);
+
+    const handleRouteSelect = (midpoint: { lat: number, lng: number }) => {
+        setSelectedMidpoint(midpoint);
+    };
 
     const handleSwapOptionSelected = (category: string, newCardId: string) => {
         if (!plan) return;
@@ -258,14 +271,31 @@ export default function SmartPlanProposal({
         toast.success('플랜 이미지가 생성되었습니다. SNS로 공유해보세요!');
     };
 
-    if (isLoading) {
+    if (isGenerating) {
         return (
             <div className="w-full flex flex-col items-center justify-center p-12 space-y-5 bg-[#F7F5EF] rounded-3xl border border-dashed border-[#224732]/20 shadow-sm animate-pulse m-0">
                 <RefreshCw className="w-10 h-10 text-[#224732] animate-spin" />
-                <p className="text-sm font-medium text-[#224732] text-center">
-                    캠퍼님의 취향과 주변 인프라를 분석해<br />
-                    세상에 단 하나뿐인 일정을 조립하는 중...
-                </p>
+                <div className="text-center space-y-2">
+                    <p className="text-sm font-bold text-[#224732]">
+                        여정에 어울리는 장소를 조립하는 중...
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                        선택하신 경로를 기반으로 정밀 분석을 시작합니다.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    // 3. Step 1: Route Selection
+    if (!plan && userOrigin && !selectedMidpoint) {
+        return (
+            <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <RouteSelector 
+                    origin={userOrigin} 
+                    destination={location} 
+                    onSelect={handleRouteSelect} 
+                />
             </div>
         );
     }
@@ -439,6 +469,8 @@ export default function SmartPlanProposal({
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setShowResetConfirm(false);
+                                            setPlan(null);
+                                            setSelectedMidpoint(null);
                                             onReset();
                                         }}
                                         className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"

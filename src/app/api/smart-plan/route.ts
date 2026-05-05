@@ -4,14 +4,15 @@ import { generatePersonalizedSmartPlan } from '@/lib/smartPlan';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { userId, location, startDate, endDate, origin } = body;
+        const { userId, location, startDate, endDate, origin, predefinedMidpoint } = body;
 
         const plan = await generatePersonalizedSmartPlan(
             userId,
             location,
             new Date(startDate),
             new Date(endDate),
-            origin
+            origin,
+            predefinedMidpoint
         );
 
         return NextResponse.json(plan);

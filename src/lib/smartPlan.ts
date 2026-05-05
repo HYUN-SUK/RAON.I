@@ -463,13 +463,28 @@ async function getMidpointOnRoad(origin: { lat: number, lng: number }, dest: { l
 
         if (data.routes && data.routes[0] && data.routes[0].sections[0]) {
             const section = data.routes[0].sections[0];
-            const roadmap = section.roads || [];
-            if (roadmap.length > 0) {
-                const middleRoad = roadmap[Math.floor(roadmap.length / 2)];
-                const coords = middleRoad.vertexes || [];
-                if (coords.length >= 2) {
-                    return { lng: coords[0], lat: coords[1] };
+            const totalDuration = section.duration; // 총 소요 시간 (초)
+            const targetDuration = totalDuration / 2;
+            
+            let accumulatedDuration = 0;
+            const roads = section.roads || [];
+            
+            for (const road of roads) {
+                accumulatedDuration += road.duration;
+                if (accumulatedDuration >= targetDuration) {
+                    const coords = road.vertexes || [];
+                    if (coords.length >= 2) {
+                        // 해당 도로 세그먼트의 시작점을 중간 지점으로 반환
+                        return { lng: coords[0], lat: coords[1] };
+                    }
                 }
+            }
+            
+            // 폴백: 도로 데이터가 이상할 경우 기존 방식(가운데 도로) 사용
+            if (roads.length > 0) {
+                const middleRoad = roads[Math.floor(roads.length / 2)];
+                const coords = middleRoad.vertexes || [];
+                if (coords.length >= 2) return { lng: coords[0], lat: coords[1] };
             }
         }
         return null;
@@ -487,7 +502,8 @@ export async function generatePersonalizedSmartPlan(
     location: { lat: number; lng: number },
     startDate: Date,
     endDate: Date,
-    origin?: { lat: number; lng: number }
+    origin?: { lat: number; lng: number },
+    predefinedMidpoint?: { lat: number; lng: number }
 ): Promise<StandardizedPlanJSON> {
     try {
         const persona = await extractUserPersona(userId);
@@ -576,8 +592,8 @@ export async function generatePersonalizedSmartPlan(
         const routeFacts: FactCard[] = [];
         const alternatives: Record<string, FactCard[]> = {};
 
-        if (origin) {
-            const midpoint = await getMidpointOnRoad(origin, location);
+        if (origin || predefinedMidpoint) {
+            const midpoint = predefinedMidpoint || (origin ? await getMidpointOnRoad(origin, location) : null);
             if (midpoint) {
 
                 const trackBFacts = await fetchMidpointTrackB(midpoint, weatherSummary, isWinter, persona);
@@ -669,7 +685,6 @@ export async function generatePersonalizedSmartPlan(
                     return `- ID:${f.id} | ${f.name}: ${f.description || '설명 없음'}${emj}`;
                 };
 
-                // Track B: PRIMARY + alternatives 전체
                 const allRouteCards = [...routeFacts, ...Object.values(alternatives).flat().filter(f => 
                     ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].includes(f.category)
                 )];

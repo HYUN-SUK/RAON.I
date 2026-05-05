@@ -73,6 +73,8 @@ export default function ScheduleDetailPage() {
     const [showSmartPlan, setShowSmartPlan] = useState(false);
     const [smartPlanOrigin, setSmartPlanOrigin] = useState<{ lat: number; lng: number } | undefined>();
     const [showProfileGate, setShowProfileGate] = useState(false);
+    const [planKey, setPlanKey] = useState(0); // [v11.9.40] 재구성 시 컴포넌트 강제 리마운트용
+    const [isReconstructing, setIsReconstructing] = useState(false); // [v11.9.40] 재구성 중에는 기존 데이터를 무시
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -258,10 +260,10 @@ export default function ScheduleDetailPage() {
 
     // [v11.9.32] 저장된 스마트 플랜 데이터가 있다면 자동으로 표시 (복구)
     useEffect(() => {
-        if (schedule?.smart_plan_data && !showSmartPlan && !showProfileGate) {
+        if (schedule?.smart_plan_data && !showSmartPlan && !showProfileGate && !isReconstructing) {
             setShowSmartPlan(true);
         }
-    }, [schedule, showSmartPlan, showProfileGate]);
+    }, [schedule, showSmartPlan, showProfileGate, isReconstructing]);
 
     // 체크리스트 아이템 추가
     const handleAddItem = async () => {
@@ -506,8 +508,9 @@ export default function ScheduleDetailPage() {
                         );
                     })() : (
                         <SmartPlanProposal
+                            key={planKey}
                             scheduleId={schedule.id}
-                            initialPlan={schedule.smart_plan_data}
+                            initialPlan={isReconstructing ? null : schedule.smart_plan_data}
                             userId={userId}
                             location={{
                                 lat: schedule.campground_lat || 36.67,
@@ -517,9 +520,12 @@ export default function ScheduleDetailPage() {
                             endDate={new Date(schedule.check_out)}
                             origin={smartPlanOrigin}
                             onReset={() => {
+                                setIsReconstructing(true);
                                 setShowSmartPlan(false);
                                 setShowProfileGate(true);
+                                setPlanKey(prev => prev + 1);
                             }}
+                            onGenerated={() => setIsReconstructing(false)}
                         />
                     )}
                 </div>
