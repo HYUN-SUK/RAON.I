@@ -758,32 +758,46 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
                     })
                 });
 
-                const apiData = await apiRes.json();
-                const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (responseText) {
-                    const parsed = JSON.parse(responseText);
-                    // [v11.9.26] 키 정규화 (1, 2, 3... 또는 stage1, stage2... 대응)
-                    const rawIntros = parsed.stageIntros || {};
-                    Object.entries(rawIntros).forEach(([k, v]) => {
-                        const numKey = k.replace(/[^0-9]/g, '');
-                        if (numKey) stageIntros[numKey] = v as string;
-                    });
+                if (apiRes.ok) {
+                    const apiData = await apiRes.json();
+                    let responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     
-                    if (parsed.stage1_timeline) {
-                        stageIntros['stage1_timeline'] = parsed.stage1_timeline;
+                    // [Robustness] Clean Markdown code blocks
+                    if (responseText.includes("```json")) {
+                        responseText = responseText.split("```json")[1].split("```")[0].trim();
+                    } else if (responseText.includes("```")) {
+                        responseText = responseText.split("```")[1].split("```")[0].trim();
                     }
 
-                    const allCards = [
-                        ...routeFacts, ...activeFacts, ...featuredFestival, ...returnFacts,
-                        ...Object.values(alternatives).flat()
-                    ];
-                    allCards.forEach(card => {
-                        if (parsed.oneLiners?.[card.id]) {
-                            card.reasoning = parsed.oneLiners[card.id];
+                    if (responseText) {
+                        try {
+                            const parsed = JSON.parse(responseText);
+                            const rawIntros = parsed.stageIntros || {};
+                            Object.entries(rawIntros).forEach(([k, v]) => {
+                                const numKey = k.replace(/[^0-9]/g, '');
+                                if (numKey) stageIntros[numKey] = v as string;
+                            });
+                            
+                            if (parsed.stage1_timeline) {
+                                stageIntros['stage1_timeline'] = parsed.stage1_timeline;
+                            }
+
+                            const allCards = [
+                                ...routeFacts, ...activeFacts, ...featuredFestival, ...returnFacts,
+                                ...Object.values(alternatives).flat()
+                            ];
+                            allCards.forEach(card => {
+                                if (parsed.oneLiners?.[card.id]) {
+                                    card.reasoning = parsed.oneLiners[card.id];
+                                }
+                            });
+                            narration = Object.values(stageIntros).filter(v => typeof v === 'string').join('\n\n');
+                        } catch (parseErr) {
+                            console.error("AI JSON Parse Error:", parseErr);
                         }
-                    });
-                    narration = Object.values(stageIntros).join('\n');
+                    }
+                } else {
+                    console.error("Gemini API Error:", apiRes.status);
                 }
             }
         } catch (e) {
