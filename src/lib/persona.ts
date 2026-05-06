@@ -281,9 +281,28 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
             .sort((a, b) => b.weight - a.weight)
             .slice(0, limit);
 
-        // 3. 인원 정보 (Trip Artifact에서 가져오거나 기존 예약에서 추출)
+        // 3. 인원 정보 (캠핑 프로필 -> Trip Snapshot -> 예약 내역 순으로 참조)
         let guestDetails = defaultPersona.guestDetails;
-        if (tripSnapshot?.constraints) {
+
+        // [v11.9.57] 사용자 캠핑 프로필을 최우선으로 참조 (실시간 반영)
+        const { data: profileData } = await supabase
+            .from('user_camping_profiles')
+            .select('adults, seniors, kids_preschool, kids_elementary, kids_teen, has_pet')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (profileData) {
+            guestDetails = {
+                adults: profileData.adults || 2,
+                seniors: profileData.seniors || 0,
+                kids: {
+                    preschool: profileData.kids_preschool || 0,
+                    elementary: profileData.kids_elementary || 0,
+                    teen: profileData.kids_teen || 0
+                },
+                hasPet: profileData.has_pet || false
+            };
+        } else if (tripSnapshot?.constraints) {
             guestDetails = tripSnapshot.constraints;
         } else {
             const { data: recentRes } = await supabase
@@ -293,7 +312,7 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
                 .neq('status', 'CANCELLED')
                 .order('created_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle();
             if (recentRes?.guest_details) guestDetails = recentRes.guest_details as any;
         }
 

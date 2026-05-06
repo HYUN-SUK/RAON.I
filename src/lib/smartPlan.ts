@@ -706,17 +706,22 @@ export async function generatePersonalizedSmartPlan(
 따뜻하고 친근한 해요체로, 캠핑을 떠나는 여행자에게 이야기하듯 안내해 주세요.
 
 [조건]
-- 전체 일정 날씨: ${weatherSummary} (주의: 비/눈 등 악천후나 기온을 종합적으로 고려하여 추천 근거를 설명해 주세요.)
+- 전체 일정 날씨: ${weatherSummary} (주의: 날짜별 날씨 변화와 기온을 꼼꼼히 언급하며 추천 근거를 설명해 주세요.)
 - 여행자 구성: ${(() => {
     if (!persona.guestDetails) return persona.description;
-    const { adults, kids, hasPet } = persona.guestDetails;
-    const kidCount = kids.preschool + kids.elementary + kids.teen;
-    return `성인 ${adults}명${kidCount > 0 ? `, 아이 ${kidCount}명` : ''}${hasPet ? ', 반려견 1마리' : ''}와 함께하는 여행 (${persona.description})`;
-})()} (주의: 아이 동반, 반려견 동반 등 여행자의 인원 구성을 반드시 문장에 포함하여 '맞춤형'임을 실감나게 표현해 주세요.)
+    const { adults, seniors, kids, hasPet } = persona.guestDetails;
+    const kidCount = (kids.preschool || 0) + (kids.elementary || 0) + (kids.teen || 0);
+    const parts = [];
+    if (adults > 0) parts.push(`성인 ${adults}명`);
+    if (seniors > 0) parts.push(`부모님 ${seniors}명`);
+    if (kidCount > 0) parts.push(`아이 ${kidCount}명`);
+    if (hasPet) parts.push('반려견 1마리');
+    return `${parts.join(', ')}와 함께하는 여행 (${persona.description})`;
+})()} (주의: 위 인원 구성을 반드시 문장에 포함하여 '맞춤형'임을 실감나게 표현해 주세요.)
 
 [여정 구성 (5단계)]
 아래의 5단계 흐름에 맞춰서 각 단계의 시작을 알리는 인트로 문구(stageIntros)를 작성해 주세요.
-- 1단계 (MANDATORY): '전체 여정 브리핑' 역할을 합니다. 반드시! 무조건! 첫 문장에 위에서 설명한 '여행자 구성(예: 아이와 함께하는 가족)'과 전체 일정의 날씨 요약(${weatherSummary})을 구체적으로 언급하며 시작하세요. "새로운 캠핑 경험을 찾아 떠나는 호기심 많은 캠퍼"와 같은 기본 멘트는 지양하고, 구체적인 인원 상황을 언급해 주세요. (예: "아이와 함께하는 이번 여행은...")
+- 1단계 (MANDATORY): '전체 여정 브리핑' 역할을 합니다. 반드시! 무조건! 첫 문장에 위에서 설명한 '구체적인 여행자 구성(예: "아이 두 명, 부모님과 함께하는 이번 여행은...")'과 전체 일정의 날짜별 날씨 요약(${weatherSummary})을 아주 구체적으로 언급하며 시작하세요. "사용자의 정보를 바탕으로 날씨와 인원 구성에 딱 맞춘 최적의 일정을 준비했다"는 느낌의 여행 개요 브리핑을 150자 내외로 정성껏 작성해 주세요.
 - 2~5단계: 각 단계로 넘어가는 따뜻한 연결 문구 (해요체, 시적인 표현 권장)
 
 [장소 목록]
