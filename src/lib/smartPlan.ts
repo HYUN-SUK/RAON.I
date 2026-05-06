@@ -510,10 +510,11 @@ export async function generatePersonalizedSmartPlan(
     predefinedMidpoint?: { lat: number; lng: number }
 ): Promise<StandardizedPlanJSON> {
     try {
-        const persona = await extractUserPersona(userId);
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        // [v11.9.60] 정석적인 서버 사이드 인증 연동 (쿠키 기반)
+        const { createClient: createServerSupabase } = await import('@/lib/supabase-server');
+        const supabase = await createServerSupabase();
+
+        const persona = await extractUserPersona(userId, 7, supabase); // 인증된 클라이언트 전달
 
         // 1. Find Reservation ID for Track A
         let reservationId: string | null = null;
@@ -563,26 +564,30 @@ export async function generatePersonalizedSmartPlan(
         }
 
         // 2. Weather
-        let weatherSummary = "맑음";
+        let weatherSummary = "날씨 정보를 확인하고 있습니다.";
         let isWinter = false;
-        let isRainy = false; // [v11.9.30] 비/눈 판정 추가
+        let isRainy = false; 
         try {
-            // [v11.9.30] 다중 일자 날씨 추출 (startDate ~ endDate)
             const w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
             if (w && w.daily && Array.isArray(w.daily)) {
-                const startStr = startDate.toISOString().split('T')[0];
-                const endStr = endDate.toISOString().split('T')[0];
+                // [v11.9.60] 날짜 매칭 불일치 해결: 하이픈(-) 제거 후 비교
+                const startStr = startDate.toISOString().split('T')[0].replace(/-/g, '');
+                const endStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
                 
                 const weatherList: string[] = [];
                 for (const dayForecast of w.daily) {
-                    if (dayForecast.date >= startStr && dayForecast.date <= endStr) {
-                        const shortDate = dayForecast.date.substring(5).replace('-', '/');
-                        const isPrecipitation = dayForecast.pop >= 50 || ['rainy', 'snowy'].includes(dayForecast.weatherCode);
+                    const cleanDate = dayForecast.date.replace(/-/g, '');
+                    if (cleanDate >= startStr && cleanDate <= endStr) {
+                        const shortDate = dayForecast.date.length === 8 
+                            ? `${dayForecast.date.substring(4, 6)}/${dayForecast.date.substring(6, 8)}`
+                            : dayForecast.date.substring(5).replace('-', '/');
+                        
+                        const isPrecipitation = (dayForecast.pop || 0) >= 50 || ['rainy', 'snowy'].includes(dayForecast.weatherCode);
                         const skyText = isPrecipitation ? (dayForecast.weatherCode === 'snowy' ? '눈' : '비') : '맑음/구름';
                         
-                        weatherList.push(`${shortDate}: ${skyText} (${dayForecast.min}~${dayForecast.max}도)`);
+                        weatherList.push(`${shortDate}(${skyText}, ${dayForecast.min || '-'}~${dayForecast.max || '-'}도)`);
                         
-                        if (dayForecast.min <= 5) isWinter = true;
+                        if (dayForecast.min && dayForecast.min <= 5) isWinter = true;
                         if (isPrecipitation) isRainy = true;
                     }
                 }
@@ -590,7 +595,9 @@ export async function generatePersonalizedSmartPlan(
                     weatherSummary = weatherList.join(', ');
                 }
             }
-        } catch(e) {}
+        } catch(e) {
+            console.error("[SmartPlan] Weather Fetch Failed:", e);
+        }
 
         // 3. Track B (Midpoint / Day 1)
         const routeFacts: FactCard[] = [];
@@ -706,7 +713,7 @@ export async function generatePersonalizedSmartPlan(
 따뜻하고 친근한 해요체로, 캠핑을 떠나는 여행자에게 이야기하듯 안내해 주세요.
 
 [조건]
-- 전체 일정 날씨: ${weatherSummary} (주의: 날짜별 날씨 변화와 기온을 꼼꼼히 언급하며 추천 근거를 설명해 주세요.)
+- 전체 일정 날씨: ${weatherSummary} (주의: 반드시! 일자별로 날씨 변화와 기온을 각각 언급하며 상세히 브리핑해 주세요.)
 - 여행자 구성: ${(() => {
     if (!persona.guestDetails) return persona.description;
     const { adults, seniors, kids, hasPet } = persona.guestDetails;
@@ -717,11 +724,11 @@ export async function generatePersonalizedSmartPlan(
     if (kidCount > 0) parts.push(`아이 ${kidCount}명`);
     if (hasPet) parts.push('반려견 1마리');
     return `${parts.join(', ')}와 함께하는 여행 (${persona.description})`;
-})()} (주의: 위 인원 구성을 반드시 문장에 포함하여 '맞춤형'임을 실감나게 표현해 주세요.)
+})()} (주의: 위 구체적인 인원 구성을 첫 문장에 반드시 포함하여 '맞춤형'임을 실감나게 표현해 주세요.)
 
 [여정 구성 (5단계)]
 아래의 5단계 흐름에 맞춰서 각 단계의 시작을 알리는 인트로 문구(stageIntros)를 작성해 주세요.
-- 1단계 (MANDATORY): '전체 여정 브리핑' 역할을 합니다. 반드시! 무조건! 첫 문장에 위에서 설명한 '구체적인 여행자 구성(예: "아이 두 명, 부모님과 함께하는 이번 여행은...")'과 전체 일정의 날짜별 날씨 요약(${weatherSummary})을 아주 구체적으로 언급하며 시작하세요. "사용자의 정보를 바탕으로 날씨와 인원 구성에 딱 맞춘 최적의 일정을 준비했다"는 느낌의 여행 개요 브리핑을 150자 내외로 정성껏 작성해 주세요.
+- 1단계 (MANDATORY): '전체 여정 브리핑' 역할을 합니다. 반드시! 무조건! 첫 문장에 위에서 설명한 '구체적인 여행자 구성(예: "아이 두 명, 부모님과 함께하는 이번 여행은...")'과 제공된 '일자별 날씨 정보(${weatherSummary})'를 날짜와 함께 상세히 요약하며 시작하세요. "사용자의 정보를 바탕으로 날씨와 인원 구성에 딱 맞춘 최적의 일정을 준비했다"는 느낌의 여행 개요 브리핑을 150~200자 내외로 정성껏 작성해 주세요.
 - 2~5단계: 각 단계로 넘어가는 따뜻한 연결 문구 (해요체, 시적인 표현 권장)
 
 [장소 목록]
@@ -755,6 +762,11 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
   }
 }
                 `.trim();
+
+                // [DEBUG] AI에게 전달되는 프롬프트 확인 (서버 터미널에서 확인 가능)
+                console.log("\n==================== [AI PROMPT DEBUG START] ====================");
+                console.log(prompt);
+                console.log("==================== [AI PROMPT DEBUG END] ====================\n");
 
                 const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`, {
                     method: 'POST',

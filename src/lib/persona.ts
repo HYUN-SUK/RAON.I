@@ -246,45 +246,10 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
     try {
         const supabase = customSupabase || createClient();
         
-        // 1. Global Persona Snapshot 가져오기
-        const { data: globalSnapshot } = await supabase
-            .from('user_persona_snapshots')
-            .select('tags')
-            .eq('user_id', userId)
-            .single();
-
-        // 2. Trip Persona Snapshot 가져오기 (가장 최근 것)
-        const { data: tripSnapshot } = await supabase
-            .from('trip_persona_snapshots')
-            .select('tags, constraints')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        let mergedTagsMap: Record<string, number> = {};
-        
-        // Global 태그 반영
-        if (globalSnapshot?.tags) {
-            mergedTagsMap = { ...globalSnapshot.tags };
-        }
-
-        // Trip 태그 반영 (Trip 태그가 있는 경우 Global을 보정하거나 덮어씌움)
-        if (tripSnapshot?.tags) {
-            Object.entries(tripSnapshot.tags as Record<string, number>).forEach(([tagId, weight]) => {
-                mergedTagsMap[tagId] = (mergedTagsMap[tagId] || 0) + weight;
-            });
-        }
-
-        const topTags: TagWeight[] = Object.entries(mergedTagsMap)
-            .map(([tagId, weight]) => ({ tagId: tagId as TagId, weight }))
-            .sort((a, b) => b.weight - a.weight)
-            .slice(0, limit);
-
-        // 3. 인원 정보 (캠핑 프로필 -> Trip Snapshot -> 예약 내역 순으로 참조)
+        // [v11.9.60] 1. 인원 정보 (캠핑 프로필 -> Trip Snapshot -> 예약 내역 순으로 참조)
         let guestDetails = defaultPersona.guestDetails;
 
-        // [v11.9.57] 사용자 캠핑 프로필을 최우선으로 참조 (실시간 반영)
+        // 사용자 캠핑 프로필을 최우선으로 참조 (인증된 클라이언트 사용 시 RLS 통과 가능)
         const { data: profileData } = await supabase
             .from('user_camping_profiles')
             .select('adults, seniors, kids_preschool, kids_elementary, kids_teen, has_pet')
@@ -302,18 +267,58 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
                 },
                 hasPet: profileData.has_pet || false
             };
-        } else if (tripSnapshot?.constraints) {
-            guestDetails = tripSnapshot.constraints;
-        } else {
-            const { data: recentRes } = await supabase
-                .from('reservations')
-                .select('guest_details')
-                .eq('user_id', userId)
-                .neq('status', 'CANCELLED')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            if (recentRes?.guest_details) guestDetails = recentRes.guest_details as any;
+        }
+
+        // 2. Global Persona Snapshot 가져오기
+        const { data: globalSnapshot } = await supabase
+            .from('user_persona_snapshots')
+            .select('tags')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        // 3. Trip Persona Snapshot 가져오기 (가장 최근 것)
+        const { data: tripSnapshot } = await supabase
+            .from('trip_persona_snapshots')
+            .select('tags, constraints')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        let mergedTagsMap: Record<string, number> = {};
+        
+        // Global 태그 반영
+        if (globalSnapshot?.tags) {
+            mergedTagsMap = { ...globalSnapshot.tags };
+        }
+
+        // Trip 태그 반영
+        if (tripSnapshot?.tags) {
+            Object.entries(tripSnapshot.tags as Record<string, number>).forEach(([tagId, weight]) => {
+                mergedTagsMap[tagId] = (mergedTagsMap[tagId] || 0) + weight;
+            });
+        }
+
+        const topTags: TagWeight[] = Object.entries(mergedTagsMap)
+            .map(([tagId, weight]) => ({ tagId: tagId as TagId, weight }))
+            .sort((a, b) => b.weight - a.weight)
+            .slice(0, limit);
+
+        // 3. 인원 정보 Fallback (프로필 정보가 기본값이면 스냅샷이나 예약 내역 참조)
+        if (guestDetails.adults === 2 && guestDetails.seniors === 0 && !guestDetails.hasPet) {
+            if (tripSnapshot?.constraints) {
+                guestDetails = tripSnapshot.constraints;
+            } else {
+                const { data: recentRes } = await supabase
+                    .from('reservations')
+                    .select('guest_details')
+                    .eq('user_id', userId)
+                    .neq('status', 'CANCELLED')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (recentRes?.guest_details) guestDetails = recentRes.guest_details as any;
+            }
         }
 
         return {
