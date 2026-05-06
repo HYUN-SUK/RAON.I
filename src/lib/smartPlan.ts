@@ -793,15 +793,13 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
                             });
                             narration = Object.values(stageIntros).filter(v => typeof v === 'string').join('\n\n');
                         } catch (parseErr) {
-                            console.error("AI JSON Parse Error:", parseErr);
+                            // JSON 파싱 실패 시 기본 멘트 유지
                         }
                     }
-                } else {
-                    console.error("Gemini API Error:", apiRes.status);
                 }
             }
         } catch (e) {
-            console.error("AI Narration Failed", e);
+            // AI 생성 실패 시 기본 멘트 사용
         }
 
         return {

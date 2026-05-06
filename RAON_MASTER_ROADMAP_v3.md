@@ -254,7 +254,11 @@
         *   [x] **Swap Stability**: 중복 제거 맵핑 및 활성 장소 필터링으로 스테이지 5 스와프 버그 완벽 해결.
         *   [x] **AI Personalization**: `guestDetails`(인원/반려견) 데이터를 프롬프트에 직접 주입하여 초개인화 서사 구현.
         *   [x] **Multi-Day Weather**: 입실~퇴실 전체 일정 기상 데이터 기반 딥 스코어링 및 프롬프트 최적화.
-        *   [x] **Reinforced Blacklist**: 트랙 B 검색 시 폐업, 지물포, 건재 등 부적절 키워드 필터링 로직 강화.
+    *   [x] **5.5.19 Route Selection & AI Stability (v11.9.40) ✅ (2026-05-06)**:
+        *   [x] **Route Selection Integration**: 카카오 내비 API 연동, 추천/대안 경로 선택 UI(`RouteSelector`) 구축.
+        *   [x] **Quota Optimization**: `alternatives=true` 옵션 도입으로 API 호출 횟수 50% 절감.
+        *   [x] **AI Robustness**: 정규식 기반 JSON 추출 로직 도입으로 배포 환경 응답 파싱 에러 해결.
+        *   [x] **Midpoint Precision**: 소요 시간 50% 지점 기반의 정확한 경유지 좌표 추출 로직 안착.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)

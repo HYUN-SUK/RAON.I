@@ -10,6 +10,7 @@ import { updateSmartPlanData } from '@/actions/schedule';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import RouteSelector from './RouteSelector';
+import { openNavApp } from '@/lib/nav-utils';
 
 interface SmartPlanProposalProps {
     scheduleId?: string;
@@ -63,16 +64,24 @@ export default function SmartPlanProposal({
     onReset,
     onGenerated
 }: SmartPlanProposalProps) {
-    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(initialPlan || mockData || null);
+    // [v11.9.52] DB 영구 저장 데이터 복구 로직 (Wrapped Structure 대응)
+    const isWrapped = initialPlan?.wrapped === true;
+    const initialAiPlan = isWrapped ? initialPlan.ai_plan : initialPlan;
+    const initialRoute = isWrapped ? initialPlan.selected_route : null;
+    const initialMidpoint = isWrapped ? initialPlan.selected_midpoint : null;
+
+    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(initialAiPlan || mockData || null);
     const [isLoading, setIsLoading] = useState(false);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
     const [swapPage, setSwapPage] = useState(0);
     const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
-    const [selectedMidpoint, setSelectedMidpoint] = useState<{ lat: number; lng: number } | null>(null);
+    const [selectedMidpoint, setSelectedMidpoint] = useState<{ lat: number; lng: number } | null>(initialMidpoint);
     const [navTargetCard, setNavTargetCard] = useState<FactCard | null>(null);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [swapTargetId, setSwapTargetId] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [selectedRouteData, setSelectedRouteData] = useState<any>(initialRoute);
+    const [showRouteNav, setShowRouteNav] = useState(false);
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
@@ -122,8 +131,17 @@ export default function SmartPlanProposal({
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
                 const generatedPlan = await res.json();
                 setPlan(generatedPlan);
+                
+                // [v11.9.52] AI 플랜과 선택된 경로 데이터를 통합하여 영구 저장
                 if (scheduleId) {
-                    updateSmartPlanData(scheduleId, generatedPlan).catch(console.error);
+                    const wrappedData = {
+                        wrapped: true,
+                        ai_plan: generatedPlan,
+                        selected_route: selectedRouteData,
+                        selected_midpoint: selectedMidpoint,
+                        updated_at: new Date().toISOString()
+                    };
+                    updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
                 }
                 if (onGenerated) onGenerated();
             } catch (error) {
@@ -136,10 +154,11 @@ export default function SmartPlanProposal({
         }
 
         fetchPlan();
-    }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData, selectedMidpoint, plan, scheduleId]);
+    }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData, selectedMidpoint, plan, scheduleId, selectedRouteData, onGenerated]);
 
-    const handleRouteSelect = (midpoint: { lat: number, lng: number }) => {
+    const handleRouteSelect = (midpoint: { lat: number, lng: number }, routeData: any) => {
         setSelectedMidpoint(midpoint);
+        setSelectedRouteData(routeData);
     };
 
     const handleSwapOptionSelected = (category: string, newCardId: string) => {
@@ -210,7 +229,15 @@ export default function SmartPlanProposal({
 
             setPlan(updatedPlan);
             if (scheduleId) {
-                updateSmartPlanData(scheduleId, updatedPlan).catch(console.error);
+                // [v11.9.53] 카드 교체 시에도 선택된 경로 정보가 누락되지 않도록 래핑하여 저장
+                const wrappedData = {
+                    wrapped: true,
+                    ai_plan: updatedPlan,
+                    selected_route: selectedRouteData,
+                    selected_midpoint: selectedMidpoint,
+                    updated_at: new Date().toISOString()
+                };
+                updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
             }
             setSwapCategory(null);
         }
@@ -244,22 +271,15 @@ export default function SmartPlanProposal({
         }
 
         const { name, lat, lng } = navTargetCard;
+        // [v11.9.49] 개별 장소 내비게이션도 통합 유틸 사용하도록 점진적 교체 고려 (현재는 기존 로직 유지하되 로그 추가)
+        console.log(`[SmartPlan] Opening single card nav: ${app} to ${name}`);
+        
         if (app === 'kakao') {
             window.open(`https://map.kakao.com/link/to/${name},${lat},${lng}`, '_blank');
         } else if (app === 'tmap') {
-            // T-Map URL Scheme (Mobile)
             window.open(`tmap://route?goalname=${encodeURIComponent(name)}&goallat=${lat}&goallng=${lng}`, '_blank');
-            // Fallback for non-mobile or app not installed
-            setTimeout(() => {
-                window.open(`https://map.naver.com/v5/directions/-/,,${lng},${lat},${name}/-`, '_blank');
-            }, 500);
         } else if (app === 'kakaonavi') {
-            // KakaoNavi URL Scheme (Mobile)
             window.open(`kakaonavi://navigate?name=${encodeURIComponent(name)}&x=${lng}&y=${lat}&coord_type=wgs84`, '_blank');
-            // Fallback: KakaoMap URL
-            setTimeout(() => {
-                window.open(`https://map.kakao.com/link/to/${name},${lat},${lng}`, '_blank');
-            }, 500);
         }
         setNavTargetCard(null);
     };
@@ -471,6 +491,7 @@ export default function SmartPlanProposal({
                                             setShowResetConfirm(false);
                                             setPlan(null);
                                             setSelectedMidpoint(null);
+                                            setSelectedRouteData(null);
                                             onReset();
                                         }}
                                         className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"
@@ -533,6 +554,24 @@ export default function SmartPlanProposal({
                             플랜 공유하기
                         </Button>
                     </div>
+
+                    {/* [v11.9.45] 전체 여정 내비게이션 연결 버튼 */}
+                    {plan && selectedRouteData && (
+                        <div className="mt-6 pt-6 border-t border-white/10">
+                            <Button
+                                onClick={() => setShowRouteNav(true)}
+                                className="w-full h-14 bg-white text-[#224732] hover:bg-white/90 rounded-2xl font-black text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-[#224732]/10 flex items-center justify-center">
+                                    <Navigation className="w-5 h-5 text-[#224732] group-hover:animate-bounce" />
+                                </div>
+                                여정 시작: 내비게이션 연결
+                            </Button>
+                            <p className="text-[10px] text-white/50 text-center mt-3 font-medium">
+                                선택하신 {Math.floor(selectedRouteData.summary.duration / 60)}분 경로로 안내를 시작합니다.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -795,13 +834,103 @@ export default function SmartPlanProposal({
                         </Button>
                         <Button
                             variant="outline"
-                            className="h-24 flex flex-col gap-2 rounded-2xl border-gray-100 hover:border-red-500 hover:bg-red-50/30"
+                            className="h-24 flex flex-col gap-2 rounded-2xl border-gray-100 hover:border-blue-600 hover:bg-blue-50/30"
                             onClick={() => handleNavChoice('tmap')}
                         >
-                            <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">T</div>
-                            <span className="text-[13px] font-bold text-gray-900">티맵</span>
+                            <div className="w-10 h-10 rounded-full bg-[#FF4500] flex items-center justify-center text-white text-[10px] font-black">TMAP</div>
+                            <span className="text-[13px] font-bold text-gray-900">T맵</span>
                         </Button>
                     </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* [v11.9.45] 전체 경로 내비게이션 앱 선택 시트 */}
+            <Sheet open={showRouteNav} onOpenChange={setShowRouteNav}>
+                <SheetContent side="bottom" className="rounded-t-[32px] p-8 bg-[#F7F5EF] border-none shadow-2xl">
+                    <SheetHeader className="mb-8">
+                        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
+                        <SheetTitle className="text-left text-2xl font-black text-[#224732] flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-[#224732]/10 text-[#224732]">
+                                <Navigation className="w-6 h-6" />
+                            </div>
+                            어떤 내비로 안내할까요?
+                        </SheetTitle>
+                        <SheetDescription className="text-left text-gray-500 font-medium">
+                            선택하신 경로와 경유지를 포함하여 안내를 시작합니다.
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <div className="grid grid-cols-3 gap-4 pb-6">
+                        <Button
+                            variant="outline"
+                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-yellow-400 hover:bg-yellow-50/30 transition-all duration-300"
+                            onClick={() => {
+                                if (!selectedRouteData || !userOrigin) {
+                                    toast.error('출발지 정보를 찾을 수 없습니다.');
+                                    return;
+                                }
+                                const route = {
+                                    origin: { name: '나의 출발지', ...userOrigin },
+                                    destination: { name: '라온아이 캠핑장', ...location },
+                                    waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
+                                };
+                                console.log('[SmartPlan] Opening FULL route nav: kakao', route);
+                                openNavApp('kakao', route);
+                                setShowRouteNav(false);
+                            }}
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-yellow-400 flex items-center justify-center text-white text-sm font-black shadow-sm">K</div>
+                            <span className="text-[14px] font-black text-gray-900">카카오내비</span>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-blue-600 hover:bg-blue-50/30 transition-all duration-300"
+                            onClick={() => {
+                                if (!selectedRouteData || !userOrigin) {
+                                    toast.error('출발지 정보를 찾을 수 없습니다.');
+                                    return;
+                                }
+                                const route = {
+                                    origin: { name: '나의 출발지', ...userOrigin },
+                                    destination: { name: '라온아이 캠핑장', ...location },
+                                    waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
+                                };
+                                console.log('[SmartPlan] Opening FULL route nav: tmap', route);
+                                openNavApp('tmap', route);
+                                setShowRouteNav(false);
+                            }}
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-[#FF4500] flex items-center justify-center text-white text-[10px] font-black shadow-sm">TMAP</div>
+                            <span className="text-[14px] font-black text-gray-900">T맵</span>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-emerald-500 hover:bg-emerald-50/30 transition-all duration-300"
+                            onClick={() => {
+                                if (!selectedRouteData || !userOrigin) {
+                                    toast.error('출발지 정보를 찾을 수 없습니다.');
+                                    return;
+                                }
+                                const route = {
+                                    origin: { name: '나의 출발지', ...userOrigin },
+                                    destination: { name: '라온아이 캠핑장', ...location },
+                                    waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
+                                };
+                                console.log('[SmartPlan] Opening FULL route nav: naver', route);
+                                openNavApp('naver', route);
+                                setShowRouteNav(false);
+                            }}
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-[#03C75A] flex items-center justify-center text-white text-xs font-black shadow-sm">N</div>
+                            <span className="text-[14px] font-black text-gray-900">네이버 지도</span>
+                        </Button>
+                    </div>
+                    
+                    <p className="text-center text-[11px] text-gray-400 font-medium">
+                        앱이 설치되어 있지 않으면 웹 브라우저 지도로 연결됩니다.
+                    </p>
                 </SheetContent>
             </Sheet>
         </div>

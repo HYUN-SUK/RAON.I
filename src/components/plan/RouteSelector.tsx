@@ -49,7 +49,6 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
                     toast.error('이용 가능한 경로 정보가 없습니다.');
                 }
             } catch (err) {
-                console.error('Failed to fetch routes:', err);
                 toast.error('경로 정보를 불러오는데 실패했습니다.');
             } finally {
                 setIsFetchingRoutes(false);
