@@ -431,6 +431,13 @@ export default function SmartPlanProposal({
                                     {badge.emoji}
                                 </span>
                             ))}
+                            {/* [v11.9.56] 주유소 등유 가격 배지 */}
+                            {card.category === 'GAS_STATION' && card.metadata?.kerosenePrice && (
+                                <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold border border-blue-100 flex items-center gap-1">
+                                    <span className="text-[9px] opacity-70">등유</span>
+                                    {Number(card.metadata.kerosenePrice).toLocaleString()}원
+                                </span>
+                            )}
                             {/* [v11.9.26] 스테이지 2, 5(경유지)는 거리 제거 */}
                             {!['2', '5'].includes(stage || '') && card.distanceKm && (
                                 <span className="text-[10px] text-gray-400 font-medium">
@@ -724,79 +731,84 @@ export default function SmartPlanProposal({
 
                             return (
                                 <>
-                                    {/* 추천 후보 리스트 (현재 장소 포함 3개씩 페이징) */}
-                                    <div className="space-y-3">
-                                        {paginatedOptions.map((opt, idx) => {
-                                            const globalIdx = swapPage * pageSize + idx;
-                                            const isCurrentActive = opt.id === currentActive?.id;
-                                            return (
-                                                <Card
-                                                    key={opt.id}
-                                                    className={`cursor-pointer transition-all border ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] shadow-sm bg-[#224732]/5' : 'border-gray-200 hover:border-[#224732]/40 bg-white'}`}
-                                                    onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
-                                                >
-                                                    <CardContent className="p-4 flex items-start gap-3">
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <h4 className="font-bold text-gray-900 text-sm truncate">
-                                                                    <span className="text-[10px] text-gray-400 mr-1">{globalIdx + 1}위</span>
-                                                                    {opt.name}
-                                                                </h4>
-                                                                {isCurrentActive && (
-                                                                    <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-xs text-gray-600 line-clamp-1">{opt.description}</p>
-                                                            {opt.reasoning && (
-                                                                <p className="text-[10px] text-blue-600 font-medium mt-1 italic">" {opt.reasoning} "</p>
-                                                            )}
-                                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                                                {opt.evidence?.stars && (
-                                                                    <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold">⭐ {opt.evidence.stars.toFixed(1)}</span>
-                                                                )}
-                                                                {opt.evidence?.certifications.map((c, i) => (
-                                                                    <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">{c}</span>
-                                                                ))}
-                                                                <span className="text-[9px] text-gray-400 ml-auto">추천도 {opt.trustScore}</span>
-                                                            </div>
-                                                        </div>
-                                                        {!isCurrentActive && (
-                                                            <Button size="sm" variant="outline" className="shrink-0 h-8 text-[11px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">변경</Button>
-                                                        )}
-                                                    </CardContent>
-                                                </Card>
-                                            );
-                                        })}
+                                    {/* 추천 후보 리스트 (3개 1묶음 페이지 단위 스와이프) [v11.9.56] */}
+                                    <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-6 px-6 gap-6 pb-4">
+                                        {(() => {
+                                            const chunks = [];
+                                            for (let i = 0; i < allOptions.length; i += 3) {
+                                                chunks.push(allOptions.slice(i, i + 3));
+                                            }
+                                            
+                                            return chunks.map((chunk, chunkIdx) => (
+                                                <div key={chunkIdx} className="snap-center shrink-0 w-[88vw] space-y-3">
+                                                    {chunk.map((opt, idx) => {
+                                                        const globalIdx = chunkIdx * 3 + idx;
+                                                        const isCurrentActive = opt.id === currentActive?.id;
+                                                        return (
+                                                            <Card
+                                                                key={opt.id}
+                                                                className={`transition-all border shadow-none ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] bg-[#224732]/5' : 'border-gray-100 bg-white'}`}
+                                                                onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
+                                                            >
+                                                                <CardContent className="p-3 flex items-start gap-3">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <h4 className="font-bold text-gray-900 text-[13px] truncate">
+                                                                                <span className="text-[10px] text-gray-400 mr-1">{globalIdx + 1}위</span>
+                                                                                {opt.name}
+                                                                            </h4>
+                                                                            {isCurrentActive && (
+                                                                                <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        {/* [v11.9.56] 한줄소개 및 추천이유 복구 */}
+                                                                        <p className="text-[11px] text-gray-500 line-clamp-1 mb-1">{opt.description}</p>
+                                                                        {opt.reasoning && (
+                                                                            <p className="text-[10px] text-blue-600 font-semibold mb-2 leading-tight">
+                                                                                <span className="opacity-60 mr-1">AI Pick:</span>
+                                                                                "{opt.reasoning}"
+                                                                            </p>
+                                                                        )}
+                                                                        
+                                                                        {/* [v11.9.56] 인증정보 및 가격 배지 복구/통합 */}
+                                                                        <div className="flex flex-wrap items-center gap-1">
+                                                                            {opt.evidence?.stars && (
+                                                                                <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold border border-yellow-100/30">⭐ {opt.evidence.stars.toFixed(1)}</span>
+                                                                            )}
+                                                                            {opt.evidence?.certifications.map((c, i) => (
+                                                                                <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold border border-blue-100/30">{c}</span>
+                                                                            ))}
+                                                                            {opt.category === 'GAS_STATION' && (opt.metadata?.kerosenePrice || opt.description?.match(/등유:\s?(\d+)원/)) && (() => {
+                                                                                const price = opt.metadata?.kerosenePrice || opt.description?.match(/등유:\s?(\d+)원/)?.[1];
+                                                                                return price ? (
+                                                                                    <span className="text-[9px] bg-[#224732]/5 text-[#224732] px-1.5 py-0.5 rounded-md font-bold border border-[#224732]/10 flex items-center gap-1">
+                                                                                        <span className="text-[8px] opacity-70">등유</span>
+                                                                                        {Number(price).toLocaleString()}원
+                                                                                    </span>
+                                                                                ) : null;
+                                                                            })()}
+                                                                            <span className="text-[9px] text-gray-400 ml-auto font-medium">Score {opt.trustScore}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    {!isCurrentActive && (
+                                                                        <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">변경</Button>
+                                                                    )}
+                                                                </CardContent>
+                                                            </Card>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ));
+                                        })()}
                                     </div>
-
-                                    {/* Pagination Controls */}
-                                    {totalPages > 1 && (
-                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200/60">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setSwapPage(Math.max(0, swapPage - 1))}
-                                                disabled={swapPage === 0}
-                                                className="text-[#224732]"
-                                            >
-                                                이전 3개
-                                            </Button>
-                                            <div className="flex gap-1.5">
-                                                {Array.from({ length: totalPages }).map((_, i) => (
-                                                    <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === swapPage ? 'bg-[#224732]' : 'bg-gray-300'}`} />
-                                                ))}
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setSwapPage(Math.min(totalPages - 1, swapPage + 1))}
-                                                disabled={swapPage === totalPages - 1}
-                                                className="text-[#224732]"
-                                            >
-                                                다음 3개
-                                            </Button>
-                                        </div>
-                                    )}
+                                    
+                                    <div className="flex justify-center gap-1.5 mt-2 mb-4 overflow-hidden">
+                                        {Array.from({ length: Math.ceil(allOptions.length / 3) }).slice(0, 5).map((_, i) => (
+                                            <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                                        ))}
+                                    </div>
+                                    <p className="text-center text-[10px] text-gray-400 italic">← 옆으로 밀어서 다음 추천(3개씩)을 확인하세요 →</p>
                                 </>
                             );
                         })()}

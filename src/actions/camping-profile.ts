@@ -12,7 +12,7 @@ export interface CampingProfile {
     originLat: number | null;
     originLng: number | null;
     adults: number;
-    seniors?: number;
+    seniors: number; // [v11.9.56] 부모님 인원 추가
     kidsPreschool: number;
     kidsElementary: number;
     kidsTeen: number;
@@ -47,7 +47,7 @@ export async function getCampingProfile(): Promise<CampingProfile | null> {
         originLat: data.origin_lat,
         originLng: data.origin_lng,
         adults: data.adults ?? 2,
-        seniors: 0, // DB schema update needed for full support
+        seniors: data.seniors ?? 0, // [v11.9.56] DB 매핑 추가
         kidsPreschool: data.kids_preschool ?? 0,
         kidsElementary: data.kids_elementary ?? 0,
         kidsTeen: data.kids_teen ?? 0,
@@ -76,6 +76,7 @@ export async function saveCampingProfile(
         p_origin_lat: profile.originLat,
         p_origin_lng: profile.originLng,
         p_adults: profile.adults,
+        p_seniors: profile.seniors, // [v11.9.56] 부모님 인원 추가
         p_kids_preschool: profile.kidsPreschool,
         p_kids_elementary: profile.kidsElementary,
         p_kids_teen: profile.kidsTeen,

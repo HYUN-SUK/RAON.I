@@ -241,7 +241,9 @@ function parseFactCard(row: any, mapCategory?: FactCard['category']): FactCard {
         distanceKm: row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0,
         metadata: { 
             ...(row.raw_data || {}), 
-            address: row.address || row.raw_data?.address 
+            address: row.address || row.raw_data?.address,
+            // [v11.9.56] 주유소 등유 가격 명시적 매핑
+            kerosenePrice: cat === 'GAS_STATION' ? (row.raw_data?.PRICE || row.raw_data?.K_PRICE || row.description?.match(/등유:\s?(\d+)원/)?.[1]) : undefined
         },
         provenance: { sourceName: row.api_source || row.raw_data?.api_source || '' }
     };
@@ -270,7 +272,9 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
 
     const facts = data.filter(row => {
         const name = row.name || '';
-        if (globalBlacklist.test(name)) return false;
+        const cat = row.category;
+        // [v11.9.56] 병원 카테고리는 병원/의원 키워드 필터링에서 제외 (데이터 유실 방지)
+        if (cat !== 'HOSPITAL' && globalBlacklist.test(name)) return false;
         return true;
     }).map(row => {
         const f = parseFactCard(row);
