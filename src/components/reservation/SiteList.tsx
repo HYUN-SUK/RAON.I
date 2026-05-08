@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Site } from '@/types/reservation';
 import WaitlistButton from './WaitlistButton';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function SiteList() {
     const router = useRouter();
@@ -79,12 +80,12 @@ export default function SiteList() {
     const handleSiteClick = (site: Site) => {
         // 0-night validation (Check-in == Check-out or no Check-out)
         if (!selectedDateRange.from || !selectedDateRange.to || new Date(selectedDateRange.from).getTime() === new Date(selectedDateRange.to).getTime()) {
-            alert('퇴실일을 선택하세요');
+            toast.error('퇴실일을 선택하세요');
             return;
         }
 
         if (!isSiteAvailable(site.id)) {
-            alert('선택하신 날짜에 예약할 수 없는 사이트입니다.');
+            toast.error('선택하신 날짜에 예약할 수 없는 사이트입니다.');
             return;
         }
         setSelectedSite(site);

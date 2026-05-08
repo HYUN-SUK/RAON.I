@@ -9,6 +9,7 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
 import { getCampingProfile, saveCampingProfile } from '@/actions/camping-profile';
+import { toast } from 'sonner';
 
 interface ReservationFormProps {
     site: Site;
@@ -119,25 +120,25 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!fromDate || !toDate || fromDate.getTime() === toDate.getTime()) {
-            alert('퇴실일을 선택하세요.');
+            toast.error('퇴실일을 선택하세요.');
             return;
         }
         if (!agreed) {
-            alert('이용 규정에 동의해주세요.');
+            toast.error('이용 규정에 동의해주세요.');
             return;
         }
         if (!name.trim()) {
-            alert('예약자 성함을 입력해주세요.');
+            toast.error('예약자 성함을 입력해주세요.');
             return;
         }
         if (!phone.trim()) {
-            alert('연락처를 입력해주세요.');
+            toast.error('연락처를 입력해주세요.');
             return;
         }
 
         const validationError = validateReservation(site.id, fromDate, toDate);
         if (validationError) {
-            alert(validationError);
+            toast.error(validationError);
             return;
         }
 
@@ -216,15 +217,15 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             } else {
                 // 동시성 충돌 또는 중복 예약
                 if (result.error === 'ALREADY_BOOKED') {
-                    alert('죄송합니다. 방금 다른 분이 먼저 예약을 완료했습니다.\n다른 날짜를 선택해주세요.');
+                    toast.error('죄송합니다. 방금 다른 분이 먼저 예약을 완료했습니다.\n다른 날짜를 선택해주세요.');
                 } else if (result.error === 'CONCURRENT_REQUEST') {
-                    alert('다른 예약이 처리 중입니다. 잠시 후 다시 시도해주세요.');
+                    toast.error('다른 예약이 처리 중입니다. 잠시 후 다시 시도해주세요.');
                 } else {
-                    alert(result.message || '예약 중 오류가 발생했습니다.');
+                    toast.error(result.message || '예약 중 오류가 발생했습니다.');
                 }
             }
         } catch (error: any) {
-            alert(error.message || '예약 중 오류가 발생했습니다.');
+            toast.error(error.message || '예약 중 오류가 발생했습니다.');
         }
     };
 
