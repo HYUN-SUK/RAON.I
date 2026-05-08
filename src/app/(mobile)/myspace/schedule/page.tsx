@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Plus,
     Calendar,
@@ -35,13 +35,23 @@ import { toast } from 'sonner';
 
 type TabType = 'scheduled' | 'completed' | 'cancelled';
 
-export default function SchedulePage() {
+function ScheduleContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<TabType>('scheduled');
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+    // [v11.9.70] 홈 화면 등에서 '일정추가' 파라미터 전달 시 자동 오픈
+    useEffect(() => {
+        if (searchParams.get('add') === 'external') {
+            setIsFormOpen(true);
+            // URL 파라미터 제거 (UX)
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, [searchParams]);
 
     // 일정 조회
     const fetchSchedules = async () => {
@@ -242,5 +252,17 @@ export default function SchedulePage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+    );
+}
+
+export default function SchedulePage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#224732]" />
+            </div>
+        }>
+            <ScheduleContent />
+        </Suspense>
     );
 }

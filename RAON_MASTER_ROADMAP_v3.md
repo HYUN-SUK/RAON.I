@@ -263,6 +263,11 @@
         *   [x] **Persona Extraction**: 서버 사이드 인증 연동으로 RLS를 우회하여 `User Camping Profile` 데이터 추출 안정화.
         *   [x] **Weather Sync**: 날짜 형식 불일치 해결 및 여행 전 기간 일기 예보 요약 데이터 확보.
         *   [x] **Narrative Precision**: 인원 구성(아이/반려견/부모님)과 날짜별 날씨가 포함된 서사 중심의 AI 브리핑 구현.
+    *   [x] **5.5.21 Hospital Data Recovery & Scoring Optimization (v11.9.66) ✅ (2026-05-08)**:
+        *   [x] **NMC Recovery**: NMC API 좌표 결측 데이터를 카카오 지오코딩으로 실시간 복구하여 DB 유실 차단.
+        *   [x] **Address Fix**: '강원특별자치도' 등 특수 행정구역 명칭에서 시군구가 오추출되던 정규표현식 버그 수정.
+        *   [x] **Scoring**: NMC 응급의료센터 기본 점수를 150점으로 상향하여 의료 안전성 기반의 최상단 랭킹 시스템 구축.
+        *   [x] **Verification**: 춘천(화목원) 예약건 대상 시뮬레이션으로 한림대/강원대병원의 최상단 안착 최종 검증.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)

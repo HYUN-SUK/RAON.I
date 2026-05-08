@@ -149,7 +149,19 @@ export async function getMySchedules(status?: 'scheduled' | 'completed' | 'cance
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // [v11.9.27] 날짜 기반 자동 상태 분류 로직 적용
+    // [v11.9.70] 날짜 기반 자동 상태 분류 및 DB 영구 업데이트 로직 적용
+    const pastScheduledIds = (data || [])
+        .filter(s => s.status === 'scheduled' && new Date(s.check_out) < today)
+        .map(s => s.id);
+
+    if (pastScheduledIds.length > 0) {
+        // 과거 일정을 DB에서 실제로 'completed'로 전환
+        await supabase
+            .from('user_schedules')
+            .update({ status: 'completed' })
+            .in('id', pastScheduledIds);
+    }
+
     const schedules = (data || []).map(s => {
         const checkOutDate = new Date(s.check_out);
         if (s.status === 'scheduled' && checkOutDate < today) {
