@@ -305,7 +305,7 @@ export async function extractUserPersona(userId?: string, limit: number = 7, cus
             .slice(0, limit);
 
         // 3. 인원 정보 Fallback (프로필 정보가 기본값이면 스냅샷이나 예약 내역 참조)
-        if (guestDetails.adults === 2 && guestDetails.seniors === 0 && !guestDetails.hasPet) {
+        if (guestDetails && guestDetails.adults === 2 && guestDetails.seniors === 0 && !guestDetails.hasPet) {
             if (tripSnapshot?.constraints) {
                 guestDetails = tripSnapshot.constraints;
             } else {
