@@ -28,6 +28,7 @@
     - [x] Boost scoring for university/general hospitals (150 pts for NMC) to ensure top ranking.
     - [x] Re-run caching for 2026-05-10 to fix Chuncheon reservation data.
 
-### Next Session Tasks:
+- [x] **Schedule Flow Improvement**: Directly open the registration form from the Home button.
+- [x] **Auto-Completion Logic**: Automatically update past schedules to 'completed' status in the DB.
 - [ ] **AI Hero Narrative Refinement**: Audit the AI-generated hero phrases by refining prompts and verifying consistency.
 - [ ] **Festival Scoring Refinement**: Re-verify the differentiate scoring logic between `SPOT` and `FESTIVAL` and remove outdated `readcount` criteria.

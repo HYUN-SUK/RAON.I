@@ -348,6 +348,7 @@ async function main() {
     metrics.clusters = clusters.length;
 
     // [v11.9.8 Optimization] Step A-0. Accumulators for Bulk Persistence
+    const QUOTAS = { FESTIVAL: 20, HOSPITAL: 10, GAS_STATION: 30 };
     const aggregatedMaster = {
         HOSPITAL: new Map(),
         FESTIVAL: new Map(),
@@ -613,7 +614,7 @@ async function main() {
                 if (!data) continue;
                 metrics.quota_flow[cat].raw_pool += data.length;
 
-                const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용|사진관|약국|목공/;
+                const noise = /안경|의상|장례|보청기|수선|공방|부동산|세탁|학원|미용|세차|노래|당구|정신|피부|비만|디톡스|산후|동물|휴대폰|정비|공인중개|방앗간|이미용|사진관|약국|목공|주차장|행정|부서|부대시설/;
                 const mart_blacklist = ['패션', '아울렛', '의류', '가전', '가구', '전자', '디지털프라자', '하이마트', '전자랜드'];
                 for (const item of data) {
                     const name = (item.name || '').trim();
@@ -732,7 +733,7 @@ async function main() {
                             s += 40;
                             if (!item.raw_data.badges.includes('24시 응급')) item.raw_data.badges.push('24시 응급');
                         }
-                        if (/성형|피부|비만|치과|한의원|안과|산후|요양|동물/.test(name)) continue;
+                        if (/성형|피부|비만|치과|한의원|안과|산후|요양|동물|주차장|행정|부서|편의점|이마트24|GS25|CU|부대시설/.test(name)) continue;
                     } else if (cat === 'GAS_STATION') {
                         s = 50;
                         const priceMatch = item.description?.match(/(\d+)원/);
@@ -777,7 +778,7 @@ async function main() {
 
                 // unionPool에 병합 (중복 시 높은 점수 유지 + 인증 합산)
                 for (const item of localStage1) {
-                    const uk = (cat === 'MART') ? `ADDR|${item.address}` : `${item.name}|${item.address}`;
+                    const uk = (cat === 'MART' || cat === 'HOSPITAL') ? `ADDR|${item.address}` : `${item.name}|${item.address}`;
                     if (unionPool.has(uk)) {
                         const ex = unionPool.get(uk);
                         if (cat === 'RESTAURANT') {
@@ -787,6 +788,8 @@ async function main() {
                             ex.raw_data.badges = Array.from(new Set([...oldB, ...newB]));
                         } else if (item.trust_score > ex.trust_score) {
                             unionPool.set(uk, item);
+                        } else if (item.trust_score === ex.trust_score && item.name.length > ex.name.length) {
+                            ex.name = item.name; // Keep longer formal name
                         }
                     } else {
                         unionPool.set(uk, item);
