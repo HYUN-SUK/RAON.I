@@ -309,7 +309,6 @@ async function main() {
     metrics.reservations = schedules.length;
 
     let clusters = [];
-    const totalFactMap = new Map();
     for (const s of schedules) {
         let lat = Number(s.campground_lat), lng = Number(s.campground_lng), address = s.campground_address || '';
         let campground_name = s.campground_name || '';

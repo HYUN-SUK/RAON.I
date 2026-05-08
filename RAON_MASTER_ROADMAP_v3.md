@@ -259,6 +259,10 @@
         *   [x] **Quota Optimization**: `alternatives=true` 옵션 도입으로 API 호출 횟수 50% 절감.
         *   [x] **AI Robustness**: 정규식 기반 JSON 추출 로직 도입으로 배포 환경 응답 파싱 에러 해결.
         *   [x] **Midpoint Precision**: 소요 시간 50% 지점 기반의 정확한 경유지 좌표 추출 로직 안착.
+    *   [x] **5.5.20 Smart Plan Persona & Weather Stabilization (v11.9.60) ✅ (2026-05-07)**:
+        *   [x] **Persona Extraction**: 서버 사이드 인증 연동으로 RLS를 우회하여 `User Camping Profile` 데이터 추출 안정화.
+        *   [x] **Weather Sync**: 날짜 형식 불일치 해결 및 여행 전 기간 일기 예보 요약 데이터 확보.
+        *   [x] **Narrative Precision**: 인원 구성(아이/반려견/부모님)과 날짜별 날씨가 포함된 서사 중심의 AI 브리핑 구현.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)

@@ -1,29 +1,30 @@
-# Task Checklist: Smart Plan UI & Logic Refinement
+# Task Checklist: Smart Plan Stabilization & Personalization
 
-- [x] **Smart Plan UI Alignment**
-    - [x] Adjust mobile timeline vertical line to `10px` offset.
-    - [x] Update card margins and width (`w-[calc(100%-3rem)]`) to ensure they fit completely within the mobile viewport.
-- [x] **Swap Popup Logic**
-    - [x] Fix pagination logic to strictly display 3 items per page.
-    - [x] Resolve Stage 5 duplication bug by deduplicating options based on ID and excluding active items.
-- [x] **AI Hero Narrative Personalization**
-    - [x] Extract `guestDetails` (adults, kids, pets) from the persona object.
-    - [x] Enforce mandatory AI instructions to include specific guest composition and weather in the first paragraph.
-- [x] **Auto-display Existing Plans**
-    - [x] Restore logic to automatically show the generated plan when `smart_plan_data` is present upon entering the schedule page.
-- [x] **Route Selection Integration**
-    - [x] Implement `RouteSelector` with 3-priority fetch (`alternatives=true` strategy).
-    - [x] Add "Simple Route" alert logic for 1-path scenarios.
-    - [x] Optimize API calls to 1-request to save quota.
-    - [x] Stabilize AI JSON parsing for production environments.
+- [x] **AI Persona Pipeline Stabilization**
+    - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.
+    - [x] Prioritize `User Camping Profile` over historical reservations for accurate persona extraction.
+    - [x] Fix merge conflicts in `persona.ts` and `smartPlan.ts` to unify logic.
+- [x] **DB Migration**
+    - [x] Apply `20260506_add_seniors_to_profile.sql` to Supabase.
+- [x] **Caching Script Optimization**
+    - [x] Move `totalFactMap` inside the cluster loop in `scripts/caching-smart-plan.mjs` to ensure isolation.
+- [x] **Retrieval Logic Enhancement**
+    - [x] Implement spatial matching (location-based) for `reservation_id` in `src/lib/smartPlan.ts`.
+- [x] **Weather API Integration Fix**
+    - [x] Resolve date-format mismatch (`YYYYMMDD` string matching with `.replace(/-/g, '')`).
+    - [x] Implement full-duration weather data collection for comprehensive AI briefings.
+- [x] **AI Hero Narrative Enhancement**
+    - [x] Refine AI prompt to enforce mandatory inclusion of specific guest composition (seniors, kids, pets).
+    - [x] Ensure day-by-day weather summaries are naturally integrated into the narrative.
+- [x] **Build & Git Integrity**
+    - [x] Resolve Git Rebase conflicts and synchronize with remote `main`.
+    - [x] Verify production build status (`npm run build` success).
+- [x] **Verification**
+    - [x] Verify separate data retrieval for multiple bookings on the same day.
+    - [x] Confirm caching script performance and data integrity.
 
-### Current Tasks (Navigation Integration):
-- [x] **Navigation Utility Implementation**: Create `src/lib/nav-utils.ts` for deep link generation.
-- [x] **Route Data Propagation**: Update `RouteSelector.tsx` to pass full route data to parent.
-- [x] **Navigation UI Injection**: Add "Open Navigation" button in `SmartPlanProposal.tsx` Hero section.
-- [x] **Action Sheet Implementation**: Add `RouteNavDrawer` for app selection.
-- [ ] **Live Verification**: Test deep links and data flow.
+### Status:
+All identified blockers regarding data leakage and multi-reservation matching have been resolved.
 
 ### Next Session Tasks:
-- [ ] **Hero Narrative Quality Enhancement**: Further refine the AI prompt to improve the "Hero" greeting quality and emotional resonance.
-- [ ] **Smart Plan Midpoint Refinement**: Ensure the 50% duration midpoint calculation is consistently reflected in Stage 1-2 transition logic.
+- [ ] **Festival Scoring Refinement**: Re-verify the differentiate scoring logic between `SPOT` and `FESTIVAL` and remove outdated `readcount` criteria.

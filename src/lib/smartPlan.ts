@@ -516,21 +516,38 @@ export async function generatePersonalizedSmartPlan(
 
         const persona = await extractUserPersona(userId, 7, supabase); // 인증된 클라이언트 전달
 
-        // 1. Find Reservation ID for Track A
+        // 1. Find Reservation ID for Track A (Location-Aware Matching)
         let reservationId: string | null = null;
         if (userId) {
             const formattedDate = startDate.toISOString().split('T')[0];
 
-            // 1차: user_schedules에서 조회
+            // [v11.9.61] 1차: user_schedules에서 조회 (공간 매칭 도입)
             const { data: resData } = await supabase
                 .from('user_schedules')
-                .select('id')
+                .select('id, campground_lat, campground_lng')
                 .eq('user_id', userId)
-                .eq('check_in', formattedDate)
-                .order('created_at', { ascending: false })
-                .limit(1);
+                .eq('check_in', formattedDate);
+
             if (resData && resData.length > 0) {
-                reservationId = resData[0].id;
+                if (resData.length === 1) {
+                    reservationId = resData[0].id;
+                } else {
+                    // 복수 예약 시 거리 매칭 (Haversine 사용 안 함 - 단순 피타고라스로 충분)
+                    let minOffset = Infinity;
+                    resData.forEach(r => {
+                        const rLat = parseFloat(r.campground_lat);
+                        const rLng = parseFloat(r.campground_lng);
+                        if (!isNaN(rLat) && !isNaN(rLng)) {
+                            const offset = Math.sqrt(Math.pow(rLat - location.lat, 2) + Math.pow(rLng - location.lng, 2));
+                            if (offset < minOffset) {
+                                minOffset = offset;
+                                reservationId = r.id;
+                            }
+                        }
+                    });
+                    // 거리 매칭 실패 시 최신 순 폴백
+                    if (!reservationId) reservationId = resData[0].id;
+                }
             }
 
             // 2차 Fallback: blocked_dates에서 조회
@@ -545,20 +562,31 @@ export async function generatePersonalizedSmartPlan(
                 }
             }
             
-            // 3차 Fallback: 날짜를 ±1일 범위로 확장 검색
+            // 3차 Fallback: 날짜를 ±1일 범위로 확장 검색 (여전히 공간 매칭 고려)
             if (!reservationId) {
                 const prevDate = new Date(startDate.getTime() - 86400000).toISOString().split('T')[0];
                 const nextDate = new Date(startDate.getTime() + 86400000).toISOString().split('T')[0];
                 const { data: expandData } = await supabase
                     .from('user_schedules')
-                    .select('id, check_in')
+                    .select('id, campground_lat, campground_lng')
                     .eq('user_id', userId)
                     .gte('check_in', prevDate)
-                    .lte('check_in', nextDate)
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+                    .lte('check_in', nextDate);
+
                 if (expandData && expandData.length > 0) {
-                    reservationId = expandData[0].id;
+                    let minOffset = Infinity;
+                    expandData.forEach(r => {
+                        const rLat = parseFloat(r.campground_lat);
+                        const rLng = parseFloat(r.campground_lng);
+                        if (!isNaN(rLat) && !isNaN(rLng)) {
+                            const offset = Math.sqrt(Math.pow(rLat - location.lat, 2) + Math.pow(rLng - location.lng, 2));
+                            if (offset < minOffset) {
+                                minOffset = offset;
+                                reservationId = r.id;
+                            }
+                        }
+                    });
+                    if (!reservationId) reservationId = expandData[0].id;
                 }
             }
         }
@@ -764,10 +792,6 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
                 `.trim();
 
                 // [DEBUG] AI에게 전달되는 프롬프트 확인 (서버 터미널에서 확인 가능)
-                console.log("\n==================== [AI PROMPT DEBUG START] ====================");
-                console.log(prompt);
-                console.log("==================== [AI PROMPT DEBUG END] ====================\n");
-
                 const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
