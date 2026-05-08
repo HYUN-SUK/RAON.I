@@ -435,7 +435,7 @@ async function main() {
                                     api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
                                     name: item.dutyName, description: '응급의료센터 (실시간 병상정보)', address: hAddr,
                                     lat: hLat, lng: hLng,
-                                    trust_score: 100, raw_data: item
+                                    trust_score: 150, raw_data: item
                                 };
                                 aggregatedMaster.HOSPITAL.set(fact.id, fact);
                             }
@@ -719,7 +719,7 @@ async function main() {
 
                         const indutyH = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
                         if (item.api_source === 'NMC_HOSPITAL' || item.api_source === 'KAKAO_BIG_HOSP' || /종합병원|의료원|대학병원/.test(name)) {
-                            s = 100; // [v11.9.64] 150 -> 100 (야간 응급 의원과의 밸런스 조정)
+                            s = (item.api_source === 'NMC_HOSPITAL') ? 150 : 100; // [v11.9.66] NMC 응급센터는 150점, 일반 종합병원은 100점
                             if (item.api_source === 'NMC_HOSPITAL') item.raw_data.badges.push('응급의료센터');
                             if (/종합병원/.test(name)) item.raw_data.badges.push('종합병원');
                             if (/의료원/.test(name)) item.raw_data.badges.push('의료원');
