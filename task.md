@@ -22,9 +22,10 @@
 - [x] **Verification**
     - [x] Verify separate data retrieval for multiple bookings on the same day.
     - [x] Confirm caching script performance and data integrity.
-
-### Status:
-All identified blockers regarding data leakage and multi-reservation matching have been resolved.
+- [/] **Hospital Ranking Optimization (Chuncheon & Global)**
+    - [ ] Implement NMC coordinate recovery via Kakao Geocoding in `caching-smart-plan.mjs`.
+    - [ ] Boost scoring for university/general hospitals to ensure top ranking.
+    - [ ] Re-run caching for 2026-05-10 to fix Chuncheon reservation data.
 
 ### Next Session Tasks:
 - [ ] **Festival Scoring Refinement**: Re-verify the differentiate scoring logic between `SPOT` and `FESTIVAL` and remove outdated `readcount` criteria.

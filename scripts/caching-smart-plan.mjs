@@ -88,16 +88,16 @@ function getNormalizedAddr(addr) {
     a = a.replace(/^(광주|광주광역시)\s?/, '광주광역시 ');
     a = a.replace(/^(대전|대전광역시)\s?/, '대전광역시 ');
     a = a.replace(/^(울산|울산광역시)\s?/, '울산광역시 ');
-    a = a.replace(/^(세종|세종특별자치시)\s?/, '세종특별자치시 ');
-    a = a.replace(/^(경기|경기도)\s?/, '경기도 ');
-    a = a.replace(/^(강원|강원도|강원특별자치도)\s?/, '강원특별자치도 ');
-    a = a.replace(/^(충북|충청북도)\s?/, '충청북도 ');
-    a = a.replace(/^(충남|충청남도)\s?/, '충청남도 ');
-    a = a.replace(/^(전북|전라북도|전북특별자치도)\s?/, '전북특별자치도 ');
-    a = a.replace(/^(전남|전라남도)\s?/, '전라남도 ');
-    a = a.replace(/^(경북|경상북도)\s?/, '경상북도 ');
-    a = a.replace(/^(경남|경상남도)\s?/, '경상남도 ');
-    a = a.replace(/^(제주|제주도|제주특별자치도)\s?/, '제주특별자치도 ');
+    a = a.replace(/^(세종특별자치시|세종)\s?/, '세종특별자치시 ');
+    a = a.replace(/^(경기도|경기)\s?/, '경기도 ');
+    a = a.replace(/^(강원특별자치도|강원도|강원)\s?/, '강원특별자치도 ');
+    a = a.replace(/^(충청북도|충북)\s?/, '충청북도 ');
+    a = a.replace(/^(충청남도|충남)\s?/, '충청남도 ');
+    a = a.replace(/^(전북특별자치도|전라북도|전북)\s?/, '전북특별자치도 ');
+    a = a.replace(/^(전라남도|전남)\s?/, '전라남도 ');
+    a = a.replace(/^(경상북도|경북)\s?/, '경상북도 ');
+    a = a.replace(/^(경상남도|경남)\s?/, '경상남도 ');
+    a = a.replace(/^(제주특별자치도|제주도|제주)\s?/, '제주특별자치도 ');
     return a.trim();
 }
 
@@ -364,7 +364,10 @@ async function main() {
 
     let rawCandidatesForAudit = []; // [v11.9.19] Moved outside to aggregate all clusters
     let allCandidateRows = []; // [v11.9.23] Stage 4 결과 전체 클러스터 누적
+    const allFactsMap = new Map(); // [v11.9.62] Global accumulator for smart_plan_facts
+
     for (let idx = 0; idx < clusters.length; idx++) {
+        const totalFactMap = new Map(); // [v11.9.61] Moved inside to ensure cluster isolation
         const cluster = clusters[idx];
         const address = cluster.address || '';
 
@@ -396,21 +399,47 @@ async function main() {
             // A-1. Hospital (Local City Fetch)
             fetchTasks.push((async () => {
                 try {
-                    const hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${PUBLIC_API_KEY}&STAGE1=${encodeURIComponent(ptSido.replace('특별시','').replace('광역시',''))}&STAGE2=${encodeURIComponent(ptSigungu)}&pageNo=1&numOfRows=100&_type=json`);
+                    // [v11.9.63] Normalize Sido for NMC API (e.g., 강원특별자치도 -> 강원)
+                    const nmcSido = ptSido.substring(0, 2) === '전라' ? ptSido.charAt(0) + ptSido.charAt(2) : 
+                                   ptSido.substring(0, 2) === '경상' ? ptSido.charAt(0) + ptSido.charAt(2) :
+                                   ptSido.substring(0, 2) === '충청' ? ptSido.charAt(0) + ptSido.charAt(2) :
+                                   ptSido.substring(0, 2); // '강원', '서울', '제주' 등
+
+                    const hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${PUBLIC_API_KEY}&STAGE1=${encodeURIComponent(nmcSido)}&STAGE2=${encodeURIComponent(ptSigungu)}&pageNo=1&numOfRows=100&_type=json`);
                     const hData = await hRes.json();
                     if (hData.response?.body?.items?.item) {
                         const items = Array.isArray(hData.response.body.items.item) ? hData.response.body.items.item : [hData.response.body.items.item];
                         metrics.dynamic_api.HOSPITAL.received += items.length;
-                        items.forEach((item) => {
-                            const fact = {
-                                id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
-                                api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
-                                name: item.dutyName, description: '응급실 가동 응급의료기관', address: item.dutyAddr,
-                                lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
-                                trust_score: item.dutyName?.includes('소아') ? 100 : 55, raw_data: item
-                            };
-                            aggregatedMaster.HOSPITAL.set(fact.id, fact);
-                        });
+                        
+                        for (const item of items) {
+                            let hLat = parseFloat(item.wgs84Lat);
+                            let hLng = parseFloat(item.wgs84Lon);
+                            let hAddr = item.dutyAddr || '';
+
+                            // [v11.9.62] NMC Coordinate Recovery (Geocoding Fallback)
+                            if ((!hLat || !hLng || !hAddr) && KAKAO_KEY) {
+                                try {
+                                    const searchRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(ptSigungu + ' ' + item.dutyName)}&size=1`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
+                                    if (searchRes.documents?.[0]) {
+                                        const doc = searchRes.documents[0];
+                                        hLat = parseFloat(doc.y);
+                                        hLng = parseFloat(doc.x);
+                                        hAddr = doc.road_address_name || doc.address_name;
+                                    }
+                                } catch (err) { console.warn(`  ⚠️ NMC Recovery Failed for ${item.dutyName}: ${err.message}`); }
+                            }
+
+                            if (hLat && hLng) {
+                                const fact = {
+                                    id: generateFactId('NMC_HOSPITAL', item.dutyName, hAddr),
+                                    api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
+                                    name: item.dutyName, description: '응급의료센터 (실시간 병상정보)', address: hAddr,
+                                    lat: hLat, lng: hLng,
+                                    trust_score: 100, raw_data: item
+                                };
+                                aggregatedMaster.HOSPITAL.set(fact.id, fact);
+                            }
+                        }
                     }
                 } catch (e) { console.error("Hospital Fetch Error:", e.message); }
             })());
@@ -423,17 +452,38 @@ async function main() {
                     if (kData.documents) {
                         metrics.dynamic_api.HOSPITAL.received += kData.documents.length;
                         kData.documents.forEach((item) => {
+                            const isBig = item.place_name?.match(/종합병원|의료원|대학병원/);
                             const fact = {
                                 id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
                                 api_source: 'KAKAO_HP8', category: 'HOSPITAL',
                                 name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name || '주소정보없음',
                                 lat: parseFloat(item.y), lng: parseFloat(item.x),
-                                trust_score: item.place_name?.match(/종합병원|의료원|대학병원/) ? 50 : 20, raw_data: item
+                                trust_score: isBig ? 100 : 20, raw_data: item // [v11.9.64] 종합병원 기본 점수 100으로 조정 (밸런스 최적화)
                             };
                             aggregatedMaster.HOSPITAL.set(fact.id, fact);
                         });
                     }
                 } catch (e) { console.error("Kakao HP8 Error:", e.message); }
+            })());
+
+            // A-1-3. Kakao Big Hospital Search (Keyword Search to ensure inclusion)
+            fetchTasks.push((async () => {
+                try {
+                    const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(ptSigungu + ' 종합병원')}&x=${ptLng}&y=${ptLat}&radius=20000&size=10`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                    const kData = await kRes.json();
+                    if (kData.documents) {
+                        kData.documents.forEach((item) => {
+                            const fact = {
+                                id: generateFactId('KAKAO_BIG_HOSP', item.place_name, item.road_address_name || item.address_name),
+                                api_source: 'KAKAO_BIG_HOSP', category: 'HOSPITAL',
+                                name: item.place_name, description: '지역 종합의료기관', address: item.road_address_name || item.address_name || '주소정보없음',
+                                lat: parseFloat(item.y), lng: parseFloat(item.x),
+                                trust_score: 100, raw_data: item
+                            };
+                            aggregatedMaster.HOSPITAL.set(fact.id, fact);
+                        });
+                    }
+                } catch (e) { console.error("Kakao Big Hospital Search Error:", e.message); }
             })());
 
             // A-2. Festival
@@ -668,8 +718,8 @@ async function main() {
                         if (!item.raw_data.badges) item.raw_data.badges = [];
 
                         const indutyH = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
-                        if (item.api_source === 'NMC_HOSPITAL' || /종합병원|의료원|대학병원/.test(name)) {
-                            s = 100;
+                        if (item.api_source === 'NMC_HOSPITAL' || item.api_source === 'KAKAO_BIG_HOSP' || /종합병원|의료원|대학병원/.test(name)) {
+                            s = 100; // [v11.9.64] 150 -> 100 (야간 응급 의원과의 밸런스 조정)
                             if (item.api_source === 'NMC_HOSPITAL') item.raw_data.badges.push('응급의료센터');
                             if (/종합병원/.test(name)) item.raw_data.badges.push('종합병원');
                             if (/의료원/.test(name)) item.raw_data.badges.push('의료원');
@@ -791,6 +841,7 @@ async function main() {
                         raw_data: { ...c.raw_data, kakao_url: m.place_url, scraping: sc }
                     };
                     totalFactMap.set(safeFact.id, safeFact);
+                    allFactsMap.set(safeFact.id, safeFact); // [v11.9.62] Sync to global map
                 }
             }));
         }
@@ -874,7 +925,7 @@ async function main() {
     await upsertAndTrack(sanitizeAndMap(aggregatedMaster.GAS_STATION), metrics.dynamic_api.GAS_STATION);
     await upsertAndTrack(sanitizeAndMap(aggregatedMaster.FESTIVAL), metrics.dynamic_api.FESTIVAL);
 
-    const final = Array.from(totalFactMap.values());
+    const final = Array.from(allFactsMap.values());
     final.forEach(f => {
         metrics.quota_flow[f.category].final++;
     });
