@@ -416,6 +416,15 @@ export const useReservationStore = create<ReservationState>()(
 
 
 
+                // 0-night validation (Surgical safeguard)
+                if (params.checkIn.getTime() === params.checkOut.getTime()) {
+                    return {
+                        success: false,
+                        error: 'NIGHTS_ZERO',
+                        message: '퇴실일을 선택하세요.'
+                    };
+                }
+
                 // RPC 호출
                 const { data, error } = await supabase.rpc('create_reservation_safe', {
                     p_user_id: userId,

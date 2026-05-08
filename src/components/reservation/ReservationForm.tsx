@@ -118,8 +118,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!fromDate || !toDate) {
-            alert('날짜를 선택해주세요.');
+        if (!fromDate || !toDate || fromDate.getTime() === toDate.getTime()) {
+            alert('퇴실일을 선택하세요.');
             return;
         }
         if (!agreed) {
@@ -456,7 +456,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
                     <button
                         type="submit"
-                        disabled={!fromDate || !toDate || !agreed}
+                        disabled={!fromDate || !toDate || fromDate.getTime() === toDate.getTime() || !agreed}
                         className="w-full bg-[#2F5233] hover:bg-[#233e26] text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                     >
                         예약 신청하기 (입금 대기)
