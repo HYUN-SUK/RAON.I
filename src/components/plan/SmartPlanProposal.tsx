@@ -288,7 +288,7 @@ export default function SmartPlanProposal({
         if (userId) {
             dispatchPersonaAction(userId, 'PLAN_SHARE_SNS').catch(console.error);
         }
-        toast.success('플랜 이미지가 생성되었습니다. SNS로 공유해보세요!');
+        toast.info('기능 구현예정입니다.');
     };
 
     if (isGenerating) {
