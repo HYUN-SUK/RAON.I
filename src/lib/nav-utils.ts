@@ -50,25 +50,36 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
 
 /**
  * T맵 딥링크 생성 (tmap://route)
- * [v11.9.62] T맵 표준 규격(rGoX, rGoY) 및 소수점 6자리 적용
+ * [v11.9.63] OS별 파라미터 최적화 (Android: Lat/Lon, iOS: X/Y)
  */
 export function getTMapUrl({ origin, destination, waypoints }: FullRouteParams) {
     const sName = encodeURIComponent(origin.name);
     const gName = encodeURIComponent(destination.name);
     
-    // T맵은 X가 경도(Lon), Y가 위도(Lat)
-    const sX = origin.lng.toFixed(6);
-    const sY = origin.lat.toFixed(6);
-    const gX = destination.lng.toFixed(6);
-    const gY = destination.lat.toFixed(6);
+    // [v11.9.63] OS 감지 (안드로이드는 Lat/Lon, iOS는 X/Y 선호)
+    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    const sLat = origin.lat.toFixed(6);
+    const sLon = origin.lng.toFixed(6);
+    const gLat = destination.lat.toFixed(6);
+    const gLon = destination.lng.toFixed(6);
 
-    let url = `tmap://route?rStName=${sName}&rStX=${sX}&rStY=${sY}&rGoName=${gName}&rGoX=${gX}&rGoY=${gY}`;
+    let url = '';
+    if (isIOS) {
+        url = `tmap://route?rStName=${sName}&rStX=${sLon}&rStY=${sLat}&rGoName=${gName}&rGoX=${gLon}&rGoY=${gLat}`;
+    } else {
+        url = `tmap://route?rStName=${sName}&rStLat=${sLat}&rStLon=${sLon}&rGoName=${gName}&rGoLat=${gLat}&rGoLon=${gLon}`;
+    }
 
     if (waypoints && waypoints.length > 0) {
         const v = waypoints[0];
-        const vX = v.lng.toFixed(6);
-        const vY = v.lat.toFixed(6);
-        url += `&rV1Name=${encodeURIComponent(v.name)}&rV1X=${vX}&rV1Y=${vY}`;
+        const vLat = v.lat.toFixed(6);
+        const vLon = v.lng.toFixed(6);
+        if (isIOS) {
+            url += `&rV1Name=${encodeURIComponent(v.name)}&rV1X=${vLon}&rV1Y=${vLat}`;
+        } else {
+            url += `&rV1Name=${encodeURIComponent(v.name)}&rV1Lat=${vLat}&rV1Lon=${vLon}`;
+        }
     }
 
     return url;
