@@ -47,21 +47,21 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
 
 /**
  * T맵 딥링크 생성 (tmap://route)
- * [v11.9.65] 출발지 생략 및 안드로이드/iOS 규격 최적화
+ * [v11.9.66] 출발지 생략 및 경로 탐색 옵션(rRouteType=1) 필수 적용
  */
 export function getTMapUrl({ destination, waypoints }: FullRouteParams) {
-    const gName = encodeURIComponent(destination.name);
+    const gName = encodeURIComponent('목적지');
     const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
     
     const gLat = destination.lat.toFixed(6);
     const gLon = destination.lng.toFixed(6);
 
-    // 출발지(rSt) 생략하여 티맵이 현 위치를 자동으로 잡도록 유도
+    // [v11.9.66] rRouteType=1 옵션이 있어야 지도 보기가 아닌 길찾기로 진입함
     let url = '';
     if (isIOS) {
-        url = `tmap://route?rGoName=${gName}&rGoX=${gLon}&rGoY=${gLat}`;
+        url = `tmap://route?rGoName=${gName}&rGoX=${gLon}&rGoY=${gLat}&rRouteType=1`;
     } else {
-        url = `tmap://route?rGoName=${gName}&rGoLat=${gLat}&rGoLon=${gLon}`;
+        url = `tmap://route?rGoName=${gName}&rGoLat=${gLat}&rGoLon=${gLon}&rRouteType=1`;
     }
 
     if (waypoints && waypoints.length > 0) {
@@ -69,9 +69,9 @@ export function getTMapUrl({ destination, waypoints }: FullRouteParams) {
         const vLat = v.lat.toFixed(6);
         const vLon = v.lng.toFixed(6);
         if (isIOS) {
-            url += `&rV1Name=${encodeURIComponent(v.name)}&rV1X=${vLon}&rV1Y=${vLat}`;
+            url += `&rV1Name=${encodeURIComponent('경유지')}&rV1X=${vLon}&rV1Y=${vLat}`;
         } else {
-            url += `&rV1Name=${encodeURIComponent(v.name)}&rV1Lat=${vLat}&rV1Lon=${vLon}`;
+            url += `&rV1Name=${encodeURIComponent('경유지')}&rV1Lat=${vLat}&rV1Lon=${vLon}`;
         }
     }
 
