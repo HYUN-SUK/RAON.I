@@ -17,17 +17,15 @@ interface FullRouteParams {
 
 /**
  * 카카오맵 딥링크 생성 (kakaomap://route)
+ * [v11.9.65] 출발지 생략 (현재 위치 자동 인식)
  */
-export function getKakaoMapUrl({ origin, destination, waypoints }: FullRouteParams) {
-    const sName = encodeURIComponent(origin.name);
+export function getKakaoMapUrl({ destination, waypoints }: FullRouteParams) {
     const eName = encodeURIComponent(destination.name);
-    // [v11.9.61] 소수점 6자리 고정 및 URL 구성
-    const sLat = origin.lat.toFixed(6);
-    const sLng = origin.lng.toFixed(6);
     const eLat = destination.lat.toFixed(6);
     const eLng = destination.lng.toFixed(6);
 
-    let url = `kakaomap://route?sp=${sLat},${sLng}&sName=${sName}&ep=${eLat},${eLng}&eName=${eName}&by=CAR`;
+    // sp(출발지) 생략
+    let url = `kakaomap://route?ep=${eLat},${eLng}&eName=${eName}&by=CAR`;
 
     if (waypoints && waypoints.length > 0) {
         const v = waypoints[0];
@@ -39,7 +37,6 @@ export function getKakaoMapUrl({ origin, destination, waypoints }: FullRoutePara
 
 /**
  * 카카오내비 딥링크 생성 (kakaonavi://navigate)
- * [v11.9.61] 카카오내비는 x, y(경도, 위도) 순서 및 소수점 제한
  */
 export function getKakaoNaviUrl({ destination }: FullRouteParams) {
     const name = encodeURIComponent(destination.name);
@@ -50,26 +47,32 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
 
 /**
  * T맵 딥링크 생성 (tmap://route)
- * [v11.9.64] 통합 규격(X,Y) 및 경로 탐색 옵션 적용
+ * [v11.9.65] 출발지 생략 및 안드로이드/iOS 규격 최적화
  */
-export function getTMapUrl({ origin, destination, waypoints }: FullRouteParams) {
-    const sName = encodeURIComponent('출발지');
-    const gName = encodeURIComponent('도착지');
+export function getTMapUrl({ destination, waypoints }: FullRouteParams) {
+    const gName = encodeURIComponent(destination.name);
+    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
     
-    // [v11.9.64] 최신 규격은 OS 상관없이 X(경도), Y(위도) 사용
-    const sLat = origin.lat.toFixed(6);
-    const sLon = origin.lng.toFixed(6);
     const gLat = destination.lat.toFixed(6);
     const gLon = destination.lng.toFixed(6);
 
-    // rRouteType=1: 추천 경로
-    let url = `tmap://route?rStName=${sName}&rStX=${sLon}&rStY=${sLat}&rGoName=${gName}&rGoX=${gLon}&rGoY=${gLat}&rRouteType=1`;
+    // 출발지(rSt) 생략하여 티맵이 현 위치를 자동으로 잡도록 유도
+    let url = '';
+    if (isIOS) {
+        url = `tmap://route?rGoName=${gName}&rGoX=${gLon}&rGoY=${gLat}`;
+    } else {
+        url = `tmap://route?rGoName=${gName}&rGoLat=${gLat}&rGoLon=${gLon}`;
+    }
 
     if (waypoints && waypoints.length > 0) {
         const v = waypoints[0];
         const vLat = v.lat.toFixed(6);
         const vLon = v.lng.toFixed(6);
-        url += `&rV1Name=${encodeURIComponent('경유지')}&rV1X=${vLon}&rV1Y=${vLat}`;
+        if (isIOS) {
+            url += `&rV1Name=${encodeURIComponent(v.name)}&rV1X=${vLon}&rV1Y=${vLat}`;
+        } else {
+            url += `&rV1Name=${encodeURIComponent(v.name)}&rV1Lat=${vLat}&rV1Lon=${vLon}`;
+        }
     }
 
     return url;
@@ -77,13 +80,11 @@ export function getTMapUrl({ origin, destination, waypoints }: FullRouteParams) 
 
 /**
  * 네이버 지도 딥링크 생성 (nmap://route/car)
+ * [v11.9.65] 출발지 생략
  */
-export function getNaverMapUrl({ origin, destination, waypoints }: FullRouteParams) {
+export function getNaverMapUrl({ destination, waypoints }: FullRouteParams) {
     const baseUrl = 'nmap://route/car';
     const params = new URLSearchParams({
-        slat: origin.lat.toFixed(6),
-        slng: origin.lng.toFixed(6),
-        sname: origin.name,
         dlat: destination.lat.toFixed(6),
         dlng: destination.lng.toFixed(6),
         dname: destination.name,
@@ -103,14 +104,9 @@ export function getNaverMapUrl({ origin, destination, waypoints }: FullRoutePara
 /**
  * 웹 폴백 URL 생성
  */
-export function getWebFallbackUrl(app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi', { origin, destination }: FullRouteParams) {
-    const sName = encodeURIComponent(origin.name);
+export function getWebFallbackUrl(app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi', { destination }: FullRouteParams) {
     const dName = encodeURIComponent(destination.name);
-    
-    if (app === 'kakao' || app === 'kakaonavi') {
-        return `https://map.kakao.com/link/from/${sName},${origin.lat.toFixed(6)},${origin.lng.toFixed(6)}/to/${dName},${destination.lat.toFixed(6)},${destination.lng.toFixed(6)}`;
-    }
-    return `https://map.naver.com/v5/directions/${origin.lng.toFixed(6)},${origin.lat.toFixed(6)},${sName}/${destination.lng.toFixed(6)},${destination.lat.toFixed(6)},${dName}/-/car`;
+    return `https://map.kakao.com/link/to/${dName},${destination.lat.toFixed(6)},${destination.lng.toFixed(6)}`;
 }
 
 /**
