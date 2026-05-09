@@ -47,21 +47,21 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
 
 /**
  * T맵 딥링크 생성 (tmap://route)
- * [v11.9.66] 출발지 생략 및 경로 탐색 옵션(rRouteType=1) 필수 적용
+ * [v11.9.67] 안드로이드 전용 강력 규격(goalx, goaly) 적용
  */
 export function getTMapUrl({ destination, waypoints }: FullRouteParams) {
-    const gName = encodeURIComponent('목적지');
     const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
     
     const gLat = destination.lat.toFixed(6);
     const gLon = destination.lng.toFixed(6);
 
-    // [v11.9.66] rRouteType=1 옵션이 있어야 지도 보기가 아닌 길찾기로 진입함
     let url = '';
     if (isIOS) {
-        url = `tmap://route?rGoName=${gName}&rGoX=${gLon}&rGoY=${gLat}&rRouteType=1`;
+        // iOS는 기존 rGoX/Y 규격 유지
+        url = `tmap://route?rGoName=${encodeURIComponent('목적지')}&rGoX=${gLon}&rGoY=${gLat}&rRouteType=1`;
     } else {
-        url = `tmap://route?rGoName=${gName}&rGoLat=${gLat}&rGoLon=${gLon}&rRouteType=1`;
+        // 안드로이드는 가장 확실한 goalx/y 규격 사용
+        url = `tmap://route?goalname=${encodeURIComponent('목적지')}&goalx=${gLon}&goaly=${gLat}`;
     }
 
     if (waypoints && waypoints.length > 0) {
@@ -71,7 +71,8 @@ export function getTMapUrl({ destination, waypoints }: FullRouteParams) {
         if (isIOS) {
             url += `&rV1Name=${encodeURIComponent('경유지')}&rV1X=${vLon}&rV1Y=${vLat}`;
         } else {
-            url += `&rV1Name=${encodeURIComponent('경유지')}&rV1Lat=${vLat}&rV1Lon=${vLon}`;
+            // 안드로이드 경유지 규격 (v1x, v1y)
+            url += `&v1name=${encodeURIComponent('경유지')}&v1x=${vLon}&v1y=${vLat}`;
         }
     }
 
