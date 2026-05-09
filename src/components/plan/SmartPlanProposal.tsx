@@ -940,8 +940,7 @@ export default function SmartPlanProposal({
                                     destination: { name: '라온아이 캠핑장', ...location },
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
-                                const url = openNavApp('tmap', route);
-                                alert(`[Tmap Debug URL]\n${url}`); // [DEBUG] 모바일 확인용
+                                openNavApp('tmap', route);
                                 setShowRouteNav(false);
                             }}
                         >
