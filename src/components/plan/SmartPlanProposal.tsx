@@ -82,6 +82,7 @@ export default function SmartPlanProposal({
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedRouteData, setSelectedRouteData] = useState<any>(initialRoute);
     const [showRouteNav, setShowRouteNav] = useState(false);
+    const [isLocating, setIsLocating] = useState(false); // [v11.9.61] 위치 확인 중 상태
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
@@ -90,13 +91,28 @@ export default function SmartPlanProposal({
             return;
         }
         if (!mockData && typeof window !== 'undefined' && navigator.geolocation) {
+            setIsLocating(true);
+            
+            // [v11.9.61] 20초 타임아웃 설정
+            const locTimeout = setTimeout(() => {
+                setIsLocating(prev => {
+                    if (prev) console.warn("[SmartPlan] Geolocation timeout reached (20s). Falling back to profile if available.");
+                    return false;
+                });
+            }, 20000);
+
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
+                    clearTimeout(locTimeout);
                     setUserOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    setIsLocating(false);
                 },
                 (err) => {
+                    clearTimeout(locTimeout);
                     console.warn("[SmartPlan] Failed to get user location:", err);
-                }
+                    setIsLocating(false);
+                },
+                { enableHighAccuracy: true, timeout: 20000 }
             );
         }
     }, [mockData, origin]);
@@ -875,68 +891,92 @@ export default function SmartPlanProposal({
                     <div className="grid grid-cols-3 gap-4 pb-6">
                         <Button
                             variant="outline"
-                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-yellow-400 hover:bg-yellow-50/30 transition-all duration-300"
+                            disabled={isLocating}
+                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-yellow-400 hover:bg-yellow-50/30 transition-all duration-300 disabled:opacity-70"
                             onClick={() => {
-                                if (!selectedRouteData || !userOrigin) {
-                                    toast.error('출발지 정보를 찾을 수 없습니다.');
+                                if (!selectedRouteData) {
+                                    toast.error('경로 정보를 찾을 수 없습니다.');
                                     return;
                                 }
+                                
+                                // [v11.9.61] 실시간 위치 정보가 없으면 프로필 정보를 폴백으로 사용
+                                const startLoc = userOrigin || origin;
+                                if (!startLoc) {
+                                    toast.error('출발지 정보를 찾을 수 없습니다. 프로필 설정을 확인해주세요.');
+                                    return;
+                                }
+
                                 const route = {
-                                    origin: { name: '나의 출발지', ...userOrigin },
+                                    origin: { name: '나의 출발지', ...startLoc },
                                     destination: { name: '라온아이 캠핑장', ...location },
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
-                                console.log('[SmartPlan] Opening FULL route nav: kakao', route);
-                                openNavApp('kakao', route);
+                                openNavApp('kakaonavi', route);
                                 setShowRouteNav(false);
                             }}
                         >
-                            <div className="w-12 h-12 rounded-2xl bg-yellow-400 flex items-center justify-center text-white text-sm font-black shadow-sm">K</div>
-                            <span className="text-[14px] font-black text-gray-900">카카오내비</span>
+                            <div className="w-12 h-12 rounded-2xl bg-yellow-400 flex items-center justify-center text-white text-sm font-black shadow-sm">
+                                {isLocating ? <RefreshCw className="w-6 h-6 animate-spin" /> : 'K'}
+                            </div>
+                            <span className="text-[14px] font-black text-gray-900">{isLocating ? '위치 확인중' : '카카오내비'}</span>
                         </Button>
 
                         <Button
                             variant="outline"
-                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-blue-600 hover:bg-blue-50/30 transition-all duration-300"
+                            disabled={isLocating}
+                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-blue-600 hover:bg-blue-50/30 transition-all duration-300 disabled:opacity-70"
                             onClick={() => {
-                                if (!selectedRouteData || !userOrigin) {
+                                if (!selectedRouteData) {
+                                    toast.error('경로 정보를 찾을 수 없습니다.');
+                                    return;
+                                }
+                                const startLoc = userOrigin || origin;
+                                if (!startLoc) {
                                     toast.error('출발지 정보를 찾을 수 없습니다.');
                                     return;
                                 }
                                 const route = {
-                                    origin: { name: '나의 출발지', ...userOrigin },
+                                    origin: { name: '나의 출발지', ...startLoc },
                                     destination: { name: '라온아이 캠핑장', ...location },
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
-                                console.log('[SmartPlan] Opening FULL route nav: tmap', route);
                                 openNavApp('tmap', route);
                                 setShowRouteNav(false);
                             }}
                         >
-                            <div className="w-12 h-12 rounded-2xl bg-[#FF4500] flex items-center justify-center text-white text-[10px] font-black shadow-sm">TMAP</div>
-                            <span className="text-[14px] font-black text-gray-900">T맵</span>
+                            <div className="w-12 h-12 rounded-2xl bg-[#FF4500] flex items-center justify-center text-white text-[10px] font-black shadow-sm">
+                                {isLocating ? <RefreshCw className="w-6 h-6 animate-spin" /> : 'TMAP'}
+                            </div>
+                            <span className="text-[14px] font-black text-gray-900">{isLocating ? '위치 확인중' : 'T맵'}</span>
                         </Button>
 
                         <Button
                             variant="outline"
-                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-emerald-500 hover:bg-emerald-50/30 transition-all duration-300"
+                            disabled={isLocating}
+                            className="h-28 flex flex-col gap-3 rounded-3xl border-white bg-white shadow-sm hover:shadow-md hover:border-emerald-500 hover:bg-emerald-50/30 transition-all duration-300 disabled:opacity-70"
                             onClick={() => {
-                                if (!selectedRouteData || !userOrigin) {
+                                if (!selectedRouteData) {
+                                    toast.error('경로 정보를 찾을 수 없습니다.');
+                                    return;
+                                }
+                                const startLoc = userOrigin || origin;
+                                if (!startLoc) {
                                     toast.error('출발지 정보를 찾을 수 없습니다.');
                                     return;
                                 }
                                 const route = {
-                                    origin: { name: '나의 출발지', ...userOrigin },
+                                    origin: { name: '나의 출발지', ...startLoc },
                                     destination: { name: '라온아이 캠핑장', ...location },
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
-                                console.log('[SmartPlan] Opening FULL route nav: naver', route);
                                 openNavApp('naver', route);
                                 setShowRouteNav(false);
                             }}
                         >
-                            <div className="w-12 h-12 rounded-2xl bg-[#03C75A] flex items-center justify-center text-white text-xs font-black shadow-sm">N</div>
-                            <span className="text-[14px] font-black text-gray-900">네이버 지도</span>
+                            <div className="w-12 h-12 rounded-2xl bg-[#03C75A] flex items-center justify-center text-white text-xs font-black shadow-sm">
+                                {isLocating ? <RefreshCw className="w-6 h-6 animate-spin" /> : 'N'}
+                            </div>
+                            <span className="text-[14px] font-black text-gray-900">{isLocating ? '위치 확인중' : '네이버 지도'}</span>
                         </Button>
                     </div>
                     
