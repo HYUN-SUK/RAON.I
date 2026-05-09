@@ -118,4 +118,6 @@ export function openNavApp(app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi', route:
             window.open(fallbackUrl, '_blank');
         }
     }, 2000);
+
+    return url; // [v11.9.61] 디버깅을 위해 URL 반환
 }
