@@ -767,11 +767,12 @@ async function main() {
                     const dist = item.distance_meters || 99999;
                     if (localMap.has(k)) { 
                         const existing = localMap.get(k);
-                        if(cat==='RESTAURANT') {
-                            existing.trust_score += (s - 10); 
-                            const oldBadges = existing.raw_data?.badges || [];
-                            const newBadges = item.raw_data?.badges || [];
-                            existing.raw_data.badges = Array.from(new Set([...oldBadges, ...newBadges]));
+                        if (cat === 'RESTAURANT' || cat === 'HOSPITAL') {
+                            if (s > existing.trust_score) existing.trust_score = s;
+                            const oldB = existing.raw_data?.badges || [];
+                            const newB = item.raw_data?.badges || [];
+                            if (!existing.raw_data) existing.raw_data = {};
+                            existing.raw_data.badges = Array.from(new Set([...oldB, ...newB]));
                         }
                         else if(cat === 'MART') {
                             if(name.length > existing.name.length) existing.name = name;
@@ -795,10 +796,11 @@ async function main() {
                     const uk = (cat === 'MART' || cat === 'HOSPITAL') ? `ADDR|${getCleanString(item.address)}` : `${item.name}|${item.address}`;
                     if (unionPool.has(uk)) {
                         const ex = unionPool.get(uk);
-                        if (cat === 'RESTAURANT') {
+                        if (cat === 'RESTAURANT' || cat === 'HOSPITAL') {
                             if (item.trust_score > ex.trust_score) ex.trust_score = item.trust_score;
                             const oldB = ex.raw_data?.badges || [];
                             const newB = item.raw_data?.badges || [];
+                            if (!ex.raw_data) ex.raw_data = {};
                             ex.raw_data.badges = Array.from(new Set([...oldB, ...newB]));
                         } else if (item.trust_score > ex.trust_score) {
                             unionPool.set(uk, item);
@@ -957,10 +959,7 @@ async function main() {
         stage1Content += `| :--- | :--- | :--- | :---: | :---: | :--- | :---: |\n`;
         let s1Idx = 1;
         rawCandidatesForAudit.filter(x => x.stage === 1).forEach(c => {
-            let bList = Array.from(new Set(c.raw_data?.badges || []));
-            if (c.trust_score >= 150 && !bList.includes('응급의료센터')) bList.push('응급의료센터');
-            if (c.api_source === 'NMC_HOSPITAL' && !bList.includes('응급의료센터')) bList.push('응급의료센터');
-            const b = bList.join(', ');
+            const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
             stage1Content += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${Math.round(c.distance)} |\n`;
         });
         fs.writeFileSync('smart_plan_stage1_full.md', stage1Content, 'utf-8');
@@ -969,10 +968,11 @@ async function main() {
 
     if (allCandidateRows.length > 0) {
         let stage4Content = `# 2차 쿼터 개인화 적용 리스트 (D-3 캐싱: ${targetStr})\n\n`;
-        stage4Content += `| 번호 | 예약ID | 카테고리 | 이름 | 품질 | 거리(km) | 감점 | 최종 점수 | 주소 |\n`;
-        stage4Content += `| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n`;
+        stage4Content += `| 번호 | 예약ID | 카테고리 | 이름 | 품질 | 인증/명성 | 거리(km) | 감점 | 최종 점수 | 주소 |\n`;
+        stage4Content += `| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n`;
         allCandidateRows.forEach((c, i) => {
-            stage4Content += `| ${i+1} | ${c.reservation_id.slice(0,8)} | ${c.category} | ${c.name} | ${c.quality_score} | ${(c.distance_meters/1000).toFixed(2)} | -${c.penalty_score.toFixed(1)} | **${c.final_score.toFixed(1)}** | ${c.address} |\n`;
+            const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
+            stage4Content += `| ${i+1} | ${c.reservation_id.slice(0,8)} | ${c.category} | ${c.name} | ${c.quality_score} | ${b} | ${(c.distance_meters/1000).toFixed(2)} | -${c.penalty_score.toFixed(1)} | **${c.final_score.toFixed(1)}** | ${c.address} |\n`;
         });
         fs.writeFileSync('smart_plan_stage4_personalized.md', stage4Content, 'utf-8');
         console.log(`📝 Stage 4 report generated: smart_plan_stage4_personalized.md`);
