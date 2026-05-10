@@ -68,9 +68,6 @@ function loadPrestigeLists() {
         });
         
         // Debug: Check if Yesan is loaded
-        const checkKey = getCleanString('예당호 출렁다리') + '|예산';
-        const match = PRESTIGE_MAP.get(checkKey);
-        console.log(`🔍 Map Check [예당호 출렁다리|예산]: ${match ? '✅ FOUND' : '❌ NOT FOUND'} (Badge: ${match?.name})`);
         console.log(`✅ Prestige List Loaded: ${PRESTIGE_MAP.size} items mapped.`);
     } catch (e) {
         console.warn(`⚠️ Failed to load prestige lists: ${e.message}`);

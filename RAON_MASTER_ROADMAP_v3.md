@@ -1,15 +1,15 @@
-# RAON.I 마스터 개발 로드맵 v3 (Final Integrated Version)
+# RAON.I 마스??개발 로드�?v3 (Final Integrated Version)
 
-**버전**: v4.2 (Push Delivery Breakthrough)
+**버전**: v4.3 (Data Integrity & Filtering Optimization)
 **기반**: RAONAI SSOT MASTER v9 + User Feedback (Gap Filling)
-**작성일**: 2026-02-27
+**?�성??*: 2026-05-10
 
-이 문서는 라온아이 프로젝트의 **최종 확정형 개발 가이드**입니다.
-기존의 견고한 프레임워크 위에 **트렌드(감성·초개인화)**와 **현실적인 AI 전략(L0/L1)**을 결합하여, 사용자에게 가장 가치 있는 경험을 우선적으로 전달합니다.
+??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
+기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
 ---
 
-- [x] **9.1 Push Notification Debugging (Fixed)** ✅
+- [x] **9.1 Push Notification Debugging (Fixed)** ??
   - [x] **Infrastructure Check**: Verify `push-notification` Edge Function code & secrets.
   - [x] **Webhook Check**: Confirm Trigger exists on `notifications` table (Bypassed via Client Invoke).
   - [x] **Auth Fix**: Fixed Firebase 401 (Added Service Account), Vercel Env (Added `NEXT_PUBLIC_` vars), JWT Claim (`iat`).
@@ -19,279 +19,279 @@
   - [x] **Performance**: Fixed FCM Quota Infinite Loop (Memoization).
   - [x] **Verification**: Live booking test -> 1 notification received successfully.
 
-- [x] **9.2 Admin Push Notification & Duplicate Fix (2026-01-19)** ✅
+- [x] **9.2 Admin Push Notification & Duplicate Fix (2026-01-19)** ??
   - [x] **Admin Status Update Fix**: Notifications now sent when admin confirms deposit or cancels reservation.
   - [x] **RLS Policy Issue**: Fixed by disabling RLS on `notifications` table (temporary, TODO: re-enable with correct policy).
   - [x] **Duplicate Notification Fix**: Removed DB Webhook (code invoke only), fixed SW duplicate handler.
   - [x] **Admin Force Cancel**: Added `CancelReservationDialog` with reason input, reason included in push notification.
   - [x] **Verification**: All 3 scenarios (Reserve/Confirm/Cancel) -> 1 notification each.
 
-- [x] **9.3 Waitlist Notification & Timezone Fix (2026-01-23)** ✅
+- [x] **9.3 Waitlist Notification & Timezone Fix (2026-01-23)** ??
   - [x] **Waitlist Persistence**: WaitlistButton now checks DB on mount to maintain 'subscribed' state across page navigations.
   - [x] **Timezone Parsing**: Added `parseSafeDate()` to prevent date shift when parsing "YYYY-MM-DD" strings.
   - [x] **Public Reservation Sync**: Added `get_public_reservations` RPC for availability check without sensitive data.
   - [x] **LocalStorage Cache Fix**: `fetchPublicReservations` now replaces (not merges) cached data with server data.
   - [x] **Verification**: Live test confirmed - vacancy notification received, reservation sync accurate.
 
-## 📅 전체 진행률 요약 (Progress Summary)
+## ?�� ?�체 진행�??�약 (Progress Summary)
 
-| 단계 | 구분 | 상태 | 진행률 | 비고 |
+| ?�계 | 구분 | ?�태 | 진행�?| 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Phase 0** | **코어 플랫폼 기반 (Foundation)** | ✅ **완료** | 100% | 필코노미 감성 톤, UI 프레임, 데이터 레이어 |
-| **Phase 1** | **사용자 홈 (User Home)** | ✅ **완료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic 완료 |
-| **Phase 2** | **내공간 (My Space)** | ✅ **완료** | 100% | 대시보드/지도/타임라인 완료. 아카이브(기록) 리뉴얼 및 XP/Token 완료. |
-| **Phase 3** | **예약 시스템 (Reservation)** | ✅ **완료** | 95% | Logic/Validation/Admin Core/Holidays 완료. PG/오픈일 남음. |
-| **Phase 4** | **미래 기능 (Future)** | ✅ **완료** | 100% | 웹 푸시(FCM), 상황별 알림 시스템, 인앱 배지 구현 완료. |
-| **Phase 5** | **마켓 & 결제 (Market)** | ✅ **완료** | 100% | MVP 완료. 리뷰 시스템(DB/UI) 구현 및 검증 완료. Commerce Logic Complete. |
-| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | ✅ **완료** | 100% | v11.9.32 스마트 플랜 영구 저장 및 엔진 고도화 완료. |
-| **Phase 6** | **확장 모듈 (Expansion)** | ✅ **완료** | 100% | 크리에이터, 미션, 성향 센서 연동 완료. |
-| **Phase 7** | **운영 & 갭 필링 (Ops & Gap)** | ✅ **완료** | 100% | 전국 LX 공사맛집(2k) 통합 및 자동화 로테이션 인기도 v2 전국 보급 완료(04-13). |
-| **Phase 8** | **안정화 및 리팩토링 (Stabilization)** | ✅ **완료** | 100% | 관리자 자동화 모니터링 UI 최적화 및 API 소통 정합성 확보 완료 (04-23). |
-| **Phase 13** | **전국 명칭 마스터 (Landmarks)** | ✅ **완료** | 100% | v2.6 하이브리드 엔진(명성 6: 인기도 4) 및 전국 250개 시군구 전수 적재 완료 (04-22). |
+| **Phase 0** | **코어 ?�랫??기반 (Foundation)** | ??**?�료** | 100% | ?�코?��? 감성 ?? UI ?�레?? ?�이???�이??|
+| **Phase 1** | **?�용????(User Home)** | ??**?�료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic ?�료 |
+| **Phase 2** | **?�공�?(My Space)** | ??**?�료** | 100% | ?�?�보??지???�?�라???�료. ?�카?�브(기록) 리뉴??�?XP/Token ?�료. |
+| **Phase 3** | **?�약 ?�스??(Reservation)** | ??**?�료** | 95% | Logic/Validation/Admin Core/Holidays ?�료. PG/?�픈???�음. |
+| **Phase 4** | **미래 기능 (Future)** | ??**?�료** | 100% | ???�시(FCM), ?�황�??�림 ?�스?? ?�앱 배�? 구현 ?�료. |
+| **Phase 5** | **마켓 & 결제 (Market)** | ??**?�료** | 100% | MVP ?�료. 리뷰 ?�스??DB/UI) 구현 �?검�??�료. Commerce Logic Complete. |
+| **Phase 5.5** | **?�마??캠핑 ?�랜 (Smart Plan)** | ??**?�료** | 100% | v11.9.32 ?�마???�랜 ?�구 ?�??�??�진 고도???�료. |
+| **Phase 6** | **?�장 모듈 (Expansion)** | ??**?�료** | 100% | ?�리?�이?? 미션, ?�향 ?�서 ?�동 ?�료. |
+| **Phase 7** | **?�영 & �??�링 (Ops & Gap)** | ??**?�료** | 100% | ?�국 LX 공사맛집(2k) ?�합 �??�동??로테?�션 ?�기??v2 ?�국 보급 ?�료(04-13). |
+| **Phase 8** | **?�정??�?리팩?�링 (Stabilization)** | ??**?�료** | 100% | 관리자 ?�동??모니?�링 UI 최적??�?API ?�통 ?�합???�보 ?�료 (04-23). |
+| **Phase 13** | **?�국 명칭 마스??(Landmarks)** | ??**?�료** | 100% | v2.6 ?�이브리???�진(명성 6: ?�기??4) �??�국 250�??�군�??�수 ?�재 ?�료 (04-22). |
 
 ---
 
-## 🚀 상세 로드맵 (Detailed Roadmap)
+## ?? ?�세 로드�?(Detailed Roadmap)
 
-### Phase 0: 코어 플랫폼 기반 (Foundation) - ✅ 완료
-*   **0.1 글로벌 UI 프레임**: TopBar, BottomNav, 390px 레이아웃
-*   **0.2 공통 라이브러리**: Shadcn UI, Tailwind, Lucide Icons
-*   **0.3 라우팅**: Next.js App Router (`(mobile)`, `admin`)
-*   **0.4 인증 시스템 (Authentication)** ✅ (2025-01-01):
-    *   [x] **UI**: 숲 테마 글래스모피즘 디자인 + 모바일 반응형 최적화.
-    *   [x] **소셜 로그인**: 카카오, 구글 연동 및 리다이렉트 처리.
-    *   [x] **이메일**: 로그인/가입 모드 토글, 패스워드리스 보안 구조.
+### Phase 0: 코어 ?�랫??기반 (Foundation) - ???�료
+*   **0.1 글로벌 UI ?�레??*: TopBar, BottomNav, 390px ?�이?�웃
+*   **0.2 공통 ?�이브러�?*: Shadcn UI, Tailwind, Lucide Icons
+*   **0.3 ?�우??*: Next.js App Router (`(mobile)`, `admin`)
+*   **0.4 ?�증 ?�스??(Authentication)** ??(2025-01-01):
+    *   [x] **UI**: ???�마 글?�스모피�??�자??+ 모바??반응??최적??
+    *   [x] **?�셜 로그??*: 카카?? 구�? ?�동 �?리다?�렉??처리.
+    *   [x] **?�메??*: 로그??가??모드 ?��?, ?�스?�드리스 보안 구조.
 
-### Phase 1: 사용자 홈 (User Home) - ✅ 완료
-**"감성, 안내, 그리고 초개인화된 첫인상"**
-*   **1.1 분기 엔진 (L0)**: 사용자 상태 판별 완료
-*   **1.2 초보자 홈 (Beginner)**: 히어로, 가이드, 프라이스 디코딩 완료
-*   **1.3 기존 사용자 홈 (Returning)**: 스마트 리북, 예약 패널, 감성 배경 완료
+### Phase 1: ?�용????(User Home) - ???�료
+**"감성, ?�내, 그리�?초개?�화??첫인??**
+*   **1.1 분기 ?�진 (L0)**: ?�용???�태 ?�별 ?�료
+*   **1.2 초보????(Beginner)**: ?�어�? 가?�드, ?�라?�스 ?�코???�료
+*   **1.3 기존 ?�용????(Returning)**: ?�마??리북, ?�약 ?�널, 감성 배경 ?�료
 
-### Phase 2: 내공간 (My Space) - ✅ Completed
-**"Digital Archive - 나만의 기록과 사진"**
-> **Product Pivot (2025-12-28)**: 기존의 '꾸미기/불멍(Digital Toy)' 컨셉을 폐기하고, **"사진과 기록(Digital Archive)"**에 집중합니다. 어설픈 애니메이션 대신 사용자의 고퀄리티 사진이 주는 감동을 극대화합니다.
-*   **2.1 대시보드**: POV 뷰, 위젯 완료
-*   **2.2 나만의 지도**: 핀 저장, 상세 시트 완료
-*   **2.3 타임라인**: 통합 피드 완료.
-*   **2.4 아카이브 리뉴얼** ✅:
-    *   [x] **기록 페이지**: 풀사이즈 뷰, 종이 질감, 검색, 비공개 로직 구현.
-    *   [x] **히어로 섹션**: 미션 배지 가시성 확보 및 UX 개선.
-    *   [x] **연동**: 소모임/공지 위젯과 커뮤니티 게시판 딥링크 연결.
-    *   [x] **도구 표준화**: 앨범/기록/히스토리 3종 뷰/편집 도구 디자인 통일 및 가로 스크롤 이슈 해결.
-*   **2.5 XP & Token System (New)** ✅:
+### Phase 2: ?�공�?(My Space) - ??Completed
+**"Digital Archive - ?�만??기록�??�진"**
+> **Product Pivot (2025-12-28)**: 기존??'꾸�?�?불멍(Digital Toy)' 컨셉???�기?�고, **"?�진�?기록(Digital Archive)"**??집중?�니?? ?�설???�니메이???�???�용?�의 고퀄리???�진??주는 감동??극�??�합?�다.
+*   **2.1 ?�?�보??*: POV �? ?�젯 ?�료
+*   **2.2 ?�만??지??*: ?� ?�?? ?�세 ?�트 ?�료
+*   **2.3 ?�?�라??*: ?�합 ?�드 ?�료.
+*   **2.4 ?�카?�브 리뉴??* ??
+    *   [x] **기록 ?�이지**: ?�?�이�?�? 종이 질감, 검?? 비공�?로직 구현.
+    *   [x] **?�어�??�션**: 미션 배�? 가?�성 ?�보 �?UX 개선.
+    *   [x] **?�동**: ?�모??공�? ?�젯�?커�??�티 게시???�링???�결.
+    *   [x] **?�구 ?��???*: ?�범/기록/?�스?�리 3�?�??�집 ?�구 ?�자???�일 �?가�??�크�??�슈 ?�결.
+*   **2.5 XP & Token System (New)** ??
     *   [x] **3-Tier Currency**: XP(Level), RaonToken(Utility), GoldPoint.
-    *   [x] **My Exploration Index**: `/myspace/wallet` (지갑) 페이지 및 내역 조회 구현.
-    *   [x] **Premium UI**: View/Edit 옵션 잠금 해제 UI (Glassmorphism + Collapsible) 적용.
+    *   [x] **My Exploration Index**: `/myspace/wallet` (지�? ?�이지 �??�역 조회 구현.
+    *   [x] **Premium UI**: View/Edit ?�션 ?�금 ?�제 UI (Glassmorphism + Collapsible) ?�용.
 
 
-### Phase 3: 예약 시스템 (Reservation) - ✅ 100% Completed
-**"레디코어 - 투명하고 쉬운 예약 & 강력한 관리"**
+### Phase 3: ?�약 ?�스??(Reservation) - ??100% Completed
+**"?�디코어 - ?�명?�고 ?�운 ?�약 & 강력??관�?**
 
-*   **3.1 예약 UI (Refinement)** ✅
-    *   [x] 스마트 리북, Validation(주말 2박/엔드캡), 가격 로직
-    *   [x] 임박 예약(D-N), 연박 할인 로직 적용
-    *   [x] **공휴일/대체공휴일**: 2025-2026 데이터 연동 및 가격/UI 반영 (Substitute Holidays) ✅
-    *   [x] **동적 설정 연동**: 관리자 설정(입금계좌, 사이트정보) 실시간 반영 (Frontend Sync) ✅
-*   **3.2 관리자 콘솔 (Admin Core)** ✅ (New)
-    *   [x] **차단일 관리 (`BlockDateScheduler`)**: 통합 예약 캘린더로 격상
-    *   [x] **가격/시즌 관리 (`PricingConfigEditor`)**: 실시간 가격 정책 수정
-    *   [x] **입금 확인 (`ReservationList`)**: 대기 목록 및 확정 처리
-    *   [x] **고객 관리**: 예약 이력(History) 조회 및 통합 차단 관리
-*   **3.3 오픈일/PG** 🔄 (Next)
-    *   [ ] 실제 PG 연동 (현재 무통장 입금만 구현) - 추후 연동 예정
+*   **3.1 ?�약 UI (Refinement)** ??
+    *   [x] ?�마??리북, Validation(주말 2�??�드�?, 가�?로직
+    *   [x] ?�박 ?�약(D-N), ?�박 ?�인 로직 ?�용
+    *   [x] **공휴???�체공?�일**: 2025-2026 ?�이???�동 �?가�?UI 반영 (Substitute Holidays) ??
+    *   [x] **?�적 ?�정 ?�동**: 관리자 ?�정(?�금계좌, ?�이?�정�? ?�시�?반영 (Frontend Sync) ??
+*   **3.2 관리자 콘솔 (Admin Core)** ??(New)
+    *   [x] **차단??관�?(`BlockDateScheduler`)**: ?�합 ?�약 캘린?�로 격상
+    *   [x] **가�??�즌 관�?(`PricingConfigEditor`)**: ?�시�?가�??�책 ?�정
+    *   [x] **?�금 ?�인 (`ReservationList`)**: ?��?목록 �??�정 처리
+    *   [x] **고객 관�?*: ?�약 ?�력(History) 조회 �??�합 차단 관�?
+*   **3.3 ?�픈??PG** ?�� (Next)
+    *   [ ] ?�제 PG ?�동 (?�재 무통???�금�?구현) - 추후 ?�동 ?�정
 
 
-### Phase 4: 커뮤니티 (Community) - ✅ 100% Completed
-**"캠퍼들의 소통 공간 (User-First + Admin + Groups)"**
-*   **4.1 메인/게시판** ✅: 6개 탭(공지/후기/이야기 등) 구현, Supabase 연동 완료
-*   **4.2 기능 고도화 (Rx 1-5)** ✅: 
-    *   [x] 모바일 최적화 (하단 바/키보드), 검색(Search), 하이브리드 페이지네이션
-    *   [x] 내 공간 연동 (기록 페이지), 비공개 로직(Private)
-*   **4.3 상호작용** ✅: 좋아요(공감), 댓글 구현 완료.
-*   **4.4 보안 & 관리 (Security & Admin)** ✅: 
-    *   [x] **RLS(Row Level Security)**: DB 보안 정책 적용 (작성자만 수정/삭제)
-    *   [x] **관리자 공지/소모임**: 공지 작성/수정/삭제, 소모임 강제 삭제 기능 구현
-*   **4.5 소모임 (Groups)** ✅:
-    *   [x] **구조**: DB 스키마 (`groups`, `group_members`, `posts`) 및 RLS 정의
-    *   [x] **기능**: 생성, 목록, 상세, 가입(Join/Leave), 게시글(Feed)
-    *   [x] **좋아요/댓글 상호작용 (Likes/Comments)**
-    *   [x] **안정화-v1**: Next.js 15 호환성, UI 오버랩 수정, 멤버십 로직 개선 완료
+### Phase 4: 커�??�티 (Community) - ??100% Completed
+**"캠퍼?�의 ?�통 공간 (User-First + Admin + Groups)"**
+*   **4.1 메인/게시??* ?? 6�???공�?/?�기/?�야�??? 구현, Supabase ?�동 ?�료
+*   **4.2 기능 고도??(Rx 1-5)** ?? 
+    *   [x] 모바??최적??(?�단 �??�보??, 검??Search), ?�이브리???�이지?�이??
+    *   [x] ??공간 ?�동 (기록 ?�이지), 비공�?로직(Private)
+*   **4.3 ?�호?�용** ?? 좋아??공감), ?��? 구현 ?�료.
+*   **4.4 보안 & 관�?(Security & Admin)** ?? 
+    *   [x] **RLS(Row Level Security)**: DB 보안 ?�책 ?�용 (?�성?�만 ?�정/??��)
+    *   [x] **관리자 공�?/?�모??*: 공�? ?�성/?�정/??��, ?�모??강제 ??�� 기능 구현
+*   **4.5 ?�모??(Groups)** ??
+    *   [x] **구조**: DB ?�키�?(`groups`, `group_members`, `posts`) �?RLS ?�의
+    *   [x] **기능**: ?�성, 목록, ?�세, 가??Join/Leave), 게시글(Feed)
+    *   [x] **좋아???��? ?�호?�용 (Likes/Comments)**
+    *   [x] **?�정??v1**: Next.js 15 ?�환?? UI ?�버???�정, 멤버??로직 개선 ?�료
 
-### Phase 5: 마켓 & 결제 (Market) - ✅ MVP 100% Completed
-**"캠핑의 감성을 집으로 - Commerce"**
-*   **5.1 상품 전시 (Product Display)** ✅:
-    *   [x] 상품 목록/상세 페이지 구현 (Swiper 갤러리/옵션 선택).
-    *   [x] 감성 UX 적용: 장바구니/구매하기 인터랙션, 품절 처리.
-*   **5.2 장바구니 (Cart)** ✅:
-    *   [x] 로컬 스토리지 기반 장바구니(Zustand).
-    *   [x] 수량 조절, 삭제, 가격 합계 실시간 계산.
-*   **5.3 주문/결제 (Checkout)** ✅:
-    *   [x] 배송지 입력 폼 (Daum 주소 API 연동).
-    *   [x] 결제 수단 선택 UI (무통장/카드).
-    *   [x] **v2 Update (2026-03-10)**: Evidence 구조화(Fact Chips), AI 환각 방지 지침 적용, 최신 API 연동 복구 완료.
-    *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 자동화 통합('Gold Standard' 초고속 병합 스크립트 교체), UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
-    *   [x] **API Resilience (v4-v6) (2026-03-21)**: D-3 캐싱의 좌표 결측 예약 배제 필터 버그 수정(`route.ts`), 전역 에러 로깅 강화, 주간 배치 일요일 임시 실행 스케줄링 및 "영희네" 예약 건 수동 데이터 적재 완료. 
-    *   [x] **Logic Audit (v7) (2026-03-21)**: `smart_camping_plan_manual.md` 대조 감사를 통해 병원 수집 범위 한계 및 주유소 Top 3 필터링 병목 지점 식별 및 보고 완료.
-    *   [x] **Pipeline Remediation (2026-03-25)**: MART PostGIS RPC 카테고리 필터링 버그 수정, 주유소 주소 누락 보강(역지오코딩 폴백), 마트 API 소스 세분화(LARGE/SSM/SUPER) 및 매뉴얼(v10.1) 최신화 완료.
-    *   **V9.5 Pipeline Excellence (2026-03-22)** ✅:
-        *   [x] **Resilience**: SQL 21000 에러(중복 충돌) 방어 및 Audit Telemetry 구축.
-        *   [x] **Spiral Search**: 등유 주유소 30km 확장 탐색 및 TM128 좌표 보정 완료.
-        *   [x] **Hospital Hierarchy**: NMC 응급실 우선 및 종합병원/의원 가중치 스코어링 도입.
-        *   [x] **Category Quotas**: 카테고리별 병렬 쿼터제(Quota) 적용으로 데이터 유실 원천 차단.
-        *   [x] **PostGIS Bypass**: 인덱싱 지연 우회 실시간 병합 로직으로 신선도 100% 확보.
-    *   **SSOT**: `smart_camping_plan_manual.md` V9.5 전체 로직 및 안정성 장치 통합 최신화 완료.
-    *   [x] **Stabilization**: D-3 동적 동기화 크론 작업의 테이블 참조 오류(`schedules` -> `user_schedules`) 수정 및 검증 완료.
-    *   [x] **5.5.6 Unified User Camping Profile ✅ (2026-03-17)**:
-        *   [x] **DB**: `user_camping_profiles` 테이블 구축 및 RLS/RPC (`upsert_camping_profile`) 적용.
-        *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
-        *   [x] **Flow Integration**: 예약, 타캠핑장 일정 등록, 캠핑장 추천(PlanLock), 스마트플랜 4대 엔진 통합 완료.
-        *   [x] **UX**: 기존 정보 존재 시 '간편 확인' 버튼 하나로 통과하는 최적화 로직 적용.
-    *   [x] **5.5.9 Pipeline Resilience & Precision Audit SOP ✅ (2026-03-28)**:
-        *   [x] **RPC Core Fix**: `get_master_places_in_radius` 중복 제거 및 `p_category`/`NUMERIC` 표준화 완료.
-        *   [x] **Precision Audit**: 3/31 예산군 타겟 **Quota 300** 확장 수집(식당 286건 등) 실측 및 필터링 정합성 증명.
-        *   [x] **SOP Deployment**: `precision_audit_sop_v11.md` 배포를 통한 주간/D-3 감사 지표 표준 가이드 수립.
-        *   [x] **Automation Patch**: 내일 새벽(3/29) 일요일 04:00 AM(주간), 06:00 AM(D-3) 임시 강제 실행 패치 완료.
-*   **5.4 리뷰 시스템 (Reviews)** ✅ (Completed):
-    *   [x] **구조**: `market_reviews` 테이블 스키마 검증 및 `UNIQUE(user_id, product_id)` 제약 확인.
-    *   [x] **기능**: 리뷰 작성/삭제 (별점, 텍스트) 및 중복 방지 로직.
-    *   [x] **검증**: 등록/삭제 버그(Disabled/Event) 해결 및 Toast 기반 삭제 확인 UI 적용.
-    *   [x] **전시**: 상품 상세 하단 리뷰 리스트 감성 UI (3-State).
-*   **5.5 관리자 & 통계 (Admin & Analytics)** ✅ (New):
-    *   [x] **마켓 관리**: 상품 등록/수정/삭제 (CRUD) 및 외부 링크(External) 상품 지원.
-    *   [x] **대시보드**: 전체/활동 회원 수, 입금 대기, 주문 건수 실시간 집계 구현.
-*   **5.6 마켓 고도화 (Market 2.0) - 2026-01-12** ✅:
-    *   [x] **데이터 최적화**: YouTube/Shorts 임베드(비용 0원) 및 상품 배지(Benefit Badges) 구현.
-    *   [x] **이미지 업로드**: Supabase Storage 연동 및 Drag & Drop UI.
+### Phase 5: 마켓 & 결제 (Market) - ??MVP 100% Completed
+**"캠핑??감성??집으�?- Commerce"**
+*   **5.1 ?�품 ?�시 (Product Display)** ??
+    *   [x] ?�품 목록/?�세 ?�이지 구현 (Swiper 갤러�??�션 ?�택).
+    *   [x] 감성 UX ?�용: ?�바구니/구매?�기 ?�터?�션, ?�절 처리.
+*   **5.2 ?�바구니 (Cart)** ??
+    *   [x] 로컬 ?�토리�? 기반 ?�바구니(Zustand).
+    *   [x] ?�량 조절, ??��, 가�??�계 ?�시�?계산.
+*   **5.3 주문/결제 (Checkout)** ??
+    *   [x] 배송지 ?�력 ??(Daum 주소 API ?�동).
+    *   [x] 결제 ?�단 ?�택 UI (무통??카드).
+    *   [x] **v2 Update (2026-03-10)**: Evidence 구조??Fact Chips), AI ?�각 방�? 지�??�용, 최신 API ?�동 복구 ?�료.
+    *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 ?�동???�합('Gold Standard' 초고??병합 ?�크립트 교체), UUID v5 기반 결정론적 ID(?�뢰??분석 기초), Proj4 좌표 변??�??�일 기반 ?�기??구현 ?�료.
+    *   [x] **API Resilience (v4-v6) (2026-03-21)**: D-3 캐싱??좌표 결측 ?�약 배제 ?�터 버그 ?�정(`route.ts`), ?�역 ?�러 로깅 강화, 주간 배치 ?�요???�시 ?�행 ?��?줄링 �?"?�희?? ?�약 �??�동 ?�이???�재 ?�료. 
+    *   [x] **Logic Audit (v7) (2026-03-21)**: `smart_camping_plan_manual.md` ?��?감사�??�해 병원 ?�집 범위 ?�계 �?주유??Top 3 ?�터�?병목 지???�별 �?보고 ?�료.
+    *   [x] **Pipeline Remediation (2026-03-25)**: MART PostGIS RPC 카테고리 ?�터�?버그 ?�정, 주유??주소 ?�락 보강(????�코???�백), 마트 API ?�스 ?�분??LARGE/SSM/SUPER) �?매뉴??v10.1) 최신???�료.
+    *   **V9.5 Pipeline Excellence (2026-03-22)** ??
+        *   [x] **Resilience**: SQL 21000 ?�러(중복 충돌) 방어 �?Audit Telemetry 구축.
+        *   [x] **Spiral Search**: ?�유 주유??30km ?�장 ?�색 �?TM128 좌표 보정 ?�료.
+        *   [x] **Hospital Hierarchy**: NMC ?�급???�선 �?종합병원/?�원 가중치 ?�코?�링 ?�입.
+        *   [x] **Category Quotas**: 카테고리�?병렬 쿼터??Quota) ?�용?�로 ?�이???�실 ?�천 차단.
+        *   [x] **PostGIS Bypass**: ?�덱??지???�회 ?�시�?병합 로직?�로 ?�선??100% ?�보.
+    *   **SSOT**: `smart_camping_plan_manual.md` V9.5 ?�체 로직 �??�정???�치 ?�합 최신???�료.
+    *   [x] **Stabilization**: D-3 ?�적 ?�기???�론 ?�업???�이�?참조 ?�류(`schedules` -> `user_schedules`) ?�정 �?검�??�료.
+    *   [x] **5.5.6 Unified User Camping Profile ??(2026-03-17)**:
+        *   [x] **DB**: `user_camping_profiles` ?�이�?구축 �?RLS/RPC (`upsert_camping_profile`) ?�용.
+        *   [x] **UI**: `CampingProfileGate` 공용 컴포?�트 개발 (카카?�맵 주소-좌표 변???�동).
+        *   [x] **Flow Integration**: ?�약, ?�캠핑???�정 ?�록, 캠핑??추천(PlanLock), ?�마?�플??4?� ?�진 ?�합 ?�료.
+        *   [x] **UX**: 기존 ?�보 존재 ??'간편 ?�인' 버튼 ?�나�??�과?�는 최적??로직 ?�용.
+    *   [x] **5.5.9 Pipeline Resilience & Precision Audit SOP ??(2026-03-28)**:
+        *   [x] **RPC Core Fix**: `get_master_places_in_radius` 중복 ?�거 �?`p_category`/`NUMERIC` ?��????�료.
+        *   [x] **Precision Audit**: 3/31 ?�산�??��?**Quota 300** ?�장 ?�집(?�당 286�??? ?�측 �??�터�??�합??증명.
+        *   [x] **SOP Deployment**: `precision_audit_sop_v11.md` 배포�??�한 주간/D-3 감사 지???��? 가?�드 ?�립.
+        *   [x] **Automation Patch**: ?�일 ?�벽(3/29) ?�요??04:00 AM(주간), 06:00 AM(D-3) ?�시 강제 ?�행 ?�치 ?�료.
+*   **5.4 리뷰 ?�스??(Reviews)** ??(Completed):
+    *   [x] **구조**: `market_reviews` ?�이�??�키�?검�?�?`UNIQUE(user_id, product_id)` ?�약 ?�인.
+    *   [x] **기능**: 리뷰 ?�성/??�� (별점, ?�스?? �?중복 방�? 로직.
+    *   [x] **검�?*: ?�록/??�� 버그(Disabled/Event) ?�결 �?Toast 기반 ??�� ?�인 UI ?�용.
+    *   [x] **?�시**: ?�품 ?�세 ?�단 리뷰 리스??감성 UI (3-State).
+*   **5.5 관리자 & ?�계 (Admin & Analytics)** ??(New):
+    *   [x] **마켓 관�?*: ?�품 ?�록/?�정/??�� (CRUD) �??��? 링크(External) ?�품 지??
+    *   [x] **?�?�보??*: ?�체/?�동 ?�원 ?? ?�금 ?��? 주문 건수 ?�시�?집계 구현.
+*   **5.6 마켓 고도??(Market 2.0) - 2026-01-12** ??
+    *   [x] **?�이??최적??*: YouTube/Shorts ?�베??비용 0?? �??�품 배�?(Benefit Badges) 구현.
+    *   [x] **?��?지 ?�로??*: Supabase Storage ?�동 �?Drag & Drop UI.
 
-### Phase 5.5: 스마트 캠핑 플랜 (Smart Camping Plan) - ✅ 100% Completed
-**"초개인화된 여정 안내 시스템 (Guided Journey)"**
-*   **5.5.1 Headless Engine (`smartPlan.ts`)** ✅:
-    *   [x] Zero-Cost High-Fidelity 필터링 (공공데이터 + 볼륨).
-    *   [x] Stateless AI Narration (Gemini 1.5 Flash 연동).
-    *   [x] Schema.org 기반 수익화 호환 JSON 팩트 리스트 반환 구조 마련.
-*   **5.5.2 Action-to-Tag Systemization (`persona.ts`)** ✅:
-    *   [x] 50개 마스터 태그 및 로직 세팅 (`user_personas`, `add_user_tag`).
-    *   [x] 엔진 결합 (`generatePersonalizedSmartPlan`).
-*   **5.5.3 [Priority] 점진적 프론트엔드 트리거 주입 (Progressive Injection)** ✅:
-    *   [x] **예약 폼 (`ReservationForm.tsx`)**: 결제/확정 시 강력한 취향 시그널 발송.
-    *   [x] **게시판 (`Feed`, `Post`)**: 사진/키워드 분석 및 좋아요/불씨 후원.
-    *   [x] **내 공간 (`LBS`, `Record`)**: 키워드 기록 및 위치 탐색 시그널.
-    *   [x] **마켓 & 마이스페이스 (`Market`)**: 감성 장비 클릭 및 LNT 미션 시그널.
-    *   [x] **Phase 3 센서 고도화 (Completed)**: 커뮤니티 체류 시간(No 22), 큐레이션 카드 클릭(No 26-28), 날씨/LBS 상세 클릭(No 29, 35) 실장 완료.
-    *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 설계 ✅ (2026-04-12)**:
-        *   [x] **Metric Splitting**: `Active/Inactive` 지표 분리 로직 전수 적용 및 3진 아웃 로직 고도화.
-        *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
-        *   [x] **UI Support**: 관리자 자동화 로그 페이지 🔴/🟢 상태별 세분화 렌더링 구현 완료.
-        *   [x] **Sync Strategy**: 일일 1,000회 제한 극복을 위한 17일 순환 갱신 체계 확립.
-    *   [x] **5.5.16 Personalized Journey v2.3 (Refinement) ✅ (2026-04-26)**:
-        *   [x] **Track B Engine**: 실시간 경로상 중복 제거 및 데이터 병합(Merge) 로직 구현.
-        *   [x] **Scoring**: 백년/LX/모범/안심식당 인증 가점 누적 합산 및 명소 티어 가점(100/80) 고정.
-        *   [x] **Visuals**: 8경 텍스트 자동 추출 및 왕관(👑) 이모지 동적 부여 체계 실장.
-        *   [x] **Filtering**: 비식당(정비소/부동산 등) 강력 블랙리스트 필터링 이식 완료.
-*   **5.5.4 UI Component (`SmartPlanProposal.tsx`)** ✅:
-    *   [x] Citational UI (서사 + 팩트 카드) 및 교체 상호작용 개발.
-    *   [x] `Fallback Mock Data` 주입 로직 탑재 (미연결 또는 API Key 부재 시 무중단 렌더링).
-    *   [x] **동적 카테고리**: 관리자 설정 페이지에서 카테고리 추가/순서변경 기능 구현.
-*   **5.5.5 Hybrid Sync Stabilization (Phase 11 & 12) ✅ (2026-03-08)**:
-    *   [x] **Phase 11**: PostGIS 기반 마스터 DB 스캔 및 날씨 가중치 1차 선별 구현.
-    *   [x] **Phase 12**: 카카오맵 별점/리뷰 스크래퍼 및 실시간 팩트 정제 파이프라인 이식.
-    *   [x] **v2 Update (2026-03-10)**: Evidence 구조화(Fact Chips), AI 환각 방지 지침 적용, 최신 API 연동 복구 완료.
-    *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 자동화 통합('Gold Standard' 초고속 병합 스크립트 교체), UUID v5 기반 결정론적 ID(신뢰도 분석 기초), Proj4 좌표 변환 및 파일 기반 동기화 구현 완료.
-    *   [x] **API Resilience (v4-v6) (2026-03-21)**: D-3 캐싱의 좌표 결측 예약 배제 필터 버그 수정(`route.ts`), 전역 에러 로깅 강화, 주간 배치 일요일 임시 실행 스케줄링 및 "영희네" 예약 건 수동 데이터 적재 완료. 
-    *   [x] **Logic Audit (v7) (2026-03-21)**: `smart_camping_plan_manual.md` 대조 감사를 통해 병원 수집 범위 한계 및 주유소 Top 3 필터링 병목 지점 식별 및 보고 완료.
-    *   [x] **SSOT**: `smart_camping_plan_manual.md`에 전체 로직, 인증 가중치(+15, +30), 하이브리드 수집 전략 통합 최신화.
-    *   [x] **Stabilization**: D-3 동적 동기화 크론 작업의 테이블 참조 오류(`schedules` -> `user_schedules`) 수정 및 검증 완료.
-    *   [x] **5.5.8 Hyper-Personalization Engine (v11.0) ✅ (2026-03-27)**:
-        *   [x] **Quota Breakthrough**: RESTAURANT/SPOT 1차 선별 쿼터 300개 확대 (개인화 변별력 확보).
-        *   [x] **Batch Migration**: Vercel(5분) 타임아웃 극복을 위한 GitHub Actions 배치 스크립트 전환.
-        *   [x] **Spiral Mesh Search**: 오피넷 5km 제약 해결을 위한 17지점 나선형 검색 로직 탑재.
-        *   [x] **Address Resilience**: VAN -> NEW -> Kakao Reverse Geocoding 3중 주소 보강 체계 완성.
-        *   [x] **Verification**: 밤샘 배치(04:00/06:00) 성공 확인 및 데이터 정합성 검증 완료.
-    *   [x] **SSOT Consistency**: 매뉴얼(v11.0)과 구현 코드 간의 로직 100% 동기화 및 빌드 성공.
-    *   [x] **5.5.6 Unified User Camping Profile ✅ (2026-03-17)**:
-        *   [x] **DB**: `user_camping_profiles` 테이블 구축 및 RLS/RPC (`upsert_camping_profile`) 적용.
-        *   [x] **UI**: `CampingProfileGate` 공용 컴포넌트 개발 (카카오맵 주소-좌표 변환 연동).
-        *   [x] **Flow Integration**: 예약, 타캠핑장 일정 등록, 캠핑장 추천(PlanLock), 스마트플랜 4대 엔진 통합 완료.
-        *   [x] **UX**: 기존 정보 존재 시 '간편 확인' 버튼 하나로 통과하는 최적화 로직 적용.
-    *   [x] **5.5.10 Pipeline Restoration & Location Recovery ✅ (2026-04-05)**:
-        *   [x] **Table Resolution**: `campgrounds` 테이블 내 3,000건 데이터 온존 확인으로 유실 오해 해소.
-        *   [x] **Logic Fix**: 캐싱 스크립트의 Location Recovery 쿼리를 `master_places`에서 `campgrounds`로 정상화.
-        *   [x] **Verification**: '라온아이오토캠핑장' 공식 주소 및 좌표 DB 무결성 최종 검증 완료.
-    *   [x] **5.5.11 D-3 Pipeline Stabilization & Quota Optimization ✅ (2026-04-08)**:
-        *   [x] **Bug Fix**: `clusters` 미선언 ReferenceError 해결 및 `RPC v2` 표준 파라미터 이식.
-        *   [x] **Constraint Guard**: `master_places` 적재 시 `address`, `created_at`, `lat/lng` 필수값 누락 방어 로직 전수 적용.
-        *   [x] **Geography Sync**: PostGIS `location` 필드(GeoJSON) 실시간 동기화로 공간 검색 가시성 확보.
-        *   [x] **Lowest Price Scoring**: 주유소(GAS_STATION) 등유 가격 기반 신뢰 점수 가점제 도입 및 MART 쿼터 20개 상향 완료.
-        *   [x] **Verification**: 4/11 타겟 시뮬레이션 결과 1,301개 후보군 실측 및 319개 팩트 생성 성공.
-    *   [x] **5.5.12 Monitoring High-Visibility (SOP v11) ✅ (2026-04-09)**:
-        *   [x] **SOP Integration**: `precision_audit_sop_v11.md` 규격에 맞춘 API 실적 및 쿼터 지표 수집 연동.
-        *   [x] **Dashboard Upgrade**: 관리자 로그 상세 화면에 Part 1(API), Part 2(Quota Flow) 정밀 대조 테이블 실장.
-        *   [x] **Data Persistence**: JSON 기반 `message` 필드 활용으로 DB 구조 변경 없이 동적 리포팅 체계 완성.
-        *   [x] **Verification**: 4/12 타겟 캐싱 실행 및 관리자 화면 리포트 출력 최종 검증 완료.
-    *   [x] **5.5.14 Pipeline Scale-Up Optimization ✅ (2026-04-15)**:
-        *   [x] **Throttling**: 권역 간 3초 지연 로직 실장으로 외부 API 차단 리스크 해소.
-        *   [x] **Parallelism**: 권역 내 카테고리별 API 수집 병렬화(`Promise.all`)로 처리 속도 극대화.
-        *   [x] **Bulk Persistence**: 즉시 적재 방식을 '메모리 통합 후 벌크 적재'로 전환하여 DB 부하 최소화.
-        *   [x] **LX Weights**: LX 공사맛집 가점(+50) 로직 정밀 실장 및 1차 선별 정합성 확보.
-        *   [x] **Verification**: 4/17 타겟 시뮬레이션 성공 및 정밀 감사 보고서 생성 성공.
-    *   [x] **5.5.15 Hybrid Quality Selection (v11.9.13) ✅ (2026-04-16)**:
-        *   [x] **Hybrid Scoring**: 품질 점수 - 거리 감점 최적화 엔진 구축.
-        *   [x] **Safe Mode**: RPC 3,000개 수집 + JS 하이브리드 선별로 정합성 확보.
-        *   [x] **Audit v2**: 1차(품질) vs 2차(하이브리드) 대조 리포트 엔진 탑재.
-        *   [x] **SSOT**: 매뉴얼 최신화 및 12종 블랙리스트 필터 강화.
-    *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 설계 ✅ (2026-04-12)**:
-        *   [x] **Metric Splitting**: `Active/Inactive` 지표 분리 로직 전수 적용 및 3진 아웃 로직 고도화.
-        *   [x] **Popularity Engine v2**: TourAPI `readcount` 폐기 대응으로 Tmap(중심성) & KT(집중률) 기반 인기도 엔진 설계 완료.
-        *   [x] **UI Support**: 관리자 자동화 로그 페이지 🔴/🟢 상태별 세분화 렌더링 구현 완료.
-        *   [x] **Sync Strategy**: 일일 1,000회 제한 극복을 위한 17일 순환 갱신 체계 확립.
-    *   [x] **5.5.17 Persistence & Optimization (v11.9.32) ✅ (2026-05-04)**:
-        *   [x] **Smart Plan Persistence**: `user_schedules` DB 연동을 통한 플랜 영구 저장 및 Zero-API 로딩 실장.
-        *   [x] **Swap Synchronization**: 사용자 장소 교체(Swap) 시 즉시 DB 상태 동기화 및 유지 로직 구현.
-        *   [x] **UI Restoration**: 저장된 플랜 데이터 존재 시 "자동 완성" 버튼 대신 결과 화면 즉시 노출 로직 복구.
-    *   [x] **5.5.18 Smart Plan UX/UI Refinement (v11.9.35) ✅ (2026-05-05)**:
-        *   [x] **Mobile Alignment**: 타임라인 세로줄 및 장소 카드 너비(`w-[calc(100%-3rem)]`) 최적화로 모바일 가시성 확보.
-        *   [x] **Swap Stability**: 중복 제거 맵핑 및 활성 장소 필터링으로 스테이지 5 스와프 버그 완벽 해결.
-        *   [x] **AI Personalization**: `guestDetails`(인원/반려견) 데이터를 프롬프트에 직접 주입하여 초개인화 서사 구현.
-        *   [x] **Multi-Day Weather**: 입실~퇴실 전체 일정 기상 데이터 기반 딥 스코어링 및 프롬프트 최적화.
-    *   [x] **5.5.19 Route Selection & AI Stability (v11.9.40) ✅ (2026-05-06)**:
-        *   [x] **Route Selection Integration**: 카카오 내비 API 연동, 추천/대안 경로 선택 UI(`RouteSelector`) 구축.
-        *   [x] **Quota Optimization**: `alternatives=true` 옵션 도입으로 API 호출 횟수 50% 절감.
-        *   [x] **AI Robustness**: 정규식 기반 JSON 추출 로직 도입으로 배포 환경 응답 파싱 에러 해결.
-        *   [x] **Midpoint Precision**: 소요 시간 50% 지점 기반의 정확한 경유지 좌표 추출 로직 안착.
-    *   [x] **5.5.20 Smart Plan Persona & Weather Stabilization (v11.9.60) ✅ (2026-05-07)**:
-        *   [x] **Persona Extraction**: 서버 사이드 인증 연동으로 RLS를 우회하여 `User Camping Profile` 데이터 추출 안정화.
-        *   [x] **Weather Sync**: 날짜 형식 불일치 해결 및 여행 전 기간 일기 예보 요약 데이터 확보.
-        *   [x] **Narrative Precision**: 인원 구성(아이/반려견/부모님)과 날짜별 날씨가 포함된 서사 중심의 AI 브리핑 구현.
-    *   [x] **5.5.21 Hospital Data Recovery & Scoring Optimization (v11.9.66) ✅ (2026-05-08)**:
-        *   [x] **NMC Recovery**: NMC API 좌표 결측 데이터를 카카오 지오코딩으로 실시간 복구하여 DB 유실 차단.
-        *   [x] **Address Fix**: '강원특별자치도' 등 특수 행정구역 명칭에서 시군구가 오추출되던 정규표현식 버그 수정.
-        *   [x] **Scoring**: NMC 응급의료센터 기본 점수를 150점으로 상향하여 의료 안전성 기반의 최상단 랭킹 시스템 구축.
-        *   [x] **Verification**: 춘천(화목원) 예약건 대상 시뮬레이션으로 한림대/강원대병원의 최상단 안착 최종 검증.
-    *   [x] **5.5.22 Navigation Deep Link Stabilization (v11.9.68) ✅ (2026-05-10)**:
+### Phase 5.5: ?�마??캠핑 ?�랜 (Smart Camping Plan) - ??100% Completed
+**"초개?�화???�정 ?�내 ?�스??(Guided Journey)"**
+*   **5.5.1 Headless Engine (`smartPlan.ts`)** ??
+    *   [x] Zero-Cost High-Fidelity ?�터�?(공공?�이??+ 볼륨).
+    *   [x] Stateless AI Narration (Gemini 1.5 Flash ?�동).
+    *   [x] Schema.org 기반 ?�익???�환 JSON ?�트 리스??반환 구조 마련.
+*   **5.5.2 Action-to-Tag Systemization (`persona.ts`)** ??
+    *   [x] 50�?마스???�그 �?로직 ?�팅 (`user_personas`, `add_user_tag`).
+    *   [x] ?�진 결합 (`generatePersonalizedSmartPlan`).
+*   **5.5.3 [Priority] ?�진???�론?�엔???�리�?주입 (Progressive Injection)** ??
+    *   [x] **?�약 ??(`ReservationForm.tsx`)**: 결제/?�정 ??강력??취향 ?�그??발송.
+    *   [x] **게시??(`Feed`, `Post`)**: ?�진/?�워??분석 �?좋아??불씨 ?�원.
+    *   [x] **??공간 (`LBS`, `Record`)**: ?�워??기록 �??�치 ?�색 ?�그??
+    *   [x] **마켓 & 마이?�페?�스 (`Market`)**: 감성 ?�비 ?�릭 �?LNT 미션 ?�그??
+    *   [x] **Phase 3 ?�서 고도??(Completed)**: 커�??�티 체류 ?�간(No 22), ?�레?�션 카드 ?�릭(No 26-28), ?�씨/LBS ?�세 ?�릭(No 29, 35) ?�장 ?�료.
+    *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 ?�계 ??(2026-04-12)**:
+        *   [x] **Metric Splitting**: `Active/Inactive` 지??분리 로직 ?�수 ?�용 �?3�??�웃 로직 고도??
+        *   [x] **Popularity Engine v2**: TourAPI `readcount` ?�기 ?�?�으�?Tmap(중심?? & KT(집중�? 기반 ?�기???�진 ?�계 ?�료.
+        *   [x] **UI Support**: 관리자 ?�동??로그 ?�이지 ?��/?�� ?�태�??�분???�더�?구현 ?�료.
+        *   [x] **Sync Strategy**: ?�일 1,000???�한 극복???�한 17???�환 갱신 체계 ?�립.
+    *   [x] **5.5.16 Personalized Journey v2.3 (Refinement) ??(2026-04-26)**:
+        *   [x] **Track B Engine**: ?�시�?경로??중복 ?�거 �??�이??병합(Merge) 로직 구현.
+        *   [x] **Scoring**: 백년/LX/모범/?�심?�당 ?�증 가???�적 ?�산 �?명소 ?�어 가??100/80) 고정.
+        *   [x] **Visuals**: 8�??�스???�동 추출 �??��?(?��) ?�모지 ?�적 부??체계 ?�장.
+        *   [x] **Filtering**: 비식???�비??부?�산 ?? 강력 블랙리스???�터�??�식 ?�료.
+*   **5.5.4 UI Component (`SmartPlanProposal.tsx`)** ??
+    *   [x] Citational UI (?�사 + ?�트 카드) �?교체 ?�호?�용 개발.
+    *   [x] `Fallback Mock Data` 주입 로직 ?�재 (미연�??�는 API Key 부????무중???�더�?.
+    *   [x] **?�적 카테고리**: 관리자 ?�정 ?�이지?�서 카테고리 추�?/?�서변�?기능 구현.
+*   **5.5.5 Hybrid Sync Stabilization (Phase 11 & 12) ??(2026-03-08)**:
+    *   [x] **Phase 11**: PostGIS 기반 마스??DB ?�캔 �??�씨 가중치 1�??�별 구현.
+    *   [x] **Phase 12**: 카카?�맵 별점/리뷰 ?�크?�퍼 �??�시�??�트 ?�제 ?�이?�라???�식.
+    *   [x] **v2 Update (2026-03-10)**: Evidence 구조??Fact Chips), AI ?�각 방�? 지�??�용, 최신 API ?�동 복구 ?�료.
+    *   [x] **ETL 5.0 (2026-03-15)**: 주간 배치 ?�동???�합('Gold Standard' 초고??병합 ?�크립트 교체), UUID v5 기반 결정론적 ID(?�뢰??분석 기초), Proj4 좌표 변??�??�일 기반 ?�기??구현 ?�료.
+    *   [x] **API Resilience (v4-v6) (2026-03-21)**: D-3 캐싱??좌표 결측 ?�약 배제 ?�터 버그 ?�정(`route.ts`), ?�역 ?�러 로깅 강화, 주간 배치 ?�요???�시 ?�행 ?��?줄링 �?"?�희?? ?�약 �??�동 ?�이???�재 ?�료. 
+    *   [x] **Logic Audit (v7) (2026-03-21)**: `smart_camping_plan_manual.md` ?��?감사�??�해 병원 ?�집 범위 ?�계 �?주유??Top 3 ?�터�?병목 지???�별 �?보고 ?�료.
+    *   [x] **SSOT**: `smart_camping_plan_manual.md`???�체 로직, ?�증 가중치(+15, +30), ?�이브리???�집 ?�략 ?�합 최신??
+    *   [x] **Stabilization**: D-3 ?�적 ?�기???�론 ?�업???�이�?참조 ?�류(`schedules` -> `user_schedules`) ?�정 �?검�??�료.
+    *   [x] **5.5.8 Hyper-Personalization Engine (v11.0) ??(2026-03-27)**:
+        *   [x] **Quota Breakthrough**: RESTAURANT/SPOT 1�??�별 쿼터 300�??��? (개인??변별력 ?�보).
+        *   [x] **Batch Migration**: Vercel(5�? ?�?�아??극복???�한 GitHub Actions 배치 ?�크립트 ?�환.
+        *   [x] **Spiral Mesh Search**: ?�피??5km ?�약 ?�결???�한 17지???�선??검??로직 ?�재.
+        *   [x] **Address Resilience**: VAN -> NEW -> Kakao Reverse Geocoding 3�?주소 보강 체계 ?�성.
+        *   [x] **Verification**: 밤샘 배치(04:00/06:00) ?�공 ?�인 �??�이???�합??검�??�료.
+    *   [x] **SSOT Consistency**: 매뉴??v11.0)�?구현 코드 간의 로직 100% ?�기??�?빌드 ?�공.
+    *   [x] **5.5.6 Unified User Camping Profile ??(2026-03-17)**:
+        *   [x] **DB**: `user_camping_profiles` ?�이�?구축 �?RLS/RPC (`upsert_camping_profile`) ?�용.
+        *   [x] **UI**: `CampingProfileGate` 공용 컴포?�트 개발 (카카?�맵 주소-좌표 변???�동).
+        *   [x] **Flow Integration**: ?�약, ?�캠핑???�정 ?�록, 캠핑??추천(PlanLock), ?�마?�플??4?� ?�진 ?�합 ?�료.
+        *   [x] **UX**: 기존 ?�보 존재 ??'간편 ?�인' 버튼 ?�나�??�과?�는 최적??로직 ?�용.
+    *   [x] **5.5.10 Pipeline Restoration & Location Recovery ??(2026-04-05)**:
+        *   [x] **Table Resolution**: `campgrounds` ?�이�???3,000�??�이???�존 ?�인?�로 ?�실 ?�해 ?�소.
+        *   [x] **Logic Fix**: 캐싱 ?�크립트??Location Recovery 쿼리�?`master_places`?�서 `campgrounds`�??�상??
+        *   [x] **Verification**: '?�온?�이?�토캠핑?? 공식 주소 �?좌표 DB 무결??최종 검�??�료.
+    *   [x] **5.5.11 D-3 Pipeline Stabilization & Quota Optimization ??(2026-04-08)**:
+        *   [x] **Bug Fix**: `clusters` 미선??ReferenceError ?�결 �?`RPC v2` ?��? ?�라미터 ?�식.
+        *   [x] **Constraint Guard**: `master_places` ?�재 ??`address`, `created_at`, `lat/lng` ?�수�??�락 방어 로직 ?�수 ?�용.
+        *   [x] **Geography Sync**: PostGIS `location` ?�드(GeoJSON) ?�시�??�기?�로 공간 검??가?�성 ?�보.
+        *   [x] **Lowest Price Scoring**: 주유??GAS_STATION) ?�유 가�?기반 ?�뢰 ?�수 가?�제 ?�입 �?MART 쿼터 20�??�향 ?�료.
+        *   [x] **Verification**: 4/11 ?��??��??�이??결과 1,301�??�보�??�측 �?319�??�트 ?�성 ?�공.
+    *   [x] **5.5.12 Monitoring High-Visibility (SOP v11) ??(2026-04-09)**:
+        *   [x] **SOP Integration**: `precision_audit_sop_v11.md` 규격??맞춘 API ?�적 �?쿼터 지???�집 ?�동.
+        *   [x] **Dashboard Upgrade**: 관리자 로그 ?�세 ?�면??Part 1(API), Part 2(Quota Flow) ?��? ?��??�이�??�장.
+        *   [x] **Data Persistence**: JSON 기반 `message` ?�드 ?�용?�로 DB 구조 변�??�이 ?�적 리포??체계 ?�성.
+        *   [x] **Verification**: 4/12 ?��?캐싱 ?�행 �?관리자 ?�면 리포??출력 최종 검�??�료.
+    *   [x] **5.5.14 Pipeline Scale-Up Optimization ??(2026-04-15)**:
+        *   [x] **Throttling**: 권역 �?3�?지??로직 ?�장?�로 ?��? API 차단 리스???�소.
+        *   [x] **Parallelism**: 권역 ??카테고리�?API ?�집 병렬??`Promise.all`)�?처리 ?�도 극�???
+        *   [x] **Bulk Persistence**: 즉시 ?�재 방식??'메모�??�합 ??벌크 ?�재'�??�환?�여 DB 부??최소??
+        *   [x] **LX Weights**: LX 공사맛집 가??+50) 로직 ?��? ?�장 �?1�??�별 ?�합???�보.
+        *   [x] **Verification**: 4/17 ?��??��??�이???�공 �??��? 감사 보고???�성 ?�공.
+    *   [x] **5.5.15 Hybrid Quality Selection (v11.9.13) ??(2026-04-16)**:
+        *   [x] **Hybrid Scoring**: ?�질 ?�수 - 거리 감점 최적???�진 구축.
+        *   [x] **Safe Mode**: RPC 3,000�??�집 + JS ?�이브리???�별�??�합???�보.
+        *   [x] **Audit v2**: 1�??�질) vs 2�??�이브리?? ?��?리포???�진 ?�재.
+        *   [x] **SSOT**: 매뉴??최신??�?12�?블랙리스???�터 강화.
+    *   [x] **5.5.13 Precision Audit v11.3 & Popularity Engine v2 ?�계 ??(2026-04-12)**:
+        *   [x] **Metric Splitting**: `Active/Inactive` 지??분리 로직 ?�수 ?�용 �?3�??�웃 로직 고도??
+        *   [x] **Popularity Engine v2**: TourAPI `readcount` ?�기 ?�?�으�?Tmap(중심?? & KT(집중�? 기반 ?�기???�진 ?�계 ?�료.
+        *   [x] **UI Support**: 관리자 ?�동??로그 ?�이지 ?��/?�� ?�태�??�분???�더�?구현 ?�료.
+        *   [x] **Sync Strategy**: ?�일 1,000???�한 극복???�한 17???�환 갱신 체계 ?�립.
+    *   [x] **5.5.17 Persistence & Optimization (v11.9.32) ??(2026-05-04)**:
+        *   [x] **Smart Plan Persistence**: `user_schedules` DB ?�동???�한 ?�랜 ?�구 ?�??�?Zero-API 로딩 ?�장.
+        *   [x] **Swap Synchronization**: ?�용???�소 교체(Swap) ??즉시 DB ?�태 ?�기??�??��? 로직 구현.
+        *   [x] **UI Restoration**: ?�?�된 ?�랜 ?�이??존재 ??"?�동 ?�성" 버튼 ?�??결과 ?�면 즉시 ?�출 로직 복구.
+    *   [x] **5.5.18 Smart Plan UX/UI Refinement (v11.9.35) ??(2026-05-05)**:
+        *   [x] **Mobile Alignment**: ?�?�라???�로�?�??�소 카드 ?�비(`w-[calc(100%-3rem)]`) 최적?�로 모바??가?�성 ?�보.
+        *   [x] **Swap Stability**: 중복 ?�거 맵핑 �??�성 ?�소 ?�터링으�??�테?��? 5 ?��???버그 ?�벽 ?�결.
+        *   [x] **AI Personalization**: `guestDetails`(?�원/반려�? ?�이?��? ?�롬?�트??직접 주입?�여 초개?�화 ?�사 구현.
+        *   [x] **Multi-Day Weather**: ?�실~?�실 ?�체 ?�정 기상 ?�이??기반 ???�코?�링 �??�롬?�트 최적??
+    *   [x] **5.5.19 Route Selection & AI Stability (v11.9.40) ??(2026-05-06)**:
+        *   [x] **Route Selection Integration**: 카카???�비 API ?�동, 추천/?�??경로 ?�택 UI(`RouteSelector`) 구축.
+        *   [x] **Quota Optimization**: `alternatives=true` ?�션 ?�입?�로 API ?�출 ?�수 50% ?�감.
+        *   [x] **AI Robustness**: ?�규??기반 JSON 추출 로직 ?�입?�로 배포 ?�경 ?�답 ?�싱 ?�러 ?�결.
+        *   [x] **Midpoint Precision**: ?�요 ?�간 50% 지??기반???�확??경유지 좌표 추출 로직 ?�착.
+    *   [x] **5.5.20 Smart Plan Persona & Weather Stabilization (v11.9.60) ??(2026-05-07)**:
+        *   [x] **Persona Extraction**: ?�버 ?�이???�증 ?�동?�로 RLS�??�회?�여 `User Camping Profile` ?�이??추출 ?�정??
+        *   [x] **Weather Sync**: ?�짜 ?�식 불일�??�결 �??�행 ??기간 ?�기 ?�보 ?�약 ?�이???�보.
+        *   [x] **Narrative Precision**: ?�원 구성(?�이/반려�?부모님)�??�짜�??�씨가 ?�함???�사 중심??AI 브리??구현.
+    *   [x] **5.5.21 Hospital Data Recovery & Scoring Optimization (v11.9.66) ??(2026-05-08)**:
+        *   [x] **NMC Recovery**: NMC API 좌표 결측 ?�이?��? 카카??지?�코?�으�??�시�?복구?�여 DB ?�실 차단.
+        *   [x] **Address Fix**: '강원?�별?�치?? ???�수 ?�정구역 명칭?�서 ?�군구�? ?�추출되???�규?�현??버그 ?�정.
+        *   [x] **Scoring**: NMC ?�급?�료?�터 기본 ?�수�?150?�으�??�향?�여 ?�료 ?�전??기반??최상????�� ?�스??구축.
+        *   [x] **Verification**: 춘천(?�목?? ?�약�??�???��??�이?�으�??�림?�/강원?�병원??최상???�착 최종 검�?
+    *   [x] **5.5.22 Navigation Deep Link Stabilization (v11.9.68) ??(2026-05-10)**:
         *   [x] **GPS Autonomy**: Omitted manual start points for all nav apps, relying on native real-time GPS for maximum stability.
         *   [x] **Tmap Android Fix**: Implemented `goalx/y` and `v1x/y` parameters to resolve destination/waypoint omission bugs in Android.
         *   [x] **OS Branching**: Standardized OS-specific URL schemes (rGoX/Y for iOS vs goalx/y for Android) in `nav-utils.ts`.
         *   [x] **Verification**: Live test confirmed immediate pathfinding from "Current Location" to "Destination" via Tmap Android.
 
 
-### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
-**"더 깊은 연결과 재미"**
-*   **6.1 크리에이터 콘텐츠 보드 (MVP)** ✅:
-    *   [x] **구조**: `creators`, `creator_contents` DB 및 서비스 로직.
-    *   [x] **기능**: 작성, 리스트, 상세, **상호작용(좋아요/댓글/구독)** 구현 완료.
-    *   [x] **관리**: 관리자 승인 시스템 및 테스트 계정 지원 포함.
-*   **6.2 미션 & 보상 (Mission System)** ✅ (100% Completed):
-    *   [x] **구조**: `missions`, `user_missions`, `point_history` 스키마 및 RLS.
-    *   [x] **기능**: 리스트, 상세, 참여(Join), 인증(Photo), 보상(Point/XP).
-    *   [x] **커뮤니티 연동**: 주간 미션 게시물 자동 생성(RPC), 댓글 사진 인증(Compression).
-    *   [x] **UX**: 초보자/기존 유저 홈 위젯 연동.
-    *   [x] **초보자 모드 홈**: 히어로 섹션, 3-Step 추천 가이드(요리/놀이/이벤트) 카드 뷰 구현.
-    *   [x] **재방문자 모드 홈**: 예약/미션 중심 대시보드 UI, 퀵 액션(체크인/매너타임) 구현.
-    *   [x] **날씨/시간 개인화**: `useWeather` & `usePersonalizedRecommendation` 기반 상황별 인사말 및 날씨 배지(Open-Meteo) 적용.
-    *   [x] **Skeleton UI**: 3-State UX(Loading/Empty/Error) 적용 완료.
-    *   [x] **관리**: 미션 관리자 페이지(Admin) 확인(Verified) + **참여 철회 기능 추가**.
-    *   [x] **Ranking**: 인기순(Trending) 정렬 및 배지 로직 추가.
+### Phase 6: ?�장 모듈 (Expansion) - ?�� Ongoing (98%)
+**"??깊�? ?�결�??��?"**
+*   **6.1 ?�리?�이??콘텐�?보드 (MVP)** ??
+    *   [x] **구조**: `creators`, `creator_contents` DB �??�비??로직.
+    *   [x] **기능**: ?�성, 리스?? ?�세, **?�호?�용(좋아???��?/구독)** 구현 ?�료.
+    *   [x] **관�?*: 관리자 ?�인 ?�스??�??�스??계정 지???�함.
+*   **6.2 미션 & 보상 (Mission System)** ??(100% Completed):
+    *   [x] **구조**: `missions`, `user_missions`, `point_history` ?�키�?�?RLS.
+    *   [x] **기능**: 리스?? ?�세, 참여(Join), ?�증(Photo), 보상(Point/XP).
+    *   [x] **커�??�티 ?�동**: 주간 미션 게시�??�동 ?�성(RPC), ?��? ?�진 ?�증(Compression).
+    *   [x] **UX**: 초보??기존 ?��? ???�젯 ?�동.
+    *   [x] **초보??모드 ??*: ?�어�??�션, 3-Step 추천 가?�드(?�리/?�???�벤?? 카드 �?구현.
+    *   [x] **?�방문자 모드 ??*: ?�약/미션 중심 ?�?�보??UI, ???�션(체크??매너?�?? 구현.
+    *   [x] **?�씨/?�간 개인??*: `useWeather` & `usePersonalizedRecommendation` 기반 ?�황�??�사�?�??�씨 배�?(Open-Meteo) ?�용.
+    *   [x] **Skeleton UI**: 3-State UX(Loading/Empty/Error) ?�용 ?�료.
+    *   [x] **관�?*: 미션 관리자 ?�이지(Admin) ?�인(Verified) + **참여 철회 기능 추�?**.
+    *   [x] **Ranking**: ?�기??Trending) ?�렬 �?배�? 로직 추�?.
     ### Phase 4: Personalization Engine Upgrade (Components & Logic) - **[COMPLETED]**
     - [x] **Context-Aware Hook (`usePersonalizedRecommendation`)**
       - [x] Rule-based Scoring (Season/Weather/Time).
@@ -299,103 +299,103 @@
       - [x] Shuffle / Random Box Logic.
     - [x] **UI Integration**
       - [x] Home Detail Sheet: Add Shuffle Button & Reason Badge.
-      - [x] Restore Rich Content (Recipe Steps, Ingredients). 정렬 및 배지 로직 추가.
+      - [x] Restore Rich Content (Recipe Steps, Ingredients). ?�렬 �?배�? 로직 추�?.
     - [x] **Next Session: Post-Execution Audit (Completed: 3/30)**
-        - [x] 3/29 새벽 자동화 실행 로그(`automation_logs`) 성공 확인 (RESTAURANT 286건 등)
-    - [x] **Nationwide Popularity Engine v2 (4/13)** ✅
-        - [x] 전국 12,753개 명소 대상 Tmap 연관 관광지/KT 집중률 데이터 수집 완료
-        - [x] 전국 데이터 기반 `trust_score` 정규화 및 `finalizePopularityv2` 고도화 완료
-        - [x] 대규모 지역(경기 등 1000건 초과) 수집 누락 방지 무제한 페이징(Range) 적용 완료
-        - [x] 관리자 모니터링 보드(API 소통 상세) Tmap/KT 실시간 점검 기능 통합 완료
+        - [x] 3/29 ?�벽 ?�동???�행 로그(`automation_logs`) ?�공 ?�인 (RESTAURANT 286�???
+    - [x] **Nationwide Popularity Engine v2 (4/13)** ??
+        - [x] ?�국 12,753�?명소 ?�??Tmap ?��? 관광�?/KT 집중�??�이???�집 ?�료
+        - [x] ?�국 ?�이??기반 `trust_score` ?�규??�?`finalizePopularityv2` 고도???�료
+        - [x] ?�규모 지??경기 ??1000�?초과) ?�집 ?�락 방�? 무제???�이�?Range) ?�용 ?�료
+        - [x] 관리자 모니?�링 보드(API ?�통 ?�세) Tmap/KT ?�시�??��? 기능 ?�합 ?�료
     - [ ] **Next: D-3 Caching Audit & Selection Logic (Upcoming)**
-        - [ ] 3일 전 캐싱 1부, 2부 진행 상태 및 1차 선별 로직 정밀 점검
-        - [ ] 인기도 v2 점수가 반영된 스마트 플랜 후보군의 실효성 및 안착 상태 확인
+        - [ ] 3????캐싱 1부, 2부 진행 ?�태 �?1�??�별 로직 ?��? ?��?
+        - [ ] ?�기??v2 ?�수가 반영???�마???�랜 ?�보군의 ?�효??�??�착 ?�태 ?�인
     *   [x] **Critical Fixes (2025-12-30)**: 
         *   Deletion Persistence (RPC Cascade + Self-Healing).
         *   Reverse Cascade (Comment Delete -> Mission Withdraw).
         *   Comment Visibility (Sync Fix).
     *   [x] **XP/Token Lifecycle (2025-12-31)**:
-        *   **Clawback**: 미션/게시물 삭제 시 획득했던 XP/Token 자동 회수 (Trigger).
-        *   **Photo Rewards**: 사진 업로드 보상도 콘텐츠 ID(`related_id`)와 연동하여 자동 회수 구현.
-        *   **Admin Deletion**: 관리자 강제 삭제 기능 (RPC `admin_force_delete_post`) 복구 및 UI 적용.
-*   **6.3 확장 지도** ⬜: (대기)
+        *   **Clawback**: 미션/게시�???�� ???�득?�던 XP/Token ?�동 ?�수 (Trigger).
+        *   **Photo Rewards**: ?�진 ?�로??보상??콘텐�?ID(`related_id`)?� ?�동?�여 ?�동 ?�수 구현.
+        *   **Admin Deletion**: 관리자 강제 ??�� 기능 (RPC `admin_force_delete_post`) 복구 �?UI ?�용.
+*   **6.3 ?�장 지??* �? (?��?
 
-### Phase 7: 운영 & 갭 필링 (Ops & Gap Filling) - 🔄 Ongoing (99%)
-**"사용자 피드백 기반 디테일 완성"**
-*   **7.0 이슈 긴급 대응 (Hotfixes)** ✅:
-    *   [x] **미션 피드**: 좋아요, 본인 삭제 기능 완비 (RLS/RPC).
-    - [x] **커뮤니티**: 댓글 좋아요(New), 삭제 오류 해결 및 삭제 확인 모달 추가 (Optimistic UI Fix).
-    - [x] **Admin Ops**: 콘텐츠 댓글 삭제, 미션 참여 강제 철회, **글로벌 게시물 삭제(Global Delete)** 구현 완료.
-    - [x] **Policy Enforcement**: **XP/Token 회수(Clawback)** 로직 및 **좋아요 동기화(Sync)** 구현 완료.
-    - [x] **Navigation Fix (2025-12-31)**: 탭 이동 시 페이지 새로고침 되어도 상태 유지(URL Sync) 및 깜빡임 제거.
-*   **7.1 글로벌 UI/UX** ✅:
-    *   [x] **TopBar**: 설정 메뉴(프로필/알림/약관) 및 로그아웃 구현 완료.
-    *   [x] **Login UX**: 비로그인 접근 제한(Global Modal) 및 로그아웃 시 XP 초기화 구현 완료.
-*   **7.2 홈 디테일 (Home Details)** ✅:
-    *   [x] **초보자 칩**: 6개 고정 칩 디자인 적용 및 관리자 연동 완료.
-    *   [x] **오늘의 콘텐츠**: '오늘의 추천'으로 명칭 변경 및 개인화 엔진 V2 (`recommendation_pool`) 프론트엔드/백엔드 고도화 완료.
-    *   [x] **링크 수정**: 관리자 설정(기본정보)에서 주요 링크 및 텍스트 제어 가능.
-    *   [x] **관리자 고도화 V2.1**: AI Bulk Import, 구조화된 재료/단계 입력 폼, 개인화 필드(인분/칼로리/연령/장소) 관리.
-*   **7.3 내공간 고도화 (My Space Pivot)** ✅:
-    *   [x] **오늘의 콘텐츠**: '오늘의 추천'으로 명칭 변경 및 개인화 엔진 V2 (`recommendation_pool`) 프론트엔드/백엔드 고도화 완료.
-    *   [x] **링크 수정**: 관리자 설정(기본정보)에서 주요 링크 및 텍스트 제어 가능.
-    *   [x] **관리자 고도화 V2.1**: AI Bulk Import, 구조화된 재료/단계 입력 폼, 개인화 필드(인분/칼로리/연령/장소) 관리.
-*   **7.3 내공간 고도화 (My Space Pivot)** ✅:
-    *   [x] **위치 기반 편의시설**: `site_config.nearby_places`와 연동된 주변 편의시설 탭 구현.
-    *   [x] **주변 즐길거리**: `nearby_events` DB 연동 및 LBS.
-    *   [x] **Fallback 데이터 개선 (2026-01-07)**: 가평 → 예산군 데이터 변경, 검색 반경 10km → 20km 확장.
-    *   [x] **행사 UI 개선**: 이미지 제거, 진행중 뱃지 이동, 상세보기 버튼(TourAPI 연동).
-    *   [x] **Archive UX (New)**: 불멍/별보기/꾸미기 버튼 삭제. 사진 업로드 및 뷰어 품질 강화.
-    *   [x] **Action**: '기록하기(Log)' 버튼 강조 및 접근성 개선.
-    *   [x] **일관성**: 내공간 전반(Records, Album, History)의 도구 UI 경험 통일.
-*   **7.5 시스템 운영 및 안정성 (System Ops)** ✅:
-    *   [x] **날씨 예보 고도화**: 단기/중기 예보 병합 로직 수정으로 **10일 예보** 지원 완료.
-    *   [x] **시스템 운영보드 (New)**: `/admin/operations` 구현 (SSOT 26장). 유저 접근 제어(유지보수 모드), 예약 차단, 캐시/알림 리셋 원클릭 대응.
-    *   [x] **도움말 가이드**: 운영보드 내 상황별 조치 가이드(Dialog) 탑재.
-*   **7.6 마켓 피벗 (Market Pivot)** ✅ (2026-01-13):
-    *   [x] **제휴 중심**: 자체 상품 대신 외부 링크(쿠팡 파트너스 등) 지원 구조 완성. ProductCard 및 상세 페이지에서 "구매처로 이동" 분기 처리.
-*   **7.5 예약 자동화** ✅ (이미 구현됨):
-    *   [x] **오픈 로직**: `OpenDayConfig.tsx` 컴포넌트에서 매월 자동 반복 규칙 지원. `open_day_rules` 테이블 + `automation_config` JSONB.
-*   **7.6 상시 운영 체계 (Daily Region Sync v12.0) ✅ (2026-04-04)**:
-    *   [x] **Rotation Engine**: 전국 17개 시도 대상 17일 주기 지역별 순환 동기화 엔진 실장 (`daily-region-sync.mjs`).
-    *   [x] **Category Expansion**: 마트(대형/SSM/기타)를 행안부 OpenAPI 기반 상시 갱신 체계로 통합.
-    *   [x] **Audit Reporting**: 7대 핵심 지표(기존/수신/신규/갱신/총계) 로깅 및 관리자 페이지 전용 리포트 UI 구현.
-    *   [x] **Automation**: GitHub Actions를 통한 매일 04:00 KST 자동 실행 스케줄링 완료.
-    *   [x] **SSOT Consistency**: 매뉴얼 및 정밀 감사 SOP(v11.1)에 상시 운영 지침 반영.
-*   **7.6 외부 API 연동 (Final Polish)** ⬜ (도메인 발급 후):
-    *   [ ] **TourAPI/Kakao**: `nearby_events` 및 `site_config` 데이터를 실제 외부 API와 실시간 동기화 (안정화 단계에서 진행).
+### Phase 7: ?�영 & �??�링 (Ops & Gap Filling) - ?�� Ongoing (99%)
+**"?�용???�드�?기반 ?�테???�성"**
+*   **7.0 ?�슈 긴급 ?�??(Hotfixes)** ??
+    *   [x] **미션 ?�드**: 좋아?? 본인 ??�� 기능 ?�비 (RLS/RPC).
+    - [x] **커�??�티**: ?��? 좋아??New), ??�� ?�류 ?�결 �???�� ?�인 모달 추�? (Optimistic UI Fix).
+    - [x] **Admin Ops**: 콘텐�??��? ??��, 미션 참여 강제 철회, **글로벌 게시�???��(Global Delete)** 구현 ?�료.
+    - [x] **Policy Enforcement**: **XP/Token ?�수(Clawback)** 로직 �?**좋아???�기??Sync)** 구현 ?�료.
+    - [x] **Navigation Fix (2025-12-31)**: ???�동 ???�이지 ?�로고침 ?�어???�태 ?��?(URL Sync) �?깜빡???�거.
+*   **7.1 글로벌 UI/UX** ??
+    *   [x] **TopBar**: ?�정 메뉴(?�로???�림/?��?) �?로그?�웃 구현 ?�료.
+    *   [x] **Login UX**: 비로그인 ?�근 ?�한(Global Modal) �?로그?�웃 ??XP 초기??구현 ?�료.
+*   **7.2 ???�테??(Home Details)** ??
+    *   [x] **초보??�?*: 6�?고정 �??�자???�용 �?관리자 ?�동 ?�료.
+    *   [x] **?�늘??콘텐�?*: '?�늘??추천'?�로 명칭 변�?�?개인???�진 V2 (`recommendation_pool`) ?�론?�엔??백엔??고도???�료.
+    *   [x] **링크 ?�정**: 관리자 ?�정(기본?�보)?�서 주요 링크 �??�스???�어 가??
+    *   [x] **관리자 고도??V2.1**: AI Bulk Import, 구조?�된 ?�료/?�계 ?�력 ?? 개인???�드(?�분/칼로�??�령/?�소) 관�?
+*   **7.3 ?�공�?고도??(My Space Pivot)** ??
+    *   [x] **?�늘??콘텐�?*: '?�늘??추천'?�로 명칭 변�?�?개인???�진 V2 (`recommendation_pool`) ?�론?�엔??백엔??고도???�료.
+    *   [x] **링크 ?�정**: 관리자 ?�정(기본?�보)?�서 주요 링크 �??�스???�어 가??
+    *   [x] **관리자 고도??V2.1**: AI Bulk Import, 구조?�된 ?�료/?�계 ?�력 ?? 개인???�드(?�분/칼로�??�령/?�소) 관�?
+*   **7.3 ?�공�?고도??(My Space Pivot)** ??
+    *   [x] **?�치 기반 ?�의?�설**: `site_config.nearby_places`?� ?�동??주�? ?�의?�설 ??구현.
+    *   [x] **주�? 즐길거리**: `nearby_events` DB ?�동 �?LBS.
+    *   [x] **Fallback ?�이??개선 (2026-01-07)**: 가?????�산�??�이??변�? 검??반경 10km ??20km ?�장.
+    *   [x] **?�사 UI 개선**: ?��?지 ?�거, 진행�?뱃�? ?�동, ?�세보기 버튼(TourAPI ?�동).
+    *   [x] **Archive UX (New)**: 불멍/별보�?꾸�?�?버튼 ??��. ?�진 ?�로??�?뷰어 ?�질 강화.
+    *   [x] **Action**: '기록?�기(Log)' 버튼 강조 �??�근??개선.
+    *   [x] **?��???*: ?�공�??�반(Records, Album, History)???�구 UI 경험 ?�일.
+*   **7.5 ?�스???�영 �??�정??(System Ops)** ??
+    *   [x] **?�씨 ?�보 고도??*: ?�기/중기 ?�보 병합 로직 ?�정?�로 **10???�보** 지???�료.
+    *   [x] **?�스???�영보드 (New)**: `/admin/operations` 구현 (SSOT 26??. ?��? ?�근 ?�어(?��?보수 모드), ?�약 차단, 캐시/?�림 리셋 ?�클�??�??
+    *   [x] **?��?�?가?�드**: ?�영보드 ???�황�?조치 가?�드(Dialog) ?�재.
+*   **7.6 마켓 ?�벗 (Market Pivot)** ??(2026-01-13):
+    *   [x] **?�휴 중심**: ?�체 ?�품 ?�???��? 링크(쿠팡 ?�트?�스 ?? 지??구조 ?�성. ProductCard �??�세 ?�이지?�서 "구매처로 ?�동" 분기 처리.
+*   **7.5 ?�약 ?�동??* ??(?��? 구현??:
+    *   [x] **?�픈 로직**: `OpenDayConfig.tsx` 컴포?�트?�서 매월 ?�동 반복 규칙 지?? `open_day_rules` ?�이�?+ `automation_config` JSONB.
+*   **7.6 ?�시 ?�영 체계 (Daily Region Sync v12.0) ??(2026-04-04)**:
+    *   [x] **Rotation Engine**: ?�국 17�??�도 ?�??17??주기 지??�� ?�환 ?�기???�진 ?�장 (`daily-region-sync.mjs`).
+    *   [x] **Category Expansion**: 마트(?�??SSM/기�?)�??�안부 OpenAPI 기반 ?�시 갱신 체계�??�합.
+    *   [x] **Audit Reporting**: 7?� ?�심 지??기존/?�신/?�규/갱신/총계) 로깅 �?관리자 ?�이지 ?�용 리포??UI 구현.
+    *   [x] **Automation**: GitHub Actions�??�한 매일 04:00 KST ?�동 ?�행 ?��?줄링 ?�료.
+    *   [x] **SSOT Consistency**: 매뉴??�??��? 감사 SOP(v11.1)???�시 ?�영 지�?반영.
+*   **7.6 ?��? API ?�동 (Final Polish)** �?(?�메??발급 ??:
+    *   [ ] **TourAPI/Kakao**: `nearby_events` �?`site_config` ?�이?��? ?�제 ?��? API?� ?�시�??�기??(?�정???�계?�서 진행).
 
-### Phase 8: 안정화 및 리팩토링 (Stabilization) - 🔄 In Progress
+### Phase 8: ?�정??�?리팩?�링 (Stabilization) - ?�� In Progress
 **"Codebase Health Improving - Operation Sparkling Forest"**
-*   **8.1 Component Sanitization** ✅ (2025-12-31):
-    *   [x] `src/components` 전역 Lint 수정 (MyMapModal, ReturningHome 등).
-    *   [x] `any` 타입 제거 및 `Next/Image` 최적화.
-*   **8.2 Hook Refactoring** ✅:
+*   **8.1 Component Sanitization** ??(2025-12-31):
+    *   [x] `src/components` ?�역 Lint ?�정 (MyMapModal, ReturningHome ??.
+    *   [x] `any` ?�???�거 �?`Next/Image` 최적??
+*   **8.2 Hook Refactoring** ??
     *  - [x] **2.5. Structure & Cleanup** (Completed - Runtime Stable)
-    - [x] **8.2.3 DB Migration Normalization ✅ (2026-04-15)**:
-        - [x] RPC 반환 형식 충돌 해결 (`DROP FUNCTION` idempotent 처리) 및 126개 전체 마이그레이션 적용.
-        - [x] 원격 DB 스키마 드리프트(`user_campground_hearts`) 복구 완료.
+    - [x] **8.2.3 DB Migration Normalization ??(2026-04-15)**:
+        - [x] RPC 반환 ?�식 충돌 ?�결 (`DROP FUNCTION` idempotent 처리) �?126�??�체 마이그레?�션 ?�용.
+        - [x] ?�격 DB ?�키�??�리?�트(`user_campground_hearts`) 복구 ?�료.
     - [x] Global Import Cleanup (Partially done for Admin/Core modules)
     - [x] Global Linting (Critical Admin Modules Cleaned)
     - [x] Unused Component Removal (Alert restored, others verified)
     - [x] Critical Refactors (`package` -> `pkg`, `MySpaceState` export)
-    *   [x] **8.3 Safe Refactoring (Deep Type Safety)** ✅ (2026-01-04):
+    *   [x] **8.3 Safe Refactoring (Deep Type Safety)** ??(2026-01-04):
         *   [x] **Stage 4-8 Complete**: Removed 40 `any` types + Production build enabled
         *   [x] Components (8): BeginnerHome, ReturningHome, SiteList
         *   [x] Store Layer (16): Error handlers + DB mapping
         *   [x] Services (7): communityService, creatorService, communityUtils
         *   [x] Weather API (9): Comprehensive KMA type definitions
-        *   [x] **Production Build**: ✅ Enabled with `ignoreBuildErrors` (temporary)
+        *   [x] **Production Build**: ??Enabled with `ignoreBuildErrors` (temporary)
         *   [x] **Live Verification**: All features tested via browser - 0 runtime errors
-    *   [x] **8.4 Type System & Personalization** ✅ (2026-01-07):
+    *   [x] **8.4 Type System & Personalization** ??(2026-01-07):
         *   [x] **DB Schema**: `profiles` table updated (Family/Interests) & Types patched.
         *   [x] **Personalization Engine**: Hook updated to boost scores based on profile.
         *   [x] **UI**: Nickname greeting & Recommendation reason fix.
         *   [x] **Logic**: Expanded pool to Top 50 for variety.
         *   [x] **Admin**: Replaced deletion popup with AlertDialog.
-        *   [x] **Production Build**: ✅ SUCCESS (Exit code: 0)
+        *   [x] **Production Build**: ??SUCCESS (Exit code: 0)
         *   [x] **Live Verification**: Verified recommendation logic via code review & build.
-        *   [x] **8.5 External API Expansion (Nearby Activities)** ✅ (2026-01-09):
+        *   [x] **8.5 External API Expansion (Nearby Activities)** ??(2026-01-09):
             *   [x] **Integration**: TourAPI(Leisure/Attraction) + Public Data Portal(Performance/Festival).
             *   [x] **Filtering Logic**: Camping keyword exclusion in Leisure tab.
             *   [x] **UI Enhancement**: 4-Tab System (Events/Leisure/Attractions/Facilities) with badges.
@@ -407,7 +407,7 @@
   - [x] Text Tool Improvements (Double-click edit, Background toggle)
   - [x] Filter Presets & Drawing Tool
   - [x] **Global Integration**: "Leave Record" & "1-Minute Record" (Completed)sts, Comments.
-        *   [x] **8.6 Weekly Mission Ranking & Ember Support** ✅ (2026-01-10):
+        *   [x] **8.6 Weekly Mission Ranking & Ember Support** ??(2026-01-10):
             *   [x] **Mission Ranking**: GitHub Actions cron (Sundays 21:00 KST) + API Route + Admin UI.
             *   [x] **Ember Support (불씨)**: Token-based "quiet support" system (10 tokens).
             *   [x] **Ember Integration**: Mission cards, Community posts, Comments.
@@ -415,123 +415,123 @@
             *   [x] **DB Migration**: `20260110_mission_ranking_rewards.sql`, `20260110_ember_support.sql`.
             *   [x] **Planning**: Created `ember_feature_spec.md` & `ember_implementation_plan.md` for Phase 8.7.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.7 Ember Notifications & Stats** ✅ (2026-01-11):
-            *   [x] **Notification System**: `EMBER_RECEIVED` 알림 타입 + 인앱 배지 자동 생성.
+        *   [x] **8.7 Ember Notifications & Stats** ??(2026-01-11):
+            *   [x] **Notification System**: `EMBER_RECEIVED` ?�림 ?�??+ ?�앱 배�? ?�동 ?�성.
             *   [x] **Stats RPC**: `get_my_ember_stats`, `get_sent_embers`, `get_received_embers`.
-            *   [x] **HeroSection Badge**: 받은 불씨 > 0일 때 좌측 상단에 "불씨 N개" 표시.
-            *   [x] **Embers Page**: `/myspace/embers` - 받은/남긴 불씨 탭, 빈 상태 UI 포함.
+            *   [x] **HeroSection Badge**: 받�? 불씨 > 0????좌측 ?�단??"불씨 N�? ?�시.
+            *   [x] **Embers Page**: `/myspace/embers` - 받�?/?�긴 불씨 ?? �??�태 UI ?�함.
             *   [x] **DB Migration**: `20260111_ember_notifications.sql`.
-            *   [x] **Live Verification**: 브라우저 검증 완료.
+            *   [x] **Live Verification**: 브라?��? 검�??�료.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.8 Reservation Concurrency & Admin Deletion** ✅ (2026-01-12):
+        *   [x] **8.8 Reservation Concurrency & Admin Deletion** ??(2026-01-12):
             *   [x] **Reservation Concurrency**: Advisory Lock + RPC (`create_reservation_safe`).
-            *   [x] **Admin Deletion**: AlertDialog 방식으로 후기/컨텐츠/마켓/공지 삭제 개선.
-            *   [x] **Notice Query Fix**: SlimNotice 컬럼명 수정 (`board_type` → `type`).
+            *   [x] **Admin Deletion**: AlertDialog 방식?�로 ?�기/컨텐�?마켓/공�? ??�� 개선.
+            *   [x] **Notice Query Fix**: SlimNotice 컬럼�??�정 (`board_type` ??`type`).
             *   [x] **DB Migration**: `20260111_reservation_concurrency.sql`, `20260111_admin_delete_permissions.sql`.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.9 Emotional Greeting System (New)** ✅ (2026-01-12):
-            *   [x] **Logic Upgrade**: 날씨/시간/계절/온도(혹한/무더위) 통합 판별 로직 적용.
-            *   [x] **Rich Pool**: 100+ 문학적/감성적 멘트 풀(Pool) 구축 및 랜덤 로테이션.
-            *   [x] **UI Integration**: SlimNotice(한줄공지) 겹침 해결 및 버그 수정.
-            *   [x] **Verification**: 브라우저 시뮬레이션 검증 완료.
+        *   [x] **8.9 Emotional Greeting System (New)** ??(2026-01-12):
+            *   [x] **Logic Upgrade**: ?�씨/?�간/계절/?�도(?�한/무더?? ?�합 ?�별 로직 ?�용.
+            *   [x] **Rich Pool**: 100+ 문학??감성??멘트 ?�(Pool) 구축 �??�덤 로테?�션.
+            *   [x] **UI Integration**: SlimNotice(?�줄공�?) 겹침 ?�결 �?버그 ?�정.
+            *   [x] **Verification**: 브라?��? ?��??�이??검�??�료.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.10 Market Data Optimization & Dynamic Config** ✅ (2026-01-12):
-            *   [x] **Zero-Cost Video**: YouTube/Shorts/TikTok Lazy Load 임베드.
-            *   [x] **Image System**: URL 방식 → Supabase Storage 직접 업로드 전환.
-            *   [x] **Admin Empowerment**: 마켓 카테고리 관리자 직접 설정(JSONB) 구현.
+        *   [x] **8.10 Market Data Optimization & Dynamic Config** ??(2026-01-12):
+            *   [x] **Zero-Cost Video**: YouTube/Shorts/TikTok Lazy Load ?�베??
+            *   [x] **Image System**: URL 방식 ??Supabase Storage 직접 ?�로???�환.
+            *   [x] **Admin Empowerment**: 마켓 카테고리 관리자 직접 ?�정(JSONB) 구현.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.11 UX Improvements & Loading Optimization** ✅ (2026-01-14):
-            *   [x] **Terms Integration**: 이용수칙/환불규정 통합 (TermsAgreementDialog 컴포넌트).
-            *   [x] **Back Button UX**: 4개 Sheet 백버튼 처리 (HomeDetailSheet, FacilityDetailSheet, NearbyDetailSheet, PriceGuideSheet).
-            *   [x] **Touch Feedback**: 모바일 터치 피드백 (globals.css + BottomNav).
-            *   [x] **Reservation DB Sync**: 예약 상세 페이지 SITES 상수 → Supabase 조회 변경.
-            *   [x] **Loading Optimization**: 날씨 의존성 분리 (usePersonalizedRecommendation).
-            *   [x] **User Guidance**: 날씨/주변정보 시간차 안내 문구 추가.
+        *   [x] **8.11 UX Improvements & Loading Optimization** ??(2026-01-14):
+            *   [x] **Terms Integration**: ?�용?�칙/?�불규정 ?�합 (TermsAgreementDialog 컴포?�트).
+            *   [x] **Back Button UX**: 4�?Sheet 백버??처리 (HomeDetailSheet, FacilityDetailSheet, NearbyDetailSheet, PriceGuideSheet).
+            *   [x] **Touch Feedback**: 모바???�치 ?�드�?(globals.css + BottomNav).
+            *   [x] **Reservation DB Sync**: ?�약 ?�세 ?�이지 SITES ?�수 ??Supabase 조회 변�?
+            *   [x] **Loading Optimization**: ?�씨 ?�존??분리 (usePersonalizedRecommendation).
+            *   [x] **User Guidance**: ?�씨/주�??�보 ?�간�??�내 문구 추�?.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.12 Responsive Typography Review** ✅ (2026-01-14):
-            *   [x] **Issue**: 히어로 텍스트 및 추천 카드 UI가 모바일 화면 너비에 따라 틀어지는 현상.
-            *   [x] **Core Utility**: `globals.css`에 `clamp()` 기반 반응형 텍스트 클래스 추가 (`.text-responsive-hero-title` 등).
+        *   [x] **8.12 Responsive Typography Review** ??(2026-01-14):
+            *   [x] **Issue**: ?�어�??�스??�?추천 카드 UI가 모바???�면 ?�비???�라 ?�?��????�상.
+            *   [x] **Core Utility**: `globals.css`??`clamp()` 기반 반응???�스???�래??추�? (`.text-responsive-hero-title` ??.
             *   [x] **Applied Areas**:
                 *   [x] **Beginner Home**: Hero Title/Description & Info Chips.
                 *   [x] **Recommendation Grid**: Card Titles & Badges (Difficulty/Time/Calories).
-            *   [x] **Build Verification**: ✅ SUCCESS (Exit code: 0).
-        *   [x] **8.13 My Map UX & Geocoding** ✅ (2026-01-14):
-            *   [x] **Reverse Geocoding**: Kakao Maps API 연동하여 지도 클릭/검색 시 주소 자동 변환.
-            *   [x] **UX Enhancement**: 검색-지도 클릭 간섭 방지, 새 아이템 리스트 상단 추가 및 자동 스크롤.
-            *   [x] **UI Polish**: 마커 아이콘 변경 (Flag), 툴팁 정보 강화.
-            *   [x] **Mobile Map**: 터치 이벤트 전파 차단으로 지도 등록 오동작 해결.
-            *   [x] **Consistency**: "나만의 캠핑지도" 명칭 통일 & 데이터 마이그레이션(x/y -> lat/lng) 완료.
+            *   [x] **Build Verification**: ??SUCCESS (Exit code: 0).
+        *   [x] **8.13 My Map UX & Geocoding** ??(2026-01-14):
+            *   [x] **Reverse Geocoding**: Kakao Maps API ?�동?�여 지???�릭/검????주소 ?�동 변??
+            *   [x] **UX Enhancement**: 검??지???�릭 간섭 방�?, ???�이??리스???�단 추�? �??�동 ?�크�?
+            *   [x] **UI Polish**: 마커 ?�이�?변�?(Flag), ?�팁 ?�보 강화.
+            *   [x] **Mobile Map**: ?�치 ?�벤???�파 차단?�로 지???�록 ?�동???�결.
+            *   [x] **Consistency**: "?�만??캠핑지?? 명칭 ?�일 & ?�이??마이그레?�션(x/y -> lat/lng) ?�료.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.15 Reservation UX & Smart Re-book** ✅ (2026-01-15):
-            *   [x] **Smart Re-book**: "지난 여행 조건으로 예약하기" 기능 고도화 (인원/차량/연락처 Pre-fill).
-            *   [x] **Smart Pre-fill**: 새 예약 시에도 최근 예약 기록(취소건 포함) 기반 연락처 자동 입력 지원.
-            *   [x] **Upcoming UI**: 체크인 날짜순 정렬 복원 및 입금대기(Pending) 예약 별도 카드/시트 분리.
-            *   [x] **Navigation**: '나의 예약' 더보기 버튼 → 전체 내역 페이지 연결.
-            *   [x] **UI Polish**: "1가족, 방문객 N명" 포맷 통일 및 라벨링 개선.
+        *   [x] **8.15 Reservation UX & Smart Re-book** ??(2026-01-15):
+            *   [x] **Smart Re-book**: "지???�행 조건?�로 ?�약?�기" 기능 고도??(?�원/차량/?�락�?Pre-fill).
+            *   [x] **Smart Pre-fill**: ???�약 ?�에??최근 ?�약 기록(취소�??�함) 기반 ?�락�??�동 ?�력 지??
+            *   [x] **Upcoming UI**: 체크???�짜???�렬 복원 �??�금?��?Pending) ?�약 별도 카드/?�트 분리.
+            *   [x] **Navigation**: '?�의 ?�약' ?�보�?버튼 ???�체 ?�역 ?�이지 ?�결.
+            *   [x] **UI Polish**: "1가�? 방문�?N�? ?�맷 ?�일 �??�벨�?개선.
             *   [x] **Status**: **100% Done**
-        *   [x] **8.16 MySpace Notebook Feel (New)** ✅ (2026-01-16):
+        *   [x] **8.16 MySpace Notebook Feel (New)** ??(2026-01-16):
             *   [x] **Paper Background**: `PaperBackground.tsx` (SVG noise + cream gradient).
-            *   [x] **Dog-ear Effect**: EmotionalQuote 상단 우측 모서리 접힘 CSS 효과.
-            *   [x] **Tape Effect**: SummaryGrid 카드 상단 테이프 + 기울기 효과.
-            *   [x] **Branding**: "내공간" → "내 수첩" 명칭 변경.
-            *   [x] **Branding**: "내공간" → "내 수첩" 명칭 변경.
+            *   [x] **Dog-ear Effect**: EmotionalQuote ?�단 ?�측 모서�??�힘 CSS ?�과.
+            *   [x] **Tape Effect**: SummaryGrid 카드 ?�단 ?�이??+ 기울�??�과.
+            *   [x] **Branding**: "?�공�? ??"???�첩" 명칭 변�?
+            *   [x] **Branding**: "?�공�? ??"???�첩" 명칭 변�?
             *   [x] **Status**: **100% Done**
-        *   [x] **8.17 Permission Flow & Admin Dashboard** ✅ (2026-01-16):
-            *   [x] **Sequential Flow**: 위치 권한(1단계) -> 푸시 권한(2단계) 순차 UX 및 감성 카피 적용.
-            *   [x] **iOS Support**: iOS Safari '홈 화면에 추가' 가이드 모달 구현.
-            *   [x] **Admin Dashboard**: 위치/푸시 권한 동의율 통계 카드 추가 (DB 연동).
-            *   [x] **Weather Consistency**: `useWeather.ts`의 타임존(UTC) 이슈 해결 및 상세화면(`WeatherDetailSheet`) 로직 통일.
-            ### [STEP 5.2] Reliability Audit & Automation Recovery (2026-03-16) ✅
-- **정밀 감사 완료**: 코드-매뉴얼 전수 대조 및 불일치(카카오 범위, 스로틀링, 기상 Fallback) 수정 완료.
-- **자동화 복구**: KST 타임존 보정 및 메모리 최적화 배치 로직 적용으로 Cron Job 신뢰성 회복.
-- **결과**: 예산군 권역 D-3 캐싱 시뮬레이션 성공 및 내일 새벽 통합 테스트 준비 완료.
-            *   [x] **Push Audit**: 예약/취소 알림 로직 전수 조사 및 보완 완료 (수신 실패 디버깅 대기).
+        *   [x] **8.17 Permission Flow & Admin Dashboard** ??(2026-01-16):
+            *   [x] **Sequential Flow**: ?�치 권한(1?�계) -> ?�시 권한(2?�계) ?�차 UX �?감성 카피 ?�용.
+            *   [x] **iOS Support**: iOS Safari '???�면??추�?' 가?�드 모달 구현.
+            *   [x] **Admin Dashboard**: ?�치/?�시 권한 ?�의???�계 카드 추�? (DB ?�동).
+            *   [x] **Weather Consistency**: `useWeather.ts`???�?�존(UTC) ?�슈 ?�결 �??�세?�면(`WeatherDetailSheet`) 로직 ?�일.
+            ### [STEP 5.2] Reliability Audit & Automation Recovery (2026-03-16) ??
+- **?��? 감사 ?�료**: 코드-매뉴???�수 ?��?�?불일�?카카??범위, ?�로?��? 기상 Fallback) ?�정 ?�료.
+- **?�동??복구**: KST ?�?�존 보정 �?메모�?최적??배치 로직 ?�용?�로 Cron Job ?�뢰???�복.
+- **결과**: ?�산�?권역 D-3 캐싱 ?��??�이???�공 �??�일 ?�벽 ?�합 ?�스??준�??�료.
+            *   [x] **Push Audit**: ?�약/취소 ?�림 로직 ?�수 조사 �?보완 ?�료 (?�신 ?�패 ?�버�??��?.
             *   [x] **Push Stability (2026-02-27)**: **Foreground (In-app Toast) Success**. Background stabilization in progress.
             *   [x] **Status**: **99% Done (Background Still Silent)**
 
-### Phase 9: 선택적 작업 (Non-Urgent - 다음 세션)
-> ⚠️ **긴급도: 낮음** - 핵심 기능(예약/커뮤니티/홈)에는 영향 없음
-*   **9.1 Edge Function 배포 (Complete)** ✅:
-    *   [x] `supabase/functions/push-notification/` → Supabase 대시보드에서 배포 완료
-    *   [x] 환경 변수 설정: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (Supabase Secrets)
-    *   [x] 클라이언트 환경 변수: `NEXT_PUBLIC_FIREBASE_*` (Vercel)
-*   **9.2 DB Schema 동기화** (Priority: LOW):
-    *   [ ] Supabase CLI 인증 후 `npx supabase gen types typescript` 실행
-    *   [ ] 현재 빌드는 기존 타입으로 정상 동작 중
-*   **9.3 ESLint 정리** (Priority: LOW):
-    *   [ ] `eslint ignoreDuringBuilds` 해제 전 경고 정리
-*   **9.4 카카오맵 JavaScript SDK 등록** (Priority: LOW - 도메인 확정 후):
-    *   [ ] 도메인 확정 후 Kakao Developers 앱에 JavaScript SDK 도메인 등록
-    *   [ ] JavaScript 키 발급 및 `NEXT_PUBLIC_KAKAO_JS_KEY` 환경변수 추가
-    *   [ ] 지도 렌더링 기능 구현 (선택)
-*   **9.5 PWA 구현** ✅ (2026-01-13):
-    *   [x] `manifest.json` 작성 (앱 이름, 아이콘, 테마 색상)
-*   **9.6 스마트 캠핑 플랜 (Guided Journey \u0026 Persona) 🚀 (Next Target)**:
-    *   [x] **1단계: 엔진 정합성 전수 조사 및 수정 계획 수립 (Audit Complete)**: 매뉴얼 기준 15-Fact 파이프라인, 페르소나 연동 결함 파악 및 3-Phase Fix Plan 확정.
-    *   [x] **1.1단계: 코어 기반 공사 (Phase 1 Fix)**: KMA 기상청 단/중기 일일 호출량 초과 방어를 위한 무료 글로벌 API(Open-Meteo) Fallback 시스템 이식 완료.
-    *   [x] **1.2단계: API 생존성(Resilience) 확보**: ODcloud(백년가게) Swagger 동적 UDDI 추출 로직 구현 및 TourAPI(관광/축제) `KorService2` 마이그레이션 완료 (500/400 Error 우회 성공).
-    *   [ ] **1.3단계: 동적 가중치 알고리즘 (Phase 2 Fix)**: 사용자 취향 태그 연동, 자녀 동반 가산점 로직 및 휴무일 방어 적용.
-    *   [ ] **1.4단계: 기후 연동 및 엔진 안정화 (Phase 3 Fix)**: 우천/기온(동계) 기반 점수 변동 로직 구현.
-    *   [ ] **2단계: 태그 매핑 시스템 (`persona.ts`) & 8-Step Deep Dive 디버깅**: (다음 세션 예정)
-    *   [ ] **1.3단계: 기후 연동 및 엔진 안정화 (Phase 3 Fix)**: 우천/기온(동계) 기반 점수 변동 로직 구현.
-    *   [ ] **2단계: 태그 매핑 시스템 (`persona.ts`)**: (진행 중)
-    *   [ ] **3단계: 최종 연동 (Integration)**: (진행 중)
-    *   [x] 앱 아이콘 준비 (192x192, 512x512, 180x180) - 원본 로고 활용
-    *   [x] Service Worker 확장 (Next.js PWA 기본 지원)
-    *   [x] 메타 태그 추가 (`layout.tsx`) - 한국어 SEO 및 OG 태그 적용
-    *   [x] "홈 화면에 추가" 기능 테스트 완료
-    *   [ ] (선택) TWA로 플레이스토어 등록
-*   [x] **9.6 빌드 오류 수정 및 타입 동기화** ✅ (2026-01-13):
-    *   [x] **Supabase Types**: `site_config`, `posts`, `sites`, `nearby_events` 정의 현행화.
-    *   [x] **Code Corrections**: `BeginnerHome`(이벤트 타입), `ReservationStore`(사이트/예약 타입), `CommunityService`(글/댓글 타입) 수정.
-    *   [x] **Build Verification**: `npm run build` 성공 (Exit code: 0).
-    *   [x] **Deployment**: ✅ Vercel 배포 완료 (`https://raon-i.vercel.app`)
-*   [x] **9.7 Notification Reliability Upgrade** ✅ (2026-02-20):
+### Phase 9: ?�택???�업 (Non-Urgent - ?�음 ?�션)
+> ?�️ **긴급?? ??��** - ?�심 기능(?�약/커�??�티/???�는 ?�향 ?�음
+*   **9.1 Edge Function 배포 (Complete)** ??
+    *   [x] `supabase/functions/push-notification/` ??Supabase ?�?�보?�에??배포 ?�료
+    *   [x] ?�경 변???�정: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (Supabase Secrets)
+    *   [x] ?�라?�언???�경 변?? `NEXT_PUBLIC_FIREBASE_*` (Vercel)
+*   **9.2 DB Schema ?�기??* (Priority: LOW):
+    *   [ ] Supabase CLI ?�증 ??`npx supabase gen types typescript` ?�행
+    *   [ ] ?�재 빌드??기존 ?�?�으�??�상 ?�작 �?
+*   **9.3 ESLint ?�리** (Priority: LOW):
+    *   [ ] `eslint ignoreDuringBuilds` ?�제 ??경고 ?�리
+*   **9.4 카카?�맵 JavaScript SDK ?�록** (Priority: LOW - ?�메???�정 ??:
+    *   [ ] ?�메???�정 ??Kakao Developers ?�에 JavaScript SDK ?�메???�록
+    *   [ ] JavaScript ??발급 �?`NEXT_PUBLIC_KAKAO_JS_KEY` ?�경변??추�?
+    *   [ ] 지???�더�?기능 구현 (?�택)
+*   **9.5 PWA 구현** ??(2026-01-13):
+    *   [x] `manifest.json` ?�성 (???�름, ?�이�? ?�마 ?�상)
+*   **9.6 ?�마??캠핑 ?�랜 (Guided Journey \u0026 Persona) ?? (Next Target)**:
+    *   [x] **1?�계: ?�진 ?�합???�수 조사 �??�정 계획 ?�립 (Audit Complete)**: 매뉴??기�? 15-Fact ?�이?�라?? ?�르?�나 ?�동 결함 ?�악 �?3-Phase Fix Plan ?�정.
+    *   [x] **1.1?�계: 코어 기반 공사 (Phase 1 Fix)**: KMA 기상�???중기 ?�일 ?�출??초과 방어�??�한 무료 글로벌 API(Open-Meteo) Fallback ?�스???�식 ?�료.
+    *   [x] **1.2?�계: API ?�존??Resilience) ?�보**: ODcloud(백년가�? Swagger ?�적 UDDI 추출 로직 구현 �?TourAPI(관�?축제) `KorService2` 마이그레?�션 ?�료 (500/400 Error ?�회 ?�공).
+    *   [ ] **1.3?�계: ?�적 가중치 ?�고리즘 (Phase 2 Fix)**: ?�용??취향 ?�그 ?�동, ?��? ?�반 가?�점 로직 �??�무??방어 ?�용.
+    *   [ ] **1.4?�계: 기후 ?�동 �??�진 ?�정??(Phase 3 Fix)**: ?�천/기온(?�계) 기반 ?�수 변??로직 구현.
+    *   [ ] **2?�계: ?�그 매핑 ?�스??(`persona.ts`) & 8-Step Deep Dive ?�버�?*: (?�음 ?�션 ?�정)
+    *   [ ] **1.3?�계: 기후 ?�동 �??�진 ?�정??(Phase 3 Fix)**: ?�천/기온(?�계) 기반 ?�수 변??로직 구현.
+    *   [ ] **2?�계: ?�그 매핑 ?�스??(`persona.ts`)**: (진행 �?
+    *   [ ] **3?�계: 최종 ?�동 (Integration)**: (진행 �?
+    *   [x] ???�이�?준�?(192x192, 512x512, 180x180) - ?�본 로고 ?�용
+    *   [x] Service Worker ?�장 (Next.js PWA 기본 지??
+    *   [x] 메�? ?�그 추�? (`layout.tsx`) - ?�국??SEO �?OG ?�그 ?�용
+    *   [x] "???�면??추�?" 기능 ?�스???�료
+    *   [ ] (?�택) TWA�??�레?�스?�어 ?�록
+*   [x] **9.6 빌드 ?�류 ?�정 �??�???�기??* ??(2026-01-13):
+    *   [x] **Supabase Types**: `site_config`, `posts`, `sites`, `nearby_events` ?�의 ?�행??
+    *   [x] **Code Corrections**: `BeginnerHome`(?�벤???�??, `ReservationStore`(?�이???�약 ?�??, `CommunityService`(글/?��? ?�?? ?�정.
+    *   [x] **Build Verification**: `npm run build` ?�공 (Exit code: 0).
+    *   [x] **Deployment**: ??Vercel 배포 ?�료 (`https://raon-i.vercel.app`)
+*   [x] **9.7 Notification Reliability Upgrade** ??(2026-02-20):
     *   [x] **Duplicate Fix**: Implemented DB Unique Constraint + Edge Function Single-Delivery Policy + FCM Collapse Keys.
     *   [x] **Camping Reminders**: Scheduled `pg_cron` job for `invoke-camping-reminder`, caught up missed notifications.
     *   [x] **Handbook v2.0**: Updated `docs/notification_manual.md` with full specs and troubleshooting guide.
     *   [x] **Verification**: Zero duplicates confirmed in logs, reminder execution verified.
-*   [x] **9.8 Camping Reminder Cron & Timeout Fix** ✅ (2026-02-21):
+*   [x] **9.8 Camping Reminder Cron & Timeout Fix** ??(2026-02-21):
     *   [x] **Timeouts Avoided**: Implemented `mode=prefetch` (10-min preemptive API caching) and `mode=dispatch` (DB-only quick send) in Edge Function.
     *   [x] **Cron Migration**: Disabled unreliable `pg_cron` and replaced with free GitHub Actions scheduler.
     *   [x] **Verification**: Dispatched 7 missing notifications successfully; user checking tomorrow.
@@ -540,42 +540,42 @@
 
 ---
 
-## 🚀 배포 체크리스트 (Deployment Checklist)
+## ?? 배포 체크리스??(Deployment Checklist)
 
-### ✅ 배포 전 완료 항목 (Pre-Deployment - Done)
-| 항목 | 상태 | 비고 |
+### ??배포 ???�료 ??�� (Pre-Deployment - Done)
+| ??�� | ?�태 | 비고 |
 |------|------|------|
-| Supabase 마이그레이션 실행 | ✅ | `site_config` 보상 컬럼, `mission_rewards` 테이블, RPC 함수 |
-| 로컬 환경변수 설정 | ✅ | `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` |
-| 관리자 보상 설정 UI | ✅ | `/admin/settings` 하단 "주간 미션 Top 3 보상 설정" |
+| Supabase 마이그레?�션 ?�행 | ??| `site_config` 보상 컬럼, `mission_rewards` ?�이�? RPC ?�수 |
+| 로컬 ?�경변???�정 | ??| `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` |
+| 관리자 보상 ?�정 UI | ??| `/admin/settings` ?�단 "주간 미션 Top 3 보상 ?�정" |
 
-### ⏳ 배포 후 필요 작업 (Post-Deployment - Pending)
-> ⚠️ **주의**: GitHub Secrets 및 외부 API 설정은 **도메인 발급 후** 진행해야 합니다.
+### ??배포 ???�요 ?�업 (Post-Deployment - Pending)
+> ?�️ **주의**: GitHub Secrets �??��? API ?�정?� **?�메??발급 ??* 진행?�야 ?�니??
 
-| 항목 | 설명 | 링크/방법 | 의존성 |
+| ??�� | ?�명 | 링크/방법 | ?�존??|
 |------|------|------|------|
-| **Supabase 마이그레이션** | 불씨(Ember) 지원 테이블 생성 | `20260110_ember_support.sql` 실행 | - |
-| **Vercel 환경변수 추가** | `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` | Vercel Dashboard → Settings → Environment Variables | 도메인 발급 후 |
-| **GitHub Secrets 설정** | `APP_URL` (배포된 URL), `CRON_SECRET` | GitHub → Settings → Secrets → Actions | 도메인 발급 후 |
-| **GitHub Actions 활성화** | `.github/workflows/mission-ranking-cron.yml` | Push 후 자동 활성화. Actions 탭에서 확인 | 도메인 발급 후 |
-| **의도된 작동 확인** | 일요일 21:00 KST 자동 랭킹/보상 | Actions 로그 확인 또는 수동 트리거 테스트 | 도메인 발급 후 |
+| **Supabase 마이그레?�션** | 불씨(Ember) 지???�이�??�성 | `20260110_ember_support.sql` ?�행 | - |
+| **Vercel ?�경변??추�?** | `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` | Vercel Dashboard ??Settings ??Environment Variables | ?�메??발급 ??|
+| **GitHub Secrets ?�정** | `APP_URL` (배포??URL), `CRON_SECRET` | GitHub ??Settings ??Secrets ??Actions | ?�메??발급 ??|
+| **GitHub Actions ?�성??* | `.github/workflows/mission-ranking-cron.yml` | Push ???�동 ?�성?? Actions ??��???�인 | ?�메??발급 ??|
+| **?�도???�동 ?�인** | ?�요??21:00 KST ?�동 ??��/보상 | Actions 로그 ?�인 ?�는 ?�동 ?�리�??�스??| ?�메??발급 ??|
 
-### 📌 GitHub Secrets 설정 방법
-1. GitHub 저장소 → **Settings** → **Secrets and variables** → **Actions**
-2. **New repository secret** 클릭
-3. 추가할 항목:
-   - `APP_URL`: `https://your-app.vercel.app` (배포 후 Vercel에서 확인)
-   - `CRON_SECRET`: 로컬 `.env`에 설정한 것과 동일한 값
+### ?�� GitHub Secrets ?�정 방법
+1. GitHub ?�?�소 ??**Settings** ??**Secrets and variables** ??**Actions**
+2. **New repository secret** ?�릭
+3. 추�?????��:
+   - `APP_URL`: `https://your-app.vercel.app` (배포 ??Vercel?�서 ?�인)
+   - `CRON_SECRET`: 로컬 `.env`???�정??것과 ?�일??�?
 
-### 📌 Vercel 환경변수 설정 방법
-1. Vercel Dashboard → 프로젝트 선택 → **Settings** → **Environment Variables**
-2. 추가할 항목:
-   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase Dashboard에서 복사
-   - `CRON_SECRET`: GitHub Secrets와 동일한 값
+### ?�� Vercel ?�경변???�정 방법
+1. Vercel Dashboard ???�로?�트 ?�택 ??**Settings** ??**Environment Variables**
+2. 추�?????��:
+   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase Dashboard?�서 복사
+   - `CRON_SECRET`: GitHub Secrets?� ?�일??�?
 
-### 🧪 수동 테스트 방법
+### ?�� ?�동 ?�스??방법
 ```bash
-# 배포 후 API 테스트
+# 배포 ??API ?�스??
 curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
   -H "Authorization: Bearer YOUR_CRON_SECRET" \
   -H "Content-Type: application/json"
@@ -583,155 +583,155 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 
 ---
 
-1.  **Priority**: **내공간 리뉴얼 (My Space Pivot)**.
-2.  **Strategy**: "어설픈 기능보다 확실한 감성(사진)"으로 전환.
-3.  **Next**: 제휴 마켓 및 자동화.
+1.  **Priority**: **?�공�?리뉴??(My Space Pivot)**.
+2.  **Strategy**: "?�설??기능보다 ?�실??감성(?�진)"?�로 ?�환.
+3.  **Next**: ?�휴 마켓 �??�동??
 
 ---
 
-## 🚀 Phase 10: AI 프리미엄 수익화 연구 (Post-Launch)
-**"플랫폼 수익의 핵심 축 - AI 기반 고급 프리미엄 기능"**
+## ?? Phase 10: AI ?�리미엄 ?�익???�구 (Post-Launch)
+**"?�랫???�익???�심 �?- AI 기반 고급 ?�리미엄 기능"**
 
-> ⚠️ **시기**: 초기 버전 오픈 후 심화 연구 진행
-> 📄 **참고 문서**: `premium_features_v2.md` (상세 기능 제안)
+> ?�️ **?�기**: 초기 버전 ?�픈 ???�화 ?�구 진행
+> ?�� **참고 문서**: `premium_features_v2.md` (?�세 기능 ?�안)
 
-### 📋 배경 및 전략
+### ?�� 배경 �??�략
 
 **문제**:
-- 소규모 캠핑장의 수익 한계
-- 대형 예약플랫폼 수수료 탈피 필요
-- 플랫폼 유지/발전을 위한 수익화 필수
+- ?�규�?캠핑?�의 ?�익 ?�계
+- ?�???�약?�랫???�수�??�피 ?�요
+- ?�랫???��?/발전???�한 ?�익???�수
 
-**핵심 인사이트**:
-- AI API 비용 = 호출 횟수에 비례
-- **유료 구독자만 AI 기능 사용 = 항상 흑자 구조**
-- 프리미엄 1,000명 × 4,900원 = 490만원/월, AI 비용 ~5,000원 (수익률 99%)
+**?�심 ?�사?�트**:
+- AI API 비용 = ?�출 ?�수??비�?
+- **?�료 구독?�만 AI 기능 ?�용 = ??�� ?�자 구조**
+- ?�리미엄 1,000�?× 4,900??= 490만원/?? AI 비용 ~5,000??(?�익�?99%)
 
-**🎯 AI 설계 원칙**:
-- **"1회 호출 = 완벽한 결과"** 원칙 준수
-- 일정 + 메뉴 + 준비물을 한 번에 제공하도록 프롬프트 설계
-- 동일 조건 결과는 캐싱하여 재사용
-- → 사용자 만족 ↑, 운영 비용 ↓ (Win-Win)
+**?�� AI ?�계 ?�칙**:
+- **"1???�출 = ?�벽??결과"** ?�칙 준??
+- ?�정 + 메뉴 + 준비물????번에 ?�공?�도�??�롬?�트 ?�계
+- ?�일 조건 결과??캐싱?�여 ?�사??
+- ???�용??만족 ?? ?�영 비용 ??(Win-Win)
 
-### 💡 AI 프리미엄 기능 후보
+### ?�� AI ?�리미엄 기능 ?�보
 
-| 기능 | 설명 | 예상 비용 |
+| 기능 | ?�명 | ?�상 비용 |
 |------|------|----------|
-| **AI 캠핑 코치** | 과거 기록 기반 맞춤 캠핑장 추천 | ~0.7원/호출 |
-| **AI 메뉴 플래너** | 날씨 기반 메뉴 + 장보기 리스트 | ~0.85원/호출 |
-| **스마트 체크리스트** | 날씨 기반 준비물 자동 추천 | 캐싱 가능 |
+| **AI 캠핑 코치** | 과거 기록 기반 맞춤 캠핑??추천 | ~0.7???�출 |
+| **AI 메뉴 ?�래??* | ?�씨 기반 메뉴 + ?�보�?리스??| ~0.85???�출 |
+| **?�마??체크리스??* | ?�씨 기반 준비물 ?�동 추천 | 캐싱 가??|
 
-### 🎁 비-AI 프리미엄 기능 후보
+### ?�� �?AI ?�리미엄 기능 ?�보
 
-| 기능 | 왜 돈을 낼까? | 수익 모델 |
+| 기능 | ???�을 ?�까? | ?�익 모델 |
 |------|-------------|----------|
-| **📖 포토북 인쇄** | 디지털→실물 책 소장 | 건당 19,900원~ |
-| **⏰ On This Day** | 매일 옛 추억 푸시 | 연 9,900원 |
-| **📅 연간 캠핑 연감** | 자동 통계 + 인쇄 가능 | 인쇄 29,900원 |
-| **🏅 VIP 클럽** | 모든 기능 + 마켓 할인 | 월 9,900원 |
+| **?�� ?�토�??�쇄** | ?��??�→?�물 �??�장 | 건당 19,900?? |
+| **??On This Day** | 매일 ??추억 ?�시 | ??9,900??|
+| **?�� ?�간 캠핑 ?�감** | ?�동 ?�계 + ?�쇄 가??| ?�쇄 29,900??|
+| **?�� VIP ?�럽** | 모든 기능 + 마켓 ?�인 | ??9,900??|
 
-### 📊 가격 전략
+### ?�� 가�??�략
 
-| 플랜 | 가격 | 포함 |
+| ?�랜 | 가�?| ?�함 |
 |------|------|------|
 | **Basic** | 무료 | 기본 기록, 5GB |
-| **Plus** | 월 4,900원 | On This Day, 연감, 체크리스트 |
-| **VIP** | 월 9,900원 | 전체 AI + 포토북 할인 + 마켓 10% |
+| **Plus** | ??4,900??| On This Day, ?�감, 체크리스??|
+| **VIP** | ??9,900??| ?�체 AI + ?�토�??�인 + 마켓 10% |
 
-### 📌 연구 과제 (To-Do)
+### ?�� ?�구 과제 (To-Do)
 
-- [ ] AI 모델 비용 최적화 (GPT-4o-mini vs Gemini Flash)
-- [ ] 포토북 인쇄 외주 파트너 탐색
-- [ ] 결제 시스템 구현 (토스페이먼츠/카카오페이)
-- [ ] 무료 체험 → 유료 전환 UX 설계
-- [ ] 호출 제한 및 캐싱 전략
+- [ ] AI 모델 비용 최적??(GPT-4o-mini vs Gemini Flash)
+- [ ] ?�토�??�쇄 ?�주 ?�트???�색
+- [ ] 결제 ?�스??구현 (?�스?�이먼츠/카카?�페??
+- [ ] 무료 체험 ???�료 ?�환 UX ?�계
+- [ ] ?�출 ?�한 �?캐싱 ?�략
 
-### 🔗 관련 문서
+### ?�� 관??문서
 
-- **프리미엄 기능 상세**: `brain/*/premium_features_v2.md`
-- **수익화 전략 초안**: `brain/*/monetization_strategy.md`
-- **복합 편집 제안**: `brain/*/composite_editing_proposal.md`
-- **AI 에이전트 대응 전략**: `brain/*/ai_agent_era_strategy.md`
-
----
-
-## 🚀 Phase 11: AI 에이전트 시대 대응 (최종 출시 직전)
-**"AI가 라온아이를 정확히 인용하도록"**
-
-> ⚠️ **시기**: 개발 완료 후, 최종 출시 **직전**에 진행
-> 📄 **참고 문서**: `ai_agent_era_strategy.md`
-
-### 🎯 왜 출시 직전인가?
-
-- 지금은 계속 수정/보완 중 → 정보 변경 가능
-- AI가 오래된 정보를 캐시할 위험
-- **정보가 확정된 후** AI에 노출해야 정확도 ↑
-
-### 📋 출시 직전 체크리스트
-
-- [ ] **llms.txt 생성** - 핵심 정보 AI용 요약 파일
-- [ ] **AEO 공개 페이지** - `/about`, `/info` 정책/시설/가격 요약
-- [ ] **Schema.org 마크업** - `Campground`, `CampingPitch`, `Offer`
-- [ ] **SSOT 최종 점검** - 환불/이용수칙/시설 정보 일치 확인
-- [ ] **행동-태그 매핑 최종 점검** - 출시 전 전체 UI/로직 확정 후 `action_tag_mapping_manual.md` 전수 동기화 및 잔여 센서(No 36-45, 50 등) 실장 완료.
-- [ ] **robots.txt 업데이트** - AI 크롤러(GPTBot, ClaudeBot) 허용
-- [ ] **UTM/로그 표준화** - AI 유입 측정 준비
-
-### 💡 핵심 원칙
-
-- **비용 0원** - 정적 파일/코드 추가만
-- **한 번에 정확하게** - 수정 최소화
+- **?�리미엄 기능 ?�세**: `brain/*/premium_features_v2.md`
+- **?�익???�략 초안**: `brain/*/monetization_strategy.md`
+- **복합 ?�집 ?�안**: `brain/*/composite_editing_proposal.md`
+- **AI ?�이?�트 ?�???�략**: `brain/*/ai_agent_era_strategy.md`
 
 ---
 
-## 🏕️ Phase 12: 캠핑 아지트 (Camping Ajiit) - 🔄 진행중
-**"다른 캠핑장 추천 + 캠핑 일정 관리 + 프라이빗 커뮤니티"**
+## ?? Phase 11: AI ?�이?�트 ?��? ?�??(최종 출시 직전)
+**"AI가 ?�온?�이�??�확???�용?�도�?**
 
-> **시작일**: 2026-02-02
-> **예상 총 시간**: ~100시간
+> ?�️ **?�기**: 개발 ?�료 ?? 최종 출시 **직전**??진행
+> ?�� **참고 문서**: `ai_agent_era_strategy.md`
 
-### Phase 12.1: 모드/토글/Plan Lock ✅ (완료: 2026-02-02)
-*   [x] **DB 스키마**: `20260202_camping_ajiit_full.sql`
-*   [x] **타입 정의**: 6개 모드, 12개 토글, 20개 표준 태그
-*   [x] **모드 선택 UI**: `ModeSelector.tsx` (Lucide 아이콘)
-*   [x] **토글 선택 UI**: `ToggleSelector.tsx` (12개, 최대 4개 선택)
-*   [x] **Plan Lock 페이지**: 3단계 플로우
-*   [x] **추천 로직**: 점수 기반 알고리즘
-*   [x] **홈 진입점**: BeginnerHome, ReturningHome 카드 추가
+### ?�� ??출시 직전?��??
 
-### Phase 12.2: 캠핑장 DB 구축 ✅ (완료: 2026-02-03)
-*   [x] **고캠핑 API 연동**: `lib/gocamping-api.ts` - 기본/검색/전체 조회
-*   [x] **자동 태깅**: `lib/auto-tagging.ts` - 12개 토글 매핑
-*   [x] **데이터 동기화**: `/api/admin/campgrounds/sync` API
-*   [x] **DB 스키마 확장**: 환경 필드 7개 추가, upsert RPC
-*   [x] **검증**: 샘플 100개 동기화 성공
+- 지금�? 계속 ?�정/보완 �????�보 변�?가??
+- AI가 ?�래???�보�?캐시???�험
+- **?�보가 ?�정????* AI???�출?�야 ?�확????
 
-### Phase 12.3: 일정/기록/찜/알림 (~30시간)
-*   [x] **일정 관리**: 캠핑 일정 CRUD (UpcomingReservation 통합 표시 완료)
-*   [x] **1분 기록 (MyAjiit)** ✅:
-    *   [x] **DB**: `camping_records` 스키마 및 RLS.
+### ?�� 출시 직전 체크리스??
+
+- [ ] **llms.txt ?�성** - ?�심 ?�보 AI???�약 ?�일
+- [ ] **AEO 공개 ?�이지** - `/about`, `/info` ?�책/?�설/가�??�약
+- [ ] **Schema.org 마크??* - `Campground`, `CampingPitch`, `Offer`
+- [ ] **SSOT 최종 ?��?** - ?�불/?�용?�칙/?�설 ?�보 ?�치 ?�인
+- [ ] **?�동-?�그 매핑 최종 ?��?** - 출시 ???�체 UI/로직 ?�정 ??`action_tag_mapping_manual.md` ?�수 ?�기??�??�여 ?�서(No 36-45, 50 ?? ?�장 ?�료.
+- [ ] **robots.txt ?�데?�트** - AI ?�롤??GPTBot, ClaudeBot) ?�용
+- [ ] **UTM/로그 ?��???* - AI ?�입 측정 준�?
+
+### ?�� ?�심 ?�칙
+
+- **비용 0??* - ?�적 ?�일/코드 추�?�?
+- **??번에 ?�확?�게** - ?�정 최소??
+
+---
+
+## ?���?Phase 12: 캠핑 ?��???(Camping Ajiit) - ?�� 진행�?
+**"?�른 캠핑??추천 + 캠핑 ?�정 관�?+ ?�라?�빗 커�??�티"**
+
+> **?�작??*: 2026-02-02
+> **?�상 �??�간**: ~100?�간
+
+### Phase 12.1: 모드/?��?/Plan Lock ??(?�료: 2026-02-02)
+*   [x] **DB ?�키�?*: `20260202_camping_ajiit_full.sql`
+*   [x] **?�???�의**: 6�?모드, 12�??��?, 20�??��? ?�그
+*   [x] **모드 ?�택 UI**: `ModeSelector.tsx` (Lucide ?�이�?
+*   [x] **?��? ?�택 UI**: `ToggleSelector.tsx` (12�? 최�? 4�??�택)
+*   [x] **Plan Lock ?�이지**: 3?�계 ?�로??
+*   [x] **추천 로직**: ?�수 기반 ?�고리즘
+*   [x] **??진입??*: BeginnerHome, ReturningHome 카드 추�?
+
+### Phase 12.2: 캠핑??DB 구축 ??(?�료: 2026-02-03)
+*   [x] **고캠??API ?�동**: `lib/gocamping-api.ts` - 기본/검???�체 조회
+*   [x] **?�동 ?�깅**: `lib/auto-tagging.ts` - 12�??��? 매핑
+*   [x] **?�이???�기??*: `/api/admin/campgrounds/sync` API
+*   [x] **DB ?�키�??�장**: ?�경 ?�드 7�?추�?, upsert RPC
+*   [x] **검�?*: ?�플 100�??�기???�공
+
+### Phase 12.3: ?�정/기록/�??�림 (~30?�간)
+*   [x] **?�정 관�?*: 캠핑 ?�정 CRUD (UpcomingReservation ?�합 ?�시 ?�료)
+*   [x] **1�?기록 (MyAjiit)** ??
+    *   [x] **DB**: `camping_records` ?�키�?�?RLS.
     *   [x] **UI**: `QuickRecordForm`, `RecordList`, `AjiitCard`.
     *   [x] **Photo**: Image Editor V3.1 (Crop/Filter/Text/Draw) + Safe Save Logic.
-    *   [x] **Map**: `MyMapList` (지도) 연동 완료.
-    *   [x] **Review**: `ReviewBoard` 탭 분리 (RaonAI vs Camper) 구현 완료.
-*   [x] **찜 기능**: 캠핑장 찜하기 (V12.3 New Heart System 구현 완료)
-*   [x] **준비 알림**: D-4(장비), D-1(메뉴), D-0(행사) 알림 구현 및 고도화 완료. 동적 캐싱 크론 오동작(`user_schedules` 참조 오류) 수정 및 검증 완료. (2026-03-15)
+    *   [x] **Map**: `MyMapList` (지?? ?�동 ?�료.
+    *   [x] **Review**: `ReviewBoard` ??분리 (RaonAI vs Camper) 구현 ?�료.
+*   [x] **�?기능**: 캠핑??찜하�?(V12.3 New Heart System 구현 ?�료)
+*   [x] **준�??�림**: D-4(?�비), D-1(메뉴), D-0(?�사) ?�림 구현 �?고도???�료. ?�적 캐싱 ?�론 ?�동??`user_schedules` 참조 ?�류) ?�정 �?검�??�료. (2026-03-15)
 
-### Phase 12.4: 복합 편집 (~31시간)
-*   [x] **뷰 스위처 (View Switcher)**: `1분 기록` 탭에서 리스트/그리드/캘린더 뷰 전환 UI 구현 완료.
-*   [ ] **계절별/타임라인 뷰**: (UI 구현됨, 데이터 연동 예정)
-*   [x] **미션 연동 (New)**: 미션 성공 시 자동 '이야기(STORY)' 게시물 생성 (Private) 기능 구현 완료.
+### Phase 12.4: 복합 ?�집 (~31?�간)
+*   [x] **�??�위�?(View Switcher)**: `1�?기록` ??��??리스??그리??캘린??�??�환 UI 구현 ?�료.
+*   [ ] **계절�??�?�라??�?*: (UI 구현?? ?�이???�동 ?�정)
+*   [x] **미션 ?�동 (New)**: 미션 ?�공 ???�동 '?�야�?STORY)' 게시�??�성 (Private) 기능 구현 ?�료.
 
-### Phase 12.5: 프라이빗 커뮤니티 (~16시간)
-*   [ ] **캠핑 노트 방식**: 실시간 채팅 대신 게시판형
-*   [ ] **그룹 타입 확장**
+### Phase 12.5: ?�라?�빗 커�??�티 (~16?�간)
+*   [ ] **캠핑 ?�트 방식**: ?�시�?채팅 ?�??게시?�형
+*   [ ] **그룹 ?�???�장**
 
-### Phase 12.6: 스마트 캠핑 파이프라인 최적화 (진행중)
-*   [x] **KTO 공식 순위 복구**: 2024년 12월 최신 가용 데이터 기반 전국 189개 시군구 랭킹 동기화 완료 (2026-04-25)
-*   [x] **실시간 엔진 고도화 (v11.9.24)**: Track B 중복 제거, 인증 합산, 8경 이모지 및 티어 가점 로직 최종 안착 (2026-04-26)
-*   [x] **관리자 대시보드 개편**: 3일전 캐싱 로그를 3단계 쿼터(수집량 -> 1차 쿼터 -> 2차 쿼터) Funnel 구조로 개선 완료
-*   [ ] **KTO API 고도화 (차후 점검)**:
-    *   [ ] **신규 API 전환**: `LocgoHubTarService1` (기초지자체 중심) 전환 및 실시간성(2025/2026) 확보 검토
-    *   [ ] **매칭 엔진 고도화**: 이름+주소 기반의 퍼지 매칭(Fuzzy Matching) 로직 도입
-    *   [ ] **데이터 소스 단일화**: 연관 정보와 공식 순위 데이터 소스 분리 및 정합성 강화
+### Phase 12.6: ?�마??캠핑 ?�이?�라??최적??(진행�?
+*   [x] **KTO 공식 ?�위 복구**: 2024??12??최신 가???�이??기반 ?�국 189�??�군�???�� ?�기???�료 (2026-04-25)
+*   [x] **?�시�??�진 고도??(v11.9.24)**: Track B 중복 ?�거, ?�증 ?�산, 8�??�모지 �??�어 가??로직 최종 ?�착 (2026-04-26)
+*   [x] **관리자 ?�?�보??개편**: 3?�전 캐싱 로그�?3?�계 쿼터(?�집??-> 1�?쿼터 -> 2�?쿼터) Funnel 구조�?개선 ?�료
+*   [ ] **KTO API 고도??(차후 ?��?)**:
+    *   [ ] **?�규 API ?�환**: `LocgoHubTarService1` (기초지?�체 중심) ?�환 �??�시간성(2025/2026) ?�보 검??
+    *   [ ] **매칭 ?�진 고도??*: ?�름+주소 기반???��? 매칭(Fuzzy Matching) 로직 ?�입
+    *   [ ] **?�이???�스 ?�일??*: ?��? ?�보?� 공식 ?�위 ?�이???�스 분리 �??�합??강화
 
