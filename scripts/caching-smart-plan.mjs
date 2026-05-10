@@ -116,6 +116,7 @@ const extractSigungu = (addr) => {
     const normalized = getNormalizedAddr(addr);
     const sido = extractSido(addr);
     if (!sido) return null;
+    if (sido === '세종특별자치시') return ''; // [v11.9.69] Sejong has no Sigungu level
     const parts = normalized.replace(sido, '').trim().split(' ');
     // Handle cases like '수원시 장안구' (takes first 2 words if both are cities/districts)
     if (parts.length >= 2 && (parts[0].endsWith('시') || parts[0].endsWith('군')) && (parts[1].endsWith('구') || parts[1].endsWith('시'))) {
@@ -391,10 +392,10 @@ async function main() {
         for (const pt of repPoints) {
             const ptLat = pt.lat;
             const ptLng = pt.lng;
-            const ptSido = extractSido(address) || '충청남도';
-            const ptSigungu = extractSigungu(address) || '예산군';
+            const ptSido = extractSido(address);
+            const ptSigungu = extractSigungu(address);
 
-            console.log(`  🚀 Fetching dynamic data for point: (${ptLat.toFixed(4)}, ${ptLng.toFixed(4)}) in ${ptSigungu}...`);
+            console.log(`  🚀 Fetching dynamic data for point: (${ptLat.toFixed(4)}, ${ptLng.toFixed(4)}) in ${ptSigungu || ptSido}...`);
             const fetchTasks = [];
 
             // A-1. Hospital (Local City Fetch)
@@ -420,7 +421,8 @@ async function main() {
                             // [v11.9.62] NMC Coordinate Recovery (Geocoding Fallback)
                             if ((!hLat || !hLng || !hAddr) && KAKAO_KEY) {
                                 try {
-                                    const searchRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(ptSigungu + ' ' + item.dutyName)}&size=1`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
+                                    const recoveryQuery = (ptSigungu || ptSido) + ' ' + item.dutyName; // [v11.9.70] Use Sido if Sigungu is empty
+                                    const searchRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(recoveryQuery)}&size=1`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
                                     if (searchRes.documents?.[0]) {
                                         const doc = searchRes.documents[0];
                                         hLat = parseFloat(doc.y);
@@ -436,9 +438,12 @@ async function main() {
                                     api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
                                     name: item.dutyName, description: '응급의료센터 (실시간 병상정보)', address: hAddr,
                                     lat: hLat, lng: hLng,
-                                    trust_score: 150, raw_data: item
+                                    trust_score: 150, raw_data: { ...item, badges: ['응급의료센터'] }
                                 };
+                                console.log(`  🏥 NMC Loaded: ${item.dutyName} (${hLat}, ${hLng}) - Score: 150`);
                                 aggregatedMaster.HOSPITAL.set(fact.id, fact);
+                            } else {
+                                console.warn(`  🏥 NMC Skipped (No Coords): ${item.dutyName}`);
                             }
                         }
                     }
@@ -470,7 +475,8 @@ async function main() {
             // A-1-3. Kakao Big Hospital Search (Keyword Search to ensure inclusion)
             fetchTasks.push((async () => {
                 try {
-                    const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(ptSigungu + ' 종합병원')}&x=${ptLng}&y=${ptLat}&radius=20000&size=10`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                    const searchBase = ptSigungu || ptSido; // [v11.9.69] Fallback to Sido if Sigungu is empty (Sejong)
+                    const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(searchBase + ' 종합병원')}&x=${ptLng}&y=${ptLat}&radius=20000&size=10`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
                     const kData = await kRes.json();
                     if (kData.documents) {
                         kData.documents.forEach((item) => {
@@ -719,12 +725,19 @@ async function main() {
                         if (!item.raw_data.badges) item.raw_data.badges = [];
 
                         const indutyH = (item.raw_data?.INDUTY_NM || item.raw_data?.indutyNm || '').trim();
-                        if (item.api_source === 'NMC_HOSPITAL' || item.api_source === 'KAKAO_BIG_HOSP' || /종합병원|의료원|대학병원/.test(name)) {
-                            s = (item.api_source === 'NMC_HOSPITAL') ? 150 : 100; // [v11.9.66] NMC 응급센터는 150점, 일반 종합병원은 100점
-                            if (item.api_source === 'NMC_HOSPITAL') item.raw_data.badges.push('응급의료센터');
-                            if (/종합병원/.test(name)) item.raw_data.badges.push('종합병원');
-                            if (/의료원/.test(name)) item.raw_data.badges.push('의료원');
-                            if (/대학병원/.test(name)) item.raw_data.badges.push('대학병원');
+                        // [v11.9.72] NMC API 출처라면 무조건 응급의료센터 뱃지 부여
+                        const isNMC = item.api_source === 'NMC_HOSPITAL';
+                        
+                        if (isNMC || item.api_source === 'KAKAO_BIG_HOSP' || /종합병원|의료원|대학병원/.test(name)) {
+                            s = isNMC ? 150 : 100;
+                            
+                            if (isNMC) {
+                                if (!item.raw_data.badges.includes('응급의료센터')) item.raw_data.badges.push('응급의료센터');
+                            }
+
+                            if (/종합병원/.test(name) && !item.raw_data.badges.includes('종합병원')) item.raw_data.badges.push('종합병원');
+                            if (/의료원/.test(name) && !item.raw_data.badges.includes('의료원')) item.raw_data.badges.push('의료원');
+                            if (/대학병원/.test(name) && !item.raw_data.badges.includes('대학병원')) item.raw_data.badges.push('대학병원');
                         }
                         else if (/의원|병원/.test(name) || /내과|소아|외과|가정|일반|마취|응급|야간/.test(name) || /의원|병원/.test(indutyH)) s = 50;
                         else if (/보건소|보건지소/.test(name)) s = 40;
@@ -778,7 +791,7 @@ async function main() {
 
                 // unionPool에 병합 (중복 시 높은 점수 유지 + 인증 합산)
                 for (const item of localStage1) {
-                    const uk = (cat === 'MART' || cat === 'HOSPITAL') ? `ADDR|${item.address}` : `${item.name}|${item.address}`;
+                    const uk = (cat === 'MART' || cat === 'HOSPITAL') ? `ADDR|${getCleanString(item.address)}` : `${item.name}|${item.address}`;
                     if (unionPool.has(uk)) {
                         const ex = unionPool.get(uk);
                         if (cat === 'RESTAURANT') {
@@ -943,7 +956,10 @@ async function main() {
         stage1Content += `| :--- | :--- | :--- | :---: | :---: | :--- | :---: |\n`;
         let s1Idx = 1;
         rawCandidatesForAudit.filter(x => x.stage === 1).forEach(c => {
-            const b = Array.from(new Set(c.raw_data?.badges || [])).join(', ');
+            let bList = Array.from(new Set(c.raw_data?.badges || []));
+            if (c.trust_score >= 150 && !bList.includes('응급의료센터')) bList.push('응급의료센터');
+            if (c.api_source === 'NMC_HOSPITAL' && !bList.includes('응급의료센터')) bList.push('응급의료센터');
+            const b = bList.join(', ');
             stage1Content += `| ${s1Idx++} | ${c.category} | ${c.name} | ${c.trust_score} | ${b} | ${c.address} | ${Math.round(c.distance)} |\n`;
         });
         fs.writeFileSync('smart_plan_stage1_full.md', stage1Content, 'utf-8');
