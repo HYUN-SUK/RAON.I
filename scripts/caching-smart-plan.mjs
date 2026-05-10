@@ -742,7 +742,8 @@ async function main() {
                         else if (/의원|병원/.test(name) || /내과|소아|외과|가정|일반|마취|응급|야간/.test(name) || /의원|병원/.test(indutyH)) s = 50;
                         else if (/보건소|보건지소/.test(name)) s = 40;
                         
-                        if (/응급|야간|24시/.test(name)) {
+                        const isEmergency = /응급|야간|24시|365/.test(name) || /응급|야간|24시/.test(item.description || '');
+                        if (isEmergency) {
                             s += 40;
                             if (!item.raw_data.badges.includes('24시 응급')) item.raw_data.badges.push('24시 응급');
                         }
