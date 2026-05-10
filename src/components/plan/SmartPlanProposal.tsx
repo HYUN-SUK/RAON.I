@@ -96,7 +96,6 @@ export default function SmartPlanProposal({
             // [v11.9.61] 20초 타임아웃 설정
             const locTimeout = setTimeout(() => {
                 setIsLocating(prev => {
-                    if (prev) console.warn("[SmartPlan] Geolocation timeout reached (20s). Falling back to profile if available.");
                     return false;
                 });
             }, 20000);

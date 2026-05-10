@@ -268,6 +268,11 @@
         *   [x] **Address Fix**: '강원특별자치도' 등 특수 행정구역 명칭에서 시군구가 오추출되던 정규표현식 버그 수정.
         *   [x] **Scoring**: NMC 응급의료센터 기본 점수를 150점으로 상향하여 의료 안전성 기반의 최상단 랭킹 시스템 구축.
         *   [x] **Verification**: 춘천(화목원) 예약건 대상 시뮬레이션으로 한림대/강원대병원의 최상단 안착 최종 검증.
+    *   [x] **5.5.22 Navigation Deep Link Stabilization (v11.9.68) ✅ (2026-05-10)**:
+        *   [x] **GPS Autonomy**: Omitted manual start points for all nav apps, relying on native real-time GPS for maximum stability.
+        *   [x] **Tmap Android Fix**: Implemented `goalx/y` and `v1x/y` parameters to resolve destination/waypoint omission bugs in Android.
+        *   [x] **OS Branching**: Standardized OS-specific URL schemes (rGoX/Y for iOS vs goalx/y for Android) in `nav-utils.ts`.
+        *   [x] **Verification**: Live test confirmed immediate pathfinding from "Current Location" to "Destination" via Tmap Android.
 
 
 ### Phase 6: 확장 모듈 (Expansion) - 🔄 Ongoing (98%)
