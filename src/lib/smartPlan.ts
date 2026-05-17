@@ -60,6 +60,54 @@ export interface FactCard {
 }
 
 // ========================================================================================
+// PRO Timeline Interfaces (Smart Plan LIVE)
+// ========================================================================================
+
+/** PRO 타임라인의 개별 시간 블록 */
+export interface TimelineBlock {
+    id: string;                  // 고유 ID
+    day: number;                 // 1, 2, 3 (몇째날)
+    time: string;                // "09:00" 시작 시각
+    endTime: string;             // "10:00" 종료 시각
+    type: 'move' | 'meal' | 'activity' | 'cafe' | 'rest' | 'setup' | 'free';
+    title: string;               // "세종 전망대 산책"
+    duration_mins: number;       // 체류 시간 (분)
+    travel_mins: number;         // 이전 블록으로부터 이동 시간 (분)
+    location_id?: string;        // FactCard.id 참조
+    factCard?: FactCard;         // 매핑된 장소 카드 (UI 렌더링용)
+    phone?: string;              // 전화번호 (Phase 2 리밸런싱용)
+    description?: string;        // AI 한줄 소개
+    slotType?: string;           // 슬롯 식별 (e.g. 'morning_spot', 'lunch')
+    status?: 'upcoming' | 'active' | 'completed' | 'skipped';
+    hidden?: boolean;            // 숨김 여부
+}
+
+/** PRO 타임라인 Day 단위 묶음 */
+export interface TimelineDay {
+    day: number;
+    date: string;                // "2026-05-20"
+    label: string;               // "첫째 날 — 설레는 출발"
+    blocks: TimelineBlock[];
+}
+
+/** PRO 타임라인 전체 응답 구조 */
+export interface ProTimelinePlan {
+    mode: 'PRO';
+    travelType: 'camping' | 'general';
+    narration: string;
+    days: TimelineDay[];
+    /** 캠핑 모드 체류 구간용 장소 카드 리스트 */
+    campingCards?: {
+        mart: FactCard[];
+        spot: FactCard[];
+        restaurant: FactCard[];
+        gas: FactCard[];
+    };
+    factCards: FactCard[];
+    alternatives: Record<string, FactCard[]>;
+}
+
+// ========================================================================================
 // Deep Scoring Logic (ContextFit)
 // ========================================================================================
 
@@ -507,8 +555,11 @@ export async function generatePersonalizedSmartPlan(
     startDate: Date,
     endDate: Date,
     origin?: { lat: number; lng: number },
-    predefinedMidpoint?: { lat: number; lng: number }
-): Promise<StandardizedPlanJSON> {
+    predefinedMidpoint?: { lat: number; lng: number },
+    mode?: 'BASIC' | 'PRO',
+    travelType?: 'camping' | 'general',
+    routeData?: any
+): Promise<StandardizedPlanJSON | ProTimelinePlan> {
     try {
         // [v11.9.60] 정석적인 서버 사이드 인증 연동 (쿠키 기반)
         const { createClient: createServerSupabase } = await import('@/lib/supabase-server');
@@ -847,11 +898,50 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
             // AI 생성 실패 시 기본 멘트 사용
         }
 
+        // ================================================================
+        // PRO 모드: 타임라인 빌더로 시간대별 타임라인 생성
+        // ================================================================
+        if (mode === 'PRO') {
+            const { buildFullTimeline, buildCampingCards } = await import('@/lib/timelineBuilder');
+            const tt = travelType || 'general';
+            const days = buildFullTimeline({
+                origin: origin || location,
+                destination: location,
+                routeData: routeData || null,
+                trackBFacts: routeFacts,
+                trackAFacts: activeFacts,
+                alternatives,
+                returnFacts,
+                travelType: tt,
+                startDate,
+                endDate,
+            });
+
+            const proResult: ProTimelinePlan = {
+                mode: 'PRO',
+                travelType: tt,
+                narration,
+                days,
+                factCards: [...routeFacts, ...activeFacts, ...returnFacts],
+                alternatives,
+            };
+
+            // 캠핑 모드: 체류 구간용 카드 리스트 추가
+            if (tt === 'camping') {
+                proResult.campingCards = buildCampingCards(activeFacts, alternatives);
+            }
+
+            return proResult;
+        }
+
+        // ================================================================
+        // BASIC 모드: 기존 로직 100% 유지
+        // ================================================================
         return {
             "@context": "https://schema.org",
             "@type": "ItemList",
             narration,
-            target_date: startDate.toISOString().split('T')[0], // 날짜 정보 추가
+            target_date: startDate.toISOString().split('T')[0],
             stageIntros: Object.keys(stageIntros).length > 0 ? stageIntros : undefined,
             stage1_timeline: stageIntros['stage1_timeline'],
             itemListElement: activeFacts,

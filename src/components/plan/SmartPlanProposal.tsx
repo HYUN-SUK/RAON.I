@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw } from 'lucide-react';
-import { StandardizedPlanJSON, FactCard } from '@/lib/smartPlan';
+import { StandardizedPlanJSON, FactCard, ProTimelinePlan } from '@/lib/smartPlan';
+import SmartPlanTimelinePro from './SmartPlanTimelinePro';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { updateSmartPlanData } from '@/actions/schedule';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -25,6 +26,10 @@ interface SmartPlanProposalProps {
     origin?: { lat: number; lng: number };
     onReset?: () => void;
     onGenerated?: () => void; // [v11.9.40] 생성 완료 시 호출
+    /** PRO 모드 여부 */
+    mode?: 'BASIC' | 'PRO';
+    /** 여행 타입 (PRO 전용) */
+    travelType?: 'camping' | 'general';
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -62,15 +67,21 @@ export default function SmartPlanProposal({
     mockData,
     origin,
     onReset,
-    onGenerated
+    onGenerated,
+    mode = 'BASIC',
+    travelType = 'general'
 }: SmartPlanProposalProps) {
     // [v11.9.52] DB 영구 저장 데이터 복구 로직 (Wrapped Structure 대응)
     const isWrapped = initialPlan?.wrapped === true;
     const initialAiPlan = isWrapped ? initialPlan.ai_plan : initialPlan;
     const initialRoute = isWrapped ? initialPlan.selected_route : null;
     const initialMidpoint = isWrapped ? initialPlan.selected_midpoint : null;
+    // PRO 모드 복구: DB에서 mode가 'PRO'이면 PRO 모드로 복원
+    const restoredMode = isWrapped && initialPlan.mode === 'PRO' ? 'PRO' : mode;
+    const restoredTravelType = isWrapped && initialPlan.travel_type ? initialPlan.travel_type : travelType;
 
-    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(initialAiPlan || mockData || null);
+    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(restoredMode === 'BASIC' ? (initialAiPlan || mockData || null) : null);
+    const [proPlan, setProPlan] = useState<ProTimelinePlan | null>(restoredMode === 'PRO' && initialAiPlan?.mode === 'PRO' ? initialAiPlan : null);
     const [isLoading, setIsLoading] = useState(false);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
     const [swapPage, setSwapPage] = useState(0);
@@ -126,6 +137,8 @@ export default function SmartPlanProposal({
 
     // 2. Fetch Plan via Server API Route
     useEffect(() => {
+        // PRO 모드: proPlan이 있으면 스킵
+        if (restoredMode === 'PRO' && proPlan) return;
         if (mockData || plan || !selectedMidpoint) return;
 
         async function fetchPlan() {
@@ -140,17 +153,28 @@ export default function SmartPlanProposal({
                         startDate: startStr,
                         endDate: endStr,
                         origin: originLat && originLng ? { lat: originLat, lng: originLng } : undefined,
-                        predefinedMidpoint: selectedMidpoint
+                        predefinedMidpoint: selectedMidpoint,
+                        mode: restoredMode,
+                        travelType: restoredTravelType,
+                        routeData: selectedRouteData
                     })
                 });
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
                 const generatedPlan = await res.json();
-                setPlan(generatedPlan);
+
+                // PRO vs BASIC 분기 저장
+                if (generatedPlan.mode === 'PRO') {
+                    setProPlan(generatedPlan);
+                } else {
+                    setPlan(generatedPlan);
+                }
                 
                 // [v11.9.52] AI 플랜과 선택된 경로 데이터를 통합하여 영구 저장
                 if (scheduleId) {
                     const wrappedData = {
                         wrapped: true,
+                        mode: restoredMode,
+                        travel_type: restoredTravelType,
                         ai_plan: generatedPlan,
                         selected_route: selectedRouteData,
                         selected_midpoint: selectedMidpoint,
@@ -162,14 +186,14 @@ export default function SmartPlanProposal({
             } catch (error) {
                 console.error("Failed to fetch smart plan:", error);
                 toast.error("플랜 생성에 실패했습니다. 다시 시도해 주세요.");
-                setSelectedMidpoint(null); // 다시 경로 선택으로 복귀
+                setSelectedMidpoint(null);
             } finally {
                 setIsGenerating(false);
             }
         }
 
         fetchPlan();
-    }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData, selectedMidpoint, plan, scheduleId, selectedRouteData, onGenerated]);
+    }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData, selectedMidpoint, plan, proPlan, scheduleId, selectedRouteData, onGenerated, restoredMode, restoredTravelType]);
 
     const handleRouteSelect = (midpoint: { lat: number, lng: number }, routeData: any) => {
         setSelectedMidpoint(midpoint);
@@ -323,13 +347,53 @@ export default function SmartPlanProposal({
     }
 
     // 3. Step 1: Route Selection
-    if (!plan && userOrigin && !selectedMidpoint) {
+    if (!plan && !proPlan && userOrigin && !selectedMidpoint) {
         return (
             <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <RouteSelector 
                     origin={userOrigin} 
                     destination={location} 
                     onSelect={handleRouteSelect} 
+                />
+            </div>
+        );
+    }
+
+    // 3-B. PRO 모드 렌더링
+    if (proPlan) {
+        return (
+            <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Reset 버튼 (개발/tootg 계정 전용) */}
+                {(userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' || process.env.NODE_ENV === 'development') && onReset && (
+                    <div className="flex justify-end mb-2">
+                        <button
+                            onClick={onReset}
+                            className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-red-400 transition-colors"
+                        >
+                            <RefreshCcw className="w-3 h-3" />
+                            초기화
+                        </button>
+                    </div>
+                )}
+                <SmartPlanTimelinePro
+                    plan={proPlan}
+                    accommodationCoord={location}
+                    onPlanUpdate={(updated) => {
+                        setProPlan(updated);
+                        // DB 영구 저장
+                        if (scheduleId) {
+                            const wrappedData = {
+                                wrapped: true,
+                                mode: 'PRO' as const,
+                                travel_type: restoredTravelType,
+                                ai_plan: updated,
+                                selected_route: selectedRouteData,
+                                selected_midpoint: selectedMidpoint,
+                                updated_at: new Date().toISOString()
+                            };
+                            updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
+                        }
+                    }}
                 />
             </div>
         );

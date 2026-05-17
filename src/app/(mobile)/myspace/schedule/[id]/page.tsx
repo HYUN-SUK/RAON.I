@@ -49,6 +49,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import MealRecommendationWidget from '@/components/myspace/MealRecommendationWidget';
 import { getPersonalizedRecommendations, RecipeSearchResult } from '@/actions/recommendation';
 import SmartPlanProposal from '@/components/plan/SmartPlanProposal';
+import SmartPlanModeSelector from '@/components/plan/SmartPlanModeSelector';
+import { DEV_PRO_USER_ID } from '@/lib/timelineBuilder';
 import { createClient } from '@/lib/supabase-client';
 import CampingProfileGate from '@/components/shared/CampingProfileGate';
 import { CampingProfile, getCampingProfile } from '@/actions/camping-profile';
@@ -73,8 +75,13 @@ export default function ScheduleDetailPage() {
     const [showSmartPlan, setShowSmartPlan] = useState(false);
     const [smartPlanOrigin, setSmartPlanOrigin] = useState<{ lat: number; lng: number } | undefined>();
     const [showProfileGate, setShowProfileGate] = useState(false);
-    const [planKey, setPlanKey] = useState(0); // [v11.9.40] 재구성 시 컴포넌트 강제 리마운트용
-    const [isReconstructing, setIsReconstructing] = useState(false); // [v11.9.40] 재구성 중에는 기존 데이터를 무시
+    const [planKey, setPlanKey] = useState(0);
+    const [isReconstructing, setIsReconstructing] = useState(false);
+    // PRO 모드 상태
+    const [showModeSelector, setShowModeSelector] = useState(false);
+    const [planMode, setPlanMode] = useState<'BASIC' | 'PRO'>('BASIC');
+    const [travelType, setTravelType] = useState<'camping' | 'general'>('general');
+    const isPro = userId === DEV_PRO_USER_ID;
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -468,7 +475,13 @@ export default function ScheduleDetailPage() {
                                                     : undefined
                                             );
                                             setShowProfileGate(false);
-                                            setShowSmartPlan(true);
+                                            // PRO: 모드 선택기로, BASIC: 바로 플랜 생성
+                                            if (isPro) {
+                                                setShowModeSelector(true);
+                                            } else {
+                                                setPlanMode('BASIC');
+                                                setShowSmartPlan(true);
+                                            }
                                         }}
                                         requireOrigin={true}
                                         title="완벽한 추천을 위한 정보 확인"
@@ -485,18 +498,62 @@ export default function ScheduleDetailPage() {
                             );
                         }
 
+                        // PRO 모드 선택기 표시 중
+                        if (showModeSelector) {
+                            return (
+                                <div className="space-y-3">
+                                    <SmartPlanModeSelector
+                                        onSelect={(type) => {
+                                            setTravelType(type);
+                                            setPlanMode('PRO');
+                                            setShowModeSelector(false);
+                                            setShowSmartPlan(true);
+                                        }}
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setShowModeSelector(false);
+                                            // Basic으로 펴백 (개발 토글)
+                                            setPlanMode('BASIC');
+                                            setShowSmartPlan(true);
+                                        }}
+                                        className="w-full text-gray-400 text-[11px] hover:bg-transparent"
+                                    >
+                                        Basic 모드로 생성하기
+                                    </Button>
+                                </div>
+                            );
+                        }
+
                         return (
-                            <div className="relative group">
+                            <div className="relative group space-y-2">
+                                {/* PRO 버튼 (tootg 계정만) */}
+                                {isPro && (
+                                    <Button
+                                        onClick={async () => {
+                                            if (isLocked) return;
+                                            setShowProfileGate(true);
+                                        }}
+                                        disabled={isLocked}
+                                        className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-700 hover:to-yellow-600 text-white shadow-[0_4px_14px_0_rgba(217,119,6,0.35)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
+                                    >
+                                        <span className="mr-2 text-xl">⚡</span> LIVE 여정 플래너
+                                        <span className="ml-2 text-[10px] opacity-80 bg-white/20 px-1.5 py-0.5 rounded-full">PRO</span>
+                                    </Button>
+                                )}
+                                {/* Basic 버튼 */}
                                 <Button
                                     onClick={async () => {
                                         if (isLocked) return;
-                                        // [v11.9.32] 프로필이 있더라도 무조건 게이트(확인/수정창)를 먼저 띄웁니다.
+                                        setPlanMode('BASIC');
                                         setShowProfileGate(true);
                                     }}
                                     disabled={isLocked}
                                     className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
                                 >
-                                    <span className="mr-2 text-xl">✨</span> 이번 캠핑계획 자동 완성하기
+                                    <span className="mr-2 text-xl">✨</span> {isPro ? 'Basic 캠핑계획 자동 완성' : '이번 캠핑계획 자동 완성하기'}
                                 </Button>
                                 {isLocked && (
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[90vw] bg-gray-800 text-white text-xs px-3 py-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center pointer-events-none">
@@ -519,10 +576,14 @@ export default function ScheduleDetailPage() {
                             startDate={new Date(schedule.check_in)}
                             endDate={new Date(schedule.check_out)}
                             origin={smartPlanOrigin}
+                            mode={planMode}
+                            travelType={travelType}
                             onReset={() => {
                                 setIsReconstructing(true);
                                 setShowSmartPlan(false);
-                                setShowProfileGate(true);
+                                setShowProfileGate(false);
+                                setShowModeSelector(false);
+                                setPlanMode('BASIC');
                                 setPlanKey(prev => prev + 1);
                             }}
                             onGenerated={() => setIsReconstructing(false)}
