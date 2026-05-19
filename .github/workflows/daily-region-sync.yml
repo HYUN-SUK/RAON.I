@@ -2,8 +2,8 @@ name: RAONAI Daily Region Sync (17-Day Rotation)
 
 on:
   schedule:
-    # 04:00 KST 실행 (UTC 19:00)
-    - cron: '0 19 * * *'
+    # 04:08 KST 실행 (UTC 19:08)
+    - cron: '8 19 * * *'
   workflow_dispatch: # 수동 트리거 허용
 
 jobs:
