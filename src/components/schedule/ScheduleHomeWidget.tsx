@@ -10,6 +10,8 @@ import { useReservationStore } from '@/store/useReservationStore';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { SITES } from '@/constants/sites';
+import { useWeather } from '@/hooks/useWeather';
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 
 // 통합 일정 타입 (라온아이 예약 또는 타캠핑장 일정)
 interface UnifiedSchedule {
@@ -34,6 +36,17 @@ export default function ScheduleHomeWidget() {
     const [upcomingItem, setUpcomingItem] = useState<UnifiedSchedule | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isNavigating, setIsNavigating] = useState(false);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const daysUntil = upcomingItem ? differenceInDays(upcomingItem.checkIn, today) : 999;
+    const isWeatherEnabled = upcomingItem ? daysUntil <= 10 : false;
+
+    const itemLat = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lat || undefined);
+    const itemLng = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lng || undefined);
+
+    const weather = useWeather(itemLat, itemLng, isWeatherEnabled);
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -173,9 +186,7 @@ export default function ScheduleHomeWidget() {
         );
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const daysUntil = differenceInDays(upcomingItem.checkIn, today);
+
     const nights = differenceInDays(upcomingItem.checkOut, upcomingItem.checkIn);
 
     // 라온아이 예약 여부
@@ -190,8 +201,99 @@ export default function ScheduleHomeWidget() {
             ? 'from-brand-1 to-brand-2'
             : 'from-[#224732] to-[#1a3626]';
 
+    // 캠핑 기간의 날짜 리스트 생성 헬퍼
+    const getDatesInRange = (startDate: Date, endDate: Date) => {
+        const dates = [];
+        const curr = new Date(startDate);
+        const end = new Date(endDate);
+        curr.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        while (curr <= end) {
+            dates.push(format(curr, 'yyyyMMdd'));
+            curr.setDate(curr.getDate() + 1);
+        }
+        return dates;
+    };
+
+    const datesInRange = upcomingItem ? getDatesInRange(upcomingItem.checkIn, upcomingItem.checkOut) : [];
+
+    const getWeatherIcon = (type: string) => {
+        switch (type) {
+            case 'sunny': return '☀️';
+            case 'partly_cloudy': return '⛅';
+            case 'cloudy': return '☁️';
+            case 'rainy': return '☔';
+            case 'snowy': return '❄️';
+            default: return '🌤️';
+        }
+    };
+
     return (
         <div className="space-y-3">
+            {/* 날씨 정보 노출 조건분기 */}
+            {upcomingItem && (
+                <>
+                    {daysUntil > 10 ? (
+                        <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-xl p-3 border border-stone-200/50 dark:border-zinc-700/50 text-xs text-stone-600 dark:text-stone-300 flex items-center justify-between shadow-sm">
+                            <span className="flex items-center gap-1.5 font-medium">
+                                📅 캠핑 날씨 안내
+                            </span>
+                            <span className="text-[11px] opacity-80">출발 10일 전부터 캠핑장의 날씨가 안내됩니다. 🌤️</span>
+                        </div>
+                    ) : weather.loading ? (
+                        <div className="bg-white rounded-2xl p-4 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm animate-pulse space-y-3">
+                            <div className="h-4 w-32 bg-stone-100 rounded" />
+                            <div className="flex gap-3">
+                                <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
+                                <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
+                                <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm rounded-2xl p-4 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm space-y-2.5">
+                            <div className="flex items-center justify-between text-xs border-b border-stone-100 dark:border-zinc-700/50 pb-2">
+                                <span className="font-bold text-stone-800 dark:text-stone-200">
+                                    🏕️ 캠핑 일정 날씨 예보 ({upcomingItem.name})
+                                </span>
+                                {weather.lastUpdated && (
+                                    <span className="text-[10px] text-stone-400">
+                                        업데이트: {format(weather.lastUpdated, 'HH:mm')}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex gap-2.5 overflow-x-auto py-1 scrollbar-hide">
+                                {datesInRange.map(dateStr => {
+                                    const dayFcst = weather.daily?.find(d => d.date === dateStr);
+                                    const formattedDate = `${dateStr.substring(4, 6)}/${dateStr.substring(6, 8)}`;
+
+                                    return (
+                                        <div key={dateStr} className="flex-1 min-w-[65px] flex flex-col items-center p-2 rounded-xl bg-stone-50 dark:bg-zinc-900 border border-stone-100/50 dark:border-zinc-800/50">
+                                            <span className="text-[10px] font-medium text-stone-500">{formattedDate}</span>
+                                            {dayFcst ? (
+                                                <>
+                                                    <span className="text-xl my-1">{getWeatherIcon(dayFcst.weatherCode)}</span>
+                                                    <span className="text-[10px] font-semibold text-stone-700 dark:text-stone-300">
+                                                        {dayFcst.min !== null && dayFcst.max !== null ? `${Math.round(dayFcst.min)}°/${Math.round(dayFcst.max)}°` : '-'}
+                                                    </span>
+                                                    {dayFcst.pop > 0 && (
+                                                        <span className="text-[9px] text-blue-500 font-bold mt-0.5">{dayFcst.pop}%</span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="text-xl my-1 text-stone-400">⏳</span>
+                                                    <span className="text-[9px] text-stone-400 font-medium">대기</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
             {/* 다가오는 캠핑 카드 */}
             <div
                 onClick={handleCardClick}

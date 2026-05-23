@@ -42,7 +42,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
     const { cooking, play, events, reasons } = data;
 
     // Construct valid items for display
-    const items = [];
+    const items: DetailedRecommendationItem[] = [];
 
     // 1. Cooking
     if (cooking) {
@@ -93,7 +93,8 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
         });
     }
 
-    // 3. Events (Nearby LBS)
+    // 3. Events (Nearby LBS) - Hidden as per request to prevent display and API calls
+    /*
     const eventCount = events ? events.length : 0;
     const firstEvent = events && events.length > 0 ? events[0] : null;
 
@@ -124,6 +125,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             data: { type: 'nearby_lbs' as const, events: [] }
         });
     }
+    */
 
     return (
         <section className="px-4 mb-8">

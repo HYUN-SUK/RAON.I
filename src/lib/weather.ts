@@ -61,7 +61,7 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
         const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000';
         const targetUrl = `${baseUrl}/api/weather?lat=${lat}&lng=${lng}`;
 
-        const res = await fetch(targetUrl, { next: { revalidate: 3600 } });
+        const res = await fetch(targetUrl, { next: { revalidate: 14400 } });
         if (!res.ok) {
             console.warn(`[getForecast] Weather API failed with status: ${res.status}`);
             throw new Error("Weather API failed");

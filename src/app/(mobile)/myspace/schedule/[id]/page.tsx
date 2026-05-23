@@ -32,6 +32,7 @@ import {
     deleteSchedule
 } from '@/actions/schedule';
 import { Button } from '@/components/ui/button';
+import { useWeather } from '@/hooks/useWeather';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -99,6 +100,48 @@ export default function ScheduleDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [newItem, setNewItem] = useState('');
     const [isAddingItem, setIsAddingItem] = useState(false);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const checkIn = schedule ? parseISO(schedule.check_in) : new Date();
+    const checkOut = schedule ? parseISO(schedule.check_out) : new Date();
+    const daysUntil = schedule ? differenceInDays(checkIn, today) : 999;
+    const nights = schedule ? differenceInDays(checkOut, checkIn) : 0;
+    const isWeatherEnabled = schedule ? (daysUntil <= 10) : false;
+
+    const weather = useWeather(
+        schedule?.campground_lat || undefined,
+        schedule?.campground_lng || undefined,
+        isWeatherEnabled
+    );
+
+    // 캠핑 기간의 날짜 리스트 생성 헬퍼
+    const getDatesInRange = (startDate: Date, endDate: Date) => {
+        const dates = [];
+        const curr = new Date(startDate);
+        const end = new Date(endDate);
+        curr.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        while (curr <= end) {
+            dates.push(format(curr, 'yyyyMMdd'));
+            curr.setDate(curr.getDate() + 1);
+        }
+        return dates;
+    };
+
+    const datesInRange = schedule ? getDatesInRange(checkIn, checkOut) : [];
+
+    const getWeatherIcon = (type: string) => {
+        switch (type) {
+            case 'sunny': return '☀️';
+            case 'partly_cloudy': return '⛅';
+            case 'cloudy': return '☁️';
+            case 'rainy': return '☔';
+            case 'snowy': return '❄️';
+            default: return '🌤️';
+        }
+    };
 
     // Meal Recommendations State
     const [mealRecommendations, setMealRecommendations] = useState<any[]>([]);
@@ -349,12 +392,6 @@ export default function ScheduleDetailPage() {
         );
     }
 
-    const checkIn = parseISO(schedule.check_in);
-    const checkOut = parseISO(schedule.check_out);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const daysUntil = differenceInDays(checkIn, today);
-    const nights = differenceInDays(checkOut, checkIn);
     const checkedCount = checklist.filter(i => i.is_checked).length;
 
 
@@ -450,6 +487,68 @@ export default function ScheduleDetailPage() {
                         <span>{nights}박 {nights + 1}일</span>
                     </div>
                 </div>
+
+                {/* 날씨 정보 */}
+                {daysUntil > 10 ? (
+                    <div className="bg-white rounded-2xl p-4 shadow-sm text-center py-6">
+                        <span className="text-3xl block mb-2">🌤️</span>
+                        <p className="font-semibold text-gray-900 text-sm">캠핑 날씨 정보 대기 중</p>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            출발 10일 전부터 기상청 예보를 실시간으로 받아와<br />
+                            캠핑 일정 내의 날씨 정보가 여기에 표시됩니다.
+                        </p>
+                    </div>
+                ) : weather.loading ? (
+                    <div className="bg-white rounded-2xl p-4 shadow-sm animate-pulse space-y-3">
+                        <div className="h-4 w-32 bg-stone-100 rounded" />
+                        <div className="flex gap-3">
+                            <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
+                            <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
+                            <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                        <div className="flex items-center justify-between text-xs border-b border-gray-100 pb-2">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                <span className="text-base">🏕️</span> 캠핑 전체일정 날씨 예보
+                            </h3>
+                            {weather.lastUpdated && (
+                                <span className="text-[10px] text-gray-400">
+                                    업데이트: {format(weather.lastUpdated, 'HH:mm')}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex gap-2.5 overflow-x-auto py-1 scrollbar-hide">
+                            {datesInRange.map(dateStr => {
+                                const dayFcst = weather.daily?.find(d => d.date === dateStr);
+                                const formattedDate = `${dateStr.substring(4, 6)}/${dateStr.substring(6, 8)}`;
+
+                                return (
+                                    <div key={dateStr} className="flex-1 min-w-[65px] flex flex-col items-center p-2 rounded-xl bg-gray-50/50 border border-gray-100">
+                                        <span className="text-[10px] font-medium text-gray-500">{formattedDate}</span>
+                                        {dayFcst ? (
+                                            <>
+                                                <span className="text-xl my-1">{getWeatherIcon(dayFcst.weatherCode)}</span>
+                                                <span className="text-xs font-semibold text-gray-700">
+                                                    {dayFcst.min !== null && dayFcst.max !== null ? `${Math.round(dayFcst.min)}°/${Math.round(dayFcst.max)}°` : '-'}
+                                                </span>
+                                                {dayFcst.pop > 0 && (
+                                                    <span className="text-[9px] text-blue-500 font-bold mt-0.5">{dayFcst.pop}%</span>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-xl my-1 text-gray-300">⏳</span>
+                                                <span className="text-[9px] text-gray-400 font-medium">대기</span>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* 스마트 캠핑 플랜 UI (Gap 1: Trigger UI) */}
                 <div className="mt-6 mb-4">

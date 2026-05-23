@@ -87,16 +87,16 @@ export async function GET(req: NextRequest) {
     const supabase = createClient();
 
     // 2. Check Cache
-    // 1 Hour TTL
+    // 4 Hour TTL
     const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+    const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString();
 
     const { data: cacheData, error: cacheError } = await supabase
         .from('weather_cache')
         .select('*')
         .eq('nx', nx)
         .eq('ny', ny)
-        .gte('updated_at', oneHourAgo)
+        .gte('updated_at', fourHoursAgo)
         .single();
 
     if (cacheData && !cacheError) {

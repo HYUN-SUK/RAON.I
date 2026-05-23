@@ -56,7 +56,7 @@ export interface WeatherState {
     nextUpdate: Date | null;
 }
 
-export const useWeather = (userLat?: number, userLng?: number) => {
+export const useWeather = (userLat?: number, userLng?: number, enabled = true) => {
     const [weather, setWeather] = useState<WeatherState>({
         type: 'unknown',
         temp: null,
@@ -75,6 +75,10 @@ export const useWeather = (userLat?: number, userLng?: number) => {
 
     useEffect(() => {
         const fetchWeather = async () => {
+            if (!enabled) {
+                setWeather(prev => ({ ...prev, loading: false }));
+                return;
+            }
             // Use user location if available, else default
             const lat = userLat || DEFAULT_CAMPING_LOCATION.latitude;
             const lng = userLng || DEFAULT_CAMPING_LOCATION.longitude;
@@ -82,15 +86,15 @@ export const useWeather = (userLat?: number, userLng?: number) => {
             const cacheKey = `weather_kma_${lat.toFixed(2)}_${lng.toFixed(2)}`;
             const cached = sessionStorage.getItem(cacheKey);
 
-            // Simple Session Cache: 30 min expiry
+            // Simple Session Cache: 4 hour expiry
             if (cached) {
                 const parsed = JSON.parse(cached);
                 const now = new Date().getTime();
                 const cacheAge = now - parsed.timestamp;
-                if (cacheAge < 1800 * 1000) {
-                    // 캠시에서 갑어올 때 갱신 시간 정보 추가
+                if (cacheAge < 4 * 3600 * 1000) {
+                    // 캐시에서 가져올 때 갱신 시간 정보 추가
                     const lastUpdated = new Date(parsed.timestamp);
-                    const nextUpdate = new Date(parsed.timestamp + 1800 * 1000);
+                    const nextUpdate = new Date(parsed.timestamp + 4 * 3600 * 1000);
                     setWeather({
                         ...parsed.data,
                         lastUpdated,
@@ -151,7 +155,7 @@ export const useWeather = (userLat?: number, userLng?: number) => {
                 }
 
                 // Match "Current Temp" with "Hourly Forecast Temp" for consistency
-                // 중요: 타임라인 데이터와 일관성을 위해 현재 시간의 타임라인 온도를 메인 온도로 사용
+                // 중요: 타임라인 데이터와 일관성을 위해 현재 시간의 타임라인 온도로 사용
                 let displayTemp = current.temp; // Default fallback
                 const nowTime = new Date().getTime(); // Current System Abs Time (UTC)
 
@@ -199,7 +203,7 @@ export const useWeather = (userLat?: number, userLng?: number) => {
                     loading: false,
                     error: null,
                     lastUpdated: new Date(),
-                    nextUpdate: new Date(Date.now() + 1800 * 1000),
+                    nextUpdate: new Date(Date.now() + 4 * 3600 * 1000),
                 };
 
                 setWeather(weatherData);
@@ -215,7 +219,7 @@ export const useWeather = (userLat?: number, userLng?: number) => {
         };
 
         fetchWeather();
-    }, [userLat, userLng]);
+    }, [userLat, userLng, enabled]);
 
     return weather;
 };

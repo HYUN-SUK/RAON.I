@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
@@ -67,10 +67,22 @@ interface RecommendationItem {
 
 export default function ReturningHome() {
     const router = useRouter();
-    const { initRebook, lastReservation, fetchLastReservation, openDayRule, fetchOpenDayRule, fetchSites } = useReservationStore();
+    const { initRebook, lastReservation, fetchLastReservation, openDayRule, fetchOpenDayRule, fetchSites, reservations, fetchMyReservations } = useReservationStore();
     const { config } = useSiteConfig();
     const lbs = useLBS();
-    const { data: recData, weather, loading: recLoading, shuffle } = usePersonalizedRecommendation();
+
+    // 다가오는 예약 판단 (체크아웃이 오늘 이후이면서 승인/대기 중인 예약)
+    const hasUpcoming = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return reservations.some(r => {
+            const checkOut = new Date(r.checkOutDate);
+            checkOut.setHours(0, 0, 0, 0);
+            return checkOut > today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
+        });
+    }, [reservations]);
+
+    const { data: recData, weather, loading: recLoading, shuffle } = usePersonalizedRecommendation(false);
 
     const { requestPermission } = usePushNotification();
 
@@ -78,9 +90,10 @@ export default function ReturningHome() {
         fetchSites();
         fetchOpenDayRule();
         fetchLastReservation();
+        fetchMyReservations();
         // Auto-request permission on Home Load
         requestPermission();
-    }, [fetchOpenDayRule, fetchLastReservation, fetchSites, requestPermission]);
+    }, [fetchOpenDayRule, fetchLastReservation, fetchSites, requestPermission, fetchMyReservations]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -170,31 +183,11 @@ export default function ReturningHome() {
                     <div className="relative z-10 mt-4">
                         {recData ? (
                             <>
-                                <Badge variant="outline" className="text-white/80 border-white/20 mb-2 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => {
-                                    if (weather) {
-                                        setWeatherSheetOpen(true);
-                                        // --- [Phase 3.5] Progressive Trigger Injection: LBS (Weather Check) ---
-                                        (async () => {
-                                            const supabase = createClient();
-                                            const { data: { user } } = await supabase.auth.getUser();
-                                            if (user) {
-                                                await dispatchPersonaAction(user.id, 'LBS_WEATHER_CLICK');
-                                            }
-                                        })();
-                                    }
-                                }}>
-                                    {weather?.temp !== null && weather?.temp !== undefined ? `${Math.round(weather.temp)}°C ` :
-                                        recData.context?.temp !== null && recData.context?.temp !== undefined ? `${Math.round(recData.context.temp)}°C ` : ''}
-                                    {recData.context?.weather === 'sunny' ? '☀️ 맑음' :
-                                        recData.context?.weather === 'partly_cloudy' ? '⛅ 구름 많음' :
-                                            recData.context?.weather === 'cloudy' ? '☁️ 흐림' :
-                                                recData.context?.weather === 'rainy' ? '☔ 비' :
-                                                    recData.context?.weather === 'snowy' ? '❄️ 눈' :
-                                                        weather?.type === 'sunny' ? '☀️ 맑음' :
-                                                            weather?.type === 'cloudy' ? '☁️ 흐림' :
-                                                                weather?.type === 'rainy' ? '☔ 비' : '🌤️ 날씨'}
-                                </Badge>
-                                <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
+                                <div className="py-1">
+                                    <p className="text-sm font-semibold text-white/95 drop-shadow-md italic mb-2">
+                                        "바쁜 하루 속, 마음을 뉘어둘 조용한 쉼표를 찾아볼까요? 🌿"
+                                    </p>
+                                </div>
                                 <p className="text-white/80 text-sm mb-1">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
                                 <h1 className="text-2xl font-bold leading-relaxed">
                                     라온아이에서,<br />
@@ -319,19 +312,14 @@ export default function ReturningHome() {
                     </Card>
                 </div>
 
-                {/* 2.5 Plan Lock Card */}
+                {/* 3.5 Schedule Widget (Moved to replace PlanLockCard) */}
                 <div className="px-4 mb-4">
-                    <PlanLockCard />
+                    <ScheduleHomeWidget />
                 </div>
 
                 {/* 3. Mission Widget (Weekly) */}
                 <div className="px-4 mb-4">
                     <MissionHomeWidget />
-                </div>
-
-                {/* 3.5 Schedule Widget */}
-                <div className="px-4 mb-4">
-                    <ScheduleHomeWidget />
                 </div>
 
                 {/* 4. Recommendations Grid (Dynamic) */}

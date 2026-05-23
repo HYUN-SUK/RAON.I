@@ -30,7 +30,7 @@ interface TagData {
     [key: string]: any;
 }
 
-export function usePersonalizedRecommendation() {
+export function usePersonalizedRecommendation(enabled = true) {
     // 1. Initial State
     const [data, setData] = useState<PersonalizedData>({
         cooking: null,
@@ -53,7 +53,8 @@ export function usePersonalizedRecommendation() {
     const lbs = useLBS();
     const weather = useWeather(
         !lbs.usingDefault ? lbs.location.latitude : undefined,
-        !lbs.usingDefault ? lbs.location.longitude : undefined
+        !lbs.usingDefault ? lbs.location.longitude : undefined,
+        enabled
     );
 
     // Helper: Get Time Context
@@ -273,7 +274,8 @@ export function usePersonalizedRecommendation() {
                 // IMPORTANT: Release Loading Here - Hero and Main Cards are ready
                 setLoading(false);
 
-                // Fetch Nearby Events from API - NON BLOCKING (Fire and Forget update)
+                // Fetch Nearby Events from API - Disabled to prevent API quota usage
+                /*
                 const lat = lbs.location?.latitude || 36.67;
                 const lng = lbs.location?.longitude || 126.83;
 
@@ -300,6 +302,7 @@ export function usePersonalizedRecommendation() {
                         }
                     })
                     .catch(err => console.warn("Background nearby fetch failed", err));
+                */
 
             } catch (error) {
                 console.error("Failed to fetch recommendations:", error);

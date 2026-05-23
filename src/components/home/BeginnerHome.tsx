@@ -91,14 +91,27 @@ export default function BeginnerHome() {
     const lbs = useLBS(); // Real-time Location
 
     // Contextual Data
-    const { data: recData, loading: recLoading, weather, shuffle } = usePersonalizedRecommendation();
-    const { openDayRule, fetchOpenDayRule } = useReservationStore();
+    const { reservations, fetchMyReservations, openDayRule, fetchOpenDayRule } = useReservationStore();
+
+    // 다가오는 예약 판단 (체크아웃이 오늘 이후이면서 승인/대기 중인 예약)
+    const hasUpcoming = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return reservations.some(r => {
+            const checkOut = new Date(r.checkOutDate);
+            checkOut.setHours(0, 0, 0, 0);
+            return checkOut > today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
+        });
+    }, [reservations]);
+
+    const { data: recData, loading: recLoading, weather, shuffle } = usePersonalizedRecommendation(false);
     const { requestPermission } = usePushNotification();
 
     React.useEffect(() => {
         fetchOpenDayRule();
+        fetchMyReservations();
         requestPermission();
-    }, [fetchOpenDayRule, requestPermission]);
+    }, [fetchOpenDayRule, fetchMyReservations, requestPermission]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -375,29 +388,11 @@ export default function BeginnerHome() {
                     <NotificationBadge variant="hero" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
-                        <Badge
-                            variant="secondary"
-                            className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border-none px-3 py-1 cursor-pointer transition-colors"
-                            onClick={() => {
-                                if (weather) {
-                                    setWeatherSheetOpen(true);
-                                    // --- [Phase 3.5] Progressive Trigger Injection: LBS (Weather Check) ---
-                                    (async () => {
-                                        const supabase = createClient();
-                                        const { data: { user } } = await supabase.auth.getUser();
-                                        if (user) {
-                                            await dispatchPersonaAction(user.id, 'LBS_WEATHER_CLICK');
-                                        }
-                                    })();
-                                }
-                            }}
-                        >
-                            {recData.context?.weather && recData.context?.weather !== 'unknown'
-                                ? `${recData.context.temp !== null ? Math.round(recData.context.temp) + '°C ' : ''}${recData.context.greeting}`
-                                : recLoading ? 'Loading...' : 'Welcome to RAON.I'
-                            }
-                        </Badge>
-                        <p className="text-[10px] text-white/60 animate-pulse mb-2 ml-1">👆 터치하여 상세 날씨 보기</p>
+                        <div className="py-1">
+                            <p className="text-sm font-semibold text-white/95 drop-shadow-md italic">
+                                "바쁜 하루 속, 마음을 뉘어둘 조용한 쉼표를 찾아볼까요? 🌿"
+                            </p>
+                        </div>
 
                         <h1 className="text-responsive-hero-title font-bold leading-tight">
                             {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
@@ -479,19 +474,14 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
-                {/* 3.5 Plan Lock Card */}
+                {/* 3.6 Schedule Widget (Moved to replace PlanLockCard) */}
                 <section className="px-4 mb-8">
-                    <PlanLockCard />
+                    <ScheduleHomeWidget />
                 </section>
 
                 {/* 3.5 Mission Widget */}
                 <section className="px-4 mb-8">
                     <MissionHomeWidget />
-                </section>
-
-                {/* 3.6 Schedule Widget */}
-                <section className="px-4 mb-8">
-                    <ScheduleHomeWidget />
                 </section>
 
                 {/* 4. Recommendations Grid */}
