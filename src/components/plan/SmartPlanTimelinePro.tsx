@@ -5,10 +5,46 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Clock, EyeOff, ArrowRightLeft, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ProTimelinePlan, TimelineBlock, TimelineDay, FactCard } from '@/lib/smartPlan';
 import { recalcTimelineFrom } from '@/lib/timelineBuilder';
 import { openNavApp } from '@/lib/nav-utils';
+
+// ========================================================================================
+// Time/Coord Helpers
+// ========================================================================================
+const timeToMinutes = (t: string): number => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+};
+const minutesToTime = (mins: number): string => {
+    const h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }): number => {
+    const R = 6371;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const sinLat = Math.sin(dLat / 2);
+    const sinLng = Math.sin(dLng / 2);
+    const x = sinLat * sinLat + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinLng * sinLng;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+};
+const estimateTravelMins = (from: { lat: number; lng: number }, to: { lat: number; lng: number }): number => {
+    const km = haversineKm(from, to) * 1.4;
+    return Math.max(5, Math.round(km / 50 * 60));
+};
 
 // ========================================================================================
 // Constants
@@ -49,6 +85,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
     const [editTimeBlock, setEditTimeBlock] = useState<TimelineBlock | null>(null);
     const [editHour, setEditHour] = useState(9);
     const [editMin, setEditMin] = useState(0);
+    const [confirmHideBlock, setConfirmHideBlock] = useState<{ block: TimelineBlock; dayNum: number } | null>(null);
 
     // ========================================================================================
     // Core Actions
@@ -61,6 +98,21 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
         );
         onPlanUpdate({ ...plan, days: newDays });
     }, [plan, onPlanUpdate]);
+
+    /** "지금출발" 버튼 클릭 (출발 블록 전용) */
+    const handleStartNow = useCallback((block: TimelineBlock, dayNum: number) => {
+        const now = new Date();
+        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        const dayData = plan.days.find(d => d.day === dayNum);
+        if (!dayData) return;
+        const blockIndex = dayData.blocks.findIndex(b => b.id === block.id);
+        if (blockIndex < 0) return;
+
+        const recalced = recalcTimelineFrom(dayData.blocks, blockIndex, currentTime);
+        updateDayBlocks(dayNum, recalced);
+        toast.success(`현재 시각 ${currentTime} 기준으로 출발 시간이 변경되었습니다`);
+    }, [plan, updateDayBlocks]);
 
     /** "~로 출발" 버튼 클릭 */
     const handleDepartTo = useCallback((block: TimelineBlock, dayNum: number) => {
@@ -97,18 +149,62 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
 
         // 숨긴 블록 다음부터 재계산
         const nextVisible = updated.findIndex((b, i) => i > blockIndex && !b.hidden);
-        if (nextVisible >= 0 && blockIndex > 0) {
-            const prevBlock = updated.slice(0, blockIndex).reverse().find(b => !b.hidden);
-            const baseTime = prevBlock?.endTime || '09:00';
-            const baseCoord = prevBlock?.factCard
-                ? { lat: prevBlock.factCard.lat, lng: prevBlock.factCard.lng }
-                : accommodationCoord;
+        if (nextVisible >= 0) {
+            const prevBlock = updated.slice(0, nextVisible).reverse().find(b => !b.hidden);
+            let baseTime = '09:00';
+            let baseCoord = accommodationCoord;
+            if (prevBlock) {
+                baseCoord = prevBlock.factCard
+                    ? { lat: prevBlock.factCard.lat, lng: prevBlock.factCard.lng }
+                    : accommodationCoord;
+                
+                const dest = updated[nextVisible].factCard
+                    ? { lat: updated[nextVisible].factCard.lat, lng: updated[nextVisible].factCard.lng }
+                    : accommodationCoord;
+                
+                const travelMins = estimateTravelMins(baseCoord, dest);
+                const prevEndMins = timeToMinutes(prevBlock.endTime);
+                baseTime = minutesToTime(prevEndMins + travelMins);
+            }
             const recalced = recalcTimelineFrom(updated, nextVisible, baseTime, baseCoord);
             updateDayBlocks(dayNum, recalced);
         } else {
             updateDayBlocks(dayNum, updated);
         }
         toast('일정에서 제외했습니다', { icon: '👁️‍🗨️' });
+    }, [plan, accommodationCoord, updateDayBlocks]);
+
+    /** 장소 다시 보이기 */
+    const handleShowBlock = useCallback((block: TimelineBlock, dayNum: number) => {
+        const dayData = plan.days.find(d => d.day === dayNum);
+        if (!dayData) return;
+        const blockIndex = dayData.blocks.findIndex(b => b.id === block.id);
+        if (blockIndex < 0) return;
+
+        const updated = dayData.blocks.map((b, i) =>
+            i === blockIndex ? { ...b, hidden: false } : b
+        );
+
+        const prevBlock = updated.slice(0, blockIndex).reverse().find(b => !b.hidden);
+        let baseTime = '09:00';
+        let baseCoord = accommodationCoord;
+        if (prevBlock) {
+            baseCoord = prevBlock.factCard
+                ? { lat: prevBlock.factCard.lat, lng: prevBlock.factCard.lng }
+                : accommodationCoord;
+            
+            const dest = updated[blockIndex].factCard
+                ? { lat: updated[blockIndex].factCard.lat, lng: updated[blockIndex].factCard.lng }
+                : accommodationCoord;
+            
+            const travelMins = estimateTravelMins(baseCoord, dest);
+            const prevEndMins = timeToMinutes(prevBlock.endTime);
+            baseTime = minutesToTime(prevEndMins + travelMins);
+        }
+
+        const recalced = recalcTimelineFrom(updated, blockIndex, baseTime, baseCoord);
+        updateDayBlocks(dayNum, recalced);
+        toast.success(`${block.title} 일정을 다시 추가했습니다`);
     }, [plan, accommodationCoord, updateDayBlocks]);
 
     /** 장소 교체 (Swap) */
@@ -181,7 +277,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                 </p>
                 {plan.narration && (
                     <p className="text-xs text-gray-500 mt-2 px-4 leading-relaxed">
-                        {plan.narration.slice(0, 120)}...
+                        {plan.narration}
                     </p>
                 )}
             </div>
@@ -218,67 +314,121 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                 className="overflow-hidden"
                             >
                                 <div className="relative ml-6 border-l-2 border-dashed border-[#224732]/15 pl-5 pt-3 pb-2">
-                                    {dayData.blocks.filter(b => !b.hidden).map((block, idx) => (
-                                        <div key={block.id} className="relative mb-4">
-                                            {/* Timeline Dot */}
-                                            <div className="absolute -left-[27px] top-3 w-3 h-3 rounded-full bg-[#224732] border-2 border-white shadow-sm" />
+                                    {dayData.blocks.map((block, idx) => {
+                                        if (block.hidden) {
+                                            return (
+                                                <div key={block.id} className="relative mb-4">
+                                                    {/* Timeline Dot */}
+                                                    <div className="absolute -left-[27px] top-3.5 w-3 h-3 rounded-full bg-gray-300 border-2 border-white shadow-sm" />
+                                                    
+                                                    {/* Travel Indicator */}
+                                                    {block.travel_mins > 0 && idx > 0 && (
+                                                        <div className="flex items-center gap-1.5 mb-2 -ml-1">
+                                                            <span className="text-[10px] text-gray-400">🚗 이동 {block.travel_mins}분</span>
+                                                            <div className="flex-1 h-px bg-gray-100" />
+                                                        </div>
+                                                    )}
 
-                                            {/* Travel Indicator */}
-                                            {block.travel_mins > 0 && idx > 0 && (
-                                                <div className="flex items-center gap-1.5 mb-2 -ml-1">
-                                                    <span className="text-[10px] text-gray-400">🚗 이동 {block.travel_mins}분</span>
-                                                    <div className="flex-1 h-px bg-gray-100" />
+                                                    <div className="flex items-center justify-between py-1.5 px-3 bg-gray-50/80 rounded-lg border border-dashed border-gray-200 text-gray-400">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="text-xs font-mono font-bold text-gray-300 flex-shrink-0">{block.time}</span>
+                                                            <span className="text-xs font-bold truncate max-w-[120px] line-through opacity-70">{block.title}</span>
+                                                            <span className="text-[9px] bg-gray-100 text-gray-400 px-1 py-0.2 rounded font-bold flex-shrink-0">숨김</span>
+                                                        </div>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleShowBlock(block, dayData.day)}
+                                                            className="h-6 py-0 px-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 text-[10px] font-bold rounded-md shadow-sm active:scale-95 transition-all flex items-center gap-0.5"
+                                                        >
+                                                            👁️ 보이기
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                            )}
+                                            );
+                                        }
 
-                                            {/* Block Card */}
-                                            {block.type === 'move' || block.type === 'rest' ? (
-                                                /* 이동/도착/출발 블록 (간단) */
-                                                <div className="flex items-center gap-2 py-1.5">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditHour(parseInt(block.time.split(':')[0]));
-                                                            setEditMin(parseInt(block.time.split(':')[1]));
-                                                            setEditTimeBlock(block);
-                                                        }}
-                                                        className="text-xs font-mono font-bold text-gray-400 hover:text-[#224732] transition-colors min-w-[40px]"
-                                                    >
-                                                        {block.time}
-                                                    </button>
-                                                    <span className="text-sm">{BLOCK_ICONS[block.type]}</span>
-                                                    <span className="text-sm font-bold text-gray-600">{block.title}</span>
-                                                </div>
-                                            ) : (
-                                                /* 장소 블록 (상세 카드) */
-                                                <div className={`rounded-xl border p-3 ${BLOCK_COLORS[block.type]}`}>
-                                                    {/* Time + Title */}
-                                                    <div className="flex items-start justify-between mb-1.5">
-                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        return (
+                                            <div key={block.id} className="relative mb-4">
+                                                {/* Timeline Dot */}
+                                                <div className="absolute -left-[27px] top-3 w-3 h-3 rounded-full bg-[#224732] border-2 border-white shadow-sm" />
+
+                                                {/* Travel Indicator */}
+                                                {block.travel_mins > 0 && idx > 0 && (
+                                                    <div className="flex items-center gap-1.5 mb-2 -ml-1">
+                                                        <span className="text-[10px] text-gray-400">🚗 이동 {block.travel_mins}분</span>
+                                                        <div className="flex-1 h-px bg-gray-100" />
+                                                    </div>
+                                                )}
+
+                                                {/* Block Card */}
+                                                {block.type === 'move' || block.type === 'rest' ? (
+                                                    /* 이동/도착/출발 블록 (간단) */
+                                                    <div className="flex items-center justify-between py-1.5 w-full">
+                                                        <div className="flex items-center gap-2">
                                                             <button
                                                                 onClick={() => {
                                                                     setEditHour(parseInt(block.time.split(':')[0]));
                                                                     setEditMin(parseInt(block.time.split(':')[1]));
                                                                     setEditTimeBlock(block);
                                                                 }}
-                                                                className="text-xs font-mono font-bold opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                                                                className="text-xs font-mono font-bold text-gray-400 hover:text-[#224732] transition-colors min-w-[40px]"
                                                             >
-                                                                {block.time}~{block.endTime}
+                                                                {block.time}
                                                             </button>
                                                             <span className="text-sm">{BLOCK_ICONS[block.type]}</span>
+                                                            <span className="text-sm font-bold text-gray-600">{block.title}</span>
                                                         </div>
-                                                        <span className="text-[10px] font-bold opacity-50">{block.duration_mins}분</span>
+                                                        {(block.slotType === 'departure' || block.slotType === 'return_departure' || block.title === '출발') && (
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleStartNow(block, dayData.day)}
+                                                                className="h-7 text-[10px] px-2.5 bg-[#224732] hover:bg-[#1a3626] text-white font-bold rounded-md shadow-sm active:scale-95 transition-all"
+                                                            >
+                                                                🚀 지금출발
+                                                            </Button>
+                                                        )}
                                                     </div>
+                                                ) : (
+                                                    /* 장소 블록 (상세 카드) */
+                                                    <div className={`rounded-xl border p-3 ${BLOCK_COLORS[block.type]}`}>
+                                                        {/* Time + Title */}
+                                                        <div className="flex items-start justify-between mb-1.5">
+                                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditHour(parseInt(block.time.split(':')[0]));
+                                                                        setEditMin(parseInt(block.time.split(':')[1]));
+                                                                        setEditTimeBlock(block);
+                                                                    }}
+                                                                    className="text-xs font-mono font-bold opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                                                                >
+                                                                    {block.time}~{block.endTime}
+                                                                </button>
+                                                                <span className="text-sm">{BLOCK_ICONS[block.type]}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold opacity-50">{block.duration_mins}분</span>
+                                                        </div>
 
-                                                    {/* Place Name */}
-                                                    <h4 className="text-sm font-black truncate">{block.title}</h4>
+                                                        {/* Place Name */}
+                                                        <h4 className="text-sm font-black truncate">{block.title}</h4>
 
-                                                    {/* Description */}
-                                                    {block.description && (
-                                                        <p className="text-[11px] opacity-70 mt-0.5 line-clamp-1">{block.description}</p>
-                                                    )}
+                                                        {/* Address */}
+                                                        {block.factCard && (block.factCard.metadata?.address || block.factCard.metadata?.road_address) && (
+                                                            <div className="flex items-center gap-1 text-[10px] opacity-60 mt-1">
+                                                                <MapPin className="w-3 h-3 flex-shrink-0" />
+                                                                <span className="truncate">
+                                                                    {block.factCard.metadata?.address || block.factCard.metadata?.road_address}
+                                                                </span>
+                                                            </div>
+                                                        )}
 
-                                                    {/* Badges */}
-                                                    {block.factCard?.evidence?.displayBadges && block.factCard.evidence.displayBadges.length > 0 && (
+                                                        {/* Description */}
+                                                        {block.description && (
+                                                            <p className="text-[11px] opacity-70 mt-1 line-clamp-1">{block.description}</p>
+                                                        )}
+
+                                                        {/* Badges */}
+                                                        {block.factCard?.evidence?.displayBadges && block.factCard.evidence.displayBadges.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-1.5">
                                                             {block.factCard.evidence.displayBadges.slice(0, 3).map((badge, i) => (
                                                                 <span key={i} className="text-[9px] font-bold bg-white/60 px-1.5 py-0.5 rounded-full">
@@ -311,7 +461,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
 
                                                         {/* 숨기기 */}
                                                         <button
-                                                            onClick={() => handleHideBlock(block, dayData.day)}
+                                                            onClick={() => setConfirmHideBlock({ block, dayNum: dayData.day })}
                                                             className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/50 hover:bg-red-50 text-gray-400 hover:text-red-400 transition-all"
                                                         >
                                                             <EyeOff className="w-3.5 h-3.5" />
@@ -320,7 +470,8 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                                 </div>
                                             )}
                                         </div>
-                                    ))}
+                                    );
+                                })}
                                 </div>
                             </motion.div>
                         )}
@@ -476,6 +627,36 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                     </div>
                 </SheetContent>
             </Sheet>
+
+            {/* ============================================================ */}
+            {/* 일정 숨기기 확인 AlertDialog */}
+            {/* ============================================================ */}
+            <AlertDialog open={!!confirmHideBlock} onOpenChange={() => setConfirmHideBlock(null)}>
+                <AlertDialogContent className="bg-white rounded-2xl max-w-sm p-5 border border-gray-100">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-base font-black text-gray-900">일정을 숨길까요?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            선택하신 '{confirmHideBlock?.block.title}' 일정을 타임라인에서 숨깁니다. 숨겨진 일정은 언제든지 다시 보이게 복구할 수 있습니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex gap-2 mt-4">
+                        <AlertDialogCancel className="flex-1 h-10 border border-gray-200 text-gray-600 font-bold text-xs rounded-xl active:scale-[0.98]">
+                            취소
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (confirmHideBlock) {
+                                    handleHideBlock(confirmHideBlock.block, confirmHideBlock.dayNum);
+                                    setConfirmHideBlock(null);
+                                }
+                            }}
+                            className="flex-1 h-10 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl active:scale-[0.98] border-none"
+                        >
+                            숨기기
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
