@@ -41,7 +41,7 @@ export default function ScheduleHomeWidget() {
     today.setHours(0, 0, 0, 0);
 
     const daysUntil = upcomingItem ? differenceInDays(upcomingItem.checkIn, today) : 999;
-    const isCampingNow = upcomingItem && (today >= upcomingItem.checkIn && today < upcomingItem.checkOut);
+    const isCampingNow = upcomingItem && (today >= upcomingItem.checkIn && today <= upcomingItem.checkOut);
     const isWeatherEnabled = upcomingItem ? daysUntil <= 10 : false;
 
     const itemLat = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lat || undefined);
@@ -330,7 +330,7 @@ export default function ScheduleHomeWidget() {
                                         ? "bg-amber-400 text-amber-900"
                                         : "bg-white/20 text-white"
                             )}>
-                                {isCampingNow ? '🔥 캠핑 힐링중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
+                                {isCampingNow ? '🔥 힐링 중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
                             </span>
                         </div>
                     </div>
