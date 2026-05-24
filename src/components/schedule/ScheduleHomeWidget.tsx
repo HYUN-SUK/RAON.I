@@ -41,6 +41,7 @@ export default function ScheduleHomeWidget() {
     today.setHours(0, 0, 0, 0);
 
     const daysUntil = upcomingItem ? differenceInDays(upcomingItem.checkIn, today) : 999;
+    const isCampingNow = upcomingItem && (today >= upcomingItem.checkIn && today < upcomingItem.checkOut);
     const isWeatherEnabled = upcomingItem ? daysUntil <= 10 : false;
 
     const itemLat = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lat || undefined);
@@ -72,12 +73,12 @@ export default function ScheduleHomeWidget() {
 
         const unifiedList: UnifiedSchedule[] = [];
 
-        // 라온아이 예약 필터링 (진행 중인 예약만)
+        // 라온아이 예약 필터링 (진행 중인 예약만 - 퇴실일 당일까지 노출)
         reservations
             .filter(r => {
                 const checkOut = new Date(r.checkOutDate);
                 checkOut.setHours(0, 0, 0, 0);
-                return checkOut > today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
+                return checkOut >= today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
             })
             .forEach(r => {
                 const site = SITES.find(s => s.id === r.siteId);
@@ -92,11 +93,11 @@ export default function ScheduleHomeWidget() {
                 });
             });
 
-        // 타캠핑장 일정 필터링
+        // 타캠핑장 일정 필터링 (퇴실일 당일까지 노출)
         schedules
             .filter(s => {
-                const checkIn = parseISO(s.check_in);
-                return checkIn >= today && s.status === 'scheduled';
+                const checkOut = parseISO(s.check_out);
+                return checkOut >= today && s.status === 'scheduled';
             })
             .forEach(s => {
                 unifiedList.push({
@@ -313,7 +314,7 @@ export default function ScheduleHomeWidget() {
                             </div>
                             <div>
                                 <span className="text-sm font-medium opacity-90">
-                                    {isPending ? '입금대기' : '다가오는 캠핑'}
+                                    {isPending ? '입금대기' : isCampingNow ? '현재 캠핑 진행 중' : '다가오는 캠핑'}
                                 </span>
                                 <span className="ml-2 text-xs bg-white/20 px-1.5 py-0.5 rounded">
                                     {isRaonai ? '라온아이' : '타캠핑장'}
@@ -323,11 +324,13 @@ export default function ScheduleHomeWidget() {
                         <div className="text-right">
                             <span className={cn(
                                 "inline-block px-2 py-0.5 rounded-full text-xs font-bold",
-                                daysUntil === 0
-                                    ? "bg-amber-400 text-amber-900"
-                                    : "bg-white/20 text-white"
+                                isCampingNow
+                                    ? "bg-green-500 text-white animate-pulse"
+                                    : daysUntil === 0
+                                        ? "bg-amber-400 text-amber-900"
+                                        : "bg-white/20 text-white"
                             )}>
-                                {daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
+                                {isCampingNow ? '🔥 캠핑 힐링중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
                             </span>
                         </div>
                     </div>
