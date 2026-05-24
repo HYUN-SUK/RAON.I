@@ -311,6 +311,9 @@ export default function ScheduleDetailPage() {
     // [v11.9.32] 저장된 스마트 플랜 데이터가 있다면 자동으로 표시 (복구)
     useEffect(() => {
         if (schedule?.smart_plan_data && !showSmartPlan && !showProfileGate && !isReconstructing) {
+            const savedData = schedule.smart_plan_data;
+            const savedMode = savedData.wrapped && savedData.mode === 'PRO' ? 'PRO' : 'BASIC';
+            setPlanMode(savedMode);
             setShowSmartPlan(true);
         }
     }, [schedule, showSmartPlan, showProfileGate, isReconstructing]);
