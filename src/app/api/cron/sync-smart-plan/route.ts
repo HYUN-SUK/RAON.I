@@ -5,6 +5,32 @@ import { v5 as uuidv5 } from 'uuid';
 
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // UUID v5 Namespace
 
+function getStandardNmcSido(sido: string): string {
+    if (!sido) return '';
+    const cleanSido = sido.trim();
+    const nmcSidoMap: Record<string, string> = {
+        '서울특별시': '서울특별시', '서울': '서울특별시',
+        '부산광역시': '부산광역시', '부산': '부산광역시',
+        '대구광역시': '대구광역시', '대구': '대구광역시',
+        '인천광역시': '인천광역시', '인천': '인천광역시',
+        '광주광역시': '광주광역시', '광주': '광주광역시',
+        '대전광역시': '대전광역시', '대전': '대전광역시',
+        '울산광역시': '울산광역시', '울산': '울산광역시',
+        '세종특별자치시': '세종특별자치시', '세종': '세종특별자치시',
+        '경기도': '경기도', '경기': '경기도',
+        '강원특별자치도': '강원특별자치도', '강원도': '강원특별자치도', '강원': '강원특별자치도',
+        '충청북도': '충청북도', '충북': '충청북도',
+        '충청남도': '충청남도', '충남': '충청남도',
+        '전북특별자치도': '전북특별자치도', '전라북도': '전북특별자치도', '전북': '전북특별자치도',
+        '전라남도': '전라남도', '전남': '전라남도',
+        '경상북도': '경상북도', '경북': '경상북도',
+        '경상남도': '경상남도', '경남': '경상남도',
+        '제주특별자치도': '제주특별자치도', '제주도': '제주특별자치도', '제주': '제주특별자치도',
+        '전남광주통합시': '전남광주통합시'
+    };
+    return nmcSidoMap[cleanSido] || cleanSido.substring(0, 2);
+}
+
 // Vercel Serverless Function Timeout 설정 (최대 5분)
 export const maxDuration = 300;
 
@@ -129,13 +155,26 @@ export async function POST(request: Request) {
             clusterLogs.push(tracking);
             const rawMasterInserts: any[] = [];
 
-            // A-1. Hospital (Local City Fetch)
+            // A-1. Hospital (Local City Fetch - Standard Sido & Hybrid Fallback)
             try {
-                const res = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent(doNm)}&STAGE2=${encodeURIComponent(sigunguNm)}&pageNo=1&numOfRows=100&_type=json`, fetchOptions);
-                const data = await res.json();
-                if (data.response?.body?.items?.item) {
-                    const items = Array.isArray(data.response.body.items.item) ? data.response.body.items.item : [data.response.body.items.item];
-                    items.forEach((item: any) => {
+                const standardSido = getStandardNmcSido(doNm);
+                const initialSigungu = standardSido === '세종특별자치시' ? '' : sigunguNm;
+
+                let hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent(standardSido)}&STAGE2=${encodeURIComponent(initialSigungu)}&pageNo=1&numOfRows=100&_type=json`, fetchOptions);
+                let hData = await hRes.json();
+                let items = hData.response?.body?.items?.item;
+
+                const isMetro = /서울|부산|대구|인천|광주|대전|울산|세종/.test(standardSido);
+                if (!items && !isMetro) {
+                    console.log(`[NMC Fallback] No hospitals in ${sigunguNm}. Querying entire ${standardSido}...`);
+                    hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent(standardSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`, fetchOptions);
+                    hData = await hRes.json();
+                    items = hData.response?.body?.items?.item;
+                }
+
+                if (items) {
+                    const itemList = Array.isArray(items) ? items : [items];
+                    itemList.forEach((item: any) => {
                         rawMasterInserts.push({
                             id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
                             api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
@@ -144,9 +183,9 @@ export async function POST(request: Request) {
                             trust_score: item.dutyName?.includes('소아') ? 100 : 55, raw_data: item
                         });
                     });
-                    tracking.stepA_dynamic.HOSPITAL = items.length;
+                    tracking.stepA_dynamic.HOSPITAL = itemList.length;
                 }
-            } catch (e) { console.error("Hospital Fetch Error"); }
+            } catch (e) { console.error("Hospital Fetch Error", e); }
 
             // A-1-2. Kakao Local Hospital Fetch (HP8) - Radius 20km
             try {
@@ -397,7 +436,7 @@ export async function POST(request: Request) {
                 const existing = hospMap.get(key);
 
                 // Noise Filter logic moved into map collection to ensure we don't even collect them
-                const isNoise = /동물|반려|정신|행정관|피부|치과|요양|성형|한의원/.test(c.name);
+                const isNoise = /동물|반려|정신|행정관|피부|치과|요양|성형|한의원|구두/.test(c.name);
                 if (isNoise) return;
 
                 if (existing) {

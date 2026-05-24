@@ -74,6 +74,32 @@ function loadPrestigeLists() {
     }
 }
 
+function getStandardNmcSido(sido) {
+    if (!sido) return '';
+    const cleanSido = sido.trim();
+    const nmcSidoMap = {
+        '서울특별시': '서울특별시', '서울': '서울특별시',
+        '부산광역시': '부산광역시', '부산': '부산광역시',
+        '대구광역시': '대구광역시', '대구': '대구광역시',
+        '인천광역시': '인천광역시', '인천': '인천광역시',
+        '광주광역시': '광주광역시', '광주': '광주광역시',
+        '대전광역시': '대전광역시', '대전': '대전광역시',
+        '울산광역시': '울산광역시', '울산': '울산광역시',
+        '세종특별자치시': '세종특별자치시', '세종': '세종특별자치시',
+        '경기도': '경기도', '경기': '경기도',
+        '강원특별자치도': '강원특별자치도', '강원도': '강원특별자치도', '강원': '강원특별자치도',
+        '충청북도': '충청북도', '충북': '충청북도',
+        '충청남도': '충청남도', '충남': '충청남도',
+        '전북특별자치도': '전북특별자치도', '전라북도': '전북특별자치도', '전북': '전북특별자치도',
+        '전라남도': '전라남도', '전남': '전라남도',
+        '경상북도': '경상북도', '경북': '경상북도',
+        '경상남도': '경상남도', '경남': '경상남도',
+        '제주특별자치도': '제주특별자치도', '제주도': '제주특별자치도', '제주': '제주특별자치도',
+        '전남광주통합시': '전남광주통합시'
+    };
+    return nmcSidoMap[cleanSido] || cleanSido.substring(0, 2);
+}
+
 function getNormalizedAddr(addr) {
     if (!addr) return '';
     let a = addr.replace(/,\s?대한민국$/, '').trim();
@@ -395,22 +421,29 @@ async function main() {
             console.log(`  🚀 Fetching dynamic data for point: (${ptLat.toFixed(4)}, ${ptLng.toFixed(4)}) in ${ptSigungu || ptSido}...`);
             const fetchTasks = [];
 
-            // A-1. Hospital (Local City Fetch)
+            // A-1. Hospital (Local City Fetch - Standard Sido & Hybrid Fallback)
             fetchTasks.push((async () => {
                 try {
-                    // [v11.9.63] Normalize Sido for NMC API (e.g., 강원특별자치도 -> 강원)
-                    const nmcSido = ptSido.substring(0, 2) === '전라' ? ptSido.charAt(0) + ptSido.charAt(2) : 
-                                   ptSido.substring(0, 2) === '경상' ? ptSido.charAt(0) + ptSido.charAt(2) :
-                                   ptSido.substring(0, 2) === '충청' ? ptSido.charAt(0) + ptSido.charAt(2) :
-                                   ptSido.substring(0, 2); // '강원', '서울', '제주' 등
+                    const standardSido = getStandardNmcSido(ptSido);
+                    const initialSigungu = standardSido === '세종특별자치시' ? '' : ptSigungu;
 
-                    const hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${PUBLIC_API_KEY}&STAGE1=${encodeURIComponent(nmcSido)}&STAGE2=${encodeURIComponent(ptSigungu)}&pageNo=1&numOfRows=100&_type=json`);
-                    const hData = await hRes.json();
-                    if (hData.response?.body?.items?.item) {
-                        const items = Array.isArray(hData.response.body.items.item) ? hData.response.body.items.item : [hData.response.body.items.item];
-                        metrics.dynamic_api.HOSPITAL.received += items.length;
+                    let hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${PUBLIC_API_KEY}&STAGE1=${encodeURIComponent(standardSido)}&STAGE2=${encodeURIComponent(initialSigungu)}&pageNo=1&numOfRows=100&_type=json`);
+                    let hData = await hRes.json();
+                    let items = hData.response?.body?.items?.item;
+
+                    const isMetro = /서울|부산|대구|인천|광주|대전|울산|세종/.test(standardSido);
+                    if (!items && !isMetro) {
+                        console.log(`[NMC Fallback] No hospitals in ${ptSigungu}. Querying entire ${standardSido}...`);
+                        hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${PUBLIC_API_KEY}&STAGE1=${encodeURIComponent(standardSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`);
+                        hData = await hRes.json();
+                        items = hData.response?.body?.items?.item;
+                    }
+
+                    if (items) {
+                        const itemList = Array.isArray(items) ? items : [items];
+                        metrics.dynamic_api.HOSPITAL.received += itemList.length;
                         
-                        for (const item of items) {
+                        for (const item of itemList) {
                             let hLat = parseFloat(item.wgs84Lat);
                             let hLng = parseFloat(item.wgs84Lon);
                             let hAddr = item.dutyAddr || '';
@@ -744,7 +777,7 @@ async function main() {
                             s += 40;
                             if (!item.raw_data.badges.includes('24시 응급')) item.raw_data.badges.push('24시 응급');
                         }
-                        if (/성형|피부|비만|치과|한의원|안과|산후|요양|동물|주차장|행정|부서|편의점|이마트24|GS25|CU|부대시설/.test(name)) continue;
+                        if (/성형|피부|비만|치과|한의원|안과|산후|요양|동물|주차장|행정|부서|편의점|이마트24|GS25|CU|부대시설|구두/.test(name)) continue;
                     } else if (cat === 'GAS_STATION') {
                         s = 50;
                         const priceMatch = item.description?.match(/(\d+)원/);

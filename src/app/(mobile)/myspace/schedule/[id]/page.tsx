@@ -577,8 +577,8 @@ export default function ScheduleDetailPage() {
                                                     : undefined
                                             );
                                             setShowProfileGate(false);
-                                            // PRO: 모드 선택기로, BASIC: 바로 플랜 생성
-                                            if (isPro) {
+                                            // [v11.9.75] 실제 클릭한 모드가 PRO일 때만 모드 선택기 작동
+                                            if (planMode === 'PRO') {
                                                 setShowModeSelector(true);
                                             } else {
                                                 setPlanMode('BASIC');
@@ -636,6 +636,7 @@ export default function ScheduleDetailPage() {
                                     <Button
                                         onClick={async () => {
                                             if (isLocked) return;
+                                            setPlanMode('PRO');
                                             setShowProfileGate(true);
                                         }}
                                         disabled={isLocked}

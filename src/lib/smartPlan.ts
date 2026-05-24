@@ -323,6 +323,7 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
         const cat = row.category;
         // [v11.9.56] 병원 카테고리는 병원/의원 키워드 필터링에서 제외 (데이터 유실 방지)
         if (cat !== 'HOSPITAL' && globalBlacklist.test(name)) return false;
+        if (cat === 'HOSPITAL' && /구두/.test(name)) return false;
         return true;
     }).map(row => {
         const f = parseFactCard(row);
