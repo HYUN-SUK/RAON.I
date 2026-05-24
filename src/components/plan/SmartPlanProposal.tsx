@@ -76,12 +76,17 @@ export default function SmartPlanProposal({
     const initialAiPlan = isWrapped ? initialPlan.ai_plan : initialPlan;
     const initialRoute = isWrapped ? initialPlan.selected_route : null;
     const initialMidpoint = isWrapped ? initialPlan.selected_midpoint : null;
-    // PRO 모드 복구: DB에서 mode가 'PRO'이면 PRO 모드로 복원
-    const restoredMode = isWrapped && initialPlan.mode === 'PRO' ? 'PRO' : mode;
+    // PRO 모드 복구: DB에서 mode가 'PRO'이고 부모 컴포넌트가 명시적으로 요청한 모드도 'PRO'인 경우에만 PRO 모드로 복원
+    const restoredMode = isWrapped && initialPlan.mode === 'PRO' && mode === 'PRO' ? 'PRO' : mode;
     const restoredTravelType = isWrapped && initialPlan.travel_type ? initialPlan.travel_type : travelType;
 
-    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(restoredMode === 'BASIC' ? (initialAiPlan || mockData || null) : null);
-    const [proPlan, setProPlan] = useState<ProTimelinePlan | null>(restoredMode === 'PRO' && initialAiPlan?.mode === 'PRO' ? initialAiPlan : null);
+    // 만약 restoredMode가 'BASIC'인데 DB 캐시 모드가 'PRO'인 경우(모드 불일치), 호환되지 않는 스키마 데이터의 오작동 방지를 위해 null 처리
+    const [plan, setPlan] = useState<StandardizedPlanJSON | null>(
+        restoredMode === 'BASIC' && initialPlan?.mode !== 'PRO' ? (initialAiPlan || mockData || null) : null
+    );
+    const [proPlan, setProPlan] = useState<ProTimelinePlan | null>(
+        restoredMode === 'PRO' && initialPlan?.mode === 'PRO' ? initialAiPlan : null
+    );
     const [isLoading, setIsLoading] = useState(false);
     const [swapCategory, setSwapCategory] = useState<string | null>(null);
     const [swapPage, setSwapPage] = useState(0);
