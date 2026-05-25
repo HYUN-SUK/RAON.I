@@ -52,6 +52,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     // Search States
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]); // Kakao Places result
     const [visibleCount, setVisibleCount] = useState(10); // Pagination for list
@@ -188,9 +189,16 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     }, [isOpen, reservations, mapItems, addMapItem, updateMapItem]);
 
 
-    // 3. Search Logic (Kakao Places)
+    // 3. Search Logic (Kakao Places - Debounced)
     useEffect(() => {
-        if (!searchQuery || !window.kakao || !window.kakao.maps.services) {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        if (!debouncedSearchQuery || !window.kakao || !window.kakao.maps.services) {
             setSearchResults([]);
             return;
         }
@@ -202,7 +210,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         // Let's do raw search but prioritize camping category 'AD5' (Accommodation) if possible, 
         // but keyword search is usually enough.
 
-        ps.keywordSearch(searchQuery, (data: any[], status: any) => {
+        ps.keywordSearch(debouncedSearchQuery, (data: any[], status: any) => {
             if (status === window.kakao.maps.services.Status.OK) {
                 setSearchResults(data);
             } else {
@@ -210,7 +218,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             }
         });
 
-    }, [searchQuery]);
+    }, [debouncedSearchQuery]);
 
 
     // 5. List Search State
@@ -256,6 +264,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         window.__skipMapClickUntil = Date.now() + 10000;
 
         setSearchQuery('');
+        setDebouncedSearchQuery('');
         setIsSearching(false);
         setCenter({ lat, lng });
     };
@@ -391,7 +400,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                     // Delay hiding to allow click on result
                                 }, 200)}
                             />
-                            <button onClick={() => { setSearchQuery(''); setIsSearching(false); }} className="ml-2 text-gray-400 hover:text-gray-600">
+                            <button onClick={() => { setSearchQuery(''); setDebouncedSearchQuery(''); setIsSearching(false); }} className="ml-2 text-gray-400 hover:text-gray-600">
                                 <X size={18} />
                             </button>
                         </>
