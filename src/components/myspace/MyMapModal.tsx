@@ -52,7 +52,6 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     // Search States
     const [searchQuery, setSearchQuery] = useState('');
-    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]); // Kakao Places result
     const [visibleCount, setVisibleCount] = useState(10); // Pagination for list
@@ -189,36 +188,30 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     }, [isOpen, reservations, mapItems, addMapItem, updateMapItem]);
 
 
-    // 3. Search Logic (Kakao Places - Debounced)
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearchQuery(searchQuery);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+    // 3. Search Logic (Kakao Places - Manual Search)
+    const handleSearchExecute = () => {
+        const query = searchQuery.trim();
+        if (!query) {
+            toast.info('검색어를 입력해주세요.');
+            return;
+        }
 
-    useEffect(() => {
-        if (!debouncedSearchQuery || !window.kakao || !window.kakao.maps.services) {
+        if (!window.kakao || !window.kakao.maps.services) {
             setSearchResults([]);
             return;
         }
 
         const ps = new window.kakao.maps.services.Places();
 
-        // Search for "Camping" related keywords
-        // If user query doesn't contain "캠핑", maybe append it? or just raw search.
-        // Let's do raw search but prioritize camping category 'AD5' (Accommodation) if possible, 
-        // but keyword search is usually enough.
-
-        ps.keywordSearch(debouncedSearchQuery, (data: any[], status: any) => {
+        ps.keywordSearch(query, (data: any[], status: any) => {
             if (status === window.kakao.maps.services.Status.OK) {
                 setSearchResults(data);
             } else {
                 setSearchResults([]);
+                toast.info('검색 결과가 없습니다. 다른 키워드로 시도해보세요.');
             }
         });
-
-    }, [debouncedSearchQuery]);
+    };
 
 
     // 5. List Search State
@@ -264,7 +257,6 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         window.__skipMapClickUntil = Date.now() + 10000;
 
         setSearchQuery('');
-        setDebouncedSearchQuery('');
         setIsSearching(false);
         setCenter({ lat, lng });
     };
@@ -388,19 +380,30 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 <div className={`bg-white rounded-full shadow-lg border border-gray-100 flex items-center px-4 py-3 transition-all duration-300 ${isSearching ? 'w-full max-w-sm' : 'w-12 h-12 p-0 justify-center'}`}>
                     {isSearching ? (
                         <>
-                            <Search className="text-gray-400 mr-2 shrink-0" size={20} />
+                            <button 
+                                onClick={handleSearchExecute} 
+                                className="text-gray-400 hover:text-[#224732] mr-2 shrink-0 transition-colors"
+                            >
+                                <Search size={20} />
+                            </button>
                             <input
                                 type="text"
                                 placeholder="캠핑장 이름 검색..."
                                 className="flex-1 bg-transparent border-none text-base focus:ring-0 outline-none placeholder:text-gray-400 min-w-0"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleSearchExecute();
+                                    }
+                                }}
                                 autoFocus
                                 onBlur={() => setTimeout(() => {
                                     // Delay hiding to allow click on result
                                 }, 200)}
                             />
-                            <button onClick={() => { setSearchQuery(''); setDebouncedSearchQuery(''); setIsSearching(false); }} className="ml-2 text-gray-400 hover:text-gray-600">
+                            <button onClick={() => { setSearchQuery(''); setIsSearching(false); }} className="ml-2 text-gray-400 hover:text-gray-600">
                                 <X size={18} />
                             </button>
                         </>
