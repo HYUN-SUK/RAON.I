@@ -51,6 +51,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     const [isLocating, setIsLocating] = useState(false);
 
     // Search States
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]); // Kakao Places result
@@ -190,11 +191,13 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     // 3. Search Logic (Kakao Places - Manual Search)
     const handleSearchExecute = () => {
-        const query = searchQuery.trim();
+        const query = searchInputRef.current?.value.trim() || '';
         if (!query) {
             toast.info('검색어를 입력해주세요.');
             return;
         }
+
+        setSearchQuery(query);
 
         if (!window.kakao || !window.kakao.maps.services) {
             setSearchResults([]);
@@ -256,7 +259,11 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         // @ts-ignore
         window.__skipMapClickUntil = Date.now() + 10000;
 
+        if (searchInputRef.current) {
+            searchInputRef.current.value = '';
+        }
         setSearchQuery('');
+        setSearchResults([]);
         setIsSearching(false);
         setCenter({ lat, lng });
     };
@@ -377,21 +384,15 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         >
             {/* Search Bar - Floating (Top Right) */}
             <div className="absolute top-4 right-4 z-[100] w-auto flex flex-col items-end gap-2">
-                <div className={`bg-white rounded-full shadow-lg border border-gray-100 flex items-center px-4 py-3 transition-all duration-300 ${isSearching ? 'w-full max-w-sm' : 'w-12 h-12 p-0 justify-center'}`}>
+                <div className={`bg-white rounded-full shadow-lg border border-gray-100 flex items-center px-4 py-2 transition-all duration-300 ${isSearching ? 'w-full max-w-sm' : 'w-12 h-12 p-0 justify-center'}`}>
                     {isSearching ? (
                         <>
-                            <button 
-                                onClick={handleSearchExecute} 
-                                className="text-gray-400 hover:text-[#224732] mr-2 shrink-0 transition-colors"
-                            >
-                                <Search size={20} />
-                            </button>
+                            <Search className="text-gray-400 mr-2 shrink-0" size={20} />
                             <input
+                                ref={searchInputRef}
                                 type="text"
                                 placeholder="캠핑장 이름 검색..."
                                 className="flex-1 bg-transparent border-none text-base focus:ring-0 outline-none placeholder:text-gray-400 min-w-0"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         e.preventDefault();
@@ -403,7 +404,21 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                     // Delay hiding to allow click on result
                                 }, 200)}
                             />
-                            <button onClick={() => { setSearchQuery(''); setIsSearching(false); }} className="ml-2 text-gray-400 hover:text-gray-600">
+                            <button
+                                onClick={handleSearchExecute}
+                                className="ml-2 px-3.5 py-1.5 bg-[#224732] hover:bg-[#1a3626] text-white text-xs sm:text-sm font-semibold rounded-full shrink-0 transition-colors shadow-sm"
+                            >
+                                검색
+                            </button>
+                            <button 
+                                onClick={() => { 
+                                    if (searchInputRef.current) searchInputRef.current.value = '';
+                                    setSearchQuery('');
+                                    setSearchResults([]);
+                                    setIsSearching(false); 
+                                }} 
+                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 shrink-0"
+                            >
                                 <X size={18} />
                             </button>
                         </>
