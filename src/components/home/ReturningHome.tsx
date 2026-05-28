@@ -183,11 +183,6 @@ export default function ReturningHome() {
                     <div className="relative z-10 mt-4">
                         {recData ? (
                             <>
-                                <div className="py-1">
-                                    <p className="text-sm font-semibold text-white/95 drop-shadow-md italic mb-2">
-                                        "바쁜 하루 속, 마음을 뉘어둘 조용한 쉼표를 찾아볼까요? 🌿"
-                                    </p>
-                                </div>
                                 <p className="text-white/80 text-sm mb-1">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
                                 <h1 className="text-2xl font-bold leading-relaxed">
                                     라온아이에서,<br />

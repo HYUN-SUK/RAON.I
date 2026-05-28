@@ -388,17 +388,13 @@ export default function BeginnerHome() {
                     <NotificationBadge variant="hero" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6">
-                        <div className="py-1">
-                            <p className="text-sm font-semibold text-white/95 drop-shadow-md italic">
-                                "바쁜 하루 속, 마음을 뉘어둘 조용한 쉼표를 찾아볼까요? 🌿"
-                            </p>
-                        </div>
+                        <p className="text-white/80 text-sm mb-1">
+                            {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
+                        </p>
 
                         <h1 className="text-responsive-hero-title font-bold leading-tight">
-                            {recData.context?.time === 'morning' ? '상쾌한 아침,\n' :
-                                recData.context?.time === 'night' ? '고요한 밤,\n' :
-                                    recData.context?.time === 'evening' ? '아름다운 저녁,\n' :
-                                        '반가워요,\n'}
+                            라온아이에서,<br />
+                            나만의 캠핑 이야기를 그려보세요.
                         </h1>
 
                         <p className="text-responsive-hero-sub font-semibold text-white/95 drop-shadow-md">
