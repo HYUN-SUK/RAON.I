@@ -99,6 +99,18 @@ export default function SmartPlanProposal({
     const [selectedRouteData, setSelectedRouteData] = useState<any>(initialRoute);
     const [showRouteNav, setShowRouteNav] = useState(false);
     const [isLocating, setIsLocating] = useState(false); // [v11.9.61] 위치 확인 중 상태
+    const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+
+    // D-3 및 weather_window 확인용 날짜 연산
+    const kstNowForRegen = new Date(new Date().getTime() + 9 * 3600000);
+    const todayDateOnlyForRegen = new Date(kstNowForRegen.getFullYear(), kstNowForRegen.getMonth(), kstNowForRegen.getDate());
+    const startDateOnlyForRegen = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const diffDaysForRegen = Math.round((startDateOnlyForRegen.getTime() - todayDateOnlyForRegen.getTime()) / (24 * 60 * 60 * 1000));
+    const isWithinD3 = diffDaysForRegen <= 3;
+    
+    // initialPlan의 weather_window 정보 추출 (wrapped 대응)
+    const currentWeatherWindow = initialPlan?.weather_window || (initialPlan?.ai_plan?.weather_window);
+    const showShortTermRegen = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset;
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
@@ -176,6 +188,7 @@ export default function SmartPlanProposal({
                 
                 // [v11.9.52] AI 플랜과 선택된 경로 데이터를 통합하여 영구 저장
                 if (scheduleId) {
+                    const weatherWindow = diffDaysForRegen <= 3 ? 'SHORT' : 'MID';
                     const wrappedData = {
                         wrapped: true,
                         mode: restoredMode,
@@ -183,6 +196,7 @@ export default function SmartPlanProposal({
                         ai_plan: generatedPlan,
                         selected_route: selectedRouteData,
                         selected_midpoint: selectedMidpoint,
+                        weather_window: weatherWindow,
                         updated_at: new Date().toISOString()
                     };
                     updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
@@ -273,12 +287,16 @@ export default function SmartPlanProposal({
 
             setPlan(updatedPlan);
             if (scheduleId) {
+                const weatherWindow = diffDaysForRegen <= 3 ? 'SHORT' : 'MID';
                 // [v11.9.53] 카드 교체 시에도 선택된 경로 정보가 누락되지 않도록 래핑하여 저장
                 const wrappedData = {
                     wrapped: true,
+                    mode: initialPlan?.mode || restoredMode,
+                    travel_type: initialPlan?.travel_type || restoredTravelType,
                     ai_plan: updatedPlan,
                     selected_route: selectedRouteData,
                     selected_midpoint: selectedMidpoint,
+                    weather_window: initialPlan?.weather_window || weatherWindow,
                     updated_at: new Date().toISOString()
                 };
                 updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
@@ -569,51 +587,97 @@ export default function SmartPlanProposal({
                 </div>
 
                 <div className="relative pt-6 pb-12 px-6">
-                    {/* [v11.9.32] 실험용 재구성 버튼 (tootg 전용, 로컬 개발 환경 허용) */}
-                    {(userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' || process.env.NODE_ENV === 'development') && onReset && (
+                    {/* 단기 날씨로 재생성 🔄 또는 기존 실험용 재구성 버튼 */}
+                    {showShortTermRegen ? (
                         <div className="absolute top-6 right-6 z-30 flex items-center">
-                            {showResetConfirm ? (
+                            {showRegenConfirm ? (
                                 <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#224732]/20 shadow-xl animate-in fade-in zoom-in duration-200">
-                                    <span className="text-[10px] font-bold text-[#224732] px-1">재구성할까요?</span>
+                                    <span className="text-[10px] font-bold text-[#224732] px-1">초정밀 단기 예보로 재생성할까요?</span>
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setShowResetConfirm(false);
+                                            setShowRegenConfirm(false);
                                             setPlan(null);
                                             setSelectedMidpoint(null);
                                             setSelectedRouteData(null);
                                             onReset();
                                         }}
-                                        className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"
+                                        className="text-[10px] px-2.5 py-1.5 bg-amber-600 text-white rounded-lg font-bold hover:bg-amber-700"
                                     >
-                                        네
+                                        재생성
                                     </button>
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setShowResetConfirm(false);
+                                            setShowRegenConfirm(false);
                                         }}
                                         className="text-[10px] px-2.5 py-1.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200"
                                     >
-                                        아니오
+                                        취소
                                     </button>
                                 </div>
                             ) : (
-                                <button
+                                <Button
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setShowResetConfirm(true);
+                                        setShowRegenConfirm(true);
                                     }}
-                                    className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group"
-                                    title="플랜 재구성 (실험용)"
+                                    className="h-9 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all border border-amber-500/30"
                                 >
-                                    <RefreshCcw className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:rotate-180 duration-700" />
-                                </button>
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    단기 날씨로 재생성 🔄
+                                </Button>
                             )}
                         </div>
+                    ) : (
+                        (userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' || process.env.NODE_ENV === 'development') && onReset && (
+                            <div className="absolute top-6 right-6 z-30 flex items-center">
+                                {showResetConfirm ? (
+                                    <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#224732]/20 shadow-xl animate-in fade-in zoom-in duration-200">
+                                        <span className="text-[10px] font-bold text-[#224732] px-1">재구성할까요?</span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setShowResetConfirm(false);
+                                                setPlan(null);
+                                                setSelectedMidpoint(null);
+                                                setSelectedRouteData(null);
+                                                onReset();
+                                            }}
+                                            className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"
+                                        >
+                                            네
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setShowResetConfirm(false);
+                                            }}
+                                            className="text-[10px] px-2.5 py-1.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200"
+                                        >
+                                            아니오
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowResetConfirm(true);
+                                        }}
+                                        className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group"
+                                        title="플랜 재구성 (실험용)"
+                                    >
+                                        <RefreshCcw className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:rotate-180 duration-700" />
+                                    </button>
+                                )}
+                            </div>
+                        )
                     )}
                     <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold tracking-wide backdrop-blur-sm">
                         <span className="relative flex h-2 w-2">

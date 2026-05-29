@@ -674,6 +674,67 @@ export async function generatePersonalizedSmartPlan(
                 if (weatherList.length > 0) {
                     weatherSummary = weatherList.join(', ');
                 }
+
+                // D-3 이내 단기 구간일 때 3시간 단위 상세 정보 추가
+                const kstNow = new Date(new Date().getTime() + 9 * 3600000);
+                const todayDateOnly = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+                const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                const diffDays = Math.round((startDateOnly.getTime() - todayDateOnly.getTime()) / (24 * 60 * 60 * 1000));
+
+                if (diffDays <= 3 && w.timeline && Array.isArray(w.timeline)) {
+                    const timelineByDate: Record<string, string[]> = {};
+                    
+                    const getWindDirectionText = (deg: number | undefined): string => {
+                        if (deg === undefined) return '';
+                        const index = Math.floor(((deg + 22.5) % 360) / 45);
+                        const directions = ['북풍', '북동풍', '동풍', '남동풍', '남풍', '남서풍', '서풍', '북서풍'];
+                        return directions[index];
+                    };
+
+                    const getWeatherStateText = (pty: number, sky: number): string => {
+                        if (pty === 1) return '비';
+                        if (pty === 2) return '비/눈';
+                        if (pty === 3) return '눈';
+                        if (pty === 4) return '소나기';
+                        if (sky === 1) return '맑음';
+                        if (sky === 3) return '구름많음';
+                        if (sky === 4) return '흐림';
+                        return '맑음';
+                    };
+
+                    for (const t of w.timeline) {
+                        const cleanTDate = t.date.replace(/-/g, '');
+                        if (cleanTDate >= startStr && cleanTDate <= endStr) {
+                            const dateLabel = t.date.length === 8 
+                                ? `${t.date.substring(4, 6)}/${t.date.substring(6, 8)}`
+                                : t.date.substring(5).replace('-', '/');
+                            
+                            const hourStr = t.time.substring(0, 2) + '시';
+                            const skyVal = typeof t.sky === 'string' ? parseInt(t.sky) : t.sky;
+                            const ptyVal = typeof t.pty === 'string' ? parseInt(t.pty) : t.pty;
+                            const stateText = getWeatherStateText(ptyVal || 0, skyVal || 1);
+                            const tempText = `${t.temp}도`;
+                            
+                            const windDir = getWindDirectionText(t.vec);
+                            const windSpd = t.wsd !== undefined ? `${t.wsd}m/s` : '';
+                            const windText = windDir && windSpd ? `, ${windDir} ${windSpd}` : '';
+                            
+                            const detail = `${hourStr}(${stateText}, ${tempText}${windText})`;
+                            if (!timelineByDate[dateLabel]) {
+                                timelineByDate[dateLabel] = [];
+                            }
+                            timelineByDate[dateLabel].push(detail);
+                        }
+                    }
+
+                    const detailParts: string[] = [];
+                    for (const [dateLabel, list] of Object.entries(timelineByDate)) {
+                        detailParts.push(`\n- ${dateLabel} 3시간별 상세: ${list.join(', ')}`);
+                    }
+                    if (detailParts.length > 0) {
+                        weatherSummary += detailParts.join('');
+                    }
+                }
             }
         } catch(e) {
             console.error("[SmartPlan] Weather Fetch Failed:", e);

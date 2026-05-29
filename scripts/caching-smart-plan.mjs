@@ -296,8 +296,19 @@ async function main() {
     const startTime = Date.now();
     const args = process.argv.slice(2);
     const dateArg = args.find(a => a.startsWith('--target-date='))?.split('=')[1];
+    
+    // [v11.9.80] KST 오늘 날짜 구하기
+    const todayKst = new Date(new Date().getTime() + 12 * 3600000);
+    const todayStr = todayKst.toISOString().split('T')[0];
+    
     let targetStr = dateArg || new Date(new Date().getTime() + 12 * 3600000 + 3 * 86400000).toISOString().split('T')[0];
     const isSunday = new Date(targetStr).getDay() === 0;
+
+    // 날짜 파싱 헬퍼 함수
+    const parseDateStr = (str) => {
+        const [y, m, d] = str.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    };
 
     // [v11.9.8] Enhanced Metrics for SOP v11
     const metrics = {
@@ -318,18 +329,70 @@ async function main() {
         }
     };
 
-    console.log(`🚀 v11.6 | Target: ${targetStr}`);
+    console.log(`🚀 v11.6 | Target today: ${todayStr}`);
     
     loadPrestigeLists(); // [v11.9.15] Load MD lists once at start
     
-    const { data: schedules } = await supabase.from('user_schedules').select('id, campground_lat, campground_lng, campground_name, campground_address').eq('check_in', targetStr);
+    let rawSchedules = [];
+    if (dateArg) {
+        console.log(`  🔍 Manual target date: ${dateArg}`);
+        const { data: schedules } = await supabase.from('user_schedules')
+            .select('id, campground_lat, campground_lng, campground_name, campground_address, check_in, smart_plan_data')
+            .eq('check_in', dateArg);
+        rawSchedules = schedules || [];
+    } else {
+        const startTarget = new Date(todayKst.getTime() + 0 * 86400000).toISOString().split('T')[0];
+        const endTarget = new Date(todayKst.getTime() + 10 * 86400000).toISOString().split('T')[0];
+        console.log(`  🔍 Auto-rolling caching range: ${startTarget} ~ ${endTarget}`);
+        const { data: schedules } = await supabase.from('user_schedules')
+            .select('id, campground_lat, campground_lng, campground_name, campground_address, check_in, smart_plan_data')
+            .gte('check_in', startTarget)
+            .lte('check_in', endTarget);
+        rawSchedules = schedules || [];
+    }
     
-    if (!schedules?.length) {
-        console.log(`  ℹ️ No reservations found for ${targetStr}. Skipping...`);
+    if (!rawSchedules.length) {
+        console.log(`  ℹ️ No reservations found. Skipping...`);
         await recordAutomationLog(metrics, targetStr, 'SKIPPED');
         process.exit(0);
     }
 
+    // Skip Guard 적용 필터링 (D-10~D-4 및 D-3 이내 조건 체크)
+    const todayDate = parseDateStr(todayStr);
+    const filteredSchedules = [];
+    
+    for (const s of rawSchedules) {
+        if (!s.check_in) continue;
+        const checkInDate = parseDateStr(s.check_in);
+        const daysDiff = Math.round((checkInDate - todayDate) / 86400000);
+
+        if (s.smart_plan_data) {
+            const savedData = s.smart_plan_data;
+            const weatherWindow = savedData.weather_window || (daysDiff <= 3 ? 'SHORT' : 'MID');
+
+            if (daysDiff > 3) {
+                // 중기 구간 (D-10 ~ D-4): 이미 생성된 플랜이 있으므로 수집 및 캐싱 스킵
+                console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has mid-term plan. Skipping...`);
+                continue;
+            } else if (daysDiff <= 3 && weatherWindow === 'SHORT') {
+                // 단기 구간 (D-3 이내): 이미 단기 날씨 기반 캐싱이 완료되었으므로 스킵
+                console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has short-term plan. Skipping...`);
+                continue;
+            }
+            console.log(`  🔄 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) enters D-3 short-term window. Updating cache...`);
+        } else {
+            console.log(`  🆕 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) is new. Proceeding to cache...`);
+        }
+        filteredSchedules.push(s);
+    }
+
+    if (filteredSchedules.length === 0) {
+        console.log(`  ℹ️ All schedules filtered out by cache skip guards. Exit.`);
+        process.exit(0);
+    }
+
+    // 뒷부분 로직의 호환성을 위해 schedules 변수에 덮어씀
+    const schedules = filteredSchedules;
     metrics.reservations = schedules.length;
 
     let clusters = [];

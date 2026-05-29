@@ -557,13 +557,27 @@ export default function ScheduleDetailPage() {
                 <div className="mt-6 mb-4">
                     {!showSmartPlan ? (() => {
                         const checkInDate = new Date(schedule.check_in);
-                        // D-3 오전 9시 기준 설정
-                        const unlockTime = new Date(checkInDate);
-                        unlockTime.setDate(unlockTime.getDate() - 3);
-                        unlockTime.setHours(9, 0, 0, 0);
+                        // D-10 오전 9시 기준 설정
+                        const unlockTimeByCheckIn = new Date(checkInDate);
+                        unlockTimeByCheckIn.setDate(unlockTimeByCheckIn.getDate() - 10);
+                        unlockTimeByCheckIn.setHours(9, 0, 0, 0);
 
-                        const isLocked = new Date() < unlockTime;
-                        const lockedMessage = "최적의 팩트 선별 및 초정밀 단기 일기예보 반영을 위해, 캠핑 3일 전 오전 9시부터 오픈됩니다!";
+                        // 임박 예약 예외 대응: 생성일(created_at) 기준 다음 날 오전 9시
+                        const createdAtDate = new Date(schedule.created_at);
+                        const unlockTimeByCreation = new Date(createdAtDate);
+                        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+                        unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+                        // 최종 락 해제 시간 결정 (더 늦은 시간 기준)
+                        const finalUnlockTime = new Date(Math.max(unlockTimeByCheckIn.getTime(), unlockTimeByCreation.getTime()));
+                        
+                        // 이미 스마트플랜 데이터가 캐시되어 있으면 즉시 잠금 해제
+                        const isLocked = new Date() < finalUnlockTime && !schedule.smart_plan_data;
+
+                        let lockedMessage = "최적의 팩트 선별 및 기상청 예보 반영을 위해, 캠핑 10일 전 오전 9시부터 오픈됩니다!";
+                        if (new Date() >= unlockTimeByCheckIn && new Date() < unlockTimeByCreation) {
+                            lockedMessage = "임박 예약의 경우, 정보 수집 및 캐싱을 거쳐 예약 다음 날 오전 9시부터 오픈됩니다!";
+                        }
 
                         // 프로필 게이트 표시 중 (확인 및 수정 단계)
                         if (showProfileGate) {

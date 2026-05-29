@@ -137,28 +137,48 @@ export default function WeatherDetailSheet({ isOpen, onClose, weather, locationN
                                     return item.date === today && itemHour >= currentHour;
                                 }) || [];
 
-                                return filteredTimeline.length > 0 ? filteredTimeline.map((item, idx) => {
+                                const displayTimeline = filteredTimeline.length > 0 
+                                    ? filteredTimeline 
+                                    : (weather.daily?.map(d => ({
+                                        date: d.date,
+                                        time: '1200', // 중기 예보는 대표 낮 12시로 매핑
+                                        temp: d.max !== null && d.min !== null ? (d.max + d.min) / 2 : (d.max ?? d.min ?? 15),
+                                        sky: d.weatherCode === 'cloudy' ? 4 : d.weatherCode === 'partly_cloudy' ? 3 : 1,
+                                        pty: d.weatherCode === 'rainy' ? 1 : d.weatherCode === 'snowy' ? 3 : 0,
+                                        pop: d.pop || 0,
+                                        wsd: undefined,
+                                        vec: undefined,
+                                        weatherCode: d.weatherCode
+                                      })) || []);
+
+                                return displayTimeline.length > 0 ? displayTimeline.map((item, idx) => {
                                     const itemHour = parseInt(item.time.substring(0, 2), 10);
-                                    const timeStr = item.time.substring(0, 2) + '시';
-                                    const isNewDay = idx > 0 && item.date !== filteredTimeline[idx - 1].date;
+                                    const timeStr = filteredTimeline.length > 0 ? item.time.substring(0, 2) + '시' : '대표';
+                                    const isNewDay = idx > 0 && item.date !== displayTimeline[idx - 1].date;
                                     // 낮: 6시~17시, 밤: 18시~5시
                                     const isDay = itemHour >= 6 && itemHour < 18;
 
                                     return (
                                         <div key={idx} className={`flex flex-col items-center flex-shrink-0 space-y-2 ${isNewDay ? 'border-l pl-4 border-stone-200' : ''} min-w-[3.5rem]`}>
-                                            <span className="text-[10px] text-stone-400">{isNewDay ? item.date.substring(4, 6) + '.' + item.date.substring(6, 8) : timeStr}</span>
+                                            <span className="text-[10px] text-stone-400">{isNewDay || filteredTimeline.length === 0 ? item.date.substring(4, 6) + '.' + item.date.substring(6, 8) : timeStr}</span>
                                             <WeatherIcon type={item.weatherCode} className="w-6 h-6" isDay={isDay} />
                                             <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{Math.round(item.temp)}°</span>
 
                                             {/* Wind Info */}
-                                            <div className="flex flex-col items-center gap-0.5 mt-1">
-                                                <ArrowUp
-                                                    className="w-3 h-3 text-stone-400"
-                                                    style={{ transform: `rotate(${(item.vec || 0) + 180}deg)` }}
-                                                />
-                                                <span className="text-[9px] text-stone-500">{Math.round(item.wsd || 0)}m/s</span>
-                                                <span className="text-[8px] text-stone-400">{getWindDirection(item.vec || 0)}</span>
-                                            </div>
+                                            {item.wsd !== undefined && item.vec !== undefined ? (
+                                                <div className="flex flex-col items-center gap-0.5 mt-1">
+                                                    <ArrowUp
+                                                        className="w-3 h-3 text-stone-400"
+                                                        style={{ transform: `rotate(${(item.vec || 0) + 180}deg)` }}
+                                                    />
+                                                    <span className="text-[9px] text-stone-500">{Math.round(item.wsd || 0)}m/s</span>
+                                                    <span className="text-[8px] text-stone-400">{getWindDirection(item.vec || 0)}</span>
+                                                </div>
+                                            ) : (
+                                                <div className="h-[38px] flex items-center justify-center">
+                                                    <span className="text-[9px] text-stone-300">-</span>
+                                                </div>
+                                            )}
 
                                             {item.pop > 0 && <span className="text-[9px] text-blue-500 font-bold">{item.pop}%</span>}
                                         </div>
