@@ -31,6 +31,39 @@ function getStandardNmcSido(sido: string): string {
     return nmcSidoMap[cleanSido] || cleanSido.substring(0, 2);
 }
 
+function getNormalizedAddr(addr: string): string {
+    if (!addr) return '';
+    let a = addr.replace(/,\s?대한민국$/, '').trim();
+    a = a.replace(/^(서울|서울특별시)\s?/, '서울특별시 ');
+    a = a.replace(/^(부산|부산광역시)\s?/, '부산광역시 ');
+    a = a.replace(/^(대구|대구광역시)\s?/, '대구광역시 ');
+    a = a.replace(/^(인천|인천광역시)\s?/, '인천광역시 ');
+    a = a.replace(/^(광주|광주광역시)\s?/, '광주광역시 ');
+    a = a.replace(/^(대전|대전광역시)\s?/, '대전광역시 ');
+    a = a.replace(/^(울산|울산광역시)\s?/, '울산광역시 ');
+    a = a.replace(/^(세종특별자치시|세종)\s?/, '세종특별자치시 ');
+    a = a.replace(/^(경기도|경기)\s?/, '경기도 ');
+    a = a.replace(/^(강원특별자치도|강원도|강원)\s?/, '강원특별자치도 ');
+    a = a.replace(/^(충청북도|충북)\s?/, '충청북도 ');
+    a = a.replace(/^(충청남도|충남)\s?/, '충청남도 ');
+    a = a.replace(/^(전북특별자치도|전라북도|전북)\s?/, '전북특별자치도 ');
+    a = a.replace(/^(전라남도|전남)\s?/, '전라남도 ');
+    a = a.replace(/^(경상북도|경북)\s?/, '경상북도 ');
+    a = a.replace(/^(경상남도|경남)\s?/, '경상남도 ');
+    a = a.replace(/^(제주특별자치도|제주도|제주)\s?/, '제주특별자치도 ');
+    return a.trim();
+}
+
+function extractSido(addr: string): string | null {
+    if (!addr) return null;
+    const normalized = getNormalizedAddr(addr);
+    const standardSidos = [
+        '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', 
+        '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'
+    ];
+    return standardSidos.find(s => normalized.startsWith(s)) || null;
+}
+
 // Vercel Serverless Function Timeout 설정 (최대 5분)
 export const maxDuration = 300;
 
@@ -155,37 +188,97 @@ export async function POST(request: Request) {
             clusterLogs.push(tracking);
             const rawMasterInserts: any[] = [];
 
-            // A-1. Hospital (Local City Fetch - Standard Sido & Hybrid Fallback)
+            // A-1. Hospital (Query master_places within 30km, group by SIDO, fetch live NMC data, and merge)
             try {
-                const standardSido = getStandardNmcSido(doNm);
-                const initialSigungu = standardSido === '세종특별자치시' ? '' : sigunguNm;
+                // 1. Query master_places within 30km (30000m)
+                const { data: dbHospitals, error: dbErr } = await supabase.rpc('get_master_places_in_radius_v2', {
+                    target_lat: targetLat,
+                    target_lng: targetLng,
+                    radius_meters: 30000,
+                    p_category: 'HOSPITAL',
+                    limit_count: 500
+                });
 
-                let hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent(standardSido)}&STAGE2=${encodeURIComponent(initialSigungu)}&pageNo=1&numOfRows=100&_type=json`, fetchOptions);
-                let hData = await hRes.json();
-                let items = hData.response?.body?.items?.item;
+                if (dbErr) {
+                    console.error("  🏥 Error fetching hospitals from master_places:", dbErr.message);
+                } else if (dbHospitals && dbHospitals.length > 0) {
+                    console.log(`  🏥 Found ${dbHospitals.length} hospitals in master_places within 30km.`);
 
-                const isMetro = /서울|부산|대구|인천|광주|대전|울산|세종/.test(standardSido);
-                if (!items && !isMetro) {
-                    console.log(`[NMC Fallback] No hospitals in ${sigunguNm}. Querying entire ${standardSido}...`);
-                    hRes = await fetch(`http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent(standardSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`, fetchOptions);
-                    hData = await hRes.json();
-                    items = hData.response?.body?.items?.item;
-                }
+                    // 2. Extract unique SIDO names
+                    const sidos = new Set<string>();
+                    for (const h of dbHospitals) {
+                        const s = extractSido(h.address);
+                        if (s) {
+                            const stdSido = getStandardNmcSido(s);
+                            if (stdSido) sidos.add(stdSido);
+                        }
+                    }
 
-                if (items) {
-                    const itemList = Array.isArray(items) ? items : [items];
-                    itemList.forEach((item: any) => {
+                    // 3. For each SIDO, fetch live NMC hospital data
+                    const liveHospitalsMap = new Map<string, any>();
+                    for (const sido of sidos) {
+                        console.log(`  📡 Querying live NMC data for SIDO: ${sido}...`);
+                        try {
+                            const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${publicApiKey}&STAGE1=${encodeURIComponent(sido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
+                            const res = await fetch(url, fetchOptions);
+                            const data = await res.json();
+                            const items = data.response?.body?.items?.item;
+
+                            if (items) {
+                                const itemList = Array.isArray(items) ? items : [items];
+                                tracking.stepA_dynamic.HOSPITAL += itemList.length;
+                                for (const item of itemList) {
+                                    const hAddr = item.dutyAddr || '';
+                                    const fid = generateFactId('NMC_HOSPITAL', item.dutyName, hAddr);
+                                    liveHospitalsMap.set(fid, item);
+                                    if (item.hpid) liveHospitalsMap.set(item.hpid, item);
+                                    if (item.dutyName) liveHospitalsMap.set(item.dutyName, item);
+                                }
+                            }
+                        } catch (err: any) {
+                            console.error(`  ⚠️ NMC live fetch error for ${sido}:`, err.message);
+                        }
+                    }
+
+                    // 4. Merge live NMC data with dbHospitals and store in rawMasterInserts
+                    for (const h of dbHospitals) {
+                        const liveItem = liveHospitalsMap.get(h.id) ||
+                                         (h.raw_data?.hpid ? liveHospitalsMap.get(h.raw_data.hpid) : null) ||
+                                         liveHospitalsMap.get(h.name);
+                        
+                        let trustScore = 150; // Keep NMC trust_score 150 as requested!
+                        let badgeList = h.raw_data?.badges || [];
+                        if (h.api_source !== 'NMC_HOSPITAL') {
+                            trustScore = h.api_source === 'KAKAO_HP8' && !h.name?.match(/종합병원|의료원|대학병원/) ? 20 : 100;
+                        }
+
+                        if (!badgeList.includes('응급의료센터') && (h.api_source === 'NMC_HOSPITAL' || liveItem)) {
+                            badgeList.push('응급의료센터');
+                        }
+
+                        const mergedRawData = {
+                            ...(h.raw_data || {}),
+                            ...(liveItem || {}),
+                            badges: badgeList
+                        };
+
                         rawMasterInserts.push({
-                            id: generateFactId('NMC_HOSPITAL', item.dutyName, item.dutyAddr),
-                            api_source: 'NMC_HOSPITAL', category: 'HOSPITAL',
-                            name: item.dutyName, description: '응급실 가동 응급의료기관', address: item.dutyAddr,
-                            lat: parseFloat(item.wgs84Lat), lng: parseFloat(item.wgs84Lon),
-                            trust_score: item.dutyName?.includes('소아') ? 100 : 55, raw_data: item
+                            id: h.id,
+                            api_source: h.api_source,
+                            category: 'HOSPITAL',
+                            name: h.name,
+                            description: liveItem ? '응급의료센터 (실시간 병상정보 연동)' : (h.description || '종합의료기관'),
+                            address: h.address,
+                            lat: h.lat,
+                            lng: h.lng,
+                            trust_score: trustScore,
+                            raw_data: mergedRawData
                         });
-                    });
-                    tracking.stepA_dynamic.HOSPITAL = itemList.length;
+                    }
                 }
-            } catch (e) { console.error("Hospital Fetch Error", e); }
+            } catch (e: any) {
+                console.error("Hospital process error:", e.message);
+            }
 
             // A-1-2. Kakao Local Hospital Fetch (HP8) - Radius 20km
             try {
@@ -461,7 +554,8 @@ export async function POST(request: Request) {
                 let s = 30; // Default Base for Clinics
                 
                 // Tier 1: General Hospitals / Medical Centers
-                if (m.api_source?.includes('NMC') || /종합병원|의료원/.test(name)) s = 100;
+                if (m.api_source?.includes('NMC')) s = 150;
+                else if (/종합병원|의료원/.test(name)) s = 100;
                 // Tier 2: Primary Care (Internal, Peds, etc)
                 else if (/내과|소아과|외과|가정의학/.test(name)) s = 70;
                 // Tier 3: Public Health

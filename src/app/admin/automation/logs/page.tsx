@@ -433,6 +433,7 @@ export default function AutomationLogsPage() {
                           <div className="flex items-center">
                             {s.label?.includes('RESTAURANT') && <UtensilsCrossed className="w-3.5 h-3.5 mr-2 text-orange-500" />}
                             {s.label?.includes('MART') && <ShoppingCart className="w-3.5 h-3.5 mr-2 text-green-500" />}
+                            {s.label?.includes('HOSPITAL') && <Hospital className="w-3.5 h-3.5 mr-2 text-red-500" />}
                             {s.name === 'SPOT' && <MapPin className="w-3.5 h-3.5 mr-2 text-blue-500" />}
                             {s.name === 'SPOT_TMAP_REL' && <Share2 className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
                             {s.name === 'SPOT_KT_CONCTR' && <TrendingUp className="w-3.5 h-3.5 mr-2 text-rose-500" />}

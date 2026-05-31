@@ -216,6 +216,40 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     if (isHospital && (rawBadges.includes('24시 응급'))) {
         if (!certs.includes('24시 응급')) { certs.push('24시 응급'); badges.push('24시 응급'); emojis.push('🚑24시 응급'); }
     }
+
+    if (isHospital) {
+        const hvec = raw.raw_data?.hvec !== undefined ? raw.raw_data.hvec : raw.hvec;
+        const hvs01 = raw.raw_data?.hvs01 !== undefined ? raw.raw_data.hvs01 : raw.hvs01;
+        const hvct = raw.raw_data?.hvctayn !== undefined ? raw.raw_data.hvctayn : raw.hvctayn;
+        const hvmri = raw.raw_data?.hvmriayn !== undefined ? raw.raw_data.hvmriayn : raw.hvmriayn;
+        
+        if (hvec !== undefined && hvec !== null && hvec !== '') {
+            const hvecNum = parseInt(hvec);
+            if (!isNaN(hvecNum) && hvecNum > 0) {
+                certs.push(`일반병상 ${hvecNum}석 여유`);
+                badges.push(`일반병상_${hvecNum}`);
+                emojis.push(`🟢일반 ${hvecNum}석`);
+            }
+        }
+        if (hvs01 !== undefined && hvs01 !== null && hvs01 !== '') {
+            const hvsNum = parseInt(hvs01);
+            if (!isNaN(hvsNum) && hvsNum > 0) {
+                certs.push(`소아병상 ${hvsNum}석 여유`);
+                badges.push(`소아병상_${hvsNum}`);
+                emojis.push(`👶소아 ${hvsNum}석`);
+            }
+        }
+        if (hvct === 'Y') {
+            certs.push('CT 가동');
+            badges.push('CT가동');
+            emojis.push('⚡CT가동');
+        }
+        if (hvmri === 'Y') {
+            certs.push('MRI 가동');
+            badges.push('MRI가동');
+            emojis.push('⚡MRI가동');
+        }
+    }
     const isSpot = category === 'SPOT' || category === 'ROUTE_SPOT';
     if (isSpot) {
         // [v11.9.26] raw_data.badges에서 명소 인증 정보 추출
@@ -290,6 +324,11 @@ function parseFactCard(row: any, mapCategory?: FactCard['category']): FactCard {
         metadata: { 
             ...(row.raw_data || {}), 
             address: row.address || row.raw_data?.address,
+            hvec: row.raw_data?.hvec !== undefined ? row.raw_data.hvec : row.hvec,
+            hvs01: row.raw_data?.hvs01 !== undefined ? row.raw_data.hvs01 : row.hvs01,
+            hvctayn: row.raw_data?.hvctayn !== undefined ? row.raw_data.hvctayn : row.hvctayn,
+            hvmriayn: row.raw_data?.hvmriayn !== undefined ? row.raw_data.hvmriayn : row.hvmriayn,
+            dutyTel3: row.raw_data?.dutyTel3 !== undefined ? row.raw_data.dutyTel3 : row.dutyTel3,
             // [v11.9.56] 주유소 등유 가격 명시적 매핑
             kerosenePrice: cat === 'GAS_STATION' ? (row.raw_data?.PRICE || row.raw_data?.K_PRICE || row.description?.match(/등유:\s?(\d+)원/)?.[1]) : undefined
         },

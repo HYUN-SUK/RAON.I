@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone } from 'lucide-react';
 import { StandardizedPlanJSON, FactCard, ProTimelinePlan } from '@/lib/smartPlan';
 import SmartPlanTimelinePro from './SmartPlanTimelinePro';
 import { dispatchPersonaAction } from '@/lib/persona';
@@ -540,6 +540,21 @@ export default function SmartPlanProposal({
                                     {Number(card.metadata.kerosenePrice).toLocaleString()}원
                                 </span>
                             )}
+                            {/* [v11.9.10] 실시간 병상 정보 배지 */}
+                            {card.category === 'HOSPITAL' && (
+                                <>
+                                    {card.metadata?.hvec !== undefined && parseInt(card.metadata.hvec) > 0 && (
+                                        <span className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded-md font-bold border border-green-100/50 flex items-center gap-1 shadow-sm">
+                                            🟢 일반 {card.metadata.hvec}석 여유
+                                        </span>
+                                    )}
+                                    {card.metadata?.hvs01 !== undefined && parseInt(card.metadata.hvs01) > 0 && (
+                                        <span className="text-[10px] bg-[#e0f2fe] text-[#0369a1] px-1.5 py-0.5 rounded-md font-bold border border-[#bae6fd] flex items-center gap-1 shadow-sm">
+                                            👶 소아 {card.metadata.hvs01}석 여유
+                                        </span>
+                                    )}
+                                </>
+                            )}
                             {/* [v11.9.26] 스테이지 2, 5(경유지)는 거리 제거 */}
                             {!['2', '5'].includes(stage || '') && card.distanceKm && (
                                 <span className="text-[10px] text-gray-400 font-medium">
@@ -547,6 +562,21 @@ export default function SmartPlanProposal({
                                 </span>
                             )}
                         </div>
+                        {card.category === 'HOSPITAL' && card.metadata?.dutyTel3 && (
+                            <div className="mt-2.5">
+                                <Button
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.location.href = `tel:${card.metadata.dutyTel3}`;
+                                    }}
+                                    className="h-7 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 shadow-none border border-rose-200/50 flex items-center gap-1.5 text-[11px] font-black rounded-lg"
+                                >
+                                    <Phone className="w-3 h-3 animate-bounce" />
+                                    응급실 직통전화 ({card.metadata.dutyTel3})
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
 
@@ -936,8 +966,34 @@ export default function SmartPlanProposal({
                                                                                     </span>
                                                                                 ) : null;
                                                                             })()}
+                                                                            {/* [v11.9.10] 실시간 병상 정보 배지 */}
+                                                                            {opt.category === 'HOSPITAL' && (
+                                                                                <>
+                                                                                    {opt.metadata?.hvec !== undefined && parseInt(opt.metadata.hvec) > 0 && (
+                                                                                        <span className="text-[9px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded-md font-bold border border-green-100/30">🟢 일반 {opt.metadata.hvec}석</span>
+                                                                                    )}
+                                                                                    {opt.metadata?.hvs01 !== undefined && parseInt(opt.metadata.hvs01) > 0 && (
+                                                                                        <span className="text-[9px] bg-[#e0f2fe] text-[#0369a1] px-1.5 py-0.5 rounded-md font-bold border border-[#bae6fd]">👶 소아 {opt.metadata.hvs01}석</span>
+                                                                                    )}
+                                                                                </>
+                                                                            )}
                                                                             <span className="text-[9px] text-gray-400 ml-auto font-medium">Score {opt.trustScore}</span>
                                                                         </div>
+                                                                        {opt.category === 'HOSPITAL' && opt.metadata?.dutyTel3 && (
+                                                                            <div className="mt-1.5">
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        window.open(`tel:${opt.metadata.dutyTel3}`);
+                                                                                    }}
+                                                                                    className="h-6 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 shadow-none border border-rose-200/50 flex items-center gap-1 text-[9px] font-black rounded-md px-2"
+                                                                                >
+                                                                                    <Phone className="w-2.5 h-2.5" />
+                                                                                    직통전화 {opt.metadata.dutyTel3}
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                     {!isCurrentActive && (
                                                                         <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">변경</Button>
