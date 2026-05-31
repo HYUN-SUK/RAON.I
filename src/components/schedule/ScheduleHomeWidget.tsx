@@ -353,14 +353,23 @@ export default function ScheduleHomeWidget() {
                 </div>
             </div>
 
-            {/* 타캠핑장 일정 추가 버튼 */}
-            <button
-                onClick={() => router.push('/myspace/schedule?add=external')}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all"
-            >
-                <Plus className="w-4 h-4" />
-                <span className="text-sm font-medium">타캠핑장 일정 추가</span>
-            </button>
+            {/* 다른 여행 일정추가 및 나의 여행일정 버튼 */}
+            <div className="flex flex-col gap-2 w-full">
+                <button
+                    onClick={() => router.push('/myspace/schedule?add=external')}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
+                >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">다른 여행 일정추가</span>
+                </button>
+                <button
+                    onClick={() => router.push('/myspace/schedule')}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
+                >
+                    <Calendar className="w-4 h-4 text-[#C3A675]" />
+                    <span>나의 여행일정</span>
+                </button>
+            </div>
         </div>
     );
 }

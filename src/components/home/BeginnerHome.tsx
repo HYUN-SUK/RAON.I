@@ -387,20 +387,16 @@ export default function BeginnerHome() {
 
                     <NotificationBadge variant="hero" />
 
-                    <div className="relative z-20 text-white space-y-4 mb-6">
-                        <p className="text-white/80 text-sm mb-1">
+                    <div className="relative z-20 text-white space-y-4 mb-6 w-full">
+                        <p className="text-white/90 text-lg mb-1 leading-relaxed">
                             {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
                         </p>
 
-                        <h1 className="text-responsive-hero-title font-bold leading-tight">
-                            라온아이에서,<br />
-                            나만의 캠핑 이야기를 그려보세요.
-                        </h1>
-
-                        <p className="text-responsive-hero-sub font-semibold text-white/95 drop-shadow-md">
-                            두가족도 넉넉한 2배사이트, 깨끗한 개별욕실<br />
-                            라온아이에서 불편은 덜고, 추억은 쌓으세요.
-                        </p>
+                        <div className="py-1 w-full">
+                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2.5" />
+                            <span className="tracking-[0.4em] font-bold text-white/95 text-[30px] text-center block pl-[0.4em]">라 온 아 이</span>
+                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2.5" />
+                        </div>
                     </div>
                 </section>
 
@@ -428,6 +424,18 @@ export default function BeginnerHome() {
                             }
                             return <div key={idx}>{ChipContent}</div>
                         })}
+                    </div>
+                </section>
+
+                {/* 2.5 Marketing USP Banner */}
+                <section className="px-4 mb-8 animate-in fade-in duration-500">
+                    <div className="w-full bg-[#ECE8DF]/60 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl p-5 border border-stone-200/40 dark:border-zinc-800 text-center space-y-2.5">
+                        <p className="text-base font-bold text-[#1C4526] dark:text-[#C3A675] leading-relaxed">
+                            두가족도 넉넉한 2배사이트, 깨끗한 개별욕실
+                        </p>
+                        <p className="text-sm text-stone-600 dark:text-stone-400 font-semibold">
+                            라온아이에서 불편은 덜고, 추억은 쌓으세요.
+                        </p>
                     </div>
                 </section>
 

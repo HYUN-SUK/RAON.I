@@ -171,7 +171,7 @@ export default function ReturningHome() {
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
                 {/* 1. Personalized Hero Panel */}
-                <section className="w-full bg-[#1C4526] text-white pt-6 pb-20 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
+                <section className="w-full bg-[#1C4526] text-white pt-16 pb-28 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
                     {/* Background Image Overlay */}
                     <div className="absolute inset-0 z-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center" />
 
@@ -180,14 +180,15 @@ export default function ReturningHome() {
 
                     <NotificationBadge variant="hero" />
 
-                    <div className="relative z-10 mt-4">
+                    <div className="relative z-10 mt-4 text-center flex flex-col items-center w-full">
                         {recData ? (
                             <>
-                                <p className="text-white/80 text-sm mb-1">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
-                                <h1 className="text-2xl font-bold leading-relaxed">
-                                    라온아이에서,<br />
-                                    나의 캠핑 이야기를 이어가세요.
-                                </h1>
+                                <p className="text-white/90 text-lg leading-relaxed max-w-sm mx-auto">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
+                                <div className="py-1 w-full">
+                                    <div className="w-36 h-[2px] bg-white/30 mx-auto my-2.5" />
+                                    <span className="tracking-[0.4em] font-bold text-white/95 text-[30px] text-center block pl-[0.4em]">라 온 아 이</span>
+                                    <div className="w-36 h-[2px] bg-white/30 mx-auto my-2.5" />
+                                </div>
                             </>
                         ) : (
                             <div className="space-y-3 animate-pulse">
@@ -221,30 +222,6 @@ export default function ReturningHome() {
                             {/* Zero-click Smart Re-booking (Roadmap v3) */}
                             {lastReservation ? (
                                 <div className="mb-4 bg-[#F7F5EF] dark:bg-zinc-800 rounded-xl p-4 border border-[#1C4526]/10">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <Badge className="bg-[#1C4526] text-white hover:bg-[#1C4526] mb-1.5 px-2 py-0.5 text-[10px]">Smart Re-book</Badge>
-                                            <p className="font-bold text-stone-800 dark:text-stone-100 text-sm">지난 여행 조건으로 예약하기</p>
-                                            <p className="text-xs text-stone-500 mt-0.5">인원, 차량, 사이트 설정을 불러옵니다.</p>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full bg-stone-100 dark:bg-zinc-700 flex items-center justify-center">
-                                            <RefreshCcw className="w-4 h-4 text-stone-500" />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 p-3 rounded-lg border border-stone-200 dark:border-zinc-700 mb-3 shadow-sm">
-                                        <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-xl">⛺</div>
-                                        <div>
-                                            <p className="text-[10px] text-stone-500 mb-0.5">지난 예약정보</p>
-                                            <h3 className="font-semibold text-xs text-stone-800 dark:text-stone-200 mb-0.5">{lastReservation.siteName}</h3>
-                                            <p className="text-[10px] text-stone-500">
-                                                {lastReservation.familyCount}가족
-                                                {lastReservation.visitorCount > 0 && `, 방문객 ${lastReservation.visitorCount}명`}
-                                                {' · '}차량 {lastReservation.vehicleCount}대
-                                            </p>
-                                        </div>
-                                    </div>
-
                                     <Button
                                         className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
                                         onClick={() => {
@@ -290,20 +267,7 @@ export default function ReturningHome() {
                             )}
                         </div>
 
-                        {/* Return to Tent Button */}
-                        <div className="pt-2 border-t border-stone-100 dark:border-zinc-800">
-                            <Button
-                                size="lg"
-                                className="w-full bg-stone-900 hover:bg-black text-white rounded-xl h-12 text-sm font-bold flex items-center justify-between px-6 shadow-lg shadow-stone-200 dark:shadow-none transition-transform active:scale-[0.98]"
-                                onClick={() => router.push('/myspace')}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <Tent className="w-5 h-5 text-[#C3A675]" />
-                                    <span>내 텐트로 돌아가기</span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-stone-500" />
-                            </Button>
-                        </div>
+
                     </Card>
                 </div>
 
