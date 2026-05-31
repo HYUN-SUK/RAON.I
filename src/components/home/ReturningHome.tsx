@@ -171,7 +171,7 @@ export default function ReturningHome() {
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
                 {/* 1. Personalized Hero Panel */}
-                <section className="w-full bg-[#1C4526] text-white pt-16 pb-28 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
+                <section className="w-full bg-[#1C4526] text-white pt-16 pb-18 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
                     {/* Background Image Overlay */}
                     <div className="absolute inset-0 z-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center" />
 
