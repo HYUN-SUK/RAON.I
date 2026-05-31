@@ -124,7 +124,7 @@ function ScheduleContent() {
                     >
                         <ChevronLeft className="w-6 h-6 text-gray-700" />
                     </button>
-                    <h1 className="text-lg font-semibold text-gray-900">내 캠핑 일정</h1>
+                    <h1 className="text-lg font-semibold text-gray-900">나의 여행일정</h1>
                     <button
                         onClick={() => setIsFormOpen(true)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#224732] text-white hover:bg-[#1a3626] transition-colors text-sm font-medium"
