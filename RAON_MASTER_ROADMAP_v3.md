@@ -43,7 +43,7 @@
 | **Phase 3** | **?�약 ?�스??(Reservation)** | ??**?�료** | 95% | Logic/Validation/Admin Core/Holidays ?�료. PG/?�픈???�음. |
 | **Phase 4** | **미래 기능 (Future)** | ??**?�료** | 100% | ???�시(FCM), ?�황�??�림 ?�스?? ?�앱 배�? 구현 ?�료. |
 | **Phase 5** | **마켓 & 결제 (Market)** | ??**?�료** | 100% | MVP ?�료. 리뷰 ?�스??DB/UI) 구현 �?검�??�료. Commerce Logic Complete. |
-| **Phase 5.5** | **?�마??캠핑 ?�랜 (Smart Plan)** | ??**?�료** | 100% | v11.9.32 ?�마???�랜 ?�구 ?�??�??�진 고도???�료. |
+| **Phase 5.5** | **스마트 캠핑 플랜 (Smart Plan)** | 🟢 **완료** | 100% | v11.9.90 식당 점수 합산 & UI 배너 및 검색 쿼리 개선 완료. |
 | **Phase 6** | **?�장 모듈 (Expansion)** | ??**?�료** | 100% | ?�리?�이?? 미션, ?�향 ?�서 ?�동 ?�료. |
 | **Phase 7** | **?�영 & �??�링 (Ops & Gap)** | ??**?�료** | 100% | ?�국 LX 공사맛집(2k) ?�합 �??�동??로테?�션 ?�기??v2 ?�국 보급 ?�료(04-13). |
 | **Phase 8** | **?�정??�?리팩?�링 (Stabilization)** | ??**?�료** | 100% | 관리자 ?�동??모니?�링 UI 최적??�?API ?�통 ?�합???�보 ?�료 (04-23). |
@@ -273,6 +273,10 @@
         *   [x] **Tmap Android Fix**: Implemented `goalx/y` and `v1x/y` parameters to resolve destination/waypoint omission bugs in Android.
         *   [x] **OS Branching**: Standardized OS-specific URL schemes (rGoX/Y for iOS vs goalx/y for Android) in `nav-utils.ts`.
         *   [x] **Verification**: Live test confirmed immediate pathfinding from "Current Location" to "Destination" via Tmap Android.
+    *   [x] **5.5.23 Caching & UX Optimization (v11.9.90) 🟢 (2026-06-01)**:
+        *   [x] **RESTAURANT Score Summation**: 식당 다중 인증 병합 시 Max 방식 대신 누적 합산(Sum) 방식 적용으로 `동흥루`(110점)가 정상 우위를 점하도록 개편.
+        *   [x] **Mid-term UX Banner**: D-10 ~ D-4 중기 예보 가동 시 3일 전 오전 9시 단기 최신 정보 재생성 안내 배너 렌더링.
+        *   [x] **Naver Search Query Patch**: 네이버 검색 연동 시 모든 장소 카드의 주소에서 시군구를 자동 파싱해 상호명 앞에 결합하여 검색어 신뢰도 확보.
 
 
 ### Phase 6: ?�장 모듈 (Expansion) - ?�� Ongoing (98%)
