@@ -314,7 +314,16 @@ export default function SmartPlanProposal({
         if (officialUrl && officialUrl !== '없음') {
             window.open(officialUrl, '_blank');
         } else {
-            const query = encodeURIComponent(card.name);
+            const address = card.metadata?.address || card.metadata?.addr || '';
+            let sigungu = '';
+            if (address) {
+                const parts = address.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    sigungu = parts[1]; // 예: '충청남도 예산군 예산읍' -> '예산군'
+                }
+            }
+            const queryStr = sigungu ? `${sigungu} ${card.name}` : card.name;
+            const query = encodeURIComponent(queryStr);
             // 1순위 네이버 검색, 2순위 구글 검색 (필요시)
             window.open(`https://search.naver.com/search.naver?query=${query}`, '_blank');
         }
@@ -608,8 +617,23 @@ export default function SmartPlanProposal({
         </Card>
     );
 
+    const showMidTermBanner = diffDaysForRegen >= 4 && diffDaysForRegen <= 10;
+
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">
+            {showMidTermBanner && (
+                <div className="bg-amber-50/95 border border-amber-200/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <span className="text-lg shrink-0">📅</span>
+                    <div className="flex flex-col min-w-0">
+                        <p className="text-[12px] font-bold text-amber-900 leading-normal">
+                            현재 중기 예보 기반으로 구성된 일정입니다.
+                        </p>
+                        <p className="text-[11px] text-amber-700 leading-normal mt-0.5 font-medium">
+                            체크인 3일 전 오전 9시부터 단기 최신 정보로 새로 생성할 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+            )}
             {/* 1. Header & AI Narration Section */}
             <div className="relative p-6 bg-gradient-to-br from-[#224732] via-[#1a3626] to-[#0f2117] rounded-[24px] overflow-hidden shadow-md">
                 <div className="absolute -top-4 -right-4 p-4 opacity-10 transform rotate-12">

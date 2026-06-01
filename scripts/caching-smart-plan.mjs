@@ -907,11 +907,31 @@ async function main() {
                     if (localMap.has(k)) { 
                         const existing = localMap.get(k);
                         if (cat === 'RESTAURANT' || cat === 'HOSPITAL') {
-                            if (s > existing.trust_score) existing.trust_score = s;
                             const oldB = existing.raw_data?.badges || [];
                             const newB = item.raw_data?.badges || [];
                             if (!existing.raw_data) existing.raw_data = {};
-                            existing.raw_data.badges = Array.from(new Set([...oldB, ...newB]));
+                            const mergedBadges = Array.from(new Set([...oldB, ...newB]));
+                            existing.raw_data.badges = mergedBadges;
+
+                            if (cat === 'RESTAURANT') {
+                                let totalScore = 10;
+                                if (mergedBadges.includes('LX인증맛집')) totalScore += 50;
+                                if (mergedBadges.includes('백년가게')) totalScore += 50;
+                                if (mergedBadges.includes('모범음식점')) totalScore += 30;
+                                if (mergedBadges.includes('안심식당')) totalScore += 20;
+
+                                const nameCerts = { '미쉐린': '미쉐린 가이드', '미슐랭': '미쉐린 가이드', '블루리본': '블루리본', '식신': '식신 더베스트' };
+                                const name = existing.name;
+                                for (const [kw, b] of Object.entries(nameCerts)) {
+                                    if (name.includes(kw) || mergedBadges.includes(b)) {
+                                        if (totalScore < 110) totalScore = 110;
+                                    }
+                                }
+                                existing.trust_score = totalScore;
+                            } else {
+                                // HOSPITAL
+                                if (s > existing.trust_score) existing.trust_score = s;
+                            }
                         }
                         else if(cat === 'MART') {
                             if(name.length > existing.name.length) existing.name = name;
@@ -936,11 +956,31 @@ async function main() {
                     if (unionPool.has(uk)) {
                         const ex = unionPool.get(uk);
                         if (cat === 'RESTAURANT' || cat === 'HOSPITAL') {
-                            if (item.trust_score > ex.trust_score) ex.trust_score = item.trust_score;
                             const oldB = ex.raw_data?.badges || [];
                             const newB = item.raw_data?.badges || [];
                             if (!ex.raw_data) ex.raw_data = {};
-                            ex.raw_data.badges = Array.from(new Set([...oldB, ...newB]));
+                            const mergedBadges = Array.from(new Set([...oldB, ...newB]));
+                            ex.raw_data.badges = mergedBadges;
+
+                            if (cat === 'RESTAURANT') {
+                                let totalScore = 10;
+                                if (mergedBadges.includes('LX인증맛집')) totalScore += 50;
+                                if (mergedBadges.includes('백년가게')) totalScore += 50;
+                                if (mergedBadges.includes('모범음식점')) totalScore += 30;
+                                if (mergedBadges.includes('안심식당')) totalScore += 20;
+
+                                const nameCerts = { '미쉐린': '미쉐린 가이드', '미슐랭': '미쉐린 가이드', '블루리본': '블루리본', '식신': '식신 더베스트' };
+                                const name = ex.name;
+                                for (const [kw, b] of Object.entries(nameCerts)) {
+                                    if (name.includes(kw) || mergedBadges.includes(b)) {
+                                        if (totalScore < 110) totalScore = 110;
+                                    }
+                                }
+                                ex.trust_score = totalScore;
+                            } else {
+                                // HOSPITAL
+                                if (item.trust_score > ex.trust_score) ex.trust_score = item.trust_score;
+                            }
                         } else if (item.trust_score > ex.trust_score) {
                             unionPool.set(uk, item);
                         } else if (item.trust_score === ex.trust_score && item.name.length > ex.name.length) {

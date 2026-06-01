@@ -1,0 +1,596 @@
+{
+  "auditLogs": [
+    {
+      "id": "da303ef5-a5d1-4e49-b208-8f2460ded9ae",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-28T01:21:56.755569+00:00"
+    },
+    {
+      "id": "2bc34827-8909-4550-bf60-6a3f6303117a",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-28T01:21:56.755569+00:00"
+    },
+    {
+      "id": "3a35a5a0-dd4e-456d-b240-0a80591ddf0b",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-28T01:21:56.755569+00:00"
+    },
+    {
+      "id": "81b4ca9a-a3ac-44df-b278-dcc97c5520e8",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-27T01:34:06.934596+00:00"
+    },
+    {
+      "id": "f36198e2-4a7d-4bb9-b7ad-d7939560e5c7",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-27T01:34:06.934596+00:00"
+    },
+    {
+      "id": "c20387fc-642b-4fcc-b2a5-43f146dd6233",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-25T01:30:43.515756+00:00"
+    },
+    {
+      "id": "d055e0c6-563c-4399-96c2-1111804662c2",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-24T01:28:40.165119+00:00"
+    },
+    {
+      "id": "5bed764d-f119-4c87-a28e-07f3ce0b0ff2",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-23T01:22:36.704559+00:00"
+    },
+    {
+      "id": "ddacaf82-f819-493b-b8dc-6746a21ab664",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-23T01:22:36.704559+00:00"
+    },
+    {
+      "id": "7730e6ef-a1de-4396-862d-7cf99a39c801",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-22T01:28:32.681731+00:00"
+    },
+    {
+      "id": "ee7b9de7-cdc1-4d3e-98da-3ecbe92d7424",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-22T01:28:32.681731+00:00"
+    },
+    {
+      "id": "aa452968-5396-4c11-a8e0-4b4221ce8d7f",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-22T01:28:32.681731+00:00"
+    },
+    {
+      "id": "4912e014-09cc-4eab-89a3-179de0560704",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-21T01:30:45.388731+00:00"
+    },
+    {
+      "id": "492a769a-03d9-4045-be60-0e92c83540fa",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-21T01:30:45.388731+00:00"
+    },
+    {
+      "id": "cfeb3e74-60a4-4130-8b08-9d161235a12c",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-20T01:30:19.324958+00:00"
+    },
+    {
+      "id": "27e56fc3-514c-440d-91c3-23cff5068322",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-16T01:14:24.548964+00:00"
+    },
+    {
+      "id": "c37960a8-2374-47ee-8f53-613b20dc987d",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-15T01:20:34.623407+00:00"
+    },
+    {
+      "id": "18db63a9-9911-4a95-a927-c0ac5c1cf199",
+      "nickname": "hyeonah329",
+      "email": "hyeonah329@gmail.com",
+      "userId": "31e06a54-481b-42a2-851d-a85cb17f3fe4",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "failed",
+      "error": "No tokens found",
+      "createdAt": "2026-05-13T01:23:28.976477+00:00"
+    },
+    {
+      "id": "d6a46b3e-9765-4ebb-a2bf-781e963b2147",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🎒 캠핑이 4일 남았어요!",
+      "eventType": "upcoming_stay_d4",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-12T01:16:19.021781+00:00"
+    },
+    {
+      "id": "da0f7a89-fd01-4027-80bb-a647b12f82be",
+      "nickname": "hyeonah329",
+      "email": "hyeonah329@gmail.com",
+      "userId": "31e06a54-481b-42a2-851d-a85cb17f3fe4",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "failed",
+      "error": "No tokens found",
+      "createdAt": "2026-05-12T01:16:19.021781+00:00"
+    },
+    {
+      "id": "b7697d22-845f-4fd3-bd9d-41cf4b6cf19a",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-12T01:16:19.021781+00:00"
+    },
+    {
+      "id": "d7e18293-b9c7-4fdd-b027-a06b922319f4",
+      "nickname": "hyeonah329",
+      "email": "hyeonah329@gmail.com",
+      "userId": "31e06a54-481b-42a2-851d-a85cb17f3fe4",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "failed",
+      "error": "No tokens found",
+      "createdAt": "2026-05-12T01:16:19.021781+00:00"
+    },
+    {
+      "id": "eb73660a-8bdf-42ad-ad2c-ab3d16abbaf8",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-12T01:16:19.021781+00:00"
+    },
+    {
+      "id": "da6bc1b4-8d46-4c01-a559-65c6c7f0124a",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-12T01:16:19.021781+00:00"
+    },
+    {
+      "id": "83dd2dbd-9f39-40ae-9ec2-4c9d4bbc437b",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":404,\"err\":\"Device unregistered.\"},{\"status\":200}]",
+      "createdAt": "2026-05-11T01:21:47.486673+00:00"
+    },
+    {
+      "id": "9ba99343-09fb-4eec-8cb7-6b73d2bf2a31",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":404,\"err\":\"Device unregistered.\"},{\"status\":200}]",
+      "createdAt": "2026-05-11T01:21:47.486673+00:00"
+    },
+    {
+      "id": "73b23490-d6d0-4bb3-a2e8-75c4c945ac02",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":404,\"err\":\"Device unregistered.\"},{\"status\":200}]",
+      "createdAt": "2026-05-11T01:21:47.486673+00:00"
+    },
+    {
+      "id": "804c9974-9924-4c54-90b4-1748401e6fb1",
+      "nickname": "hyeonah329",
+      "email": "hyeonah329@gmail.com",
+      "userId": "31e06a54-481b-42a2-851d-a85cb17f3fe4",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "failed",
+      "error": "No tokens found",
+      "createdAt": "2026-05-11T01:21:47.486673+00:00"
+    },
+    {
+      "id": "64a6a749-d1d8-474d-8ac4-9a79f9e3d089",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":404,\"err\":\"NotRegistered\"},{\"status\":404,\"err\":\"Device unregistered.\"},{\"status\":200}]",
+      "createdAt": "2026-05-10T00:10:49.756476+00:00"
+    },
+    {
+      "id": "fd10c657-6223-4631-8f0e-cd541089ef6c",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":404,\"err\":\"NotRegistered\"},{\"status\":404,\"err\":\"Device unregistered.\"},{\"status\":200}]",
+      "createdAt": "2026-05-10T00:10:49.756476+00:00"
+    },
+    {
+      "id": "253cdaf6-ab17-4659-b6a8-5147ff973b93",
+      "nickname": "hyeonah329",
+      "email": "hyeonah329@gmail.com",
+      "userId": "31e06a54-481b-42a2-851d-a85cb17f3fe4",
+      "title": "🎒 캠핑이 4일 남았어요!",
+      "eventType": "upcoming_stay_d4",
+      "status": "failed",
+      "error": "No tokens found",
+      "createdAt": "2026-05-09T01:15:16.333232+00:00"
+    },
+    {
+      "id": "5e4eb29f-42c1-4e91-95e8-f0d68235b93d",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-09T01:15:16.333232+00:00"
+    },
+    {
+      "id": "c7632227-c934-4c40-92f1-0282650d1871",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-09T01:15:16.333232+00:00"
+    },
+    {
+      "id": "e89edbeb-abce-4ff5-a43c-c8f90069ed26",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-09T01:15:16.333232+00:00"
+    },
+    {
+      "id": "49473828-0957-4d3d-a6fc-15dbeb8d1dc6",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-09T01:15:16.333232+00:00"
+    },
+    {
+      "id": "1fddb8fc-f77b-4506-a931-1eec036039d0",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-08T01:16:33.139714+00:00"
+    },
+    {
+      "id": "d75de557-d28c-43c7-8abe-4c780075ea71",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-08T01:16:33.139714+00:00"
+    },
+    {
+      "id": "26659ccc-e578-460a-bd11-0bc26ae1be16",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-08T01:16:33.139714+00:00"
+    },
+    {
+      "id": "12318d00-8c1c-4b41-a3f7-4588501df944",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-08T01:16:33.139714+00:00"
+    },
+    {
+      "id": "84a1e760-4f03-40ff-af19-387a7575feca",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-07T00:12:14.038383+00:00"
+    },
+    {
+      "id": "10defa61-4aa5-476a-aa39-8f9ce4b5197e",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-07T00:12:14.038383+00:00"
+    },
+    {
+      "id": "5ef8af4f-7a03-4e3b-8b85-c0cd4ffe055f",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-07T00:12:14.038383+00:00"
+    },
+    {
+      "id": "25b3cc7d-55ff-428b-80ba-49dcd816bb48",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-07T00:12:14.038383+00:00"
+    },
+    {
+      "id": "5855ce75-a03e-4ada-8250-fdc9b3290e92",
+      "nickname": "wlgustns19",
+      "email": "wlgustns19@gmail.com",
+      "userId": "8198bf15-0ffb-4bbc-b833-6b63e4a027b3",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200}]",
+      "createdAt": "2026-05-06T00:11:55.847945+00:00"
+    },
+    {
+      "id": "98fce175-f5c6-495b-ad85-528311cddf3c",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-06T00:11:55.847945+00:00"
+    },
+    {
+      "id": "078595dc-6d38-4c61-98ef-9224294b2bbe",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-06T00:11:55.847945+00:00"
+    },
+    {
+      "id": "74dc565c-f02e-4535-bd14-fe2d8557e457",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-05T01:10:40.04904+00:00"
+    },
+    {
+      "id": "cbfb3a6a-2c5a-4a38-a59c-e1bd4f160717",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-05T01:10:40.04904+00:00"
+    },
+    {
+      "id": "25810071-0918-4145-bfff-f6e41b27f5dd",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?",
+      "eventType": "upcoming_stay_today",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-04T00:10:49.252249+00:00"
+    },
+    {
+      "id": "4d49c9c5-a778-49c8-8aa1-1c7b1319cd17",
+      "nickname": "tootg",
+      "email": "tootg@naver.com",
+      "userId": "4730be31-30b5-4594-a993-d8f5a7a5e26c",
+      "title": "🍳 내일 뭐 먹을지 고민되시나요?",
+      "eventType": "upcoming_stay_d1",
+      "status": "sent",
+      "error": "[{\"status\":200},{\"status\":200}]",
+      "createdAt": "2026-05-04T00:10:49.252249+00:00"
+    }
+  ],
+  "userTokens": {
+    "tootg (tootg@naver.com)": [
+      {
+        "token": "eQEA8q3fn-XhX0xQasWz9s:APA91bG45_9ZRfYOp8eP84yepZi4YiwFC5o4e7jysCe1rKuCtrCjYDQ8Gsd2bck8iz7i-KBH5GGLIUoa7S3ak8wAuHOkCFPtgNm1kIrR7bKbai2pkloGg1k",
+        "device_type": "web",
+        "is_active": true,
+        "created_at": "2026-05-25T13:50:44.525535+00:00",
+        "last_updated_at": "2026-05-25T13:50:44.856+00:00"
+      },
+      {
+        "token": "etYP86DcVhpLMYbW85tivp:APA91bGSqBMcB-wmKbzIWQ3_Nus5SV8825eonmm0W0LO_yHF1aIx4IRKZVllnRC-GUoG6-t1wGl40ZAMdsRyoDcxQjCKIyShcB0bl4e74OPxgossyG6630o",
+        "device_type": "web",
+        "is_active": true,
+        "created_at": "2026-05-17T12:31:41.765742+00:00",
+        "last_updated_at": "2026-05-17T12:31:42.02+00:00"
+      },
+      {
+        "token": "cMc1VSgydY5v23rthMu54l:APA91bE6ec9xXq-wkXzpKP76sg3ZqxAWGnxw_DefCaqrHyHYMg6JEGPg-DmP-6jqWh3b9LA8Z42EkZhFXv30ylEQ8hftkXUrzOqYN9-Sg0SnJpV5aBhVBMs",
+        "device_type": "web",
+        "is_active": true,
+        "created_at": "2026-02-28T07:36:07.64081+00:00",
+        "last_updated_at": "2026-02-28T07:36:07.767+00:00"
+      },
+      {
+        "token": "eJ7xrSsxtf3HclphqVMfJP:APA91bEOY1fk9lezZk9jF13GSAg1k73JyBaAqESaOZ6sIi-LBvZq0Fb5PeaBsDs7QItHYHRMaav_9hpXEYv7RAtB-9RiRR4o50QQ0WBTCzpMOINEFbpEnlI",
+        "device_type": "web",
+        "is_active": false,
+        "created_at": "2026-01-18T07:25:43.862336+00:00",
+        "last_updated_at": "2026-01-18T07:25:43.727+00:00"
+      }
+    ],
+    "wlgustns19 (wlgustns19@gmail.com)": [
+      {
+        "token": "fPkH7Qj-YvWYyHN9YtgJva:APA91bFJ2n2CHUZTDRCBm-tRbxmsWkoviiW2by8Bpp8moCORf5zYYGWkTBMA5_bI6wSwrtvZ_BwDaN1ZU1JbKmUuhsVLx-LMDgK-XALB7uhprOfHYMI6HXw",
+        "device_type": "web",
+        "is_active": true,
+        "created_at": "2026-03-01T00:57:45.832521+00:00",
+        "last_updated_at": "2026-03-01T00:57:45.658+00:00"
+      }
+    ],
+    "hyeonah329 (hyeonah329@gmail.com)": []
+  }
+}
