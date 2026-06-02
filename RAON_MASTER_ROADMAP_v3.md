@@ -277,6 +277,7 @@
         *   [x] **RESTAURANT Score Summation**: 식당 다중 인증 병합 시 Max 방식 대신 누적 합산(Sum) 방식 적용으로 `동흥루`(110점)가 정상 우위를 점하도록 개편.
         *   [x] **Mid-term UX Banner**: D-10 ~ D-4 중기 예보 가동 시 3일 전 오전 9시 단기 최신 정보 재생성 안내 배너 렌더링.
         *   [x] **Naver Search Query Patch**: 네이버 검색 연동 시 모든 장소 카드의 주소에서 시군구를 자동 파싱해 상호명 앞에 결합하여 검색어 신뢰도 확보.
+        *   [x] **Past Weather Exclusion**: 홈화면 일정 날씨 위젯 및 일정 상세 페이지에서 오늘보다 이전인 과거 날짜의 날씨 예보를 렌더링에서 배제하여 ⏳ 대기 버그 오인 현상 해소.
 
 
 ### Phase 6: ?�장 모듈 (Expansion) - ?�� Ongoing (98%)

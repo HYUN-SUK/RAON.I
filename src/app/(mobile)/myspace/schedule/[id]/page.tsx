@@ -119,12 +119,17 @@ export default function ScheduleDetailPage() {
     // 캠핑 기간의 날짜 리스트 생성 헬퍼
     const getDatesInRange = (startDate: Date, endDate: Date) => {
         const dates = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const curr = new Date(startDate);
         const end = new Date(endDate);
         curr.setHours(0, 0, 0, 0);
         end.setHours(0, 0, 0, 0);
         while (curr <= end) {
-            dates.push(format(curr, 'yyyyMMdd'));
+            if (curr >= today) {
+                dates.push(format(curr, 'yyyyMMdd'));
+            }
             curr.setDate(curr.getDate() + 1);
         }
         return dates;
