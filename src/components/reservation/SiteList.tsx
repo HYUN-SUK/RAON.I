@@ -9,11 +9,13 @@ import { Site } from '@/types/reservation';
 import WaitlistButton from './WaitlistButton';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase-client';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites } = useReservationStore();
+    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites, fetchPublicReservations } = useReservationStore();
     const [mounted, setMounted] = useState(false);
+    const [checkingSiteId, setCheckingSiteId] = useState<string | null>(null);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -77,7 +79,7 @@ export default function SiteList() {
         return aAvailable ? -1 : 1;
     });
 
-    const handleSiteClick = (site: Site) => {
+    const handleSiteClick = async (site: Site) => {
         // 0-night validation (Check-in == Check-out or no Check-out)
         if (!selectedDateRange.from || !selectedDateRange.to || new Date(selectedDateRange.from).getTime() === new Date(selectedDateRange.to).getTime()) {
             toast.error('퇴실일을 선택하세요');
@@ -88,6 +90,43 @@ export default function SiteList() {
             toast.error('선택하신 날짜에 예약할 수 없는 사이트입니다.');
             return;
         }
+
+        // 1차 실시간 동시성 예약 조회 (DB 쿼리)
+        setCheckingSiteId(site.id);
+        try {
+            const supabase = createClient();
+            const checkInStr = format(selectedDateRange.from, 'yyyy-MM-dd');
+            const checkOutStr = format(selectedDateRange.to, 'yyyy-MM-dd');
+
+            const { data: overlappingReservations, error } = await supabase
+                .from('reservations')
+                .select('id')
+                .eq('site_id', site.id)
+                .neq('status', 'CANCELLED')
+                .lt('check_in_date', checkOutStr)
+                .gt('check_out_date', checkInStr);
+
+            if (error) {
+                console.error('[SiteList] Real-time occupancy check failed', error);
+            }
+
+            if (overlappingReservations && overlappingReservations.length > 0) {
+                toast.error('죄송합니다. 방금 다른 분이 먼저 이 사이트를 예약하셨습니다.');
+                
+                // 로컬 예약을 갱신하여 리스트 리프레시
+                const start = new Date();
+                const end = new Date();
+                end.setMonth(end.getMonth() + 6);
+                await fetchPublicReservations(start, end);
+                
+                setCheckingSiteId(null);
+                return;
+            }
+        } catch (err) {
+            console.error('[SiteList] Real-time occupancy catch error', err);
+        }
+        setCheckingSiteId(null);
+
         setSelectedSite(site);
         router.push(`/reservation/${site.id}`); // Note: Ensure [id] page is also styled if needed, but out of scope for strict SiteList
     };
@@ -142,13 +181,19 @@ export default function SiteList() {
                         key={site.id}
                         onClick={() => handleSiteClick(site)}
                         className={`
-            relative overflow-hidden rounded-2xl border transition-all duration-300 group bg-white shadow-sm
-            ${available ? 'cursor-pointer hover:shadow-md hover:border-brand-1/30 hover:-translate-y-1' : 'cursor-not-allowed opacity-70'}
+            relative overflow-hidden rounded-2xl border transition-all duration-150 group bg-white shadow-sm touch-manipulation
+            ${available ? 'cursor-pointer hover:shadow-md hover:border-[#1C4526]/30 hover:-translate-y-1 active:scale-[0.98] active:brightness-95 active:bg-stone-50/80' : 'cursor-not-allowed opacity-70'}
             ${selectedSite?.id === site.id
                                 ? 'border-[#1C4526] ring-2 ring-[#1C4526]/10'
                                 : 'border-stone-100'}
           `}
                     >
+                        {checkingSiteId === site.id && (
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-30 flex items-center justify-center">
+                                <div className="w-8 h-8 border-4 border-[#C3A675]/80 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        )}
+
                         <div className={`relative h-48 w-full ${!available ? 'grayscale' : ''}`}>
                             <Image
                                 src={site.imageUrl}

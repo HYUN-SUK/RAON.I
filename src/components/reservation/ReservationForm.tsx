@@ -10,6 +10,7 @@ import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
 import { getCampingProfile, saveCampingProfile } from '@/actions/camping-profile';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface ReservationFormProps {
     site: Site;
@@ -45,6 +46,35 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         fetchSiteConfig();
 
         const loadInitialData = async () => {
+            // 0. 2차 실시간 예약 가능 여부 검증 (Double Guard)
+            if (selectedDateRange.from && selectedDateRange.to) {
+                const supabaseClient = createClient();
+                const checkInStr = format(new Date(selectedDateRange.from), 'yyyy-MM-dd');
+                const checkOutStr = format(new Date(selectedDateRange.to), 'yyyy-MM-dd');
+
+                try {
+                    const { data: overlapping, error: checkErr } = await supabaseClient
+                        .from('reservations')
+                        .select('id')
+                        .eq('site_id', site.id)
+                        .neq('status', 'CANCELLED')
+                        .lt('check_in_date', checkOutStr)
+                        .gt('check_out_date', checkInStr);
+
+                    if (checkErr) {
+                        console.error('[ReservationForm] Real-time check error', checkErr);
+                    }
+
+                    if (overlapping && overlapping.length > 0) {
+                        toast.error('죄송합니다. 방금 다른 분이 먼저 이 사이트의 예약을 선점하셨습니다.');
+                        router.push('/reservation');
+                        return;
+                    }
+                } catch (err) {
+                    console.error('[ReservationForm] Real-time validation catch error', err);
+                }
+            }
+
             // 1. 공통 캠핑 프로필 로드 (최우선순위)
             try {
                 const profile = await getCampingProfile();
