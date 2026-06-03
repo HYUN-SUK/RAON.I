@@ -268,7 +268,8 @@ async function dailyRegionSync() {
       SPOT_KTO_POP: { label: 'SPOT (KTO 공식 순위)', ...baseStat(), note: '기초지자체 중심 인기도' },
       LX: { label: 'RESTAURANT (LX공사맛집)', ...baseStat(), note: '전국 직원 추천 기반' },
       SPOT_TMAP_REL: { label: '명소 연관(Tmap)', ...baseStat(), note: '인기도 지표 1' },
-      SPOT_KT_CONCTR: { label: '명소 집중률(KT)', ...baseStat(), note: '인기도 지표 2' }
+      SPOT_KT_CONCTR: { label: '명소 집중률(KT)', ...baseStat(), note: '인기도 지표 2' },
+      HOSPITAL: { label: 'HOSPITAL (병원)', ...baseStat(), note: 'NMC API' }
     }
   };
   // 1. 사전 카운트 (기존 데이터 수 - 현행 소스명만 사용, 별칭 통합 집계)
@@ -280,7 +281,8 @@ async function dailyRegionSync() {
     'LOCALDATA_MART_SSM': 'SSM_MART',
     'LOCALDATA_MART_OTHER': 'OTHER_MART',
     'TOUR_SPOT': 'SPOT',
-    'LX_RESTAURANT': 'LX'
+    'LX_RESTAURANT': 'LX',
+    'NMC_HOSPITAL': 'HOSPITAL'
   };
 
   const SIDO_ALIASES = {
@@ -326,6 +328,9 @@ async function dailyRegionSync() {
 
   // [2.3] 명소군 (관광공사 지역기반 동기화) - KorService2
   await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
+
+  // [2.4] 병원군 (응급의료기관 동기화)
+  await syncHospitals(targetSido, seenIds, stats.categories.HOSPITAL);
 
     // --- [SOP v12.0 Step 9: KTO Municipality Popularity Sync (Robust)] --- 
     console.log(`\n9. [Popularity] Fetching KTO Official Ranking (Original Code Tracking)...`);
@@ -1052,6 +1057,114 @@ async function syncTourSpots(sido, seenIds, stat) {
         stat.note = '💥 ERROR (조회/통신 실패)';
         break; 
     }
+  }
+}
+
+/**
+ * 응급의료기관 (병원) - NMC API 연동 및 지오코딩
+ */
+async function syncHospitals(sido, seenIds, stat) {
+  console.log(`🏥 [NMC] ${sido} 병원 동기화 중...`);
+  const shortSido = SIDO_SHORT_MAP[sido] || sido;
+  const aliases = SIDO_ALIASES[shortSido] || [shortSido];
+  const chunk = [];
+
+  try {
+    // 1. Supabase에서 기존 병원 좌표 데이터 조회
+    const { data: existingHospitals, error: selectErr } = await supabase
+      .from('master_places')
+      .select('id, lat, lng, address, name, raw_data')
+      .eq('category', 'HOSPITAL')
+      .in('sido', aliases);
+
+    if (selectErr) {
+      throw new Error(`DB Existence Check Failed: ${selectErr.message}`);
+    }
+
+    const existingMap = new Map();
+    if (existingHospitals) {
+      existingHospitals.forEach(h => {
+        if (h.lat && h.lng) {
+          const val = { id: h.id, lat: h.lat, lng: h.lng, address: h.address || '', name: h.name || '' };
+          existingMap.set(h.id, val);
+          if (h.raw_data?.hpid) {
+            existingMap.set(h.raw_data.hpid, val);
+          }
+          if (h.name) {
+            existingMap.set(h.name, val);
+          }
+        }
+      });
+    }
+
+    // 2. NMC API 호출
+    const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(sido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
+    const data = await fetchWithRetry(url);
+    const items = data.response?.body?.items?.item;
+
+    if (items) {
+      const itemList = Array.isArray(items) ? items : [items];
+
+      for (const item of itemList) {
+        const hAddr = item.dutyAddr || '';
+        const tempFid = generateId('NMC_HOSPITAL', item.dutyName, hAddr);
+        
+        const exist = existingMap.get(tempFid) || 
+                      (item.hpid ? existingMap.get(item.hpid) : null) || 
+                      existingMap.get(item.dutyName);
+
+        let hLat = parseFloat(item.wgs84Lat);
+        let hLng = parseFloat(item.wgs84Lon);
+        let finalAddr = hAddr;
+        let finalFid = exist ? exist.id : tempFid;
+
+        // 기존 좌표 보존
+        if (exist) {
+          hLat = exist.lat;
+          hLng = exist.lng;
+          if (exist.address) finalAddr = exist.address;
+        } 
+        // 기존 좌표가 없거나 위경도가 누락된 경우 지오코딩
+        else if (!hLat || !hLng || hLat <= 33 || hLat >= 39 || hLng <= 124 || hLng >= 132) {
+          const coords = await getKakaoCoordinates(hAddr);
+          if (coords && coords.lat && coords.lng) {
+            hLat = coords.lat;
+            hLng = coords.lng;
+            if (coords.addr) finalAddr = coords.addr;
+            await delay(100);
+          }
+        }
+
+        if (hLat && hLng) {
+          if (seenIds.has(finalFid)) continue;
+          seenIds.add(finalFid);
+          stat.fetched.active++;
+
+          chunk.push({
+            id: finalFid,
+            api_source: 'NMC_HOSPITAL',
+            category: 'HOSPITAL',
+            name: item.dutyName,
+            description: '응급실 가동 응급의료기관 (NMC)',
+            address: finalAddr,
+            lat: hLat,
+            lng: hLng,
+            trust_score: item.dutyName?.includes('소아') ? 100 : 55,
+            is_active: true,
+            raw_data: { ...item, badges: ['응급의료센터'] },
+            sido,
+            sigungu: ''
+          });
+        }
+      }
+    }
+
+    if (chunk.length > 0) {
+      await upsertAndTrack(chunk, stat);
+    }
+  } catch (e) {
+    console.error('  ❌ NMC Hospital Sync Error:', e.message);
+    stat.note = '💥 ERROR (조회/통신 실패)';
   }
 }
 
