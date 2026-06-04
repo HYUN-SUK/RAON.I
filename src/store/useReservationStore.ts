@@ -80,7 +80,7 @@ interface ReservationState {
     deadlineHours: number; // 3, 6, 9, 12
     setDeadlineHours: (hours: number) => void;
     getOverdueReservations: () => { overdue: Reservation[], warning: Reservation[] };
-    cancelOverdueReservations: () => void;
+    cancelOverdueReservations: () => Promise<void>;
     validateReservation: (siteId: string, checkIn: Date, checkOut: Date) => string | null;
     initRebook: (siteId: string, familyCount?: number, visitorCount?: number, vehicleCount?: number, guestName?: string, guestPhone?: string, guestDetails?: Reservation['guestDetails']) => void;
 
@@ -905,16 +905,21 @@ export const useReservationStore = create<ReservationState>()(
                 return { overdue, warning };
             },
 
-            cancelOverdueReservations: () => {
-                const { getOverdueReservations } = get();
+            cancelOverdueReservations: async () => {
+                const { getOverdueReservations, updateReservationStatus } = get();
                 const { overdue } = getOverdueReservations();
                 if (overdue.length === 0) return;
 
-                set((state) => ({
-                    reservations: state.reservations.map((res) =>
-                        overdue.some((o) => o.id === res.id) ? { ...res, status: 'CANCELLED' } : res
-                    ),
-                }));
+                // DB 상태 업데이트 및 알림 발송 처리 수행
+                await Promise.all(
+                    overdue.map(async (res) => {
+                        try {
+                            await updateReservationStatus(res.id, 'CANCELLED', '입금 기한(6시간) 경과로 인한 자동 취소');
+                        } catch (err) {
+                            console.error(`[cancelOverdueReservations] Failed to cancel reservation ${res.id}:`, err);
+                        }
+                    })
+                );
             },
             validateReservation: (siteId, checkIn, checkOut) => {
                 const { reservations } = get();
