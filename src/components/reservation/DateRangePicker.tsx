@@ -50,14 +50,24 @@ export default function DateRangePicker() {
 
     const now = new Date();
 
-    // Calculate End-cap conditions (Duplicated logic from page, ideally centralized or context, but OK here for UI feedback)
+    // Calculate End-cap & Start-cap conditions (Duplicated logic from page, ideally centralized or context, but OK here for UI feedback)
     let isSaturdayFull = false;
     let isNextDayBlocked = false;
+    let isFridayFull = false;
+    let isPrevDayBlocked = false;
 
     if (selected.from) {
         const checkIn = new Date(selected.from);
+        
+        const prevDay = new Date(checkIn);
+        prevDay.setDate(checkIn.getDate() - 1);
+
         const nextDay = new Date(checkIn);
         nextDay.setDate(checkIn.getDate() + 1);
+
+        if (prevDay < activeConfig.openAt) {
+            isPrevDayBlocked = true;
+        }
 
         if (nextDay > activeConfig.closeAt) {
             isNextDayBlocked = true;
@@ -90,10 +100,40 @@ export default function DateRangePicker() {
             if (hasEndCapCandidate) {
                 isSaturdayFull = true;
             }
+        } else if (checkIn.getDay() === 6) { // Saturday (Start-cap)
+            const fridayBookedSiteIds = reservations
+                .filter(r => {
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn <= prevDay && rCheckOut > prevDay && r.status !== 'CANCELLED';
+                })
+                .map(r => r.siteId);
+
+            const saturdayBookedSiteIds = reservations
+                .filter(r => {
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED';
+                })
+                .map(r => r.siteId);
+
+            const hasStartCapCandidate = SITES.some(site =>
+                fridayBookedSiteIds.includes(site.id) &&
+                !saturdayBookedSiteIds.includes(site.id)
+            );
+
+            if (hasStartCapCandidate) {
+                isFridayFull = true;
+            }
         }
     }
 
-    const { isFridayOneNight, isWithinDN, isEndCap } = checkReservationRules(selected.from, selected.to, now, { isSaturdayFull, isNextDayBlocked });
+    const { isFridayOneNight, isWithinDN, isEndCap, isStartCap } = checkReservationRules(selected.from, selected.to, now, { 
+        isSaturdayFull, 
+        isNextDayBlocked,
+        isFridayFull,
+        isPrevDayBlocked
+    });
 
 
 
@@ -159,14 +199,14 @@ export default function DateRangePicker() {
                                 <p className="text-xs text-brand-1 font-bold animate-pulse p-2 bg-brand-1/5 rounded-lg">
                                     ✅ 임박 예약(D-{D_N_DAYS})으로 주말 1박 가능!
                                 </p>
-                            ) : isEndCap ? (
+                            ) : (isEndCap || isStartCap) ? (
                                 <p className="text-xs text-blue-600 font-bold animate-pulse p-2 bg-blue-50 rounded-lg">
-                                    ✅ 잔여석(End-Cap) 찬스로 1박 가능!
+                                    ✅ 잔여석(자투리) 찬스로 1박 가능!
                                 </p>
                             ) : (
                                 <div className="p-2 bg-red-50 border border-red-100 rounded-lg">
                                     <p className="text-xs text-red-500 font-bold leading-relaxed break-keep">
-                                        주말예약(금,토,일)은 2박부터 가능합니다. 다만 토요일이 예약된 사이트는 금요일 1박도 가능합니다.
+                                        주말예약(금,토,일)은 2박부터 가능합니다. 다만 토요일이 예약된 사이트는 금요일 1박이 가능하며, 금요일이 예약된 사이트는 토요일 1박도 가능합니다.
                                     </p>
                                 </div>
                             )

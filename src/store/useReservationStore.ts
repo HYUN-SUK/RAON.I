@@ -924,6 +924,18 @@ export const useReservationStore = create<ReservationState>()(
                 // Rule 1: Weekend 2-night Rule (Fri, Sat Check-in)
                 if (startDay === 5 || startDay === 6) {
                     if (nights < 2) {
+                        // Exception: D-N (Imminent Booking)
+                        const D_N_DAYS = 7;
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const checkInDay = new Date(checkIn);
+                        checkInDay.setHours(0, 0, 0, 0);
+                        const diffDays = Math.ceil((checkInDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+                        if (diffDays <= D_N_DAYS) {
+                            return null; // Allowed (D-N)
+                        }
+
                         // Exception: Friday 1-night End-cap
                         if (startDay === 5) {
                             // Check if Saturday is already booked for this site
@@ -933,28 +945,36 @@ export const useReservationStore = create<ReservationState>()(
                             const isSaturdayBooked = reservations.some(r => {
                                 if (r.status === 'CANCELLED' || r.siteId !== siteId) return false;
                                 const rCheckIn = new Date(r.checkInDate);
-                                return rCheckIn.getTime() === saturdayDate.getTime();
+                                const rCheckOut = new Date(r.checkOutDate);
+                                return rCheckIn <= saturdayDate && rCheckOut > saturdayDate;
                             });
 
                             if (isSaturdayBooked) {
                                 return null; // Allowed (End-cap)
                             }
 
-                            // Exception: D-N (Imminent Booking)
-                            const D_N_DAYS = 7;
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const checkInDay = new Date(checkIn);
-                            checkInDay.setHours(0, 0, 0, 0);
-                            const diffDays = Math.ceil((checkInDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-                            if (diffDays <= D_N_DAYS) {
-                                return null; // Allowed (D-N)
-                            }
-
                             return '금요일 입실 시 2박 이상 예약 가능합니다. (잔여석 또는 임박 예약만 1박 가능)';
                         }
-                        return '주말(토요일) 입실 시 2박 이상 예약해야 합니다.';
+
+                        // Exception: Saturday 1-night Start-cap
+                        if (startDay === 6) {
+                            // Check if Friday is already booked for this site
+                            const fridayDate = new Date(checkIn);
+                            fridayDate.setDate(fridayDate.getDate() - 1); // This is Friday
+
+                            const isFridayBooked = reservations.some(r => {
+                                if (r.status === 'CANCELLED' || r.siteId !== siteId) return false;
+                                const rCheckIn = new Date(r.checkInDate);
+                                const rCheckOut = new Date(r.checkOutDate);
+                                return rCheckIn <= fridayDate && rCheckOut > fridayDate;
+                            });
+
+                            if (isFridayBooked) {
+                                return null; // Allowed (Start-cap)
+                            }
+
+                            return '토요일 입실 시 2박 이상 예약 가능합니다. (잔여석 또는 임박 예약만 1박 가능)';
+                        }
                     }
                 }
                 return null;

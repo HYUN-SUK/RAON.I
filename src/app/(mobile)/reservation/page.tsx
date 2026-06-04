@@ -67,14 +67,24 @@ export default function ReservationPage() {
     }
 
     // Strict Weekend Rule Logic (SSOT 6.2.1)
-    const { isBlocked, hasEndCapAvailability, isNextDayBlocked } = useMemo(() => {
+    const { isBlocked, hasEndCapAvailability, isNextDayBlocked, hasStartCapAvailability, isPrevDayBlocked } = useMemo(() => {
         let hasEndCapAvailability = false;
         let isNextDayBlocked = false;
+        let hasStartCapAvailability = false;
+        let isPrevDayBlocked = false;
 
         if (selectedDateRange.from) {
             const checkIn = new Date(selectedDateRange.from);
+            
+            const prevDay = new Date(checkIn);
+            prevDay.setDate(checkIn.getDate() - 1);
+
             const nextDay = new Date(checkIn);
             nextDay.setDate(checkIn.getDate() + 1);
+
+            if (activeConfig.openAt && prevDay < activeConfig.openAt) {
+                isPrevDayBlocked = true;
+            }
 
             if (activeConfig.closeAt && nextDay > activeConfig.closeAt) {
                 isNextDayBlocked = true;
@@ -105,11 +115,41 @@ export default function ReservationPage() {
                 if (hasEndCapCandidate) {
                     hasEndCapAvailability = true;
                 }
+            } else if (checkIn.getDay() === 6) { // Saturday (Start-cap)
+                const fridayBookedSiteIds = reservations
+                    .filter(r => {
+                        const rCheckIn = new Date(r.checkInDate);
+                        const rCheckOut = new Date(r.checkOutDate);
+                        return rCheckIn <= prevDay && rCheckOut > prevDay && r.status !== 'CANCELLED';
+                    })
+                    .map(r => r.siteId);
+
+                const saturdayBookedSiteIds = reservations
+                    .filter(r => {
+                        const rCheckIn = new Date(r.checkInDate);
+                        const rCheckOut = new Date(r.checkOutDate);
+                        return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED';
+                    })
+                    .map(r => r.siteId);
+
+                const hasStartCapCandidate = sites.some(site =>
+                    fridayBookedSiteIds.includes(site.id) &&
+                    !saturdayBookedSiteIds.includes(site.id)
+                );
+
+                if (hasStartCapCandidate) {
+                    hasStartCapAvailability = true;
+                }
             }
         }
 
-        const ruleResult = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now, { hasEndCapAvailability, isNextDayBlocked });
-        return { ...ruleResult, hasEndCapAvailability, isNextDayBlocked };
+        const ruleResult = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now, { 
+            hasEndCapAvailability, 
+            isNextDayBlocked,
+            hasStartCapAvailability,
+            isPrevDayBlocked
+        });
+        return { ...ruleResult, hasEndCapAvailability, isNextDayBlocked, hasStartCapAvailability, isPrevDayBlocked };
     }, [selectedDateRange.from, activeConfig, selectedDateRange.to, reservations, now, sites]);
 
     // 추가: 모든 사이트가 예약되었는지 체크

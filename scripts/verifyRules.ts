@@ -56,4 +56,37 @@ if (!result3.isBlocked && !result3.isFridayOneNight) {
     process.exit(1);
 }
 
+// Test Case 4: Saturday Start-cap Exception (Allowed)
+// Target: Dec 13 (Sat) - Dec 14 (Sun) 2025
+// Situation: Friday night is already booked (hasStartCapAvailability = true)
+const dateSatStart = new Date('2025-12-13T00:00:00');
+const dateSunEnd = new Date('2025-12-14T00:00:00');
+
+const result4 = checkReservationRules(dateSatStart, dateSunEnd, today, { hasStartCapAvailability: true });
+console.log(`\nTest 4: Sat(12/13) - Sun(12/14) [Start-cap Allowed]`);
+console.log(`Expected: Allowed (isBlocked=false, isStartCap=true)`);
+console.log(`Actual:   Blocked=${result4.isBlocked}, isStartCap=${result4.isStartCap}`);
+
+if (!result4.isBlocked && result4.isStartCap) {
+    console.log("✅ PASS");
+} else {
+    console.error("❌ FAIL");
+    process.exit(1);
+}
+
+// Test Case 5: Saturday One-Night Blocked (Blocked)
+// Target: Dec 13 (Sat) - Dec 14 (Sun) 2025
+// Situation: Friday night is NOT booked (hasStartCapAvailability = false)
+const result5 = checkReservationRules(dateSatStart, dateSunEnd, today, { hasStartCapAvailability: false });
+console.log(`\nTest 5: Sat(12/13) - Sun(12/14) [Start-cap Blocked]`);
+console.log(`Expected: Blocked (isBlocked=true, isStartCap=false)`);
+console.log(`Actual:   Blocked=${result5.isBlocked}, isStartCap=${result5.isStartCap}`);
+
+if (result5.isBlocked && !result5.isStartCap) {
+    console.log("✅ PASS");
+} else {
+    console.error("❌ FAIL");
+    process.exit(1);
+}
+
 console.log("\n🎉 All Reservation Rules Verified!");

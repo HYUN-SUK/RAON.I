@@ -6,6 +6,7 @@ export interface ReservationRuleResult {
     isFridayOneNight: boolean;
     isWithinDN: boolean;
     isEndCap: boolean;
+    isStartCap: boolean;
     isBlocked: boolean;
     isNightsZero: boolean;
 }
@@ -15,22 +16,30 @@ export interface ReservationRuleResult {
  * 1. Strict Weekend Rule: Friday check-in requires 2+ nights.
  * 2. D-N Exception: If within D-7, Friday 1-night is allowed.
  * 3. End-cap Exception: If Saturday is full OR next day is blocked, Friday 1-night is allowed.
- * 4. General Rule: 1+ night required (check-in != check-out).
+ * 4. Start-cap Exception: If Friday is full OR previous day is blocked, Saturday 1-night is allowed.
+ * 5. General Rule: 1+ night required (check-in != check-out).
  * 
  * @param from Check-in date
  * @param to Check-out date
  * @param now Current date (default: new Date())
- * @param options Additional conditions (hasEndCapAvailability, isNextDayBlocked)
+ * @param options Additional conditions (hasEndCapAvailability, isSaturdayFull, isNextDayBlocked, hasStartCapAvailability, isFridayFull, isPrevDayBlocked)
  * @returns Object containing rule evaluation results
  */
 export function checkReservationRules(
     from: Date | undefined,
     to: Date | undefined,
     now: Date = new Date(),
-    options: { hasEndCapAvailability?: boolean; isSaturdayFull?: boolean; isNextDayBlocked?: boolean } = {}
+    options: { 
+        hasEndCapAvailability?: boolean; 
+        isSaturdayFull?: boolean; 
+        isNextDayBlocked?: boolean;
+        hasStartCapAvailability?: boolean;
+        isFridayFull?: boolean;
+        isPrevDayBlocked?: boolean;
+    } = {}
 ): ReservationRuleResult {
     if (!from) {
-        return { isFridayOneNight: false, isWithinDN: false, isEndCap: false, isBlocked: false, isNightsZero: true };
+        return { isFridayOneNight: false, isWithinDN: false, isEndCap: false, isStartCap: false, isBlocked: false, isNightsZero: true };
     }
 
     // Calculate nights
@@ -53,14 +62,18 @@ export function checkReservationRules(
     // End-cap Calculation (Friday only)
     const isEndCap = isFri && (options.hasEndCapAvailability || options.isSaturdayFull || options.isNextDayBlocked || false);
 
-    // Blocked if: Weekend 1-night attempt AND NOT within D-N exception AND NOT End-cap exception
+    // Start-cap Calculation (Saturday only)
+    const isStartCap = isSat && (options.hasStartCapAvailability || options.isFridayFull || options.isPrevDayBlocked || false);
+
+    // Blocked if: Weekend 1-night attempt AND NOT within D-N exception AND NOT End-cap exception AND NOT Start-cap exception
     // OR if nights is zero (incomplete range)
-    const isBlocked = (isWeekendOneNight && !isWithinDN && !isEndCap);
+    const isBlocked = (isWeekendOneNight && !isWithinDN && !isEndCap && !isStartCap);
 
     return {
         isFridayOneNight: isWeekendOneNight,
         isWithinDN,
         isEndCap,
+        isStartCap,
         isBlocked,
         isNightsZero
     };

@@ -39,14 +39,13 @@ export default function SiteList() {
 
         if (hasOverlap) return false;
 
-        // 2. Check End-cap Rule (Friday 1-night)
-        // If selecting Fri-Sat (1 night), only allow sites that are:
-        // - Booked on Saturday (End-cap)
-        // - OR within D-N days (Imminent)
+        // 2. Check End-cap Rule (Friday 1-night) & Start-cap Rule (Saturday 1-night)
+        // If selecting Fri-Sat (1 night) or Sat-Sun (1 night), check rules.
         const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
         const isFri = checkIn.getDay() === 5;
+        const isSat = checkIn.getDay() === 6;
 
-        if (isFri && nights < 2) {
+        if ((isFri || isSat) && nights < 2) {
             // Check D-N
             const D_N_DAYS = 7; // Should import this, but hardcoding for now to match rule
             const diffDays = Math.ceil((checkIn.getTime() - new Date().setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
@@ -54,19 +53,35 @@ export default function SiteList() {
 
             if (isWithinDN) return true; // Allowed by D-N
 
-            // Check End-cap (Is Saturday booked?)
-            const nextDay = new Date(checkIn);
-            nextDay.setDate(checkIn.getDate() + 1);
+            if (isFri) {
+                // Check End-cap (Is Saturday booked?)
+                const nextDay = new Date(checkIn);
+                nextDay.setDate(checkIn.getDate() + 1);
 
-            const isSaturdayBooked = reservations.some(r => {
-                if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
-                const rCheckIn = new Date(r.checkInDate);
-                const rCheckOut = new Date(r.checkOutDate);
-                return rCheckIn <= nextDay && rCheckOut > nextDay;
-            });
+                const isSaturdayBooked = reservations.some(r => {
+                    if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn <= nextDay && rCheckOut > nextDay;
+                });
 
-            // If Saturday is NOT booked, then this 1-night reservation is blocked by the 2-night rule
-            if (!isSaturdayBooked) return false;
+                // If Saturday is NOT booked, then this 1-night reservation is blocked by the 2-night rule
+                if (!isSaturdayBooked) return false;
+            } else if (isSat) {
+                // Check Start-cap (Is Friday booked?)
+                const prevDay = new Date(checkIn);
+                prevDay.setDate(checkIn.getDate() - 1);
+
+                const isFridayBooked = reservations.some(r => {
+                    if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
+                    const rCheckIn = new Date(r.checkInDate);
+                    const rCheckOut = new Date(r.checkOutDate);
+                    return rCheckIn <= prevDay && rCheckOut > prevDay;
+                });
+
+                // If Friday is NOT booked, then this 1-night reservation is blocked by the 2-night rule
+                if (!isFridayBooked) return false;
+            }
         }
 
         return true;
