@@ -710,10 +710,13 @@ serve(async (req: any) => {
         const d4Date = new Date(kst); d4Date.setDate(d4Date.getDate() + 4);
         const d4 = d4Date.toISOString().split('T')[0];
 
+        const yesterdayDate = new Date(kst); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterday = yesterdayDate.toISOString().split('T')[0];
+
         const { data: schedules, error } = await supabase
             .from('user_schedules')
             .select('*')
-            .in('check_in', [today, tomorrow, d4]);
+            .or(`check_in.in.(${today},${tomorrow},${d4}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
 
         if (error) throw error;
         console.log(`[Query] Found ${schedules?.length || 0} schedules`);
@@ -763,7 +766,24 @@ serve(async (req: any) => {
         // DISPATCH MODE (Queueing Notifications)
         // ==========================================
         const notifications: any[] = [];
-        const updateIds: Record<string, string[]> = { d0: [], d1: [], d4: [] };
+        const updateIds: Record<string, string[]> = { d0: [], d1: [], d4: [], record_reminder: [] };
+
+        // 어제 퇴실한 일정 중 이미 작성된 기록이 있는지 일괄 확인
+        const yesterdaySchedules = schedules.filter((s: any) => s.check_out === yesterday && !s.notification_record_reminder_sent);
+        const writtenIdsSet = new Set<string>();
+        if (yesterdaySchedules.length > 0) {
+            const yesterdayIds = yesterdaySchedules.map((s: any) => s.id);
+            const { data: writtenRecords } = await supabase
+                .from('camping_records')
+                .select('schedule_id')
+                .in('schedule_id', yesterdayIds);
+            
+            if (writtenRecords) {
+                writtenRecords.forEach((r: any) => {
+                    if (r.schedule_id) writtenIdsSet.add(r.schedule_id);
+                });
+            }
+        }
 
         for (const s of schedules) {
             const lat = s.campground_lat || 36.6269;
@@ -824,8 +844,23 @@ serve(async (req: any) => {
             primaryForecast.tempMin = tempMinOverall;
             primaryForecast.tempMax = tempMaxOverall;
 
+            // Post-Check-Out: Record Reminder (1분 기록 독려)
+            if (s.check_out === yesterday && !s.notification_record_reminder_sent) {
+                if (!writtenIdsSet.has(s.id)) {
+                    notifications.push({
+                        user_id: s.user_id,
+                        category: 'reservation',
+                        event_type: 'camping_record_reminder',
+                        title: `⛺ 지난 캠핑은 어떠셨나요? 10초 만에 핀 꽂기`,
+                        body: `${displayName}에서의 추억을 10초 만족도 이모지와 함께 핀으로 꽂아보세요! ✨`,
+                        data: { link: `/myspace` },
+                        status: 'queued'
+                    });
+                }
+                updateIds.record_reminder.push(s.id);
+            }
             // D-0: Today is the day!
-            if (s.check_in === today && !s.notification_d0_sent) {
+            else if (s.check_in === today && !s.notification_d0_sent) {
                 const events = await getNearbyEvents(lat, lng, 30);
                 let eventText = "주변에 예정된 행사가 없어요~ 조용한 캠핑을 즐겨보세요!";
                 if (events.length > 0) {
@@ -906,6 +941,7 @@ serve(async (req: any) => {
         if (updateIds.d0.length > 0) await supabase.from('user_schedules').update({ notification_d0_sent: true }).in('id', updateIds.d0);
         if (updateIds.d1.length > 0) await supabase.from('user_schedules').update({ notification_d1_sent: true }).in('id', updateIds.d1);
         if (updateIds.d4.length > 0) await supabase.from('user_schedules').update({ notification_d4_sent: true }).in('id', updateIds.d4);
+        if (updateIds.record_reminder.length > 0) await supabase.from('user_schedules').update({ notification_record_reminder_sent: true }).in('id', updateIds.record_reminder);
 
         return new Response(JSON.stringify({ success: true, mode: 'dispatch', count: notifications.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 

@@ -92,6 +92,10 @@ export interface MySpaceState {
     fetchAlbum: () => void;
     fetchProfile: (userId?: string) => Promise<void>;
     setHeroImage: (url: string) => void;
+    isMapOpen: boolean;
+    setIsMapOpen: (open: boolean) => void;
+    targetLocation: { lat: number; lng: number; name: string } | null;
+    setTargetLocation: (location: { lat: number; lng: number; name: string } | null) => void;
     reset: () => void;
 }
 
@@ -108,6 +112,10 @@ export const useMySpaceStore = create<MySpaceState>()(
             toggleFire: () => set((state) => ({ isFireOn: !state.isFireOn })),
             toggleStar: () => set((state) => ({ isStarOn: !state.isStarOn })),
             setNightMode: (isNight) => set({ isNightMode: isNight }),
+            isMapOpen: false,
+            setIsMapOpen: (open) => set({ isMapOpen: open }),
+            targetLocation: null,
+            setTargetLocation: (location) => set({ targetLocation: location }),
 
             xp: 0,
             level: 1,
@@ -313,6 +321,8 @@ export const useMySpaceStore = create<MySpaceState>()(
                 album: [],
                 mapItems: [],
                 timelineItems: [],
+                isMapOpen: false,
+                targetLocation: null,
             }),
         }),
         {

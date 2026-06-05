@@ -40,7 +40,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     });
 
     const { reservations } = useReservationStore();
-    const { mapItems, addMapItem, updateMapItem } = useMySpaceStore();
+    const { mapItems, addMapItem, updateMapItem, targetLocation, setTargetLocation } = useMySpaceStore();
     const { config } = useSiteConfig();
 
 
@@ -87,7 +87,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                         address: r.campground_address || undefined,
                         photos: r.photo_url ? [r.photo_url] : [],
                         memo: r.content,
-                        rating: 0,
+                        rating: r.rating || 0,
                         isFavorite: false,
                         tags: r.tags || []
                     }));
@@ -121,6 +121,47 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         // @ts-ignore
         window.__skipMapClickUntil = 0;
     }
+
+    // targetLocation 감지 시 실시간 포커싱 및 상세창 팝업 연동
+    useEffect(() => {
+        if (!isOpen || !targetLocation) return;
+
+        // targetLocation과 매칭되는 마커 찾기
+        const match = allMarkers.find(item => {
+            if (!item.lat || !item.lng) return false;
+            // 위경도가 아주 가깝거나, 이름이 유사한 마커 매칭
+            const dist = Math.abs(item.lat - targetLocation.lat) + Math.abs(item.lng - targetLocation.lng);
+            return dist < 0.001 || item.siteName.includes(targetLocation.name) || targetLocation.name.includes(item.siteName);
+        });
+
+        if (match) {
+            setSelectedItem(match);
+            setIsAddingMode(false);
+            setIsDetailOpen(true);
+
+            // 지도 센터 설정 및 줌 레벨 조정
+            if (match.lat && match.lng) {
+                if (mapRef.current) {
+                    mapRef.current.setCenter(new window.kakao.maps.LatLng(match.lat, match.lng));
+                    mapRef.current.setLevel(4);
+                } else {
+                    setCenter({ lat: match.lat, lng: match.lng });
+                }
+            }
+
+            // 포커스 처리 완료 후 타겟 위치 초기화
+            setTargetLocation(null);
+        } else if (allMarkers.length > 0) {
+            // 매칭을 못 찾았더라도 타겟 위치가 있으면 해당 위치로 지도 포커싱
+            if (mapRef.current) {
+                mapRef.current.setCenter(new window.kakao.maps.LatLng(targetLocation.lat, targetLocation.lng));
+                mapRef.current.setLevel(4);
+            } else {
+                setCenter({ lat: targetLocation.lat, lng: targetLocation.lng });
+            }
+            setTargetLocation(null);
+        }
+    }, [isOpen, targetLocation, allMarkers, setTargetLocation]);
 
     // 2. Data Migration: Legacy Items (Raon Internal) -> Real Coordinates
     useEffect(() => {
@@ -499,6 +540,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                         onClick={() => {
                                             setSelectedItem(item);
                                             setIsAddingMode(false);
+                                            setIsDetailOpen(true);
                                             // Scroll to item
                                             const el = document.getElementById(`map-item-${item.id}`);
                                             el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -650,7 +692,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             <Navigation size={18} className="text-brand-1" />
                             나의 캠핑 기록
                         </h3>
-                        <span className="text-xs font-bold text-brand-1 bg-brand-1/10 px-2.5 py-1 rounded-full">{mapItems.length}곳 정복!</span>
+                        <span className="text-xs font-bold text-brand-1 bg-brand-1/10 px-2.5 py-1 rounded-full">{allMarkers.length}곳 정복!</span>
                     </div>
                     {/* 5. List Search Bar */}
                     <div className="relative">
@@ -682,6 +724,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                 id={`map-item-${item.id}`}
                                 onClick={() => {
                                     setSelectedItem(item);
+                                    setIsAddingMode(false);
                                     if (mapRef.current && item.lat && item.lng) {
                                         mapRef.current.setCenter(new window.kakao.maps.LatLng(item.lat, item.lng));
                                         mapRef.current.setLevel(4);

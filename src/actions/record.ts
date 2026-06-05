@@ -21,6 +21,7 @@ export interface CampingRecord {
     campground_address?: string;
     latitude?: number;
     longitude?: number;
+    rating?: number;
     created_at: string;
     // Extended fields (Mapped from relation or calculated)
     start_date: string;
@@ -39,6 +40,7 @@ export interface CreateRecordInput {
     campgroundAddress?: string;
     latitude?: number;
     longitude?: number;
+    rating?: number;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -73,6 +75,7 @@ export async function createRecord(input: CreateRecordInput): Promise<{ success:
                 campground_address: input.campgroundAddress || null,
                 latitude: input.latitude || null,
                 longitude: input.longitude || null,
+                rating: input.rating ?? 0,
             })
             .select('id')
             .single();
@@ -126,14 +129,14 @@ export async function getMyRecords(limit = 20, offset = 0): Promise<CampingRecor
 
         if (!user) return [];
 
-        // Join user_schedules to get start_date, end_date
+        // Join user_schedules to get check_in, check_out
         const { data, error } = await supabase
             .from('camping_records')
             .select(`
                 *,
                 user_schedules (
-                    start_date,
-                    end_date
+                    check_in,
+                    check_out
                 )
             `)
             .eq('user_id', user.id)
@@ -147,16 +150,15 @@ export async function getMyRecords(limit = 20, offset = 0): Promise<CampingRecor
 
         // Map data to include flattened start_date/end_date/nights
         return (data || []).map((record: any) => {
-            const schedule = record.user_schedules; // Can be null if array or single object depending on relation type, assuming One-to-One or Many-to-One
-            // Supabase returns object if foreign key is unique or single relation. Assuming schedule_id is FK to user_schedules.id
+            const schedule = record.user_schedules; 
 
-            const startDate = schedule?.start_date || record.created_at;
-            const endDate = schedule?.end_date || record.created_at;
+            const startDate = schedule?.check_in || record.created_at;
+            const endDate = schedule?.check_out || record.created_at;
 
             let nights = 0;
-            if (schedule?.start_date && schedule?.end_date) {
-                const start = new Date(schedule.start_date);
-                const end = new Date(schedule.end_date);
+            if (schedule?.check_in && schedule?.check_out) {
+                const start = new Date(schedule.check_in);
+                const end = new Date(schedule.check_out);
                 const diffTime = Math.abs(end.getTime() - start.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 nights = diffDays;
@@ -228,6 +230,57 @@ export async function deleteRecord(recordId: string): Promise<{ success: boolean
         return { success: true };
     } catch (error) {
         console.error('Delete record error:', error);
+        return { success: false, error: '오류가 발생했어요' };
+    }
+}
+
+// 기록 수정
+export async function updateRecord(
+    recordId: string,
+    input: {
+        content?: string;
+        photoUrl?: string;
+        tags?: string[];
+        campgroundName?: string;
+        campgroundAddress?: string;
+        rating?: number;
+        isPublic?: boolean;
+    }
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return { success: false, error: '로그인이 필요합니다' };
+        }
+
+        // 업데이트 데이터 빌드
+        const updateData: any = {};
+        if (input.content !== undefined) updateData.content = input.content;
+        if (input.photoUrl !== undefined) updateData.photo_url = input.photoUrl;
+        if (input.tags !== undefined) updateData.tags = input.tags;
+        if (input.campgroundName !== undefined) updateData.campground_name = input.campgroundName;
+        if (input.campgroundAddress !== undefined) updateData.campground_address = input.campgroundAddress;
+        if (input.rating !== undefined) updateData.rating = input.rating;
+        if (input.isPublic !== undefined) updateData.is_public = input.isPublic;
+
+        const { error } = await supabase
+            .from('camping_records')
+            .update(updateData)
+            .eq('id', recordId)
+            .eq('user_id', user.id);
+
+        if (error) {
+            console.error('Update record error:', error);
+            return { success: false, error: '기록 수정에 실패했어요' };
+        }
+
+        revalidatePath('/myspace');
+        revalidatePath('/myspace/records');
+        return { success: true };
+    } catch (error) {
+        console.error('Update record error:', error);
         return { success: false, error: '오류가 발생했어요' };
     }
 }
@@ -324,8 +377,8 @@ export async function getPublicRecords(
             .select(`
                 *,
                 user_schedules (
-                    start_date,
-                    end_date
+                    check_in,
+                    check_out
                 )
             `)
             .eq('is_public', true)
@@ -347,13 +400,13 @@ export async function getPublicRecords(
         return (data || []).map((record: any) => {
             const schedule = record.user_schedules;
 
-            const startDate = schedule?.start_date || record.created_at;
-            const endDate = schedule?.end_date || record.created_at;
+            const startDate = schedule?.check_in || record.created_at;
+            const endDate = schedule?.check_out || record.created_at;
 
             let nights = 0;
-            if (schedule?.start_date && schedule?.end_date) {
-                const start = new Date(schedule.start_date);
-                const end = new Date(schedule.end_date);
+            if (schedule?.check_in && schedule?.check_out) {
+                const start = new Date(schedule.check_in);
+                const end = new Date(schedule.check_out);
                 const diffTime = Math.abs(end.getTime() - start.getTime());
                 nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }

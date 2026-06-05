@@ -13,9 +13,9 @@ const TABS: { id: BoardType; label: string }[] = [
     { id: 'NOTICE', label: '공지' },
     { id: 'REVIEW', label: '후기' },
     { id: 'STORY', label: '이야기' },
-    { id: 'QNA', label: '질문' },
-    { id: 'GROUP', label: '소모임' },
-    { id: 'CONTENT', label: '콘텐츠' },
+    { id: 'QNA', label: '질문, 오류신고' },
+    // { id: 'GROUP', label: '소모임' },
+    // { id: 'CONTENT', label: '콘텐츠' },
 ];
 
 export default function CommunityTabs({ activeTab, onTabChange }: CommunityTabsProps) {

@@ -16,10 +16,11 @@ import QuickRecordForm from "@/components/myspace/QuickRecordForm";
 import { Sparkles } from "lucide-react";
 import { useFabSparkle } from "@/hooks/useFabSparkle";
 import { cn } from "@/lib/utils";
+import ReminderBanner from "@/components/myspace/ReminderBanner";
 
 export default function MySpacePage() {
     const [isRecordOpen, setIsRecordOpen] = useState(false);
-    const { shouldSparkle, unwrittenScheduleIds, refresh } = useFabSparkle();
+    const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
 
     const handleRecordClick = () => {
         setIsRecordOpen(true);
@@ -37,6 +38,12 @@ export default function MySpacePage() {
 
             {/* 2. Hero Section (POV & Widgets) */}
             <HeroSection />
+
+            {/* 미작성 일정 기록 독려 배너 */}
+            <ReminderBanner
+                detail={unwrittenScheduleDetail}
+                onClick={handleRecordClick}
+            />
 
             {/* 3. Action Buttons */}
             <ActionButtons />

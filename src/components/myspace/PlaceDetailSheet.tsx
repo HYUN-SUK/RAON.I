@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { X, Star, Heart, Camera, MapPin, Calendar, Edit2 } from 'lucide-react';
 import { useMySpaceStore, MapItem } from '@/store/useMySpaceStore';
+import { updateRecord } from '@/actions/record';
+import { toast } from 'sonner';
 
 interface PlaceDetailSheetProps {
     item: MapItem | null;
@@ -78,7 +80,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
         setTempImage(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!item) return;
 
         if (isNew) {
@@ -96,8 +98,31 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
             };
             if (onSaveNew) onSaveNew(newItem);
         } else {
+            // 1분 기록 기반의 핀인 경우 DB 수정 실시간 동기화
+            if (item.id.startsWith('record-')) {
+                const recordId = item.id.replace('record-', '');
+                try {
+                    const result = await updateRecord(recordId, {
+                        content: memo,
+                        photoUrl: photos.length > 0 ? photos[0] : undefined,
+                        campgroundName: name,
+                        campgroundAddress: address,
+                        rating: rating,
+                    });
+                    if (result.success) {
+                        toast.success('나만의 캠핑 기록이 수정되었어요! ✨');
+                    } else {
+                        toast.error(result.error || '기록 수정 실패');
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Failed to update record:', err);
+                    toast.error('수정 중 오류가 발생했습니다.');
+                    return;
+                }
+            }
 
-            // Update existing
+            // Update existing in local store
             updateMapItem(item.id, {
                 siteName: name, // Allow name update
                 address: address, // Allow address update

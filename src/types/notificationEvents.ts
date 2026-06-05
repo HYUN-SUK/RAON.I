@@ -38,6 +38,9 @@ export enum NotificationEventType {
 
     // 불씨 관련 (푸시 금지 → 배지만)
     EMBER_RECEIVED = 'ember_received',
+
+    // 1분기록 독려 관련 (푸시 허용)
+    CAMPING_RECORD_REMINDER = 'camping_record_reminder',
 }
 
 // ========================================
@@ -286,6 +289,16 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         badge_target: 'myspace',
         title_template: '🔥 따뜻한 불씨',
         body_template: '누군가 당신의 기록에 불씨를 남겼어요.',
+    },
+    // ===== 1분기록 독려 관련 (푸시 O, 조용시간 예외 X) =====
+    [NotificationEventType.CAMPING_RECORD_REMINDER]: {
+        type: NotificationEventType.CAMPING_RECORD_REMINDER,
+        requires_push: true,
+        quiet_hours_override: false,
+        fallback_badge: true,
+        badge_target: 'myspace',
+        title_template: '⛺ 지난 캠핑은 어떠셨나요? 10초 만에 핀 꽂기',
+        body_template: '{{campgroundName}}에서의 추억을 10초 만족도 이모지와 함께 핀으로 꽂아보세요! ✨',
     },
 };
 
