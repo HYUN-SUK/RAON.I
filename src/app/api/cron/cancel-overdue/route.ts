@@ -36,8 +36,21 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'No pending reservations found', cancelledCount: 0 });
         }
 
-        // 3. 입금 마감 시간 연산 (기본값 6시간)
-        const deadlineHours = 6; 
+        // 3. 입금 마감 시간 연산 (DB 설정값 연동)
+        let deadlineHours = 6;
+        try {
+            const { data: config } = await supabase
+                .from('site_config')
+                .select('deposit_deadline_hours')
+                .eq('id', 1)
+                .single() as any;
+            if (config?.deposit_deadline_hours) {
+                deadlineHours = config.deposit_deadline_hours;
+            }
+        } catch (configErr) {
+            console.warn('[Cron/CancelOverdue] Failed to fetch deposit_deadline_hours from DB. Using default 6h.', configErr);
+        }
+
         const now = new Date();
         const overdueIds: string[] = [];
 

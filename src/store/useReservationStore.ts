@@ -78,7 +78,7 @@ interface ReservationState {
 
     // Deposit Deadline Management
     deadlineHours: number; // 3, 6, 9, 12
-    setDeadlineHours: (hours: number) => void;
+    setDeadlineHours: (hours: number) => Promise<void>;
     getOverdueReservations: () => { overdue: Reservation[], warning: Reservation[] };
     cancelOverdueReservations: () => Promise<void>;
     validateReservation: (siteId: string, checkIn: Date, checkOut: Date) => string | null;
@@ -200,7 +200,19 @@ export const useReservationStore = create<ReservationState>()(
 
             setDateRange: (range) => set({ selectedDateRange: range }),
             setSelectedSite: (site) => set({ selectedSite: site }),
-            setDeadlineHours: (hours) => set({ deadlineHours: hours }),
+            setDeadlineHours: async (hours) => {
+                set({ deadlineHours: hours });
+                try {
+                    const { createClient } = await import('@/lib/supabase-client');
+                    const supabase = createClient();
+                    await supabase
+                        .from('site_config')
+                        .update({ deposit_deadline_hours: hours })
+                        .eq('id', 1);
+                } catch (err) {
+                    console.error('[Store] Error syncing deadline hours to DB:', err);
+                }
+            },
 
             setPriceConfig: (config) => set({ priceConfig: config }),
 
@@ -226,7 +238,7 @@ export const useReservationStore = create<ReservationState>()(
                 }
             },
 
-            fetchSiteConfig: async () => {
+             fetchSiteConfig: async () => {
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
                 const { data } = await supabase.from('site_config').select('*').eq('id', 1).single();
@@ -240,7 +252,8 @@ export const useReservationStore = create<ReservationState>()(
                             bankHolder: data.bank_holder,
                             heroImageUrl: data.hero_image_url,
                             layoutImageUrl: data.layout_image_url
-                        }
+                        },
+                        deadlineHours: data.deposit_deadline_hours || 6
                     });
                 }
             },
