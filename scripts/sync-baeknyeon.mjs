@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 
 dotenv.config({ path: '.env.local' });
 
@@ -63,10 +64,45 @@ async function syncBaeknyeon() {
             
             const processed = [];
             let geocodeFail = 0;
+            let filterSkip = 0;
+
+            const NON_FOOD_SECTORS = [
+                '미용', '이발', '이용', '가발', '피부관리', '헤어',
+                '안경', '렌즈', '콘택트',
+                '서적', '서점', '문구', '문방사우', '완구', '학원', '교육', '체육', '도서',
+                '한복', '양복', '정장', '의류', '의복', '구두', '신발', '주단', '이불', '수예',
+                '사진', '스튜디오', '카메라', '인화', '앨범',
+                '농약', '종묘', '씨앗', '비료', '원예', '분재', '화원', '생화', '꽃집', '화훼',
+                '철물', '건재', '공구', '인테리어', '도배', '장판', '목재', '목공', '유리', '방수',
+                '시계', '귀금속', '보석', '주얼리',
+                '정비', '카센터', '세차', '타이어', '배터리', '오토바이', '자전거', '부품',
+                '가전', '컴퓨터', '가구', '세탁', '의료기', '보청기', '인쇄', '도장', '열쇠'
+            ];
+
+            const nameBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|의원|병원|디지털|농약|종묘|방앗간|기름집|안경|양복|연구소|화원|서점|서적|스튜디오|스튜디오/;
+
             for (const i of items) {
-                const name = i['업체명'] || '';
-                const addr = i['기본주소'] || '';
+                const name = i['업체명'] || i['업체 명'] || '';
+                const addr = i['기본주소'] || i['기본 주소'] || '';
                 if (!name || !addr) continue;
+
+                // 주요사업 추출
+                let sector = '알수없음';
+                for (const key of Object.keys(i)) {
+                    if (key.trim() === '주요사업' || key.trim() === '주요 사업') {
+                        sector = i[key] || '알수없음';
+                        break;
+                    }
+                }
+
+                // 식당 여부 검증 (업종 및 상호명 기준)
+                const isNonFoodSector = NON_FOOD_SECTORS.some(kw => sector.includes(kw));
+                const isNonFoodName = nameBlacklist.test(name);
+
+                if (isNonFoodSector || isNonFoodName) {
+                    filterSkip++;
+                    continue;
+                }
 
                 const coords = await geocodeAddress(addr);
                 if (!coords) {
@@ -74,24 +110,29 @@ async function syncBaeknyeon() {
                     continue;
                 }
 
+                // name+address 조합으로 고정된 UUID 생성
+                const rawKey = `${name}_${addr}`;
+                const hash = crypto.createHash('md5').update(rawKey).digest('hex');
+                const uuid = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+
                 processed.push({
-                    api_source: 'SBA_BAEKNYEON',
+                    id: uuid,
+                    api_source: 'SMBA_BAEK',
                     category: 'RESTAURANT',
                     name,
-                    description: `백년가게 공식 지정 (${i['업종'] || '식당'})`,
+                    description: `백년가게 공식 지정 (${sector})`,
                     address: addr,
                     lat: coords.lat,
                     lng: coords.lng,
                     trust_score: 80,
                     raw_data: i
-                    // location 컬럼은 DB 트리거에서 자동 생성되도록 유도 (null 명시 전송 방지)
                 });
             }
 
-            console.log(`    [GEO] Success: ${processed.length}, Fail: ${geocodeFail}`);
+            console.log(`    [GEO] Success: ${processed.length}, Skip(Non-Food): ${filterSkip}, Fail(Geo): ${geocodeFail}`);
 
             if (processed.length > 0) {
-                const { data, error } = await supabase.from('master_places').upsert(processed, { onConflict: 'name, address' });
+                const { data, error } = await supabase.from('master_places').upsert(processed, { onConflict: 'id' });
                 if (error) {
                     console.error('    [DB] Upsert error total:', JSON.stringify(error));
                     console.error(`    [DB] Error message: ${error.message}`);

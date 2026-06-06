@@ -1087,6 +1087,18 @@ async function main() {
             }
         }
 
+        // [v11.9.82] Clean up existing candidates for the reservations in this cluster before upserting new ones
+        const reservationIds = cluster.reservations.map(r => r.id);
+        if (reservationIds.length > 0) {
+            console.log(`  🧹 Deleting existing candidates for ${reservationIds.length} reservations...`);
+            const { error: delErr } = await supabase.from('smart_plan_candidates')
+                .delete()
+                .in('reservation_id', reservationIds);
+            if (delErr) {
+                console.error(`  ❌ Failed to delete existing candidates: ${delErr.message}`);
+            }
+        }
+
         // Stage 4 Bulk Upsert to smart_plan_candidates
         if (candidateRows.length > 0) {
             for (let i = 0; i < candidateRows.length; i += 500) {
