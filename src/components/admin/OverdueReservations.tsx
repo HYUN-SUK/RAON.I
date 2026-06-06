@@ -1,30 +1,38 @@
 'use client';
 
-import { useEffect } from 'react';
-
 import { useReservationStore } from '@/store/useReservationStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 
 export default function OverdueReservations() {
-    const { getOverdueReservations, cancelOverdueReservations, deadlineHours, setDeadlineHours } = useReservationStore();
+    const { 
+        getOverdueReservations, 
+        cancelOverdueReservations, 
+        updateReservationStatus, 
+        deadlineHours, 
+        setDeadlineHours 
+    } = useReservationStore();
 
     // Use store logic for consistency
     const { overdue, warning } = getOverdueReservations();
 
-    // Auto-cancel on mount (SSOT 6.3: Automatic Cancellation)
-    useEffect(() => {
-        if (overdue.length > 0) {
-            cancelOverdueReservations();
-            // In a real app, use a Toast component here
-            alert(`${overdue.length}건의 기한 만료 예약이 자동 취소되었습니다.`);
-        }
-    }, [overdue.length, cancelOverdueReservations]);
+    // Auto-cancel on mount has been removed (migrated to server-side cron API to avoid client-side alert popups)
 
     const handleCancelAll = () => {
         if (confirm(`기한 만료된 ${overdue.length}건의 예약을 취소하시겠습니까?`)) {
             cancelOverdueReservations();
+        }
+    };
+
+    const handleCancelSingle = async (id: string) => {
+        if (confirm('이 예약을 개별 취소하시겠습니까? (입금기한 초과 취소 알림이 고객에게 발송됩니다)')) {
+            try {
+                await updateReservationStatus(id, 'CANCELLED', '입금 기한 경과로 인한 개별 취소');
+            } catch (err: any) {
+                console.error('[OverdueReservations] Cancel single error:', err);
+                alert(`취소 처리 중 에러가 발생했습니다: ${err.message || err}`);
+            }
         }
     };
 
@@ -72,8 +80,18 @@ export default function OverdueReservations() {
                                             예약: {new Date(res.createdAt).toLocaleString()}
                                         </p>
                                     </div>
-                                    <div className="text-orange-600 font-medium text-sm">
-                                        유예 중 (자동 취소 대기)
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-orange-600 font-medium text-sm">
+                                            유예 중 (자동 취소 대기)
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-gray-600 hover:text-red-600 hover:bg-red-50 border-gray-200"
+                                            onClick={() => handleCancelSingle(res.id)}
+                                        >
+                                            개별 취소
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -114,8 +132,17 @@ export default function OverdueReservations() {
                                             예약: {new Date(res.createdAt).toLocaleString()}
                                         </p>
                                     </div>
-                                    <div className="text-red-600 font-medium">
-                                        취소 필요
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-red-600 font-medium text-sm">
+                                            취소 필요
+                                        </span>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => handleCancelSingle(res.id)}
+                                        >
+                                            개별 취소
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
