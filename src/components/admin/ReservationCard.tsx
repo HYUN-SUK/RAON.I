@@ -19,10 +19,28 @@ interface ReservationCardProps {
 import { useMySpaceStore } from '@/store/useMySpaceStore';
 
 export default function ReservationCard({ reservation }: ReservationCardProps) {
-    const { updateReservationStatus } = useReservationStore();
+    const { updateReservationStatus, deadlineHours } = useReservationStore();
     const { addXp, addToken } = useMySpaceStore();
     const site = SITES.find(s => s.id === reservation.siteId);
     const [confirmStep, setConfirmStep] = useState<'IDLE' | 'CONFIRMING' | 'CANCELLING'>('IDLE');
+
+    // 입금 기한 및 유예 만료 시간 연산
+    const createdAt = new Date(reservation.createdAt);
+    const deadline = new Date(createdAt.getTime() + (deadlineHours || 6) * 60 * 60 * 1000);
+    const now = new Date();
+    const isOverdue = now > deadline;
+
+    // 유예 만료 시간 계산
+    const graceTime = new Date(deadline);
+    const graceHour = graceTime.getHours();
+    if (graceHour < 9) {
+        graceTime.setHours(9, 0, 0, 0);
+    } else if (graceHour < 18) {
+        graceTime.setHours(18, 0, 0, 0);
+    } else {
+        graceTime.setDate(graceTime.getDate() + 1);
+        graceTime.setHours(9, 0, 0, 0);
+    }
 
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -125,7 +143,19 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                 </div>
                 <div className="text-right">
                     <p className="text-sm text-gray-500">예약일: {format(new Date(reservation.createdAt), 'yyyy-MM-dd HH:mm')}</p>
-                    <p className="text-lg font-bold text-gray-900">{reservation.totalPrice.toLocaleString()}원</p>
+                    {reservation.status === 'PENDING' && (
+                        <div className="text-xs mt-1 space-y-0.5">
+                            <p className={`${isOverdue ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+                                입금기한: {format(deadline, 'MM-dd HH:mm')} {isOverdue ? '(경과)' : '까지'}
+                            </p>
+                            {isOverdue && (
+                                <p className="text-orange-600 font-semibold">
+                                    최종유예: {format(graceTime, 'MM-dd HH:mm')} 까지
+                                </p>
+                            )}
+                        </div>
+                    )}
+                    <p className="text-lg font-bold text-gray-900 mt-1">{reservation.totalPrice.toLocaleString()}원</p>
                 </div>
             </div>
 

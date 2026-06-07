@@ -63,18 +63,22 @@ export async function GET(request: NextRequest) {
             // 아직 데드라인이 경과하지 않았으면 패스
             if (now < deadline) return;
 
-            // 데드라인 경과 시 영업 시간 기준 유예 기간(Grace Period) 계산
-            const graceTime = new Date(deadline);
-            const hour = graceTime.getHours();
+            // [v11.9.84] 데드라인 경과 시 영업 시간 기준 유예 기간(Grace Period) 계산 (서버 타임존 UTC ➔ KST 보정)
+            const kstDeadline = new Date(deadline.getTime() + 9 * 60 * 60 * 1000);
+            const kstHour = kstDeadline.getUTCHours(); // KST 시각 기준 hour 획득
 
-            if (hour < 9) {
-                graceTime.setHours(9, 0, 0, 0);
-            } else if (hour < 18) {
-                graceTime.setHours(18, 0, 0, 0);
+            const graceKst = new Date(kstDeadline);
+            if (kstHour < 9) {
+                graceKst.setUTCHours(9, 0, 0, 0);
+            } else if (kstHour < 18) {
+                graceKst.setUTCHours(18, 0, 0, 0);
             } else {
-                graceTime.setDate(graceTime.getDate() + 1);
-                graceTime.setHours(9, 0, 0, 0);
+                graceKst.setUTCDate(graceKst.getUTCDate() + 1);
+                graceKst.setUTCHours(9, 0, 0, 0);
             }
+
+            // 비교를 위해 유예 시간을 다시 UTC 기준으로 복원 (-9시간)
+            const graceTime = new Date(graceKst.getTime() - 9 * 60 * 60 * 1000);
 
             if (now > graceTime) {
                 overdueIds.push(r.id);
