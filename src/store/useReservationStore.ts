@@ -220,7 +220,7 @@ export const useReservationStore = create<ReservationState>()(
             fetchSites: async () => {
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
-                const { data, error } = await supabase.from('sites').select('*').order('id');
+                const { data } = await supabase.from('sites').select('*').order('id');
 
                 if (data) {
                     const mappedSites: Site[] = data.map((s: DbSite) => ({
@@ -263,7 +263,7 @@ export const useReservationStore = create<ReservationState>()(
             fetchBlockedDates: async () => {
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
-                const { data, error } = await supabase.from('blocked_dates').select('*');
+                const { data } = await supabase.from('blocked_dates').select('*');
                 if (data) {
                     const mapped: BlockedDate[] = data.map(d => ({
                         id: d.id,
@@ -283,7 +283,7 @@ export const useReservationStore = create<ReservationState>()(
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
 
-                const { data, error } = await supabase.from('blocked_dates').insert({
+                const { data } = await supabase.from('blocked_dates').insert({
                     site_id: block.siteId,
                     start_date: block.startDate.toISOString(),
                     end_date: block.endDate.toISOString(),
@@ -363,6 +363,7 @@ export const useReservationStore = create<ReservationState>()(
                 const history: Reservation[] = [];
 
                 if (resData) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     resData.forEach((r: any) => {  // TODO: Add reservations table to supabase.ts
                         history.push({
                             id: r.id,
@@ -374,6 +375,7 @@ export const useReservationStore = create<ReservationState>()(
                             price: r.total_price,
                             status: r.status,
                             created_at: new Date(r.created_at)
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } as any);
                     });
                 }
@@ -391,6 +393,7 @@ export const useReservationStore = create<ReservationState>()(
                             status: b.is_paid ? 'CONFIRMED' : 'PENDING',
                             created_at: new Date(b.created_at),
                             requests: b.memo
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } as any);
                     });
                 }
@@ -459,7 +462,7 @@ export const useReservationStore = create<ReservationState>()(
                     return {
                         success: false,
                         error: 'RPC_ERROR',
-                        message: (error as any).message || 'Unknown DB Error'
+                        message: error.message || 'Unknown DB Error'
                     };
                 }
 
@@ -531,6 +534,7 @@ export const useReservationStore = create<ReservationState>()(
                     return [];
                 }
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const mapped: Reservation[] = data.map((r: any) => ({
                     id: r.id,
                     userId: r.user_id,
@@ -578,6 +582,7 @@ export const useReservationStore = create<ReservationState>()(
                     return;
                 }
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const mapped: Reservation[] = data.map((r: any) => ({
                     id: r.id,
                     userId: r.user_id,
@@ -625,6 +630,7 @@ export const useReservationStore = create<ReservationState>()(
                     return;
                 }
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const publicReservations: Reservation[] = data.map((r: any) => ({
                     id: `public-${r.site_id}-${r.check_in_date}`, // 임시 ID
                     userId: '00000000-0000-0000-0000-000000000000', // 익명
@@ -764,7 +770,7 @@ export const useReservationStore = create<ReservationState>()(
                     const { createClient } = await import('@/lib/supabase-client');
                     const supabase = createClient();
 
-                    const updateData: any = { status, updated_at: new Date().toISOString() };
+                    const updateData = { status, updated_at: new Date().toISOString() };
                     const { error } = await supabase
                         .from('reservations')
                         .update(updateData)
@@ -1115,7 +1121,7 @@ export const useReservationStore = create<ReservationState>()(
             openDayRule: null,
             fetchOpenDayRule: async () => {
                 const { createClient } = await import('@/lib/supabase-client');
-                const { addMonths, endOfMonth, setDate, setHours, setMinutes, isBefore } = await import('date-fns');
+                const { addMonths, endOfMonth, isBefore } = await import('date-fns');
                 const supabase = createClient();
                 const { data } = await supabase
                     .from('open_day_rules')

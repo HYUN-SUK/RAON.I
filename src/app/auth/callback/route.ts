@@ -21,9 +21,22 @@ export async function GET(request: NextRequest) {
                     .single();
 
                 if (!existingProfile) {
+                    // Check if profile is eligible for sign up (e.g. not withdrawn within 30 days)
+                    const email = user.email || null;
+                    
+                    if (email) {
+                        const { data: isEligible, error: checkError } = await supabase.rpc('check_signup_eligibility', { p_email: email });
+                        if (!checkError && isEligible === false) {
+                            // Sign out immediately and redirect to login page with error param
+                            await supabase.auth.signOut();
+                            const loginUrl = new URL("/login", request.url);
+                            loginUrl.searchParams.set("error", "withdrawn");
+                            return NextResponse.redirect(loginUrl);
+                        }
+                    }
+
                     // Create new profile
                     // Handle missing email gracefully (Kakao might not return it)
-                    const email = user.email || null;
                     const nickname =
                         user.user_metadata.full_name ||
                         user.user_metadata.name ||

@@ -5,10 +5,8 @@ import { useReservationStore } from '@/store/useReservationStore';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { SITES } from '@/constants/sites';
-import { CheckCircle, XCircle, AlertTriangle, Banknote, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Banknote, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { notificationService } from '@/services/notificationService';
-import { NotificationEventType } from '@/types/notificationEvents';
 import { toast } from 'sonner';
 import CancelReservationDialog from './CancelReservationDialog';
 
@@ -67,33 +65,6 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
         } else {
             setConfirmStep('CONFIRMING');
             setTimeout(() => setConfirmStep('IDLE'), 3000); // Reset after 3s
-        }
-    };
-
-    const handleCancelClick = async () => {
-        if (confirmStep === 'CANCELLING') {
-            if (isProcessing) return;
-            setIsProcessing(true);
-
-            try {
-                const { updateReservationStatusAction } = await import('@/actions/reservation');
-                const result = await updateReservationStatusAction(reservation.id, 'CANCELLED');
-
-                if (result.success) {
-                    toast.success('예약이 취소되었습니다');
-                } else {
-                    toast.error(result.error || '취소 처리 실패');
-                }
-            } catch (e) {
-                console.error(e);
-                toast.error('오류가 발생했습니다');
-            } finally {
-                setIsProcessing(false);
-                setConfirmStep('IDLE');
-            }
-        } else {
-            setConfirmStep('CANCELLING');
-            setTimeout(() => setConfirmStep('IDLE'), 3000);
         }
     };
 

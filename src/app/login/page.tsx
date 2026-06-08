@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { Input } from "@/components/ui/input";
@@ -20,12 +20,40 @@ export default function LoginPage() {
     const [emailMode, setEmailMode] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
 
+    // Handle withdrawn user redirect error from social logins
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("error") === "withdrawn") {
+                toast.error("가입 불가", { 
+                    description: "탈퇴 후 30일이 경과하지 않아 재가입이 불가합니다." 
+                });
+                // Clear query parameters to prevent duplicate toasts on refresh
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+    }, []);
+
     const handleEmailLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
             if (isSignUp) {
+                // Check signup eligibility first (30-day block, toot@naver.com is bypassed)
+                const { data: isEligible, error: checkError } = await supabase.rpc("check_signup_eligibility", { 
+                    p_email: email 
+                });
+                if (checkError) throw checkError;
+
+                if (isEligible === false) {
+                    toast.error("가입 불가", { 
+                        description: "탈퇴 후 30일이 경과하지 않아 재가입이 불가합니다." 
+                    });
+                    setLoading(false);
+                    return;
+                }
+
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,

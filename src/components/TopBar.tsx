@@ -209,6 +209,10 @@ export default function TopBar() {
                                 <FileText className="mr-2 h-4 w-4" />
                                 <span>이용 약관</span>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push('/myspace/settings/withdraw')} className="cursor-pointer text-stone-500">
+                                <Settings className="mr-2 h-4 w-4" />
+                                <span>회원 탈퇴</span>
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
                                 <LogOut className="mr-2 h-4 w-4" />

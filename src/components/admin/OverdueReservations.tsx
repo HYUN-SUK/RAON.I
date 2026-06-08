@@ -29,9 +29,10 @@ export default function OverdueReservations() {
         if (confirm('이 예약을 개별 취소하시겠습니까? (입금기한 초과 취소 알림이 고객에게 발송됩니다)')) {
             try {
                 await updateReservationStatus(id, 'CANCELLED', '입금 기한 경과로 인한 개별 취소');
-            } catch (err: any) {
+            } catch (err) {
+                const errMsg = err instanceof Error ? err.message : String(err);
                 console.error('[OverdueReservations] Cancel single error:', err);
-                alert(`취소 처리 중 에러가 발생했습니다: ${err.message || err}`);
+                alert(`취소 처리 중 에러가 발생했습니다: ${errMsg}`);
             }
         }
     };

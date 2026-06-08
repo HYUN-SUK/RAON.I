@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { updateReservationStatusAction } from '@/actions/reservation';
+import { Database } from '@/types/supabase';
+
+type DbReservation = Database['public']['Tables']['reservations']['Row'];
 
 export const dynamic = 'force-dynamic';
 
@@ -43,8 +46,8 @@ export async function GET(request: NextRequest) {
                 .from('site_config')
                 .select('deposit_deadline_hours')
                 .eq('id', 1)
-                .single() as any;
-            if (config?.deposit_deadline_hours) {
+                .single() as unknown as { data: { deposit_deadline_hours: number | null } | null };
+            if (config && 'deposit_deadline_hours' in config && config.deposit_deadline_hours) {
                 deadlineHours = config.deposit_deadline_hours;
             }
         } catch (configErr) {
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest) {
         const now = new Date();
         const overdueIds: string[] = [];
 
-        (pendingReservations as any[] || []).forEach((r: any) => {
+        ((pendingReservations as DbReservation[]) || []).forEach((r) => {
             if (!r.created_at) return;
 
             const createdAt = new Date(r.created_at);
@@ -97,9 +100,10 @@ export async function GET(request: NextRequest) {
                 try {
                     const res = await updateReservationStatusAction(id, 'CANCELLED', '입금 기한(6시간) 경과로 인한 자동 취소');
                     return { id, success: res.success, error: res.error || null };
-                } catch (err: any) {
+                } catch (err) {
+                    const errMsg = err instanceof Error ? err.message : String(err);
                     console.error(`[Cron/CancelOverdue] Failed to cancel reservation ${id}:`, err);
-                    return { id, success: false, error: err.message || 'Error occurred during cancellation' };
+                    return { id, success: false, error: errMsg };
                 }
             })
         );
@@ -113,8 +117,9 @@ export async function GET(request: NextRequest) {
             results
         });
 
-    } catch (e: any) {
+    } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
         console.error('[Cron/CancelOverdue] Internal Server Error:', e);
-        return NextResponse.json({ error: 'Internal Server Error', details: e.message }, { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error', details: errMsg }, { status: 500 });
     }
 }

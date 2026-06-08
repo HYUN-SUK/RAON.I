@@ -4,6 +4,8 @@
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.
     - [x] Prioritize `User Camping Profile` over historical reservations for accurate persona extraction.
     - [x] Fix merge conflicts in `persona.ts` and `smartPlan.ts` to unify logic.
+    - [x] `sync-baeknyeon.mjs` 수정 (주요사업 기반 비식당 필터링 추가)
+- [x] 데이터베이스에서 기존 백년가게 데이터 삭제 및 재동기화
 - [x] **DB Migration**
     - [x] Apply `20260506_add_seniors_to_profile.sql` to Supabase.
 - [x] **Caching Script Optimization**
@@ -27,13 +29,19 @@
     - [x] Fix special province address extraction bug (Gangwon/Jeonbuk).
     - [x] Boost scoring for university/general hospitals (150 pts for NMC) to ensure top ranking.
     - [x] Re-run caching for 2026-05-10 to fix Chuncheon reservation data.
-
+ 
 - [x] **Schedule Flow Improvement**: Directly open the registration form from the Home button.
 - [x] **Auto-Completion Logic**: Automatically update past schedules to 'completed' status in the DB.
 - [x] **Reservation Integrity**: Prevent 0-night bookings and enforce checkout selection with toast notifications.
 - [x] **Navigation App Integration Stabilization**: Standardized deep links (Tmap, Kakao, Naver) by enforcing GPS fallback and fixing Android compatibility.
 - [x] **Patent Evaluation Phase 1**: Research and summarize Smart Plan logic (D-3 caching, clustering) for patent discussion.
 - [x] **Monetization Strategy Planning**: Finalized "Smart Plan LIVE" chronological timeline architecture and 5 core live features (Implementation plan saved to docs).
+- [x] **Deposit Deadline Auto-Cancellation System (이번 세션 완료)**
+    - [x] Vercel 서버(UTC)와 한국 시간대(KST) 편차로 인한 유예 시간 오차 해결 (서버 타임존 보정 완료)
+    - [x] 입금 마감 시간 DB 연동 (`site_config` 테이블의 `deposit_deadline_hours` 스토어/크론 동적 동기화 완료)
+    - [x] 관리자 예약 카드 UI 보완 (입금 기한 경과 시 빨간색 강조 표시 및 최종 유예 시간 노출 완료)
+    - [x] 외부 크론잡 서비스(cron-job.org) 연동 (Vercel Hobby 플랜 크론 스케줄링 제약 우회 성공)
+    - [x] 개별 예약 취소 처리 보완 (OverdueReservations 및 ReservationCard에 개별 취소 기능 추가 완료)
 - [ ] **Phase 1: Smart Plan LIVE Timeline UI**: Develop the chronological stepper UI and [Start] action buttons.
 - [ ] **Phase 1: PRO AI Prompting**: Create a separate generative AI prompt to output strict time-block JSON arrays.
 - [ ] **Phase 2: Time Rebalancing**: Implement time recalculation logic and the "Call before closing" UX flow.
@@ -41,3 +49,8 @@
 - [ ] **AI Hero Narrative Refinement**: Audit the AI-generated hero phrases by refining prompts and verifying consistency.
 - [ ] **Festival Scoring Refinement**: Re-verify the differentiate scoring logic between `SPOT` and `FESTIVAL` and remove outdated `readcount` criteria.
 - [ ] **Patent Strategy Phase 2**: Deep dive into patent claim strategy and BM protection for the Smart Plan.
+- [x] **User Account Deletion & Separation Storage (회원 탈퇴 및 분리 보관) [CURRENT]**
+    - [x] Create database schema migration for `withdrawn_user_records` and `fn_withdraw_user` RPC.
+    - [x] Implement signup validation hook/logic to enforce 30-day block but bypass `toot@naver.com`.
+    - [x] Create withdrawal API route (`/api/auth/withdraw`).
+    - [x] Build mobile Settings/Withdraw page component with 3-State UX.
