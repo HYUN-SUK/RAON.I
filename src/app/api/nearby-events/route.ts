@@ -169,7 +169,18 @@ export async function GET(request: NextRequest) {
                 const dist = calculateDistance(lat, lng, event.latitude, event.longitude);
                 return { ...event, distance_km: Math.round(dist * 10) / 10 };
             })
-            .filter(event => event.distance_km <= radiusKm)
+            .filter(event => {
+                if (event.distance_km > radiusKm) return false;
+                
+                // 날짜 필터링: 현재 날짜가 행사 기간과 겹치는지 검사
+                const startClean = event.start_date ? event.start_date.replace(/\./g, '') : '';
+                const endClean = event.end_date ? event.end_date.replace(/\./g, '') : '';
+                
+                if (startClean && endClean) {
+                    return startClean <= todayStr && todayStr <= endClean;
+                }
+                return true;
+            })
             .sort((a, b) => a.distance_km - b.distance_km);
 
         return NextResponse.json({

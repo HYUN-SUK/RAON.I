@@ -377,7 +377,7 @@ export default function QuickRecordForm({
                     <SheetHeader className="pb-3 border-b border-gray-100">
                         <SheetTitle className="flex items-center gap-2 text-[#224732]">
                             <Sparkles className="w-5 h-5" />
-                            1분 기록
+                            10초 기록
                         </SheetTitle>
                     </SheetHeader>
 

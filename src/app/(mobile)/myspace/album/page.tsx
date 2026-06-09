@@ -101,9 +101,9 @@ export default function MySpaceAlbumPage() {
                 )}
 
                 {/* Unlockable Features */}
-                <div className="px-4 pb-8 border-t border-stone-200 mt-8 pt-4">
+                {/* <div className="px-4 pb-8 border-t border-stone-200 mt-8 pt-4">
                     <UnlockableFeatureSection />
-                </div>
+                </div> */}
             </main>
         </div>
     );

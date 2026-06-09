@@ -89,9 +89,9 @@ export default function MySpaceHistoryPage() {
                 </div>
 
                 {/* Unlockable Features */}
-                <div className="mb-8">
+                {/* <div className="mb-8">
                     <RecordTools />
-                </div>
+                </div> */}
 
                 {Object.keys(groupedItems).length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-stone-400">

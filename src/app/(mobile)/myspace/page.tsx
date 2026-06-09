@@ -13,7 +13,7 @@ import MyGroupsWidget from "@/components/myspace/MyGroupsWidget";
 import PaperBackground from "@/components/myspace/PaperBackground";
 import NotificationBadge from "@/components/common/NotificationBadge";
 import QuickRecordForm from "@/components/myspace/QuickRecordForm";
-import { Sparkles } from "lucide-react";
+import { Sparkles, PenLine } from "lucide-react";
 import { useFabSparkle } from "@/hooks/useFabSparkle";
 import { cn } from "@/lib/utils";
 import ReminderBanner from "@/components/myspace/ReminderBanner";
@@ -69,17 +69,18 @@ export default function MySpacePage() {
             {/* 7. Upcoming Reservation Card */}
             <UpcomingReservation />
 
-            {/* 1분 기록 FAB 버튼 */}
+            {/* 10초 기록 FAB 버튼 (구 1분 기록) */}
             <button
                 onClick={handleRecordClick}
                 className={cn(
-                    "fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-[#224732] text-white shadow-lg flex items-center justify-center transition-all",
-                    "hover:bg-[#1a3626] active:scale-95",
-                    shouldSparkle && "animate-pulse ring-4 ring-[#224732]/30"
+                    "fixed bottom-24 right-4 z-40 h-12 px-4 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg flex items-center gap-1.5 transition-all",
+                    "hover:from-amber-600 hover:to-orange-600 active:scale-95",
+                    shouldSparkle && "animate-pulse ring-4 ring-orange-500/30"
                 )}
-                title="1분 기록"
+                title="10초 기록"
             >
-                <Sparkles className={cn("w-6 h-6", shouldSparkle && "animate-spin-slow")} />
+                <PenLine className="w-4 h-4" />
+                <span className="text-xs font-black tracking-tight">10초 기록</span>
             </button>
 
             {/* 1분 기록 Sheet */}

@@ -113,6 +113,41 @@ export default function UpcomingReservation() {
         return items[0] || null;
     }, [activeReservations, activeSchedules]);
 
+    // 스마트플랜 사용 가능 여부 판별 (체크인 10일 전 오전 9시 또는 예약 생성 다음날 오전 9시 중 최댓값 비교)
+    const isSmartPlanAvailable = useMemo(() => {
+        if (!upcomingItem) return false;
+        
+        let checkIn: Date;
+        let createdAt: Date;
+        let hasSmartPlan = false;
+        
+        if (upcomingItem.type === 'reservation') {
+            const reservation = upcomingItem.data;
+            if (reservation.status !== 'CONFIRMED') return false; // 확정된 예약만 가능
+            checkIn = new Date(reservation.checkInDate);
+            createdAt = new Date(reservation.createdAt);
+        } else {
+            const schedule = upcomingItem.data;
+            if (schedule.status !== 'scheduled') return false;
+            checkIn = new Date(schedule.check_in);
+            createdAt = new Date(schedule.created_at);
+            hasSmartPlan = !!schedule.smart_plan_data; // 이미 생성 완료된 경우는 제외
+        }
+        
+        if (isNaN(checkIn.getTime()) || isNaN(createdAt.getTime()) || hasSmartPlan) return false;
+        
+        const unlockTimeByCheckIn = new Date(checkIn);
+        unlockTimeByCheckIn.setDate(unlockTimeByCheckIn.getDate() - 10);
+        unlockTimeByCheckIn.setHours(9, 0, 0, 0);
+
+        const unlockTimeByCreation = new Date(createdAt);
+        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+        unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+        const finalUnlockTime = new Date(Math.max(unlockTimeByCheckIn.getTime(), unlockTimeByCreation.getTime()));
+        return new Date() >= finalUnlockTime;
+    }, [upcomingItem]);
+
     // 메인 예약: 라온아이 예약 중 체크인이 가장 가까운 것 (입금대기 카드용)
     const mainReservation = useMemo(() => {
         if (activeReservations.length === 0) return null;
@@ -301,6 +336,11 @@ export default function UpcomingReservation() {
                                             <span className="inline-flex items-center px-2 py-0.5 bg-brand-1/30 rounded text-[9px] font-bold text-white">
                                                 라온아이
                                             </span>
+                                            {isSmartPlanAvailable && (
+                                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-black gold-glow-badge shadow-sm transition-all duration-300 animate-pulse">
+                                                    ✨ 여행계획 자동완성 가능
+                                                </span>
+                                            )}
                                         </div>
                                         <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
                                             {status === 'PENDING' && <><Clock size={12} /> 입금 대기</>}
@@ -408,6 +448,11 @@ export default function UpcomingReservation() {
                                             <span className="inline-flex items-center px-2 py-0.5 bg-white/20 rounded text-[9px] font-bold text-white">
                                                 타캠핑장
                                             </span>
+                                            {isSmartPlanAvailable && (
+                                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-black gold-glow-badge shadow-sm transition-all duration-300 animate-pulse">
+                                                    ✨ 여행계획 자동완성 가능
+                                                </span>
+                                            )}
                                         </div>
                                         <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
                                             <Tent size={12} /> 예정된 일정

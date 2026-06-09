@@ -354,3 +354,24 @@ html:has(body.image-editor-open) {
   order: -1 !important;
   margin-right: 12px !important;
 }
+
+/* Gold Glow Animation for Smart Plan Badge */
+@keyframes gold-glow-badge {
+  0%, 100% {
+    box-shadow: 0 0 2px #C3A675, 0 0 4px rgba(195, 166, 117, 0.4);
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    box-shadow: 0 0 10px #D4B886, 0 0 14px rgba(212, 184, 134, 0.6);
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+.gold-glow-badge {
+  animation: gold-glow-badge 1.8s infinite ease-in-out;
+  background: linear-gradient(135deg, #C3A675 0%, #D4B886 50%, #A88B58 100%) !important;
+  color: #1C4526 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}

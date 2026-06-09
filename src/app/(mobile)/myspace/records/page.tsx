@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Edit, Search, PlusCircle, Sparkles, Loader2, Grid, Calendar, List } from 'lucide-react';
+import { ArrowLeft, Edit, Search, PlusCircle, Sparkles, Loader2, Grid, Calendar, List, PenLine } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { communityService } from '@/services/communityService';
 import { Post } from '@/store/useCommunityStore';
@@ -181,7 +181,7 @@ export default function MyRecordsPage() {
                     </div>
 
                     {/* Collapsible Tools */}
-                    <RecordTools />
+                    {/* <RecordTools /> */}
 
                     {/* Tab Selector */}
                     <div className="flex bg-stone-200/50 rounded-lg p-1">
@@ -206,8 +206,8 @@ export default function MyRecordsPage() {
                                     : 'text-stone-500 hover:text-stone-700'
                             )}
                         >
-                            <Sparkles className="w-4 h-4" />
-                            1분 기록
+                            <PenLine className="w-4 h-4" />
+                            10초 기록
                         </button>
                     </div>
                 </div>
@@ -258,7 +258,7 @@ export default function MyRecordsPage() {
                     </div>
                 )}
 
-                {/* Camping Records List (1분 기록 탭) */}
+                {/* Camping Records List (10초 기록 탭) */}
                 {activeTab === 'records' && (
                     <div className="space-y-6 pt-2">
                         {isLoadingRecords ? (
@@ -280,7 +280,7 @@ export default function MyRecordsPage() {
                             </>
                         ) : (
                             <div className="py-20 text-center text-stone-400 border-2 border-dashed border-stone-200 rounded-xl m-2">
-                                <p className="mb-2 font-serif">아직 1분 기록이 없습니다.</p>
+                                <p className="mb-2 font-serif">아직 10초 기록이 없습니다.</p>
                                 <p className="text-sm">캠핑 후 FAB 버튼을 눌러 기록을 남겨보세요!</p>
                             </div>
                         )}
