@@ -561,28 +561,16 @@ export default function ScheduleDetailPage() {
                 {/* 스마트 캠핑 플랜 UI (Gap 1: Trigger UI) */}
                 <div className="mt-6 mb-4">
                     {!showSmartPlan ? (() => {
-                        const checkInDate = new Date(schedule.check_in);
-                        // D-10 오전 9시 기준 설정
-                        const unlockTimeByCheckIn = new Date(checkInDate);
-                        unlockTimeByCheckIn.setDate(unlockTimeByCheckIn.getDate() - 10);
-                        unlockTimeByCheckIn.setHours(9, 0, 0, 0);
-
-                        // 임박 예약 예외 대응: 생성일(created_at) 기준 다음 날 오전 9시
+                        // 예약 다음 날 오전 9시 기준 설정
                         const createdAtDate = new Date(schedule.created_at);
                         const unlockTimeByCreation = new Date(createdAtDate);
                         unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
                         unlockTimeByCreation.setHours(9, 0, 0, 0);
 
-                        // 최종 락 해제 시간 결정 (더 늦은 시간 기준)
-                        const finalUnlockTime = new Date(Math.max(unlockTimeByCheckIn.getTime(), unlockTimeByCreation.getTime()));
-                        
-                        // 이미 스마트플랜 데이터가 캐시되어 있으면 즉시 잠금 해제
-                        const isLocked = new Date() < finalUnlockTime && !schedule.smart_plan_data;
+                        // 1차 활성화 기준: 예약 다음 날 오전 9시 이후 잠금 해제
+                        const isLocked = new Date() < unlockTimeByCreation && !schedule.smart_plan_data;
 
-                        let lockedMessage = "최적의 팩트 선별 및 기상청 예보 반영을 위해, 캠핑 10일 전 오전 9시부터 오픈됩니다!";
-                        if (new Date() >= unlockTimeByCheckIn && new Date() < unlockTimeByCreation) {
-                            lockedMessage = "임박 예약의 경우, 정보 수집 및 캐싱을 거쳐 예약 다음 날 오전 9시부터 오픈됩니다!";
-                        }
+                        const lockedMessage = "최적의 정보 수집 및 캐싱을 위해, 예약 다음 날 오전 9시부터 스마트플랜이 오픈됩니다!";
 
                         // 프로필 게이트 표시 중 (확인 및 수정 단계)
                         if (showProfileGate) {
@@ -683,6 +671,20 @@ export default function ScheduleDetailPage() {
                                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-b-4 border-b-gray-800" />
                                     </div>
                                 )}
+                                {!isLocked && (() => {
+                                    const checkInDate = new Date(schedule.check_in);
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    const daysDiff = Math.round((checkInDate.getTime() - today.getTime()) / 86400000);
+                                    if (daysDiff <= 7 && daysDiff >= 0) {
+                                        return (
+                                            <p className="mt-3 text-center text-xs text-[#224732] dark:text-stone-300 font-medium bg-[#224732]/5 rounded-xl py-2.5 px-3 leading-relaxed border border-[#224732]/10 animate-fade-in">
+                                                💡 출발 3일 전에 스마트플랜을 가동하시면, 가장 정확한 실시간 날씨 정보가 반영된 여행계획을 생성하실 수 있습니다.
+                                            </p>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                         );
                     })() : (

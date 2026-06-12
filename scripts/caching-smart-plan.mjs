@@ -338,17 +338,19 @@ async function main() {
     if (dateArg) {
         console.log(`  🔍 Manual target date: ${dateArg}`);
         const { data: schedules } = await supabase.from('user_schedules')
-            .select('id, campground_lat, campground_lng, campground_name, campground_address, check_in, smart_plan_data')
+            .select('id, campground_lat, campground_lng, campground_name, campground_address, check_in, created_at, smart_plan_data')
             .eq('check_in', dateArg);
         rawSchedules = schedules || [];
     } else {
-        const startTarget = new Date(todayKst.getTime() + 0 * 86400000).toISOString().split('T')[0];
-        const endTarget = new Date(todayKst.getTime() + 10 * 86400000).toISOString().split('T')[0];
-        console.log(`  🔍 Auto-rolling caching range: ${startTarget} ~ ${endTarget}`);
+        const todayStrOnly = todayKst.toISOString().split('T')[0];
+        const d7Limit = new Date(todayKst.getTime() + 7 * 86400000).toISOString().split('T')[0];
+        const yesterdayStr = new Date(todayKst.getTime() - 1 * 86400000).toISOString().split('T')[0];
+        console.log(`  🔍 Auto-rolling query: (check_in >= ${todayStrOnly} AND check_in <= ${d7Limit}) OR created_at >= ${yesterdayStr}`);
         const { data: schedules } = await supabase.from('user_schedules')
-            .select('id, campground_lat, campground_lng, campground_name, campground_address, check_in, smart_plan_data')
-            .gte('check_in', startTarget)
-            .lte('check_in', endTarget);
+            .select('id, campground_lat, campground_lng, campground_name, campground_address, check_in, created_at, smart_plan_data')
+            .eq('status', 'scheduled')
+            .gte('check_in', todayStrOnly)
+            .or(`check_in.lte.${d7Limit},created_at.gte.${yesterdayStr}`);
         rawSchedules = schedules || [];
     }
     
@@ -401,12 +403,12 @@ async function main() {
             console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has finalized plan. Skipping...`);
             continue;
         } else if (hasCandidates) {
-            if (daysDiff > 3) {
-                // 중기 구간 (D-10 ~ D-4)이고 이미 캐싱된 후보군이 있으므로 스킵
+            if (daysDiff > 7) {
+                // 중기 구간 (D-8 이상)이고 이미 캐싱된 후보군이 있으므로 스킵
                 console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has mid-term cached candidates. Skipping...`);
                 continue;
             } else {
-                // 단기 구간 (D-3 이내): 캐싱 생성일과 체크인 날짜 비교
+                // 단기 구간 (D-7 이내): 캐싱 생성일과 체크인 날짜 비교
                 const checkInMidnight = new Date(checkInDate);
                 checkInMidnight.setHours(0, 0, 0, 0);
                 const cacheMidnight = new Date(latestCacheDate);
@@ -414,12 +416,12 @@ async function main() {
                 
                 const cacheDaysDiff = Math.round((checkInMidnight - cacheMidnight) / 86400000);
                 
-                if (cacheDaysDiff <= 3) {
+                if (cacheDaysDiff <= 7) {
                     // 단기 구간 진입 후 이미 단기 캐싱이 돌았으므로 스킵
                     console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has short-term cached candidates (cached D-${cacheDaysDiff}). Skipping...`);
                     continue;
                 }
-                console.log(`  🔄 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) has mid-term cache (cached D-${cacheDaysDiff}) but now enters D-3 short-term window. Updating cache...`);
+                console.log(`  🔄 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) has mid-term cache (cached D-${cacheDaysDiff}) but now enters D-7 short-term window. Updating cache...`);
             }
         } else {
             console.log(`  🆕 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) is new. Proceeding to cache...`);

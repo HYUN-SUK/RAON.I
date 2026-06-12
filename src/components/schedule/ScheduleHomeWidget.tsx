@@ -115,40 +115,50 @@ export default function ScheduleHomeWidget() {
         setUpcomingItem(unifiedList[0] || null);
     }, [reservations, schedules]);
 
-    // 스마트플랜 사용 가능 여부 판별 (체크인 10일 전 오전 9시 또는 예약 생성 다음날 오전 9시 중 최댓값 비교)
+    // 스마트플랜 사용 가능 여부 판별 (예약 생성 다음날 오전 9시 이후 활성화)
     const isSmartPlanAvailable = useMemo(() => {
         if (!upcomingItem) return false;
         
-        let checkInDate: Date;
         let createdAtDate: Date;
         let hasSmartPlan = false;
         
         if (upcomingItem.type === 'reservation') {
             const reservation = reservations.find(r => r.id === upcomingItem.id);
             if (!reservation || reservation.status !== 'CONFIRMED') return false;
-            checkInDate = new Date(reservation.checkInDate);
             createdAtDate = new Date(reservation.createdAt);
         } else {
             const schedule = schedules.find(s => s.id === upcomingItem.id);
             if (!schedule || schedule.status !== 'scheduled') return false;
-            checkInDate = parseISO(schedule.check_in);
             createdAtDate = new Date(schedule.created_at);
             hasSmartPlan = !!schedule.smart_plan_data;
         }
         
-        if (isNaN(checkInDate.getTime()) || isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
+        if (isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
         
-        const unlockTimeByCheckIn = new Date(checkInDate);
-        unlockTimeByCheckIn.setDate(unlockTimeByCheckIn.getDate() - 10);
-        unlockTimeByCheckIn.setHours(9, 0, 0, 0);
-
         const unlockTimeByCreation = new Date(createdAtDate);
         unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
         unlockTimeByCreation.setHours(9, 0, 0, 0);
 
-        const finalUnlockTime = new Date(Math.max(unlockTimeByCheckIn.getTime(), unlockTimeByCreation.getTime()));
-        return new Date() >= finalUnlockTime;
+        return new Date() >= unlockTimeByCreation;
     }, [upcomingItem, reservations, schedules]);
+
+    // 뱃지 텍스트 결정 (예약 다음 날 ~ D-8: 여행계획 세우기 가능 / D-7 ~ D-0: 최종 날씨 반영 계획 완성)
+    const badgeText = useMemo(() => {
+        if (!upcomingItem || !isSmartPlanAvailable) return '';
+        
+        const checkIn = new Date(upcomingItem.checkIn);
+        checkIn.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const daysDiff = Math.round((checkIn.getTime() - today.getTime()) / 86400000);
+        
+        if (daysDiff <= 7) {
+            return '✨ 최종 날씨 반영 계획 완성';
+        } else {
+            return '✨ 여행계획 세우기 가능';
+        }
+    }, [upcomingItem, isSmartPlanAvailable]);
 
     const handleCardClick = async () => {
         if (!upcomingItem || isNavigating) return;
@@ -381,7 +391,7 @@ export default function ScheduleHomeWidget() {
                         </h3>
                         {isSmartPlanAvailable && (
                             <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[15px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
-                                ✨ 여행계획 자동완성 가능
+                                {badgeText}
                             </span>
                         )}
                     </div>
