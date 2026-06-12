@@ -6,6 +6,7 @@ import {
 } from '@/types/creator';
 import { Database } from '@/types/supabase';
 import { dispatchPersonaAction } from '@/lib/persona';
+import { compressImage } from '@/utils/imageCompressor';
 
 const supabase = createClient();
 
@@ -379,20 +380,21 @@ export const creatorService = {
 
     // --- Utils ---
     async uploadImage(file: File, bucket: string = 'creator-assets'): Promise<string> {
-        const fileExt = file.name.split('.').pop();
+        const compressedFile = await compressImage(file);
+        const fileExt = compressedFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from(bucket)
-            .upload(filePath, file);
+            .upload(filePath, compressedFile);
 
         if (uploadError) {
             // Fallback to community-images if creator-assets doesn't exist
             if (uploadError.message.includes('Bucket not found')) {
                 const { error: retryError } = await supabase.storage
                     .from('community-images')
-                    .upload(filePath, file);
+                    .upload(filePath, compressedFile);
 
                 if (retryError) throw retryError;
 

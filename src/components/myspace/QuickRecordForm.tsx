@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import dynamic from 'next/dynamic';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
+import { compressImage } from '@/utils/imageCompressor';
 
 // 동적 import (SSR 비활성화)
 const ImageEditorModal = dynamic(
@@ -249,7 +250,8 @@ export default function QuickRecordForm({
         // 업로드
         setIsUploading(true);
         try {
-            const result = await uploadRecordImage(file);
+            const compressedFile = await compressImage(file);
+            const result = await uploadRecordImage(compressedFile);
             if (result.success && result.url) {
                 setPhotoUrl(result.url);
                 toast.success('사진이 업로드되었어요');
@@ -282,7 +284,8 @@ export default function QuickRecordForm({
 
         setIsUploading(true);
         try {
-            const result = await uploadRecordImage(file);
+            const compressedFile = await compressImage(file);
+            const result = await uploadRecordImage(compressedFile);
             if (result.success && result.url) {
                 setPhotoUrl(result.url);
                 setPhotoPreview(dataUrl);

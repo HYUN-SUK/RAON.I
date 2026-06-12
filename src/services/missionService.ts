@@ -144,7 +144,8 @@ export const missionService = {
                 console.error("Reward grant failed", e);
             }
 
-            // 4. Auto-Comment on Community Post (Integration)
+            // 4. Auto-Comment on Community Post (Bypassed in private archive mode)
+            /*
             if (mission.community_post_id) {
                 try {
                     const { data: profile } = await supabase.from('profiles').select('nickname').eq('id', userId).single();
@@ -161,6 +162,7 @@ export const missionService = {
                     console.error("Auto comment failed", e);
                 }
             }
+            */
 
             // 5. Auto-Create Personal Record (Story Post) - PRIVATE
             try {
@@ -173,8 +175,9 @@ export const missionService = {
                     author: profile?.nickname || '나',
                     images: imageUrl ? [imageUrl] : [],
                     visibility: 'PRIVATE', // Explicitly set to PRIVATE as requested
-                    status: 'OPEN'
-                });
+                    status: 'OPEN',
+                    metaData: { related_mission_id: missionId, is_mission_archive: true }
+                }, true);
             } catch (e) {
                 console.error("Auto post creation failed", e);
                 // Don't fail the whole transaction just because auto-post failed
@@ -216,5 +219,19 @@ export const missionService = {
             console.error('[Delete] Supabase Error:', error);
             throw error;
         }
+    },
+
+    async getCompletedUsersCount(missionId: string): Promise<number> {
+        const { count, error } = await supabase
+            .from('user_missions')
+            .select('*', { count: 'exact', head: true })
+            .eq('mission_id', missionId)
+            .eq('status', 'COMPLETED');
+
+        if (error) {
+            console.error('Error fetching completed users count:', error);
+            return 0;
+        }
+        return count || 0;
     }
 };

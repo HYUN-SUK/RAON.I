@@ -3,6 +3,7 @@ import { Post, BoardType } from '@/store/useCommunityStore';
 import { pointService } from '@/services/pointService';
 import { Database } from '@/types/supabase';
 import { dispatchPersonaAction } from '@/lib/persona';
+import { compressImage } from '@/utils/imageCompressor';
 
 // Instantiate the browser client which has access to cookies
 export const supabase = createClient();
@@ -117,7 +118,7 @@ export const communityService = {
     },
 
     // 3. Create Post
-    async createPost(post: Partial<Post>) {
+    async createPost(post: Partial<Post>, skipReward: boolean = false) {
         const { data: { user } } = await supabase.auth.getUser();
 
         const dbPost = {
@@ -134,7 +135,7 @@ export const communityService = {
         if (error) throw error;
 
         // Grant Reward
-        if (user) {
+        if (user && !skipReward) {
             try {
                 // 1. Grant Write Post Reward
                 await pointService.grantAction(user.id, 'WRITE_POST', data.id);
@@ -145,8 +146,7 @@ export const communityService = {
                 }
             } catch (e: unknown) {
                 console.error("Reward Failed", e);
-                // Temporary Debugging: Alert the user so they know WHY it failed
-                alert(`보상 지급 실패: ${(e as Error).message || JSON.stringify(e)}`);
+                console.warn(`보상 지급 실패: ${(e as Error).message || JSON.stringify(e)}`);
             }
         }
 
@@ -368,13 +368,14 @@ export const communityService = {
     },
     // 9. Upload Image
     async uploadImage(file: File): Promise<string> {
-        const fileExt = file.name.split('.').pop();
+        const compressedFile = await compressImage(file);
+        const fileExt = compressedFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from('community-images')
-            .upload(filePath, file);
+            .upload(filePath, compressedFile);
 
         if (uploadError) throw uploadError;
 
@@ -390,13 +391,14 @@ export const communityService = {
 
     // 10. Upload Comment Image
     async uploadCommentImage(file: File): Promise<string> {
-        const fileExt = file.name.split('.').pop();
+        const compressedFile = await compressImage(file);
+        const fileExt = compressedFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from('comment-images')
-            .upload(filePath, file);
+            .upload(filePath, compressedFile);
 
         if (uploadError) throw uploadError;
 
@@ -493,6 +495,7 @@ function mapPostToDb(post: Partial<Post>): Partial<DbPost> {
             thumbnail_url: post.thumbnailUrl,
             video_url: post.videoUrl,
             visibility: post.visibility,
+            ...(post.metaData || {}),
         },
     };
 }

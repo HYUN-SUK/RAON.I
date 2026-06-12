@@ -18,14 +18,6 @@ ALTER TABLE public.groups
     REFERENCES public.profiles(id) 
     ON DELETE SET NULL;
 
--- 2. Update check_signup_eligibility RPC for tootg@naver.com bypass
-CREATE OR REPLACE FUNCTION public.check_signup_eligibility(p_email TEXT)
-RETURNS BOOLEAN AS $$
-DECLARE
-    v_email_hash TEXT;
-    v_is_withdrawn_recently BOOLEAN;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Recreate check_signup_eligibility with correct logic
 CREATE OR REPLACE FUNCTION public.check_signup_eligibility(p_email TEXT)

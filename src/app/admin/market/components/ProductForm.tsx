@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { detectVideoType, getYouTubeThumbnail, isValidVideoUrl, getVideoPlatformName } from '@/utils/youtube';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
+import { compressImage } from '@/utils/imageCompressor';
 
 interface ProductFormProps {
     initialData?: Product;
@@ -161,14 +162,15 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     continue;
                 }
 
-                const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+                const compressedFile = await compressImage(file);
+                const fileExt = compressedFile.name.split('.').pop()?.toLowerCase() || 'webp';
                 const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
                 const filePath = `products/${fileName}`;
 
                 // Supabase Storage에 업로드
                 const { error: uploadError } = await supabase.storage
                     .from('product_images')
-                    .upload(filePath, file, { upsert: true });
+                    .upload(filePath, compressedFile, { upsert: true });
 
                 if (uploadError) {
                     console.error('Upload error:', uploadError);

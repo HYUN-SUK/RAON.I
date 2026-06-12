@@ -199,19 +199,28 @@ export const useMySpaceStore = create<MySpaceState>()(
                     date: p.created_at,
                     title: p.title,
                     content: p.content,
-                    images: p.images || (p.meta_data?.thumbnail_url ? [p.meta_data.thumbnail_url] : [])
+                    images: p.images || ((p.meta_data as any)?.thumbnail_url ? [(p.meta_data as any).thumbnail_url] : [])
                 }));
 
-                const missionItems: TimelineItem[] = (missions || []).map(m => ({
-                    id: `mission-${m.id}`,
-                    type: 'mission',
-                    date: m.completed_at || m.created_at,
-                    title: `미션 성공: ${m.mission?.title}`,
-                    content: m.content || m.mission?.description,
-                    missionId: m.mission_id, // 미션 상세 페이지 이동용
-                    missionPoints: m.mission?.reward_xp,
-                    images: m.image_url ? [m.image_url] : []
-                }));
+                // Get set of all related_mission_ids present in posts
+                const postMissionIds = new Set(
+                    (posts || [])
+                        .map(p => (p.meta_data as any)?.related_mission_id)
+                        .filter(Boolean)
+                );
+
+                const missionItems: TimelineItem[] = (missions || [])
+                    .filter(m => !postMissionIds.has(m.mission_id)) // Filter out duplicates
+                    .map(m => ({
+                        id: `mission-${m.id}`,
+                        type: 'mission',
+                        date: m.completed_at || m.created_at,
+                        title: `미션 성공: ${m.mission?.title}`,
+                        content: m.content || m.mission?.description,
+                        missionId: m.mission_id, // 미션 상세 페이지 이동용
+                        missionPoints: m.mission?.reward_xp,
+                        images: m.image_url ? [m.image_url] : []
+                    }));
 
                 const recordItems: TimelineItem[] = (records || []).map(r => ({
                     id: `record-${r.id}`,

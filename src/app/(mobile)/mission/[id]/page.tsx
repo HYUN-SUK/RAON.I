@@ -7,7 +7,7 @@ import { useMissionStore } from '@/store/useMissionStore';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TopBar from '@/components/TopBar';
-import { ArrowLeft, Camera, CheckCircle, UploadCloud, Trash2, Heart } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, UploadCloud, Trash2, Heart, RefreshCw } from 'lucide-react';
 import { EmberButton } from '@/components/mission/EmberButton';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -15,6 +15,9 @@ import { ko } from 'date-fns/locale';
 import { toast } from "sonner";
 import { createClient } from '@/lib/supabase-client';
 import { dispatchPersonaAction } from '@/lib/persona';
+import { missionService } from '@/services/missionService';
+import { HEALING_PHRASES } from '@/constants/healingPhrases';
+import { compressImage } from '@/utils/imageCompressor';
 import {
     Dialog,
     DialogContent,
@@ -30,10 +33,32 @@ export default function MissionDetailPage() {
     const { currentMission, userMission, participants, fetchCurrentMission, joinMission, completeMission, toggleLike, deleteParticipation, isLoading, error } = useMissionStore();
     const [preview, setPreview] = useState<string | null>(null);
 
+    // States for Pivot
+    const [healingPhrase, setHealingPhrase] = useState('');
+    const [completedCount, setCompletedCount] = useState<number>(0);
+
     // Initial Load
     useEffect(() => {
         fetchCurrentMission();
     }, [fetchCurrentMission]);
+
+    // Fetch Completed Users Count
+    useEffect(() => {
+        if (currentMission) {
+            missionService.getCompletedUsersCount(currentMission.id)
+                .then(count => setCompletedCount(count));
+        }
+    }, [currentMission]);
+
+    // Handle Healing Phrase Initialization
+    useEffect(() => {
+        if (userMission?.content) {
+            setHealingPhrase(userMission.content);
+        } else {
+            const randomIndex = Math.floor(Math.random() * HEALING_PHRASES.length);
+            setHealingPhrase(HEALING_PHRASES[randomIndex]);
+        }
+    }, [userMission]);
 
     // Error Feedback
     useEffect(() => {
@@ -65,14 +90,23 @@ export default function MissionDetailPage() {
     const confirmDelete = async () => {
         setIsDeleteDialogOpen(false);
         await deleteParticipation();
+        if (currentMission) {
+            const count = await missionService.getCompletedUsersCount(currentMission.id);
+            setCompletedCount(count);
+        }
+    };
+
+    const handleRefreshPhrase = () => {
+        const randomIndex = Math.floor(Math.random() * HEALING_PHRASES.length);
+        setHealingPhrase(HEALING_PHRASES[randomIndex]);
     };
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Check size
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error("이미지 크기는 5MB 이하여야 합니다.");
+            // Check size (allow up to 20MB in UI, compressor will shrink it)
+            if (file.size > 20 * 1024 * 1024) {
+                toast.error("이미지 크기는 20MB 이하여야 합니다.");
                 return;
             }
 
@@ -112,18 +146,29 @@ export default function MissionDetailPage() {
     };
 
     const handleComplete = async () => {
+        if (isLoading) return;
         if (!selectedFile) {
             toast.error("인증 사진을 선택해주세요.");
             return;
         }
 
         try {
+            // Compress Image first
+            toast.info("이미지를 최적화하는 중입니다...");
+            const compressedFile = await compressImage(selectedFile);
+
             // Upload Image first
             // We use communityService as it has the upload helper
-            const imageUrl = await import('@/services/communityService').then(m => m.communityService.uploadImage(selectedFile));
+            const imageUrl = await import('@/services/communityService').then(m => m.communityService.uploadImage(compressedFile));
 
-            await completeMission("미션 인증 완료! 📸", imageUrl);
+            await completeMission(healingPhrase || "미션 인증 완료! 📸", imageUrl);
             toast.success("미션 인증 성공! 보상이 지급되었습니다.");
+
+            // Update completed count
+            if (currentMission) {
+                const count = await missionService.getCompletedUsersCount(currentMission.id);
+                setCompletedCount(count);
+            }
         } catch (e) {
             console.error(e);
             const message = e instanceof Error ? e.message : "알 수 없는 오류";
@@ -162,14 +207,6 @@ export default function MissionDetailPage() {
             </header>
 
             <main className="p-5">
-                {/* Hero Section */}
-                <div className="relative w-full aspect-video bg-stone-200 rounded-2xl overflow-hidden mb-6 shadow-sm">
-                    {/* Placeholder for Mission Hero Image */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-stone-100 text-stone-400">
-                        <Camera className="w-12 h-12 opacity-20" />
-                    </div>
-                </div>
-
                 <div className="flex flex-col gap-1 mb-6">
                     <div className="flex items-center gap-2 mb-2">
                         <Badge className="bg-[#1C4526] hover:bg-[#1C4526] text-white">Weekly</Badge>
@@ -208,20 +245,33 @@ export default function MissionDetailPage() {
 
                 {/* Participation Status */}
                 {isCompleted ? (
-                    <div className="bg-stone-100 dark:bg-zinc-800 rounded-xl p-6 text-center border border-stone-200 dark:border-zinc-700">
-                        <div className="w-16 h-16 bg-stone-200 dark:bg-zinc-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <CheckCircle className="w-8 h-8 text-stone-400 dark:text-stone-500" />
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-stone-100 dark:border-zinc-800 shadow-md p-5 text-center">
+                        <h3 className="font-bold text-xs text-stone-400 mb-3 uppercase tracking-wider text-left">내가 기록한 오늘의 찰나</h3>
+                        {userMission?.image_url && (
+                            <div className="aspect-video bg-stone-100 rounded-xl overflow-hidden mb-4 relative shadow-sm">
+                                <img src={userMission.image_url} alt="My Mission Proof" className="w-full h-full object-cover" />
+                                <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] flex items-center gap-1 font-semibold">
+                                    <CheckCircle className="w-3 h-3 text-[#C3A675]" /> 인증 완료
+                                </div>
+                            </div>
+                        )}
+                        <p className="text-stone-700 dark:text-stone-200 font-medium text-base leading-relaxed italic px-2">
+                            "{userMission?.content || '기록된 소감이 없습니다.'}"
+                        </p>
+                        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-zinc-800 flex items-center justify-between text-xs text-stone-400">
+                            <span suppressHydrationWarning>
+                                {userMission?.completed_at ? format(new Date(userMission.completed_at), 'yyyy년 M월 d일 HH:mm', { locale: ko }) : ''}
+                            </span>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-stone-400 hover:text-red-500 hover:bg-red-50/50 text-xs h-8"
+                                onClick={() => handleDeleteClick()}
+                            >
+                                <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                기록 삭제
+                            </Button>
                         </div>
-                        <h3 className="font-bold text-stone-500 dark:text-stone-400 text-lg mb-1">미션 완료</h3>
-                        <p className="text-sm text-stone-400 dark:text-stone-500">이미 보상을 받았습니다.</p>
-                        <Button
-                            variant="ghost"
-                            className="mt-4 text-xs text-stone-400 hover:text-red-500"
-                            onClick={() => handleDeleteClick()}
-                        >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            참여 기록 삭제
-                        </Button>
                     </div>
                 ) : !isJoined ? (
                     <Button
@@ -232,13 +282,36 @@ export default function MissionDetailPage() {
                     </Button>
                 ) : (
                     <div className="space-y-4">
-                        <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl flex items-start gap-3 border border-blue-100 dark:border-blue-900/30">
+                        <div className="bg-[#1C4526]/10 p-4 rounded-xl flex items-start gap-3 border border-[#1C4526]/20">
                             <span className="text-2xl">🔥</span>
                             <div>
-                                <h4 className="font-bold text-blue-900 dark:text-blue-100 text-sm">미션 진행 중!</h4>
-                                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                                    인증샷을 업로드하고 보상을 받아가세요.
+                                <h4 className="font-bold text-[#1C4526] dark:text-[#3E614B] text-sm">미션 진행 중!</h4>
+                                <p className="text-xs text-[#1C4526] dark:text-[#3E614B] mt-1">
+                                    오늘의 소감 한 줄과 함께 사진을 올려주세요.
                                 </p>
+                            </div>
+                        </div>
+
+                        {/* 소감 입력창 및 랜덤 새로고침 */}
+                        <div className="bg-white dark:bg-zinc-900 rounded-xl p-4 border border-stone-100 dark:border-zinc-800 shadow-sm">
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="text-xs font-bold text-stone-500">오늘의 힐링 한 줄 소감</label>
+                                <button
+                                    onClick={handleRefreshPhrase}
+                                    className="text-[10px] text-[#1C4526] hover:text-[#224732] font-semibold flex items-center gap-1 active:scale-95 transition-transform"
+                                >
+                                    <RefreshCw className="w-3 h-3" /> 다른 문구 추천받기
+                                </button>
+                            </div>
+                            <textarea
+                                className="w-full min-h-[70px] p-3 bg-[#F7F5EF] dark:bg-zinc-800 text-stone-800 dark:text-stone-100 rounded-lg text-sm border-none focus:ring-1 focus:ring-[#1C4526] resize-none outline-none leading-relaxed"
+                                placeholder="오늘의 느낌을 적어보세요..."
+                                value={healingPhrase}
+                                onChange={(e) => setHealingPhrase(e.target.value)}
+                                maxLength={150}
+                            />
+                            <div className="text-right text-[10px] text-stone-400 mt-1">
+                                {healingPhrase.length}/150
                             </div>
                         </div>
 
@@ -286,92 +359,15 @@ export default function MissionDetailPage() {
                     </div>
                 )}
 
-                {/* Participants Feed */}
-                <div className="mt-10 mb-6">
-                    <h3 className="font-bold text-lg text-stone-800 dark:text-stone-100 mb-4 flex items-center justify-between">
-                        참여 인증 <span className="text-[#1C4526] text-sm font-normal">{participants.length}명 참여중</span>
-                    </h3>
-
-                    <div className="space-y-4">
-                        {!participants || participants.length === 0 ? (
-                            <div className="text-center py-8 text-stone-400 bg-stone-50 rounded-xl">
-                                <UploadCloud className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                <p className="text-sm">가장 먼저 미션을 달성해보세요!</p>
-                            </div>
-                        ) : (
-                            participants.map((p) => (
-                                <div key={p.id} className="bg-white dark:bg-zinc-900 rounded-xl overflow-hidden border border-stone-100 dark:border-zinc-800 shadow-sm">
-                                    <div className="p-3 flex items-center gap-2 border-b border-stone-50 dark:border-zinc-800">
-                                        <div className="w-8 h-8 rounded-full bg-stone-200 overflow-hidden">
-                                            {p.user_info?.profile_image_url ? (
-                                                <img src={p.user_info.profile_image_url} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-stone-400">
-                                                    {p.user_info?.nickname?.substring(0, 1) || '?'}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-bold text-stone-700 dark:text-stone-200">
-                                                {p.user_info?.nickname || '알 수 없음'}
-                                            </p>
-                                            <p className="text-[10px] text-stone-400">
-                                                {format(new Date(p.created_at), 'M월 d일 HH:mm', { locale: ko })}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {p.image_url && (
-                                        <div className="aspect-square bg-stone-100">
-                                            <img src={p.image_url} alt="Mission Proof" className="w-full h-full object-cover" />
-                                        </div>
-                                    )}
-
-                                    {p.content && (
-                                        <div className="p-3 pb-0">
-                                            <p className="text-sm text-stone-600 dark:text-stone-300">{p.content}</p>
-                                        </div>
-                                    )}
-
-                                    <div className="p-3 flex items-center justify-between">
-                                        {/* Ember Button (for other users' posts only) */}
-                                        {userMission?.user_id !== p.user_id && (
-                                            <EmberButton
-                                                receiverId={p.user_id}
-                                                targetId={p.id}
-                                                targetType="mission"
-                                                receiverName={p.user_info?.nickname || '이 캠퍼'}
-                                            />
-                                        )}
-
-                                        {/* Like count display */}
-                                        <div className="flex items-center gap-1 text-stone-400 text-sm">
-                                            <Heart className="w-4 h-4" />
-                                            <span>{p.likes_count || 0}</span>
-                                        </div>
-
-                                        {/* Delete button (own posts only) */}
-                                        <div className="flex items-center gap-2">
-                                            {userMission?.user_id === p.user_id && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-stone-400 hover:text-red-500 hover:bg-red-50"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteClick();
-                                                    }}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                        {/* Like Button Removed as per request (SSOT: Comment Likes) */}
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                {/* Anonymous completed camper counter */}
+                <div className="mt-8 mb-6 bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-stone-100 dark:border-zinc-800 text-center shadow-sm">
+                    <div className="w-12 h-12 bg-[#F7F5EF] dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                        🌌
                     </div>
+                    <h3 className="font-bold text-stone-800 dark:text-stone-100 text-base mb-1.5">오늘 이 미션을 함께한 캠퍼들</h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed max-w-[280px] mx-auto">
+                        오늘 이 미션을 완료한 캠퍼가 벌써 <span className="text-[#1C4526] dark:text-[#3E614B] font-bold text-sm">{completedCount}명</span>이에요. 각자의 아늑한 공간에서 따뜻하게 같은 계절의 찰나를 수집하고 있습니다.
+                    </p>
                 </div>
             </main>
 

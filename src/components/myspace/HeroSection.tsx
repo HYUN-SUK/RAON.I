@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { createClient } from "@/lib/supabase-client";
 import { toast } from "sonner";
+import { compressImage } from "@/utils/imageCompressor";
 
 interface EmberStats {
     received_count: number;
@@ -93,14 +94,15 @@ export default function HeroSection() {
             const blob = await res.blob();
             const file = new File([blob], "hero_image.png", { type: "image/png" });
 
-            const fileExt = "png";
+            const compressedFile = await compressImage(file);
+            const fileExt = compressedFile.name.split('.').pop() || "webp";
             const fileName = `${user.id}-${Date.now()}.${fileExt}`;
             const filePath = `hero/${fileName}`;
 
             // 1. Upload to Storage
             const { error: uploadError } = await supabase.storage
                 .from('profile_images') // Using existing bucket, new folder
-                .upload(filePath, file, { upsert: true });
+                .upload(filePath, compressedFile, { upsert: true });
 
             if (uploadError) throw uploadError;
 

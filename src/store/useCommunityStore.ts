@@ -23,6 +23,7 @@ export interface Post {
     thumbnailUrl?: string;
     videoUrl?: string;
     visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+    metaData?: Record<string, any>;
 }
 
 interface CommunityState {

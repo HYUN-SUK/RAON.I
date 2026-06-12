@@ -49,8 +49,29 @@
 - [ ] **AI Hero Narrative Refinement**: Audit the AI-generated hero phrases by refining prompts and verifying consistency.
 - [ ] **Festival Scoring Refinement**: Re-verify the differentiate scoring logic between `SPOT` and `FESTIVAL` and remove outdated `readcount` criteria.
 - [ ] **Patent Strategy Phase 2**: Deep dive into patent claim strategy and BM protection for the Smart Plan.
-- [x] **User Account Deletion & Separation Storage (회원 탈퇴 및 분리 보관) [CURRENT]**
+- [x] **User Account Deletion & Separation Storage (회원 탈퇴 및 분리 보관)**
     - [x] Create database schema migration for `withdrawn_user_records` and `fn_withdraw_user` RPC.
     - [x] Implement signup validation hook/logic to enforce 30-day block but bypass `toot@naver.com`.
     - [x] Create withdrawal API route (`/api/auth/withdraw`).
     - [x] Build mobile Settings/Withdraw page component with 3-State UX.
+- [x] **Mission System Traffic Reduction & Emotional Pivot [CURRENT]**
+    - [x] Create `src/constants/healingPhrases.ts` with 50+ healing phrase deck.
+    - [x] Create `src/utils/imageCompressor.ts` using Canvas API for free compression.
+    - [x] Update `src/services/missionService.ts` to bypass auto-comments and support custom content and count retrieval.
+    - [x] Update `src/app/(mobile)/mission/[id]/page.tsx` to integrate hybrid emotion comments, compress uploads, display anonymity counter, and remove community feed.
+    - [x] Verify functionality (build, compression rate, database sync).
+- [x] **Mission Archive Cascade Deletion Cleanup [CURRENT]**
+    - [x] Update `mapPostToDb` in `communityService.ts` to support custom metadata.
+    - [x] Update `completeMission` in `missionService.ts` to attach `related_mission_id` in metadata.
+    - [x] Create DB migrations for `withdraw_mission` RPC to cascade delete posts (with legacy title fallback).
+    - [x] Sweep and clean up existing metadata-less legacy posts for `tootg` user.
+    - [x] Filter out duplicate timeline items in `useMySpaceStore.ts` by matching related_mission_id.
+    - [x] Verify build and database cascade deletion.
+- [x] **App-Wide Image Compression Integration**
+    - [x] Update `communityService.ts` to compress community posts and comments images.
+    - [x] Update `creatorService.ts` to compress creator assets.
+    - [x] Update `QuickRecordForm.tsx` to compress 10s record images.
+    - [x] Update `HeroSection.tsx` to compress user profile backgrounds.
+    - [x] Update `ProductForm.tsx` to compress admin product photos.
+    - [x] Refactor `imageUtils.ts` to delegate to standard imageCompressor.
+    - [x] Verify build and zero-cost WebP compression.
