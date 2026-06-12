@@ -358,6 +358,26 @@ async function main() {
         process.exit(0);
     }
 
+    // 대상 스케줄들의 기존 캐싱 이력 일괄 조회
+    const scheduleIds = rawSchedules.map(s => s.id);
+    const { data: existingCandidates, error: candError } = await supabase
+        .from('smart_plan_candidates')
+        .select('reservation_id, created_at')
+        .in('reservation_id', scheduleIds);
+
+    if (candError) {
+        console.error(`  ❌ Failed to fetch existing candidates: ${candError.message}`);
+    }
+
+    const candidateMap = new Map();
+    if (existingCandidates) {
+        existingCandidates.forEach(c => {
+            const list = candidateMap.get(c.reservation_id) || [];
+            list.push(new Date(c.created_at));
+            candidateMap.set(c.reservation_id, list);
+        });
+    }
+
     // Skip Guard 적용 필터링 (D-10~D-4 및 D-3 이내 조건 체크)
     const todayDate = parseDateStr(todayStr);
     const filteredSchedules = [];
@@ -367,22 +387,40 @@ async function main() {
         const checkInDate = parseDateStr(s.check_in);
         const daysDiff = Math.round((checkInDate - todayDate) / 86400000);
 
+        const sCandidates = candidateMap.get(s.id) || [];
+        const hasCandidates = sCandidates.length > 0;
+        
+        let latestCacheDate = null;
+        if (hasCandidates) {
+            latestCacheDate = new Date(Math.max(...sCandidates.map(d => d.getTime())));
+        }
+
         if (forceArg) {
             console.log(`  🔥 Force option enabled. Bypassing skip guards for Schedule ${s.id}.`);
         } else if (s.smart_plan_data) {
-            const savedData = s.smart_plan_data;
-            const weatherWindow = savedData.weather_window || (daysDiff <= 3 ? 'SHORT' : 'MID');
-
+            console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has finalized plan. Skipping...`);
+            continue;
+        } else if (hasCandidates) {
             if (daysDiff > 3) {
-                // 중기 구간 (D-10 ~ D-4): 이미 생성된 플랜이 있으므로 수집 및 캐싱 스킵
-                console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has mid-term plan. Skipping...`);
+                // 중기 구간 (D-10 ~ D-4)이고 이미 캐싱된 후보군이 있으므로 스킵
+                console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has mid-term cached candidates. Skipping...`);
                 continue;
-            } else if (daysDiff <= 3 && weatherWindow === 'SHORT') {
-                // 단기 구간 (D-3 이내): 이미 단기 날씨 기반 캐싱이 완료되었으므로 스킵
-                console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has short-term plan. Skipping...`);
-                continue;
+            } else {
+                // 단기 구간 (D-3 이내): 캐싱 생성일과 체크인 날짜 비교
+                const checkInMidnight = new Date(checkInDate);
+                checkInMidnight.setHours(0, 0, 0, 0);
+                const cacheMidnight = new Date(latestCacheDate);
+                cacheMidnight.setHours(0, 0, 0, 0);
+                
+                const cacheDaysDiff = Math.round((checkInMidnight - cacheMidnight) / 86400000);
+                
+                if (cacheDaysDiff <= 3) {
+                    // 단기 구간 진입 후 이미 단기 캐싱이 돌았으므로 스킵
+                    console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has short-term cached candidates (cached D-${cacheDaysDiff}). Skipping...`);
+                    continue;
+                }
+                console.log(`  🔄 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) has mid-term cache (cached D-${cacheDaysDiff}) but now enters D-3 short-term window. Updating cache...`);
             }
-            console.log(`  🔄 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) enters D-3 short-term window. Updating cache...`);
         } else {
             console.log(`  🆕 Schedule ${s.id} (${s.check_in}, D-${daysDiff}) is new. Proceeding to cache...`);
         }

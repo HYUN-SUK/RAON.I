@@ -336,11 +336,6 @@ export default function UpcomingReservation() {
                                             <span className="inline-flex items-center px-2 py-0.5 bg-brand-1/30 rounded text-[9px] font-bold text-white">
                                                 라온아이
                                             </span>
-                                            {isSmartPlanAvailable && (
-                                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-black gold-glow-badge shadow-sm transition-all duration-300 animate-pulse">
-                                                    ✨ 여행계획 자동완성 가능
-                                                </span>
-                                            )}
                                         </div>
                                         <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
                                             {status === 'PENDING' && <><Clock size={12} /> 입금 대기</>}
@@ -349,9 +344,16 @@ export default function UpcomingReservation() {
                                         </span>
                                     </div>
 
-                                    <h3 className="text-xl font-bold text-white mb-1 tracking-tight">
-                                        {SITES.find(s => s.id === siteId)?.name || siteId}
-                                    </h3>
+                                    <div className="flex items-center gap-2.5 mb-1 min-w-0">
+                                        <h3 className="text-xl font-bold text-white tracking-tight truncate">
+                                            {SITES.find(s => s.id === siteId)?.name || siteId}
+                                        </h3>
+                                        {isSmartPlanAvailable && (
+                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                                                ✨ 여행계획 자동완성 가능
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="flex items-center text-white/70 text-sm">
                                         <MapPin size={14} className="mr-1" />
                                         {siteId}
@@ -448,20 +450,22 @@ export default function UpcomingReservation() {
                                             <span className="inline-flex items-center px-2 py-0.5 bg-white/20 rounded text-[9px] font-bold text-white">
                                                 타캠핑장
                                             </span>
-                                            {isSmartPlanAvailable && (
-                                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-black gold-glow-badge shadow-sm transition-all duration-300 animate-pulse">
-                                                    ✨ 여행계획 자동완성 가능
-                                                </span>
-                                            )}
                                         </div>
                                         <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
                                             <Tent size={12} /> 예정된 일정
                                         </span>
                                     </div>
 
-                                    <h3 className="text-xl font-bold text-white mb-1 tracking-tight">
-                                        {schedule.campground_name}
-                                    </h3>
+                                    <div className="flex items-center gap-2.5 mb-1 min-w-0">
+                                        <h3 className="text-xl font-bold text-white tracking-tight truncate">
+                                            {schedule.campground_name}
+                                        </h3>
+                                        {isSmartPlanAvailable && (
+                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                                                ✨ 여행계획 자동완성 가능
+                                            </span>
+                                        )}
+                                    </div>
                                     {schedule.campground_address && (
                                         <div className="flex items-center text-white/70 text-sm">
                                             <MapPin size={14} className="mr-1" />

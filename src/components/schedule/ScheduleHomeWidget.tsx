@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -114,6 +114,41 @@ export default function ScheduleHomeWidget() {
         unifiedList.sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime());
         setUpcomingItem(unifiedList[0] || null);
     }, [reservations, schedules]);
+
+    // 스마트플랜 사용 가능 여부 판별 (체크인 10일 전 오전 9시 또는 예약 생성 다음날 오전 9시 중 최댓값 비교)
+    const isSmartPlanAvailable = useMemo(() => {
+        if (!upcomingItem) return false;
+        
+        let checkInDate: Date;
+        let createdAtDate: Date;
+        let hasSmartPlan = false;
+        
+        if (upcomingItem.type === 'reservation') {
+            const reservation = reservations.find(r => r.id === upcomingItem.id);
+            if (!reservation || reservation.status !== 'CONFIRMED') return false;
+            checkInDate = new Date(reservation.checkInDate);
+            createdAtDate = new Date(reservation.createdAt);
+        } else {
+            const schedule = schedules.find(s => s.id === upcomingItem.id);
+            if (!schedule || schedule.status !== 'scheduled') return false;
+            checkInDate = parseISO(schedule.check_in);
+            createdAtDate = new Date(schedule.created_at);
+            hasSmartPlan = !!schedule.smart_plan_data;
+        }
+        
+        if (isNaN(checkInDate.getTime()) || isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
+        
+        const unlockTimeByCheckIn = new Date(checkInDate);
+        unlockTimeByCheckIn.setDate(unlockTimeByCheckIn.getDate() - 10);
+        unlockTimeByCheckIn.setHours(9, 0, 0, 0);
+
+        const unlockTimeByCreation = new Date(createdAtDate);
+        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+        unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+        const finalUnlockTime = new Date(Math.max(unlockTimeByCheckIn.getTime(), unlockTimeByCreation.getTime()));
+        return new Date() >= finalUnlockTime;
+    }, [upcomingItem, reservations, schedules]);
 
     const handleCardClick = async () => {
         if (!upcomingItem || isNavigating) return;
@@ -340,9 +375,16 @@ export default function ScheduleHomeWidget() {
                         </div>
                     </div>
 
-                    <h3 className="text-lg font-bold mb-2 truncate">
-                        {upcomingItem.name}
-                    </h3>
+                    <div className="flex items-center gap-2.5 mb-2 min-w-0">
+                        <h3 className="text-lg font-bold truncate">
+                            {upcomingItem.name}
+                        </h3>
+                        {isSmartPlanAvailable && (
+                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                                ✨ 여행계획 자동완성 가능
+                            </span>
+                        )}
+                    </div>
 
                     <div className="flex items-center gap-3 text-sm opacity-90">
                         <span className="flex items-center gap-1">
