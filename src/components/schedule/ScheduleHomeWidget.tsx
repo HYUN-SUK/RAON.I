@@ -375,12 +375,12 @@ export default function ScheduleHomeWidget() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5 mb-2 min-w-0">
+                    <div className="flex items-center justify-between gap-3 mb-2 min-w-0">
                         <h3 className="text-lg font-bold truncate">
                             {upcomingItem.name}
                         </h3>
                         {isSmartPlanAvailable && (
-                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-xs font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
                                 ✨ 여행계획 자동완성 가능
                             </span>
                         )}
