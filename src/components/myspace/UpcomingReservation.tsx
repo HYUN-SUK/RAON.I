@@ -349,7 +349,7 @@ export default function UpcomingReservation() {
                                             {SITES.find(s => s.id === siteId)?.name || siteId}
                                         </h3>
                                         {isSmartPlanAvailable && (
-                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-xs font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[15px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
                                                 ✨ 여행계획 자동완성 가능
                                             </span>
                                         )}
@@ -461,7 +461,7 @@ export default function UpcomingReservation() {
                                             {schedule.campground_name}
                                         </h3>
                                         {isSmartPlanAvailable && (
-                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-xs font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[15px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
                                                 ✨ 여행계획 자동완성 가능
                                             </span>
                                         )}
