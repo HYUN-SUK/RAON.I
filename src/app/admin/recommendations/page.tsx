@@ -265,7 +265,8 @@ export default function RecommendationAdminPage() {
 
         try {
             if (deleteTarget.type === 'single' && deleteTarget.table && deleteTarget.id) {
-                await supabase.from(deleteTarget.table).delete().eq('id', deleteTarget.id);
+                const { error } = await supabase.from(deleteTarget.table).delete().eq('id', deleteTarget.id);
+                if (error) throw error;
                 toast.success('삭제되었습니다.');
             } else if (deleteTarget.type === 'bulk') {
                 if (selectedIds.size === 0) return;
