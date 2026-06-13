@@ -602,8 +602,16 @@ export async function generatePersonalizedSmartPlan(
 ): Promise<StandardizedPlanJSON | ProTimelinePlan> {
     try {
         // [v11.9.60] 정석적인 서버 사이드 인증 연동 (쿠키 기반)
-        const { createClient: createServerSupabase } = await import('@/lib/supabase-server');
-        const supabase = await createServerSupabase();
+        let supabase;
+        try {
+            const { createClient: createServerSupabase } = await import('@/lib/supabase-server');
+            supabase = await createServerSupabase();
+        } catch (cookieErr) {
+            // [v11.9.62] CLI 테스트 등 cookies() 사용 불가 환경을 위한 fallback
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+            supabase = createClient(supabaseUrl, supabaseKey);
+        }
 
         const persona = await extractUserPersona(userId, 7, supabase); // 인증된 클라이언트 전달
 
@@ -686,6 +694,7 @@ export async function generatePersonalizedSmartPlan(
         let weatherSummary = "날씨 정보를 확인하고 있습니다.";
         let isWinter = false;
         let isRainy = false; 
+        let isWeatherAvailable = false; // [v11.9.62] 날씨 수집 성공 여부 판별
         try {
             const w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
             if (w && w.daily && Array.isArray(w.daily)) {
@@ -712,6 +721,7 @@ export async function generatePersonalizedSmartPlan(
                 }
                 if (weatherList.length > 0) {
                     weatherSummary = weatherList.join(', ');
+                    isWeatherAvailable = true; // [v11.9.62]
                 }
 
                 // D-3 이내 단기 구간일 때 3시간 단위 상세 정보 추가
@@ -893,7 +903,9 @@ export async function generatePersonalizedSmartPlan(
 따뜻하고 친근한 해요체로, 캠핑을 떠나는 여행자에게 이야기하듯 안내해 주세요.
 
 [조건]
-- 전체 일정 날씨: ${weatherSummary} (주의: 반드시! 일자별로 날씨 변화와 기온을 각각 언급하며 상세히 브리핑해 주세요.)
+${isWeatherAvailable 
+  ? `- 전체 일정 날씨: ${weatherSummary} (주의: 반드시! 일자별로 날씨 변화와 기온을 각각 언급하며 상세히 브리핑해 주세요.)`
+  : `- 전체 일정 날씨: 제공되지 않음 (아직 여행 예정일이 한 달 이상 남아 기상청 날씨 예보를 확인할 수 없는 시점입니다. 주의: 절대 임의로 날씨나 온도를 상상하여 가상의 정보를 적거나 묘사하지 마세요.)`}
 - 여행자 구성: ${(() => {
     if (!persona.guestDetails) return persona.description;
     const { adults, seniors, kids, hasPet } = persona.guestDetails;
@@ -908,7 +920,9 @@ export async function generatePersonalizedSmartPlan(
 
 [여정 구성 (5단계)]
 아래의 5단계 흐름에 맞춰서 각 단계의 시작을 알리는 인트로 문구(stageIntros)를 작성해 주세요.
-- 1단계 (MANDATORY): '전체 여정 브리핑' 역할을 합니다. 반드시! 무조건! 첫 문장에 위에서 설명한 '구체적인 여행자 구성(예: "아이 두 명, 부모님과 함께하는 이번 여행은...")'과 제공된 '일자별 날씨 정보(${weatherSummary})'를 날짜와 함께 상세히 요약하며 시작하세요. "사용자의 정보를 바탕으로 날씨와 인원 구성에 딱 맞춘 최적의 일정을 준비했다"는 느낌의 여행 개요 브리핑을 150~200자 내외로 정성껏 작성해 주세요.
+- 1단계 (MANDATORY): '전체 여정 브리핑' 역할을 합니다. 반드시! 무조건! 첫 문장에 위에서 설명한 '구체적인 여행자 구성(예: "아이 두 명, 부모님과 함께하는 이번 여행은...")'을 넣어 시작하세요. ${isWeatherAvailable 
+  ? `그다음 제공된 '일자별 날씨 정보(${weatherSummary})'를 날짜와 함께 상세히 요약하여 언급해 주세요.` 
+  : `날씨에 관해서는 "아직 여행일이 많이 남아 상세한 날씨 정보는 제공되지 않지만, 날씨 확인이 가능해지면 스마트플랜이 업데이트될 예정"이라는 내용을 친근하게 언급하고 가상의 날씨 추측은 절대 포함하지 마세요.`} "사용자의 정보를 바탕으로 인원 구성에 딱 맞춘 최적의 일정을 준비했다"는 느낌의 여행 개요 브리핑을 150~200자 내외로 정성껏 작성해 주세요.
 - 2~5단계: 각 단계로 넘어가는 따뜻한 연결 문구 (해요체, 시적인 표현 권장)
 
 [장소 목록]

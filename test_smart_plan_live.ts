@@ -12,8 +12,8 @@ async function runTest() {
     // 1. Get an active reservation
     // 직접 user_schedules 정보를 기반으로 세팅
     const userId = '4730be31-30b5-4594-a993-d8f5a7a5e26c';
-    const startDate = new Date('2026-04-28T00:00:00.000Z');
-    const endDate = new Date('2026-04-30T00:00:00.000Z');
+    const startDate = new Date('2026-06-14T00:00:00.000Z');
+    const endDate = new Date('2026-06-16T00:00:00.000Z');
     const origin = { lat: 37.5545, lng: 126.9706 }; // Seoul Station
     const dest = { lat: 36.6548, lng: 126.7909 }; // RAONAI Auto Campground
     console.log(`Origin: ${JSON.stringify(origin)}, Dest: ${JSON.stringify(dest)}`);
