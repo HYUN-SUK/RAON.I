@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren } from 'lucide-react';
+import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren, ChefHat, ChevronRight } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import SlimNotice from '@/components/home/SlimNotice';
@@ -486,6 +486,29 @@ export default function BeginnerHome() {
                 {/* 3.5 Mission Widget */}
                 <section className="px-4 mb-8">
                     <MissionHomeWidget />
+                </section>
+
+                {/* 3.8 여행 레시피 탐색기 배너 */}
+                <section className="px-4 mb-8">
+                    <div 
+                        onClick={() => router.push('/recipe')}
+                        className="group relative w-full bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-700 hover:to-teal-600 text-white rounded-3xl p-5 border border-emerald-900/50 shadow-md hover:shadow-lg active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
+                    >
+                        {/* Background Deco */}
+                        <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-15 text-white pointer-events-none group-hover:scale-110 transition-transform">
+                            <ChefHat className="w-32 h-32" />
+                        </div>
+                        <div className="relative z-10 flex justify-between items-center">
+                            <div className="space-y-1 text-left">
+                                <span className="bg-emerald-600/50 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">NEW 콘텐츠</span>
+                                <h3 className="text-base font-bold tracking-tight">📖 여행 & 캠핑 레시피 탐색기</h3>
+                                <p className="text-xs text-white/80">터치 2번으로 고르는 맞춤 요리 정보와 꿀팁 영상</p>
+                            </div>
+                            <div className="bg-white/10 p-2 rounded-2xl group-hover:bg-white/20 transition-all">
+                                <ChevronRight className="w-5 h-5 text-white" />
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 {/* 4. Recommendations Grid */}
