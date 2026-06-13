@@ -283,6 +283,9 @@
         *   [x] **D-7 Second Caching**: D-7 기점으로 2차 캐싱이 재작동하도록 크론 범위 및 스킵 가드 임계값 상향.
         *   [x] **15px Gold Badge Repositioning**: 다가오는 일정 카드의 골드 뱃지를 사이트/캠핑장 이름 우측 정렬로 레이아웃을 다듬고 15px로 확대.
         *   [x] **D-3 Guidance Notice**: 일정 상세 페이지 내 D-3 정밀 날씨 연동 추천 안내 배너 적용.
+    *   [x] **5.5.25 Smart Plan Weather Hallucination Prevention (v11.9.96) 🟢 (2026-06-13)**:
+        *   [x] **Weather Availability Branching**: 날씨 정보가 없는 10일 초과 미래 예약 시 AI 히어로가 날씨를 마음대로 지어내는 환각(Hallucination) 현상을 차단하기 위해 프롬프트를 조건부 분기.
+        *   [x] **Supabase Client Fallback**: CLI 테스트 및 크론 환경(Request Context가 없는 환경)에서 cookies() 호출 에러가 날 때, 서비스 롤 기반 Supabase 클라이언트를 타도록 내결함성(Robustness) 로직 추가.
 
 
 ### Phase 6: ?�장 모듈 (Expansion) - ?�� Ongoing (98%)
