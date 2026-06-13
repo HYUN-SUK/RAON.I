@@ -342,21 +342,15 @@ export default function TravelRecipePage() {
                                 onClick={() => handleRecipeClick(recipe)}
                                 className="group bg-white dark:bg-stone-900 hover:bg-stone-50/50 dark:hover:bg-stone-800/30 rounded-3xl p-3 border border-stone-200/60 dark:border-stone-800/60 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between"
                             >
-                                <div className="space-y-2.5">
-                                    {/* Thumbnail Placeholder with Gradient background (saves image asset config) */}
-                                    <div className="relative w-full h-28 rounded-2xl bg-gradient-to-tr from-emerald-800/10 to-teal-500/10 flex items-center justify-center overflow-hidden border border-emerald-500/5">
-                                        <div className="absolute inset-0 flex items-center justify-center text-emerald-800/40 dark:text-emerald-400/20">
-                                            <Utensils className="w-10 h-10 group-hover:scale-110 transition-transform" />
-                                        </div>
-                                        {recipe.travel_tips?.[0] && (
-                                            <div className="absolute bottom-2 left-2 right-2 bg-stone-900/70 backdrop-blur-sm rounded-lg p-1 text-[9px] text-white line-clamp-1">
-                                                💡 {recipe.travel_tips[0]}
-                                            </div>
-                                        )}
-                                    </div>
+                                <div className="space-y-2">
                                     <h3 className="text-xs font-bold text-stone-900 dark:text-stone-50 line-clamp-2 px-1">
                                         {recipe.name}
                                     </h3>
+                                    {recipe.travel_tips?.[0] && (
+                                        <p className="text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-2.5 leading-relaxed line-clamp-2">
+                                            💡 {recipe.travel_tips[0]}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="mt-3 flex items-center justify-between px-1">
                                     <span className="text-[9px] text-stone-400 flex items-center gap-0.5">
@@ -375,7 +369,7 @@ export default function TravelRecipePage() {
 
             {/* Bottom Sheet - 요리 상세 */}
             {selectedRecipe && (
-                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all duration-300">
+                <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all duration-300">
                     <div className="absolute inset-0" onClick={() => setSelectedRecipe(null)} />
                     <div className="relative w-full max-w-md bg-[#F7F5EF] dark:bg-[#0f0e0c] rounded-t-[32px] shadow-2xl flex flex-col max-h-[85vh] animate-slide-up border-t border-stone-200 dark:border-stone-800">
                         {/* Drag indicator handle */}
