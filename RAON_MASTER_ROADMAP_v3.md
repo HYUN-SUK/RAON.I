@@ -291,6 +291,11 @@
         *   [x] **Seed Data Ingestion Script**: 상황별 14개 서브 카테고리와 40여 종의 꼼꼼한 여행 요리(재료, 여행 팁, 키워드 포함) 데이터 CLI 자동 적재 스크립트 구축.
         *   [x] **Explorer Page & Bottom Sheet UI**: 대분류/소분류 2-Step 최소 터치 탐색기 UI, 장보기 체크리스트, 여행 전용 팁 및 유튜브/인스타 검색어 딥링크 모듈 개발 완료.
         *   [x] **Home UI Entry Banners**: 초보자 및 기존 사용자용 모바일 홈에 탐색기 진입로용 배너 연동.
+    *   [x] **5.5.27 Recommendations DB RLS Fix & Travel Recipes AI JSON Paste Upload (v11.9.98) 🟢 (2026-06-13)**:
+        *   [x] **DB RLS Policies Security Fix**: `recommendation_pool` 및 `nearby_events` 테이블에 대해 authenticated 사용자에게 모든 CRUD 권한을 부여하여 관리자 삭제 오류 해결.
+        *   [x] **Travel Recipes AI JSON Paste Upload**: 여행 레시피 탭에 AI JSON 데이터를 직접 붙여넣어 일괄 또는 단일로 업로드할 수 있는 Dialog UI 및 파싱 엔진 구현.
+        *   [x] **Smart Category Mapping**: 업로드 시 AI가 출력한 한글 카테고리명을 데이터베이스의 실제 카테고리 ID로 지능형 매핑하는 변환 로직 구축.
+
 
 
 ### Phase 6: ?�장 모듈 (Expansion) - ?�� Ongoing (98%)

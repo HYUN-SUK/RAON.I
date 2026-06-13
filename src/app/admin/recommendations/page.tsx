@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Upload, Copy, Download } from 'lucide-react';
+import { Plus, Calendar, MapPin, ChefHat, Tent, Trash2, Edit, Copy, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import type { Database } from '@/types/supabase';
@@ -367,7 +368,7 @@ export default function RecommendationAdminPage() {
             try {
                 parsed = JSON.parse(bulkJson);
                 if (!Array.isArray(parsed)) throw new Error('데이터 형식이 배열이 아닙니다.');
-            } catch (e) {
+            } catch {
                 toast.error('JSON 형식이 올바르지 않습니다.');
                 return;
             }
@@ -435,7 +436,7 @@ export default function RecommendationAdminPage() {
             let parsed: any;
             try {
                 parsed = JSON.parse(cleanJson);
-            } catch (e) {
+            } catch {
                 toast.error('JSON 형식이 올바르지 않습니다.');
                 return;
             }
