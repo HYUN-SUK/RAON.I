@@ -25,7 +25,8 @@ export const missionService = {
 
         if (!data) return null;
 
-        // Lazy Creation of Community Post
+        // Lazy Creation of Community Post (Disabled to stop auto-generating mission posts on the story board)
+        /*
         if (!data.community_post_id) {
             try {
                 const { data: postId, error: rpcError } = await supabase.rpc('ensure_mission_post', {
@@ -41,6 +42,7 @@ export const missionService = {
                 console.error('Auto-post creation failed', e);
             }
         }
+        */
 
         return data as Mission;
     },
