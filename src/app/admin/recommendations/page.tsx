@@ -82,6 +82,29 @@ const AI_IMPORT_TEMPLATE = `
 ]
 `;
 
+const TRAVEL_RECIPE_AI_TEMPLATE = `
+[AI 요청 프롬프트 예시]
+
+"다음 JSON 형식에 맞춰 독립된 '여행 레시피' 아이템 3개를 생성해줘. 한국어로 작성해."
+
+[
+  {
+    "category": "국물/밀키트", // 카테고리명 (🔥 바베큐/그릴, 소/돼지, 닭/오리, 해산물, 꼬치/기타, 🍳 원팬/간단, 면/파스타, 볶음/덮밥, 전/부침, 기타간단요리, 🥘 국물/밀키트, 찌개/전골, 탕/어묵탕, 🥗 아침/브런치, 샌드위치/토스트, 샐러드/과일, 죽/누룽지, 🍹 파티/스낵, 핑거푸드/치즈, 튀김/마른안주 등 중에서 선택)
+    "name": "레시피 이름",
+    "thumbnail_url": null,
+    "ingredients": [
+      { "name": "재료명", "amount": "수량 (예: 150g, 1개, 적당량)" }
+    ],
+    "travel_tips": [
+      "조리 꿀팁 1",
+      "조리 꿀팁 2"
+    ],
+    "youtube_search_keyword": "유튜브 검색 키워드",
+    "instagram_search_keyword": "인스타 검색 키워드"
+  }
+]
+`;
+
 export default function RecommendationAdminPage() {
     const supabase = createClient();
 
@@ -95,6 +118,11 @@ export default function RecommendationAdminPage() {
     const [isBulkOpen, setIsBulkOpen] = useState(false);
     const [bulkJson, setBulkJson] = useState('');
     const [bulkLoading, setBulkLoading] = useState(false);
+
+    // Travel Recipe Bulk Import State
+    const [isTravelRecipeBulkOpen, setIsTravelRecipeBulkOpen] = useState(false);
+    const [travelRecipeBulkJson, setTravelRecipeBulkJson] = useState('');
+    const [travelRecipeBulkLoading, setTravelRecipeBulkLoading] = useState(false);
 
     // Form States
     const [isRecSheetOpen, setIsRecSheetOpen] = useState(false);
@@ -381,6 +409,115 @@ export default function RecommendationAdminPage() {
     const handleCopyTemplate = () => {
         navigator.clipboard.writeText(AI_IMPORT_TEMPLATE);
         toast.success("AI 요청 양식이 클립보드에 복사되었습니다!");
+    };
+
+    const handleCopyTravelRecipeTemplate = () => {
+        navigator.clipboard.writeText(TRAVEL_RECIPE_AI_TEMPLATE);
+        toast.success("AI 요청 양식이 클립보드에 복사되었습니다!");
+    };
+
+    const handleTravelRecipeBulkImport = async () => {
+        if (!travelRecipeBulkJson.trim()) {
+            toast.error('JSON 데이터를 입력해주세요.');
+            return;
+        }
+
+        try {
+            setTravelRecipeBulkLoading(true);
+            
+            // Clean up backticks like ```json ... ```
+            let cleanJson = travelRecipeBulkJson.trim();
+            if (cleanJson.startsWith('```')) {
+                cleanJson = cleanJson.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '');
+            }
+            cleanJson = cleanJson.trim();
+
+            let parsed: any;
+            try {
+                parsed = JSON.parse(cleanJson);
+            } catch (e) {
+                toast.error('JSON 형식이 올바르지 않습니다.');
+                return;
+            }
+
+            // Standardize to array
+            const items = Array.isArray(parsed) ? parsed : [parsed];
+
+            // Validation
+            const invalidItems = items.filter(item => !item.name);
+            if (invalidItems.length > 0) {
+                toast.error(`${invalidItems.length}개의 아이템에 필수 항목(name)이 누락되었습니다.`);
+                return;
+            }
+
+            // Map category name to category_id
+            const { data: categories } = await supabase
+                .from('travel_recipe_categories')
+                .select('id, name');
+            
+            const catMap = new Map<string, number>();
+            if (categories) {
+                categories.forEach(c => {
+                    const cleanDbName = c.name.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+                    catMap.set(c.name.trim(), Number(c.id));
+                    catMap.set(cleanDbName, Number(c.id));
+                });
+            }
+
+            let fallbackCatId: number | null = null;
+            if (categories && categories.length > 0) {
+                const fallbackCat = categories.find(c => c.name.includes('기타')) || categories[0];
+                fallbackCatId = Number(fallbackCat.id);
+            }
+
+            const dbRecipes = items.map(item => {
+                const categoryStr = (item.category || '').trim();
+                let categoryId = fallbackCatId;
+                
+                if (categoryStr) {
+                    const cleanCatName = categoryStr.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+                    if (catMap.has(categoryStr)) {
+                        categoryId = catMap.get(categoryStr)!;
+                    } else if (catMap.has(cleanCatName)) {
+                        categoryId = catMap.get(cleanCatName)!;
+                    } else {
+                        const matchedCat = categories?.find(c => 
+                            c.name.includes(cleanCatName) || cleanCatName.includes(c.name.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim())
+                        );
+                        if (matchedCat) {
+                            categoryId = Number(matchedCat.id);
+                        }
+                    }
+                }
+
+                return {
+                    category_id: categoryId,
+                    name: item.name,
+                    thumbnail_url: item.thumbnail_url || null,
+                    ingredients: item.ingredients || [],
+                    travel_tips: item.travel_tips || [],
+                    youtube_search_keyword: item.youtube_search_keyword || null,
+                    instagram_search_keyword: item.instagram_search_keyword || null,
+                    view_count: 0
+                };
+            });
+
+            const { error: insertError } = await supabase
+                .from('travel_recipes')
+                .insert(dbRecipes);
+
+            if (insertError) throw insertError;
+
+            toast.success(`${dbRecipes.length}개의 여행 레시피가 성공적으로 등록되었습니다!`);
+            setIsTravelRecipeBulkOpen(false);
+            setTravelRecipeBulkJson('');
+            fetchData();
+        } catch (error: any) {
+            console.error(error);
+            toast.error(`등록 중 오류 발생: ${error.message}`);
+        } finally {
+            setTravelRecipeBulkLoading(false);
+        }
     };
 
     const handleCopyJson = () => {
@@ -855,9 +992,47 @@ export default function RecommendationAdminPage() {
                 <TabsContent value="travel_recipes" className="space-y-4">
                     <div className="flex justify-between items-center bg-white p-4 rounded-lg border">
                         <div className="text-sm text-gray-500">독립된 여행 및 캠핑 요리 레시피 데이터를 관리합니다. (총 {travelRecipes.length}개)</div>
-                        <Button onClick={() => openTravelRecipeSheet()} className="bg-emerald-700 hover:bg-emerald-800">
-                            <Plus size={16} className="mr-2" /> 레시피 추가
-                        </Button>
+                        <div className="flex gap-2">
+                            {/* Travel Recipe Bulk Paste Dialog */}
+                            <Dialog open={isTravelRecipeBulkOpen} onOpenChange={setIsTravelRecipeBulkOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                                        <Copy className="w-4 h-4" />
+                                        직접 붙여넣기
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+                                    <DialogHeader>
+                                        <DialogTitle>여행 레시피 JSON 데이터 직접 붙여넣기</DialogTitle>
+                                        <DialogDescription>
+                                            AI가 생성한 여행 레시피 JSON 데이터를 아래에 붙여넣으세요.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex justify-end px-1 pt-2">
+                                        <Button variant="ghost" size="sm" onClick={handleCopyTravelRecipeTemplate} className="text-xs text-blue-600 gap-1">
+                                            <Copy size={12} /> AI 요청용 양식 복사
+                                        </Button>
+                                    </div>
+                                    <div className="flex-1 py-2">
+                                        <Textarea
+                                            placeholder='[{"category": "국물/밀키트", "name": "부대찌개", "ingredients": [{"name": "햄", "amount": "100g"}], "travel_tips": ["팁"]}, ...]'
+                                            className="h-full font-mono text-xs"
+                                            value={travelRecipeBulkJson}
+                                            onChange={(e) => setTravelRecipeBulkJson(e.target.value)}
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={handleTravelRecipeBulkImport} disabled={travelRecipeBulkLoading} className="bg-emerald-700 hover:bg-emerald-800 text-white">
+                                            {travelRecipeBulkLoading ? "등록 중..." : "등록하기"}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Button onClick={() => openTravelRecipeSheet()} className="bg-emerald-700 hover:bg-emerald-800">
+                                <Plus size={16} className="mr-2" /> 레시피 추가
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -75,3 +75,9 @@
     - [x] Update `ProductForm.tsx` to compress admin product photos.
     - [x] Refactor `imageUtils.ts` to delegate to standard imageCompressor.
     - [x] Verify build and zero-cost WebP compression.
+- [x] **AI JSON Paste Upload for Travel Recipes**
+    - [x] Define AI prompt template and JSON schema helper constant in `page.tsx`.
+    - [x] Create states and handler function for travel recipes bulk JSON paste and import.
+    - [x] Implement smart category-to-ID mapping logic in travel recipe insert.
+    - [x] Add the Paste Dialog UI component to the Travel Recipes tab in `page.tsx`.
+    - [x] Verify build and execution of bulk upload.
