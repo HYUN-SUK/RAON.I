@@ -286,6 +286,11 @@
     *   [x] **5.5.25 Smart Plan Weather Hallucination Prevention (v11.9.96) 🟢 (2026-06-13)**:
         *   [x] **Weather Availability Branching**: 날씨 정보가 없는 10일 초과 미래 예약 시 AI 히어로가 날씨를 마음대로 지어내는 환각(Hallucination) 현상을 차단하기 위해 프롬프트를 조건부 분기.
         *   [x] **Supabase Client Fallback**: CLI 테스트 및 크론 환경(Request Context가 없는 환경)에서 cookies() 호출 에러가 날 때, 서비스 롤 기반 Supabase 클라이언트를 타도록 내결함성(Robustness) 로직 추가.
+    *   [x] **5.5.26 Travel & Camping Recipe Explorer (v11.9.97) 🟢 (2026-06-13)**:
+        *   [x] **Database Migration**: `travel_recipe_categories` 및 `travel_recipes` 독립 테이블 스키마 설계 및 마이그레이션 SQL 파일 배치.
+        *   [x] **Seed Data Ingestion Script**: 상황별 14개 서브 카테고리와 40여 종의 꼼꼼한 여행 요리(재료, 여행 팁, 키워드 포함) 데이터 CLI 자동 적재 스크립트 구축.
+        *   [x] **Explorer Page & Bottom Sheet UI**: 대분류/소분류 2-Step 최소 터치 탐색기 UI, 장보기 체크리스트, 여행 전용 팁 및 유튜브/인스타 검색어 딥링크 모듈 개발 완료.
+        *   [x] **Home UI Entry Banners**: 초보자 및 기존 사용자용 모바일 홈에 탐색기 진입로용 배너 연동.
 
 
 ### Phase 6: ?�장 모듈 (Expansion) - ?�� Ongoing (98%)
