@@ -39,37 +39,12 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
         );
     }
 
-    const { cooking, play, events, reasons } = data;
+    const { play, reasons } = data;
 
     // Construct valid items for display
     const items: DetailedRecommendationItem[] = [];
 
-    // 1. Cooking
-    if (cooking) {
-        items.push({
-            id: `cook-${cooking.id}`,
-            icon: <ChefHat className="text-orange-600" size={28} />,
-            categoryLabel: '오늘의 셰프',
-            title: cooking.title,
-            bgColorClass: 'bg-[#FDFBF7]',
-            textColorClass: 'text-amber-900',
-            data: cooking,
-            reason: reasons?.cooking
-        });
-    } else {
-        // Fallback Mock
-        items.push({
-            id: 'cook-mock',
-            icon: <ChefHat className="text-stone-400" size={28} />,
-            categoryLabel: '오늘의 요리',
-            title: '준비 중입니다',
-            bgColorClass: 'bg-[#FDFBF7]',
-            textColorClass: 'text-stone-400',
-            data: null
-        });
-    }
-
-    // 2. Play
+    // 1. Play Only (Cooking recommendations removed per UI clean-up request)
     if (play) {
         items.push({
             id: `play-${play.id}`,
@@ -93,51 +68,16 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
         });
     }
 
-    // 3. Events (Nearby LBS) - Hidden as per request to prevent display and API calls
-    /*
-    const eventCount = events ? events.length : 0;
-    const firstEvent = events && events.length > 0 ? events[0] : null;
-
-    if (eventCount > 0 && firstEvent) {
-        items.push({
-            id: `event-lbs`,
-            icon: <MapPin className="text-sky-600" size={28} />,
-            categoryLabel: '주변 레포츠, 관광지, 편의시설, 행사',
-            title: firstEvent.title,
-            bgColorClass: 'bg-[#E3F2FD]',
-            textColorClass: 'text-[#1E3A8A]',
-            isWide: true,
-            description: eventCount > 1
-                ? `외 ${eventCount - 1}개의 행사와 편의시설이 있어요`
-                : firstEvent.location || '가까운 곳에서 즐겨보세요',
-            data: { type: 'nearby_lbs' as const, events: events } // Special type for LBS handler
-        });
-    } else {
-        items.push({
-            id: 'event-mock',
-            icon: <MapPin className="text-sky-600" size={28} />,
-            categoryLabel: '주변 레포츠, 관광지, 편의시설, 행사',
-            title: '주변의 숨은 명소와 그래비티',
-            bgColorClass: 'bg-[#E3F2FD]',
-            textColorClass: 'text-slate-500',
-            isWide: true,
-            description: '레포츠, 관광지, 편의시설을 확인해보세요',
-            data: { type: 'nearby_lbs' as const, events: [] }
-        });
-    }
-    */
-
     return (
         <section className="px-4 mb-8">
             <div className="flex justify-between items-end mb-4 px-1">
                 <h3 className="text-xl font-bold text-[#1C4526] dark:text-[#A7F3D0]">오늘의 추천</h3>
             </div>
-            {/* Bento Grid: 2 Top + 1 Bottom Wide */}
+            {/* Grid Layout: Wide if only 1 item exists */}
             <div className="grid grid-cols-2 gap-3">
                 {items.map((item, index) => {
-                    // Force the 3rd item to be wide if it is designed that way, 
-                    // dependent on standard 3 item array
-                    const isWide = index === 2 || item.isWide;
+                    // Force full width if only play card is present
+                    const isWide = index === 2 || item.isWide || items.length === 1;
 
                     // Safe access to potential V2 properties
                     // We know the structure based on DB schema now but for now we cast to specific known interface or use optional chaining safely without any

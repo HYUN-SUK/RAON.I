@@ -88,6 +88,8 @@ export default function RecommendationAdminPage() {
     // Data
     const [recItems, setRecItems] = useState<RecItem[]>([]);
     const [events, setEvents] = useState<EventItem[]>([]);
+    const [travelRecipes, setTravelRecipes] = useState<any[]>([]);
+    const [recipeCategories, setRecipeCategories] = useState<any[]>([]);
 
     // Bulk Import State
     const [isBulkOpen, setIsBulkOpen] = useState(false);
@@ -97,7 +99,8 @@ export default function RecommendationAdminPage() {
     // Form States
     const [isRecSheetOpen, setIsRecSheetOpen] = useState(false);
     const [isEventSheetOpen, setIsEventSheetOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<RecItem | EventItem | null>(null);
+    const [isTravelRecipeSheetOpen, setIsTravelRecipeSheetOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<any | null>(null);
 
     const [recFormData, setRecFormData] = useState({
         category: 'cooking',
@@ -128,18 +131,33 @@ export default function RecommendationAdminPage() {
         image_url: '',
     });
 
+    const [travelRecipeFormData, setTravelRecipeFormData] = useState({
+        category_id: '',
+        name: '',
+        thumbnail_url: '',
+        ingredients: [] as IngredientItem[],
+        travel_tips: [] as string[],
+        youtube_search_keyword: '',
+        instagram_search_keyword: '',
+    });
+
     // Helper for List Inputs
     const [tempInput, setTempInput] = useState('');
     // Helper for Ingredient Inputs
     const [tempIngName, setTempIngName] = useState('');
     const [tempIngAmount, setTempIngAmount] = useState('');
 
+    // Helpers for Travel Recipe
+    const [tempTip, setTempTip] = useState('');
+    const [tempRecipeIngName, setTempRecipeIngName] = useState('');
+    const [tempRecipeIngAmount, setTempRecipeIngAmount] = useState('');
+
     // V2 Admin Features
     const [filterCategory, setFilterCategory] = useState<'all' | 'cooking' | 'play'>('all');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     // Delete Dialog State
-    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk', table?: 'recommendation_pool' | 'nearby_events', id?: string } | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk', table?: 'recommendation_pool' | 'nearby_events' | 'travel_recipes', id?: string } | null>(null);
 
     // Computed
     const filteredItems = recItems.filter(item => {
@@ -155,6 +173,12 @@ export default function RecommendationAdminPage() {
 
             const { data: evts } = await supabase.from('nearby_events').select('*').order('start_date', { ascending: true });
             if (evts) setEvents(evts);
+
+            const { data: tRecs } = await supabase.from('travel_recipes').select('*').order('created_at', { ascending: false });
+            if (tRecs) setTravelRecipes(tRecs);
+
+            const { data: tCats } = await supabase.from('travel_recipe_categories').select('*').order('sort_order', { ascending: true });
+            if (tCats) setRecipeCategories(tCats);
         } catch (e) {
             console.error(e);
         }
@@ -232,7 +256,7 @@ export default function RecommendationAdminPage() {
         }
     };
 
-    const handleDelete = (table: 'recommendation_pool' | 'nearby_events', id: string) => {
+    const handleDelete = (table: 'recommendation_pool' | 'nearby_events' | 'travel_recipes', id: string) => {
         setDeleteTarget({ type: 'single', table, id });
     };
 
@@ -502,11 +526,69 @@ export default function RecommendationAdminPage() {
         setIsEventSheetOpen(true);
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'rec' | 'event') => {
+    const openTravelRecipeSheet = (item?: any) => {
+        if (item) {
+            setEditingItem(item);
+            setTravelRecipeFormData({
+                category_id: item.category_id ? String(item.category_id) : '',
+                name: item.name,
+                thumbnail_url: item.thumbnail_url || '',
+                ingredients: item.ingredients || [],
+                travel_tips: item.travel_tips || [],
+                youtube_search_keyword: item.youtube_search_keyword || '',
+                instagram_search_keyword: item.instagram_search_keyword || '',
+            });
+        } else {
+            setEditingItem(null);
+            setTravelRecipeFormData({
+                category_id: '',
+                name: '',
+                thumbnail_url: '',
+                ingredients: [],
+                travel_tips: [],
+                youtube_search_keyword: '',
+                instagram_search_keyword: '',
+            });
+        }
+        setIsTravelRecipeSheetOpen(true);
+    };
+
+    const handleTravelRecipeSubmit = async () => {
+        try {
+            const payload = {
+                category_id: travelRecipeFormData.category_id ? parseInt(travelRecipeFormData.category_id) : null,
+                name: travelRecipeFormData.name,
+                thumbnail_url: travelRecipeFormData.thumbnail_url || null,
+                ingredients: travelRecipeFormData.ingredients,
+                travel_tips: travelRecipeFormData.travel_tips,
+                youtube_search_keyword: travelRecipeFormData.youtube_search_keyword || null,
+                instagram_search_keyword: travelRecipeFormData.instagram_search_keyword || null,
+            };
+
+            if (editingItem && 'travel_tips' in editingItem) {
+                const { error } = await supabase.from('travel_recipes').update(payload).eq('id', editingItem.id);
+                if (error) throw error;
+                toast.success('수정되었습니다.');
+            } else {
+                const { error } = await supabase.from('travel_recipes').insert(payload);
+                if (error) throw error;
+                toast.success('추가되었습니다.');
+            }
+            setIsTravelRecipeSheetOpen(false);
+            setEditingItem(null);
+            fetchData();
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "오류가 발생했습니다.";
+            toast.error(message);
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'rec' | 'event' | 'travel') => {
         const file = e.target.files?.[0];
         if (!file) return;
         const url = await communityService.uploadImage(file);
         if (type === 'rec') setRecFormData(prev => ({ ...prev, image_url: url }));
+        else if (type === 'travel') setTravelRecipeFormData(prev => ({ ...prev, thumbnail_url: url }));
         else setEventFormData(prev => ({ ...prev, image_url: url }));
     };
 
@@ -537,6 +619,39 @@ export default function RecommendationAdminPage() {
         }));
     };
 
+    const addTravelTip = () => {
+        if (!tempTip.trim()) return;
+        setTravelRecipeFormData(prev => ({
+            ...prev,
+            travel_tips: [...prev.travel_tips, tempTip.trim()]
+        }));
+        setTempTip('');
+    };
+
+    const removeTravelTip = (idx: number) => {
+        setTravelRecipeFormData(prev => ({
+            ...prev,
+            travel_tips: prev.travel_tips.filter((_, i) => i !== idx)
+        }));
+    };
+
+    const addTravelIngredient = () => {
+        if (!tempRecipeIngName.trim()) return;
+        setTravelRecipeFormData(prev => ({
+            ...prev,
+            ingredients: [...prev.ingredients, { name: tempRecipeIngName.trim(), amount: tempRecipeIngAmount.trim() }]
+        }));
+        setTempRecipeIngName('');
+        setTempRecipeIngAmount('');
+    };
+
+    const removeTravelIngredient = (idx: number) => {
+        setTravelRecipeFormData(prev => ({
+            ...prev,
+            ingredients: prev.ingredients.filter((_, i) => i !== idx)
+        }));
+    };
+
 
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -546,6 +661,7 @@ export default function RecommendationAdminPage() {
                 <TabsList>
                     <TabsTrigger value="pool">추천 콘텐츠 풀</TabsTrigger>
                     <TabsTrigger value="events">행사 (Events)</TabsTrigger>
+                    <TabsTrigger value="travel_recipes">여행 레시피</TabsTrigger>
                 </TabsList>
 
                 {/* Recommendation Pool Tab */}
@@ -731,6 +847,57 @@ export default function RecommendationAdminPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </TabsContent>
+
+                {/* Travel Recipes Tab */}
+                <TabsContent value="travel_recipes" className="space-y-4">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border">
+                        <div className="text-sm text-gray-500">독립된 여행 및 캠핑 요리 레시피 데이터를 관리합니다. (총 {travelRecipes.length}개)</div>
+                        <Button onClick={() => openTravelRecipeSheet()} className="bg-emerald-700 hover:bg-emerald-800">
+                            <Plus size={16} className="mr-2" /> 레시피 추가
+                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {travelRecipes.map(recipe => {
+                            const catName = recipeCategories.find(c => c.id === recipe.category_id)?.name || '기타';
+                            return (
+                                <div key={recipe.id} className="relative border rounded-lg p-4 bg-white shadow-sm flex gap-4 transition-all">
+                                    <div className="flex gap-4 w-full">
+                                        {recipe.thumbnail_url ? (
+                                            <Image unoptimized src={recipe.thumbnail_url} width={80} height={80} className="w-20 h-20 rounded-md object-cover bg-gray-100 shrink-0" alt={recipe.name} />
+                                        ) : (
+                                            <div className="w-20 h-20 rounded-md bg-stone-50 flex items-center justify-center shrink-0">
+                                                <ChefHat size={24} className="text-stone-300" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 space-y-1 min-w-0">
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">
+                                                    {catName}
+                                                </span>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => openTravelRecipeSheet(recipe)} className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded"><Edit size={14} /></button>
+                                                    <button onClick={() => handleDelete('travel_recipes', recipe.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
+                                                </div>
+                                            </div>
+                                            <h3 className="font-bold text-sm truncate">{recipe.name}</h3>
+                                            <div className="text-[10px] text-stone-500">💡 {recipe.travel_tips?.[0] || '등록된 팁 없음'}</div>
+                                            <div className="flex gap-2 mt-1 text-[10px] text-stone-400">
+                                                <span>🛒 재료 {recipe.ingredients?.length || 0}종</span>
+                                                <span>👁️ {recipe.view_count || 0}회</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {travelRecipes.length === 0 && (
+                            <div className="col-span-full py-20 text-center text-stone-400">
+                                등록된 여행 레시피가 없습니다.
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
@@ -980,6 +1147,118 @@ export default function RecommendationAdminPage() {
                         </div>
                     </div>
                     <SheetFooter><Button onClick={handleEventSubmit}>저장</Button></SheetFooter>
+                </SheetContent>
+            </Sheet>
+
+            {/* Travel Recipe Admin Sheet */}
+            <Sheet open={isTravelRecipeSheetOpen} onOpenChange={setIsTravelRecipeSheetOpen}>
+                <SheetContent className="overflow-y-auto sm:max-w-md">
+                    <SheetHeader><SheetTitle>{editingItem && 'travel_tips' in editingItem ? '여행 레시피 수정' : '여행 레시피 추가'}</SheetTitle></SheetHeader>
+                    <div className="space-y-4 py-6">
+                        <div className="space-y-2">
+                            <Label>카테고리</Label>
+                            <Select value={travelRecipeFormData.category_id} onValueChange={v => setTravelRecipeFormData({ ...travelRecipeFormData, category_id: v })}>
+                                <SelectTrigger><SelectValue placeholder="카테고리를 선택하세요" /></SelectTrigger>
+                                <SelectContent>
+                                    {recipeCategories.filter(c => c.parent_id !== null).map(c => (
+                                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>요리 이름</Label>
+                            <Input value={travelRecipeFormData.name} onChange={e => setTravelRecipeFormData({ ...travelRecipeFormData, name: e.target.value })} placeholder="예: 삼겹살 김치찌개" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>썸네일 이미지</Label>
+                            <Input type="file" onChange={e => handleImageUpload(e, 'travel')} />
+                        </div>
+
+                        {/* Ingredients Checklist */}
+                        <div className="space-y-2 p-3 bg-stone-50 rounded-lg border">
+                            <Label className="text-stone-700">🛒 요리 재료</Label>
+                            <div className="flex gap-2 mb-2">
+                                <Input
+                                    value={tempRecipeIngName}
+                                    onChange={e => setTempRecipeIngName(e.target.value)}
+                                    placeholder="재료명 (예: 김치)"
+                                    className="flex-1"
+                                />
+                                <Input
+                                    value={tempRecipeIngAmount}
+                                    onChange={e => setTempRecipeIngAmount(e.target.value)}
+                                    placeholder="분량 (예: 1포기)"
+                                    className="w-24"
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTravelIngredient(); } }}
+                                />
+                                <Button type="button" onClick={addTravelIngredient} variant="default" size="icon" className="shrink-0">
+                                    <Plus size={16} />
+                                </Button>
+                            </div>
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                                {travelRecipeFormData.ingredients.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center bg-white px-3 py-2 rounded border text-sm shadow-sm">
+                                        <span>{item.name}</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-stone-500 text-xs">{item.amount}</span>
+                                            <button onClick={() => removeTravelIngredient(idx)}>
+                                                <Trash2 size={14} className="text-stone-400 hover:text-red-500" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {travelRecipeFormData.ingredients.length === 0 && (
+                                    <p className="text-xs text-stone-400 text-center py-2">등록된 재료가 없습니다.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Travel Tips List */}
+                        <div className="space-y-2 p-3 bg-stone-50 rounded-lg border">
+                            <Label className="text-stone-700">💡 조리 팁 목록</Label>
+                            <div className="flex gap-2 mb-2">
+                                <Input
+                                    value={tempTip}
+                                    onChange={e => setTempTip(e.target.value)}
+                                    placeholder="조리 꿀팁 입력"
+                                    className="flex-1"
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTravelTip(); } }}
+                                />
+                                <Button type="button" onClick={addTravelTip} variant="default" size="icon" className="shrink-0">
+                                    <Plus size={16} />
+                                </Button>
+                            </div>
+                            <div className="space-y-1">
+                                {travelRecipeFormData.travel_tips.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center bg-white px-3 py-2 rounded border text-sm shadow-sm">
+                                        <span className="truncate flex-1">{item}</span>
+                                        <button onClick={() => removeTravelTip(idx)} className="shrink-0 ml-2">
+                                            <Trash2 size={14} className="text-stone-400 hover:text-red-500" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {travelRecipeFormData.travel_tips.length === 0 && (
+                                    <p className="text-xs text-stone-400 text-center py-2">등록된 조리 팁이 없습니다.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Search Keywords */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>유튜브 검색 키워드</Label>
+                                <Input value={travelRecipeFormData.youtube_search_keyword} onChange={e => setTravelRecipeFormData({ ...travelRecipeFormData, youtube_search_keyword: e.target.value })} placeholder="예: 삼겹살 김치찌개 캠핑" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>인스타 태그 키워드</Label>
+                                <Input value={travelRecipeFormData.instagram_search_keyword} onChange={e => setTravelRecipeFormData({ ...travelRecipeFormData, instagram_search_keyword: e.target.value })} placeholder="예: #캠핑요리" />
+                            </div>
+                        </div>
+                    </div>
+                    <SheetFooter><Button onClick={handleTravelRecipeSubmit}>저장</Button></SheetFooter>
                 </SheetContent>
             </Sheet>
         </div>
