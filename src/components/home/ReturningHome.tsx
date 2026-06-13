@@ -293,7 +293,6 @@ export default function ReturningHome() {
                         </div>
                         <div className="relative z-10 flex justify-between items-center">
                             <div className="space-y-1 text-left">
-                                <span className="bg-emerald-600/50 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">NEW 콘텐츠</span>
                                 <h3 className="text-base font-bold tracking-tight">📖 여행 & 캠핑 레시피 탐색기</h3>
                                 <p className="text-xs text-white/80">터치 2번으로 고르는 맞춤 요리 정보와 꿀팁 영상</p>
                             </div>

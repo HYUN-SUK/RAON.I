@@ -238,10 +238,6 @@ export default function TravelRecipePage() {
                         <p className="text-[10px] text-stone-500">숙소/야외 어디서나 초간단 조리 팁</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/50">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">스마트 가이드</span>
-                </div>
             </header>
 
             {/* Search Section */}
