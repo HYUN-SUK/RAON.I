@@ -70,14 +70,13 @@ const CATEGORY_TREE = [
     }
 ];
 
-// Split the sub-categories into 5 batches to stay within rate limits (RPM 15 for free Gemini API)
-const BATCHES = [
-    ["소/돼지", "닭/오리", "해산물"],
-    ["꼬치/기타", "면/파스타", "볶음/덮밥"],
-    ["전/부침", "기타간단요리", "찌개/전골"],
-    ["탕/어묵탕", "샌드위치/토스트", "샐러드/과일"],
-    ["죽/누룽지", "핑거푸드/치즈", "튀김/마른안주"]
-];
+// Flatten the children categories to process one by one to avoid max token truncation
+const subCategories: { parentName: string, name: string }[] = [];
+for (const parentNode of CATEGORY_TREE) {
+    for (const childNode of parentNode.children) {
+        subCategories.push({ parentName: parentNode.name, name: childNode.name });
+    }
+}
 
 interface GeneratedRecipe {
     category_name: string;
@@ -159,29 +158,30 @@ async function seedData() {
 
         console.log("✅ Categories setup complete.");
 
-        // 2. Generate Recipes via Gemini in batches
+        // 2. Generate Recipes via Gemini sequentially per sub-category
         let totalCreated = 0;
 
-        for (let batchIdx = 0; batchIdx < BATCHES.length; batchIdx++) {
-            const batchCategories = BATCHES[batchIdx];
-            console.log(`\n🤖 Calling Gemini API for Batch ${batchIdx + 1}/5 (Categories: ${batchCategories.join(', ')})`);
+        for (let idx = 0; idx < subCategories.length; idx++) {
+            const cat = subCategories[idx];
+            console.log(`\n🤖 Calling Gemini API for Category [${cat.name}] (${idx + 1}/${subCategories.length})`);
 
             const prompt = `
 당신은 여행 및 캠핑 요리 레시피 데이터베이스를 구축하는 콘텐츠 디렉터입니다.
-주어진 카테고리에 최적화된, 펜션이나 캠핑장 등 여행지에서 누구나 손쉽게 할 수 있는 실제 한식/퓨전 요리 데이터를 많이 만들어주세요.
+주어진 카테고리에 최적화된, 펜션이나 캠핑장 등 여행지에서 누구나 손쉽게 할 수 있는 실제 한식/퓨전 요리 데이터를 만들어주세요.
 
 [생성할 카테고리 정보]
-${JSON.stringify(batchCategories)}
+- 상위 카테고리: ${cat.parentName}
+- 상세 카테고리: ${cat.name}
 
 [요청 사항]
-1. 위 제공된 각 카테고리별로 정확히 22개에서 25개씩 서로 겹치지 않는 다양한 실제 요리 데이터를 생성해 주세요. (총 약 70~75개 내외)
+1. 상세 카테고리 "${cat.name}"에 해당하는 정확히 22개에서 25개의 서로 겹치지 않는 다양한 실제 요리 데이터를 생성해 주세요.
 2. 조리 팁(travel_tips)은 펜션 주방, 가스버너, 그리들, 숯불 등 야외나 숙소 조리 환경에 초점을 맞춰 실용적으로 2개 적어주세요.
 3. 소셜 검색 키워드는 사용자가 유튜브나 인스타에 그대로 검색했을 때 관련 꿀팁 영상이나 숏폼이 가장 잘 나오는 캠핑/여행 융합 키워드로 입력해 주세요.
 4. 반드시 아래 JSON 배열 구조로만 응답해 주세요. 다른 설명 텍스트는 일체 생략하세요.
 
 [
   {
-    "category_name": "소/돼지",
+    "category_name": "${cat.name}",
     "name": "요리명",
     "ingredients": [{"name": "재료명", "amount": "분량"}],
     "travel_tips": ["팁1", "팁2"],
@@ -203,7 +203,9 @@ ${JSON.stringify(batchCategories)}
             });
 
             if (!response.ok) {
-                console.error(`❌ Gemini API Batch ${batchIdx + 1} failed with status ${response.status}`);
+                console.error(`❌ Gemini API for Category [${cat.name}] failed with status ${response.status}`);
+                // Pacing cooldown even if it fails to prevent hitting temporary ban
+                await delay(12000);
                 continue;
             }
 
@@ -217,13 +219,14 @@ ${JSON.stringify(batchCategories)}
             }
 
             if (!responseText) {
-                console.error(`❌ Empty response for batch ${batchIdx + 1}`);
+                console.error(`❌ Empty response for Category [${cat.name}]`);
+                await delay(12000);
                 continue;
             }
 
             try {
                 const parsedRecipes: GeneratedRecipe[] = JSON.parse(responseText);
-                console.log(`- Successfully parsed ${parsedRecipes.length} recipes for Batch ${batchIdx + 1}.`);
+                console.log(`- Successfully parsed ${parsedRecipes.length} recipes for Category [${cat.name}].`);
 
                 const dbRecipes = parsedRecipes.map(r => {
                     const categoryId = categoryMap[r.category_name];
@@ -255,7 +258,7 @@ ${JSON.stringify(batchCategories)}
                             .insert(finalBatch);
 
                         if (insertError) {
-                            console.error("Batch Insertion Error:", insertError);
+                            console.error("Category Insertion Error:", insertError);
                             throw insertError;
                         }
                         successCount(finalBatch.length);
@@ -266,13 +269,13 @@ ${JSON.stringify(batchCategories)}
                     }
                 }
             } catch (err: any) {
-                console.error(`❌ Error parsing/saving Batch ${batchIdx + 1}:`, err.message);
+                console.error(`❌ Error parsing/saving Category [${cat.name}]:`, err.message);
             }
 
-            // Pacing limit: wait 9 seconds before the next call to avoid rate limit for free keys
-            if (batchIdx < BATCHES.length - 1) {
-                console.log("⏳ Pacing cooldown: waiting 9 seconds...");
-                await delay(9000);
+            // Pacing limit: wait 12 seconds before the next call to avoid rate limit for free keys
+            if (idx < subCategories.length - 1) {
+                console.log("⏳ Pacing cooldown: waiting 12 seconds...");
+                await delay(12000);
             }
         }
 
