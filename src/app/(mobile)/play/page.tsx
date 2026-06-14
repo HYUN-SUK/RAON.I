@@ -626,10 +626,10 @@ export default function PlayExplorerPage() {
                         <div>
                             <h2 className="text-base font-bold flex items-center gap-1.5">
                                 <Sparkles className="w-4 h-4 text-yellow-200 animate-pulse" />
-                                실시간 기상 연동 놀이 매칭
+                                실시간 놀이 매칭
                             </h2>
                             <p className="text-xs text-white/90 leading-relaxed mt-1">
-                                [추천받기]를 누르면 실시간 기기 GPS 좌표를 분석하여 현재 날씨에 완벽히 어울리는 놀이를 엄선합니다. (날씨 정보는 4시간 동안 알뜰하게 캐싱됩니다.)
+                                선택하신 여행 모드와 놀이 유형 안에서, 현재 위치의 날씨와 사용자 프로필을 종합 반영하여 오늘 즐기기 딱 좋은 놀이를 1개 엄선해 드립니다!
                             </p>
                         </div>
                         <Button

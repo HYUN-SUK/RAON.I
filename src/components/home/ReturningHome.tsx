@@ -316,7 +316,7 @@ export default function ReturningHome() {
                         <div className="relative z-10 flex justify-between items-center">
                             <div className="space-y-1 text-left">
                                 <h3 className="text-base font-bold tracking-tight">🎲 여행 & 캠핑 놀이 탐색기</h3>
-                                <p className="text-xs text-white/80">어디서든 심심할 틈 없는 맞춤 놀이 추천과 힐링 사운드</p>
+                                <p className="text-xs text-white/80">어디서든 심심할 틈 없는 맞춤 놀이 추천</p>
                             </div>
                             <div className="bg-white/10 p-2 rounded-2xl group-hover:bg-white/20 transition-all">
                                 <ChevronRight className="w-5 h-5 text-white" />
