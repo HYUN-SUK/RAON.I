@@ -106,6 +106,30 @@ const TRAVEL_RECIPE_AI_TEMPLATE = `
 ]
 `;
 
+const TRAVEL_PLAY_AI_TEMPLATE = `
+[AI 요청 프롬프트 예시]
+
+"다음 JSON 형식에 맞춰 독립된 '여행 놀이/게임' 아이템 3개를 생성해줘. 한국어로 작성해."
+
+[
+  {
+    "category": "일반 여행 > 커플", // 카테고리명 (대분류 > 소분류 형식. 대분류는 [일반 여행 (실내/숙소), 야외/액티브 (자연), 감성 캠핑 (화로/텐트)] 중 선택, 소분류는 [2인/커플, 가족/아이 동반, 단체/친목, 혼자/사색] 중 선택)
+    "title": "놀이 제목",
+    "description": "놀이 설명 및 감성 맥락",
+    "thumbnail_url": null,
+    "difficulty": 2, // 1~5 정수
+    "time_required": 15, // 분 단위 정수
+    "materials": ["준비물1", "준비물2"],
+    "process_steps": [
+      "1단계: 방법 설명",
+      "2단계: 방법 설명"
+    ],
+    "tips": "더 재미있게 즐기는 법 또는 안전 팁",
+    "age_group": "전연령 (또는 초등학생 이상, 성인 전용 등)"
+  }
+]
+`;
+
 export default function RecommendationAdminPage() {
     const supabase = createClient();
 
@@ -114,6 +138,8 @@ export default function RecommendationAdminPage() {
     const [events, setEvents] = useState<EventItem[]>([]);
     const [travelRecipes, setTravelRecipes] = useState<any[]>([]);
     const [recipeCategories, setRecipeCategories] = useState<any[]>([]);
+    const [travelPlays, setTravelPlays] = useState<any[]>([]);
+    const [playCategories, setPlayCategories] = useState<any[]>([]);
 
     // Bulk Import State
     const [isBulkOpen, setIsBulkOpen] = useState(false);
@@ -125,10 +151,16 @@ export default function RecommendationAdminPage() {
     const [travelRecipeBulkJson, setTravelRecipeBulkJson] = useState('');
     const [travelRecipeBulkLoading, setTravelRecipeBulkLoading] = useState(false);
 
+    // Travel Play Bulk Import State
+    const [isTravelPlayBulkOpen, setIsTravelPlayBulkOpen] = useState(false);
+    const [travelPlayBulkJson, setTravelPlayBulkJson] = useState('');
+    const [travelPlayBulkLoading, setTravelPlayBulkLoading] = useState(false);
+
     // Form States
     const [isRecSheetOpen, setIsRecSheetOpen] = useState(false);
     const [isEventSheetOpen, setIsEventSheetOpen] = useState(false);
     const [isTravelRecipeSheetOpen, setIsTravelRecipeSheetOpen] = useState(false);
+    const [isTravelPlaySheetOpen, setIsTravelPlaySheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any | null>(null);
 
     const [recFormData, setRecFormData] = useState({
@@ -170,6 +202,19 @@ export default function RecommendationAdminPage() {
         instagram_search_keyword: '',
     });
 
+    const [travelPlayFormData, setTravelPlayFormData] = useState({
+        category_id: '',
+        title: '',
+        description: '',
+        thumbnail_url: '',
+        difficulty: 2,
+        time_required: 15,
+        materials: [] as string[],
+        process_steps: [] as string[],
+        tips: '',
+        age_group: '',
+    });
+
     // Helper for List Inputs
     const [tempInput, setTempInput] = useState('');
     // Helper for Ingredient Inputs
@@ -181,12 +226,17 @@ export default function RecommendationAdminPage() {
     const [tempRecipeIngName, setTempRecipeIngName] = useState('');
     const [tempRecipeIngAmount, setTempRecipeIngAmount] = useState('');
 
+    // Helpers for Travel Play
+    const [tempPlayMaterial, setTempPlayMaterial] = useState('');
+    const [tempPlayProcessStep, setTempPlayProcessStep] = useState('');
+
+
     // V2 Admin Features
     const [filterCategory, setFilterCategory] = useState<'all' | 'cooking' | 'play'>('all');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     // Delete Dialog State
-    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk', table?: 'recommendation_pool' | 'nearby_events' | 'travel_recipes', id?: string } | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk', table?: 'recommendation_pool' | 'nearby_events' | 'travel_recipes' | 'travel_plays', id?: string } | null>(null);
 
     // Computed
     const filteredItems = recItems.filter(item => {
@@ -208,6 +258,12 @@ export default function RecommendationAdminPage() {
 
             const { data: tCats } = await supabase.from('travel_recipe_categories').select('*').order('sort_order', { ascending: true });
             if (tCats) setRecipeCategories(tCats);
+
+            const { data: tPlays } = await supabase.from('travel_plays').select('*').order('created_at', { ascending: false });
+            if (tPlays) setTravelPlays(tPlays);
+
+            const { data: pCats } = await supabase.from('travel_play_categories').select('*').order('sort_order', { ascending: true });
+            if (pCats) setPlayCategories(pCats);
         } catch (e) {
             console.error(e);
         }
@@ -285,7 +341,7 @@ export default function RecommendationAdminPage() {
         }
     };
 
-    const handleDelete = (table: 'recommendation_pool' | 'nearby_events' | 'travel_recipes', id: string) => {
+    const handleDelete = (table: 'recommendation_pool' | 'nearby_events' | 'travel_recipes' | 'travel_plays', id: string) => {
         setDeleteTarget({ type: 'single', table, id });
     };
 
@@ -521,6 +577,167 @@ export default function RecommendationAdminPage() {
         }
     };
 
+    const handleCopyTravelPlayTemplate = () => {
+        navigator.clipboard.writeText(TRAVEL_PLAY_AI_TEMPLATE);
+        toast.success("AI 요청 양식이 클립보드에 복사되었습니다!");
+    };
+
+    const handleTravelPlaySubmit = async () => {
+        try {
+            const payload = {
+                category_id: travelPlayFormData.category_id ? Number(travelPlayFormData.category_id) : null,
+                title: travelPlayFormData.title,
+                description: travelPlayFormData.description,
+                thumbnail_url: travelPlayFormData.thumbnail_url || null,
+                difficulty: Number(travelPlayFormData.difficulty),
+                time_required: Number(travelPlayFormData.time_required),
+                materials: travelPlayFormData.materials,
+                process_steps: travelPlayFormData.process_steps,
+                tips: travelPlayFormData.tips || null,
+                age_group: travelPlayFormData.age_group || null,
+            };
+
+            if (editingItem) {
+                const { error } = await supabase.from('travel_plays').update(payload).eq('id', editingItem.id);
+                if (error) throw error;
+                toast.success('수정되었습니다.');
+            } else {
+                const { error } = await supabase.from('travel_plays').insert({ ...payload, view_count: 0 });
+                if (error) throw error;
+                toast.success('추가되었습니다.');
+            }
+            setIsTravelPlaySheetOpen(false);
+            setEditingItem(null);
+            fetchData();
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "오류가 발생했습니다.";
+            toast.error(message);
+        }
+    };
+
+    const handleTravelPlayBulkImport = async () => {
+        if (!travelPlayBulkJson.trim()) {
+            toast.error('JSON 데이터를 입력해주세요.');
+            return;
+        }
+
+        try {
+            setTravelPlayBulkLoading(true);
+            
+            let cleanJson = travelPlayBulkJson.trim();
+            if (cleanJson.startsWith('```')) {
+                cleanJson = cleanJson.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '');
+            }
+            cleanJson = cleanJson.trim();
+
+            let parsed: any;
+            try {
+                parsed = JSON.parse(cleanJson);
+            } catch {
+                toast.error('JSON 형식이 올바르지 않습니다.');
+                return;
+            }
+
+            const items = Array.isArray(parsed) ? parsed : [parsed];
+
+            const invalidItems = items.filter(item => !item.title);
+            if (invalidItems.length > 0) {
+                toast.error(`${invalidItems.length}개의 아이템에 필수 항목(title)이 누락되었습니다.`);
+                return;
+            }
+
+            const { data: categories } = await supabase
+                .from('travel_play_categories')
+                .select('id, name, parent_id');
+            
+            const catMap = new Map<string, number>();
+            
+            if (categories) {
+                const parentMap = new Map<number, string>();
+                categories.forEach(c => {
+                    if (c.parent_id === null) {
+                        parentMap.set(Number(c.id), c.name);
+                    }
+                });
+
+                categories.forEach(c => {
+                    if (c.parent_id !== null) {
+                        const parentName = parentMap.get(Number(c.parent_id)) || '';
+                        const cleanParent = parentName.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+                        const cleanChild = c.name.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+                        
+                        const fullComb1 = `${parentName} > ${c.name}`;
+                        const fullComb2 = `${cleanParent} > ${cleanChild}`;
+                        
+                        catMap.set(fullComb1, Number(c.id));
+                        catMap.set(fullComb2, Number(c.id));
+                        catMap.set(c.name, Number(c.id));
+                        catMap.set(cleanChild, Number(c.id));
+                    }
+                });
+            }
+
+            let fallbackCatId: number | null = null;
+            if (categories && categories.length > 0) {
+                const fallbackCat = categories.find(c => c.parent_id !== null) || categories[0];
+                fallbackCatId = Number(fallbackCat.id);
+            }
+
+            const dbPlays = items.map(item => {
+                const categoryStr = (item.category || '').trim();
+                let categoryId = fallbackCatId;
+                
+                if (categoryStr) {
+                    const cleanCatName = categoryStr.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+                    if (catMap.has(categoryStr)) {
+                        categoryId = catMap.get(categoryStr)!;
+                    } else if (catMap.has(cleanCatName)) {
+                        categoryId = catMap.get(cleanCatName)!;
+                    } else {
+                        const matchedCat = categories?.find(c => 
+                            c.parent_id !== null && (
+                                c.name.includes(cleanCatName) || cleanCatName.includes(c.name.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim())
+                            )
+                        );
+                        if (matchedCat) {
+                            categoryId = Number(matchedCat.id);
+                        }
+                    }
+                }
+
+                return {
+                    category_id: categoryId,
+                    title: item.title,
+                    description: item.description || '',
+                    thumbnail_url: item.thumbnail_url || null,
+                    difficulty: item.difficulty || 2,
+                    time_required: item.time_required || 15,
+                    materials: item.materials || [],
+                    process_steps: item.process_steps || [],
+                    tips: item.tips || null,
+                    age_group: item.age_group || null,
+                    view_count: 0
+                };
+            });
+
+            const { error: insertError } = await supabase
+                .from('travel_plays')
+                .insert(dbPlays);
+
+            if (insertError) throw insertError;
+
+            toast.success(`${dbPlays.length}개의 여행 놀이가 성공적으로 등록되었습니다!`);
+            setIsTravelPlayBulkOpen(false);
+            setTravelPlayBulkJson('');
+            fetchData();
+        } catch (error: any) {
+            console.error(error);
+            toast.error(`등록 중 오류 발생: ${error.message}`);
+        } finally {
+            setTravelPlayBulkLoading(false);
+        }
+    };
+
     const handleCopyJson = () => {
         const itemsToExport = selectedIds.size > 0
             ? recItems.filter(item => selectedIds.has(item.id))
@@ -692,6 +909,39 @@ export default function RecommendationAdminPage() {
         setIsTravelRecipeSheetOpen(true);
     };
 
+    const openTravelPlaySheet = (item?: any) => {
+        if (item) {
+            setEditingItem(item);
+            setTravelPlayFormData({
+                category_id: item.category_id ? String(item.category_id) : '',
+                title: item.title,
+                description: item.description,
+                thumbnail_url: item.thumbnail_url || '',
+                difficulty: item.difficulty || 2,
+                time_required: item.time_required || 15,
+                materials: item.materials || [],
+                process_steps: item.process_steps || [],
+                tips: item.tips || '',
+                age_group: item.age_group || '',
+            });
+        } else {
+            setEditingItem(null);
+            setTravelPlayFormData({
+                category_id: '',
+                title: '',
+                description: '',
+                thumbnail_url: '',
+                difficulty: 2,
+                time_required: 15,
+                materials: [],
+                process_steps: [],
+                tips: '',
+                age_group: '',
+            });
+        }
+        setIsTravelPlaySheetOpen(true);
+    };
+
     const handleTravelRecipeSubmit = async () => {
         try {
             const payload = {
@@ -722,13 +972,47 @@ export default function RecommendationAdminPage() {
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'rec' | 'event' | 'travel') => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'rec' | 'event' | 'travel' | 'travel_play') => {
         const file = e.target.files?.[0];
         if (!file) return;
         const url = await communityService.uploadImage(file);
         if (type === 'rec') setRecFormData(prev => ({ ...prev, image_url: url }));
         else if (type === 'travel') setTravelRecipeFormData(prev => ({ ...prev, thumbnail_url: url }));
+        else if (type === 'travel_play') setTravelPlayFormData(prev => ({ ...prev, thumbnail_url: url }));
         else setEventFormData(prev => ({ ...prev, image_url: url }));
+    };
+
+    // Travel Play Helpers
+    const addPlayMaterial = () => {
+        if (!tempPlayMaterial.trim()) return;
+        setTravelPlayFormData(prev => ({
+            ...prev,
+            materials: [...prev.materials, tempPlayMaterial.trim()]
+        }));
+        setTempPlayMaterial('');
+    };
+
+    const removePlayMaterial = (idx: number) => {
+        setTravelPlayFormData(prev => ({
+            ...prev,
+            materials: prev.materials.filter((_, i) => i !== idx)
+        }));
+    };
+
+    const addPlayProcessStep = () => {
+        if (!tempPlayProcessStep.trim()) return;
+        setTravelPlayFormData(prev => ({
+            ...prev,
+            process_steps: [...prev.process_steps, tempPlayProcessStep.trim()]
+        }));
+        setTempPlayProcessStep('');
+    };
+
+    const removePlayProcessStep = (idx: number) => {
+        setTravelPlayFormData(prev => ({
+            ...prev,
+            process_steps: prev.process_steps.filter((_, i) => i !== idx)
+        }));
     };
 
     // List Handlers
@@ -801,6 +1085,7 @@ export default function RecommendationAdminPage() {
                     <TabsTrigger value="pool">추천 콘텐츠 풀</TabsTrigger>
                     <TabsTrigger value="events">행사 (Events)</TabsTrigger>
                     <TabsTrigger value="travel_recipes">여행 레시피</TabsTrigger>
+                    <TabsTrigger value="travel_plays">놀이 추천</TabsTrigger>
                 </TabsList>
 
                 {/* Recommendation Pool Tab */}
@@ -1073,6 +1358,99 @@ export default function RecommendationAdminPage() {
                         {travelRecipes.length === 0 && (
                             <div className="col-span-full py-20 text-center text-stone-400">
                                 등록된 여행 레시피가 없습니다.
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+
+                {/* Travel Plays Tab */}
+                <TabsContent value="travel_plays" className="space-y-4">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border">
+                        <div className="text-sm text-gray-500">독립된 여행 및 캠핑 놀이 데이터를 관리합니다. (총 {travelPlays.length}개)</div>
+                        <div className="flex gap-2">
+                            {/* Travel Play Bulk Paste Dialog */}
+                            <Dialog open={isTravelPlayBulkOpen} onOpenChange={setIsTravelPlayBulkOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                                        <Copy className="w-4 h-4" />
+                                        직접 붙여넣기
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+                                    <DialogHeader>
+                                        <DialogTitle>여행 놀이 JSON 데이터 직접 붙여넣기</DialogTitle>
+                                        <DialogDescription>
+                                            AI가 생성한 여행 놀이 JSON 데이터를 아래에 붙여넣으세요.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex justify-end px-1 pt-2">
+                                        <Button variant="ghost" size="sm" onClick={handleCopyTravelPlayTemplate} className="text-xs text-blue-600 gap-1">
+                                            <Copy size={12} /> AI 요청용 양식 복사
+                                        </Button>
+                                    </div>
+                                    <div className="flex-1 py-2">
+                                        <Textarea
+                                            placeholder='[{"category": "일반 여행 > 커플", "title": "손가락 그림자 놀이", "difficulty": 2, "time_required": 15, "materials": ["랜턴"], "process_steps": ["1단계", "2단계"], "tips": "팁"}, ...]'
+                                            className="h-full font-mono text-xs"
+                                            value={travelPlayBulkJson}
+                                            onChange={(e) => setTravelPlayBulkJson(e.target.value)}
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={handleTravelPlayBulkImport} disabled={travelPlayBulkLoading} className="bg-emerald-700 hover:bg-emerald-800 text-white">
+                                            {travelPlayBulkLoading ? "등록 중..." : "등록하기"}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Button onClick={() => openTravelPlaySheet()} className="bg-emerald-700 hover:bg-emerald-800">
+                                <Plus size={16} className="mr-2" /> 놀이 추가
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {travelPlays.map(play => {
+                            const childCat = playCategories.find(c => c.id === play.category_id);
+                            const parentCat = childCat ? playCategories.find(p => p.id === childCat.parent_id) : null;
+                            const catLabel = childCat && parentCat ? `${parentCat.name} > ${childCat.name}` : '기타';
+                            
+                            return (
+                                <div key={play.id} className="relative border rounded-lg p-4 bg-white shadow-sm flex gap-4 transition-all">
+                                    <div className="flex gap-4 w-full">
+                                        {play.thumbnail_url ? (
+                                            <Image unoptimized src={play.thumbnail_url} width={80} height={80} className="w-20 h-20 rounded-md object-cover bg-gray-100 shrink-0" alt={play.title} />
+                                        ) : (
+                                            <div className="w-20 h-20 rounded-md bg-stone-50 flex items-center justify-center shrink-0">
+                                                <Tent size={24} className="text-stone-300" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 space-y-1 min-w-0">
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">
+                                                    {catLabel}
+                                                </span>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => openTravelPlaySheet(play)} className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded"><Edit size={14} /></button>
+                                                    <button onClick={() => handleDelete('travel_plays', play.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
+                                                </div>
+                                            </div>
+                                            <h3 className="font-bold text-sm truncate">{play.title}</h3>
+                                            <div className="text-[10px] text-stone-500">💡 {play.tips || '등록된 팁 없음'}</div>
+                                            <div className="flex gap-2 mt-1 text-[10px] text-stone-400">
+                                                <span>⏱️ {play.time_required || 0}분</span>
+                                                <span>⭐ {play.difficulty || 1}단계</span>
+                                                <span>👁️ {play.view_count || 0}회</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {travelPlays.length === 0 && (
+                            <div className="col-span-full py-20 text-center text-stone-400">
+                                등록된 여행 놀이가 없습니다.
                             </div>
                         )}
                     </div>
@@ -1436,6 +1814,126 @@ export default function RecommendationAdminPage() {
                         </div>
                     </div>
                     <SheetFooter><Button onClick={handleTravelRecipeSubmit}>저장</Button></SheetFooter>
+                </SheetContent>
+            </Sheet>
+
+            {/* Travel Play Admin Sheet */}
+            <Sheet open={isTravelPlaySheetOpen} onOpenChange={setIsTravelPlaySheetOpen}>
+                <SheetContent className="overflow-y-auto sm:max-w-md">
+                    <SheetHeader><SheetTitle>{editingItem ? '여행 놀이 수정' : '여행 놀이 추가'}</SheetTitle></SheetHeader>
+                    <div className="space-y-4 py-6">
+                        <div className="space-y-2">
+                            <Label>카테고리</Label>
+                            <Select value={travelPlayFormData.category_id} onValueChange={v => setTravelPlayFormData({ ...travelPlayFormData, category_id: v })}>
+                                <SelectTrigger><SelectValue placeholder="카테고리를 선택하세요" /></SelectTrigger>
+                                <SelectContent>
+                                    {playCategories.filter(c => c.parent_id !== null).map(c => {
+                                        const pName = playCategories.find(p => p.id === c.parent_id)?.name || '';
+                                        return (
+                                            <SelectItem key={c.id} value={String(c.id)}>{pName} &gt; {c.name}</SelectItem>
+                                        );
+                                    })}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>놀이 제목</Label>
+                            <Input value={travelPlayFormData.title} onChange={e => setTravelPlayFormData({ ...travelPlayFormData, title: e.target.value })} placeholder="예: 손가락 그림자 시계" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>상세 설명</Label>
+                            <Textarea value={travelPlayFormData.description} onChange={e => setTravelPlayFormData({ ...travelPlayFormData, description: e.target.value })} placeholder="놀이에 대한 설명을 입력해주세요." />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>썸네일 이미지</Label>
+                            <Input type="file" onChange={e => handleImageUpload(e, 'travel_play')} />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>난이도 (1-5)</Label>
+                                <Input type="number" min={1} max={5} value={travelPlayFormData.difficulty} onChange={e => setTravelPlayFormData({ ...travelPlayFormData, difficulty: Number(e.target.value) })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>소요 시간 (분)</Label>
+                                <Input type="number" min={5} value={travelPlayFormData.time_required} onChange={e => setTravelPlayFormData({ ...travelPlayFormData, time_required: Number(e.target.value) })} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>추천 연령대</Label>
+                            <Input value={travelPlayFormData.age_group} onChange={e => setTravelPlayFormData({ ...travelPlayFormData, age_group: e.target.value })} placeholder="예: 전연령, 7세 이상" />
+                        </div>
+
+                        {/* Materials Checklist */}
+                        <div className="space-y-2 p-3 bg-stone-50 rounded-lg border">
+                            <Label className="text-stone-700">🎒 준비물 목록</Label>
+                            <div className="flex gap-2 mb-2">
+                                <Input
+                                    value={tempPlayMaterial}
+                                    onChange={e => setTempPlayMaterial(e.target.value)}
+                                    placeholder="준비물 입력 (예: 랜턴)"
+                                    className="flex-1"
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPlayMaterial(); } }}
+                                />
+                                <Button type="button" onClick={addPlayMaterial} variant="default" size="icon" className="shrink-0">
+                                    <Plus size={16} />
+                                </Button>
+                            </div>
+                            <div className="space-y-1">
+                                {travelPlayFormData.materials.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center bg-white px-3 py-2 rounded border text-sm shadow-sm">
+                                        <span className="truncate flex-1">{item}</span>
+                                        <button onClick={() => removePlayMaterial(idx)} className="shrink-0 ml-2">
+                                            <Trash2 size={14} className="text-stone-400 hover:text-red-500" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {travelPlayFormData.materials.length === 0 && (
+                                    <p className="text-xs text-stone-400 text-center py-2">등록된 준비물이 없습니다.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Process Steps List */}
+                        <div className="space-y-2 p-3 bg-stone-50 rounded-lg border">
+                            <Label className="text-stone-700">🧭 놀이 방법 단계</Label>
+                            <div className="flex gap-2 mb-2">
+                                <Input
+                                    value={tempPlayProcessStep}
+                                    onChange={e => setTempPlayProcessStep(e.target.value)}
+                                    placeholder="놀이 방법 단계 입력"
+                                    className="flex-1"
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPlayProcessStep(); } }}
+                                />
+                                <Button type="button" onClick={addPlayProcessStep} variant="default" size="icon" className="shrink-0">
+                                    <Plus size={16} />
+                                </Button>
+                            </div>
+                            <div className="space-y-1">
+                                {travelPlayFormData.process_steps.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center bg-white px-3 py-2 rounded border text-sm shadow-sm">
+                                        <span className="truncate flex-1">{item}</span>
+                                        <button onClick={() => removePlayProcessStep(idx)} className="shrink-0 ml-2">
+                                            <Trash2 size={14} className="text-stone-400 hover:text-red-500" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {travelPlayFormData.process_steps.length === 0 && (
+                                    <p className="text-xs text-stone-400 text-center py-2">등록된 놀이 방법이 없습니다.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>꿀팁 / 주의사항</Label>
+                            <Input value={travelPlayFormData.tips} onChange={e => setTravelPlayFormData({ ...travelPlayFormData, tips: e.target.value })} placeholder="더 재미있게 즐기는 법" />
+                        </div>
+                    </div>
+                    <SheetFooter><Button onClick={handleTravelPlaySubmit}>저장</Button></SheetFooter>
                 </SheetContent>
             </Sheet>
         </div>

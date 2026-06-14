@@ -303,13 +303,27 @@ export default function ReturningHome() {
                     </div>
                 </div>
 
-                {/* 4. Recommendations Grid (Dynamic) */}
-                {/* 4. Recommendations Grid (Dynamic) */}
-                <RecommendationGrid
-                    data={recData}
-                    loading={recLoading}
-                    onItemClick={handleRecommendationClick as any}
-                />
+                {/* 4. 여행 놀이 탐색기 배너 */}
+                <div className="px-4 mb-8">
+                    <div 
+                        onClick={() => router.push('/play')}
+                        className="group relative w-full bg-gradient-to-r from-amber-700 to-orange-600 hover:from-amber-600 hover:to-orange-500 text-white rounded-3xl p-5 border border-amber-800/50 shadow-md hover:shadow-lg active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
+                    >
+                        {/* Background Deco */}
+                        <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-15 text-white pointer-events-none group-hover:scale-110 transition-transform">
+                            <Tent className="w-32 h-32" />
+                        </div>
+                        <div className="relative z-10 flex justify-between items-center">
+                            <div className="space-y-1 text-left">
+                                <h3 className="text-base font-bold tracking-tight">🎲 여행 & 캠핑 놀이 탐색기</h3>
+                                <p className="text-xs text-white/80">어디서든 심심할 틈 없는 맞춤 놀이 추천과 힐링 사운드</p>
+                            </div>
+                            <div className="bg-white/10 p-2 rounded-2xl group-hover:bg-white/20 transition-all">
+                                <ChevronRight className="w-5 h-5 text-white" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
 
             {/* Slim Notice Layout Position */}

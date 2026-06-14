@@ -81,3 +81,16 @@
     - [x] Implement smart category-to-ID mapping logic in travel recipe insert.
     - [x] Add the Paste Dialog UI component to the Travel Recipes tab in `page.tsx`.
     - [x] Verify build and execution of bulk upload.
+- [x] **Travel Play & Game Explorer (Play Recommendations Stabilization)**
+    - [x] Create DB migration for `travel_play_categories` and `travel_plays` tables (RLS & Policies included).
+    - [x] Run migration to sync remote database schema.
+    - [x] Build Gemini batch generator script (`scripts/seed-play-recommendations.ts`) to populate 300+ play items (with rate limiters and duplicate safeguards).
+    - [x] Execute seed script to populate database.
+    - [x] Extend admin page `src/app/admin/recommendations/page.tsx` with a new "Play Recommendations" tab (supporting CRUD and Bulk JSON Import).
+    - [x] Refactor home page to replace direct weather API call with static banner.
+    - [x] Create "Play Explorer" bottom sheet UI with travel modes and game categories, using 4-hour localstorage weather caching.
+    - [x] Clean up Play page text (remove subtitle, modify timer header, remove ASMR synthesizer).
+    - [x] Implement Interactive Play Roulette component.
+    - [x] Implement 3D Random Card Flip component.
+    - [x] Implement Zero-Cost Interactive Toolkit (JS Timer, Web Audio API ASMR synthesizer for fire/rain sounds).
+    - [x] Verify Next.js build and test overall layout.
