@@ -140,15 +140,28 @@ serve(async (req) => {
                 });
             }
 
+            const isReservation = String(event_type).startsWith('reservation');
+            const heroImage = stringData.hero_image || (
+                (String(event_type).startsWith('upcoming_stay') || isReservation)
+                ? "https://raon-i.vercel.app/images/reminder_hero.png"
+                : undefined
+            );
+
+            // [FIX] Double popup issue resolved by removing root 'notification' object 
+            // and mapping all details to webpush.notification to let service worker handle it cleanly.
             const message = {
                 message: {
                     token: t.token,
-                    notification: {
-                        title: String(title),
-                        body: String(body),
-                    },
                     data: stringData,
                     webpush: {
+                        notification: {
+                            title: String(title),
+                            body: String(body),
+                            icon: "https://raon-i.vercel.app/icons/icon-192.png", // 라온아이 공식 마스코트 로고
+                            badge: "https://raon-i.vercel.app/badge.png",       // 투명 단색 아이콘
+                            image: heroImage,                                   // 큰 전경 이미지
+                            requireInteraction: isReservation
+                        },
                         fcm_options: {
                             link: stringData.link
                         }

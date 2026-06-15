@@ -27,12 +27,21 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.data?.title || payload.notification?.title || 'RAON.I 알림';
   const body = payload.data?.body || payload.notification?.body || '';
 
+  const isReservation = String(payload.data?.event_type).startsWith('reservation');
+  const heroImage = payload.data?.hero_image || (
+    (String(payload.data?.event_type).startsWith('upcoming_stay') || isReservation)
+    ? '/images/reminder_hero.png'
+    : undefined
+  );
+
   const notificationOptions = {
     body: body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: '/icons/icon-192.png',   // 공식 캐릭터 로고
+    badge: '/badge.png',           // 투명 단색 아이콘
+    image: heroImage,               // 큰 전경 이미지
     tag: payload.data?.event_type || 'raoni-notification',
     renotify: true,
+    requireInteraction: isReservation,
     data: {
       link: payload.data?.link || '/notifications',
       ...payload.data

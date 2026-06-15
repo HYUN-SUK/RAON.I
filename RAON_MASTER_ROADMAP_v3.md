@@ -558,6 +558,9 @@
     *   [x] **Code Corrections**: `BeginnerHome`(?�벤???�??, `ReservationStore`(?�이???�약 ?�??, `CommunityService`(글/?��? ?�?? ?�정.
     *   [x] **Build Verification**: `npm run build` ?�공 (Exit code: 0).
     *   [x] **Deployment**: ??Vercel 배포 ?�료 (`https://raon-i.vercel.app`)
+    *   [ ] (선택) TWA로 플레이스토어 등록 (안드로이드 백그라운드 푸시 알림 도달율 최종 보완)
+    *   [ ] (선택) iOS 전용 하이브리드 앱 패키징(Capacitor/WebView) 및 스토어 등록 (iOS 백그라운드 푸시 알림 수신 보완)
+
 *   [x] **9.7 Notification Reliability Upgrade** ??(2026-02-20):
     *   [x] **Duplicate Fix**: Implemented DB Unique Constraint + Edge Function Single-Delivery Policy + FCM Collapse Keys.
     *   [x] **Camping Reminders**: Scheduled `pg_cron` job for `invoke-camping-reminder`, caught up missed notifications.

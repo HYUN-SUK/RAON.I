@@ -716,6 +716,7 @@ serve(async (req: any) => {
         const { data: schedules, error } = await supabase
             .from('user_schedules')
             .select('*')
+            .eq('status', 'scheduled')
             .or(`check_in.in.(${today},${tomorrow},${d4}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
 
         if (error) throw error;
@@ -786,6 +787,7 @@ serve(async (req: any) => {
         }
 
         for (const s of schedules) {
+            if (s.status === 'cancelled') continue; // [FIX] 2차 방어 가드: 취소된 스케줄은 즉시 건너뜀
             const lat = s.campground_lat || 36.6269;
             const lng = s.campground_lng || 126.7647;
             const displayName = s.source === 'raonai' ? `라온아이 캠핑장 (${s.campground_name})` : (s.campground_name || '캠핑장');
@@ -874,7 +876,10 @@ serve(async (req: any) => {
                     event_type: 'upcoming_stay_today',
                     title: `🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?`,
                     body: `📍 ${displayName}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
-                    data: { link: `/myspace/schedule/${s.id}` },
+                    data: { 
+                        link: `/myspace/schedule/${s.id}`,
+                        hero_image: "https://raon-i.vercel.app/images/reminder_hero.png"
+                    },
                     status: 'queued'
                 });
                 updateIds.d0.push(s.id);
@@ -892,7 +897,10 @@ serve(async (req: any) => {
                     event_type: 'upcoming_stay_d1',
                     title: `🍳 내일 뭐 먹을지 고민되시나요?`,
                     body: `📍 ${displayName}\n${weatherLine}\n\n날씨에 딱 맞는 메뉴를 골라봤어요!\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
-                    data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
+                    data: { 
+                        link: `/recipe`, 
+                        hero_image: "https://raon-i.vercel.app/images/reminder_hero.png"
+                    },
                     status: 'queued'
                 });
                 updateIds.d1.push(s.id);
@@ -915,7 +923,10 @@ serve(async (req: any) => {
                     event_type: 'upcoming_stay_d4', // Fixed type
                     title: `🎒 캠핑이 4일 남았어요!`,
                     body: `📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
-                    data: { link: `/myspace/schedule/${s.id}?tab=checklist` },
+                    data: { 
+                        link: `/myspace/schedule/${s.id}?tab=checklist`,
+                        hero_image: "https://raon-i.vercel.app/images/reminder_hero.png"
+                    },
                     status: 'queued' // Fixed status
                 });
                 updateIds.d4.push(s.id);
