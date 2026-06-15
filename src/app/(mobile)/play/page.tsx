@@ -15,8 +15,7 @@ import {
     Star, 
     Check,
     AlertCircle,
-    List,
-    HelpCircle
+    List
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';

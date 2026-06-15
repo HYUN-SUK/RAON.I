@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren, ChefHat, ChevronRight } from 'lucide-react';
@@ -8,13 +7,11 @@ import TopBar from '@/components/TopBar';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import SlimNotice from '@/components/home/SlimNotice';
 import { PriceGuideSheet } from '@/components/home/PriceGuideSheet';
-import RecommendationGrid from '@/components/home/RecommendationGrid';
 import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailSheet';
 import WeatherDetailSheet from '@/components/home/WeatherDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
-import PlanLockCard from '@/components/planlock/PlanLockCard';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import RecipeDetailSheet, { RecipeData } from '@/components/common/RecipeDetailSheet';
 

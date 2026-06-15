@@ -295,6 +295,12 @@
         *   [x] **DB RLS Policies Security Fix**: `recommendation_pool` 및 `nearby_events` 테이블에 대해 authenticated 사용자에게 모든 CRUD 권한을 부여하여 관리자 삭제 오류 해결.
         *   [x] **Travel Recipes AI JSON Paste Upload**: 여행 레시피 탭에 AI JSON 데이터를 직접 붙여넣어 일괄 또는 단일로 업로드할 수 있는 Dialog UI 및 파싱 엔진 구현.
         *   [x] **Smart Category Mapping**: 업로드 시 AI가 출력한 한글 카테고리명을 데이터베이스의 실제 카테고리 ID로 지능형 매핑하는 변환 로직 구축.
+    *   [x] **5.5.28 Travel Play & Game Explorer (v11.9.99) 🟢 (2026-06-15)**:
+        *   [x] **Database Schema & Seeding**: `travel_play_categories` 및 `travel_plays` 테이블에 RLS 적용. `seed-play-recommendations.ts`와 `supplement-category6.ts`를 실행하여 야외 액티브 가족 동반을 포함한 총 478개 놀이 데이터의 Supabase 적재 완료.
+        *   [x] **Mobile Play Explorer UI**: `src/app/(mobile)/play/page.tsx`에 2-Step 필터링, GPS/기상 캐싱 연동 매칭, 로컬 스코어러 탑재. 사용자가 "추천받기" 로직을 쉽게 인지할 수 있도록 실시간 매칭 세부 설명 및 명칭 수정.
+        *   [x] **Interactive Mini-Games**: 8분할 conic-gradient 기반 물리 가속 회전 룰렛 판 및 CSS 3D Y축 회전을 결합한 3D 랜덤 카드 뒤집기 인터랙티브 게임 컴포넌트 탑재.
+        *   [x] **Optimization**: 품질 피드백에 따라 Web Audio ASMR 합성 엔진을 제거하여 🧘 명상 타이머 기능에 충실하도록 코드와 UI 경량화 완료.
+        *   [x] **Home entry**: 자동 날씨 API 호출을 막기 위해 홈 화면의 `RecommendationGrid`를 놀이 탐색기 진입 정적 배너로 교체 완료.
 
 
 
