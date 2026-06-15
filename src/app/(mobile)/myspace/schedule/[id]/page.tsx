@@ -73,6 +73,7 @@ export default function ScheduleDetailPage() {
     const initialRecipeId = searchParams.get('recipeId');
 
     const [userId, setUserId] = useState<string>();
+    const [userEmail, setUserEmail] = useState<string>();
     const [showSmartPlan, setShowSmartPlan] = useState(false);
     const [smartPlanOrigin, setSmartPlanOrigin] = useState<{ lat: number; lng: number } | undefined>();
     const [showProfileGate, setShowProfileGate] = useState(false);
@@ -90,6 +91,7 @@ export default function ScheduleDetailPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user?.id) {
                 setUserId(session.user.id);
+                setUserEmail(session.user.email);
             }
         };
         fetchUser();
@@ -693,6 +695,7 @@ export default function ScheduleDetailPage() {
                             scheduleId={schedule.id}
                             initialPlan={isReconstructing ? null : schedule.smart_plan_data}
                             userId={userId}
+                            userEmail={userEmail}
                             location={{
                                 lat: schedule.campground_lat || 36.67,
                                 lng: schedule.campground_lng || 126.84

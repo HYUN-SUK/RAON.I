@@ -382,6 +382,10 @@ export default function BeginnerHome() {
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
 
+                    <div className="absolute top-4 left-6 z-30">
+                        <SlimNotice variant="hero" />
+                    </div>
+
                     <NotificationBadge variant="hero" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6 w-full">
@@ -530,9 +534,7 @@ export default function BeginnerHome() {
                 </section>
             </main>
 
-            <div className="absolute bottom-0 left-0 right-0 z-40">
-                <SlimNotice />
-            </div>
+
 
             <HomeDetailSheet
                 isOpen={detailSheetOpen}

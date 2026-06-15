@@ -10,7 +10,11 @@ interface Notice {
     title: string;
 }
 
-export default function SlimNotice() {
+interface SlimNoticeProps {
+    variant?: 'hero' | 'bottom';
+}
+
+export default function SlimNotice({ variant = 'bottom' }: SlimNoticeProps) {
     const router = useRouter();
     const [notice, setNotice] = useState<Notice | null>(null);
 
@@ -41,9 +45,22 @@ export default function SlimNotice() {
     // 공지가 없으면 숨김
     if (!notice) return null;
 
+    if (variant === 'hero') {
+        return (
+            <div
+                onClick={() => router.push('/community?tab=NOTICE')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-black/20 hover:bg-black/35 backdrop-blur-sm rounded-full text-white cursor-pointer active:scale-95 transition-all text-[11px] max-w-[200px]"
+            >
+                <Volume2 className="w-3.5 h-3.5 text-[#C3A675] shrink-0" />
+                <span className="truncate font-semibold max-w-[140px]">{notice.title}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><path d="m9 18 6-6-6-6" /></svg>
+            </div>
+        );
+    }
+
     return (
         <div
-            onClick={() => router.push('/community?tab=notice')}
+            onClick={() => router.push('/community?tab=NOTICE')}
             className="w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-t border-stone-100 dark:border-zinc-800 py-3 px-4 flex items-center gap-3 cursor-pointer active:bg-stone-50 dark:active:bg-zinc-800 transition-colors"
         >
             <Volume2 className="w-4 h-4 text-[#C3A675] shrink-0" />
@@ -58,3 +75,5 @@ export default function SlimNotice() {
         </div>
     );
 }
+
+

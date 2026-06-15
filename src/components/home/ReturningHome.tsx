@@ -176,6 +176,10 @@ export default function ReturningHome() {
                     {/* Abstract Pattern */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
+                    <div className="absolute top-4 left-6 z-30">
+                        <SlimNotice variant="hero" />
+                    </div>
+
                     <NotificationBadge variant="hero" />
 
                     <div className="relative z-10 mt-4 text-center flex flex-col items-center w-full">
@@ -324,10 +328,7 @@ export default function ReturningHome() {
                 </div>
             </main>
 
-            {/* Slim Notice Layout Position */}
-            <div className="absolute bottom-0 left-0 right-0 z-40">
-                <SlimNotice />
-            </div>
+
 
             <HomeDetailSheet
                 isOpen={detailSheetOpen}

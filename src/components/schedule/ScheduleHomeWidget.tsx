@@ -126,6 +126,12 @@ export default function ScheduleHomeWidget() {
             const reservation = reservations.find(r => r.id === upcomingItem.id);
             if (!reservation || reservation.status !== 'CONFIRMED') return false;
             createdAtDate = new Date(reservation.createdAt);
+            
+            // 이미 생성된 일정에 smart_plan_data가 있는지 체크
+            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
+            if (matchedSchedule && matchedSchedule.smart_plan_data) {
+                hasSmartPlan = true;
+            }
         } else {
             const schedule = schedules.find(s => s.id === upcomingItem.id);
             if (!schedule || schedule.status !== 'scheduled') return false;
@@ -140,6 +146,70 @@ export default function ScheduleHomeWidget() {
         unlockTimeByCreation.setHours(9, 0, 0, 0);
 
         return new Date() >= unlockTimeByCreation;
+    }, [upcomingItem, reservations, schedules]);
+
+    // 스마트플랜 오픈 대기 여부 판별 (예약 생성 다음날 오전 9시 이전 대기 상태)
+    const isSmartPlanUnlockingSoon = useMemo(() => {
+        if (!upcomingItem) return false;
+        
+        let createdAtDate: Date;
+        let hasSmartPlan = false;
+        
+        if (upcomingItem.type === 'reservation') {
+            const reservation = reservations.find(r => r.id === upcomingItem.id);
+            if (!reservation || reservation.status !== 'CONFIRMED') return false;
+            createdAtDate = new Date(reservation.createdAt);
+            
+            // 이미 생성된 일정에 smart_plan_data가 있는지 체크
+            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
+            if (matchedSchedule && matchedSchedule.smart_plan_data) {
+                hasSmartPlan = true;
+            }
+        } else {
+            const schedule = schedules.find(s => s.id === upcomingItem.id);
+            if (!schedule || schedule.status !== 'scheduled') return false;
+            createdAtDate = new Date(schedule.created_at);
+            hasSmartPlan = !!schedule.smart_plan_data;
+        }
+        
+        if (isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
+        
+        const unlockTimeByCreation = new Date(createdAtDate);
+        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+        unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+        return new Date() < unlockTimeByCreation;
+    }, [upcomingItem, reservations, schedules]);
+
+    // 스마트플랜 오픈 대기 안내 문구 결정 (자정이 지나면 '내일'을 생략)
+    const unlockMessage = useMemo(() => {
+        if (!upcomingItem) return '';
+        
+        let createdAtDate: Date;
+        if (upcomingItem.type === 'reservation') {
+            const reservation = reservations.find(r => r.id === upcomingItem.id);
+            if (!reservation) return '';
+            createdAtDate = new Date(reservation.createdAt);
+        } else {
+            const schedule = schedules.find(s => s.id === upcomingItem.id);
+            if (!schedule) return '';
+            createdAtDate = new Date(schedule.created_at);
+        }
+        
+        if (isNaN(createdAtDate.getTime())) return '';
+        
+        const unlockTimeByCreation = new Date(createdAtDate);
+        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+        unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+        const now = new Date();
+        const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
+                            now.getMonth() === unlockTimeByCreation.getMonth() &&
+                            now.getDate() === unlockTimeByCreation.getDate();
+
+        return isUnlockDay 
+            ? "오전 9시 이후에 자동계획생성이 가능합니다."
+            : "내일 오전 9시 이후에 자동계획생성이 가능합니다.";
     }, [upcomingItem, reservations, schedules]);
 
     // 뱃지 텍스트 결정 (예약 다음 날 ~ D-8: 여행계획 세우기 가능 / D-7 ~ D-0: 최종 날씨 반영 계획 완성)
@@ -395,6 +465,12 @@ export default function ScheduleHomeWidget() {
                             </span>
                         )}
                     </div>
+
+                    {isSmartPlanUnlockingSoon && (
+                        <div className="text-[11px] font-black bg-gradient-to-r from-orange-400/90 to-amber-500/90 text-white shadow-[0_0_10px_rgba(251,146,60,0.4)] border border-orange-300/20 px-2.5 py-1.5 rounded-lg w-fit mb-2.5 flex items-center gap-1.5 animate-pulse">
+                            <span>⏰</span> {unlockMessage}
+                        </div>
+                    )}
 
                     <div className="flex items-center gap-3 text-sm opacity-90">
                         <span className="flex items-center gap-1">

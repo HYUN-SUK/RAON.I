@@ -17,6 +17,7 @@ interface SmartPlanProposalProps {
     scheduleId?: string;
     initialPlan?: any;
     userId?: string;
+    userEmail?: string;
     location: { lat: number; lng: number };
     startDate: Date;
     endDate: Date;
@@ -60,6 +61,7 @@ export default function SmartPlanProposal({
     scheduleId,
     initialPlan,
     userId,
+    userEmail,
     location,
     startDate,
     endDate,
@@ -100,6 +102,9 @@ export default function SmartPlanProposal({
     const [showRouteNav, setShowRouteNav] = useState(false);
     const [isLocating, setIsLocating] = useState(false); // [v11.9.61] 위치 확인 중 상태
     const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+
+    // tootg 및 admin 권한 판별용 가드
+    const isDeveloper = userEmail === 'tootg@naver.com' || userEmail === 'admin@raon.ai' || process.env.NODE_ENV === 'development';
 
     // D-3 및 weather_window 확인용 날짜 연산
     const kstNowForRegen = new Date(new Date().getTime() + 9 * 3600000);
@@ -396,7 +401,7 @@ export default function SmartPlanProposal({
         return (
             <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Reset 버튼 (개발/tootg 계정 전용) */}
-                {(userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' || process.env.NODE_ENV === 'development') && onReset && (
+                {isDeveloper && onReset && (
                     <div className="flex justify-end mb-2">
                         <button
                             onClick={onReset}
@@ -687,7 +692,7 @@ export default function SmartPlanProposal({
                             )}
                         </div>
                     ) : (
-                        (userId === '4730be31-30b5-4594-a993-d8f5a7a5e26c' || process.env.NODE_ENV === 'development') && onReset && (
+                        isDeveloper && onReset && (
                             <div className="absolute top-6 right-6 z-30 flex items-center">
                                 {showResetConfirm ? (
                                     <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#224732]/20 shadow-xl animate-in fade-in zoom-in duration-200">
