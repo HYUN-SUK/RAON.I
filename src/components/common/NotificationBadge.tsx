@@ -13,6 +13,7 @@ interface NotificationBadgeProps {
 export default function NotificationBadge({ className = '', variant = 'inline' }: NotificationBadgeProps) {
     const router = useRouter();
     const [latestNotification, setLatestNotification] = useState<{ title: string; created_at: string; is_read: boolean } | null>(null);
+    const [lastReadAt, setLastReadAt] = useState<string | null>(null);
 
     const pathname = usePathname();
 
@@ -23,6 +24,11 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
         const fetchLatest = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
+
+            if (typeof window !== 'undefined') {
+                const stored = sessionStorage.getItem('last_read_notifications_at');
+                setLastReadAt(stored);
+            }
 
             let query = supabase
                 .from('notifications')
@@ -75,7 +81,9 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
         };
     }, [pathname]); // Refresh on navigation / Realtime ensures immediate UI cleanup
 
-    if (!latestNotification) return null;
+    const isLocallyRead = latestNotification && lastReadAt && new Date(latestNotification.created_at) <= new Date(lastReadAt);
+
+    if (!latestNotification || (variant === 'hero' && isLocallyRead)) return null;
 
     const handleClick = () => {
         router.push('/notifications');
@@ -107,7 +115,7 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
         >
             <div className="bg-white dark:bg-black p-1.5 rounded-full border border-stone-200 dark:border-zinc-700 relative">
                 <Bell className="w-4 h-4 text-[#C3A675]" />
-                {!latestNotification.is_read && (
+                {(!latestNotification.is_read && !isLocallyRead) && (
                     <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-bounce" />
                 )}
             </div>

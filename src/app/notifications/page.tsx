@@ -45,6 +45,13 @@ export default function NotificationsPage() {
             } else {
                 setNotifications(data || []);
 
+                // Save the latest notification timestamp to sessionStorage to clear badge instantly
+                if (data && data.length > 0) {
+                    sessionStorage.setItem('last_read_notifications_at', data[0].created_at);
+                } else {
+                    sessionStorage.setItem('last_read_notifications_at', new Date().toISOString());
+                }
+
                 // Mark ALL notifications as read (Await to ensure DB consistency before render finish)
                 try {
                     const { error: readErr } = await supabase
