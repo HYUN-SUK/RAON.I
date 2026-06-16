@@ -123,7 +123,7 @@ async function getScoredGearRecommendations(
             .from('recommendation_pool')
             .select('title, description, tags')
             .eq('category', 'play')
-            .contains('tags', ['#gear']);
+            .contains('tags', JSON.stringify(['#gear']));
 
         if (error || !pool || pool.length === 0) return [];
 
@@ -915,6 +915,7 @@ serve(async (req: any) => {
                 } else {
                     if (primaryForecast.isRainy) tip = '비 소식이 있어요 ☔ 우비와 타프 꼭 챙기세요!';
                     else if (primaryForecast.tempMin < 10) tip = '밤에는 쌀쌀해요 🧣 따뜻한 침낭과 핫팩 잊지 마세요.';
+                    else if (primaryForecast.tempMax >= 28) tip = '한낮 기온이 30도 내외로 무더워요 ☀️ 타프와 시원한 음료를 준비하세요.';
                 }
 
                 notifications.push({

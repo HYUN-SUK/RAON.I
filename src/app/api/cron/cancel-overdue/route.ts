@@ -24,11 +24,12 @@ export async function GET(request: NextRequest) {
 
         const supabase = createAdminClient();
         
-        // 2. status가 PENDING인 모든 예약 조회
+        // 2. status가 PENDING인 모든 예약 조회 (30초 타임아웃 예방을 위해 최대 30건 제한)
         const { data: pendingReservations, error: fetchError } = await supabase
             .from('reservations')
             .select('*')
-            .eq('status', 'PENDING');
+            .eq('status', 'PENDING')
+            .limit(30);
 
         if (fetchError) {
             console.error('[Cron/CancelOverdue] Fetch reservations error:', fetchError);
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
             message: `Processed overdue reservations`,
             totalFound: overdueIds.length,
             cancelledCount: successCount,
-            results
+            success: true
         });
 
     } catch (e) {
