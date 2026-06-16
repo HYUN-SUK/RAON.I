@@ -49,7 +49,7 @@ export default function SlimNotice({ variant = 'bottom' }: SlimNoticeProps) {
         return (
             <div
                 onClick={() => router.push('/community?tab=NOTICE')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-black/20 hover:bg-black/35 backdrop-blur-sm rounded-full text-white cursor-pointer active:scale-95 transition-all text-[11px] max-w-[200px]"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-black/20 hover:bg-black/35 backdrop-blur-sm rounded-xl text-white cursor-pointer active:scale-95 transition-all text-[11px] max-w-[200px]"
             >
                 <Volume2 className="w-3.5 h-3.5 text-[#C3A675] shrink-0" />
                 <span className="truncate font-semibold max-w-[140px]">{notice.title}</span>

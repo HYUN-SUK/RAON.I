@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Tent, ChefHat } from 'lucide-react';
+import { ChevronRight, Tent, ChefHat, ChevronDown, Calendar } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import { useRouter } from 'next/navigation';
 import { useReservationStore } from '@/store/useReservationStore';
@@ -23,6 +23,7 @@ import { usePushNotification } from '@/hooks/usePushNotification';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 
@@ -68,6 +69,9 @@ export default function ReturningHome() {
     const { initRebook, lastReservation, fetchLastReservation, openDayRule, fetchOpenDayRule, fetchSites, reservations, fetchMyReservations } = useReservationStore();
     const { config } = useSiteConfig();
     const lbs = useLBS();
+
+    // Accordion State
+    const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
 
     // 다가오는 예약 판단 (체크아웃이 오늘 이후이면서 승인/대기 중인 예약)
     const hasUpcoming = useMemo(() => {
@@ -176,11 +180,10 @@ export default function ReturningHome() {
                     {/* Abstract Pattern */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
-                    <div className="absolute top-4 left-6 z-30">
+                    <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-3">
                         <SlimNotice variant="hero" />
+                        <NotificationBadge variant="hero" />
                     </div>
-
-                    <NotificationBadge variant="hero" />
 
                     <div className="relative z-10 mt-4 text-center flex flex-col items-center w-full">
                         {recData ? (
@@ -273,10 +276,43 @@ export default function ReturningHome() {
                     </Card>
                 </div>
 
-                {/* 3.5 Schedule Widget (Moved to replace PlanLockCard) */}
+                {/* Accordion 2: 여행 일정 및 계획하기 */}
                 <div className="px-4 mb-4">
-                    <ScheduleHomeWidget />
+                    <button
+                        onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
+                        className="w-full flex items-center justify-between px-5 py-4 bg-white dark:bg-zinc-900 border border-stone-200/60 dark:border-zinc-800 rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#1C4526]/10 dark:bg-[#C3A675]/10 rounded-xl text-[#1C4526] dark:text-[#C3A675]">
+                                <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-[#1C4526] dark:text-stone-100 tracking-tight">여행 일정 및 계획하기</h3>
+                                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-medium">캠핑장 기상예보, 여행계획 자동생성 및 일정관리</p>
+                            </div>
+                        </div>
+                        <div className={`text-[#1C4526] dark:text-[#C3A675] p-1.5 bg-stone-100 dark:bg-zinc-800 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : ''}`}>
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </button>
                 </div>
+
+                <AnimatePresence initial={false}>
+                    {isScheduleExpanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            {/* 3.5 Schedule Widget (Moved to replace PlanLockCard) */}
+                            <div className="px-4 mb-4">
+                                <ScheduleHomeWidget isExpanded={isScheduleExpanded} />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* 3. Mission Widget (Weekly) */}
                 <div className="px-4 mb-4">

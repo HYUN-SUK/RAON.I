@@ -29,7 +29,7 @@ interface UnifiedSchedule {
  * 홈 화면에서 다가오는 캠핑 일정을 보여주는 위젯
  * 라온아이 예약 + 타캠핑장 일정을 통합하여 가장 가까운 1개 표시
  */
-export default function ScheduleHomeWidget() {
+export default function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?: boolean }) {
     const router = useRouter();
     const { reservations, fetchMyReservations } = useReservationStore();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -42,7 +42,7 @@ export default function ScheduleHomeWidget() {
 
     const daysUntil = upcomingItem ? differenceInDays(upcomingItem.checkIn, today) : 999;
     const isCampingNow = upcomingItem && (today >= upcomingItem.checkIn && today <= upcomingItem.checkOut);
-    const isWeatherEnabled = upcomingItem ? daysUntil <= 10 : false;
+    const isWeatherEnabled = upcomingItem ? (daysUntil <= 10 && isExpanded) : false;
 
     const itemLat = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lat || undefined);
     const itemLng = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lng || undefined);
@@ -224,7 +224,7 @@ export default function ScheduleHomeWidget() {
         const daysDiff = Math.round((checkIn.getTime() - today.getTime()) / 86400000);
         
         if (daysDiff <= 7) {
-            return '✨ 최종 날씨 반영 계획 완성';
+            return '✨ 최종 날씨 반영 계획 완성 가능';
         } else {
             return '✨ 여행계획 세우기 가능';
         }

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren, ChefHat, ChevronRight } from 'lucide-react';
+import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren, ChefHat, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import SlimNotice from '@/components/home/SlimNotice';
@@ -14,6 +14,7 @@ import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import RecipeDetailSheet, { RecipeData } from '@/components/common/RecipeDetailSheet';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
@@ -89,6 +90,10 @@ export default function BeginnerHome() {
 
     // Contextual Data
     const { reservations, fetchMyReservations, openDayRule, fetchOpenDayRule } = useReservationStore();
+
+    // Accordion States
+    const [isIntroExpanded, setIsIntroExpanded] = useState(false);
+    const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
 
     // 다가오는 예약 판단 (체크아웃이 오늘 이후이면서 승인/대기 중인 예약)
     const hasUpcoming = useMemo(() => {
@@ -382,11 +387,10 @@ export default function BeginnerHome() {
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
 
-                    <div className="absolute top-4 left-6 z-30">
+                    <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-3">
                         <SlimNotice variant="hero" />
+                        <NotificationBadge variant="hero" />
                     </div>
-
-                    <NotificationBadge variant="hero" />
 
                     <div className="relative z-20 text-white space-y-4 mb-6 w-full">
                         <p className="text-white/90 text-lg mb-1 leading-relaxed">
@@ -401,88 +405,154 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
-                {/* 2. Info Chips */}
-                <section className="px-4 -mt-8 relative z-30 mb-8">
-                    <div className="grid grid-cols-3 gap-3">
-                        {chips.map((chip, idx) => {
-                            const ChipContent = (
-                                <div
-                                    onClick={() => handleChipClick(chip)}
-                                    className="flex flex-col items-center justify-center aspect-square bg-[#FAF9F6]/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] border border-stone-200/50 dark:border-zinc-700/50 hover:bg-[#F5F2EA] dark:hover:bg-zinc-700 hover:scale-[1.02] transition-all duration-300 p-2 cursor-pointer group touch-feedback-soft"
-                                >
-                                    {chip.icon}
-                                    <p className="text-responsive-chip-label font-bold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 text-center leading-tight transition-colors">{chip.label}</p>
-                                    <p className="text-responsive-badge text-stone-400 group-hover:text-[#C3A675] mt-1 transition-colors">{chip.sub}</p>
-                                </div>
-                            );
-
-                            if (chip.isPriceGuide) {
-                                return (
-                                    <PriceGuideSheet key={idx} pricingText={config?.pricing_guide_text}>
-                                        {ChipContent}
-                                    </PriceGuideSheet>
-                                )
-                            }
-                            return <div key={idx}>{ChipContent}</div>
-                        })}
-                    </div>
-                </section>
-
-                {/* 2.5 Marketing USP Banner */}
-                <section className="px-4 mb-8 animate-in fade-in duration-500">
-                    <div className="w-full bg-[#ECE8DF]/60 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl p-5 border border-stone-200/40 dark:border-zinc-800 text-center space-y-2.5">
-                        <p className="text-base font-bold text-[#1C4526] dark:text-[#C3A675] leading-relaxed">
-                            두가족도 넉넉한 2배사이트, 깨끗한 개별욕실
-                        </p>
-                        <p className="text-sm text-stone-600 dark:text-stone-400 font-semibold">
-                            라온아이에서 불편은 덜고, 추억은 쌓으세요.
-                        </p>
-                    </div>
-                </section>
-
-                {/* 3. Guide Card */}
-                <section className="px-4 mb-8">
-                    <div className="w-full bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-sm border border-stone-100 dark:border-zinc-800">
-                        <h3 className="text-xl font-bold text-[#1C4526] mb-4">처음 오셨나요?</h3>
-                        <div className="space-y-6">
-                            <div className="flex gap-4">
-                                <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">1</div>
-                                <div>
-                                    <h4 className="font-semibold text-stone-900 dark:text-stone-100">예약하기</h4>
-                                    <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
-                                        원하는 날짜와 사이트를 선택하세요.<br />
-                                        여유로운 캠핑을 위해 미리 준비하면 좋아요.
-                                    </p>
-                                </div>
+                {/* Accordion 1: 캠핑장 소개 및 예약하기 */}
+                <div className="px-4 -mt-8 relative z-30 mb-4">
+                    <button
+                        onClick={() => setIsIntroExpanded(!isIntroExpanded)}
+                        className="w-full flex items-center justify-between px-5 py-4 bg-white dark:bg-zinc-900 border border-stone-200/60 dark:border-zinc-800 rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#1C4526]/10 dark:bg-[#C3A675]/10 rounded-xl text-[#1C4526] dark:text-[#C3A675]">
+                                <Tent className="w-5 h-5" />
                             </div>
-                            <div className="flex gap-4">
-                                <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">2</div>
-                                <div>
-                                    <h4 className="font-semibold text-stone-900 dark:text-stone-100">입,퇴실 안내</h4>
-                                    <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed break-keep">
-                                        오후 2시 입실, 낮 12시 퇴실입니다.<br />
-                                        앞,뒤 예약자가 없으면 여유로운 입,퇴실이 가능합니다.
-                                    </p>
-                                </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-[#1C4526] dark:text-stone-100 tracking-tight">캠핑장 소개 및 예약하기</h3>
+                                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-medium">캠핑장 배치도, 가격안내 및 처음이신 분들을 위한 가이드</p>
                             </div>
                         </div>
+                        <div className={`text-[#1C4526] dark:text-[#C3A675] p-1.5 bg-stone-100 dark:bg-zinc-800 rounded-full transition-transform duration-300 ${isIntroExpanded ? 'rotate-180' : ''}`}>
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </button>
+                </div>
 
-                        <Button
-                            className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-                            onClick={() => handleProtectedAction(() => router.push('/reservation'))}
+                <AnimatePresence initial={false}>
+                    {isIntroExpanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
                         >
-                            예약 가능 날짜 보기
-                        </Button>
-                        <p className="text-center text-xs text-stone-400 mt-2">
-                            {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
-                        </p>
-                    </div>
-                </section>
+                            {/* 2. Info Chips */}
+                            <section className="px-4 mb-6 animate-in fade-in duration-300">
+                                <div className="grid grid-cols-3 gap-3">
+                                    {chips.map((chip, idx) => {
+                                        const ChipContent = (
+                                            <div
+                                                onClick={() => handleChipClick(chip)}
+                                                className="flex flex-col items-center justify-center aspect-square bg-[#FAF9F6]/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] border border-stone-200/50 dark:border-zinc-700/50 hover:bg-[#F5F2EA] dark:hover:bg-zinc-700 hover:scale-[1.02] transition-all duration-300 p-2 cursor-pointer group touch-feedback-soft"
+                                            >
+                                                {chip.icon}
+                                                <p className="text-responsive-chip-label font-bold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 text-center leading-tight transition-colors">{chip.label}</p>
+                                                <p className="text-responsive-badge text-stone-400 group-hover:text-[#C3A675] mt-1 transition-colors">{chip.sub}</p>
+                                            </div>
+                                        );
 
-                {/* 3.6 Schedule Widget (Moved to replace PlanLockCard) */}
-                <section className="px-4 mb-8">
-                    <ScheduleHomeWidget />
-                </section>
+                                        if (chip.isPriceGuide) {
+                                            return (
+                                                <PriceGuideSheet key={idx} pricingText={config?.pricing_guide_text}>
+                                                    {ChipContent}
+                                                </PriceGuideSheet>
+                                            )
+                                        }
+                                        return <div key={idx}>{ChipContent}</div>
+                                    })}
+                                </div>
+                            </section>
+
+                            {/* 2.5 Marketing USP Banner */}
+                            <section className="px-4 mb-6">
+                                <div className="w-full bg-[#ECE8DF]/60 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl p-5 border border-stone-200/40 dark:border-zinc-800 text-center space-y-2.5">
+                                    <p className="text-base font-bold text-[#1C4526] dark:text-[#C3A675] leading-relaxed">
+                                        두가족도 넉넉한 2배사이트, 깨끗한 개별욕실
+                                    </p>
+                                    <p className="text-sm text-stone-600 dark:text-stone-400 font-semibold">
+                                        라온아이에서 불편은 덜고, 추억은 쌓으세요.
+                                    </p>
+                                </div>
+                            </section>
+
+                            {/* 3. Guide Card */}
+                            <section className="px-4 mb-6">
+                                <div className="w-full bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-sm border border-stone-100 dark:border-zinc-800">
+                                    <h3 className="text-xl font-bold text-[#1C4526] mb-4">처음 오셨나요?</h3>
+                                    <div className="space-y-6">
+                                        <div className="flex gap-4">
+                                            <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">1</div>
+                                            <div>
+                                                <h4 className="font-semibold text-stone-900 dark:text-stone-100">예약하기</h4>
+                                                <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
+                                                    원하는 날짜와 사이트를 선택하세요.<br />
+                                                    여유로운 캠핑을 위해 미리 준비하면 좋아요.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">2</div>
+                                            <div>
+                                                <h4 className="font-semibold text-stone-900 dark:text-stone-100">입,퇴실 안내</h4>
+                                                <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed break-keep">
+                                                    오후 2시 입실, 낮 12시 퇴실입니다.<br />
+                                                    앞,뒤 예약자가 없으면 여유로운 입,퇴실이 가능합니다.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                                        onClick={() => handleProtectedAction(() => router.push('/reservation'))}
+                                    >
+                                        예약 가능 날짜 보기
+                                    </Button>
+                                    <p className="text-center text-xs text-stone-400 mt-2">
+                                        {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
+                                    </p>
+                                </div>
+                            </section>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Accordion 2: 여행 일정 및 계획하기 */}
+                <div className="px-4 mb-4">
+                    <button
+                        onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
+                        className="w-full flex items-center justify-between px-5 py-4 bg-white dark:bg-zinc-900 border border-stone-200/60 dark:border-zinc-800 rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#1C4526]/10 dark:bg-[#C3A675]/10 rounded-xl text-[#1C4526] dark:text-[#C3A675]">
+                                <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-[#1C4526] dark:text-stone-100 tracking-tight">여행 일정 및 계획하기</h3>
+                                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-medium">캠핑장 기상예보, 여행계획 자동생성 및 일정관리</p>
+                            </div>
+                        </div>
+                        <div className={`text-[#1C4526] dark:text-[#C3A675] p-1.5 bg-stone-100 dark:bg-zinc-800 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : ''}`}>
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </button>
+                </div>
+
+                <AnimatePresence initial={false}>
+                    {isScheduleExpanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            {/* 3.6 Schedule Widget */}
+                            <section className="px-4 mb-6">
+                                <ScheduleHomeWidget isExpanded={isScheduleExpanded} />
+                            </section>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* 3.5 Mission Widget */}
                 <section className="px-4 mb-8">

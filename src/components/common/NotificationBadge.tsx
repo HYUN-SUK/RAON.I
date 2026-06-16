@@ -57,7 +57,7 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
         return (
             <button
                 onClick={handleClick}
-                className={`absolute top-4 right-4 flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-3 py-1.5 shadow-lg active:scale-95 transition-transform z-30 ${className}`}
+                className={`flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl px-3 py-1.5 shadow-lg active:scale-95 transition-transform z-30 ${className}`}
             >
                 <div className="relative">
                     <Bell className="w-4 h-4 text-white" />
