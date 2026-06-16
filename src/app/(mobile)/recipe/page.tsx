@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { 
     ChevronLeft, 
@@ -14,7 +14,9 @@ import {
     Sparkles,
     ChefHat,
     ShoppingBag,
-    Info
+    Info,
+    List,
+    RotateCcw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -54,14 +56,88 @@ export default function TravelRecipePage() {
     const [recipes, setRecipes] = useState<RecipeItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>('');
-
+ 
     // Navigation state
     const [selectedParentId, setSelectedParentId] = useState<number | null>(null);
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
-
+ 
+    // Tab mode: 'list' (List), 'roulette' (Roulette), 'card' (Card Flip)
+    const [activeTabMode, setActiveTabMode] = useState<'list' | 'roulette' | 'card'>('list');
+ 
     // Bottom sheet details state
     const [selectedRecipe, setSelectedRecipe] = useState<RecipeItem | null>(null);
     const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
+ 
+    // Profile & Weather states for recommendation
+    const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+    const [recommending, setRecommending] = useState<boolean>(false);
+ 
+    // Roulette States
+    const [rouletteItems, setRouletteItems] = useState<RecipeItem[]>([]);
+    const [isSpinning, setIsSpinning] = useState<boolean>(false);
+    const [spinAngle, setSpinAngle] = useState<number>(0);
+ 
+    // Card Flip States
+    const [cardItems, setCardItems] = useState<RecipeItem[]>([]);
+    const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
+ 
+    // Color array for Roulette slices
+    const rouletteColors = ['#047857', '#059669', '#10B981', '#34D399', '#0284C7', '#0EA5E9', '#38BDF8', '#6EE7B7'];
+ 
+    // Filter parent & child categories
+    const parentCategories = useMemo(() => {
+        return categories.filter(c => c.parent_id === null);
+    }, [categories]);
+ 
+    const childCategories = useMemo(() => {
+        if (selectedParentId === null) return [];
+        return categories.filter(c => c.parent_id === selectedParentId);
+    }, [categories, selectedParentId]);
+ 
+    // Active Category Name (for helper text)
+    const activeCategoryName = useMemo(() => {
+        const parent = parentCategories.find(p => p.id === selectedParentId);
+        const child = childCategories.find(c => c.id === selectedChildId);
+        if (!parent) return '레시피';
+        return `${parent.name} ${child ? `> ${child.name}` : ''}`;
+    }, [parentCategories, childCategories, selectedParentId, selectedChildId]);
+ 
+    // Filtered Recipes
+    const filteredRecipes = useMemo(() => {
+        return recipes.filter(recipe => {
+            // Category match
+            let matchesCategory = true;
+            if (selectedChildId !== null) {
+                // If it maps to child category
+                matchesCategory = recipe.category_id === selectedChildId;
+            } else if (selectedParentId !== null) {
+                // If parent matches (fallback)
+                const childrenIds = categories.filter(c => c.parent_id === selectedParentId).map(c => c.id);
+                matchesCategory = childrenIds.includes(recipe.category_id);
+            }
+ 
+            // Search query match
+            let matchesSearch = true;
+            if (searchQuery.trim() !== '') {
+                const query = searchQuery.toLowerCase();
+                const nameMatch = recipe.name.toLowerCase().includes(query);
+                const tagMatch = recipe.travel_tips.some(t => t.toLowerCase().includes(query));
+                const ingredientMatch = recipe.ingredients.some(i => i.name.toLowerCase().includes(query));
+                matchesSearch = nameMatch || tagMatch || ingredientMatch;
+            }
+ 
+            return matchesCategory && matchesSearch;
+        });
+    }, [recipes, selectedParentId, selectedChildId, categories, searchQuery]);
+
+    // Automatically select the 'All' or first child category when parent changes
+    useEffect(() => {
+        if (childCategories.length > 0) {
+            setSelectedChildId(childCategories[0].id); // Defaults to first child (e.g., 'All' or specific tag)
+        } else {
+            setSelectedChildId(null);
+        }
+    }, [selectedParentId, childCategories]);
 
     // Fetch initial categories & recipes
     useEffect(() => {
@@ -102,61 +178,226 @@ export default function TravelRecipePage() {
 
         loadInitialData();
     }, []);
-
-    // Filter parent & child categories
-    const parentCategories = useMemo(() => {
-        return categories.filter(c => c.parent_id === null);
-    }, [categories]);
-
-    const childCategories = useMemo(() => {
-        if (selectedParentId === null) return [];
-        return categories.filter(c => c.parent_id === selectedParentId);
-    }, [categories, selectedParentId]);
-
-    // Automatically select the 'All' or first child category when parent changes
+ 
+    // Fetch user profile on mount
     useEffect(() => {
-        if (childCategories.length > 0) {
-            setSelectedChildId(childCategories[0].id); // Defaults to first child (e.g., 'All' or specific tag)
-        } else {
-            setSelectedChildId(null);
-        }
-    }, [selectedParentId, childCategories]);
-
-    // Active Category Name (for helper text)
-    const activeCategoryName = useMemo(() => {
-        const parent = parentCategories.find(p => p.id === selectedParentId);
-        const child = childCategories.find(c => c.id === selectedChildId);
-        if (!parent) return '레시피';
-        return `${parent.name} ${child ? `> ${child.name}` : ''}`;
-    }, [parentCategories, childCategories, selectedParentId, selectedChildId]);
-
-    // Filtered Recipes
-    const filteredRecipes = useMemo(() => {
-        return recipes.filter(recipe => {
-            // Category match
-            let matchesCategory = true;
-            if (selectedChildId !== null) {
-                // If it maps to child category
-                matchesCategory = recipe.category_id === selectedChildId;
-            } else if (selectedParentId !== null) {
-                // If parent matches (fallback)
-                const childrenIds = categories.filter(c => c.parent_id === selectedParentId).map(c => c.id);
-                matchesCategory = childrenIds.includes(recipe.category_id);
+        supabase.auth.getUser().then(async ({ data: { user } }) => {
+            if (user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+                setCurrentUserProfile(data);
             }
-
-            // Search query match
-            let matchesSearch = true;
-            if (searchQuery.trim() !== '') {
-                const query = searchQuery.toLowerCase();
-                const nameMatch = recipe.name.toLowerCase().includes(query);
-                const tagMatch = recipe.travel_tips.some(t => t.toLowerCase().includes(query));
-                const ingredientMatch = recipe.ingredients.some(i => i.name.toLowerCase().includes(query));
-                matchesSearch = nameMatch || tagMatch || ingredientMatch;
-            }
-
-            return matchesCategory && matchesSearch;
         });
-    }, [recipes, selectedParentId, selectedChildId, categories, searchQuery]);
+    }, []);
+ 
+    // Synchronize Roulette & Card Flip slots when filter outputs modify
+    useEffect(() => {
+        if (filteredRecipes.length > 0) {
+            const shuffled = [...filteredRecipes].sort(() => 0.5 - Math.random());
+            setRouletteItems(shuffled.slice(0, Math.min(8, shuffled.length)));
+            setCardItems(shuffled.slice(0, Math.min(3, shuffled.length)));
+            setFlippedCards({});
+        } else {
+            setRouletteItems([]);
+            setCardItems([]);
+            setFlippedCards({});
+        }
+        setSpinAngle(0);
+        setIsSpinning(false);
+    }, [filteredRecipes]);
+ 
+    // Reset Card Flips manually
+    const handleResetCards = () => {
+        if (filteredRecipes.length > 0) {
+            const shuffled = [...filteredRecipes].sort(() => 0.5 - Math.random());
+            setCardItems(shuffled.slice(0, Math.min(3, shuffled.length)));
+            setFlippedCards({});
+            toast.success("카드가 무작위로 새로 섞였습니다!");
+        }
+    };
+ 
+    interface WeatherData {
+        type: 'sunny' | 'partly_cloudy' | 'cloudy' | 'rainy' | 'snowy' | 'unknown';
+        temp: number | null;
+    }
+ 
+    // 4-Hour Location-Aware Weather Cache Lookup
+    const getWeatherFromCacheOrAPI = async (lat: number, lng: number): Promise<WeatherData> => {
+        const cacheKey = `weather_recipe_cache`;
+        const cachedStr = sessionStorage.getItem(cacheKey);
+        if (cachedStr) {
+            try {
+                const cached = JSON.parse(cachedStr);
+                const now = new Date().getTime();
+                if (now - cached.timestamp < 4 * 3600 * 1000) {
+                    return {
+                        type: cached.weather.type,
+                        temp: cached.weather.temp
+                    };
+                }
+            } catch (e) {
+                console.warn("Error parsing weather cache:", e);
+            }
+        }
+ 
+        // Fetch fresh weather
+        const response = await fetch(`/api/weather?lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}`);
+        if (!response.ok) {
+            throw new Error('Weather API request failed');
+        }
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+ 
+        const todayFcst = data.daily?.[0];
+        let type: WeatherData['type'] = 'sunny';
+        if (todayFcst && todayFcst.weatherCode) {
+            type = todayFcst.weatherCode;
+        }
+ 
+        const weatherResult: WeatherData = {
+            type,
+            temp: data.current?.temp ?? null
+        };
+ 
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+            timestamp: new Date().getTime(),
+            weather: weatherResult
+        }));
+ 
+        return weatherResult;
+    };
+ 
+    const handleRecommendRecipe = () => {
+        if (filteredRecipes.length === 0) {
+            toast.error("현재 조건에 맞는 레시피 정보가 없습니다.");
+            return;
+        }
+ 
+        setRecommending(true);
+ 
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                await processRecommendation(latitude, longitude);
+            },
+            async (err) => {
+                console.warn("Geolocation denied/failed. Fallback to RAON.I location.", err);
+                const DEFAULT_LAT = 36.7821;
+                const DEFAULT_LNG = 126.8324;
+                await processRecommendation(DEFAULT_LAT, DEFAULT_LNG);
+            },
+            { timeout: 7000 }
+        );
+    };
+ 
+    const processRecommendation = async (lat: number, lng: number) => {
+        try {
+            const weather = await getWeatherFromCacheOrAPI(lat, lng);
+            
+            // Score Recipes
+            const scored = filteredRecipes.map(recipe => {
+                let score = 50; // Base score
+                const textPool = `${recipe.name} ${recipe.travel_tips.join(' ')} ${recipe.ingredients.map(i => i.name).join(' ')}`.toLowerCase();
+ 
+                // Weather rules
+                const isRainyOrSnowy = weather.type === 'rainy' || weather.type === 'snowy';
+                const isSunny = weather.type === 'sunny';
+ 
+                if (isRainyOrSnowy) {
+                    const hasIndoorKeywords = textPool.includes('국물') || textPool.includes('탕') || textPool.includes('찌개') || textPool.includes('전골') || textPool.includes('얼큰') || textPool.includes('따끈') || textPool.includes('라면') || textPool.includes('전') || textPool.includes('부침개');
+                    if (hasIndoorKeywords) score += 40;
+                } else if (isSunny) {
+                    const hasOutdoorKeywords = textPool.includes('구이') || textPool.includes('그릴') || textPool.includes('바베큐') || textPool.includes('꼬치') || textPool.includes('시원한') || textPool.includes('냉') || textPool.includes('비빔') || textPool.includes('무침');
+                    if (hasOutdoorKeywords) score += 30;
+                }
+ 
+                // 기온 가이드
+                if (weather.temp !== null) {
+                    if (weather.temp < 15) {
+                        const hasHotKeywords = textPool.includes('따뜻한') || textPool.includes('뜨끈') || textPool.includes('국물') || textPool.includes('탕') || textPool.includes('찌개') || textPool.includes('전골');
+                        if (hasHotKeywords) score += 30;
+                    } else if (weather.temp > 25) {
+                        const hasColdKeywords = textPool.includes('시원한') || textPool.includes('냉') || textPool.includes('비빔') || textPool.includes('무침') || textPool.includes('간단') || textPool.includes('초간단');
+                        if (hasColdKeywords) score += 30;
+                    }
+                }
+ 
+                // 페르소나 가이드 (profiles.family_type)
+                if (currentUserProfile) {
+                    const familyType = currentUserProfile.family_type;
+                    if (familyType === 'family') {
+                        const hasKidsKeywords = textPool.includes('아이') || textPool.includes('어린이') || textPool.includes('자녀') || textPool.includes('가족') || textPool.includes('안매운') || textPool.includes('달콤') || textPool.includes('치즈') || textPool.includes('소시지');
+                        if (hasKidsKeywords) score += 40;
+                    } else if (familyType === 'couple') {
+                        const hasCoupleKeywords = textPool.includes('커플') || textPool.includes('안주') || textPool.includes('와인') || textPool.includes('맥주') || textPool.includes('소주') || textPool.includes('스테이크') || textPool.includes('파스타') || textPool.includes('하이볼') || textPool.includes('분위기');
+                        if (hasCoupleKeywords) score += 30;
+                    }
+                }
+ 
+                return { recipe, score };
+            });
+ 
+            scored.sort((a, b) => b.score - a.score);
+            
+            const topScore = scored[0].score;
+            const topCandidates = scored.filter(s => s.score >= topScore - 5);
+            const selectedIdx = Math.floor(Math.random() * topCandidates.length);
+            const chosenRecipe = topCandidates[selectedIdx].recipe;
+ 
+            setTimeout(() => {
+                setRecommending(false);
+                handleRecipeClick(chosenRecipe);
+                
+                let weatherMsg = '';
+                if (weather.type === 'rainy') weatherMsg = '🌧️ 비가 오는 날씨군요! 따끈하고 얼큰한';
+                else if (weather.type === 'snowy') weatherMsg = '❄️ 눈이 오는 날씨군요! 포근하고 따뜻한';
+                else if (weather.type === 'sunny') weatherMsg = '☀️ 화창한 날씨군요! 맛있는 야외 그릴/바베큐';
+                else weatherMsg = '🍳 오늘 여행에 딱 맞는';
+ 
+                toast.success(`${weatherMsg} 레시피를 엄선하여 추천해 드려요!`);
+            }, 1000);
+ 
+        } catch (e: any) {
+            console.error("Recipe recommendation failed:", e);
+            setRecommending(false);
+            const chosenRecipe = filteredRecipes[Math.floor(Math.random() * filteredRecipes.length)];
+            handleRecipeClick(chosenRecipe);
+            toast("⚠️ 날씨 연동 실패로 인기 레시피를 매칭해 드려요!");
+        }
+    };
+ 
+    // Spin Roulette
+    const handleSpinRoulette = () => {
+        if (isSpinning || rouletteItems.length === 0) return;
+ 
+        setIsSpinning(true);
+        const targetIdx = Math.floor(Math.random() * rouletteItems.length);
+        const sliceAngle = 360 / rouletteItems.length;
+        
+        const additionalRotations = 1800;
+        const targetAngle = 360 - (targetIdx * sliceAngle) - (sliceAngle / 2);
+        const finalAngle = spinAngle + additionalRotations + targetAngle;
+        
+        setSpinAngle(finalAngle);
+ 
+        setTimeout(() => {
+            setIsSpinning(false);
+            const chosen = rouletteItems[targetIdx];
+            handleRecipeClick(chosen);
+            toast.success(`🎯 룰렛 결과: "${chosen.name}" 레시피가 선택되었습니다!`);
+        }, 4000);
+    };
+ 
+    // Handle Card Flip
+    const handleCardFlip = (idx: number) => {
+        if (flippedCards[idx]) return;
+        setFlippedCards(prev => ({ ...prev, [idx]: true }));
+    };
+
+
 
     // Handle Open Detail Sheet
     const handleRecipeClick = (recipe: RecipeItem) => {
@@ -307,61 +548,295 @@ export default function TravelRecipePage() {
                 </div>
             )}
 
-            {/* 요리 목록 그리드 */}
+            {/* AI Recommendation Banner */}
             <div className="px-4 py-2">
-                <div className="flex items-center justify-between mb-3 px-1">
-                    <span className="text-[11px] font-bold text-stone-400 tracking-wider uppercase">{activeCategoryName}</span>
-                    <span className="text-[11px] font-medium text-stone-400">{filteredRecipes.length}개의 추천 요리</span>
+                <div className="bg-gradient-to-br from-emerald-800 to-teal-700 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+                    <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-15 pointer-events-none">
+                        <Sparkles className="w-28 h-28" />
+                    </div>
+                    <div className="relative z-10 space-y-3">
+                        <div>
+                            <h2 className="text-base font-bold flex items-center gap-1.5">
+                                <Sparkles className="w-4 h-4 text-yellow-200 animate-pulse" />
+                                실시간 레시피 매칭
+                            </h2>
+                            <p className="text-xs text-white/90 leading-relaxed mt-1">
+                                선택하신 요리 유형 안에서, 현재 캠핑장 날씨(기온, 우천)와 사용자 프로필(가족/연인/개인)을 종합 분석하여 오늘 만들어 먹기 딱 좋은 맞춤 메뉴를 추천해 드립니다!
+                            </p>
+                        </div>
+                        <Button
+                            onClick={handleRecommendRecipe}
+                            disabled={recommending}
+                            className="w-full bg-white hover:bg-stone-100 text-emerald-800 font-extrabold text-sm py-5 rounded-2xl shadow-sm transition-all active:scale-[0.98]"
+                        >
+                            {recommending ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-700 border-t-transparent" />
+                                    현지 기상 분석 및 맞춤 메뉴 선정 중...
+                                </span>
+                            ) : (
+                                "🎲 오늘의 맞춤 레시피 추천받기"
+                            )}
+                        </Button>
+                    </div>
                 </div>
-
-                {loading ? (
-                    <div className="grid grid-cols-2 gap-3">
-                        {[1, 2, 3, 4].map(idx => (
-                            <div key={idx} className="bg-white dark:bg-stone-900 rounded-3xl p-3 border border-stone-200/50 dark:border-stone-800/50 space-y-2">
-                                <div className="w-full h-28 bg-stone-200 dark:bg-stone-800 rounded-2xl animate-pulse" />
-                                <div className="h-4 bg-stone-200 dark:bg-stone-800 rounded w-3/4 animate-pulse" />
-                                <div className="h-3 bg-stone-200 dark:bg-stone-800 rounded w-1/2 animate-pulse" />
-                            </div>
-                        ))}
-                    </div>
-                ) : filteredRecipes.length === 0 ? (
-                    <div className="w-full py-16 flex flex-col items-center justify-center text-center px-4 bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/50 dark:border-stone-800/50 mt-2">
-                        <Utensils className="w-10 h-10 text-stone-300 dark:text-stone-700 mb-3" />
-                        <h3 className="text-sm font-bold text-stone-600 dark:text-stone-400">등록된 요리가 없습니다</h3>
-                        <p className="text-xs text-stone-400 mt-1 max-w-[200px]">해당 카테고리에 맞는 요리 데이터를 준비 중입니다.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                        {filteredRecipes.map((recipe) => (
-                            <div
-                                key={recipe.id}
-                                onClick={() => handleRecipeClick(recipe)}
-                                className="group bg-white dark:bg-stone-900 hover:bg-stone-50/50 dark:hover:bg-stone-800/30 rounded-3xl p-3 border border-stone-200/60 dark:border-stone-800/60 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between"
-                            >
-                                <div className="space-y-2">
-                                    <h3 className="text-xs font-bold text-stone-900 dark:text-stone-50 line-clamp-2 px-1">
-                                        {recipe.name}
-                                    </h3>
-                                    {recipe.travel_tips?.[0] && (
-                                        <p className="text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-2.5 leading-relaxed line-clamp-2">
-                                            💡 {recipe.travel_tips[0]}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="mt-3 flex items-center justify-between px-1">
-                                    <span className="text-[9px] text-stone-400 flex items-center gap-0.5">
-                                        <BookOpen className="w-3 h-3" />
-                                        재료 {recipe.ingredients?.length || 0}종
-                                    </span>
-                                    <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-md">
-                                        조리 꿀팁
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
+
+            {/* Interactive Mode Swapper Tab */}
+            <div className="px-4 py-3 flex gap-1.5">
+                <button
+                    onClick={() => setActiveTabMode('list')}
+                    className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                        activeTabMode === 'list'
+                            ? 'bg-emerald-800 text-white dark:bg-emerald-700 border-transparent shadow-sm'
+                            : 'bg-white dark:bg-stone-900 text-stone-500 border-stone-200/50 hover:bg-stone-50'
+                    }`}
+                >
+                    <List className="w-3.5 h-3.5" />
+                    리스트 목록
+                </button>
+                <button
+                    onClick={() => setActiveTabMode('roulette')}
+                    className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                        activeTabMode === 'roulette'
+                            ? 'bg-emerald-800 text-white dark:bg-emerald-700 border-transparent shadow-sm'
+                            : 'bg-white dark:bg-stone-900 text-stone-500 border-stone-200/50 hover:bg-stone-50'
+                    }`}
+                >
+                    🎯 룰렛 돌리기
+                </button>
+                <button
+                    onClick={() => setActiveTabMode('card')}
+                    className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                        activeTabMode === 'card'
+                            ? 'bg-emerald-800 text-white dark:bg-emerald-700 border-transparent shadow-sm'
+                            : 'bg-white dark:bg-stone-900 text-stone-500 border-stone-200/50 hover:bg-stone-50'
+                    }`}
+                >
+                    🃏 카드 뒤집기
+                </button>
+            </div>
+
+            {/* Content Area based on Mode */}
+            {activeTabMode === 'list' && (
+                <div className="px-4 py-2">
+                    <div className="flex items-center justify-between mb-3 px-1">
+                        <span className="text-[11px] font-bold text-stone-400 tracking-wider uppercase">{activeCategoryName}</span>
+                        <span className="text-[11px] font-medium text-stone-400">{filteredRecipes.length}개의 추천 요리</span>
+                    </div>
+
+                    {loading ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            {[1, 2, 3, 4].map(idx => (
+                                <div key={idx} className="bg-white dark:bg-stone-900 rounded-3xl p-3 border border-stone-200/50 dark:border-stone-800/50 space-y-2">
+                                    <div className="w-full h-28 bg-stone-200 dark:bg-stone-800 rounded-2xl animate-pulse" />
+                                    <div className="h-4 bg-stone-200 dark:bg-stone-800 rounded w-3/4 animate-pulse" />
+                                    <div className="h-3 bg-stone-200 dark:bg-stone-800 rounded w-1/2 animate-pulse" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : filteredRecipes.length === 0 ? (
+                        <div className="w-full py-16 flex flex-col items-center justify-center text-center px-4 bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/50 dark:border-stone-800/50 mt-2">
+                            <Utensils className="w-10 h-10 text-stone-300 dark:text-stone-700 mb-3" />
+                            <h3 className="text-sm font-bold text-stone-600 dark:text-stone-400">등록된 요리가 없습니다</h3>
+                            <p className="text-xs text-stone-400 mt-1 max-w-[200px]">해당 카테고리에 맞는 요리 데이터를 준비 중입니다.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                            {filteredRecipes.map((recipe) => (
+                                <div
+                                    key={recipe.id}
+                                    onClick={() => handleRecipeClick(recipe)}
+                                    className="group bg-white dark:bg-stone-900 hover:bg-stone-50/50 dark:hover:bg-stone-800/30 rounded-3xl p-3 border border-stone-200/60 dark:border-stone-800/60 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between"
+                                >
+                                    <div className="space-y-2">
+                                        <h3 className="text-xs font-bold text-stone-900 dark:text-stone-50 line-clamp-2 px-1">
+                                            {recipe.name}
+                                        </h3>
+                                        {recipe.travel_tips?.[0] && (
+                                            <p className="text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-2.5 leading-relaxed line-clamp-2">
+                                                💡 {recipe.travel_tips[0]}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="mt-3 flex items-center justify-between px-1">
+                                        <span className="text-[9px] text-stone-400 flex items-center gap-0.5">
+                                            <BookOpen className="w-3 h-3" />
+                                            재료 {recipe.ingredients?.length || 0}종
+                                        </span>
+                                        <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-md">
+                                            조리 꿀팁
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Roulette Spinning View */}
+            {activeTabMode === 'roulette' && (
+                <div className="px-4 py-2 animate-in fade-in duration-300">
+                    <div className="flex flex-col items-center py-6 space-y-6 bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/50 dark:border-stone-800/50 p-5 shadow-sm">
+                        <div className="text-center space-y-1">
+                            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">🎯 복불복 메뉴 선택 룰렛</h3>
+                            <p className="text-[10px] text-stone-400">카테고리 레시피 목록에서 추출된 8개 요리 중 오늘의 운명의 한 끼를 뽑으세요!</p>
+                        </div>
+
+                        {rouletteItems.length === 0 ? (
+                            <div className="py-12 text-center text-xs text-stone-400">
+                                룰렛을 돌릴 레시피 정보가 부족합니다. 필터 카테고리를 변경해보세요.
+                            </div>
+                        ) : (
+                            <div className="relative flex flex-col items-center">
+                                {/* Pointer Indicator (12 o'clock) */}
+                                <div className="absolute -top-3 z-30 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[18px] border-t-red-600 drop-shadow-md" />
+
+                                {/* Roulette Wheel */}
+                                <div 
+                                    className="w-64 h-64 rounded-full border-4 border-stone-800 dark:border-stone-950 relative overflow-hidden shadow-lg"
+                                    style={{
+                                        background: `conic-gradient(${rouletteItems.map((_, idx) => {
+                                            const sliceAngle = 360 / rouletteItems.length;
+                                            const start = idx * sliceAngle;
+                                            const end = (idx + 1) * sliceAngle;
+                                            return `${rouletteColors[idx % rouletteColors.length]} ${start}deg ${end}deg`;
+                                        }).join(', ')})`,
+                                        transform: `rotate(${spinAngle}deg)`,
+                                        transition: isSpinning ? 'transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)' : 'none'
+                                    }}
+                                >
+                                    {/* Labels */}
+                                    {rouletteItems.map((item, idx) => {
+                                        const sliceAngle = 360 / rouletteItems.length;
+                                        const angle = (idx * sliceAngle) + (sliceAngle / 2);
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className="absolute top-0 left-0 w-full h-full text-white text-[9px] font-black pointer-events-none"
+                                                style={{
+                                                    transform: `rotate(${angle}deg)`,
+                                                    transformOrigin: '50% 50%',
+                                                }}
+                                            >
+                                                <div 
+                                                    className="mx-auto mt-4 w-12 text-center break-all leading-tight drop-shadow-md line-clamp-2"
+                                                    style={{ transform: 'rotate(0deg)' }}
+                                                >
+                                                    {item.name}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Center Cap */}
+                                <div className="absolute w-8 h-8 rounded-full bg-stone-900 border-2 border-white shadow-md z-20 top-28" />
+
+                                {/* Spin Button */}
+                                <div className="pt-6 w-full max-w-[200px]">
+                                    <Button
+                                        onClick={handleSpinRoulette}
+                                        disabled={isSpinning}
+                                        className="w-full py-5 rounded-2xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow active:scale-95 transition-all"
+                                    >
+                                        {isSpinning ? "🎲 룰렛 회전 중..." : "🎯 룰렛 돌리기"}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Card Flip View */}
+            {activeTabMode === 'card' && (
+                <div className="px-4 py-2 animate-in fade-in duration-300">
+                    <div className="space-y-6 bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/50 dark:border-stone-800/50 p-5 shadow-sm">
+                        <div className="text-center space-y-1">
+                            <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">🃏 운명의 3D 카드 뒤집기</h3>
+                            <p className="text-[10px] text-stone-400">뒤집혀 있는 카드 중 하나를 선택해 오늘 만들 요리를 열어보세요!</p>
+                        </div>
+
+                        {cardItems.length === 0 ? (
+                            <div className="py-12 text-center text-xs text-stone-400">
+                                섞을 레시피 정보가 부족합니다. 필터 카테고리를 변경해 보세요.
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {/* Card Grid */}
+                                <div className="grid grid-cols-3 gap-3">
+                                    {cardItems.map((recipe, idx) => {
+                                        const isFlipped = !!flippedCards[idx];
+                                        return (
+                                            <div 
+                                                key={recipe.id}
+                                                className="w-full aspect-[2.6/4] cursor-pointer"
+                                                onClick={() => handleCardFlip(idx)}
+                                                style={{ perspective: '1000px' }}
+                                            >
+                                                {/* Card Wrapper (performs 3D rotation) */}
+                                                <div 
+                                                    className="relative w-full h-full duration-500 shadow-md rounded-2xl"
+                                                    style={{ 
+                                                        transformStyle: 'preserve-3d',
+                                                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                                                        transition: 'transform 0.6s'
+                                                    }}
+                                                >
+                                                    {/* Front Side (Card back visible initially) */}
+                                                    <div 
+                                                        className="absolute inset-0 bg-gradient-to-br from-emerald-700 to-emerald-950 rounded-2xl border-4 border-emerald-500/30 flex flex-col items-center justify-center text-emerald-200"
+                                                        style={{ backfaceVisibility: 'hidden' }}
+                                                    >
+                                                        <span className="text-2xl">🍳</span>
+                                                        <span className="text-[8px] font-black tracking-widest mt-1">FLIP</span>
+                                                    </div>
+
+                                                    {/* Back Side (Recipe data visible after flip) */}
+                                                    <div 
+                                                        className="absolute inset-0 bg-[#F7F5EF] dark:bg-stone-900 rounded-2xl border border-emerald-500 p-2 flex flex-col justify-between"
+                                                        style={{ 
+                                                            backfaceVisibility: 'hidden',
+                                                            transform: 'rotateY(180deg)'
+                                                        }}
+                                                    >
+                                                        <div className="space-y-1.5 overflow-hidden">
+                                                            <span className="text-[7px] font-extrabold text-emerald-600 block leading-none">RECOMMEND</span>
+                                                            <h4 className="text-[9px] font-bold text-stone-900 dark:text-stone-100 line-clamp-2 leading-snug">{recipe.name}</h4>
+                                                            <p className="text-[8px] text-stone-500 leading-normal line-clamp-3">{recipe.travel_tips?.[0] || '초간단 캠핑 요리 팁'}</p>
+                                                        </div>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRecipeClick(recipe);
+                                                            }}
+                                                            className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[8px] font-bold mt-1.5"
+                                                        >
+                                                            자세히 보기
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Reshuffle Action */}
+                                <div className="flex justify-center">
+                                    <Button
+                                        onClick={handleResetCards}
+                                        className="py-2.5 px-6 h-auto bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-[10px] font-extrabold"
+                                    >
+                                        🃏 다른 카드 섞기
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Bottom Sheet - 요리 상세 */}
             {selectedRecipe && (
