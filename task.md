@@ -5,6 +5,13 @@
     - [x] Prioritize `User Camping Profile` over historical reservations for accurate persona extraction.
     - [x] Fix merge conflicts in `persona.ts` and `smartPlan.ts` to unify logic.
     - [x] `sync-baeknyeon.mjs` 수정 (주요사업 기반 비식당 필터링 추가)
+- [x] **6단계: 수동 푸시 권한 동기화 강제 옵션(Force Sync) 보완**
+    - [x] `src/hooks/usePushNotification.ts` 수정 (force?: boolean 옵션 및 가드 우회)
+    - [x] `src/components/TopBar.tsx` 수정 (requestPermission(true) 호출)
+    - [x] 기능 검증 및 최종 커밋
+- [ ] **7단계: 수동 알림 허용 시 토스트(Toast) 시각 피드백 추가**
+    - [ ] `src/hooks/usePushNotification.ts` 토스트 임포트 및 강제 동기화 성공/오류 피드백 추가
+    - [ ] 빌드 검증 및 깃 커밋
 - [x] 데이터베이스에서 기존 백년가게 데이터 삭제 및 재동기화
 - [x] **DB Migration**
     - [x] Apply `20260506_add_seniors_to_profile.sql` to Supabase.
