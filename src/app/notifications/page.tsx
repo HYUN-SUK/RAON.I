@@ -102,48 +102,80 @@ export default function NotificationsPage() {
                         <p>받은 알림이 없습니다.</p>
                     </div>
                 ) : (
-                    notifications.map((noti) => (
-                        <div
-                            key={noti.id}
-                            onClick={() => {
-                                if (noti.data?.route) {
-                                    console.log('Navigating to:', noti.data.route);
-                                    router.push(noti.data.route);
-                                }
-                            }}
-                            className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 relative overflow-hidden active:scale-[0.98] transition-transform duration-200 cursor-pointer"
-                        >
-                            {/* Paper/Note Texture Effect (Optional) */}
-                            <div className="absolute top-0 left-0 w-1 h-full bg-[#1C4526] opacity-80" />
+                    notifications.map((noti) => {
+                        let heroImage = null;
+                        let targetLink = null;
+                        if (noti.data) {
+                            if (typeof noti.data === 'object') {
+                                heroImage = noti.data.hero_image;
+                                targetLink = noti.data.route || noti.data.link;
+                            } else if (typeof noti.data === 'string') {
+                                try {
+                                    const parsed = JSON.parse(noti.data);
+                                    heroImage = parsed.hero_image;
+                                    targetLink = parsed.route || parsed.link;
+                                } catch (e) {}
+                            }
+                        }
 
-                            <div className="flex items-start gap-4">
-                                <div className="mt-1 p-2 bg-stone-50 dark:bg-zinc-800 rounded-lg border border-stone-100 dark:border-zinc-700">
-                                    {getIcon(noti.event_type || '')}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h3 className="text-base font-bold text-stone-800 dark:text-stone-100 leading-tight">
-                                            {noti.title}
-                                        </h3>
-                                        <div className="flex flex-col items-end ml-2">
-                                            <span className="text-[10px] text-stone-400 whitespace-nowrap flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {format(new Date(noti.created_at), 'MM.dd HH:mm', { locale: ko })}
-                                            </span>
-                                            {noti.data?.route && (
-                                                <span className="text-[10px] text-[#1C4526] mt-1 font-medium bg-green-50 px-1.5 py-0.5 rounded-md">
-                                                    바로가기 Available
-                                                </span>
-                                            )}
-                                        </div>
+                        return (
+                            <div
+                                key={noti.id}
+                                onClick={() => {
+                                    if (targetLink) {
+                                        console.log('Navigating to:', targetLink);
+                                        router.push(targetLink);
+                                    }
+                                }}
+                                className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 relative overflow-hidden active:scale-[0.98] transition-transform duration-200 cursor-pointer"
+                            >
+                                {/* Paper/Note Texture Effect (Optional) */}
+                                <div className="absolute top-0 left-0 w-1 h-full bg-[#1C4526] opacity-80" />
+
+                                <div className="flex items-start gap-4">
+                                    <div className="mt-1 flex-shrink-0">
+                                        <img 
+                                            src="https://raon-i.vercel.app/icons/icon-192.png" 
+                                            alt="RAON.I" 
+                                            className="w-10 h-10 rounded-full border border-stone-200 object-cover" 
+                                        />
                                     </div>
-                                    <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed whitespace-pre-wrap">
-                                        {noti.body}
-                                    </p>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h3 className="text-base font-bold text-stone-800 dark:text-stone-100 leading-tight">
+                                                {noti.title}
+                                            </h3>
+                                            <div className="flex flex-col items-end ml-2">
+                                                <span className="text-[10px] text-stone-400 whitespace-nowrap flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    {format(new Date(noti.created_at), 'MM.dd HH:mm', { locale: ko })}
+                                                </span>
+                                                {targetLink && (
+                                                    <span className="text-[10px] text-[#1C4526] mt-1 font-medium bg-green-50 px-1.5 py-0.5 rounded-md">
+                                                        바로가기 Available
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed whitespace-pre-wrap">
+                                            {noti.body}
+                                        </p>
+                                        
+                                        {/* Dynamic Hero Image if exists */}
+                                        {heroImage && (
+                                            <div className="mt-3 overflow-hidden rounded-xl border border-stone-100 dark:border-zinc-800">
+                                                <img 
+                                                    src={heroImage} 
+                                                    alt="Camping Stay Image" 
+                                                    className="w-full h-36 object-cover" 
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </main>
         </div>

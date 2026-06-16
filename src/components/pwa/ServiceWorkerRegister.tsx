@@ -52,18 +52,28 @@ export default function ServiceWorkerRegister() {
                 if (messaging) {
                     onMessage(messaging, (payload) => {
                         console.log('[App] Foreground Message received:', payload);
-                        const { title, body } = payload.notification || {};
+                        const title = payload.data?.title || payload.notification?.title || '새 알림';
+                        const body = payload.data?.body || payload.notification?.body || '';
+                        const iconUrl = "https://raon-i.vercel.app/icons/icon-192.png";
 
-                        // Show Toast
-                        toast.info(title || '새 알림', {
+                        // Show Premium Toast with Brand Icon
+                        toast(title, {
                             description: body,
+                            icon: (
+                                <img 
+                                    src={iconUrl} 
+                                    alt="RAON.I" 
+                                    className="w-10 h-10 rounded-full border border-stone-200 object-cover"
+                                    style={{ minWidth: '40px', minHeight: '40px' }}
+                                />
+                            ),
                             action: {
                                 label: '보기',
                                 onClick: () => {
-                                    window.location.href = '/notifications';
+                                    window.location.href = payload.data?.link || '/notifications';
                                 }
                             },
-                            duration: Infinity,
+                            duration: 10000,
                         });
                     });
                 }
