@@ -17,8 +17,10 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
     const pathname = usePathname();
 
     useEffect(() => {
+        const supabase = createClient();
+        let channel: any = null;
+
         const fetchLatest = async () => {
-            const supabase = createClient();
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
@@ -42,10 +44,36 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
             } else {
                 setLatestNotification(null); // Clear if no data
             }
+
+            // [REALTIME SYNC] Listen to Postgres changes for user notifications (is_read update, etc.)
+            if (!channel) {
+                channel = supabase
+                    .channel(`public:notifications:user:${session.user.id}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${session.user.id}`
+                        },
+                        (payload) => {
+                            console.log('[Realtime Badge] Changes detected:', payload);
+                            fetchLatest();
+                        }
+                    )
+                    .subscribe();
+            }
         };
 
         fetchLatest();
-    }, [pathname]); // Refresh on navigation
+
+        return () => {
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
+        };
+    }, [pathname]); // Refresh on navigation / Realtime ensures immediate UI cleanup
 
     if (!latestNotification) return null;
 

@@ -45,14 +45,17 @@ export default function NotificationsPage() {
             } else {
                 setNotifications(data || []);
 
-                // Mark ALL notifications as read (Background)
-                supabase.from('notifications')
-                    .update({ is_read: true })
-                    .eq('user_id', session.user.id)
-                    .eq('is_read', false)
-                    .then(({ error }) => {
-                        if (error) console.error('Failed to mark all read:', error);
-                    });
+                // Mark ALL notifications as read (Await to ensure DB consistency before render finish)
+                try {
+                    const { error: readErr } = await supabase
+                        .from('notifications')
+                        .update({ is_read: true })
+                        .eq('user_id', session.user.id)
+                        .eq('is_read', false);
+                    if (readErr) console.error('Failed to mark all read:', readErr);
+                } catch (e) {
+                    console.error('Error marking read:', e);
+                }
             }
             setLoading(false);
         };
