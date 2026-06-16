@@ -201,7 +201,7 @@ export default function TopBar() {
                                 <User className="mr-2 h-4 w-4" />
                                 <span>프로필 / 내 공간</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => requestPermission()} className="cursor-pointer">
+                            <DropdownMenuItem onClick={() => requestPermission(true)} className="cursor-pointer">
                                 <Bell className="mr-2 h-4 w-4" />
                                 <span>알림 설정 / 권한 허용</span>
                             </DropdownMenuItem>

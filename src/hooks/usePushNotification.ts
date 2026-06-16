@@ -17,7 +17,7 @@ export function usePushNotification() {
         }
     }, []);
 
-    const requestPermission = useCallback(async () => {
+    const requestPermission = useCallback(async (force?: boolean) => {
         if (typeof window === 'undefined') return;
 
         try {
@@ -32,9 +32,9 @@ export function usePushNotification() {
                 const { data: { user } } = await supabase.auth.getUser();
 
                 if (user) {
-                    // [SYNC GUARD] Prevent redundant writes if token hasn't changed
+                    // [SYNC GUARD] Prevent redundant writes if token hasn't changed (unless forced)
                     const lastToken = localStorage.getItem('last_synced_fcm_token');
-                    if (lastToken === token) {
+                    if (lastToken === token && !force) {
                         console.log('[Push] Token already synced. Skipping...');
                     } else {
                         await supabase.from('push_tokens').upsert({
@@ -45,7 +45,7 @@ export function usePushNotification() {
                             last_updated_at: new Date().toISOString()
                         });
                         localStorage.setItem('last_synced_fcm_token', token);
-                        console.log('[Push] Token synced to Supabase');
+                        console.log(`[Push] Token synced to Supabase (force: ${!!force})`);
                     }
                 }
 
