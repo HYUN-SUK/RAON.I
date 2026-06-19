@@ -13,6 +13,7 @@ export default function ReservationCompletePage() {
     const { reservations, sites, siteConfig, fetchSites, fetchSiteConfig, deadlineHours } = useReservationStore();
     const [latestReservation, setLatestReservation] = useState<any>(null);
     const [copied, setCopied] = useState(false);
+    const [showGuideModal, setShowGuideModal] = useState(false);
     const notificationSentRef = useRef(false);
 
     useEffect(() => {
@@ -24,6 +25,9 @@ export default function ReservationCompletePage() {
         if (reservations.length > 0) {
             const latest = reservations[reservations.length - 1];
             setLatestReservation(latest);
+            if (latest.status === 'CONFIRMED' || latest.status === 'PENDING') {
+                setShowGuideModal(true);
+            }
         } else {
             router.push('/reservation');
         }
@@ -168,6 +172,25 @@ export default function ReservationCompletePage() {
                     </button>
                 </div>
             </div>
+
+            {/* 예약 완료 및 스마트플랜 안내 모달 */}
+            {showGuideModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+                    <div className="bg-[#1E1E1E] text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center border border-white/10 flex flex-col items-center animate-fade-in">
+                        <span className="text-3xl">✨</span>
+                        <h3 className="text-base font-bold mt-3">예약 신청이 접수되었습니다!</h3>
+                        <p className="text-xs text-white/70 mt-2 leading-relaxed whitespace-pre-line">
+                            여행계획 수립을 위한 준비를 시작합니다.{"\n"}내일 오전 9시 이후에 자동계획생성을 진행할수있습니다.
+                        </p>
+                        <button
+                            onClick={() => setShowGuideModal(false)}
+                            className="mt-6 w-full bg-[#2F5233] hover:bg-[#233e26] text-white rounded-xl py-3 font-bold text-xs transition-colors"
+                        >
+                            확인
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

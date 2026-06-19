@@ -66,6 +66,7 @@ export default function TravelRecipePage() {
  
     // Bottom sheet details state
     const [selectedRecipe, setSelectedRecipe] = useState<RecipeItem | null>(null);
+    const [recommendedRecipes, setRecommendedRecipes] = useState<RecipeItem[]>([]);
     const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
  
     // Profile & Weather states for recommendation
@@ -342,14 +343,12 @@ export default function TravelRecipePage() {
  
             scored.sort((a, b) => b.score - a.score);
             
-            const topScore = scored[0].score;
-            const topCandidates = scored.filter(s => s.score >= topScore - 5);
-            const selectedIdx = Math.floor(Math.random() * topCandidates.length);
-            const chosenRecipe = topCandidates[selectedIdx].recipe;
+            // 상위 3개 추천 추출
+            const top3Recipes = scored.slice(0, 3).map(s => s.recipe);
  
             setTimeout(() => {
                 setRecommending(false);
-                handleRecipeClick(chosenRecipe);
+                setRecommendedRecipes(top3Recipes);
                 
                 let weatherMsg = '';
                 if (weather.type === 'rainy') weatherMsg = '🌧️ 비가 오는 날씨군요! 따끈하고 얼큰한';
@@ -357,15 +356,16 @@ export default function TravelRecipePage() {
                 else if (weather.type === 'sunny') weatherMsg = '☀️ 화창한 날씨군요! 맛있는 야외 그릴/바베큐';
                 else weatherMsg = '🍳 오늘 여행에 딱 맞는';
  
-                toast.success(`${weatherMsg} 레시피를 엄선하여 추천해 드려요!`);
+                toast.success(`${weatherMsg} 레시피를 엄선하여 3가지 추천해 드려요!`);
             }, 1000);
  
         } catch (e: any) {
             console.error("Recipe recommendation failed:", e);
             setRecommending(false);
-            const chosenRecipe = filteredRecipes[Math.floor(Math.random() * filteredRecipes.length)];
-            handleRecipeClick(chosenRecipe);
-            toast("⚠️ 날씨 연동 실패로 인기 레시피를 매칭해 드려요!");
+            const shuffled = [...filteredRecipes].sort(() => 0.5 - Math.random());
+            const fallback3 = shuffled.slice(0, 3);
+            setRecommendedRecipes(fallback3);
+            toast("⚠️ 날씨 연동 실패로 인기 레시피를 추천해 드려요!");
         }
     };
  
@@ -834,6 +834,51 @@ export default function TravelRecipePage() {
                                 </div>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* 3개 추천 결과 팝업 모달 */}
+            {recommendedRecipes.length > 0 && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="absolute inset-0" onClick={() => setRecommendedRecipes([])} />
+                    <div className="relative w-full max-w-sm bg-[#F7F5EF] dark:bg-[#0f0e0c] rounded-3xl p-6 shadow-2xl animate-fade-in border border-stone-200 dark:border-stone-800 flex flex-col max-h-[85vh] overflow-y-auto scrollbar-hide">
+                        <div className="text-center mb-5">
+                            <span className="text-xl">🍳</span>
+                            <h3 className="text-lg font-black text-stone-900 dark:text-stone-100 mt-2">라온아이 엄선 레시피 3선</h3>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">오늘 날씨와 취향에 어울리는 캠핑 레시피입니다.</p>
+                        </div>
+                        
+                        <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                            {recommendedRecipes.map((recipe) => (
+                                <div
+                                    key={recipe.id}
+                                    onClick={() => {
+                                        handleRecipeClick(recipe);
+                                        setRecommendedRecipes([]);
+                                    }}
+                                    className="p-4 bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-2xl hover:border-emerald-600 dark:hover:border-emerald-500 cursor-pointer transition-all active:scale-[0.98] duration-200 shadow-sm"
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-0.5 rounded-md">
+                                            {recipe.category_id ? categories.find(c => c.id === recipe.category_id)?.name : '추천 요리'}
+                                        </span>
+                                        <span className="text-[10px] text-stone-400 font-semibold">{recipe.ingredients.length}개 재료</span>
+                                    </div>
+                                    <h4 className="font-extrabold text-[14px] text-stone-900 dark:text-stone-100 truncate">{recipe.name}</h4>
+                                    <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 line-clamp-1">
+                                        {recipe.travel_tips[0] || '캠핑 추천 요리'}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <Button
+                            onClick={() => setRecommendedRecipes([])}
+                            className="mt-5 w-full bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl py-3 font-bold text-xs"
+                        >
+                            닫기
+                        </Button>
                     </div>
                 </div>
             )}

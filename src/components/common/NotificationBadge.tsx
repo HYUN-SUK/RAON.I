@@ -93,16 +93,16 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
         return (
             <button
                 onClick={handleClick}
-                className={`flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl px-3 py-1.5 shadow-lg active:scale-95 transition-transform z-30 ${className}`}
+                className={`flex-1 min-w-0 max-w-[130px] flex items-center justify-between gap-1.5 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl px-2.5 py-1.5 shadow-lg active:scale-95 transition-all z-30 ${className}`}
             >
-                <div className="relative">
-                    <Bell className="w-4 h-4 text-white" />
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <div className="relative flex-shrink-0">
+                    <Bell className="w-3.5 h-3.5 text-white" />
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
                 </div>
-                <span className="text-xs text-white font-medium truncate max-w-[120px]">
+                <span className="text-[10px] text-white font-semibold truncate flex-1 text-left max-w-[50px] xs:max-w-[70px]">
                     {latestNotification.title}
                 </span>
-                <span className="text-[10px] text-white/70">확인하기</span>
+                <span className="text-[9px] text-white/70 font-bold flex-shrink-0">확인</span>
             </button>
         );
     }

@@ -293,13 +293,13 @@ export default function UpcomingReservation() {
                     </div>
                 </div>
 
-                {/* 타캠핑장 일정 추가 버튼 */}
+                {/* 다른 여행 일정 추가 버튼 */}
                 <button
                     onClick={() => router.push('/myspace/schedule?add=external')}
                     className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-brand-1/30 rounded-xl text-brand-1 hover:bg-brand-1/5 transition-all"
                 >
                     <Plus size={16} />
-                    <span className="text-sm font-medium">타캠핑장 일정 추가</span>
+                    <span className="text-sm font-medium">다른 여행 일정 추가</span>
                 </button>
             </div>
         );
@@ -523,13 +523,13 @@ export default function UpcomingReservation() {
                 })()
             )}
 
-            {/* 타캠핑장 일정 추가 버튼 */}
+            {/* 다른 여행 일정 추가 버튼 */}
             <button
                 onClick={() => router.push('/myspace/schedule?add=external')}
                 className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-brand-1/30 rounded-xl text-brand-1 hover:bg-brand-1/5 transition-all"
             >
                 <Plus size={16} />
-                <span className="text-sm font-medium">타캠핑장 일정 추가</span>
+                <span className="text-sm font-medium">다른 여행 일정 추가</span>
             </button>
 
             {/* 입금 대기 리스트 */}

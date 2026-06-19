@@ -15,7 +15,7 @@ export default function SummaryGrid() {
 
     // Calculate history (completed or confirmed reservations in the past + 1분 기록)
     const reservationCount = reservations.filter(r => r.status === 'COMPLETED' || (r.status === 'CONFIRMED' && new Date(r.checkOutDate) < new Date())).length;
-    const recordCount = timelineItems.filter(i => i.type === 'record').length;
+    const recordCount = timelineItems.filter(i => ['record', 'mission', 'photo'].includes(i.type)).length;
     const historyCount = reservationCount + recordCount;
 
     const items = [

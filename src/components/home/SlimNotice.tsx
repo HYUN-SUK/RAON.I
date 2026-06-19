@@ -49,11 +49,11 @@ export default function SlimNotice({ variant = 'bottom' }: SlimNoticeProps) {
         return (
             <div
                 onClick={() => router.push('/community?tab=NOTICE')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-black/20 hover:bg-black/35 backdrop-blur-sm rounded-xl text-white cursor-pointer active:scale-95 transition-all text-[11px] max-w-[200px]"
+                className="flex-1 min-w-0 max-w-[170px] flex items-center gap-1.5 px-2.5 py-1.5 bg-black/20 hover:bg-black/35 backdrop-blur-sm rounded-xl text-white cursor-pointer active:scale-95 transition-all text-[10px]"
             >
                 <Volume2 className="w-3.5 h-3.5 text-[#C3A675] shrink-0" />
-                <span className="truncate font-semibold max-w-[140px]">{notice.title}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-75"><path d="m9 18 6-6-6-6" /></svg>
+                <span className="truncate font-semibold flex-1 max-w-[100px] xs:max-w-[115px]">{notice.title}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-75 flex-shrink-0"><path d="m9 18 6-6-6-6" /></svg>
             </div>
         );
     }

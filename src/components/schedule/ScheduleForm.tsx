@@ -35,6 +35,7 @@ export default function ScheduleForm({
 }: ScheduleFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
+    const [successScheduleId, setSuccessScheduleId] = useState<string | null>(null);
     const [profileComplete, setProfileComplete] = useState(false);
     const [campingProfile, setCampingProfile] = useState<CampingProfile | null>(null);
     const [formData, setFormData] = useState<Partial<ScheduleFormData>>({
@@ -91,8 +92,7 @@ export default function ScheduleForm({
             const result = await createSchedule(formData as ScheduleFormData);
 
             if (result.success && result.id) {
-                toast.success('일정이 등록되었어요!');
-                onSuccess?.(result.id);
+                setSuccessScheduleId(result.id);
             } else {
                 toast.error(result.error || '일정 등록에 실패했어요');
             }
@@ -242,6 +242,29 @@ export default function ScheduleForm({
                 mode="schedule"
                 onPlaceSelect={handlePlaceSelect}
             />
+
+            {/* 일정 등록 성공 및 스마트플랜 안내 모달 */}
+            {successScheduleId && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center border border-gray-100 flex flex-col items-center animate-fade-in">
+                        <span className="text-3xl">✨</span>
+                        <h3 className="text-base font-bold text-gray-900 mt-3">일정이 등록되었어요!</h3>
+                        <p className="text-xs text-gray-600 mt-2 leading-relaxed whitespace-pre-line">
+                            여행계획 수립을 위한 준비를 시작합니다.{"\n"}내일 오전 9시 이후에 자동계획생성을 진행할수있습니다.
+                        </p>
+                        <Button
+                            onClick={() => {
+                                const id = successScheduleId;
+                                setSuccessScheduleId(null);
+                                onSuccess?.(id);
+                            }}
+                            className="mt-6 w-full bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl py-3 font-bold text-xs"
+                        >
+                            확인
+                        </Button>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
