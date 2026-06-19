@@ -47,6 +47,7 @@ export default function ReservationPage() {
     }, [openDayRule]);
 
     const now = new Date();
+    const todayStr = now.toDateString();
 
     const isOpen = now >= activeConfig.openAt && now <= activeConfig.closeAt;
     const isPreOpen = now < activeConfig.openAt;
@@ -143,14 +144,14 @@ export default function ReservationPage() {
             }
         }
 
-        const ruleResult = checkReservationRules(selectedDateRange.from, selectedDateRange.to, now, { 
+        const ruleResult = checkReservationRules(selectedDateRange.from, selectedDateRange.to, new Date(todayStr), { 
             hasEndCapAvailability, 
             isNextDayBlocked,
             hasStartCapAvailability,
             isPrevDayBlocked
         });
         return { ...ruleResult, hasEndCapAvailability, isNextDayBlocked, hasStartCapAvailability, isPrevDayBlocked };
-    }, [selectedDateRange.from, activeConfig, selectedDateRange.to, reservations, now, sites]);
+    }, [selectedDateRange.from, activeConfig, selectedDateRange.to, reservations, todayStr, sites]);
 
     // 추가: 모든 사이트가 예약되었는지 체크
     const allSitesBooked = useMemo(() => {

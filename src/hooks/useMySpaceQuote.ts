@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useWeather, WeatherType } from '@/hooks/useWeather';
-import { useLBS } from '@/hooks/useLBS';
-import { createClient } from '@/lib/supabase-client';
+import { WeatherType } from '@/hooks/useWeather';
 
 type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 type TimeOfDay = 'dawn' | 'morning' | 'afternoon' | 'evening' | 'night';
@@ -267,27 +265,37 @@ const QUOTES = {
 // 훅 본체
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useMySpaceQuote() {
+interface UseMySpaceQuoteProps {
+    familyType?: string;
+}
+
+export function useMySpaceQuote(props?: UseMySpaceQuoteProps) {
     const [quote, setQuote] = useState<string>("빈 페이지가 당신의 이야기를 기다리고 있어요.");
-    const [userProfile, setUserProfile] = useState<{ family_type?: string } | null>(null);
 
-    const lbs = useLBS();
-    const weather = useWeather(
-        !lbs.usingDefault ? lbs.location.latitude : undefined,
-        !lbs.usingDefault ? lbs.location.longitude : undefined
-    );
-
-    // Fetch user profile
-    useEffect(() => {
-        const fetchProfile = async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data } = await supabase.from('profiles').select('family_type').eq('id', user.id).single();
-                setUserProfile(data);
+    // Geolocation/KMA 날씨 API 대기 없이, 이전 홈 화면 등에서 이미 받아놓은 날씨 캐시를 100% 동기 재사용
+    const weather = useMemo(() => {
+        if (typeof window === 'undefined') return { type: 'unknown' as WeatherType, temp: null };
+        try {
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key && key.startsWith('weather_kma_')) {
+                    const item = sessionStorage.getItem(key);
+                    if (item) {
+                        const parsed = JSON.parse(item);
+                        // 4시간 이내인 캐시만 인정
+                        if (Date.now() - parsed.timestamp < 4 * 3600 * 1000) {
+                            return {
+                                type: (parsed.data.type || 'unknown') as WeatherType,
+                                temp: parsed.data.temp ?? null
+                            };
+                        }
+                    }
+                }
             }
-        };
-        fetchProfile();
+        } catch (e) {
+            console.warn('Failed to parse weather cache in MySpaceQuote:', e);
+        }
+        return { type: 'unknown' as WeatherType, temp: null };
     }, []);
 
     // Derive context
@@ -327,10 +335,10 @@ export function useMySpaceQuote() {
             time,
             weather: weather.type,
             tempRange,
-            hasKids: userProfile?.family_type === 'family',
-            isCouple: userProfile?.family_type === 'couple',
+            hasKids: props?.familyType === 'family',
+            isCouple: props?.familyType === 'couple',
         };
-    }, [weather.temp, weather.type, userProfile?.family_type]);
+    }, [weather.temp, weather.type, props?.familyType]);
 
     // Generate quote
     useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BoardType, useCommunityStore } from '@/store/useCommunityStore';
 import StoryBoard from './StoryBoard';
 import NoticeBoard from './NoticeBoard';
@@ -8,6 +8,7 @@ import GroupBoard from './GroupBoard';
 import ContentBoard from './ContentBoard';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase-client';
 
 interface CommunityBoardContainerProps {
     activeTab: BoardType;
@@ -16,6 +17,19 @@ interface CommunityBoardContainerProps {
 export default function CommunityBoardContainer({ activeTab }: CommunityBoardContainerProps) {
     const { getPostsByType, loadPosts, page, hasMore, isLoading } = useCommunityStore();
     const posts = getPostsByType(activeTab) || [];
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    // 사용자 관리자 세션 1회 조회
+    useEffect(() => {
+        const checkAdmin = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && (user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin')) {
+                setIsAdmin(true);
+            }
+        };
+        checkAdmin();
+    }, []);
 
     // Intersection Observer for Infinite Scroll
     const observerTarget = useRef<HTMLDivElement>(null);
@@ -25,12 +39,25 @@ export default function CommunityBoardContainer({ activeTab }: CommunityBoardCon
         isFetching.current = false; // Reset on tab change or posts change
     }, [posts]);
 
+    // State-Ref pattern to prevent multiple observer teardown/setup GC overhead
+    const hasMoreRef = useRef(hasMore);
+    const isLoadingRef = useRef(isLoading);
+    const pageRef = useRef(page);
+    const activeTabRef = useRef(activeTab);
+
+    useEffect(() => {
+        hasMoreRef.current = hasMore;
+        isLoadingRef.current = isLoading;
+        pageRef.current = page;
+        activeTabRef.current = activeTab;
+    }, [hasMore, isLoading, page, activeTab]);
+
     useEffect(() => {
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasMore && !isLoading && !isFetching.current) {
+                if (entries[0].isIntersecting && hasMoreRef.current && !isLoadingRef.current && !isFetching.current) {
                     isFetching.current = true;
-                    loadPosts(activeTab, page + 1);
+                    loadPosts(activeTabRef.current, pageRef.current + 1);
                 }
             },
             { threshold: 1.0 }
@@ -46,7 +73,7 @@ export default function CommunityBoardContainer({ activeTab }: CommunityBoardCon
                 observer.unobserve(currentTarget);
             }
         };
-    }, [hasMore, isLoading, activeTab, page, loadPosts]);
+    }, [loadPosts]);
 
 
     const INFINITE_SCROLL_TYPES: BoardType[] = ['STORY', 'REVIEW', 'CONTENT'];
@@ -55,13 +82,13 @@ export default function CommunityBoardContainer({ activeTab }: CommunityBoardCon
     // Render Board
     const renderBoard = () => {
         switch (activeTab) {
-            case 'STORY': return <StoryBoard posts={posts} />;
-            case 'NOTICE': return <NoticeBoard posts={posts} />;
-            case 'REVIEW': return <ReviewBoard posts={posts} />;
-            case 'QNA': return <QnaBoard posts={posts} />;
+            case 'STORY': return <StoryBoard posts={posts} isAdmin={isAdmin} />;
+            case 'NOTICE': return <NoticeBoard posts={posts} isAdmin={isAdmin} />;
+            case 'REVIEW': return <ReviewBoard posts={posts} isAdmin={isAdmin} />;
+            case 'QNA': return <QnaBoard posts={posts} isAdmin={isAdmin} />;
             case 'GROUP': return <GroupBoard posts={posts} />;
             case 'CONTENT': return <ContentBoard posts={posts} />;
-            default: return <StoryBoard posts={posts} />;
+            default: return <StoryBoard posts={posts} isAdmin={isAdmin} />;
         }
     };
 

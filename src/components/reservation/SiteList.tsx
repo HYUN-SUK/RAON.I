@@ -15,7 +15,6 @@ export default function SiteList() {
     const router = useRouter();
     const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites, fetchPublicReservations } = useReservationStore();
     const [mounted, setMounted] = useState(false);
-    const [checkingSiteId, setCheckingSiteId] = useState<string | null>(null);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -94,7 +93,7 @@ export default function SiteList() {
         return aAvailable ? -1 : 1;
     });
 
-    const handleSiteClick = async (site: Site) => {
+    const handleSiteClick = (site: Site) => {
         // 0-night validation (Check-in == Check-out or no Check-out)
         if (!selectedDateRange.from || !selectedDateRange.to || new Date(selectedDateRange.from).getTime() === new Date(selectedDateRange.to).getTime()) {
             toast.error('퇴실일을 선택하세요');
@@ -106,44 +105,8 @@ export default function SiteList() {
             return;
         }
 
-        // 1차 실시간 동시성 예약 조회 (DB 쿼리)
-        setCheckingSiteId(site.id);
-        try {
-            const supabase = createClient();
-            const checkInStr = format(selectedDateRange.from, 'yyyy-MM-dd');
-            const checkOutStr = format(selectedDateRange.to, 'yyyy-MM-dd');
-
-            const { data: overlappingReservations, error } = await supabase
-                .from('reservations')
-                .select('id')
-                .eq('site_id', site.id)
-                .neq('status', 'CANCELLED')
-                .lt('check_in_date', checkOutStr)
-                .gt('check_out_date', checkInStr);
-
-            if (error) {
-                console.error('[SiteList] Real-time occupancy check failed', error);
-            }
-
-            if (overlappingReservations && overlappingReservations.length > 0) {
-                toast.error('죄송합니다. 방금 다른 분이 먼저 이 사이트를 예약하셨습니다.');
-                
-                // 로컬 예약을 갱신하여 리스트 리프레시
-                const start = new Date();
-                const end = new Date();
-                end.setMonth(end.getMonth() + 6);
-                await fetchPublicReservations(start, end);
-                
-                setCheckingSiteId(null);
-                return;
-            }
-        } catch (err) {
-            console.error('[SiteList] Real-time occupancy catch error', err);
-        }
-        setCheckingSiteId(null);
-
         setSelectedSite(site);
-        router.push(`/reservation/${site.id}`); // Note: Ensure [id] page is also styled if needed, but out of scope for strict SiteList
+        router.push(`/reservation/${site.id}`);
     };
 
     const getPriceDisplay = (site: Site) => {
@@ -203,11 +166,6 @@ export default function SiteList() {
                                 : 'border-stone-100'}
           `}
                     >
-                        {checkingSiteId === site.id && (
-                            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-30 flex items-center justify-center">
-                                <div className="w-8 h-8 border-4 border-[#C3A675]/80 border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                        )}
 
                         <div className={`relative h-48 w-full ${!available ? 'grayscale' : ''}`}>
                             <Image

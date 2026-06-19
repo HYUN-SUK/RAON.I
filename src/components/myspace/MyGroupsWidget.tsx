@@ -15,7 +15,11 @@ interface MyGroup {
     };
 }
 
-export default function MyGroupsWidget() {
+interface MyGroupsWidgetProps {
+    isLoading?: boolean;
+}
+
+export default function MyGroupsWidget({ isLoading = false }: MyGroupsWidgetProps) {
     const [groups, setGroups] = useState<MyGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
@@ -55,7 +59,29 @@ export default function MyGroupsWidget() {
         fetchMyGroups();
     }, []);
 
-    if (loading) return null; // Or skeleton
+    // 1:1 매칭되는 정밀 스켈레톤으로 CLS 방지
+    if (isLoading || loading) {
+        return (
+            <div className="mt-6 mb-2 animate-pulse">
+                <div className="flex justify-between items-center px-7 mb-3">
+                    <div className="w-20 h-5 bg-stone-200 dark:bg-stone-800 rounded-md" />
+                    <div className="w-10 h-3 bg-stone-100 dark:bg-stone-800/60 rounded" />
+                </div>
+                <div className="flex gap-4 overflow-x-auto px-7 pb-4 scrollbar-hide">
+                    <div className="flex flex-col items-center gap-2 min-w-[70px]">
+                        <div className="w-[60px] h-[60px] rounded-full bg-stone-200 dark:bg-stone-800 shrink-0" />
+                        <div className="w-12 h-3 bg-stone-100/60 dark:bg-stone-800/60 rounded" />
+                    </div>
+                    {[1, 2, 3].map((idx) => (
+                        <div key={idx} className="flex flex-col items-center gap-2 min-w-[70px]">
+                            <div className="w-[60px] h-[60px] rounded-full bg-stone-200 dark:bg-stone-800 shrink-0" />
+                            <div className="w-12 h-3 bg-stone-100/60 dark:bg-stone-800/60 rounded" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     if (groups.length === 0) return null; // Hidden if empty, or "Join a group" prompt? Hiding for cleanliness per design.
 

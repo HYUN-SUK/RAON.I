@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Heart, Users, PlayCircle, Eye, Trash2 } from 'lucide-react';
 import { Post } from '@/store/useCommunityStore';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase-client';
 import { communityService } from '@/services/communityService';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,21 +21,10 @@ import {
 
 interface PostCardProps {
     post: Post;
+    isAdmin?: boolean;
 }
 
-export default function PostCard({ post }: PostCardProps) {
-    const [isAdmin, setIsAdmin] = useState(false);
-
-    useEffect(() => {
-        const checkAdmin = async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user && (user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin')) {
-                setIsAdmin(true);
-            }
-        };
-        checkAdmin();
-    }, []);
+export default function PostCard({ post, isAdmin = false }: PostCardProps) {
 
     const executeDelete = async () => {
         try {

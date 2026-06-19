@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import HeroSection from "@/components/myspace/HeroSection";
 import ActionButtons from "@/components/myspace/ActionButtons";
@@ -13,22 +14,87 @@ import MyGroupsWidget from "@/components/myspace/MyGroupsWidget";
 import PaperBackground from "@/components/myspace/PaperBackground";
 import NotificationBadge from "@/components/common/NotificationBadge";
 import QuickRecordForm from "@/components/myspace/QuickRecordForm";
-import { Sparkles, PenLine } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { useFabSparkle } from "@/hooks/useFabSparkle";
 import { cn } from "@/lib/utils";
 import ReminderBanner from "@/components/myspace/ReminderBanner";
+import { createClient } from "@/lib/supabase-client";
+import { useMySpaceStore } from "@/store/useMySpaceStore";
+import { useReservationStore } from "@/store/useReservationStore";
+import { useMissionStore } from "@/store/useMissionStore";
+
+interface EmberStats {
+    received_count: number;
+    sent_count: number;
+}
 
 export default function MySpacePage() {
+    const router = useRouter();
     const [isRecordOpen, setIsRecordOpen] = useState(false);
     const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
+
+    // Global loading & state
+    const [pageLoading, setPageLoading] = useState(true);
+    const [familyType, setFamilyType] = useState<string | undefined>(undefined);
+    const [emberStats, setEmberStats] = useState<EmberStats | null>(null);
+
+    const loadAllData = useCallback(async () => {
+        setPageLoading(true);
+        const supabase = createClient();
+        
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push('/login');
+                return;
+            }
+
+            // 병렬 호출 (Promise.all)
+            const [
+                _profile,
+                _timeline,
+                _reservations,
+                _mission,
+                _sparkle,
+                profileRes,
+                emberRes
+            ] = await Promise.all([
+                useMySpaceStore.getState().fetchProfile(user.id),
+                useMySpaceStore.getState().fetchTimeline(user.id),
+                useReservationStore.getState().fetchMyReservations(),
+                useMissionStore.getState().fetchCurrentMission(),
+                refresh(),
+                supabase.from('profiles').select('family_type').eq('id', user.id).single(),
+                supabase.rpc('get_my_ember_stats')
+            ]);
+
+            // 로컬 상태 매핑
+            if (profileRes.data) {
+                setFamilyType(profileRes.data.family_type);
+            }
+            if (emberRes.data && emberRes.data.success) {
+                setEmberStats({
+                    received_count: emberRes.data.received_count,
+                    sent_count: emberRes.data.sent_count
+                });
+            }
+        } catch (error) {
+            console.error("Failed to parallel fetch MySpace data:", error);
+        } finally {
+            setPageLoading(false);
+        }
+    }, [router, refresh]);
+
+    useEffect(() => {
+        loadAllData();
+    }, [loadAllData]);
 
     const handleRecordClick = () => {
         setIsRecordOpen(true);
     };
 
     const handleRecordSuccess = () => {
-        refresh(); // 반짝임 상태 갱신
-        // 타임라인 새로고침 등 필요 시 처리
+        loadAllData(); // 전체 데이터 및 반짝임 리로드
     };
 
     return (
@@ -37,7 +103,7 @@ export default function MySpacePage() {
             <TopBar />
 
             {/* 2. Hero Section (POV & Widgets) */}
-            <HeroSection />
+            <HeroSection isLoading={pageLoading} emberStats={emberStats} />
 
             {/* 미작성 일정 기록 독려 배너 */}
             <ReminderBanner
@@ -49,16 +115,16 @@ export default function MySpacePage() {
             <ActionButtons />
 
             {/* 3.5 Emotional Quote - 동적 감성 문구 */}
-            <EmotionalQuote />
+            <EmotionalQuote familyType={familyType} />
 
             {/* 4. My Groups Widget */}
-            <MyGroupsWidget />
+            <MyGroupsWidget isLoading={pageLoading} />
 
             {/* 4. Summary Grid */}
-            <SummaryGrid />
+            <SummaryGrid isLoading={pageLoading} />
 
             {/* 5. My Timeline */}
-            <MyTimeline />
+            <MyTimeline isLoading={pageLoading} />
 
             {/* 5.5 Notification Badge (Inline) */}
             <NotificationBadge variant="inline" />
@@ -67,7 +133,7 @@ export default function MySpacePage() {
             <SlimNotice />
 
             {/* 7. Upcoming Reservation Card */}
-            <UpcomingReservation />
+            <UpcomingReservation isLoading={pageLoading} onRefresh={loadAllData} />
 
             {/* 10초 기록 FAB 버튼 (구 1분 기록) */}
             <button

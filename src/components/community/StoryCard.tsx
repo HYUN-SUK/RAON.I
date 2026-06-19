@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, MessageCircle, Eye, Trash2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase-client';
 import { communityService } from '@/services/communityService';
 import {
     AlertDialog,
@@ -19,19 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function StoryCard({ post }: { post: any }) {
-    const [isAdmin, setIsAdmin] = useState(false);
-
-    useEffect(() => {
-        const checkAdmin = async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user && (user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin')) {
-                setIsAdmin(true);
-            }
-        };
-        checkAdmin();
-    }, []);
+export default function StoryCard({ post, isAdmin = false }: { post: any; isAdmin?: boolean }) {
 
     const executeDelete = async () => {
         try {

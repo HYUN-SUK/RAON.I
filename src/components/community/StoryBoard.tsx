@@ -8,7 +8,7 @@ interface StoryBoardProps {
     posts: Post[];
 }
 
-export default function StoryBoard({ posts }: StoryBoardProps) {
+export default function StoryBoard({ posts, isAdmin }: StoryBoardProps & { isAdmin: boolean }) {
     // Robust safety check & Sanitization
     const rawPosts = Array.isArray(posts) ? posts : [];
 
@@ -57,7 +57,7 @@ export default function StoryBoard({ posts }: StoryBoardProps) {
     return (
         <div className="space-y-4 pb-20 px-1">
             {safePosts.map((post) => (
-                <StoryCard key={post.id} post={post} />
+                <StoryCard key={post.id} post={post} isAdmin={isAdmin} />
             ))}
         </div>
     );

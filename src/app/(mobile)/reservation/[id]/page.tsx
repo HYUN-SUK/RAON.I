@@ -7,7 +7,18 @@ import Link from 'next/link';
 import SitePriceDisplay from '@/components/reservation/SitePriceDisplay';
 import { Site } from '@/types/reservation';
 
-// Correctly typing params for Next.js 15+ (if applicable, but safe for 14 too usually, though 15 requires awaiting params in some cases or just props)
+export const revalidate = 3600; // Cache and revalidate every hour
+
+export async function generateStaticParams() {
+    const { createAdminClient } = await import('@/lib/supabase-admin');
+    const supabase = createAdminClient();
+    const { data: sites } = await supabase.from('sites').select('id');
+    if (!sites) return [];
+    return (sites as any[]).map(site => ({
+        id: site.id
+    }));
+}
+
 // Assuming Next.js 14/15 standard
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

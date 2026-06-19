@@ -1,19 +1,31 @@
 "use client";
 
-import { useEffect } from 'react';
+import React from 'react';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
 import TimelineCard from './TimelineCard';
 import { Calendar } from 'lucide-react';
 
-export default function MyTimeline() {
-    const { timelineItems, fetchTimeline } = useMySpaceStore();
+interface MyTimelineProps {
+    isLoading?: boolean;
+}
 
-    useEffect(() => {
-        // Fetch data on mount (Mock)
-        if (timelineItems.length === 0) {
-            fetchTimeline();
-        }
-    }, [fetchTimeline, timelineItems.length]);
+export default function MyTimeline({ isLoading = false }: MyTimelineProps) {
+    const { timelineItems } = useMySpaceStore();
+
+    if (isLoading) {
+        return (
+            <section className="px-6 pb-20 animate-pulse">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="w-32 h-6 bg-stone-200 dark:bg-stone-800 rounded-md" />
+                </div>
+                <div className="space-y-4">
+                    {[1, 2].map((idx) => (
+                        <div key={idx} className="w-full h-[100px] bg-stone-200/30 dark:bg-stone-800/30 rounded-2xl" />
+                    ))}
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="px-6 pb-20">

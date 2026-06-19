@@ -9,7 +9,7 @@ interface BoardProps {
     posts: Post[];
 }
 
-export default function NoticeBoard({ posts }: BoardProps) {
+export default function NoticeBoard({ posts, isAdmin }: BoardProps & { isAdmin: boolean }) {
     const rawPosts = Array.isArray(posts) ? posts : [];
     const safePosts = rawPosts.map(sanitizePost);
 
@@ -24,7 +24,7 @@ export default function NoticeBoard({ posts }: BoardProps) {
     return (
         <div className="space-y-4 pb-20">
             {safePosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={post} isAdmin={isAdmin} />
             ))}
         </div>
     );

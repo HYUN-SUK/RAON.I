@@ -3,8 +3,12 @@
 import React from 'react';
 import { useMySpaceQuote } from '@/hooks/useMySpaceQuote';
 
-export default function EmotionalQuote() {
-    const { quote, context, weather } = useMySpaceQuote();
+interface EmotionalQuoteProps {
+    familyType?: string;
+}
+
+export default function EmotionalQuote({ familyType }: EmotionalQuoteProps) {
+    const { quote, context, weather } = useMySpaceQuote({ familyType });
 
     // 날씨/시간에 따른 배경 아이콘 - 기록/수첩 테마
     const getContextEmoji = () => {

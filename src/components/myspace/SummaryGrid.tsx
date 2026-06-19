@@ -8,10 +8,24 @@ import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";
 import MyMapModal from './MyMapModal';
 
-export default function SummaryGrid() {
+interface SummaryGridProps {
+    isLoading?: boolean;
+}
+
+export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
     const router = useRouter();
-    const { raonToken, timelineItems, isMapOpen, setIsMapOpen } = useMySpaceStore();
+    const { timelineItems, isMapOpen, setIsMapOpen } = useMySpaceStore();
     const { reservations } = useReservationStore();
+
+    if (isLoading) {
+        return (
+            <div className="grid grid-cols-2 gap-4 px-6 pb-8 animate-pulse">
+                {[1, 2, 3, 4].map((idx) => (
+                    <div key={idx} className="flex flex-col items-center justify-center p-5 pt-8 bg-stone-200/30 dark:bg-stone-800/30 rounded-3xl h-[120px]" />
+                ))}
+            </div>
+        );
+    }
 
     // Calculate history (completed or confirmed reservations in the past + 1분 기록)
     const reservationCount = reservations.filter(r => r.status === 'COMPLETED' || (r.status === 'CONFIRMED' && new Date(r.checkOutDate) < new Date())).length;

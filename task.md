@@ -9,9 +9,9 @@
     - [x] `src/hooks/usePushNotification.ts` 수정 (force?: boolean 옵션 및 가드 우회)
     - [x] `src/components/TopBar.tsx` 수정 (requestPermission(true) 호출)
     - [x] 기능 검증 및 최종 커밋
-- [ ] **7단계: 수동 알림 허용 시 토스트(Toast) 시각 피드백 추가**
-    - [ ] `src/hooks/usePushNotification.ts` 토스트 임포트 및 강제 동기화 성공/오류 피드백 추가
-    - [ ] 빌드 검증 및 깃 커밋
+- [x] **7단계: 수동 알림 허용 시 토스트(Toast) 시각 피드백 추가**
+    - [x] `src/hooks/usePushNotification.ts` 토스트 임포트 및 강제 동기화 성공/오류 피드백 추가
+    - [x] 빌드 무결성 점검증 및 깃 커밋
 - [x] 데이터베이스에서 기존 백년가게 데이터 삭제 및 재동기화
 - [x] **DB Migration**
     - [x] Apply `20260506_add_seniors_to_profile.sql` to Supabase.
@@ -49,6 +49,14 @@
     - [x] 관리자 예약 카드 UI 보완 (입금 기한 경과 시 빨간색 강조 표시 및 최종 유예 시간 노출 완료)
     - [x] 외부 크론잡 서비스(cron-job.org) 연동 (Vercel Hobby 플랜 크론 스케줄링 제약 우회 성공)
     - [x] 개별 예약 취소 처리 보완 (OverdueReservations 및 ReservationCard에 개별 취소 기능 추가 완료)
+- [x] **Step 4: MCP Tools 및 크롤러 구현**
+    - [x] `search_places` 툴 개발 (RPC `get_smart_plan_facts_in_radius` 기반)
+    - [x] `get_place_details` 툴 개발 (HTML 스크래퍼 및 카테고리별 디폴트 폴백 상수 연동)
+    - [x] `get_nearby_facilities` 툴 개발 (주유소 2단계 지리적 캐싱 로직 포함)
+    - [x] `get_travel_plan_template` 툴 개발 (예약/범용 이중 인터페이스 및 프롬프트 템플릿 포함)
+- [x] **Step 5: 주간 축제 자동화 및 어드민 연동 개발**
+    - [x] 매주 월요일 새벽 자동화 스케줄러 `/api/cron/sync-festivals` 구현 (중복 방지 ID 로직 포함)
+    - [x] 어드민 자동화 현황 페이지(`src/app/admin/automation/logs/page.tsx`)에 주간 축제 갱신 리포트 UI 추가 완료)
 - [ ] **Phase 1: Smart Plan LIVE Timeline UI**: Develop the chronological stepper UI and [Start] action buttons.
 - [ ] **Phase 1: PRO AI Prompting**: Create a separate generative AI prompt to output strict time-block JSON arrays.
 - [ ] **Phase 2: Time Rebalancing**: Implement time recalculation logic and the "Call before closing" UX flow.
@@ -100,4 +108,11 @@
     - [x] Implement Interactive Play Roulette component.
     - [x] Implement 3D Random Card Flip component.
     - [x] Implement Zero-Cost Interactive Toolkit (JS Timer, Web Audio API ASMR synthesizer for fire/rain sounds).
-    - [x] Verify Next.js build and test overall layout.
+- [x] Verify Next.js build and test overall layout.
+- [ ] **마스터 DB 상세정보 초고속 벌크적재 이행 (v10 기반 고속화)**
+    - [ ] `scripts/fast-bulk-enrich.mjs` (Playwright 고속화 수집기) 스크립트 작성
+    - [ ] `scripts/bulk-enrich-public.mjs` (공공 벌크 적재) 스크립트 고속화 리팩토링 및 벌크 upsert 보완
+    - [ ] 기존 상세 적재 데이터 전면 무시 및 처음부터 수집 시작 설정 적용
+    - [ ] Playwright 고속 벌크 적재 스크립트 드라이런 및 전체 실행 (1일차 8,000건 & 식당/카페/마트 벌크)
+    - [ ] 어드민 Live Monitor 화면을 통한 수집 통계 배지 및 로그 연동 상태 검증
+    - [ ] 컴파일 무결성 검증 (`npm run build`)

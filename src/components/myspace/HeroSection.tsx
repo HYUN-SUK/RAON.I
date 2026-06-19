@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Camera, Flag, Flame, Loader2 } from "lucide-react";
 import { useMissionStore } from "@/store/useMissionStore";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { createClient } from "@/lib/supabase-client";
@@ -16,10 +16,15 @@ interface EmberStats {
     sent_count: number;
 }
 
-export default function HeroSection() {
+interface HeroSectionProps {
+    isLoading?: boolean;
+    emberStats?: EmberStats | null;
+}
+
+export default function HeroSection({ isLoading = false, emberStats = null }: HeroSectionProps) {
     const router = useRouter();
-    const { currentMission, fetchCurrentMission } = useMissionStore();
-    const { heroImage, fetchProfile, setHeroImage } = useMySpaceStore();
+    const { currentMission } = useMissionStore();
+    const { heroImage, setHeroImage } = useMySpaceStore();
 
     // Editor State
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -31,26 +36,6 @@ export default function HeroSection() {
 
     // Dynamic Import
     const ImageEditorModal = dynamic(() => import('@/components/record/ImageEditorModal'), { ssr: false });
-
-    // Ember Stats State
-    const [emberStats, setEmberStats] = useState<EmberStats | null>(null);
-
-    useEffect(() => {
-        fetchCurrentMission();
-        fetchProfile(); // Load saved hero image
-        fetchEmberStats();
-    }, [fetchCurrentMission, fetchProfile]);
-
-    const fetchEmberStats = async () => {
-        const supabase = createClient();
-        const { data } = await supabase.rpc('get_my_ember_stats');
-        if (data?.success) {
-            setEmberStats({
-                received_count: data.received_count,
-                sent_count: data.sent_count
-            });
-        }
-    };
 
     const handleCameraClick = () => {
         fileInputRef.current?.click();
@@ -133,6 +118,22 @@ export default function HeroSection() {
             setSelectedImage(null);
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="relative w-full h-[55vh] min-h-[400px] rounded-b-[40px] shadow-medium z-10 bg-[#EFECE5] dark:bg-stone-800 animate-pulse flex flex-col justify-between p-6">
+                <div className="flex justify-end pt-8">
+                    <div className="flex flex-col gap-2 items-end">
+                        <div className="w-32 h-8 bg-stone-300/40 dark:bg-stone-700/40 rounded-full" />
+                        <div className="w-24 h-8 bg-stone-300/30 dark:bg-stone-700/30 rounded-full" />
+                    </div>
+                </div>
+                <div className="flex justify-end pb-2">
+                    <div className="w-10 h-10 bg-stone-300/40 dark:bg-stone-700/40 rounded-full" />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="relative w-full h-[55vh] min-h-[400px] rounded-b-[40px] shadow-medium z-10 bg-surface-2 group">

@@ -15,7 +15,7 @@ interface BoardProps {
 
 type ReviewTab = 'RAONAI' | 'CAMPER';
 
-export default function ReviewBoard({ posts }: BoardProps) {
+export default function ReviewBoard({ posts, isAdmin }: BoardProps & { isAdmin: boolean }) {
     const rawPosts = Array.isArray(posts) ? posts : [];
     const safePosts = rawPosts.map(sanitizePost);
 
@@ -81,7 +81,7 @@ export default function ReviewBoard({ posts }: BoardProps) {
                     {activeTab === 'RAONAI' && safePosts.length > 0 && (
                         <div className="space-y-4">
                             {safePosts.map((post) => (
-                                <PostCard key={post.id} post={post} />
+                                <PostCard key={post.id} post={post} isAdmin={isAdmin} />
                             ))}
                             {records.length > 0 && <hr className="border-stone-200" />}
                         </div>

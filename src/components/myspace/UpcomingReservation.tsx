@@ -29,9 +29,14 @@ type UnifiedUpcoming =
     | { type: 'reservation'; data: Reservation; checkIn: Date; checkOut: Date }
     | { type: 'schedule'; data: Schedule; checkIn: Date; checkOut: Date };
 
-export default function UpcomingReservation() {
+interface UpcomingReservationProps {
+    isLoading?: boolean;
+    onRefresh?: () => void;
+}
+
+export default function UpcomingReservation({ isLoading = false, onRefresh }: UpcomingReservationProps) {
     const router = useRouter();
-    const { reservations, fetchMyReservations, updateReservationStatus } = useReservationStore();
+    const { reservations, updateReservationStatus } = useReservationStore();
     const { config } = useSiteConfig();
     const [copied, setCopied] = useState(false);
     const [cancelSheetOpen, setCancelSheetOpen] = useState(false);
@@ -249,7 +254,7 @@ export default function UpcomingReservation() {
             setCancelConfirmOpen(false);
             setPendingDetailOpen(false);
             setSelectedPending(null);
-            fetchMyReservations();
+            onRefresh?.();
         } catch {
             toast.error('취소에 실패했습니다');
         } finally {
@@ -259,7 +264,7 @@ export default function UpcomingReservation() {
 
     const handleCancelComplete = () => {
         setCancelSheetOpen(false);
-        fetchMyReservations();
+        onRefresh?.();
     };
 
     // 입금대기 상세 열기
@@ -267,6 +272,18 @@ export default function UpcomingReservation() {
         setSelectedPending(reservation);
         setPendingDetailOpen(true);
     };
+
+    if (isLoading) {
+        return (
+            <div className="px-6 pb-6 mt-4 animate-pulse">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="w-24 h-6 bg-stone-200 dark:bg-stone-800 rounded-md" />
+                    <div className="w-16 h-4 bg-stone-100 dark:bg-stone-800/60 rounded" />
+                </div>
+                <div className="w-full h-[150px] bg-stone-200/40 dark:bg-stone-800/40 rounded-3xl" />
+            </div>
+        );
+    }
 
     if (!upcomingItem) {
         return (
