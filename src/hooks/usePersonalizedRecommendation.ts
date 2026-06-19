@@ -292,17 +292,6 @@ export function usePersonalizedRecommendation(enabled = true) {
 
                 const [userProfile, { data: poolData }] = await Promise.all([profilePromise, poolPromise]);
 
-                // 닉네임 정보를 먼저 확보했으므로, 무거운 Server Action을 돌리기 전에
-                // 1차적으로 userProfile 및 닉네임이 반영된 인사말을 세팅하여 렌더링 갱신 속도를 올립니다.
-                setData(prev => ({
-                    ...prev,
-                    context: {
-                        ...prev.context,
-                        greeting: getGreeting(userProfile?.nickname || undefined)
-                    },
-                    userProfile
-                }));
-
                 // Determine Season
                 const month = new Date().getMonth() + 1;
                 let currentSeason = 'winter';

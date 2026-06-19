@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
@@ -106,7 +106,7 @@ export default function ReturningHome() {
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
     const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
 
-    const handleRecommendationClick = (item: RecommendationItem, reason?: string) => {
+    const handleRecommendationClick = useCallback((item: RecommendationItem, reason?: string) => {
         // --- [Phase 3] Curation Card Sensors (No 26-28) ---
         (async () => {
             const supabase = createClient();
@@ -165,7 +165,7 @@ export default function ReturningHome() {
             category: item.category as 'cooking' | 'play'
         });
         setDetailSheetOpen(true);
-    };
+    }, []);
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
             {/* Global TopBar */}
@@ -297,22 +297,20 @@ export default function ReturningHome() {
                     </button>
                 </div>
 
-                <AnimatePresence initial={false}>
-                    {isScheduleExpanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                        >
-                            {/* 3.5 Schedule Widget (Moved to replace PlanLockCard) */}
-                            <div className="px-4 mb-4">
-                                <ScheduleHomeWidget isExpanded={isScheduleExpanded} />
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ 
+                        height: isScheduleExpanded ? 'auto' : 0, 
+                        opacity: isScheduleExpanded ? 1 : 0 
+                    }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                >
+                    {/* 3.5 Schedule Widget (Moved to replace PlanLockCard) */}
+                    <div className="px-4 mb-4">
+                        <ScheduleHomeWidget isExpanded={isScheduleExpanded} />
+                    </div>
+                </motion.div>
 
                 {/* 3. Mission Widget (Weekly) */}
                 <div className="px-4 mb-4">

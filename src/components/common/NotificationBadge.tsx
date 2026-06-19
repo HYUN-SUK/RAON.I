@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
@@ -10,7 +10,7 @@ interface NotificationBadgeProps {
     variant?: 'floating' | 'inline' | 'hero';
 }
 
-export default function NotificationBadge({ className = '', variant = 'inline' }: NotificationBadgeProps) {
+const NotificationBadge = memo(function NotificationBadge({ className = '', variant = 'inline' }: NotificationBadgeProps) {
     const router = useRouter();
     const [latestNotification, setLatestNotification] = useState<{ title: string; created_at: string; is_read: boolean } | null>(null);
     const [lastReadAt, setLastReadAt] = useState<string | null>(null);
@@ -130,4 +130,6 @@ export default function NotificationBadge({ className = '', variant = 'inline' }
             </span>
         </button>
     );
-}
+});
+
+export default NotificationBadge;

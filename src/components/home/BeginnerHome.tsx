@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -206,11 +206,11 @@ export default function BeginnerHome() {
     // Auth Protection Hook
     const { withAuth } = useRequireAuth();
 
-    const handleProtectedAction = (action: () => void) => {
+    const handleProtectedAction = useCallback((action: () => void) => {
         withAuth(action);
-    };
+    }, [withAuth]);
 
-    const handleChipClick = (chip: BeginnerChip) => {
+    const handleChipClick = useCallback((chip: BeginnerChip) => {
         if (chip.isPriceGuide) return; // Handled by PriceGuideSheet wrapper in render
         if (!config) return;
 
@@ -289,9 +289,9 @@ export default function BeginnerHome() {
         // Default Sheet (Rules etc)
         setDetailData(chip);
         setDetailSheetOpen(true);
-    };
+    }, [config]);
 
-    const handleRecommendationClick = (item: RecommendationItem, reason?: string) => {
+    const handleRecommendationClick = useCallback((item: RecommendationItem, reason?: string) => {
         withAuth(async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
@@ -369,7 +369,7 @@ export default function BeginnerHome() {
             });
             setDetailSheetOpen(true);
         });
-    };
+    }, [withAuth, lbs]);
 
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
@@ -426,15 +426,15 @@ export default function BeginnerHome() {
                     </button>
                 </div>
 
-                <AnimatePresence initial={false}>
-                    {isIntroExpanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                        >
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ 
+                        height: isIntroExpanded ? 'auto' : 0, 
+                        opacity: isIntroExpanded ? 1 : 0 
+                    }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                >
                             {/* 2. Info Chips */}
                             <section className="px-4 mb-6 animate-in fade-in duration-300">
                                 <div className="grid grid-cols-3 gap-3">
@@ -512,9 +512,7 @@ export default function BeginnerHome() {
                                     </p>
                                 </div>
                             </section>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                </motion.div>
 
                 {/* Accordion 2: 여행 일정 및 계획하기 */}
                 <div className="px-4 mb-4">
@@ -537,22 +535,20 @@ export default function BeginnerHome() {
                     </button>
                 </div>
 
-                <AnimatePresence initial={false}>
-                    {isScheduleExpanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                        >
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ 
+                        height: isScheduleExpanded ? 'auto' : 0, 
+                        opacity: isScheduleExpanded ? 1 : 0 
+                    }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                >
                             {/* 3.6 Schedule Widget */}
                             <section className="px-4 mb-6">
                                 <ScheduleHomeWidget isExpanded={isScheduleExpanded} />
                             </section>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                </motion.div>
 
                 {/* 3.5 Mission Widget */}
                 <section className="px-4 mb-8">

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { useMissionStore } from '@/store/useMissionStore';
 import { useRouter } from 'next/navigation';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
-export default function MissionHomeWidget() {
+const MissionHomeWidget = memo(function MissionHomeWidget() {
     const router = useRouter();
     const { currentMission, userMission, fetchCurrentMission } = useMissionStore();
     const { withAuth } = useRequireAuth();
@@ -78,4 +78,6 @@ export default function MissionHomeWidget() {
             </Button>
         </Card>
     );
-}
+});
+
+export default MissionHomeWidget;

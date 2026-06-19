@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Calendar, ChevronRight, Tent, Clock, Plus, MapPin } from 'lucide-react';
-import { Schedule, getMySchedules } from '@/actions/schedule';
+import { Schedule, getMySchedules, ensureScheduleFromReservation } from '@/actions/schedule';
 import { useReservationStore } from '@/store/useReservationStore';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -29,13 +29,14 @@ interface UnifiedSchedule {
  * 홈 화면에서 다가오는 캠핑 일정을 보여주는 위젯
  * 라온아이 예약 + 타캠핑장 일정을 통합하여 가장 가까운 1개 표시
  */
-export default function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?: boolean }) {
+const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?: boolean }) {
     const router = useRouter();
     const { reservations, fetchMyReservations } = useReservationStore();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [upcomingItem, setUpcomingItem] = useState<UnifiedSchedule | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -65,6 +66,43 @@ export default function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?
 
         fetchAll();
     }, [fetchMyReservations]);
+
+    // 백그라운드 일정 동기화 (Eager Sync)
+    useEffect(() => {
+        if (isLoading || isSyncing) return;
+
+        // 확정(CONFIRMED) 상태인 라온아이 예약 중, schedules 테이블에 매핑되지 않은 예약 찾기
+        const pendingSyncReservations = reservations.filter(r => {
+            if (r.status !== 'CONFIRMED') return false;
+            const exists = schedules.some(s => s.reservation_id === r.id);
+            return !exists;
+        });
+
+        if (pendingSyncReservations.length === 0) return;
+
+        const syncAll = async () => {
+            setIsSyncing(true);
+            try {
+                // 확정 예약 건들에 대해 백그라운드에서 일정 확보 (변환 생성)
+                const promises = pendingSyncReservations.map(async (res) => {
+                    const result = await ensureScheduleFromReservation(res.id);
+                    return { reservationId: res.id, result };
+                });
+                
+                await Promise.all(promises);
+                
+                // 새로운 일정이 생성되었으므로 schedules 재로드
+                const newSchedules = await getMySchedules('scheduled');
+                setSchedules(newSchedules);
+            } catch (error) {
+                console.error('Background schedule sync failed:', error);
+            } finally {
+                setIsSyncing(false);
+            }
+        };
+
+        syncAll();
+    }, [reservations, schedules, isLoading]);
 
     // 예약 + 일정을 통합하여 가장 가까운 것 찾기
     useEffect(() => {
@@ -243,25 +281,21 @@ export default function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?
         if (upcomingItem.type === 'reservation') {
             setIsNavigating(true);
             try {
-                // 예약 -> 일정 변환 (Lazy Creation)
-                const { ensureScheduleFromReservation } = await import('@/actions/schedule');
+                // 백그라운드 동기화와 겹치거나 지연 생성 시 직접 호출
                 const result = await ensureScheduleFromReservation(upcomingItem.id);
 
                 if (result.success && result.scheduleId) {
                     router.push(`/myspace/schedule/${result.scheduleId}`);
                 } else {
                     console.error('Failed to ensure schedule:', result.error);
-                    // 실패 시 예약 페이지로라도 보내줌 (fallback)
                     router.push('/reservation/complete');
                 }
             } catch (e) {
                 console.error('Navigation error:', e);
                 router.push('/reservation/complete');
-            } finally {
-                // 네비게이션 중에는 로딩 상태 유지 (페이지 이동하므로 false설정 안해도 됨)
             }
         } else {
-            // 이미 스케줄임
+            // 이미 스케줄임 (Eager Sync로 인해 99.9% 이 케이스로 즉시 순간이동함)
             router.push(`/myspace/schedule/${upcomingItem.id}`);
         }
     };
@@ -505,4 +539,6 @@ export default function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?
             </div>
         </div>
     );
-}
+});
+
+export default ScheduleHomeWidget;

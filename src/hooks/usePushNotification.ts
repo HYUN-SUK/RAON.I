@@ -33,7 +33,7 @@ export function usePushNotification() {
                 if (user) {
                     // [SYNC GUARD] Prevent redundant writes if token hasn't changed (unless forced)
                     const lastToken = localStorage.getItem('last_synced_fcm_token');
-                    if (lastToken === token && !force) {
+                    if (lastToken === token) {
                         console.log('[Push] Token already synced. Skipping...');
                         if (force) {
                             toast.success('이미 알림 설정이 완료되어 있습니다! 🔔');

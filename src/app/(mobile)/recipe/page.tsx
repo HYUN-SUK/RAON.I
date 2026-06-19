@@ -56,6 +56,14 @@ export default function TravelRecipePage() {
     const [recipes, setRecipes] = useState<RecipeItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [localQuery, setLocalQuery] = useState<string>('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setSearchQuery(localQuery);
+        }, 250);
+        return () => clearTimeout(handler);
+    }, [localQuery]);
  
     // Navigation state
     const [selectedParentId, setSelectedParentId] = useState<number | null>(null);
@@ -67,7 +75,7 @@ export default function TravelRecipePage() {
     // Bottom sheet details state
     const [selectedRecipe, setSelectedRecipe] = useState<RecipeItem | null>(null);
     const [recommendedRecipes, setRecommendedRecipes] = useState<RecipeItem[]>([]);
-    const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
+    // Bottom sheet details state (checkedIngredients moved inside LocalRecipeDetailSheet)
  
     // Profile & Weather states for recommendation
     const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
@@ -402,7 +410,6 @@ export default function TravelRecipePage() {
     // Handle Open Detail Sheet
     const handleRecipeClick = (recipe: RecipeItem) => {
         setSelectedRecipe(recipe);
-        setCheckedIngredients({}); // Reset checklist
         // Increment view count dynamically in background
         supabase.rpc('increment_recipe_views', { recipe_id: recipe.id }).then(({ error }) => {
             if (error) {
@@ -414,13 +421,7 @@ export default function TravelRecipePage() {
         });
     };
 
-    // Toggle Ingredient Checklist
-    const toggleIngredient = (name: string) => {
-        setCheckedIngredients(prev => ({
-            ...prev,
-            [name]: !prev[name]
-        }));
-    };
+    // Toggle Ingredient Checklist (REMOVED - Managed inside LocalRecipeDetailSheet)
 
     // External Social App Link Handler
     const handleSocialSearch = (platform: 'youtube' | 'instagram', recipe: RecipeItem) => {
@@ -481,7 +482,6 @@ export default function TravelRecipePage() {
                 </div>
             </header>
 
-            {/* Search Section */}
             <div className="px-4 py-3">
                 <div className="relative w-full">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -490,13 +490,13 @@ export default function TravelRecipePage() {
                     <input
                         type="text"
                         placeholder="요리 이름, 식재료, 또는 조리 팁 검색..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        value={localQuery}
+                        onChange={(e) => setLocalQuery(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 dark:focus:ring-emerald-500/40 transition-all text-stone-800 dark:text-stone-100 placeholder-stone-400"
                     />
-                    {searchQuery && (
+                    {localQuery && (
                         <button 
-                            onClick={() => setSearchQuery('')}
+                            onClick={() => setLocalQuery('')}
                             className="absolute inset-y-0 right-0 flex items-center pr-3"
                         >
                             <X className="w-4 h-4 text-stone-400 hover:text-stone-600" />
@@ -885,111 +885,162 @@ export default function TravelRecipePage() {
 
             {/* Bottom Sheet - 요리 상세 */}
             {selectedRecipe && (
-                <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all duration-300">
-                    <div className="absolute inset-0" onClick={() => setSelectedRecipe(null)} />
-                    <div className="relative w-full max-w-md bg-[#F7F5EF] dark:bg-[#0f0e0c] rounded-t-[32px] shadow-2xl flex flex-col max-h-[85vh] animate-slide-up border-t border-stone-200 dark:border-stone-800">
-                        {/* Drag indicator handle */}
-                        <div className="w-12 h-1 bg-stone-300 dark:bg-stone-700 rounded-full mx-auto my-3" />
+                <LocalRecipeDetailSheet
+                    recipe={selectedRecipe}
+                    onClose={() => setSelectedRecipe(null)}
+                    activeCategoryName={activeCategoryName}
+                    parentCategories={parentCategories}
+                    selectedParentId={selectedParentId}
+                />
+            )}
+        </div>
+    );
+}
 
-                        {/* Top controls */}
-                        <div className="px-5 pb-3 flex items-start justify-between">
-                            <div className="space-y-1">
-                                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    {activeCategoryName}
-                                </span>
-                                <h2 className="text-base font-bold text-stone-950 dark:text-stone-50 flex items-center gap-1.5">
-                                    {selectedRecipe.name}
-                                </h2>
-                            </div>
-                            <button 
-                                onClick={() => setSelectedRecipe(null)}
-                                className="p-1 rounded-full bg-stone-200/50 dark:bg-stone-800/50 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
+interface LocalRecipeDetailSheetProps {
+    recipe: RecipeItem;
+    onClose: () => void;
+    activeCategoryName: string;
+    parentCategories: CategoryNode[];
+    selectedParentId: number | null;
+}
 
-                        {/* Content Scroll area */}
-                        <div className="flex-1 overflow-y-auto px-5 pb-8 space-y-5">
-                            {/* 장보기 재료 체크리스트 */}
-                            <div className="bg-white dark:bg-stone-900 rounded-3xl p-4 border border-stone-200/50 dark:border-stone-800/50">
-                                <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5 mb-3">
-                                    <ShoppingBag className="w-4 h-4 text-emerald-600" />
-                                    장보기 필수 재료 체크리스트
-                                    <span className="text-[10px] text-stone-400 font-normal">(터치하여 체크)</span>
-                                </h3>
-                                <div className="grid grid-cols-1 gap-2">
-                                    {selectedRecipe.ingredients.map((ing, idx) => {
-                                        const isChecked = !!checkedIngredients[ing.name];
-                                        return (
-                                            <div
-                                                key={idx}
-                                                onClick={() => toggleIngredient(ing.name)}
-                                                className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
-                                                    isChecked 
-                                                        ? 'bg-stone-50/50 dark:bg-stone-950/20 border-stone-200/80 dark:border-stone-800 opacity-60' 
-                                                        : 'bg-white dark:bg-stone-900 border-stone-100 dark:border-stone-800/50 hover:border-stone-200'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
-                                                        isChecked 
-                                                            ? 'bg-emerald-600 border-emerald-600 text-white' 
-                                                            : 'border-stone-300 dark:border-stone-700 bg-transparent'
-                                                    }`}>
-                                                        {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                                                    </div>
-                                                    <span className={`text-xs ${isChecked ? 'line-through text-stone-400' : 'text-stone-800 dark:text-stone-200 font-medium'}`}>
-                                                        {ing.name}
-                                                    </span>
-                                                </div>
-                                                <span className="text-[11px] text-stone-400 font-medium">{ing.amount}</span>
+function LocalRecipeDetailSheet({ 
+    recipe, 
+    onClose, 
+    activeCategoryName, 
+    parentCategories, 
+    selectedParentId 
+}: LocalRecipeDetailSheetProps) {
+    const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
+    
+    const toggleIngredient = (name: string) => {
+        setCheckedIngredients(prev => ({
+            ...prev,
+            [name]: !prev[name]
+        }));
+    };
+
+    const handleSocialSearch = (platform: 'youtube' | 'instagram', targetRecipe: RecipeItem) => {
+        const parentName = parentCategories.find(p => p.id === selectedParentId)?.name || '';
+        let keyword = platform === 'youtube' ? targetRecipe.youtube_search_keyword : targetRecipe.instagram_search_keyword;
+        
+        if (!keyword) {
+            keyword = `${parentName} ${targetRecipe.name}`;
+        }
+        
+        const encoded = encodeURIComponent(keyword);
+        const url = platform === 'youtube' 
+            ? `https://www.youtube.com/results?search_query=${encoded}`
+            : `https://www.instagram.com/explore/tags/${encoded.replace(/%/g, '')}`;
+        
+        window.open(url, '_blank');
+    };
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all duration-300">
+            <div className="absolute inset-0" onClick={onClose} />
+            <div className="relative w-full max-w-md bg-[#F7F5EF] dark:bg-[#0f0e0c] rounded-t-[32px] shadow-2xl flex flex-col max-h-[85vh] animate-slide-up border-t border-stone-200 dark:border-stone-800">
+                {/* Drag indicator handle */}
+                <div className="w-12 h-1 bg-stone-300 dark:bg-stone-700 rounded-full mx-auto my-3" />
+
+                {/* Top controls */}
+                <div className="px-5 pb-3 flex items-start justify-between">
+                    <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                            {activeCategoryName}
+                        </span>
+                        <h2 className="text-base font-bold text-stone-950 dark:text-stone-50 flex items-center gap-1.5">
+                            {recipe.name}
+                        </h2>
+                    </div>
+                    <button 
+                        onClick={onClose}
+                        className="p-1 rounded-full bg-stone-200/50 dark:bg-stone-800/50 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 transition-colors"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                {/* Content Scroll area */}
+                <div className="flex-1 overflow-y-auto px-5 pb-8 space-y-5">
+                    {/* 장보기 재료 체크리스트 */}
+                    <div className="bg-white dark:bg-stone-900 rounded-3xl p-4 border border-stone-200/50 dark:border-stone-800/50">
+                        <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5 mb-3">
+                            <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                            장보기 필수 재료 체크리스트
+                            <span className="text-[10px] text-stone-400 font-normal">(터치하여 체크)</span>
+                        </h3>
+                        <div className="grid grid-cols-1 gap-2">
+                            {recipe.ingredients.map((ing, idx) => {
+                                const isChecked = !!checkedIngredients[ing.name];
+                                return (
+                                    <div
+                                        key={idx}
+                                        onClick={() => toggleIngredient(ing.name)}
+                                        className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                            isChecked 
+                                                ? 'bg-stone-50/50 dark:bg-stone-950/20 border-stone-200/80 dark:border-stone-800 opacity-60' 
+                                                : 'bg-white dark:bg-stone-900 border-stone-100 dark:border-stone-800/50 hover:border-stone-200'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                                isChecked 
+                                                    ? 'bg-emerald-600 border-emerald-600 text-white' 
+                                                    : 'border-stone-300 dark:border-stone-700 bg-transparent'
+                                            }`}>
+                                                {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                                            <span className={`text-xs ${isChecked ? 'line-through text-stone-400' : 'text-stone-800 dark:text-stone-200 font-medium'}`}>
+                                                {ing.name}
+                                            </span>
+                                        </div>
+                                        <span className="text-[11px] text-stone-400 font-medium">{ing.amount}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
-                            {/* 여행 꿀팁 */}
-                            <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-3xl p-4 border border-emerald-100/50 dark:border-emerald-900/30">
-                                <h3 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 mb-2.5">
-                                    <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                                    여행지 원포인트 조리 팁
-                                </h3>
-                                <ul className="space-y-2">
-                                    {selectedRecipe.travel_tips.map((tip, idx) => (
-                                        <li key={idx} className="flex gap-2 text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                                            <span className="text-emerald-600 font-bold shrink-0">{idx + 1}.</span>
-                                            <span>{tip}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                    {/* 여행 꿀팁 */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-3xl p-4 border border-emerald-100/50 dark:border-emerald-900/30">
+                        <h3 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 mb-2.5">
+                            <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            여행지 원포인트 조리 팁
+                        </h3>
+                        <ul className="space-y-2">
+                            {recipe.travel_tips.map((tip, idx) => (
+                                <li key={idx} className="flex gap-2 text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
+                                    <span className="text-emerald-600 font-bold shrink-0">{idx + 1}.</span>
+                                    <span>{tip}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
 
-                            {/* 미디어 연동 링크 */}
-                            <div className="space-y-2">
-                                <p className="text-[10px] font-bold text-stone-400 text-center uppercase tracking-wider">상세 레시피 영상 / 비주얼 탐색</p>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Button
-                                        onClick={() => handleSocialSearch('youtube', selectedRecipe)}
-                                        className="w-full bg-[#FF0000] hover:bg-[#CC0000] text-white gap-2 py-5 rounded-2xl font-bold text-xs"
-                                    >
-                                        <Youtube className="w-4 h-4" />
-                                        유튜브 레시피 검색
-                                    </Button>
-                                    <Button
-                                        onClick={() => handleSocialSearch('instagram', selectedRecipe)}
-                                        className="w-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-90 text-white gap-2 py-5 rounded-2xl font-bold text-xs"
-                                    >
-                                        <Instagram className="w-4 h-4" />
-                                        인스타 숏폼 꿀팁
-                                    </Button>
-                                </div>
-                            </div>
+                    {/* 미디어 연동 링크 */}
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-bold text-stone-400 text-center uppercase tracking-wider">상세 레시피 영상 / 비주얼 탐색</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button
+                                onClick={() => handleSocialSearch('youtube', recipe)}
+                                className="w-full bg-[#FF0000] hover:bg-[#CC0000] text-white gap-2 py-5 rounded-2xl font-bold text-xs"
+                            >
+                                <Youtube className="w-4 h-4" />
+                                유튜브 레시피 검색
+                            </Button>
+                            <Button
+                                onClick={() => handleSocialSearch('instagram', recipe)}
+                                className="w-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-90 text-white gap-2 py-5 rounded-2xl font-bold text-xs"
+                            >
+                                <Instagram className="w-4 h-4" />
+                                인스타 숏폼 꿀팁
+                            </Button>
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

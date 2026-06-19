@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { Volume2 } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { createClient } from '@/lib/supabase-client';
@@ -14,7 +14,7 @@ interface SlimNoticeProps {
     variant?: 'hero' | 'bottom';
 }
 
-export default function SlimNotice({ variant = 'bottom' }: SlimNoticeProps) {
+const SlimNotice = memo(function SlimNotice({ variant = 'bottom' }: SlimNoticeProps) {
     const router = useRouter();
     const [notice, setNotice] = useState<Notice | null>(null);
 
@@ -74,6 +74,8 @@ export default function SlimNotice({ variant = 'bottom' }: SlimNoticeProps) {
             </div>
         </div>
     );
-}
+});
+
+export default SlimNotice;
 
 

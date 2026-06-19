@@ -438,7 +438,13 @@ export default function AutomationLogsPage() {
                             {s.name === 'SPOT_TMAP_REL' && <Share2 className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
                             {s.name === 'SPOT_KT_CONCTR' && <TrendingUp className="w-3.5 h-3.5 mr-2 text-rose-500" />}
                             {s.name === 'SPOT_KTO_POP' && <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" />}
+                            {s.name === 'ENRICHMENT' && <Database className="w-3.5 h-3.5 mr-2 text-brand-600" />}
                             <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
+                            {(s.name === 'SPOT' || s.label?.includes('HOSPITAL')) && (
+                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-50 text-green-700 border border-green-100">
+                                상세 API 연동
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.existing_count, 'plain')}</td>
@@ -469,6 +475,184 @@ export default function AutomationLogsPage() {
                 <AlertCircle className="w-3 h-3 mr-1.5" /> * 3진 아웃 방식: API에서 3회 연속(51일) 미확인 시 자동 비활성화 처리됩니다.
               </div>
               <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Precision Audit Engine v3.0</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (log.job_name === 'WEEKLY_FESTIVAL_SYNC') {
+        const apiStatus = log.api_status || [];
+        
+        return (
+          <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
+            <div className="flex justify-between items-center mb-10">
+              <h4 className="text-xl font-black text-gray-900 flex items-center">
+                <Ticket className="w-6 h-6 mr-3 text-brand-600 animate-pulse" /> 주간 전국 축제 동기화 리포트
+              </h4>
+              <div className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-black rounded-2xl shadow-lg">
+                수신 총계: {log.processed_count.toLocaleString()}건
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">대상 지역</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">기존 데이터 수</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right">API 수신 수</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {apiStatus.map((s: any, i: number) => {
+                    const renderMetric = (val: any, styleType: 'plain' | 'brand' | 'blue', activeLabel: string = '영업') => {
+                      const isObj = val !== null && typeof val === 'object';
+                      const a = isObj ? val.active || 0 : (val || 0);
+                      const showPlus = styleType !== 'plain';
+                      
+                      if (styleType === 'brand') {
+                        return (
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="inline-block bg-brand-50 text-brand-700 border border-brand-100 text-[10px] font-black px-2 py-0.5 rounded-lg">
+                              {showPlus && a > 0 ? '+' : ''}{a.toLocaleString()} {isObj && activeLabel}
+                            </span>
+                          </div>
+                        );
+                      }
+                      
+                      if (styleType === 'blue') {
+                        return (
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="inline-block bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-black px-2 py-0.5 rounded-lg">
+                              {a.toLocaleString()} {isObj && activeLabel}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="flex items-center text-xs font-bold text-gray-700">
+                            {a.toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <tr key={i} className="hover:bg-gray-50/30 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-xs font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-full">{s.region}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Ticket className="w-3.5 h-3.5 mr-2 text-indigo-500" />
+                            <span className="text-[11px] font-bold text-gray-600">{s.label || s.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.existing_count, 'plain')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.fetched_count, 'plain')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.new_count, 'brand', '정상')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.updated_count, 'blue', '갱신')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-sm font-black text-gray-900">
+                              {(typeof s.total_count === 'object' ? s.total_count?.active || 0 : (s.total_count || 0) || s.final_count || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-8 flex items-center justify-between px-2">
+              <div className="flex items-center text-[10px] text-gray-400 font-bold">
+                <AlertCircle className="w-3 h-3 mr-1.5" /> * 주간 축제 정보는 중복 없이 마스터 데이터베이스에 안전하게 Upsert 병합됩니다.
+              </div>
+              <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Festival Precision Sync Engine</p>
+            </div>
+          </div>
+        );
+      }
+      
+      if (log.job_name === 'DAILY_MASTER_ENRICHMENT') {
+        const stats = log.api_status as any || { attempted: 0, success: 0, failed: 0, processed: [] };
+        const successRate = stats.attempted > 0 ? Math.round((stats.success / stats.attempted) * 100) : 0;
+        
+        // 식당/카페 및 마트 파싱 분류 집계
+        const restSuccess = stats.processed ? stats.processed.filter((p: string) => p.includes('(RESTAURANT)') || p.includes('(ROUTE_CAFE)')).length : 0;
+        const martSuccess = stats.processed ? stats.processed.filter((p: string) => p.includes('(MART)')).length : 0;
+
+        return (
+          <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
+            <div className="flex justify-between items-center mb-10">
+              <h4 className="text-xl font-black text-gray-900 flex items-center">
+                <Database className="w-6 h-6 mr-3 text-brand-600 animate-pulse" /> 일일 마스터 상세 정보 분산 적재 리포트 (DAILY_MASTER_ENRICHMENT)
+              </h4>
+              <div className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-black rounded-2xl shadow-lg">
+                적재 성공: {stats.success}건
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 text-center">
+                <p className="text-[10px] font-black text-gray-400 uppercase">총 시도</p>
+                <p className="text-2xl font-black text-gray-900">{stats.attempted}건</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 text-center">
+                <p className="text-[10px] font-black text-orange-500 uppercase">식당/카페 성공 (목표 275)</p>
+                <p className="text-2xl font-black text-orange-600">{restSuccess}건</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 text-center">
+                <p className="text-[10px] font-black text-green-500 uppercase">대형마트 성공 (목표 25)</p>
+                <p className="text-2xl font-black text-green-600">{martSuccess}건</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 text-center">
+                <p className="text-[10px] font-black text-green-500 uppercase">총 성공</p>
+                <p className="text-2xl font-black text-green-600">{stats.success}건</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 text-center">
+                <p className="text-[10px] font-black text-red-500 uppercase">실패</p>
+                <p className="text-2xl font-black text-red-600">{stats.failed}건</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 text-center">
+                <p className="text-[10px] font-black text-brand-500 uppercase">성공률</p>
+                <p className="text-2xl font-black text-brand-600">{successRate}%</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h5 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center px-2">
+                <Activity className="w-4 h-4 mr-2" /> 상세 갱신 완료 대상 목록
+              </h5>
+              {stats.processed && stats.processed.length > 0 ? (
+                <div className="flex flex-wrap gap-3 p-6 bg-white rounded-3xl border border-gray-100">
+                  {stats.processed.map((name: string, i: number) => (
+                    <span key={i} className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-50 text-brand-700 border border-brand-100">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-brand-600" />
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-10 bg-white rounded-3xl border border-gray-100 text-center text-gray-400 font-bold text-xs">
+                  이번 배치에서 갱신 완료된 장소가 없습니다.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 flex items-center justify-between px-2">
+              <div className="flex items-center text-[10px] text-gray-400 font-bold">
+                <AlertCircle className="w-3 h-3 mr-1.5" /> * 매일 4,000건씩 순환 적재되며, Gemini 한 줄 설명과 함께 영업시간/주차 정보 등이 마스터 DB에 빌드됩니다.
+              </div>
+              <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Master Place Enricher</p>
             </div>
           </div>
         );

@@ -43,29 +43,32 @@ export default function Home() {
         return;
       }
 
-      // 2. 이용 완료된 예약 조회 (체크아웃 날짜가 오늘 이전 + 취소되지 않음)
+      // 2. 예약 및 일정 병렬 조회 (체크아웃 날짜가 오늘 이전)
       const today = new Date().toISOString().split('T')[0];
-      const { count, error } = await supabase
-        .from('reservations')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-        .neq('status', 'CANCELLED')
-        .lt('check_out_date', today);
+      const [resResult, scheduleResult] = await Promise.all([
+        supabase
+          .from('reservations')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .neq('status', 'CANCELLED')
+          .lt('check_out_date', today),
+        supabase
+          .from('user_schedules')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .eq('status', 'scheduled')
+          .lt('check_out', today)
+      ]);
 
-      // 3. 등록된 타캠핑장 완료 일정 조회 (체크아웃 날짜가 오늘 이전 + status='scheduled')
-      const { count: scheduleCount, error: scheduleError } = await supabase
-        .from('user_schedules')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-        .eq('status', 'scheduled')
-        .lt('check_out', today);
+      const count = resResult.data ? (resResult.count ?? 0) : 0;
+      const scheduleCount = scheduleResult.data ? (scheduleResult.count ?? 0) : 0;
 
-      if (error || scheduleError) {
-        console.error('Error checking user reservation/schedule history:', error || scheduleError);
+      if (resResult.error || scheduleResult.error) {
+        console.error('Error checking user reservation/schedule history:', resResult.error || scheduleResult.error);
         setIsFirstTimeUser(true);
       } else {
         // 이용 완료 예약 또는 일정이 1건 이상이면 기존 사용자
-        setIsFirstTimeUser((count ?? 0) === 0 && (scheduleCount ?? 0) === 0);
+        setIsFirstTimeUser(count === 0 && scheduleCount === 0);
       }
     } catch (err) {
       console.error('Error in checkUserType:', err);
