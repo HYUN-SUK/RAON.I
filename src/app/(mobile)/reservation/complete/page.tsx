@@ -178,9 +178,14 @@ export default function ReservationCompletePage() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
                     <div className="bg-[#1E1E1E] text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center border border-white/10 flex flex-col items-center animate-fade-in">
                         <span className="text-3xl">✨</span>
-                        <h3 className="text-base font-bold mt-3">예약 신청이 접수되었습니다!</h3>
+                        <h3 className="text-base font-bold mt-3">
+                            {status === 'CONFIRMED' ? '예약이 확정되었습니다!' : '예약 신청이 접수되었습니다!'}
+                        </h3>
                         <p className="text-xs text-white/70 mt-2 leading-relaxed whitespace-pre-line">
-                            여행계획 수립을 위한 준비를 시작합니다.{"\n"}내일 오전 9시 이후에 자동계획생성을 진행할수있습니다.
+                            {status === 'CONFIRMED'
+                                ? `예약이 확정되어 여행계획 수립을 위한 준비를 시작합니다.\n내일 오전 9시 이후에 자동계획생성을 진행할수있습니다.`
+                                : `입금 후 예약확정 시 여행계획 수립을 위한 준비를 시작합니다.\n내일 오전 9시 이후에 자동계획생성을 진행할수있습니다.`
+                            }
                         </p>
                         <button
                             onClick={() => setShowGuideModal(false)}
