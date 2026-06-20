@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import {
@@ -46,6 +46,69 @@ export default function ScheduleCard({
 
     const daysUntil = differenceInDays(checkIn, today);
     const nights = differenceInDays(checkOut, checkIn);
+
+    // 스마트플랜 사용 가능 여부 판별 (예약 생성 다음날 오전 9시 이후 활성화)
+    const isSmartPlanAvailable = useMemo(() => {
+        if (schedule.smart_plan_data) return false;
+        if (schedule.status !== 'scheduled') return false;
+
+        const createdAtDate = new Date(schedule.created_at);
+        if (isNaN(createdAtDate.getTime())) return false;
+
+        const unlockTimeByCreation = new Date(createdAtDate);
+        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+        unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+        return new Date() >= unlockTimeByCreation;
+    }, [schedule]);
+
+    // 스마트플랜 오픈 대기 여부 판별 (예약 생성 다음날 오전 9시 이전 대기 상태)
+    const isSmartPlanUnlockingSoon = useMemo(() => {
+        if (schedule.smart_plan_data) return false;
+        if (schedule.status !== 'scheduled') return false;
+
+        const createdAtDate = new Date(schedule.created_at);
+        if (isNaN(createdAtDate.getTime())) return false;
+
+        const unlockTimeByCreation = new Date(createdAtDate);
+        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+        unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+        return new Date() < unlockTimeByCreation;
+    }, [schedule]);
+
+    // 스마트플랜 안내 문구/뱃지 결정 (홈화면 위젯과 100% 동일)
+    const smartPlanMessage = useMemo(() => {
+        if (schedule.smart_plan_data) {
+            return '✨ 스마트플랜 생성 완료';
+        }
+
+        if (isSmartPlanUnlockingSoon) {
+            const createdAtDate = new Date(schedule.created_at);
+            const unlockTimeByCreation = new Date(createdAtDate);
+            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+
+            const now = new Date();
+            const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
+                                now.getMonth() === unlockTimeByCreation.getMonth() &&
+                                now.getDate() === unlockTimeByCreation.getDate();
+
+            return isUnlockDay 
+                ? "⏰ 오늘 오전 9시부터 계획 생성 가능"
+                : "⏰ 내일 오전 9시부터 계획 생성 가능";
+        }
+
+        if (isSmartPlanAvailable) {
+            if (daysUntil <= 7 && daysUntil >= 0) {
+                return '✨ 최종 날씨반영계획 생성가능';
+            } else if (daysUntil > 7) {
+                return '✨ 여행계획 세우기 가능';
+            }
+        }
+
+        return null;
+    }, [schedule, isSmartPlanAvailable, isSmartPlanUnlockingSoon, daysUntil]);
 
     // D-Day 텍스트
     const getDDayText = () => {
@@ -147,6 +210,20 @@ export default function ScheduleCard({
                 <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-3">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{schedule.campground_address}</span>
+                </div>
+            )}
+
+            {/* 스마트플랜 안내 배지 */}
+            {smartPlanMessage && (
+                <div className={cn(
+                    "mb-3 text-[11px] font-bold px-2.5 py-1.5 rounded-xl w-fit flex items-center gap-1.5",
+                    schedule.smart_plan_data 
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50"
+                        : isSmartPlanUnlockingSoon
+                            ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50"
+                            : "bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400 border border-orange-100 dark:border-orange-900/50 animate-pulse"
+                )}>
+                    {smartPlanMessage}
                 </div>
             )}
 

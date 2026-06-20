@@ -280,19 +280,19 @@ export default function ReturningHome() {
                 <div className="px-4 mb-4">
                     <button
                         onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
-                        className="w-full flex items-center justify-between px-5 py-4 bg-white dark:bg-zinc-900 border border-stone-200/60 dark:border-zinc-800 rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-5 py-4 bg-[#FAF9F6] dark:bg-zinc-900 border-[3px] border-amber-700 dark:border-amber-600 rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#1C4526]/10 dark:bg-[#C3A675]/10 rounded-xl text-[#1C4526] dark:text-[#C3A675]">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-950/40 rounded-xl text-amber-700 dark:text-amber-500">
                                 <Calendar className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-[#1C4526] dark:text-stone-100 tracking-tight">여행 일정 및 계획하기</h3>
-                                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-medium">캠핑장 기상예보, 여행계획 자동생성 및 일정관리</p>
+                                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-500 tracking-tight">여행일정 및 자동여행계획 생성하기</h3>
+                                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-medium">캠핑장 기상예보, 자동여행계획 생성 및 일정관리</p>
                             </div>
                         </div>
-                        <div className={`text-[#1C4526] dark:text-[#C3A675] p-1.5 bg-stone-100 dark:bg-zinc-800 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : ''}`}>
-                            <ChevronDown className="w-4 h-4" />
+                        <div className={`text-amber-800 dark:text-amber-500 p-1.5 bg-amber-200 dark:bg-amber-950/60 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : 'animate-pulse'}`}>
+                            <ChevronDown className="w-5 h-5" />
                         </div>
                     </button>
                 </div>

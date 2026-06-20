@@ -523,11 +523,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             {/* 다른 여행 일정추가 및 나의 여행일정 버튼 */}
             <div className="flex flex-col gap-2 w-full">
                 <button
-                    onClick={() => router.push('/myspace/schedule?add=external')}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
+                    onClick={() => {
+                        window.alert("다른 곳의 여행도 일정등록 후 자동여행계획을 생성 가능합니다.");
+                        router.push('/myspace/schedule?add=external');
+                    }}
+                    className="w-full flex flex-col items-center justify-center gap-0.5 px-4 py-2.5 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
                 >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-sm font-medium">다른 여행 일정추가</span>
+                    <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        <span className="text-sm font-semibold">다른 여행 일정추가</span>
+                    </div>
+                    <span className="text-[10px] text-stone-500 font-medium">다른 곳의 여행도 일정등록 후 자동여행계획을 생성 가능합니다.</span>
                 </button>
                 <button
                     onClick={() => router.push('/myspace/schedule')}
