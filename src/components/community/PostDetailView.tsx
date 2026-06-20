@@ -111,6 +111,31 @@ export default function PostDetailView() {
         </div>
     );
 
+    // [v11.9.90] 비공개 게시글 조회 권한 방어 (STORY/REVIEW 비공개는 작성자만, QNA 비공개는 작성자 및 관리자만 허용)
+    const isPrivate = post.visibility === 'PRIVATE';
+    const isQna = post.type === 'QNA';
+    const isForbidden = isPrivate && post.authorId !== currentUserId && !(isAdmin && isQna);
+
+    if (isForbidden) {
+        return (
+            <div className="flex flex-col justify-center items-center min-h-screen p-5 text-center bg-[#F7F5EF]">
+                <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center mb-4">
+                    <Trash2 className="w-8 h-8 text-stone-400" />
+                </div>
+                <h2 className="text-lg font-bold text-stone-700 mb-2">비공개 게시글이에요</h2>
+                <p className="text-sm text-stone-500 mb-6">
+                    이 게시글은 비공개로 설정되어 있어 볼 수 없습니다.
+                </p>
+                <Button
+                    onClick={() => router.back()}
+                    className="bg-[#1C4526] hover:bg-[#15341d] text-white"
+                >
+                    돌아가기
+                </Button>
+            </div>
+        );
+    }
+
     // Check ownership
     // Note: Post type from store might not have authorId? 
     // communityService mapDbToPost doesn't map author_id. We need to check mapDbToPost or just rely on isAdmin.

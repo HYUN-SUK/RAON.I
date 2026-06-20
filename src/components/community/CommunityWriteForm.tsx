@@ -24,7 +24,6 @@ const CATEGORIES: { id: BoardType; label: string }[] = [
 
 const VISIBILITY_OPTIONS = [
     { value: 'PUBLIC', label: '전체 공개' },
-    { value: 'FRIENDS', label: '친구만 공개' },
     { value: 'PRIVATE', label: '비공개' },
 ];
 
@@ -256,13 +255,33 @@ export default function CommunityWriteForm() {
                     </div>
                 </div>
 
-                {/* Privacy Guide for Story (Top) */}
+                {/* Privacy Guide for Board Types (Top) */}
                 {type === 'STORY' && (
                     <div className="p-3 bg-[#FDFBF7] border border-[#ECE8DF] rounded-lg text-xs text-stone-600 leading-relaxed flex items-center gap-2">
                         <span className="text-lg">🔒</span>
                         <div>
                             <span className="font-bold text-[#1C4526]">기본 비공개</span>로 설정되며 작성자만 볼 수 있습니다.<br />
                             전체 공개 시 이야기 게시판에 게시됩니다.
+                        </div>
+                    </div>
+                )}
+
+                {type === 'REVIEW' && visibility === 'PRIVATE' && (
+                    <div className="p-3 bg-[#FDFBF7] border border-[#ECE8DF] rounded-lg text-xs text-stone-600 leading-relaxed flex items-center gap-2">
+                        <span className="text-lg">🔒</span>
+                        <div>
+                            후기 글이 <span className="font-bold text-[#1C4526]">비공개</span>로 작성됩니다.<br />
+                            비공개 후기는 <span className="font-bold text-stone-800">작성자 본인만</span> 조회할 수 있습니다.
+                        </div>
+                    </div>
+                )}
+
+                {type === 'QNA' && visibility === 'PRIVATE' && (
+                    <div className="p-3 bg-[#FDFBF7] border border-[#ECE8DF] rounded-lg text-xs text-stone-600 leading-relaxed flex items-center gap-2">
+                        <span className="text-lg">🔒</span>
+                        <div>
+                            질문, 오류신고 글이 <span className="font-bold text-[#1C4526]">비공개</span>로 작성됩니다.<br />
+                            비공개 글은 <span className="font-bold text-stone-800">작성자와 관리자만</span> 조회할 수 있습니다.
                         </div>
                     </div>
                 )}

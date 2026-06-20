@@ -563,16 +563,27 @@ export default function ScheduleDetailPage() {
                 {/* 스마트 캠핑 플랜 UI (Gap 1: Trigger UI) */}
                 <div className="mt-6 mb-4">
                     {!showSmartPlan ? (() => {
-                        // 예약 다음 날 오전 9시 기준 설정
+                        // 예약 다음 날 오전 9시 기준 설정 (새벽 5시 기준 보정)
                         const createdAtDate = new Date(schedule.created_at);
                         const unlockTimeByCreation = new Date(createdAtDate);
-                        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-                        unlockTimeByCreation.setHours(9, 0, 0, 0);
+                        if (createdAtDate.getHours() < 5) {
+                            unlockTimeByCreation.setHours(9, 0, 0, 0);
+                        } else {
+                            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+                            unlockTimeByCreation.setHours(9, 0, 0, 0);
+                        }
 
-                        // 1차 활성화 기준: 예약 다음 날 오전 9시 이후 잠금 해제
+                        // 1차 활성화 기준: 잠금 해제 시간 이후 잠금 해제
                         const isLocked = new Date() < unlockTimeByCreation && !schedule.smart_plan_data;
 
-                        const lockedMessage = "최적의 정보 수집 및 캐싱을 위해, 예약 다음 날 오전 9시부터 스마트플랜이 오픈됩니다!";
+                        const now = new Date();
+                        const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
+                                            now.getMonth() === unlockTimeByCreation.getMonth() &&
+                                            now.getDate() === unlockTimeByCreation.getDate();
+
+                        const lockedMessage = isUnlockDay
+                            ? "최적의 정보 수집 및 캐싱을 위해, 오늘 오전 9시부터 스마트플랜이 오픈됩니다!"
+                            : "최적의 정보 수집 및 캐싱을 위해, 내일 오전 9시부터 스마트플랜이 오픈됩니다!";
 
                         // 프로필 게이트 표시 중 (확인 및 수정 단계)
                         if (showProfileGate) {

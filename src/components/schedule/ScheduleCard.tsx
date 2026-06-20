@@ -47,7 +47,7 @@ export default function ScheduleCard({
     const daysUntil = differenceInDays(checkIn, today);
     const nights = differenceInDays(checkOut, checkIn);
 
-    // 스마트플랜 사용 가능 여부 판별 (예약 생성 다음날 오전 9시 이후 활성화)
+    // 스마트플랜 사용 가능 여부 판별 (예약 생성 새벽 5시 이전 당일 9시, 이후 다음날 오전 9시 활성화)
     const isSmartPlanAvailable = useMemo(() => {
         if (schedule.smart_plan_data) return false;
         if (schedule.status !== 'scheduled') return false;
@@ -56,8 +56,12 @@ export default function ScheduleCard({
         if (isNaN(createdAtDate.getTime())) return false;
 
         const unlockTimeByCreation = new Date(createdAtDate);
-        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-        unlockTimeByCreation.setHours(9, 0, 0, 0);
+        if (createdAtDate.getHours() < 5) {
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        } else {
+            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        }
 
         return new Date() >= unlockTimeByCreation;
     }, [schedule]);
@@ -71,8 +75,12 @@ export default function ScheduleCard({
         if (isNaN(createdAtDate.getTime())) return false;
 
         const unlockTimeByCreation = new Date(createdAtDate);
-        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-        unlockTimeByCreation.setHours(9, 0, 0, 0);
+        if (createdAtDate.getHours() < 5) {
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        } else {
+            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        }
 
         return new Date() < unlockTimeByCreation;
     }, [schedule]);
@@ -86,8 +94,12 @@ export default function ScheduleCard({
         if (isSmartPlanUnlockingSoon) {
             const createdAtDate = new Date(schedule.created_at);
             const unlockTimeByCreation = new Date(createdAtDate);
-            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
+            if (createdAtDate.getHours() < 5) {
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            } else {
+                unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            }
 
             const now = new Date();
             const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&

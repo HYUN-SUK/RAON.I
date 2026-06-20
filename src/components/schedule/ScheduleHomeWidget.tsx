@@ -163,7 +163,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         setUpcomingItem(unifiedList[0] || null);
     }, [reservations, schedules]);
 
-    // 스마트플랜 사용 가능 여부 판별 (예약 생성 다음날 오전 9시 이후 활성화)
+    // 스마트플랜 사용 가능 여부 판별 (예약 생성 새벽 5시 이전 당일 9시, 이후 다음날 오전 9시 활성화)
     const isSmartPlanAvailable = useMemo(() => {
         if (!upcomingItem) return false;
         
@@ -190,13 +190,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         if (isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
         
         const unlockTimeByCreation = new Date(createdAtDate);
-        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-        unlockTimeByCreation.setHours(9, 0, 0, 0);
+        if (createdAtDate.getHours() < 5) {
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        } else {
+            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        }
 
         return new Date() >= unlockTimeByCreation;
     }, [upcomingItem, reservations, schedules]);
 
-    // 스마트플랜 오픈 대기 여부 판별 (예약 생성 다음날 오전 9시 이전 대기 상태)
+    // 스마트플랜 오픈 대기 여부 판별
     const isSmartPlanUnlockingSoon = useMemo(() => {
         if (!upcomingItem) return false;
         
@@ -223,13 +227,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         if (isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
         
         const unlockTimeByCreation = new Date(createdAtDate);
-        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-        unlockTimeByCreation.setHours(9, 0, 0, 0);
+        if (createdAtDate.getHours() < 5) {
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        } else {
+            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        }
 
         return new Date() < unlockTimeByCreation;
     }, [upcomingItem, reservations, schedules]);
 
-    // 스마트플랜 오픈 대기 안내 문구 결정 (자정이 지나면 '내일'을 생략)
+    // 스마트플랜 오픈 대기 안내 문구 결정 (오늘/내일 오전 9시 이후 활성화 명시)
     const unlockMessage = useMemo(() => {
         if (!upcomingItem) return '';
         
@@ -247,8 +255,12 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         if (isNaN(createdAtDate.getTime())) return '';
         
         const unlockTimeByCreation = new Date(createdAtDate);
-        unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-        unlockTimeByCreation.setHours(9, 0, 0, 0);
+        if (createdAtDate.getHours() < 5) {
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        } else {
+            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        }
 
         const now = new Date();
         const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
@@ -256,7 +268,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                             now.getDate() === unlockTimeByCreation.getDate();
 
         return isUnlockDay 
-            ? "오전 9시 이후에 자동계획생성이 가능합니다."
+            ? "오늘 오전 9시 이후에 자동계획생성이 가능합니다."
             : "내일 오전 9시 이후에 자동계획생성이 가능합니다.";
     }, [upcomingItem, reservations, schedules]);
 
