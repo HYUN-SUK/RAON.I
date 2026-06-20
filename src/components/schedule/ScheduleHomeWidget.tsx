@@ -540,7 +540,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         <Plus className="w-4 h-4" />
                         <span className="text-sm font-semibold">다른 여행 일정추가</span>
                     </div>
-                    <span className="text-[10px] text-stone-500 font-medium">다른 곳의 여행도 일정등록 후 자동여행계획을 생성 가능합니다.</span>
+                    <span className="text-[10px] text-stone-500 font-medium">다른 곳으로 가시는 여행 일정도 등록해 보세요. 라온아이가 똑똑한 여행 계획을 자동으로 완성해 드립니다.</span>
                 </button>
                 <button
                     onClick={() => router.push('/myspace/schedule')}
@@ -559,7 +559,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                             📢 안내
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-center text-sm text-stone-600 dark:text-stone-300 font-medium break-keep leading-relaxed pt-1">
-                            다른 곳의 여행도 일정등록 후 자동여행계획을 생성 가능합니다.
+                            다른 곳으로 가시는 여행 일정도 등록해 보세요. 라온아이가 똑똑한 여행 계획을 자동으로 완성해 드립니다.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-5 flex flex-row justify-center gap-2 sm:justify-center">
