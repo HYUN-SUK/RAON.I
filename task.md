@@ -109,10 +109,18 @@
     - [x] Implement 3D Random Card Flip component.
     - [x] Implement Zero-Cost Interactive Toolkit (JS Timer, Web Audio API ASMR synthesizer for fire/rain sounds).
 - [x] Verify Next.js build and test overall layout.
-- [ ] **마스터 DB 상세정보 초고속 벌크적재 이행 (v10 기반 고속화)**
-    - [ ] `scripts/fast-bulk-enrich.mjs` (Playwright 고속화 수집기) 스크립트 작성
-    - [ ] `scripts/bulk-enrich-public.mjs` (공공 벌크 적재) 스크립트 고속화 리팩토링 및 벌크 upsert 보완
-    - [ ] 기존 상세 적재 데이터 전면 무시 및 처음부터 수집 시작 설정 적용
-    - [ ] Playwright 고속 벌크 적재 스크립트 드라이런 및 전체 실행 (1일차 8,000건 & 식당/카페/마트 벌크)
-    - [ ] 어드민 Live Monitor 화면을 통한 수집 통계 배지 및 로그 연동 상태 검증
-    - [ ] 컴파일 무결성 검증 (`npm run build`)
+- [x] **마스터 DB 상세정보 초고속 벌크적재 이행 (v10 기반 고속화)**
+    - [x] `scripts/fast-bulk-enrich.mjs` (Playwright 고속화 수집기) 스크립트 작성
+    - [x] `scripts/bulk-enrich-public.mjs` (공공 벌크 적재) 스크립트 고속화 리팩토링 및 벌크 upsert 보완
+    - [x] 기존 상세 적재 데이터 전면 무시 및 처음부터 수집 시작 설정 적용
+    - [x] Playwright 고속 벌크 적재 스크립트 드라이런 및 전체 실행 (1일차 8,000건 & 식당/카페/마트 벌크)
+    - [x] 어드민 Live Monitor 화면을 통한 수집 통계 배지 및 로그 연동 상태 검증
+    - [x] 컴파일 무결성 검증 (`npm run build`)
+- [ ] **공공 API 상세정보 벌크적재 이행 (명소/병원/축제)**
+    - [ ] `scripts/bulk-enrich-public.mjs` 리팩토링 (ID 기반 커서 페이징, 메모리 필터, true/false 분기 적재)
+    - [ ] `scripts/run-public-bulk-loop.mjs` 신규 스크립트 작성 (영속성 2일 분할 적재 루프 러너)
+    - [ ] `scripts/fast-bulk-enrich-public-fallback.mjs` 신규 작성 (Stage 2 카카오맵 크롤러 및 실효 데이터 검증 필터)
+    - [ ] 최초 100건 드라이런 실행 및 실효 데이터 적재 여부 전수 검증
+    - [ ] 본격 루프 가동 (Stage 1 공공 API 수집)
+    - [ ] 본격 루프 가동 (Stage 2 카카오맵 크롤링 보완)
+    - [ ] 최종 전수 점검 및 이행 보고서 작성
