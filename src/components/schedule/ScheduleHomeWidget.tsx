@@ -12,6 +12,15 @@ import { useRouter } from 'next/navigation';
 import { SITES } from '@/constants/sites';
 import { useWeather } from '@/hooks/useWeather';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // 통합 일정 타입 (라온아이 예약 또는 타캠핑장 일정)
 interface UnifiedSchedule {
@@ -37,6 +46,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const [isLoading, setIsLoading] = useState(true);
     const [isNavigating, setIsNavigating] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -523,10 +533,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             {/* 다른 여행 일정추가 및 나의 여행일정 버튼 */}
             <div className="flex flex-col gap-2 w-full">
                 <button
-                    onClick={() => {
-                        window.alert("다른 곳의 여행도 일정등록 후 자동여행계획을 생성 가능합니다.");
-                        router.push('/myspace/schedule?add=external');
-                    }}
+                    onClick={() => setIsAlertOpen(true)}
                     className="w-full flex flex-col items-center justify-center gap-0.5 px-4 py-2.5 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
                 >
                     <div className="flex items-center gap-2">
@@ -543,6 +550,31 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                     <span>나의 여행일정</span>
                 </button>
             </div>
+
+            {/* 다른 여행 자동계획 안내 커스텀 모달 팝업 */}
+            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                <AlertDialogContent className="w-[90%] max-w-[340px] rounded-3xl p-6">
+                    <AlertDialogHeader className="space-y-2">
+                        <AlertDialogTitle className="text-center text-lg font-bold text-[#224732] dark:text-[#C3A675]">
+                            📢 안내
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-sm text-stone-600 dark:text-stone-300 font-medium break-keep leading-relaxed pt-1">
+                            다른 곳의 여행도 일정등록 후 자동여행계획을 생성 가능합니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-5 flex flex-row justify-center gap-2 sm:justify-center">
+                        <AlertDialogAction
+                            onClick={() => {
+                                setIsAlertOpen(false);
+                                router.push('/myspace/schedule?add=external');
+                            }}
+                            className="bg-[#224732] hover:bg-[#1a3626] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
+                        >
+                            확인
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 });
