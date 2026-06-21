@@ -136,13 +136,9 @@ export default function PostDetailView() {
         );
     }
 
-    // Check ownership
-    // Note: Post type from store might not have authorId? 
-    // communityService mapDbToPost doesn't map author_id. We need to check mapDbToPost or just rely on isAdmin.
-    // Ideally we should add authorId to Post interface.
-    // For now, let's rely on isAdmin for global delete. 
-    // If we want owner delete, we need authorId.
-    // Let's assume isAdmin is the key requirement now.
+    // Check ownership & deletion rights (Author or Admin)
+    const isOwner = post.authorId === currentUserId;
+    const canDelete = isOwner || isAdmin;
 
     return (
         <div className="min-h-screen bg-white pb-20">
@@ -159,37 +155,30 @@ export default function PostDetailView() {
                 </button>
                 <div className="flex gap-2">
                     <button><Share2 className="w-5 h-5 text-[#1A1A1A]" /></button>
-                    {(isAdmin) && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="p-1 hover:bg-gray-100 rounded-full"><MoreVertical className="w-5 h-5 text-[#1A1A1A]" /></button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer">
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            삭제하기 (Admin)
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>게시물 삭제</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                정말 이 게시물을 삭제하시겠습니까?<br />
-                                                관리자 권한으로 삭제 시 복구할 수 없습니다.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>취소</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                                                삭제
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                    {canDelete && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <button className="p-1 hover:bg-gray-100 rounded-full">
+                                    <Trash2 className="w-5 h-5 text-[#1A1A1A] hover:text-red-600 transition-colors" />
+                                </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="w-[90%] max-w-[320px] rounded-2xl p-6">
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>게시물 삭제</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {isOwner 
+                                            ? '정말 이 게시물을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.' 
+                                            : '관리자 권한으로 이 게시물을 삭제하시겠습니까? 삭제 시 복구할 수 없습니다.'}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="flex-row gap-2 mt-4">
+                                    <AlertDialogCancel className="flex-1 mt-0">취소</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+                                        삭제
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     )}
                 </div>
             </header>

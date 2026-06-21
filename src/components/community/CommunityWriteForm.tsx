@@ -37,6 +37,7 @@ const postSchema = z.object({
 });
 
 import ImageEditorModal from '@/components/record/ImageEditorModal';
+import { createClient } from '@/lib/supabase-client';
 
 export default function CommunityWriteForm() {
     const router = useRouter();
@@ -50,6 +51,32 @@ export default function CommunityWriteForm() {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [visibility, setVisibility] = useState('PUBLIC');
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+    // [v11.9.95] 관리자 및 일반 유저 권한 확인하여 공지사항 우회 작성 방지
+    React.useEffect(() => {
+        const checkUser = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+                const adminCheck = user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin' || user.app_metadata?.role === 'admin';
+                setIsAdmin(adminCheck);
+                
+                // 일반 사용자인데 초기 타입이 NOTICE인 경우 강제로 STORY로 스위칭
+                if (!adminCheck && initialType === 'NOTICE') {
+                    setType('STORY');
+                }
+            } else {
+                // 비로그인 상태인데 NOTICE로 접근 시 강제 스위칭
+                if (initialType === 'NOTICE') {
+                    setType('STORY');
+                }
+            }
+        };
+        checkUser();
+    }, [initialType]);
 
     // Auto-set visibility based on Board Type
     React.useEffect(() => {
@@ -234,6 +261,9 @@ export default function CommunityWriteForm() {
                                 <SelectValue placeholder="게시판" />
                             </SelectTrigger>
                             <SelectContent>
+                                {isAdmin && (
+                                    <SelectItem value="NOTICE">공지사항</SelectItem>
+                                )}
                                 {CATEGORIES.map((cat) => (
                                     <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                                 ))}
