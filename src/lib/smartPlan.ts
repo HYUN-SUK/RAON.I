@@ -507,8 +507,8 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
         const sources = row.allSources || [];
         const badges = row.badges || [];
         
-        if (sources.includes('SMBA_BAEK') || badges.includes('백년가게')) certBonus += 50;
-        if (sources.includes('LX_RESTAURANT')) certBonus += 50;
+        if (sources.includes('SMBA_BAEK') || badges.includes('백년가게')) certBonus += 80;
+        if (sources.includes('LX_RESTAURANT')) certBonus += 80;
         if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || badges.includes('모범음식점')) certBonus += 30;
         if (sources.includes('SAFE_RESTAURANT') || badges.includes('안심식당')) certBonus += 20;
         

@@ -526,9 +526,10 @@ async function main() {
 
             console.log(`  🚀 Fetching dynamic data for point: (${ptLat.toFixed(4)}, ${ptLng.toFixed(4)}) in ${ptSigungu || ptSido}...`);
             const fetchTasks = [];
+            let nmcHospCount = 0;
 
             // A-1. Hospital (Query master_places within 30km, group by SIDO, fetch live NMC data, and merge)
-            fetchTasks.push((async () => {
+            const hospitalTask = (async () => {
                 try {
                     // 1. Query master_places (category = HOSPITAL) within 30km (30000m)
                     const { data: dbHospitals, error: dbErr } = await supabase.rpc('get_master_places_in_radius_v2', {
@@ -549,7 +550,8 @@ async function main() {
                         return;
                     }
 
-                    console.log(`  🏥 Found ${dbHospitals.length} hospitals in master_places within 30km.`);
+                    nmcHospCount = dbHospitals.filter(h => h.api_source === 'NMC_HOSPITAL').length;
+                    console.log(`  🏥 Found ${dbHospitals.length} hospitals in master_places (NMC: ${nmcHospCount}) within 30km.`);
 
                     // 2. Extract unique SIDO names
                     const sidos = new Set();
@@ -627,50 +629,8 @@ async function main() {
                 } catch (e) {
                     console.error("  🏥 Hospital Process Error:", e.message);
                 }
-            })());
-
-            // A-1-2. Kakao Hospital (HP8)
-            fetchTasks.push((async () => {
-                try {
-                    const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${ptLng}&y=${ptLat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
-                    const kData = await kRes.json();
-                    if (kData.documents) {
-                        metrics.dynamic_api.HOSPITAL.received += kData.documents.length;
-                        kData.documents.forEach((item) => {
-                            const isBig = item.place_name?.match(/종합병원|의료원|대학병원/);
-                            const fact = {
-                                id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
-                                api_source: 'KAKAO_HP8', category: 'HOSPITAL',
-                                name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name || '주소정보없음',
-                                lat: parseFloat(item.y), lng: parseFloat(item.x),
-                                trust_score: isBig ? 100 : 20, raw_data: item // [v11.9.64] 종합병원 기본 점수 100으로 조정 (밸런스 최적화)
-                            };
-                            aggregatedMaster.HOSPITAL.set(fact.id, fact);
-                        });
-                    }
-                } catch (e) { console.error("Kakao HP8 Error:", e.message); }
-            })());
-
-            // A-1-3. Kakao Big Hospital Search (Keyword Search to ensure inclusion)
-            fetchTasks.push((async () => {
-                try {
-                    const searchBase = ptSigungu || ptSido; // [v11.9.69] Fallback to Sido if Sigungu is empty (Sejong)
-                    const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(searchBase + ' 종합병원')}&x=${ptLng}&y=${ptLat}&radius=20000&size=10`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
-                    const kData = await kRes.json();
-                    if (kData.documents) {
-                        kData.documents.forEach((item) => {
-                            const fact = {
-                                id: generateFactId('KAKAO_BIG_HOSP', item.place_name, item.road_address_name || item.address_name),
-                                api_source: 'KAKAO_BIG_HOSP', category: 'HOSPITAL',
-                                name: item.place_name, description: '지역 종합의료기관', address: item.road_address_name || item.address_name || '주소정보없음',
-                                lat: parseFloat(item.y), lng: parseFloat(item.x),
-                                trust_score: 100, raw_data: item
-                            };
-                            aggregatedMaster.HOSPITAL.set(fact.id, fact);
-                        });
-                    }
-                } catch (e) { console.error("Kakao Big Hospital Search Error:", e.message); }
-            })());
+            })();
+            fetchTasks.push(hospitalTask);
 
             // A-2. Festival
             fetchTasks.push((async () => {
@@ -752,6 +712,59 @@ async function main() {
 
             await Promise.all(fetchTasks);
 
+            // 병원 카테고리 카카오 로컬 호출 조건부 폴백 전환 (NMC 데이터가 2개 미만일 때만)
+            if (nmcHospCount < 2) {
+                console.log(`  🏥 NMC hospital count (${nmcHospCount}) is less than 2. Querying Kakao Local fallback...`);
+                const fallbackTasks = [];
+
+                // A-1-2. Kakao Hospital (HP8)
+                fallbackTasks.push((async () => {
+                    try {
+                        const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&x=${ptLng}&y=${ptLat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                        const kData = await kRes.json();
+                        if (kData.documents) {
+                            metrics.dynamic_api.HOSPITAL.received += kData.documents.length;
+                            kData.documents.forEach((item) => {
+                                const isBig = item.place_name?.match(/종합병원|의료원|대학병원/);
+                                const fact = {
+                                    id: generateFactId('KAKAO_HP8', item.place_name, item.road_address_name || item.address_name),
+                                    api_source: 'KAKAO_HP8', category: 'HOSPITAL',
+                                    name: item.place_name, description: item.category_name || '일반 병원/의원', address: item.road_address_name || item.address_name || '주소정보없음',
+                                    lat: parseFloat(item.y), lng: parseFloat(item.x),
+                                    trust_score: isBig ? 100 : 20, raw_data: item
+                                };
+                                aggregatedMaster.HOSPITAL.set(fact.id, fact);
+                            });
+                        }
+                    } catch (e) { console.error("Kakao HP8 Error:", e.message); }
+                })());
+
+                // A-1-3. Kakao Big Hospital Search (Keyword Search to ensure inclusion)
+                fallbackTasks.push((async () => {
+                    try {
+                        const searchBase = ptSigungu || ptSido;
+                        const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(searchBase + ' 종합병원')}&x=${ptLng}&y=${ptLat}&radius=20000&size=10`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                        const kData = await kRes.json();
+                        if (kData.documents) {
+                            kData.documents.forEach((item) => {
+                                const fact = {
+                                    id: generateFactId('KAKAO_BIG_HOSP', item.place_name, item.road_address_name || item.address_name),
+                                    api_source: 'KAKAO_BIG_HOSP', category: 'HOSPITAL',
+                                    name: item.place_name, description: '지역 종합의료기관', address: item.road_address_name || item.address_name || '주소정보없음',
+                                    lat: parseFloat(item.y), lng: parseFloat(item.x),
+                                    trust_score: 100, raw_data: item
+                                };
+                                aggregatedMaster.HOSPITAL.set(fact.id, fact);
+                            });
+                        }
+                    } catch (e) { console.error("Kakao Big Hospital Search Error:", e.message); }
+                })());
+
+                await Promise.all(fallbackTasks);
+            } else {
+                console.log(`  🏥 NMC hospital count (${nmcHospCount}) is sufficient (>= 2). Skipping Kakao Local fallback.`);
+            }
+
             // [v11.9.13] Throttling between points within the same cluster
             await sleep(500);
         }
@@ -813,8 +826,8 @@ async function main() {
                         if (!item.raw_data.badges) item.raw_data.badges = [];
                         
                         // [Cumulative Certification Logic]
-                        if (item.api_source === 'LX_RESTAURANT') { s += 50; item.raw_data.badges.push('LX인증맛집'); }
-                        if (item.api_source === 'SMBA_BAEK') { s += 50; item.raw_data.badges.push('백년가게'); }
+                        if (item.api_source === 'LX_RESTAURANT') { s += 80; item.raw_data.badges.push('LX인증맛집'); }
+                        if (item.api_source === 'SMBA_BAEK') { s += 80; item.raw_data.badges.push('백년가게'); }
                         if (item.api_source === 'LOCALDATA_RESTAURANT_GOOD') { s += 30; item.raw_data.badges.push('모범음식점'); }
                         if (item.api_source === 'SAFE_RESTAURANT' || item.api_source === 'LOCALDATA_RESTAURANT_SAFE') { s += 20; item.raw_data.badges.push('안심식당'); }
                         
@@ -1058,36 +1071,30 @@ async function main() {
             clusterCands.push(...poolArray);
         }
 
-        for (let i = 0; i < clusterCands.length; i += 40) {
-            const chunk = clusterCands.slice(i, i + 40);
-            await Promise.all(chunk.map(async (c) => {
-                const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(c.name)}&x=${c.lng}&y=${c.lat}&radius=10000`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } }).then(r=>r.json());
-                const m = res.documents?.find(d => d.place_name.replace(/\s/g,'') === c.name.replace(/\s/g,'')) || res.documents?.[0];
-                if (m) {
-                    metrics.quota_flow[c.category].verified++;
-                    const sc = await scrapeKakaoPlace(m.place_url);
-                    const safeFact = {
-                        id: generateFactId('MASTER_ENRICHED', c.name, c.address),
-                        api_source: 'MASTER_ENRICHED',
-                        category: c.category,
-                        name: c.name,
-                        description: c.description || '',
-                        address: c.address,
-                        lat: c.lat,
-                        lng: c.lng,
-                        trust_score: c.trust_score,
-                        raw_data: { ...c.raw_data, kakao_url: m.place_url, scraping: sc }
-                    };
-                    totalFactMap.set(safeFact.id, safeFact);
-                    allFactsMap.set(safeFact.id, safeFact); // [v11.9.62] Sync to global map
-                }
-            }));
+        // [v11.9.83] 카카오 검증 및 스크래핑을 제거하고 1차 수집된 clusterCands를 그대로 사용
+        const verifiedPool = clusterCands;
+
+        // smart_plan_facts 테이블과의 외래키 제약 조건 유지를 위해 allFactsMap에 모든 후보를 적재 (원본 ID와 api_source 보존)
+        for (const c of clusterCands) {
+            metrics.quota_flow[c.category].verified++;
+            const fact = {
+                id: c.id,
+                api_source: c.api_source,
+                category: c.category,
+                name: c.name,
+                description: c.description || '',
+                address: c.address,
+                lat: c.lat,
+                lng: c.lng,
+                trust_score: c.trust_score,
+                raw_data: c.raw_data
+            };
+            allFactsMap.set(fact.id, fact);
         }
 
         // ━━━━ [v11.9.23] Stage 4: 예약자별 개인화 (거리감점 + 2차 쿼터) ━━━━
         const penaltyFactors = { RESTAURANT: 3.0, SPOT: 2.0, MART: 3.0, HOSPITAL: 3.0, GAS_STATION: 2.0, FESTIVAL: 1.0 };
         const secondQuota = { RESTAURANT: 15, SPOT: 15, MART: 12, HOSPITAL: 6, GAS_STATION: 6, FESTIVAL: 6 };
-        const verifiedPool = Array.from(totalFactMap.values());
         const candidateRows = [];
 
         console.log(`  📊 Stage 4: Personalizing ${verifiedPool.length} verified facts for ${cluster.reservations.length} reservations...`);
