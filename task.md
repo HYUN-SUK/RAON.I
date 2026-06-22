@@ -116,11 +116,18 @@
     - [x] Playwright 고속 벌크 적재 스크립트 드라이런 및 전체 실행 (1일차 8,000건 & 식당/카페/마트 벌크)
     - [x] 어드민 Live Monitor 화면을 통한 수집 통계 배지 및 로그 연동 상태 검증
     - [x] 컴파일 무결성 검증 (`npm run build`)
-- [ ] **공공 API 상세정보 벌크적재 이행 (명소/병원/축제)**
-    - [ ] `scripts/bulk-enrich-public.mjs` 리팩토링 (ID 기반 커서 페이징, 메모리 필터, true/false 분기 적재)
-    - [ ] `scripts/run-public-bulk-loop.mjs` 신규 스크립트 작성 (영속성 2일 분할 적재 루프 러너)
-    - [ ] `scripts/fast-bulk-enrich-public-fallback.mjs` 신규 작성 (Stage 2 카카오맵 크롤러 및 실효 데이터 검증 필터)
-    - [ ] 최초 100건 드라이런 실행 및 실효 데이터 적재 여부 전수 검증
-    - [ ] 본격 루프 가동 (Stage 1 공공 API 수집)
-    - [ ] 본격 루프 가동 (Stage 2 카카오맵 크롤링 보완)
+- [/] **공공 API 상세정보 벌크적재 이행 (명소/병원/축제)**
+    - [x] `scripts/bulk-enrich-public.mjs` 리팩토링 (ID 기반 커서 페이징, 메모리 필터, true/false 분기 적재)
+    - [x] `scripts/run-public-bulk-loop.mjs` 신규 스크립트 작성 (영속성 2일 분할 적재 루프 러너)
+    - [x] `scripts/fast-bulk-enrich-public-fallback.mjs` 신규 작성 (Stage 2 카카오맵 크롤러 및 실효 데이터 검증 필터)
+    - [x] 최초 100건 드라이런 실행 및 실효 데이터 적재 여부 전수 검증
+    - [/] 본격 루프 가동 (Stage 1 공공 API 수집 - 오늘 밤 자정 00:05 재예약 완료, 누적 10,945건(79.3%) 적재 돌파)
+    - [ ] 본격 루프 가동 (Stage 2 카카오맵 크롤링 보완 - 실패 414건에 대해 내일 검증 후 적재)
     - [ ] 최종 전수 점검 및 이행 보고서 작성
+- [ ] **제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 이행**
+    - [x] Google AI Studio 결제 계정 연결 및 선결제 등록 (PRO 활성화 검증 완료, gemini-2.5-flash 연동 확인)
+    - [ ] `scripts/gemini-enrich-description.mjs` 신규 스크립트 작성 (상세 미적재 Fallback 및 카테고리별 프롬프트 탑재)
+    - [ ] `scripts/run-gemini-description-loop.mjs` 신규 루프 러너 작성 (ID 커서 페이징 연동)
+    - [ ] 최초 10건 드라이런 실행 및 1줄 설명 품질 검산 보고서 생성 (사용자 승인 대기)
+    - [ ] 유료 고속 적재(Concurrency 15~20) 가동 및 마스터 DB 전수 적재
+    - [ ] 빌드 검증 및 최종 결과 검산 보고서 작성

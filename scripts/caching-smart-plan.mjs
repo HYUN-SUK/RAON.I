@@ -968,8 +968,8 @@ async function main() {
 
                             if (cat === 'RESTAURANT') {
                                 let totalScore = 10;
-                                if (mergedBadges.includes('LX인증맛집')) totalScore += 50;
-                                if (mergedBadges.includes('백년가게')) totalScore += 50;
+                                if (mergedBadges.includes('LX인증맛집')) totalScore += 80;
+                                if (mergedBadges.includes('백년가게')) totalScore += 80;
                                 if (mergedBadges.includes('모범음식점')) totalScore += 30;
                                 if (mergedBadges.includes('안심식당')) totalScore += 20;
 
@@ -1017,8 +1017,8 @@ async function main() {
 
                             if (cat === 'RESTAURANT') {
                                 let totalScore = 10;
-                                if (mergedBadges.includes('LX인증맛집')) totalScore += 50;
-                                if (mergedBadges.includes('백년가게')) totalScore += 50;
+                                if (mergedBadges.includes('LX인증맛집')) totalScore += 80;
+                                if (mergedBadges.includes('백년가게')) totalScore += 80;
                                 if (mergedBadges.includes('모범음식점')) totalScore += 30;
                                 if (mergedBadges.includes('안심식당')) totalScore += 20;
 

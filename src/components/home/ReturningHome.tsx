@@ -24,6 +24,9 @@ import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReminderBanner from '@/components/myspace/ReminderBanner';
+import { useFabSparkle } from '@/hooks/useFabSparkle';
+import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 
 
 
@@ -70,6 +73,9 @@ export default function ReturningHome() {
     const { config } = useSiteConfig();
     const lbs = useLBS();
 
+    const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
+    const [isRecordOpen, setIsRecordOpen] = useState(false);
+
     // Accordion State
     const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
 
@@ -96,6 +102,10 @@ export default function ReturningHome() {
         // Auto-request permission on Home Load
         requestPermission();
     }, [fetchOpenDayRule, fetchLastReservation, fetchSites, requestPermission, fetchMyReservations]);
+
+    React.useEffect(() => {
+        refresh();
+    }, [refresh, reservations]);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -172,6 +182,23 @@ export default function ReturningHome() {
             <TopBar />
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
+                {/* 미작성 일정이 있을 때 홈화면 최상단에 리마인더 배너 노출 */}
+                <AnimatePresence>
+                    {unwrittenScheduleDetail && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="px-0"
+                        >
+                            <ReminderBanner
+                                detail={unwrittenScheduleDetail}
+                                onClick={() => setIsRecordOpen(true)}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* 1. Personalized Hero Panel */}
                 <section className="w-full bg-[#1C4526] text-white pt-16 pb-18 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
                     {/* Background Image Overlay */}
@@ -401,6 +428,17 @@ export default function ReturningHome() {
                 userLocation={lbs.location}
                 getDistance={lbs.getDistanceKm}
                 isUsingDefault={lbs.usingDefault}
+            />
+
+            {/* 10초 기록 팝업 시트 바인딩 */}
+            <QuickRecordForm
+                isOpen={isRecordOpen}
+                onClose={() => setIsRecordOpen(false)}
+                scheduleId={unwrittenScheduleIds[0]}
+                onSuccess={() => {
+                    refresh();
+                    fetchMyReservations();
+                }}
             />
         </div>
     );

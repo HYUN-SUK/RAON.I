@@ -423,6 +423,8 @@
     *   [x] **Playwright Scraper**: 식당/카페 및 마트 대상 Playwright 기반 동적 DOM 스크래핑 모듈 탑재 및 일일 300건 쿼터제 수집엔진 구축 (`fast-enrich.mjs`).
     *   [x] **Public API Detail Integration**: 관광공사 TourAPI 및 NMC 병원 상세 API 연동 완료 및 일일 지역 순환 동기화 단계 (`syncTourSpots`, `syncHospitals`) 내 실시간 상세정보 결합 적재 보정 완료.
     *   [x] **Admin Logs Dashboard**: 자동화 로그 대시보드 내 명소/병원 상세 배지 및 식당/마트 쿼터제 성공 통계 그리드 모니터링 시각화 보정.
+    *   [x] **마스터 DB 상세정보 벌크적재 (v10 기반 고속화)**: 식당/카페/마트 10만 건 벌크적재 루프 완전 이행 (미시도 0건 달성).
+    *   [/] **공공 API 상세정보 벌크적재 (명소/병원/축제)**: 순차 ID 커서 페이징 기반 bulk-enrich-public.mjs 튜닝 완료 및 2일 차 누적 10,945건 (79.3%) 적재 이행 완수 (오늘 밤 자정 재기동 예약 완료).
 *   **7.6 ?? API ?동 (Final Polish)** ?(?메??발급 ??:
     *   [ ] **TourAPI/Kakao**: `nearby_events` ?`site_config` ?이?? ?제 ?? API? ?시??기??(?정???계?서 진행).
 

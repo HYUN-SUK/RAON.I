@@ -444,12 +444,13 @@ export async function hasUnwrittenScheduleRecord(): Promise<{
         today.setHours(0, 0, 0, 0);
 
         // 1. 이용중 또는 완료된 일정 조회 (오늘 이전 또는 오늘 포함)
+        const todayKstStr = new Date(today.getTime() + 9 * 3600000).toISOString().split('T')[0];
         const { data: schedules } = await supabase
             .from('user_schedules')
-            .select('id, start_date, end_date')
+            .select('id, check_in, check_out')
             .eq('user_id', user.id)
-            .lte('start_date', today.toISOString())
-            .order('start_date', { ascending: false });
+            .lte('check_in', todayKstStr)
+            .order('check_in', { ascending: false });
 
         if (!schedules || schedules.length === 0) {
             return { hasUnwritten: false, scheduleIds: [] };
@@ -509,18 +510,18 @@ export async function getScheduleForRecord(scheduleId: string): Promise<{
 
         // RAONAI 캠핑장인지 판단 (source가 'raonai' 또는 이름에 '라온아이' 포함)
         const isRaonai = data.source === 'raonai' ||
-            (data.title || '').toLowerCase().includes('라온아이');
+            (data.campground_name || '').toLowerCase().includes('라온아이');
 
         return {
             id: data.id,
-            title: data.title || '',
-            campgroundName: data.title || data.campground_name,
-            campgroundAddress: data.address || data.campground_address,
-            latitude: data.latitude,
-            longitude: data.longitude,
+            title: data.campground_name || '',
+            campgroundName: data.campground_name,
+            campgroundAddress: data.campground_address,
+            latitude: data.campground_lat,
+            longitude: data.campground_lng,
             isRaonai,
-            startDate: data.start_date,
-            endDate: data.end_date,
+            startDate: data.check_in,
+            endDate: data.check_out,
         };
     } catch (error) {
         console.error('getScheduleForRecord error:', error);
