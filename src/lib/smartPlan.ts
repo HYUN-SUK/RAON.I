@@ -958,7 +958,7 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
                 `.trim();
 
                 // [DEBUG] AI에게 전달되는 프롬프트 확인 (서버 터미널에서 확인 가능)
-                const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`, {
+                const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -1004,13 +1004,18 @@ ${festContext ? `\n- 축제:\n${festContext}` : ''}
                             });
                             narration = Object.values(stageIntros).filter(v => typeof v === 'string').join('\n\n');
                         } catch (parseErr) {
-                            // JSON 파싱 실패 시 기본 멘트 유지
+                            console.error('[smartPlan] JSON parse error:', parseErr, 'Response was:', responseText);
                         }
+                    } else {
+                        console.error('[smartPlan] Empty response from Gemini API');
                     }
+                } else {
+                    const errText = await apiRes.text();
+                    console.error('[smartPlan] Gemini API error response:', apiRes.status, errText);
                 }
             }
         } catch (e) {
-            // AI 생성 실패 시 기본 멘트 사용
+            console.error('[smartPlan] Exception in Gemini API narration generation:', e);
         }
 
         // ================================================================
