@@ -131,3 +131,7 @@
     - [ ] 최초 10건 드라이런 실행 및 1줄 설명 품질 검산 보고서 생성 (사용자 승인 대기)
     - [ ] 유료 고속 적재(Concurrency 15~20) 가동 및 마스터 DB 전수 적재
     - [ ] 빌드 검증 및 최종 결과 검산 보고서 작성
+- [ ] **[다음 세션 해결 과제] 홈화면 10초 독려 배너 연계 고도화 및 무한 렌더링 해결**
+    - [ ] `ReturningHome.tsx` 의 97번 라인 `useEffect` 의존성 배열 최적화 (`[]` 빈 배열 또는 Zustand 개별 selector 적용)
+    - [ ] `useFabSparkle` 훅의 `unwrittenScheduleDetail` 반환 객체의 참조 고정 (`useMemo` 등 적용)
+    - [ ] `waitlist` 쿼리 에러 406 제거를 위해 `WaitlistButton.tsx` 의 `.single()` ➔ `.maybeSingle()` 로 전격 변경 및 `supabase` 인스턴스 의존성 제거

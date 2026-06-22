@@ -1,45 +1,61 @@
-# 📝 세션 인수인계 보고서 (Handoff)
+# 📝 세션 인수인계 보고서 (Handoff v2)
 
-본 문서는 현재 세션의 작업 마감 현황과 다음 세션으로 전달할 기술적 인수 인계 사항을 정리한 문서입니다.
-
----
-
-## 1. 이번 세션 완료 및 진척 사항
-
-* **공공 API 벌크 적재 2일 차 가동 완료**:
-  - 오늘 자정(00시 05분) 예약 실행을 통해 공공 API 벌크 수집기(`scripts/run-public-bulk-loop.mjs`)가 백그라운드에서 약 12시간 동안 가동되었습니다.
-  - 이를 통해 **관광명소(SPOT) 816건을 신규로 상세 적재 성공**하였습니다.
-  - 누적 상세 적재 완료량은 **10,129건 ➔ 10,945건 (진행률 79.3%)**으로 대폭 상향되었습니다.
-  - 마스터 DB 전체 스캔을 통한 카테고리별 실시간 전수 현황 점검 완료.
-* **제미나이 API 유료 요금제(PRO) 연동 및 검증**:
-  - 사용자님의 구글 AI Studio 결제 계정(PRO 요금제) 등록이 완료됨을 확인하였습니다.
-  - 프로젝트 [`.env.local`](file:///c:/Users/USER/Desktop/RAON.I/.env.local) 파일에 신규 `AQ.` 형태의 PRO API Key를 `NEXT_PUBLIC_GEMINI_API_KEY` 환경변수로 올바르게 수정 세팅 완료하였습니다.
-  - 20건의 병렬 API 호출 테스트를 수행하여 **429 속도 제한 오류 없이 100% 성공**함을 실증하고, 최신 2026년식 모델인 **`gemini-2.5-flash`** 모델이 정상 호환됨을 최종 확인하였습니다.
-* **오늘 밤 자정 재기동 자동화 예약 완료**:
-  - 오늘 밤 자정 쿼터가 리셋되는 시간인 **6월 23일 00시 05분(KST)**에 자동으로 수집 루프가 실행되도록 신규 백그라운드 스케줄러 등록 완료 (Task ID: `task-1558`).
+본 문서는 현재 세션의 정밀 패치 작업 마감 현황과 홈 화면 렌더링 무한 루프 등 발견된 런타임 오류의 원인 분석 및 해결책을 다음 세션 개발자에게 고스란히 인수인계하기 위해 작성되었습니다.
 
 ---
 
-## 2. 주요 기술적 결정 사항
+## 1. 이번 세션 진행 및 완료 사항
 
-* **Supabase 정렬 타임아웃 방지 설계**:
-  - 17만 건의 `master_places` 테이블에서 특정 카테고리를 DB Where 조건에 걸고 UUID 정렬을 수행하면 Supabase 10초 타임아웃이 발생합니다.
-  - 이를 우회하기 위해 DB 쿼리에서는 오직 순수 PK 순서(`.order('id').gt('id', lastId)`)로만 대량 데이터를 페이징(1,000건 단위)으로 가져온 뒤, `SPOT/HOSPITAL/FESTIVAL` 카테고리 판별 및 `is_active` 필터링은 Node.js 메모리(RAM) 상에서 `.filter()` 연산으로 처리하도록 구조를 개조하여 성능을 극대화하였습니다.
-* **Gemini 2.5 Flash 모델 활용**:
-  - API v1beta / v1 규격에서 구형 `gemini-1.5-flash` 및 `gemini-2.0-flash` 모델이 Deprecated/미지원 404를 내뱉는 현상을 확인하고, 정상 지원 리스트 중 가장 빠르고 스마트한 최신 모델인 **`gemini-2.5-flash`** 모델을 사전 한 줄 요약 서비스의 주력 엔진으로 활용하도록 계획을 설정하였습니다.
+* **식당 가점 개편(+80점) 완수**:
+  - `scripts/caching-smart-plan.mjs` 내의 중복 인증(백년가게, LX인증맛집) 병합 스코어 가중치 점수를 기존 `+50`에서 `+80`으로 상향 패치 완료하였습니다.
+  - 6월 28일 철수네 예약 기준 캐싱 시뮬레이션을 통해 중복 인증 맛집(`동흥루` 140점, `삽다리곱창전문점` 120점 등)이 정확히 산출되어 주입됨을 확인 완료했습니다.
+* **10초 기록 독려 스키마 쿼리 버그 패치**:
+  - `src/actions/record.ts` 내의 `hasUnwrittenScheduleRecord` 및 `getScheduleForRecord` 함수에서 `user_schedules` 테이블에 존재하지 않는 컬럼(`start_date`, `end_date`, `title`, `address` 등)을 조회하여 발생하던 `Invalid time value` 런타임 에러를 실제 DB 컬럼(`check_in`, `check_out`, `campground_name`, `campground_address` 등)으로 매핑 교체 완료하여 해결했습니다.
+* **홈화면 리마인더 배너 연계 UI 구성**:
+  - `src/components/home/ReturningHome.tsx` 최상단에 미작성 10초 기록 리마인더 배너(`ReminderBanner`)를 조건부 노출시키고, 클릭 시 모달 팝업(`QuickRecordForm`)이 뜨도록 연계하였습니다.
+* **전체 빌드 검증**:
+  - `npm run build`를 수행하여 Next.js Turbopack 환경에서 TypeScript 컴파일 및 정적 페이지 생성이 에러 없이 통과됨을 검증했습니다.
+
+---
+
+## 2. [중요] 발견된 문제점 및 정밀 원인 분석
+
+### ① 홈화면 렌더링 무한 루프 및 배너 미노출 현상
+* **현상**: PC 및 모바일로 홈 화면(`ReturningHome`)에 진입 시 화면이 끊임없이 리렌더링되며, 10초 독려 배너가 보이지 않는 현상 발생.
+* **원인 분석**:
+  1. `ReturningHome.tsx` 의 97번 라인 `useEffect` 의 의존성 배열에 Zustand 스토어 액션인 `fetchMyReservations`, `fetchLastReservation`, `fetchSites` 등이 들어가 있습니다.
+  2. Zustand 스토어를 구조분해할당으로 비선택 구독(`const { fetchMyReservations } = useReservationStore()`)하게 되면, 스토어 상태 변경 시 컴포넌트가 리렌더링되고 함수 객체 참조가 흔들릴 수 있습니다.
+  3. 이로 인해 `useEffect` 가 리렌더링될 때마다 재기동하여 비동기 데이터 패치를 수행 ➔ 상태 변경 ➔ 리렌더링 ➔ `useEffect` 재실행의 **무한 루프**가 발생하고 있습니다.
+  4. 무한 루프가 돌면서 그 안에 묶인 FCM 알림 권한 동기화(`requestPermission()`)도 계속 호출되어, 콘솔에 `[Push] Token already synced. Skipping...` 로그가 끊임없이 찍힙니다.
+  5. 배너가 안 보이는 이유 또한 백엔드 쿼리는 정상적이나(diagnostic script로 미작성 ID 5건이 잘 잡힘을 입증함), **홈화면이 리렌더링 루프에 갇혀 React가 UI를 안정적으로 그리지 못하고 새로고침 상태에 갇혀있기 때문**입니다.
+* **해결책**: 
+  - `ReturningHome.tsx` 의 97번 라인 `useEffect` 의 의존성 배열을 빈 배열 `[]` 로 고치거나, 액션 함수들을 Zustand 개별 selector(`useReservationStore(state => state.fetchMyReservations)`)로 바인딩하여 함수 참조를 고정해야 합니다.
+
+### ② Supabase waitlist 테이블 406 에러 무한 발생
+* **현상**: 브라우저 개발자 콘솔에 `waitlist` 관련 API 호출이 반복적으로 실패(status 406)하는 현상 발생.
+* **원인 분석**:
+  1. `WaitlistButton.tsx` 의 43번 라인의 `.single()` 쿼리는 매칭되는 데이터가 없을 때 PostgREST 규격에 따라 `406 Not Acceptable` 혹은 `404` 에러를 뿜습니다.
+  2. 또한 `useEffect` 의 의존성 배열에 컴포넌트 레벨에서 계속 재생성되는 `supabase` 인스턴스가 들어가 있어, 렌더링 시마다 `checkRegistration()` 이 무한 루프로 호출되고 있었습니다.
+* **해결책**:
+  - `WaitlistButton.tsx` 의 `.single()` ➔ `.maybeSingle()` 로 수정하여 데이터가 없을 때 에러가 아닌 `null`을 반환하게 합니다.
+  - `useEffect` 의존성 배열에서 `supabase` 를 제외하여 무한 쿼리 호출을 완벽하게 차단해야 합니다.
 
 ---
 
 ## 3. 다음 세션 작업 가이드
 
-1. **Keep-alive 및 밤사이 공공 API 적재 결과 모니터링**:
-  - 오늘 밤 자정 00시 05분에 기동될 `task-1558`이 남은 수집 대기 건(약 2,500건)을 에러 없이 성공적으로 적재 완료하는지 로그(`scripts/inspect-public-status.mjs` 구동)를 모니터링합니다.
-2. **카카오맵 크롤러(Stage 2)를 활용한 보완**:
-  - 공공 API 수집이 일단락되면, 수집이 최종 실패하여 `enriched: false`로 떨어진 장소들(현재 기준 414건 및 누적 실패 건)에 한해 카카오맵 크롤러(`scripts/fast-bulk-enrich-public-fallback.mjs`)를 실행하여 최종 100% 완전 적재를 완성합니다.
-3. **제미나이 1줄 요약 사전 적재 계획 재개**:
-  - 사용자님의 1줄 요약 기획 검토가 완료되면, 승인된 계획서에 따라 `scripts/gemini-enrich-description.mjs`를 작성하고 최초 10건 품질 드라이런 검산을 거친 뒤, 유료 고속 모드(Concurrency 15~20)로 1줄설명 마스터 DB 적재를 기동합니다.
+1. **홈화면 렌더링 무한 루프 및 배너 활성화 패치**:
+   - `ReturningHome.tsx` 의 97번 라인 `useEffect` 의 의존성 배열을 빈 배열 `[]` 로 고치고 리렌더링 루프가 소멸되는지 검증합니다.
+   - `useFabSparkle` 훅에서 반환하는 객체의 참조 일관성(예: `unwrittenScheduleDetail` 의 `useMemo` 적용 등)을 확보합니다.
+2. **Waitlist 406 에러 및 무한 루프 패치**:
+   - `WaitlistButton.tsx` 의 쿼리 로직을 `maybeSingle` 로 교체하고 의존성 배열을 다듬어 콘솔 빨간 에러를 완전히 제거합니다.
+3. **공공 API 상세정보 벌크적재 이행 (Stage 2 카카오맵 크롤러 보완)**:
+   - 1차 수집이 실패한 414건에 대해 `scripts/fast-bulk-enrich-public-fallback.mjs` 를 기동하여 100% 완전 적재를 마무리합니다.
+4. **제미나이 1줄설명 사전 적재 이행**:
+   - 사용자님의 1줄설명 기획 확인 후 `scripts/gemini-enrich-description.mjs` 스크립트를 생성하여 고속 모드로 마스터 DB 적재를 기동합니다.
 
 ---
 
 ## 4. 환경 변수 및 보안 주의 사항
-- [`.env.local`](file:///c:/Users/USER/Desktop/RAON.I/.env.local) 파일의 `NEXT_PUBLIC_GEMINI_API_KEY`에 등록되어 있는 `AQ.Ab8RN6Li...` 키는 유료 한도가 활성화된 키이므로 훼손되거나 덮어쓰이지 않도록 조심하여 보존해야 합니다.
+- `.env.local` 에 유료 PRO 키(`AQ.` 형태)가 정상 보존되어 있으니 훼손하지 마시기 바랍니다.
+- 깃 푸시는 사용자가 수동으로 진행할 예정입니다.

@@ -101,11 +101,8 @@ export default function ReturningHome() {
         fetchMyReservations();
         // Auto-request permission on Home Load
         requestPermission();
-    }, [fetchOpenDayRule, fetchLastReservation, fetchSites, requestPermission, fetchMyReservations]);
-
-    React.useEffect(() => {
-        refresh();
-    }, [refresh, reservations]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);

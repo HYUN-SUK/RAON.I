@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useState, useEffect, useMemo, memo, useRef } from 'react';
 import Link from 'next/link';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -42,6 +42,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const router = useRouter();
     const { reservations, fetchMyReservations } = useReservationStore();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const schedulesRef = useRef(schedules);
+    useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
     const [upcomingItem, setUpcomingItem] = useState<UnifiedSchedule | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isNavigating, setIsNavigating] = useState(false);
@@ -75,16 +77,20 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         };
 
         fetchAll();
-    }, [fetchMyReservations]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // 백그라운드 일정 동기화 (Eager Sync)
+    // 주의: schedules를 의존성 배열에 넣으면 setSchedules() → 이펙트 재실행 → 무한 루프가 발생하므로
+    //       schedulesRef를 사용하여 최신 값을 참조하고, 의존성 배열에서 schedules를 제거한다.
     useEffect(() => {
         if (isLoading || isSyncing) return;
 
         // 확정(CONFIRMED) 상태인 라온아이 예약 중, schedules 테이블에 매핑되지 않은 예약 찾기
+        const currentSchedules = schedulesRef.current;
         const pendingSyncReservations = reservations.filter(r => {
             if (r.status !== 'CONFIRMED') return false;
-            const exists = schedules.some(s => s.reservation_id === r.id);
+            const exists = currentSchedules.some(s => s.reservation_id === r.id);
             return !exists;
         });
 
@@ -112,7 +118,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         };
 
         syncAll();
-    }, [reservations, schedules, isLoading]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reservations, isLoading]);
 
     // 예약 + 일정을 통합하여 가장 가까운 것 찾기
     useEffect(() => {

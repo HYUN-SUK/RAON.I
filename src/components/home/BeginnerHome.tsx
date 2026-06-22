@@ -113,7 +113,8 @@ export default function BeginnerHome() {
         fetchOpenDayRule();
         fetchMyReservations();
         requestPermission();
-    }, [fetchOpenDayRule, fetchMyReservations, requestPermission]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);

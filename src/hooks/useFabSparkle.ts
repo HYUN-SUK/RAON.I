@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { hasUnwrittenScheduleRecord, getScheduleForRecord } from '@/actions/record';
 
 interface UnwrittenScheduleInfo {
@@ -52,10 +52,10 @@ export function useFabSparkle(): UseFabSparkleResult {
         refresh();
     }, [refresh]);
 
-    return {
+    return useMemo(() => ({
         shouldSparkle,
         unwrittenScheduleIds,
         unwrittenScheduleDetail,
         refresh,
-    };
+    }), [shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh]);
 }

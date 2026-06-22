@@ -62,7 +62,8 @@ export default function MyReservationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [fetchMyReservations]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         loadAll();

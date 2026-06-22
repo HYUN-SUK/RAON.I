@@ -40,14 +40,15 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
                 query.is('site_id', null);
             }
 
-            const { data } = await query.single();
+            const { data } = await query.maybeSingle();
             if (data) {
                 setIsRegistered(true);
             }
         };
 
         checkRegistration();
-    }, [targetDate, siteId, supabase]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [targetDate, siteId]);
 
     // 대기 신청
     const handleRegister = async () => {

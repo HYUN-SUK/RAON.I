@@ -304,6 +304,10 @@
     *   [x] **5.5.29 스마트플랜 상세화면 모바일 레이아웃 최적화 (v11.9.99-patch1) 🟢 (2026-06-20)**:
         *   [x] **Mobile Layout Alignment**: 스마트플랜 상세 페이지 내 Stage 1~5의 1줄설명 및 추천 장소 카드(`renderFactCard`)가 화면 가로폭을 침범하여 우측으로 삐져나오던 정렬 문제 수정.
         *   [x] **Explicit Sizing & Overflow Protection**: 카드 가로폭 계산 방식을 `w-[calc(100%-2rem)]`로 고정하고, 1줄설명 부모 블록들에 `min-w-0`을 추가하여 모바일 뷰포트 내 텍스트 줄바꿈 및 여백 가두기 완벽 보장.
+    *   [x] **5.5.30 식당 가점 개편 및 10초 기록 독려 버그 패치 (v11.9.99-patch2) 🟢 (2026-06-22)**:
+        *   [x] **Restaurant Score Adjustments**: 백년가게 및 LX인증맛집 중복 가점을 기존 +50점에서 +80점으로 전격 상향 조정하여 추천 랭킹 스코어링의 신뢰도 대폭 제고.
+        *   [x] **10s Record Bug Fix**: `user_schedules` 테이블 조회 시 존재하지 않던 `start_date`/`end_date` 컬럼을 실제 존재 컬럼인 `check_in`/`check_out`으로 전격 교체 및 KST 타임존 오차 수정 완료.
+        *   [x] **Home Reminder Integration**: 홈화면 최상단에 미작성 기록 리마인더 배너를 노출하고 클릭 시 10초 기록 팝업 모달이 유기적으로 뜨도록 홈-마이스페이스 연계 퍼널 완성.
 
 
 
