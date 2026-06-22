@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "scripts/**",
     "src/scripts/**",
+    "mcp-server/**",
     "*.js",
     "*.mjs",
   ]),
