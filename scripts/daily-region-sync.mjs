@@ -12,6 +12,7 @@ import iconv from 'iconv-lite';
 import * as cheerio from 'cheerio';
 import { ADMIN_SIDO_MAP, SIGUNGU_CODE_MASTER, getAdminCodes } from './utils/admin-code-mapping.mjs';
 import { fetchTourPlaceDetails, fetchHospitalDetails } from './utils/public-api-helpers.mjs';
+import proj4 from 'proj4';
 
 dotenv.config({ path: '.env.local' });
 
@@ -249,7 +250,14 @@ async function dailyRegionSync() {
   const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
   
   const targetIndex = (dayOfYear - 1) % SIDO_ROTATION.length;
-  const targetSido = SIDO_ROTATION[targetIndex];
+  let targetSido = SIDO_ROTATION[targetIndex];
+
+  // CLI 인자로 시도 강제 설정 지원 (예: node scripts/daily-region-sync.mjs 인천광역시)
+  const forceSido = process.argv[2];
+  if (forceSido && SIDO_ROTATION.includes(forceSido)) {
+    console.log(`💡 [Force Sido Enabled] Force target: ${forceSido}`);
+    targetSido = forceSido;
+  }
 
   console.log(`\n📅 [Day ${dayOfYear}] Target Region: ${targetSido}`);
   console.log(`🚀 Starting Daily Rotation Sync for ${targetSido}...\n`);

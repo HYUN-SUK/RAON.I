@@ -142,11 +142,11 @@
     - [x] `.github/workflows/daily-enrich-playwright.yml` 깃허브 액션 크론 등록 (05:00 KST)
     - [x] 관리자 화면 `src/app/admin/automation/logs/page.tsx` 연동 (신규 `DAILY_CRAWL_ENRICHMENT` 렌더링 분기 추가 및 리포트 카드 UI 구현)
     - [x] 빌드 무결성 점검 (`npm run build`) 및 최종 결과 보고서 작성
-- [ ] **백년가게 비음식점 전수 차단 및 카테고리별 병합 & 데이터 복구**
-    - [x] `scripts/daily-region-sync.mjs` 수정: `syncBaeknyeon` 내 주요사업 화이트리스트 필터링 추가
-    - [x] `scripts/daily-region-sync.mjs` 수정: `upsertAndTrack` 내 카테고리별 정밀 병합(Merge) 로직 적용
-    - [x] `src/app/admin/automation/logs/page.tsx` 수정: DAILY_CRAWL_ENRICHMENT 상세창 렌더링 에러 방지 및 Maximize2 아이콘 적용
+- [x] **백년가게 비음식점 전수 차단 및 카테고리별 병합 & 데이터 복구**
+    - [x] scripts/daily-region-sync.mjs 수정: syncBaeknyeon 내 주요사업 화이트리스트 필터링 추가
+    - [x] scripts/daily-region-sync.mjs 수정: upsertAndTrack 내 카테고리별 정밀 병합(Merge) 로직 적용
+    - [x] src/app/admin/automation/logs/page.tsx 수정: DAILY_CRAWL_ENRICHMENT 상세창 렌더링 에러 방지 및 Maximize2 아이콘 적용
     - [x] 1회성 데이터 클리닝 스크립트 작성 및 실행: DB 내 기존 비음식점 백년가게 데이터 삭제
-    - [/] 인천광역시 유실 상세 정보 복구: 백업 스냅샷을 활용한 raw_data 복구 스크립트 실행 (대기/준비 완료)
-    - [x] 빌드 무결성 확인 및 결과 보고
-
+    - [x] 인천광역시 유실 상세 정보 복구: Kakao Local API 및 모빌리티 API를 활용한 정밀 복구 완료
+    - [x] 수동 구동 테스트 및 병합 가드(Merge Guard) 상세정보 보호 검증 완료
+    - [x] 빌드 무결성 확인 및 최종 결과 보고
