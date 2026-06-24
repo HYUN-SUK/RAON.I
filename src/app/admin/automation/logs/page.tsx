@@ -306,10 +306,22 @@ export default function AutomationLogsPage() {
                     <thead>
                       <tr className="border-b border-white/10">
                         <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest">카테고리</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">Step 1. 수집량 (Raw Pool)</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">Step 2. 1차 쿼터 (Union Pool)</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">카카오 정밀검증</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right font-black text-brand-400">Step 3. 2차 쿼터 (Personalized)</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">
+                          Step 1. 원천 데이터
+                          <span className="text-[9px] font-normal text-white/50 block mt-0.5 normal-case">반경 25km DB 수집</span>
+                        </th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">
+                          Step 2. 1차 정제
+                          <span className="text-[9px] font-normal text-white/50 block mt-0.5 normal-case">행정구역 & 노이즈 필터</span>
+                        </th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right">
+                          Step 3. 지표 검증
+                          <span className="text-[9px] font-normal text-white/50 block mt-0.5 normal-case">인증 맛집 및 스코어 가드</span>
+                        </th>
+                        <th className="px-6 py-4 text-[10px] font-black text-brand-300 uppercase tracking-widest text-right font-black text-brand-400">
+                          Step 4. 최종 캐시
+                          <span className="text-[9px] font-normal text-brand-400/50 block mt-0.5 normal-case">사용자 취향 개인화 적재</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
