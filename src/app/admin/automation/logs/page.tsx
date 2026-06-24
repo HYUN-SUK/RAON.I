@@ -581,6 +581,113 @@ export default function AutomationLogsPage() {
           </div>
         );
       }
+
+      if (log.job_name === 'DAILY_CRAWL_ENRICHMENT') {
+        let stats: any = log.api_status;
+        if (typeof stats === 'string') {
+          try {
+            stats = JSON.parse(stats);
+          } catch (e) {
+            stats = null;
+          }
+        }
+        if (!stats || typeof stats !== 'object' || Array.isArray(stats)) {
+          stats = { total: 0, updated: 0, skipped: 0, failed: 0, deactivated: 0, history: [] };
+        }
+        const statsObj = stats as any;
+        const historyList = statsObj.history || [];
+
+        return (
+          <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner animate-in slide-in-from-top-4 duration-300">
+            <div className="flex justify-between items-center mb-10">
+              <h4 className="text-xl font-black text-gray-900 flex items-center">
+                <RefreshCw className="w-6 h-6 mr-3 text-brand-600 animate-spin-slow" /> 일일 식당/카페/마트 크롤링 갱신 리포트 (DAILY_CRAWL_ENRICHMENT)
+              </h4>
+              <div className="px-4 py-2 bg-indigo-600 text-white text-[11px] font-black rounded-2xl shadow-lg">
+                수집 대상: {statsObj.total}건
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm text-center">
+                <p className="text-xs font-bold text-gray-400 mb-1">성공 (정보 업데이트)</p>
+                <p className="text-2xl font-black text-brand-600">+{statsObj.updated || 0}</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm text-center">
+                <p className="text-xs font-bold text-gray-400 mb-1">변동 없음 (스킵)</p>
+                <p className="text-2xl font-black text-gray-500">{statsObj.skipped || 0}</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm text-center">
+                <p className="text-xs font-bold text-gray-400 mb-1">실패 (임시 에러)</p>
+                <p className="text-2xl font-black text-amber-500">+{statsObj.failed - (statsObj.deactivated || 0)}</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm text-center">
+                <p className="text-xs font-bold text-gray-400 mb-1">영구 비활성화 (3회 아웃)</p>
+                <p className="text-2xl font-black text-red-600">+{statsObj.deactivated || 0}</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden overflow-x-auto max-h-[400px]">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead className="sticky top-0 bg-gray-50 z-10">
+                  <tr className="border-b border-gray-100">
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">장소명</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">카테고리</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">처리 결과</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {historyList.length > 0 ? (
+                    historyList.map((item: any, idx: number) => (
+                      <tr key={idx} className="hover:bg-gray-50/30 transition-colors">
+                        <td className="px-6 py-4 text-xs font-bold text-gray-900">{item.name}</td>
+                        <td className="px-6 py-4">
+                          <span className="text-[10px] font-bold text-gray-500 px-2 py-0.5 rounded-full bg-gray-100">
+                            {item.category === 'MART' ? '마트' : '식당/카페'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {item.status === 'UPDATED' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-green-50 text-green-700 border border-green-100">
+                              정보 업데이트
+                            </span>
+                          )}
+                          {item.status === 'SKIPPED' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-50 text-gray-500 border border-gray-100">
+                              스킵 (변동없음)
+                            </span>
+                          )}
+                          {item.status === 'FAILED' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                              실패 (1회 누적)
+                            </span>
+                          )}
+                          {item.status === 'DEACTIVATED' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-red-50 text-red-700 border border-red-100 animate-pulse">
+                              비활성화 (3회 아웃)
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-12 text-center text-gray-300 font-bold">세부 히스토리 없음</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-8 flex items-center justify-between px-2">
+              <div className="flex items-center text-[10px] text-gray-400 font-bold">
+                <AlertCircle className="w-3 h-3 mr-1.5" /> * Playwright 모바일 크롤링은 IP 차단 예방 및 변경 사항 여부에 따른 선별적 데이터 쓰기를 지원합니다.
+              </div>
+              <p className="text-[10px] font-black text-gray-300 italic uppercase tracking-tighter">Powered by RAONAI Playwright Anti-Scraping Daemon</p>
+            </div>
+          </div>
+        );
+      }
       
       if (log.job_name === 'DAILY_MASTER_ENRICHMENT') {
         const stats = log.api_status as any || { attempted: 0, success: 0, failed: 0, processed: [] };
@@ -762,9 +869,9 @@ export default function AutomationLogsPage() {
         </div>
       </section>
 
-      {/* 3. 상단 Full-Width 독립 상세 패널 (DAILY_REGION_SYNC, SMART_PLAN_CACHING) */}
+      {/* 3. 상단 Full-Width 독립 상세 패널 (DAILY_REGION_SYNC, SMART_PLAN_CACHING, DAILY_CRAWL_ENRICHMENT) */}
       {(() => {
-        const selectedLog = logs.find(l => l.id === expandedLogId && (l.job_name === 'DAILY_REGION_SYNC' || l.job_name === 'SMART_PLAN_CACHING'));
+        const selectedLog = logs.find(l => l.id === expandedLogId && (l.job_name === 'DAILY_REGION_SYNC' || l.job_name === 'SMART_PLAN_CACHING' || l.job_name === 'DAILY_CRAWL_ENRICHMENT'));
         if (!selectedLog) return null;
         return (
           <section className="pt-4 animate-in slide-in-from-top-4 fade-in duration-500">
@@ -803,7 +910,7 @@ export default function AutomationLogsPage() {
                       <td className="px-10 py-6 whitespace-nowrap font-black text-gray-800 text-sm">
                         <div className="flex items-center">
                           {log.job_name}
-                          {(log.job_name === 'MASTER_SYNC' || log.job_name === 'SMART_PLAN_CACHING') && (
+                          {(log.job_name === 'MASTER_SYNC' || log.job_name === 'SMART_PLAN_CACHING' || log.job_name === 'DAILY_REGION_SYNC' || log.job_name === 'DAILY_CRAWL_ENRICHMENT' || log.job_name === 'WEEKLY_FESTIVAL_SYNC') && (
                             <Maximize2 className="w-3 h-3 ml-2 text-brand-400" />
                           )}
                         </div>
@@ -820,7 +927,7 @@ export default function AutomationLogsPage() {
                         {expandedLogId === log.id ? <ChevronUp className="w-4 h-4 text-brand-600" /> : <ChevronDown className="w-4 h-4" />}
                       </td>
                     </tr>
-                    {expandedLogId === log.id && !['DAILY_REGION_SYNC', 'SMART_PLAN_CACHING'].includes(log.job_name) && (
+                    {expandedLogId === log.id && !['DAILY_REGION_SYNC', 'SMART_PLAN_CACHING', 'DAILY_CRAWL_ENRICHMENT'].includes(log.job_name) && (
                       <tr>
                         <td colSpan={4} className="bg-white">
                           {renderLogDetails(log)}

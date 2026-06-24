@@ -131,7 +131,22 @@
     - [ ] 최초 10건 드라이런 실행 및 1줄 설명 품질 검산 보고서 생성 (사용자 승인 대기)
     - [ ] 유료 고속 적재(Concurrency 15~20) 가동 및 마스터 DB 전수 적재
     - [ ] 빌드 검증 및 최종 결과 검산 보고서 작성
-- [ ] **[다음 세션 해결 과제] 홈화면 10초 독려 배너 연계 고도화 및 무한 렌더링 해결**
-    - [ ] `ReturningHome.tsx` 의 97번 라인 `useEffect` 의존성 배열 최적화 (`[]` 빈 배열 또는 Zustand 개별 selector 적용)
-    - [ ] `useFabSparkle` 훅의 `unwrittenScheduleDetail` 반환 객체의 참조 고정 (`useMemo` 등 적용)
-    - [ ] `waitlist` 쿼리 에러 406 제거를 위해 `WaitlistButton.tsx` 의 `.single()` ➔ `.maybeSingle()` 로 전격 변경 및 `supabase` 인스턴스 의존성 제거
+- [x] **[다음 세션 해결 과제] 홈화면 10초 독려 배너 연계 고도화 및 무한 렌더링 해결**
+    - [x] `ReturningHome.tsx` 의 97번 라인 `useEffect` 의존성 배열 최적화 (`[]` 빈 배열 또는 Zustand 개별 selector 적용)
+    - [x] `useFabSparkle` 훅의 `unwrittenScheduleDetail` 반환 객체의 참조 고정 (`useMemo` 등 적용)
+    - [x] `waitlist` 쿼리 에러 406 제거를 위해 `WaitlistButton.tsx` 의 `.single()` ➔ `.maybeSingle()` 로 전격 변경 및 `supabase` 인스턴스 의존성 제거
+- [x] **데이터 동기화 및 크롤링 시스템 전면 보완 [CURRENT]**
+    - [x] `scripts/daily-region-sync.mjs` 상단에 `proj4` 라이브러리 임포트 추가 및 로컬 구동 검증 (인천광역시)
+    - [x] 축제 데이터 이관: `sync-festivals/route.ts` 적재 대상을 `smart_plan_facts`에서 `master_places`로 변경 및 통계 룩업 쿼리 보완
+    - [x] 식당/마트 Playwright 순회 크롤러 `scripts/daily-enrich-playwright.mjs` 신규 작성 (300건 쿼터, 3진 아웃 실패 시 miss_count 증가 및 active 비활성화 가드 적용)
+    - [x] `.github/workflows/daily-enrich-playwright.yml` 깃허브 액션 크론 등록 (05:00 KST)
+    - [x] 관리자 화면 `src/app/admin/automation/logs/page.tsx` 연동 (신규 `DAILY_CRAWL_ENRICHMENT` 렌더링 분기 추가 및 리포트 카드 UI 구현)
+    - [x] 빌드 무결성 점검 (`npm run build`) 및 최종 결과 보고서 작성
+- [ ] **백년가게 비음식점 전수 차단 및 카테고리별 병합 & 데이터 복구**
+    - [x] `scripts/daily-region-sync.mjs` 수정: `syncBaeknyeon` 내 주요사업 화이트리스트 필터링 추가
+    - [x] `scripts/daily-region-sync.mjs` 수정: `upsertAndTrack` 내 카테고리별 정밀 병합(Merge) 로직 적용
+    - [x] `src/app/admin/automation/logs/page.tsx` 수정: DAILY_CRAWL_ENRICHMENT 상세창 렌더링 에러 방지 및 Maximize2 아이콘 적용
+    - [x] 1회성 데이터 클리닝 스크립트 작성 및 실행: DB 내 기존 비음식점 백년가게 데이터 삭제
+    - [/] 인천광역시 유실 상세 정보 복구: 백업 스냅샷을 활용한 raw_data 복구 스크립트 실행 (대기/준비 완료)
+    - [x] 빌드 무결성 확인 및 결과 보고
+

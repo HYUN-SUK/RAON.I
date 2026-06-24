@@ -67,7 +67,7 @@ export async function GET(req: Request) {
   try {
     // 2. 현재 DB에 존재하는 기존 축제 개수 카운팅 (통계용)
     const { data: existingList } = await supabase
-      .from('smart_plan_facts')
+      .from('master_places')
       .select('id, address')
       .eq('category', 'FESTIVAL');
 
@@ -128,6 +128,9 @@ export async function GET(req: Request) {
         lng: parseFloat(item.mapx),
         trust_score: 45,
         description: `${name}은(는) ${eventstartdate ? eventstartdate + '부터 ' : ''}개최되는 지역 축제/행사입니다.`,
+        sido: region !== '기타' ? region : '',
+        sigungu: '',
+        is_active: true,
         raw_data: {
           event_start_date: eventstartdate,
           event_end_date: eventenddate,
@@ -160,7 +163,7 @@ export async function GET(req: Request) {
       for (let i = 0; i < upsertList.length; i += chunkSize) {
         const chunk = upsertList.slice(i, i + chunkSize);
         const { error: upsertErr } = await supabase
-          .from('smart_plan_facts')
+          .from('master_places')
           .upsert(chunk, { onConflict: 'id' });
 
         if (upsertErr) {
@@ -173,7 +176,7 @@ export async function GET(req: Request) {
 
     // 5. 시도별 최종 통계 집계
     const { data: finalFestivalList } = await supabase
-      .from('smart_plan_facts')
+      .from('master_places')
       .select('id, address')
       .eq('category', 'FESTIVAL');
 

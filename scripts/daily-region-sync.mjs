@@ -1023,6 +1023,13 @@ async function syncBaeknyeon(sido, seenIds, stat) {
         const addr = i['주소'] || i['기본주소'] || '';
         if (!isValidRegion(addr, shortSido)) continue;
 
+        // 주요사업 기반 비음식점 백년가게 사전 차단 필터
+        const sector = (i['주요사업'] || i['주요사업명'] || '').trim();
+        if (sector) {
+          const isFood = /한식|일식|중식|경양식|음식점|식당|제과|빵|베이커리|카페|다방|분식|갈비|삼겹살|숯불구이|곱창|막창|순대|해장국|국밥|칼국수|밀면|냉면|우동|국수|요리|닭|오리|탕|게장|찜|장어|복어|주점|호프|스테이크|피자|수제버거|식육|한정식|낙지|해물|매운탕|초밥|팥죽|아귀|설렁탕|곰탕|추어탕|삼계탕|옹심이|메밀|막국수|백숙/.test(sector);
+          if (!isFood) continue;
+        }
+
         const id = generateId('SMBA_BAEK', i['업체명'], addr);
         if (seenIds.has(id)) continue;
         seenIds.add(id);
@@ -1320,7 +1327,52 @@ async function upsertAndTrack(items, stat) {
       if (ext.lat !== undefined && ext.lat !== null) it.lat = ext.lat;
       if (ext.lng !== undefined && ext.lng !== null) it.lng = ext.lng;
 
-      // 2. [Deep Compare] 진짜 핵심 데이터 변경 사항이 있는지 확인 (노이즈 제거)
+      // 2. [CRITICAL FIX] 카테고리별 상세 정보(raw_data) 유실 방지 병합 로직 추가
+      if (ext.raw_data && it.raw_data) {
+        const category = it.category || ext.category;
+        
+        if (category === 'RESTAURANT' || category === 'MART') {
+          // 식당/마트: 기존 플레이라이트 크롤러 상세 정보 보존 우선
+          it.raw_data = {
+            ...ext.raw_data,
+            ...it.raw_data,
+            operating_hours: ext.raw_data.operating_hours || it.raw_data.operating_hours,
+            closed_days: ext.raw_data.closed_days || it.raw_data.closed_days,
+            representative_menu: ext.raw_data.representative_menu || it.raw_data.representative_menu,
+            parking_available: ext.raw_data.parking_available || it.raw_data.parking_available,
+            pet_friendly: ext.raw_data.pet_friendly || it.raw_data.pet_friendly,
+            kakao_info: ext.raw_data.kakao_info || it.raw_data.kakao_info,
+            enriched: ext.raw_data.enriched || it.raw_data.enriched
+          };
+        } else if (category === 'SPOT') {
+          // 명소: 공공 API 상세 업데이트를 수용하되, 기존 분석 엔진 지표(Tmap/KT 인기도 등) 보존
+          it.raw_data = {
+            ...it.raw_data,
+            ...ext.raw_data,
+            popularity_v2: ext.raw_data.popularity_v2 || it.raw_data.popularity_v2,
+            tier: ext.raw_data.tier || it.raw_data.tier,
+            kakao_info: ext.raw_data.kakao_info || it.raw_data.kakao_info,
+            enriched: ext.raw_data.enriched || it.raw_data.enriched
+          };
+        } else if (category === 'HOSPITAL') {
+          // 병원: 실시간 응급의료 API 우선 수용하되, 카카오 부가 매핑 데이터만 보존
+          it.raw_data = {
+            ...it.raw_data,
+            kakao_info: ext.raw_data.kakao_info || it.raw_data.kakao_info,
+            badges: ext.raw_data.badges || it.raw_data.badges
+          };
+        } else if (category === 'FESTIVAL') {
+          // 축제: 축제 전용 메타데이터 보존
+          it.raw_data = {
+            ...it.raw_data,
+            event_start_date: ext.raw_data.event_start_date || it.raw_data.event_start_date,
+            event_end_date: ext.raw_data.event_end_date || it.raw_data.event_end_date,
+            homepage_url: ext.raw_data.homepage_url || it.raw_data.homepage_url
+          };
+        }
+      }
+
+      // 3. [Deep Compare] 진짜 핵심 데이터 변경 사항이 있는지 확인 (노이즈 제거)
       const isChanged = (
         getCleanString(it.name) !== getCleanString(ext.name) || 
         getCleanString(it.address) !== getCleanString(ext.address) || 
