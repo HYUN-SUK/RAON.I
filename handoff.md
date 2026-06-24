@@ -1,61 +1,50 @@
-# 📝 세션 인수인계 보고서 (Handoff v2)
+﻿# 🤝 프로젝트 인수인계 문서 (Handoff)
 
-본 문서는 현재 세션의 정밀 패치 작업 마감 현황과 홈 화면 렌더링 무한 루프 등 발견된 런타임 오류의 원인 분석 및 해결책을 다음 세션 개발자에게 고스란히 인수인계하기 위해 작성되었습니다.
-
----
-
-## 1. 이번 세션 진행 및 완료 사항
-
-* **식당 가점 개편(+80점) 완수**:
-  - `scripts/caching-smart-plan.mjs` 내의 중복 인증(백년가게, LX인증맛집) 병합 스코어 가중치 점수를 기존 `+50`에서 `+80`으로 상향 패치 완료하였습니다.
-  - 6월 28일 철수네 예약 기준 캐싱 시뮬레이션을 통해 중복 인증 맛집(`동흥루` 140점, `삽다리곱창전문점` 120점 등)이 정확히 산출되어 주입됨을 확인 완료했습니다.
-* **10초 기록 독려 스키마 쿼리 버그 패치**:
-  - `src/actions/record.ts` 내의 `hasUnwrittenScheduleRecord` 및 `getScheduleForRecord` 함수에서 `user_schedules` 테이블에 존재하지 않는 컬럼(`start_date`, `end_date`, `title`, `address` 등)을 조회하여 발생하던 `Invalid time value` 런타임 에러를 실제 DB 컬럼(`check_in`, `check_out`, `campground_name`, `campground_address` 등)으로 매핑 교체 완료하여 해결했습니다.
-* **홈화면 리마인더 배너 연계 UI 구성**:
-  - `src/components/home/ReturningHome.tsx` 최상단에 미작성 10초 기록 리마인더 배너(`ReminderBanner`)를 조건부 노출시키고, 클릭 시 모달 팝업(`QuickRecordForm`)이 뜨도록 연계하였습니다.
-* **전체 빌드 검증**:
-  - `npm run build`를 수행하여 Next.js Turbopack 환경에서 TypeScript 컴파일 및 정적 페이지 생성이 에러 없이 통과됨을 검증했습니다.
+본 문서는 이번 세션에서 완료된 보완 개발, 데이터 복구 현황 및 정합성 조치 결과와 다음 세션을 위한 인수인계 사항을 정리한 문서입니다.
 
 ---
 
-## 2. [중요] 발견된 문제점 및 정밀 원인 분석
+## 📅 현재 상태 요약 (What We Completed)
 
-### ① 홈화면 렌더링 무한 루프 및 배너 미노출 현상
-* **현상**: PC 및 모바일로 홈 화면(`ReturningHome`)에 진입 시 화면이 끊임없이 리렌더링되며, 10초 독려 배너가 보이지 않는 현상 발생.
-* **원인 분석**:
-  1. `ReturningHome.tsx` 의 97번 라인 `useEffect` 의 의존성 배열에 Zustand 스토어 액션인 `fetchMyReservations`, `fetchLastReservation`, `fetchSites` 등이 들어가 있습니다.
-  2. Zustand 스토어를 구조분해할당으로 비선택 구독(`const { fetchMyReservations } = useReservationStore()`)하게 되면, 스토어 상태 변경 시 컴포넌트가 리렌더링되고 함수 객체 참조가 흔들릴 수 있습니다.
-  3. 이로 인해 `useEffect` 가 리렌더링될 때마다 재기동하여 비동기 데이터 패치를 수행 ➔ 상태 변경 ➔ 리렌더링 ➔ `useEffect` 재실행의 **무한 루프**가 발생하고 있습니다.
-  4. 무한 루프가 돌면서 그 안에 묶인 FCM 알림 권한 동기화(`requestPermission()`)도 계속 호출되어, 콘솔에 `[Push] Token already synced. Skipping...` 로그가 끊임없이 찍힙니다.
-  5. 배너가 안 보이는 이유 또한 백엔드 쿼리는 정상적이나(diagnostic script로 미작성 ID 5건이 잘 잡힘을 입증함), **홈화면이 리렌더링 루프에 갇혀 React가 UI를 안정적으로 그리지 못하고 새로고침 상태에 갇혀있기 때문**입니다.
-* **해결책**: 
-  - `ReturningHome.tsx` 의 97번 라인 `useEffect` 의 의존성 배열을 빈 배열 `[]` 로 고치거나, 액션 함수들을 Zustand 개별 selector(`useReservationStore(state => state.fetchMyReservations)`)로 바인딩하여 함수 참조를 고정해야 합니다.
+1. **백년가게 비음식점 필터링 가드 구축**
+   * `syncBaeknyeon` 수집 파이프라인에 식음료 관련 화이트리스트 키워드 기반 정규식 필터링 가드를 주입하여 미용실, 안경점, 사진관 등 비음식점의 적재를 원천 차단하였습니다.
+   * 기존에 잘잘못 적재되어 있던 비음식점 백년가게 데이터 **총 472건**을 파악하여 DB에서 영구 삭제 정비하였습니다.
 
-### ② Supabase waitlist 테이블 406 에러 무한 발생
-* **현상**: 브라우저 개발자 콘솔에 `waitlist` 관련 API 호출이 반복적으로 실패(status 406)하는 현상 발생.
-* **원인 분석**:
-  1. `WaitlistButton.tsx` 의 43번 라인의 `.single()` 쿼리는 매칭되는 데이터가 없을 때 PostgREST 규격에 따라 `406 Not Acceptable` 혹은 `404` 에러를 뿜습니다.
-  2. 또한 `useEffect` 의 의존성 배열에 컴포넌트 레벨에서 계속 재생성되는 `supabase` 인스턴스가 들어가 있어, 렌더링 시마다 `checkRegistration()` 이 무한 루프로 호출되고 있었습니다.
-* **해결책**:
-  - `WaitlistButton.tsx` 의 `.single()` ➔ `.maybeSingle()` 로 수정하여 데이터가 없을 때 에러가 아닌 `null`을 반환하게 합니다.
-  - `useEffect` 의존성 배열에서 `supabase` 를 제외하여 무한 쿼리 호출을 완벽하게 차단해야 합니다.
+2. **일일 로테이션 배치 내 카테고리별 정밀 병합(Merge) 구현**
+   * 매일 돌게 되는 로테이션 배치 동기화(`daily-region-sync.mjs`)가 실행될 때 기존의 상세 정보(Playwright 크롤링된 영업시간, 휴무일 등)나 명소의 분석 지표가 덮어씌워져 삭제되지 않도록, 식당/마트/명소별 분기 융합(Merge) 로직을 이식하였습니다.
+   * 로컬에서 수동 강제 구동(`인천광역시`) 테스트를 수행한 후, 샘플 대상 식당 `다래가든`을 추적하여 동기화 후에도 카카오맵 링크(`place_url`)와 전화번호(`phone`)가 안전하게 보존됨을 정밀 검증 성공하였습니다.
+
+3. **인천광역시 유실 상세 정보 복구 완료**
+   * **식당/마트**: 카카오 로컬 API(2안 고속 복구)를 실행하여 10,419건 중 **6,078건의 Kakao Map Link를 완전 복원**하고, 나머지는 placeholder 영업시간을 대입하여 UI 오류를 방어하였습니다.
+   * **관광명소**: TMAP/KT 모빌리티 분석용 행정 코드 매핑 핫픽스(중구: `28110` 법정동 코드 적용)를 가동하여, TMAP(77건) 및 KT(113건) 모빌리티 인기도를 재수집하여 **완벽히 복원**하였습니다.
+   * **등급/티어**: 한국관광 100선 및 8경 매칭을 통해 **Prestige Tier 2건** 복원을 마쳤습니다.
+
+4. **자동화 스케줄러 배포 및 빌드 무결성 보장**
+   * `daily-region-sync.mjs` 의 런타임 ReferenceError(`proj4 is not defined`) 이슈를 해결하고, 신규 크롤러 배치 파일들을 GitHub Actions 원격 저장소(`origin/main`)에 푸시하여 내일부터의 자동 구동 준비를 끝마쳤습니다.
+   * 어드민 UI의 스마트 플랜 캐싱 정밀 리포트 테이블을 Step 1~4 순서 구조와 구체적인 서브설명으로 개편하여 데이터 파이프라인 흐름을 직관화하였습니다.
+   * `npm run build` 결과 린트/컴파일 에러 0건으로 빌드 성공을 확인하였습니다.
 
 ---
 
-## 3. 다음 세션 작업 가이드
+## 🛠️ 기술적 결정 사항 (Technical Decisions)
 
-1. **홈화면 렌더링 무한 루프 및 배너 활성화 패치**:
-   - `ReturningHome.tsx` 의 97번 라인 `useEffect` 의 의존성 배열을 빈 배열 `[]` 로 고치고 리렌더링 루프가 소멸되는지 검증합니다.
-   - `useFabSparkle` 훅에서 반환하는 객체의 참조 일관성(예: `unwrittenScheduleDetail` 의 `useMemo` 적용 등)을 확보합니다.
-2. **Waitlist 406 에러 및 무한 루프 패치**:
-   - `WaitlistButton.tsx` 의 쿼리 로직을 `maybeSingle` 로 교체하고 의존성 배열을 다듬어 콘솔 빨간 에러를 완전히 제거합니다.
-3. **공공 API 상세정보 벌크적재 이행 (Stage 2 카카오맵 크롤러 보완)**:
-   - 1차 수집이 실패한 414건에 대해 `scripts/fast-bulk-enrich-public-fallback.mjs` 를 기동하여 100% 완전 적재를 마무리합니다.
-4. **제미나이 1줄설명 사전 적재 이행**:
-   - 사용자님의 1줄설명 기획 확인 후 `scripts/gemini-enrich-description.mjs` 스크립트를 생성하여 고속 모드로 마스터 DB 적재를 기동합니다.
+* **정밀 병합(Merge Guard)**: API 수집 시 `master_places` 테이블에 `upsert`할 때 기존에 존재하던 상세 속성들을 누락시키지 않기 위해, 카테고리별로 `raw_data` 오브젝트 내의 상세 속성(`place_url`, `phone`, `operating_hours`, `popularity_v2`, `tier` 등)을 구조화하여 보존하도록 설계하여 데이터 안정성을 극대화하였습니다.
+* **표준 행정코드 연동**: TMAP/KT 모빌리티 빅데이터 API는 한국관광공사 지역 코드가 아닌 5자리 법정 행정동 코드(인천 `28`, 강화군 `28710` 등)를 기반으로 작동합니다. 이를 `scripts/utils/admin-code-mapping.mjs` 유틸 모듈을 통해 정확히 매칭시킴으로써 명소 복구를 성공시켰습니다.
+* **카카오 평점 스크래핑 배제 및 인프라 폴백 유지**: 스마트 플랜 캐싱(`caching-smart-plan.mjs`) 시 카카오 플레이스 웹 스크래핑은 완전히 비활성화(정의만 남김)하여 런타임 속도 저하와 크롤링 차단 요인을 원천 제거하였습니다. 다만, 위경도 좌표 보정 및 반경 내 응급의료기관/편의점 수가 극도로 부족할 때 보조 대체 수단으로 카카오 로컬 검색 API를 구동하는 폴백 연동 로직은 실효성 확보를 위해 안전하게 유지하였습니다.
 
 ---
 
-## 4. 환경 변수 및 보안 주의 사항
-- `.env.local` 에 유료 PRO 키(`AQ.` 형태)가 정상 보존되어 있으니 훼손하지 마시기 바랍니다.
-- 깃 푸시는 사용자가 수동으로 진행할 예정입니다.
+## 🎯 다음 작업 가이드 (Next Session Guide)
+
+1. **자동화 스케줄러 구동 결과 모니터링**:
+   * 내일(25일) 새벽 04:08 KST(로테이션 갱신) 및 05:00 KST(크롤링 현황)에 GitHub Actions 배치 작업이 구동되어 어드민 현황 화면(`admin/automation/logs`)에 정상 수치들이 실시간 기록되는지 검토합니다.
+2. **제미나이(Gemini) 기반 1줄 설명 사전 적재 파이프라인 구축**:
+   * Google AI Studio 결제 계정이 연결되었으므로, `scripts/gemini-enrich-description.mjs`를 작성하여 유료 flash-lite API 기반 고속 적재(Concurrency 15~20)를 통해 전국 마스터 플레이스의 1줄 요약 정보를 구축합니다.
+3. **스마트 플랜 LIVE 캐싱 및 BM 특허 2단계 검토**:
+   * 스마트 플랜 LIVE 캐싱 고도화 및 BM 특허 출원 2단계 기술 전략을 지속 수립합니다.
+
+---
+
+## ⚠️ 주의 사항 (Cautions)
+
+* **윈도우 한글 인코딩 주의**: 윈도우 파워쉘 환경에서 스크립트 작성이나 텍스트 편집을 수동으로 수행할 때, 기본 CP949나 다소 엉뚱한 인코딩으로 저장될 시 Node.js가 문자열을 읽을 때 한글 유니코드(NFC vs NFD) 맵핑 불일치가 생길 수 있습니다. 데이터 점검/검증용 파일 생성 시 반드시 `-Encoding utf8` 옵션을 부여하여 작성해 주세요.
