@@ -40,11 +40,24 @@ const CATEGORY_FALLBACKS = {
   }
 };
 
-async function searchKakao(query, lat, lng) {
+function normalizeName(str) {
+  if (!str) return '';
+  // HTML 태그 제거
+  let s = str.replace(/<\/?[^>]+(>|$)/g, "");
+  // HTML Entity 디코딩
+  s = s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+  // 괄호 및 괄호 안의 지점명 제거 (예: 스타벅스(강남역점) -> 스타벅스)
+  s = s.replace(/\([^)]+\)/g, '');
+  // 공백 및 특수문자 제거
+  s = s.replace(/[\s\-_,\/\\·'"]/g, '');
+  return s.toLowerCase();
+}
+
+async function searchKakao(query, lat, lng, radius = 10000) {
   if (!KAKAO_KEY) throw new Error("Missing KAKAO_REST_API_KEY");
   let url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}`;
   if (lat && lng) {
-    url += `&x=${lng}&y=${lat}&radius=10000`;
+    url += `&x=${lng}&y=${lat}&radius=${radius}`;
   }
   const res = await fetch(url, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
   if (res.status === 429) throw new Error("KAKAO_QUOTA_EXCEEDED");
@@ -69,30 +82,80 @@ async function searchNaver(query) {
 }
 
 async function searchLocalUnified(name, address, lat, lng) {
-  const cleanAddr = address.split(' ').slice(0, 3).join(' ');
-  const query = `${cleanAddr} ${name}`;
+  const normTarget = normalizeName(name);
+  let docs = [];
 
   try {
-    const docs = await searchKakao(query, lat, lng);
-    const matched = docs.find(d => d.place_name.replace(/\s/g, '') === name.replace(/\s/g, '')) || docs[0];
+    // 1차 시도: 위경도가 있으면 반경 1.5km(1500m) 내에서 상호명으로 정밀 검색
+    if (lat && lng) {
+      docs = await searchKakao(name, lat, lng, 1500);
+    }
+  } catch (e) {
+    console.warn(`[Fast Bulk Search Fallback] Proximity search failed for ${name}: ${e.message}`);
+  }
+
+  // 2차 시도: 위경도가 없거나 1차 시도 검색 결과가 없으면 행정구역+상호명 키워드 검색
+  if (docs.length === 0) {
+    const cleanAddr = address.split(' ').slice(0, 3).join(' ');
+    const query = `${cleanAddr} ${name}`;
+    try {
+      docs = await searchKakao(query, lat, lng, 10000);
+    } catch (e) {
+      console.warn(`[Fast Bulk Search Fallback] Address search failed for ${name}: ${e.message}`);
+    }
+  }
+
+  try {
+    // 정규화 명칭 100% 매칭
+    let matched = docs.find(d => normalizeName(d.place_name) === normTarget);
+
+    // 완화된 매칭 (결과 이름에 검색어가 포함되거나 그 반대)
+    if (!matched && docs.length > 0) {
+      matched = docs.find(d => {
+        const normResult = normalizeName(d.place_name);
+        return normResult.includes(normTarget) || normTarget.includes(normResult);
+      });
+    }
+
+    // 최종 매칭 결과 적용
+    if (!matched && docs.length > 0) {
+      matched = docs[0];
+    }
+
     if (matched) {
       return { place_url: matched.place_url, phone: matched.phone };
     }
   } catch (e) {
-    console.warn(`[Fast Bulk Search Fallback] Kakao failed: ${e.message}. Trying Naver...`);
-    try {
-      const items = await searchNaver(query);
-      const matched = items.find(i => i.title.replace(/<\/?[^>]+(>|$)/g, "").replace(/\s/g, '') === name.replace(/\s/g, '')) || items[0];
-      if (matched) {
-        const cleanName = matched.title.replace(/<\/?[^>]+(>|$)/g, "");
-        return {
-          place_url: matched.link || `https://search.naver.com/search.naver?query=${encodeURIComponent(cleanName)}`,
-          phone: matched.telephone
-        };
-      }
-    } catch (ne) {
-      console.error(`[Fast Bulk Search Fallback] Naver failed: ${ne.message}`);
+    console.warn(`[Fast Bulk Search Fallback] Kakao match failed: ${e.message}. Trying Naver...`);
+  }
+
+  // 네이버 플레이스 백업 검색
+  try {
+    const cleanAddr = address.split(' ').slice(0, 3).join(' ');
+    const query = `${cleanAddr} ${name}`;
+    const items = await searchNaver(query);
+    let matched = items.find(i => normalizeName(i.title) === normTarget);
+
+    if (!matched && items.length > 0) {
+      matched = items.find(i => {
+        const normResult = normalizeName(i.title);
+        return normResult.includes(normTarget) || normTarget.includes(normResult);
+      });
     }
+
+    if (!matched && items.length > 0) {
+      matched = items[0];
+    }
+
+    if (matched) {
+      const cleanName = matched.title.replace(/<\/?[^>]+(>|$)/g, "");
+      return {
+        place_url: matched.link || `https://search.naver.com/search.naver?query=${encodeURIComponent(cleanName)}`,
+        phone: matched.telephone
+      };
+    }
+  } catch (ne) {
+    console.error(`[Fast Bulk Search Fallback] Naver failed: ${ne.message}`);
   }
   return null;
 }
@@ -279,12 +342,10 @@ async function runFallbackEnrich() {
   });
 
   try {
-    console.log("Querying public fallback targets (where raw_data->enriched == false or null)...");
+    console.log("Querying public fallback targets (Cursor-based raw table scan)...");
     let selectQuery = supabase
       .from('master_places')
-      .select('id, name, address, lat, lng, category, raw_data, description')
-      .eq('is_active', true)
-      .in('category', ['SPOT', 'HOSPITAL', 'FESTIVAL'])
+      .select('id, name, address, lat, lng, category, raw_data, description, is_active')
       .order('id');
 
     if (lastId) {
@@ -309,7 +370,11 @@ async function runFallbackEnrich() {
     await fs.promises.mkdir('scratch', { recursive: true }).catch(() => {});
     await fs.promises.writeFile('scratch/last_public_fallback_cursor_id.txt', lastRecordId, 'utf8');
 
-    const places = rawPlaces.filter(p => p.raw_data?.enriched === false || p.raw_data?.enriched === undefined || p.raw_data?.enriched === null);
+    const places = rawPlaces.filter(p => 
+      p.is_active === true &&
+      ['SPOT', 'HOSPITAL', 'FESTIVAL'].includes(p.category) &&
+      (p.raw_data?.enriched === false || p.raw_data?.enriched === undefined || p.raw_data?.enriched === null)
+    );
 
     if (places.length === 0) {
       console.log(`All ${rawPlaces.length} places in this cursor batch are already successfully enriched. Skipping Playwright.`);

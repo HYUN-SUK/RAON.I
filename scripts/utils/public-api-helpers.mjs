@@ -122,9 +122,11 @@ export async function fetchHospitalDetails(hpid, apiKey) {
     for (let i = 1; i <= 8; i++) {
       const start = item[`dutyTime${i}s`];
       const end = item[`dutyTime${i}c`];
-      if (start && end) {
-        const fmtStart = `${start.substring(0, 2)}:${start.substring(2, 4)}`;
-        const fmtEnd = `${end.substring(0, 2)}:${end.substring(2, 4)}`;
+      if (start !== undefined && start !== null && end !== undefined && end !== null) {
+        const startStr = String(start).padStart(4, '0');
+        const endStr = String(end).padStart(4, '0');
+        const fmtStart = `${startStr.substring(0, 2)}:${startStr.substring(2, 4)}`;
+        const fmtEnd = `${endStr.substring(0, 2)}:${endStr.substring(2, 4)}`;
         timeRanges.push(`${days[i-1]}: ${fmtStart} - ${fmtEnd}`);
       } else {
         timeRanges.push(`${days[i-1]}: 휴진`);

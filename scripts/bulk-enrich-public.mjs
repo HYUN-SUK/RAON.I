@@ -40,11 +40,7 @@ const CATEGORY_FALLBACKS = {
 };
 
 async function runBulkEnrich() {
-  let sessionStartTime = new Date().toISOString();
-  const sessionTimeArgIdx = process.argv.findIndex(arg => arg === '--session-start-time');
-  if (sessionTimeArgIdx !== -1 && process.argv[sessionTimeArgIdx + 1]) {
-    sessionStartTime = process.argv[sessionTimeArgIdx + 1];
-  }
+
 
   let lastId = null;
   const lastIdArgIdx = process.argv.findIndex(arg => arg === '--last-id');
@@ -171,11 +167,13 @@ async function runBulkEnrich() {
       try {
         let details = null;
         let isRealEnriched = false;
+        let apiAttempted = false;
         
         if (category === 'SPOT') {
           const contentId = raw.contentid || raw.contentId;
           if (contentId) {
             console.log(` -> Enriched tourist spot: ${name} (ContentID: ${contentId})`);
+            apiAttempted = true;
             details = await fetchTourPlaceDetails(contentId, '12', PUBLIC_API_KEY);
             isRealEnriched = checkRealEnrichedPublic(category, details);
           } else {
@@ -186,6 +184,7 @@ async function runBulkEnrich() {
           const contentId = raw.contentid || raw.contentId;
           if (contentId) {
             console.log(` -> Enriched festival: ${name} (ContentID: ${contentId})`);
+            apiAttempted = true;
             details = await fetchTourPlaceDetails(contentId, '15', PUBLIC_API_KEY);
             isRealEnriched = checkRealEnrichedPublic(category, details);
           } else {
@@ -196,6 +195,7 @@ async function runBulkEnrich() {
           const hpid = raw.hpid;
           if (hpid) {
             console.log(` -> Enriched hospital: ${name} (HPID: ${hpid})`);
+            apiAttempted = true;
             details = await fetchHospitalDetails(hpid, NMC_API_KEY);
             isRealEnriched = checkRealEnrichedPublic(category, details);
           } else {
@@ -208,8 +208,12 @@ async function runBulkEnrich() {
           consecutiveFailuresByCategory[category] = 0;
           successCount++;
         } else {
-          consecutiveFailuresByCategory[category]++;
-          console.warn(`  [WARN] Public real data enrichment failed for ${name} (${category}). Fallback applied. (Consecutive: ${consecutiveFailuresByCategory[category]})`);
+          if (apiAttempted) {
+            consecutiveFailuresByCategory[category]++;
+            console.warn(`  [WARN] Public real data enrichment failed for ${name} (${category}). Fallback applied. (Consecutive: ${consecutiveFailuresByCategory[category]})`);
+          } else {
+            console.warn(`  [INFO] Skip consecutive failure counting for ${name} (No API ID, skipped)`);
+          }
           failCount++;
         }
 

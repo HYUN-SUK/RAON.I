@@ -437,6 +437,36 @@ async function dailyRegionSync() {
     stats.categories[key].total.inactive = (inactCount || 0);
   }
 
+  // [SPOT_TMAP_REL, SPOT_KT_CONCTR, SPOT_KTO_POP 지표의 existing 및 total 보정]
+  const spotExisting = { ...stats.categories.SPOT.existing };
+  const spotTotal = { ...stats.categories.SPOT.total };
+
+  stats.categories.SPOT_TMAP_REL.existing = spotExisting;
+  stats.categories.SPOT_KT_CONCTR.existing = spotExisting;
+  stats.categories.SPOT_KTO_POP.existing = spotExisting;
+
+  stats.categories.SPOT_TMAP_REL.total = spotTotal;
+  stats.categories.SPOT_KT_CONCTR.total = spotTotal;
+  stats.categories.SPOT_KTO_POP.total = spotTotal;
+
+  // [ENRICHMENT 최종 재집계]
+  const { count: finalEnrichAct } = await supabase
+    .from('master_places')
+    .select('*', { count: 'exact', head: true })
+    .in('sido', aliases)
+    .eq('is_active', true)
+    .not('raw_data->>operating_hours', 'is', null);
+
+  const { count: finalEnrichInact } = await supabase
+    .from('master_places')
+    .select('*', { count: 'exact', head: true })
+    .in('sido', aliases)
+    .eq('is_active', false)
+    .not('raw_data->>operating_hours', 'is', null);
+
+  stats.categories.ENRICHMENT.total.active = finalEnrichAct || 0;
+  stats.categories.ENRICHMENT.total.inactive = finalEnrichInact || 0;
+
   // 4. [Strike-Out] 미수산 데이터 처리 (백년가게 전용 고수 / 마트&식당은 API 기반 즉시 처리)
   console.log(`\n⚖️ [Strike-Out Check] 미확인 데이터 업데이트 중...`);
   for (const [source, key] of Object.entries(sourceToStatKey)) {
@@ -723,7 +753,13 @@ async function updateSpotPopularity(targetSido, stats) {
       if (updates.length > 0) {
         const { error: upError } = await supabase.from('master_places').upsert(updates);
         if (upError) console.error(`      ❌ Error updating ${updates.length} spots:`, upError.message);
-        else console.log(`      ✨ Successfully updated ${updates.length} spots with mobility metrics.`);
+        else {
+          console.log(`      ✨ Successfully updated ${updates.length} spots with mobility metrics.`);
+          const tmapUpdatedCount = updates.filter(u => u.raw_data?.tmap_related).length;
+          const ktUpdatedCount = updates.filter(u => u.raw_data?.kt_concentration).length;
+          stats.categories.SPOT_TMAP_REL.updated.active += tmapUpdatedCount;
+          stats.categories.SPOT_KT_CONCTR.updated.active += ktUpdatedCount;
+        }
       }
 
     } catch (e) {
@@ -878,8 +914,10 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
     
     try {
       const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.data.go.kr/' } });
+      const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
       if (!res.ok) {
         console.error(`  ❌ Failed to download ${ep.name}: HTTP ${res.status}`);
+        errStat.note = `💥 ERROR: WAF 다운로드 차단 (HTTP ${res.status})`;
         continue;
       }
       
@@ -942,7 +980,7 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
     } catch (e) {
       console.error(`  ❌ Parsing Error for ${ep.name}:`, e.message);
       const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
-      errStat.note = `💥 ERROR (조회/통신 실패)`;
+      errStat.note = `💥 ERROR: CSV 다운로드/파싱 실패 (${e.message})`;
     }
   }
 }
@@ -1416,7 +1454,8 @@ async function recordAutomationLog(stats) {
     fetched_count: val.fetched,
     new_count: val.new,
     updated_count: val.updated,
-    total_count: val.total
+    total_count: val.total,
+    note: val.note || ''
   }));
 
   const { error } = await supabase.from('automation_logs').insert({

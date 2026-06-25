@@ -37,12 +37,25 @@ const CATEGORY_FALLBACKS = {
   }
 };
 
+function normalizeName(str) {
+  if (!str) return '';
+  // HTML 태그 제거
+  let s = str.replace(/<\/?[^>]+(>|$)/g, "");
+  // HTML Entity 디코딩
+  s = s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+  // 괄호 및 괄호 안의 지점명 제거 (예: 스타벅스(강남역점) -> 스타벅스)
+  s = s.replace(/\([^)]+\)/g, '');
+  // 공백 및 특수문자 제거
+  s = s.replace(/[\s\-_,\/\\·'"]/g, '');
+  return s.toLowerCase();
+}
+
 // 카카오 로컬 검색 API 호출 (place_url 검색용)
-async function searchKakao(query, lat, lng) {
+async function searchKakao(query, lat, lng, radius = 10000) {
   if (!KAKAO_KEY) throw new Error("Missing KAKAO_REST_API_KEY");
   let url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}`;
   if (lat && lng) {
-    url += `&x=${lng}&y=${lat}&radius=10000`;
+    url += `&x=${lng}&y=${lat}&radius=${radius}`;
   }
   const res = await fetch(url, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
   if (res.status === 429) throw new Error("KAKAO_QUOTA_EXCEEDED");
@@ -69,30 +82,80 @@ async function searchNaver(query) {
 
 // 카카오/네이버 로컬 스위칭 검색
 async function searchLocalUnified(name, address, lat, lng) {
-  const cleanAddr = address.split(' ').slice(0, 3).join(' ');
-  const query = `${cleanAddr} ${name}`;
+  const normTarget = normalizeName(name);
+  let docs = [];
 
   try {
-    const docs = await searchKakao(query, lat, lng);
-    const matched = docs.find(d => d.place_name.replace(/\s/g, '') === name.replace(/\s/g, '')) || docs[0];
+    // 1차 시도: 위경도가 있으면 반경 1.5km(1500m) 내에서 상호명으로 정밀 검색
+    if (lat && lng) {
+      docs = await searchKakao(name, lat, lng, 1500);
+    }
+  } catch (e) {
+    console.warn(`[Fast Bulk Search] Proximity search failed for ${name}: ${e.message}`);
+  }
+
+  // 2차 시도: 위경도가 없거나 1차 시도 검색 결과가 없으면 행정구역+상호명 키워드 검색
+  if (docs.length === 0) {
+    const cleanAddr = address.split(' ').slice(0, 3).join(' ');
+    const query = `${cleanAddr} ${name}`;
+    try {
+      docs = await searchKakao(query, lat, lng, 10000);
+    } catch (e) {
+      console.warn(`[Fast Bulk Search] Address search failed for ${name}: ${e.message}`);
+    }
+  }
+
+  try {
+    // 정규화 명칭 100% 매칭
+    let matched = docs.find(d => normalizeName(d.place_name) === normTarget);
+
+    // 완화된 매칭 (결과 이름에 검색어가 포함되거나 그 반대)
+    if (!matched && docs.length > 0) {
+      matched = docs.find(d => {
+        const normResult = normalizeName(d.place_name);
+        return normResult.includes(normTarget) || normTarget.includes(normResult);
+      });
+    }
+
+    // 최종 매칭 결과 적용
+    if (!matched && docs.length > 0) {
+      matched = docs[0];
+    }
+
     if (matched) {
       return { place_url: matched.place_url, phone: matched.phone };
     }
   } catch (e) {
-    console.warn(`[Fast Bulk Search Fallback] Kakao failed: ${e.message}. Trying Naver...`);
-    try {
-      const items = await searchNaver(query);
-      const matched = items.find(i => i.title.replace(/<\/?[^>]+(>|$)/g, "").replace(/\s/g, '') === name.replace(/\s/g, '')) || items[0];
-      if (matched) {
-        const cleanName = matched.title.replace(/<\/?[^>]+(>|$)/g, "");
-        return {
-          place_url: matched.link || `https://search.naver.com/search.naver?query=${encodeURIComponent(cleanName)}`,
-          phone: matched.telephone
-        };
-      }
-    } catch (ne) {
-      console.error(`[Fast Bulk Search Fallback] Naver failed: ${ne.message}`);
+    console.warn(`[Fast Bulk Search Fallback] Kakao match failed: ${e.message}. Trying Naver...`);
+  }
+
+  // 네이버 플레이스 백업 검색
+  try {
+    const cleanAddr = address.split(' ').slice(0, 3).join(' ');
+    const query = `${cleanAddr} ${name}`;
+    const items = await searchNaver(query);
+    let matched = items.find(i => normalizeName(i.title) === normTarget);
+
+    if (!matched && items.length > 0) {
+      matched = items.find(i => {
+        const normResult = normalizeName(i.title);
+        return normResult.includes(normTarget) || normTarget.includes(normResult);
+      });
     }
+
+    if (!matched && items.length > 0) {
+      matched = items[0];
+    }
+
+    if (matched) {
+      const cleanName = matched.title.replace(/<\/?[^>]+(>|$)/g, "");
+      return {
+        place_url: matched.link || `https://search.naver.com/search.naver?query=${encodeURIComponent(cleanName)}`,
+        phone: matched.telephone
+      };
+    }
+  } catch (ne) {
+    console.error(`[Fast Bulk Search Fallback] Naver failed: ${ne.message}`);
   }
   return null;
 }
@@ -196,6 +259,154 @@ async function scrapeKakaoPlaceDetailsFast(activeBrowser, placeId) {
     return details;
   } catch (err) {
     console.error(`[Playwright Fast Error] placeId: ${placeId}, msg: ${err.message}`);
+    return null;
+  } finally {
+    if (page) await page.close().catch(() => {});
+    if (context) await context.close().catch(() => {});
+  }
+}
+
+let isNaverBlockedGlobal = false; // 전역 회로 차단기
+
+// Playwright 네이버 모바일 플레이스 상세 우회 수집 함수
+async function scrapeNaverPlaceDetailsFast(activeBrowser, placeName, address) {
+  if (isNaverBlockedGlobal) {
+    return null;
+  }
+  const addrParts = address.split(' ');
+  const cleanAddr = addrParts.length > 1 ? `${addrParts[1]}` : addrParts[0]; 
+  const query = `${cleanAddr} ${placeName}`;
+  const searchUrl = `https://m.search.naver.com/search.naver?query=${encodeURIComponent(query)}`;
+  
+  let context = null;
+  let page = null;
+  
+  try {
+    context = await activeBrowser.newContext({
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
+      viewport: { width: 375, height: 812 },
+      deviceScaleFactor: 3,
+      isMobile: true,
+      hasTouch: true,
+      locale: 'ko-KR',
+      timezoneId: 'Asia/Seoul'
+    });
+    
+    page = await context.newPage();
+    await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 15000 });
+    
+    // 봇 감지 차단 페이지 체크
+    const isBlocked = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return text.includes('서비스 이용이 제한되었습니다') || text.includes('과도한 접근 요청');
+    });
+
+    if (isBlocked) {
+      console.error(`🚨 [Naver Circuit Breaker] IP block detected on search query. Tripping circuit breaker for Naver Place.`);
+      isNaverBlockedGlobal = true;
+      return null;
+    }
+
+    const placeUrl = await page.evaluate(() => {
+      const links = Array.from(document.querySelectorAll('a'));
+      const found = links.find(l => l.href && (
+        /(m\.place\.naver\.com\/(restaurant|place)\/\d+)/.test(l.href) ||
+        l.href.includes('naver.me') ||
+        (l.href.includes('m.place.naver.com/place/') && !l.href.includes('searchByAddress'))
+      ));
+      return found ? found.href : null;
+    });
+
+    if (!placeUrl) {
+      return null;
+    }
+    
+    let basePath = placeUrl.split('?')[0];
+    if (basePath.endsWith('/')) {
+      basePath = basePath.slice(0, -1);
+    }
+    if (basePath.endsWith('/home')) {
+      basePath = basePath.replace(/\/home$/, '');
+    }
+
+    // 1. 정보 탭 진입 (/information)
+    const infoUrl = `${basePath}/information`;
+    await page.goto(infoUrl, { waitUntil: 'networkidle', timeout: 15000 });
+    await page.waitForTimeout(1500); 
+    
+    const isBlockedInfo = await page.evaluate(() => document.body.innerText.includes('서비스 이용이 제한되었습니다'));
+    if (isBlockedInfo) {
+      console.error(`🚨 [Naver Circuit Breaker] IP block detected on Info page. Tripping circuit breaker.`);
+      isNaverBlockedGlobal = true;
+      return null;
+    }
+
+    const infoDetails = await page.evaluate(() => {
+      let operating_hours = '';
+      let parking_available = '확인 불가';
+      
+      const hoursEl = document.querySelector('.g2OPC, ._21l1g, .w94VO, .yId8A, .SF57A, .w94VO');
+      if (hoursEl) {
+        operating_hours = hoursEl.innerText.replace(/\n/g, ', ').trim();
+      } else {
+        const divList = Array.from(document.querySelectorAll('div, li, span, dl'));
+        const foundDiv = divList.find(d => d.innerText && d.innerText.includes('영업시간') && d.innerText.length < 200);
+        if (foundDiv) {
+          operating_hours = foundDiv.innerText.replace('영업시간', '').replace(/\n/g, ', ').trim();
+        }
+      }
+      
+      const bodyText = document.body.innerText;
+      if (bodyText.includes('주차 가능') || bodyText.includes('주차제공')) {
+        parking_available = '주차 가능';
+      } else if (bodyText.includes('주차 불가')) {
+        parking_available = '주차 불가';
+      }
+      
+      return { operating_hours, parking_available };
+    });
+
+    // 2. 메뉴 탭 진입 (/menu/list)
+    const menuUrl = `${basePath}/menu/list`;
+    await page.goto(menuUrl, { waitUntil: 'networkidle', timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1500); 
+    
+    const isBlockedMenu = await page.evaluate(() => document.body.innerText.includes('서비스 이용이 제한되었습니다'));
+    if (isBlockedMenu) {
+      isNaverBlockedGlobal = true;
+      return null;
+    }
+
+    const menuDetails = await page.evaluate(() => {
+      const representative_menu = [];
+      const menuEls = document.querySelectorAll('.nNn14, ._3yEbK, .menu_info, .menu_entry, ._3yEbK, .E2BPC, .menu_title_wrap');
+      menuEls.forEach(el => {
+        const nameEl = el.querySelector('.name, ._3yEbK, .menu_title, .title, ._3yEbK, .menu_name');
+        const priceEl = el.querySelector('.price, ._3t912, .menu_price, .price, .menu_price');
+        if (nameEl) {
+          const name = nameEl.innerText.trim();
+          const price = priceEl ? priceEl.innerText.trim() : '';
+          representative_menu.push(`${name}${price ? ' (' + price + ')' : ''}`);
+        }
+      });
+      
+      if (representative_menu.length === 0) {
+        const menuTexts = document.querySelectorAll('.menu_name, .txt_menu, .name_menu, ._3yEbK, .menu_title');
+        menuTexts.forEach(el => {
+          representative_menu.push(el.innerText.trim());
+        });
+      }
+      
+      return { representative_menu };
+    });
+    
+    return {
+      operating_hours: infoDetails.operating_hours || undefined,
+      parking_available: infoDetails.parking_available !== '확인 불가' ? infoDetails.parking_available : undefined,
+      representative_menu: menuDetails.representative_menu.length > 0 ? menuDetails.representative_menu.slice(0, 5) : undefined
+    };
+  } catch (err) {
+    console.error(`[Naver Scrape Error] ${placeName}: ${err.message}`);
     return null;
   } finally {
     if (page) await page.close().catch(() => {});
@@ -367,9 +578,28 @@ async function runBulkEnrich() {
             kakaoId = parts[parts.length - 1];
           }
 
-          // 2. Playwright 고속 크롤러 실행
+          // 2. Playwright 고속 크롤러 실행 (1단계 카카오맵)
           if (kakaoId) {
             details = await scrapeKakaoPlaceDetailsFast(browser, kakaoId);
+          }
+
+          let isRealEnriched = checkRealEnriched(category, details);
+
+          // 2.5. 네이버 플레이스 2차 스위칭 폴백 연동 개발 반영
+          if (!isRealEnriched && (category === 'RESTAURANT' || category === 'ROUTE_CAFE' || category === 'MART')) {
+            console.log(`  [Naver Switch] Details missing on Kakao for ${name}. Attempting Naver Place...`);
+            const naverDetails = await scrapeNaverPlaceDetailsFast(browser, name, address);
+            if (naverDetails && checkRealEnriched(category, naverDetails)) {
+              console.log(`  [Naver Switch OK] Successfully enriched ${name} via Naver!`);
+              details = {
+                ...details,
+                ...naverDetails,
+                operating_hours: naverDetails.operating_hours || details?.operating_hours,
+                parking_available: naverDetails.parking_available || details?.parking_available,
+                representative_menu: naverDetails.representative_menu || details?.representative_menu
+              };
+              isRealEnriched = true;
+            }
           }
 
           // 3. 수집 결과 검증 및 데이터 적재 제어
@@ -380,9 +610,6 @@ async function runBulkEnrich() {
           const pet_friendly = details?.pet_friendly || defaultFallback.pet_friendly;
           const homepage_url = details?.homepage_url || place.raw_data?.homepage_url || '';
 
-          // 데이터 정밀 수집 여부 체크 (기본 폴백 정보와 완전히 다른 실제 세부 정보가 수집되었는지 검증)
-          const isRealEnriched = checkRealEnriched(category, details);
-          
           if (isRealEnriched) {
             consecutiveFailuresByCategory[category] = 0; // 실 데이터가 정상 적재되면 해당 카테고리 연속 실패 카운트 리셋
             success = true;

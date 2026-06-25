@@ -116,21 +116,26 @@
     - [x] Playwright 고속 벌크 적재 스크립트 드라이런 및 전체 실행 (1일차 8,000건 & 식당/카페/마트 벌크)
     - [x] 어드민 Live Monitor 화면을 통한 수집 통계 배지 및 로그 연동 상태 검증
     - [x] 컴파일 무결성 검증 (`npm run build`)
-- [/] **공공 API 상세정보 벌크적재 이행 (명소/병원/축제)**
+- [x] **공공 API 상세정보 벌크적재 이행 (명소/병원/축제)**
     - [x] `scripts/bulk-enrich-public.mjs` 리팩토링 (ID 기반 커서 페이징, 메모리 필터, true/false 분기 적재)
     - [x] `scripts/run-public-bulk-loop.mjs` 신규 스크립트 작성 (영속성 2일 분할 적재 루프 러너)
     - [x] `scripts/fast-bulk-enrich-public-fallback.mjs` 신규 작성 (Stage 2 카카오맵 크롤러 및 실효 데이터 검증 필터)
     - [x] 최초 100건 드라이런 실행 및 실효 데이터 적재 여부 전수 검증
-    - [/] 본격 루프 가동 (Stage 1 공공 API 수집 - 오늘 밤 자정 00:05 재예약 완료, 누적 10,945건(79.3%) 적재 돌파)
-    - [ ] 본격 루프 가동 (Stage 2 카카오맵 크롤링 보완 - 실패 414건에 대해 내일 검증 후 적재)
-    - [ ] 최종 전수 점검 및 이행 보고서 작성
-- [ ] **제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 이행**
+    - [x] 본격 루프 가동 (Stage 1 공공 API 수집 - 잔여 2,214건 전수 적재 완수)
+    - [x] 본격 루프 가동 (Stage 2 카카오맵 크롤링 보완 - 실패 건들에 대해 최종 보완 수집 검증 완료)
+    - [x] 최종 전수 점검 및 이행 보고서 작성
+- [/] **제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 이행**
     - [x] Google AI Studio 결제 계정 연결 및 선결제 등록 (PRO 활성화 검증 완료, gemini-2.5-flash 연동 확인)
-    - [ ] `scripts/gemini-enrich-description.mjs` 신규 스크립트 작성 (상세 미적재 Fallback 및 카테고리별 프롬프트 탑재)
-    - [ ] `scripts/run-gemini-description-loop.mjs` 신규 루프 러너 작성 (ID 커서 페이징 연동)
-    - [ ] 최초 10건 드라이런 실행 및 1줄 설명 품질 검산 보고서 생성 (사용자 승인 대기)
+    - [x] 1줄 적재 이행 계획서(implementation_plan.md) 아티팩트 작성 및 사용자 컨펌 완료
+    - [x] `scripts/gemini-enrich-description.mjs` 신규 스크립트 작성 (상세 미적재 Fallback 및 카테고리별 프롬프트 탑재)
+    - [x] `scripts/run-gemini-description-loop.mjs` 신규 루프 러너 작성 (ID 커서 페이징 연동)
+    - [x] 최초 10건 드라이런 실행 및 1줄 설명 품질 검산 보고서 생성 (사용자 승인 대기)
     - [ ] 유료 고속 적재(Concurrency 15~20) 가동 및 마스터 DB 전수 적재
     - [ ] 빌드 검증 및 최종 결과 검산 보고서 작성
+- [x] **전국 행정코드 매핑 오류 수정 및 누락 데이터 보완 (v2 - 듀얼 규격 안전화)**
+    - [x] `scripts/utils/admin-code-mapping.mjs` 약칭 동의어 사전(`SIDO_SYNONYMS`) 탑재 및 듀얼 규격(행안부 법정동 vs KTO) 격리 보완 리팩토링
+    - [x] Null 주소 장소 3,186건 파싱 복원 배치(`scripts/backfill-null-addresses.mjs`) 작성 및 100% 백필 완료
+    - [x] 갭 검사기(`check-admin-mapping-gaps.mjs`)를 통한 매핑 누수 최종 0건(Gap 0건) 및 TMAP 모빌리티 API 규격 통과 검증 완료
 - [x] **[다음 세션 해결 과제] 홈화면 10초 독려 배너 연계 고도화 및 무한 렌더링 해결**
     - [x] `ReturningHome.tsx` 의 97번 라인 `useEffect` 의존성 배열 최적화 (`[]` 빈 배열 또는 Zustand 개별 selector 적용)
     - [x] `useFabSparkle` 훅의 `unwrittenScheduleDetail` 반환 객체의 참조 고정 (`useMemo` 등 적용)
@@ -150,7 +155,16 @@
     - [x] 인천광역시 유실 상세 정보 복구: Kakao Local API 및 모빌리티 API를 활용한 정밀 복구 완료
     - [x] 수동 구동 테스트 및 병합 가드(Merge Guard) 상세정보 보호 검증 완료
     - [x] 빌드 무결성 확인 및 최종 결과 보고
-- [ ] **다음 세션 데이터 정리 및 시스템 보완 작업**
-    - [ ] 25일 새벽 GitHub Actions 크론 스케줄링(일일 로테이션 및 크롤러) 정상 구동 모니터링
-    - [ ] 제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 파이프라인 개발 및 실행 계획 수립
+- [x] **인천 식당/마트 Playwright 상세정보 7,450건 정밀 복원 작업**
+    - [x] 3차 하이브리드 Playwright 복구 엔진 작성 (`restore_incheon_via_playwright.mjs`)
+    - [x] 드라이런(5건) 검증 및 Success 5 확보 완료
+    - [x] 전체 대상(7,450건) 백그라운드 구동 및 6,190건 최종 복구 성공 (실패 1,260건은 Placeholder 유지로 방어 완료)
+- [/] **다음 세션 데이터 정리 및 시스템 보완 작업**
+    - [x] 25일 새벽 GitHub Actions 크론 스케줄링(일일 로테이션 및 크롤러) 정상 구동 모니터링 및 표기 모순 개선 완료
+    - [ ] 제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 파이프라인 개발 및 실행 계획 수립 (사용자 대기 지시 반영)
     - [ ] 스마트 플랜 LIVE 캐싱 고도화 및 BM 특허 출원 2단계 기술 검토
+- [x] **상세정보 적재 고도화 및 미적재 데이터 정밀 복원 [CURRENT]**
+    - [x] [1단계] 식당/카페/마트 Playwright 매칭 로직 업그레이드 (상호명 정규화 & 위경도 반경 매칭 강화)
+    - [ ] [2단계] `contentid` 누락 명소(1,348건) 대상 Playwright 우회 스크래핑 파이프라인 구축 및 구동
+    - [x] [3단계] 네이버 플레이스 2차 모바일 페이지 스위칭 크롤러 연동 개발 및 가동
+    - [x] [4단계] 병원 NMC hpid 매핑 누락 보정/백필 스크립트 작성 및 불필요 병의원/동물병원 데이터 정밀 정제 완료

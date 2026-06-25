@@ -126,11 +126,34 @@ const SIDO_SHORT_SUFFIX = {
     '광주광역시': '광주', '대전광역시': '대전', '울산광역시': '울산'
 };
 
+// [v12.1] 시도 약칭 동의어 사전 매핑
+const SIDO_SYNONYMS = {
+    '서울': '서울특별시', '서울시': '서울특별시',
+    '부산': '부산광역시', '부산시': '부산광역시',
+    '대구': '대구광역시', '대구시': '대구광역시',
+    '인천': '인천광역시', '인천시': '인천광역시',
+    '광주': '광주광역시', '광주시': '광주광역시',
+    '대전': '대전광역시', '대전시': '대전광역시',
+    '울산': '울산광역시', '울산시': '울산광역시',
+    '세종': '세종특별자치시', '세종시': '세종특별자치시',
+    '경기': '경기도', '강원': '강원특별자치도',
+    '충북': '충청북도', '충남': '충청남도',
+    '전북': '전북특별자치도', '전남': '전라남도',
+    '경북': '경상북도', '경남': '경상남도',
+    '제주': '제주특별자치도', '제주시': '제주특별자치도', '제주도': '제주특별자치도'
+};
+
 // 광역시 구 단위 중복 이름 목록 (이 이름들은 시도 접미사가 필요)
 const AMBIGUOUS_GU = new Set(['중구', '동구', '서구', '남구', '북구', '강서구']);
 
 export function getAdminCodes(sido, sigungu) {
-    const areaCd = ADMIN_SIDO_MAP[sido];
+    let normalizedSido = sido ? sido.trim() : '';
+    // 동의어 변환 적용
+    if (SIDO_SYNONYMS[normalizedSido]) {
+        normalizedSido = SIDO_SYNONYMS[normalizedSido];
+    }
+
+    const areaCd = ADMIN_SIDO_MAP[normalizedSido];
     if (!areaCd) return { areaCd: null, signguCd: null };
 
     // sigungu 정규화 (괄호 및 공백 제거)
@@ -152,7 +175,7 @@ export function getAdminCodes(sido, sigungu) {
     }
 
     // 2차: [v11.9.9] 시도 약칭 접미사 매칭 (예: '남구' + '대구' → '남구(대구)')
-    const sidoShort = SIDO_SHORT_SUFFIX[sido];
+    const sidoShort = SIDO_SHORT_SUFFIX[normalizedSido];
     if (sidoShort && cleanSigungu) {
         const suffixedKey = `${cleanSigungu}(${sidoShort})`;
         if (SIGUNGU_CODE_MASTER[suffixedKey]) {
@@ -161,13 +184,13 @@ export function getAdminCodes(sido, sigungu) {
     }
 
     // 3차: Sido 언더스코어 Prefix 매칭 (레거시 호환)
-    const fullKey = `${sido}_${cleanSigungu}`;
+    const fullKey = `${normalizedSido}_${cleanSigungu}`;
     if (SIGUNGU_CODE_MASTER[fullKey]) {
         return { areaCd, signguCd: SIGUNGU_CODE_MASTER[fullKey] };
     }
 
     // [Fallback] 세종특별자치시
-    if (sido === '세종특별자치시') return { areaCd: '36', signguCd: '36110' };
+    if (normalizedSido === '세종특별자치시') return { areaCd: '36', signguCd: '36110' };
 
     return { areaCd, signguCd: null };
 }

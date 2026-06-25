@@ -378,6 +378,7 @@ export default function AutomationLogsPage() {
                     <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-brand-600">신규 삽입(New)</th>
                     <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right text-blue-600">변경 갱신(Upd)</th>
                     <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-right font-black">최종 총계</th>
+                    <th className="px-4 py-3 text-[10px] whitespace-nowrap font-black text-gray-400 uppercase tracking-wider text-left">비고 (Note)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -474,6 +475,9 @@ export default function AutomationLogsPage() {
                               </span>
                             )}
                           </div>
+                        </td>
+                        <td className="px-4 py-3 text-left text-xs font-bold text-gray-500 max-w-[250px] truncate" title={s.note || ''}>
+                          {s.note || '-'}
                         </td>
                       </tr>
                     );
