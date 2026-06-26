@@ -12,6 +12,7 @@ import WaitlistButton from '@/components/reservation/WaitlistButton';
 import { format as formatDate } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { differenceInDays, startOfDay, format } from 'date-fns';
+import { createClient } from '@/lib/supabase-client';
 
 export default function ReservationPage() {
     const router = useRouter();
@@ -27,6 +28,39 @@ export default function ReservationPage() {
         end.setMonth(end.getMonth() + 6);
         fetchPublicReservations(start, end);
     }, [fetchOpenDayRule, fetchSites, fetchPublicReservations]);
+
+    // Realtime Postgres changes subscription to sync database modifications (e.g. block cancel) instantly
+    useEffect(() => {
+        const supabase = createClient();
+        
+        const channel = supabase
+            .channel('realtime_public_reservations')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'reservations' },
+                () => {
+                    const start = new Date();
+                    const end = new Date();
+                    end.setMonth(end.getMonth() + 6);
+                    fetchPublicReservations(start, end);
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'blocked_dates' },
+                () => {
+                    const start = new Date();
+                    const end = new Date();
+                    end.setMonth(end.getMonth() + 6);
+                    fetchPublicReservations(start, end);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [fetchPublicReservations]);
 
     const activeConfig = useMemo(() => {
         if (openDayRule) {
