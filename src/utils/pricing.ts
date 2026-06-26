@@ -65,12 +65,20 @@ export const calculatePrice = (
     const pkgDiscount = 0;
 
     // 1. Base Price Calculation per Night
+    // 일요일 입실 특별 규칙: 입실일(checkIn)이 일요일인 예약에 한해
+    // 일요일 날짜를 평일 요금으로 적용. 금/토 입실 예약에서 일요일이
+    // 포함되는 경우에는 기존 주말 요금(7만)을 유지한다.
+    const checkInDay = checkIn.getDay();
+
     for (let i = 0; i < nights; i++) {
         const currentDate = new Date(checkIn.getTime() + (i * oneDay));
         const isPeak = isPeakSeason(currentDate, config);
         const isHigh = isHighDemandDay(currentDate, holidays);
 
-        if (isHigh) {
+        // 일요일이면서 입실일이 일요일인 경우 → 평일 취급
+        const isSundayAsWeekday = currentDate.getDay() === 0 && checkInDay === 0;
+
+        if (isHigh && !isSundayAsWeekday) {
             basePrice += isPeak ? config.peakWeekend : config.weekend;
         } else {
             basePrice += isPeak ? config.peakWeekday : config.weekday;

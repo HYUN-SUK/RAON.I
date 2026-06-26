@@ -285,8 +285,8 @@ export const useReservationStore = create<ReservationState>()(
 
                 const { data } = await supabase.from('blocked_dates').insert({
                     site_id: block.siteId,
-                    start_date: block.startDate.toISOString(),
-                    end_date: block.endDate.toISOString(),
+                    start_date: formatLocalDate(block.startDate),
+                    end_date: formatLocalDate(block.endDate),
                     memo: block.memo,
                     is_paid: block.isPaid,
                     guest_name: block.guestName,
