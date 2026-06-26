@@ -75,7 +75,7 @@ async function runBulkEnrich() {
     HOSPITAL: 0,
     FESTIVAL: 0
   };
-  const maxConsecutiveFailures = 10;
+  const maxConsecutiveFailures = 50;
 
   function checkRealEnrichedPublic(category, details) {
     if (!details) return false;
@@ -85,7 +85,8 @@ async function runBulkEnrich() {
     if (category === 'SPOT') {
       const hasRealFee = details.admission_fee && details.admission_fee !== fb.admission_fee;
       const hasRealParking = details.parking_available && details.parking_available !== fb.parking_available;
-      return !!(hasRealFee || hasRealParking);
+      const hasRealDesc = details.description && details.description !== undefined && details.description !== '' && !details.description.includes('대표적인 관광명소입니다');
+      return !!(hasRealFee || hasRealParking || hasRealDesc);
     }
     if (category === 'HOSPITAL') {
       const hasRealDepts = Array.isArray(details.representative_departments) && details.representative_departments.length > 0;
@@ -112,7 +113,7 @@ async function runBulkEnrich() {
     console.log("Querying target places for public bulk enrichment (Cursor-based ID scan)...");
     let selectQuery = supabase
       .from('master_places')
-      .select('id, name, address, category, lat, lng, raw_data, description')
+      .select('id, name, address, category, lat, lng, raw_data, description, api_source')
       .eq('is_active', true)
       .order('id');
 
@@ -138,11 +139,17 @@ async function runBulkEnrich() {
     await fs.promises.mkdir('scratch', { recursive: true }).catch(() => {});
     await fs.promises.writeFile('scratch/last_public_cursor_id.txt', lastRecordId, 'utf8');
 
-    // 메모리 상에서 명소/병원/축제이면서 미시도 건 필터링
+    // 메모리 상에서 명소/병원/축제이면서 미시도 건 또는 카카오맵 폴백 크롤링 땜질 건 필터링
     const targetCats = ['SPOT', 'HOSPITAL', 'FESTIVAL'];
     const places = rawPlaces.filter(p => 
       targetCats.includes(p.category) && 
-      (p.raw_data?.enriched === undefined || p.raw_data?.enriched === null)
+      (
+        p.raw_data?.enriched === undefined || 
+        p.raw_data?.enriched === null ||
+        p.raw_data?.api_source === 'PUBLIC_FALLBACK_CRAWLER' ||
+        p.raw_data?.apiSource === 'PUBLIC_FALLBACK_CRAWLER' ||
+        p.api_source === 'PUBLIC_FALLBACK_CRAWLER'
+      )
     );
 
     if (places.length === 0) {
