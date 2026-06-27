@@ -305,25 +305,8 @@ export const useReservationStore = create<ReservationState>()(
                         contact: data.contact || undefined
                     };
                     
-                    const newPublicRes: Reservation = {
-                        id: `public-${data.site_id}-${data.start_date}`,
-                        userId: '00000000-0000-0000-0000-000000000000',
-                        siteId: data.site_id,
-                        checkInDate: parseSafeDate(data.start_date),
-                        checkOutDate: parseSafeDate(data.end_date),
-                        familyCount: 1,
-                        visitorCount: 0,
-                        vehicleCount: 1,
-                        guests: 1,
-                        totalPrice: 0,
-                        status: 'CONFIRMED',
-                        requests: '',
-                        createdAt: new Date(),
-                    };
-
                     set((state) => ({ 
-                        blockedDates: [...state.blockedDates, newBlock],
-                        reservations: [...state.reservations, newPublicRes]
+                        blockedDates: [...state.blockedDates, newBlock]
                     }));
                 }
             },
@@ -338,19 +321,9 @@ export const useReservationStore = create<ReservationState>()(
 
                 await supabase.from('blocked_dates').delete().eq('id', id);
                 
-                set((state) => {
-                    const nextBlockedDates = state.blockedDates.filter(b => b.id !== id);
-                    const nextReservations = state.reservations.filter(r => {
-                        if (!targetBlock) return true;
-                        const isMatch = r.siteId === targetBlock.siteId && 
-                                       formatLocalDate(r.checkInDate) === formatLocalDate(targetBlock.startDate);
-                        return !isMatch;
-                    });
-                    return {
-                        blockedDates: nextBlockedDates,
-                        reservations: nextReservations
-                    };
-                });
+                set((state) => ({
+                    blockedDates: state.blockedDates.filter(b => b.id !== id)
+                }));
 
                 // 빈자리 알림 발송 (차단 해제 시)
                 if (targetBlock) {
