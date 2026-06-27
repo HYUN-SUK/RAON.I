@@ -140,6 +140,11 @@ interface ReservationState {
         closeAt: Date;
         isActive: boolean;
         repeat_rule?: 'NONE' | 'MONTHLY';
+        automation_config?: {
+            triggerDay: number;
+            monthsToAdd: number;
+            targetDay: 'END' | number;
+        } | null;
     } | null;
     fetchOpenDayRule: () => Promise<void>;
 
@@ -1175,7 +1180,8 @@ export const useReservationStore = create<ReservationState>()(
                             openAt: new Date(data.open_at),
                             closeAt: calculatedCloseAt,
                             isActive: data.is_active,
-                            repeat_rule: data.repeat_rule
+                            repeat_rule: data.repeat_rule,
+                            automation_config: data.automation_config as any
                         }
                     });
                 } else {

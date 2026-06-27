@@ -244,7 +244,7 @@ export default function ReservationPage() {
                                     ? `${format(activeConfig.closeAt, 'MM월 dd일')}까지 예약 가능합니다.\n${
                                     // Next Season Logic for Monthly
                                     openDayRule?.repeat_rule === 'MONTHLY'
-                                        ? `(다음시즌 오픈일 ${format(startOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)), 'MM월 dd일')})`
+                                        ? `(다음시즌 오픈일 ${format(startOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 1, openDayRule?.automation_config?.triggerDay || 1)), 'MM월 dd일')})`
                                         : activeConfig.nextSeasonOpenAt
                                             ? `(다음시즌 오픈일 ${format(activeConfig.nextSeasonOpenAt, 'MM월 dd일')})`
                                             : ''
