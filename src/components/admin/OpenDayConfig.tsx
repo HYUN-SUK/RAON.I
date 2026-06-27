@@ -41,6 +41,7 @@ export default function OpenDayConfig() {
     // Automation Mode State
     const [monthsToAdd, setMonthsToAdd] = useState('2');
     const [targetDay, setTargetDay] = useState('END');
+    const [triggerDay, setTriggerDay] = useState('1');
 
     // Current Rule State
     const [currentRule, setCurrentRule] = useState<OpenDayRule | null>(null);
@@ -107,7 +108,7 @@ export default function OpenDayConfig() {
                 insertData.close_at = new Date('2099-12-31').toISOString(); // Infinite window, logic controls actual range
 
                 insertData.automation_config = {
-                    triggerDay: 1, // Fixed to 1st of month 09:00 as per requirement
+                    triggerDay: parseInt(triggerDay),
                     monthsToAdd: parseInt(monthsToAdd),
                     targetDay: targetDay
                 };
@@ -165,7 +166,7 @@ export default function OpenDayConfig() {
                                 </p>
                                 {currentRule.repeat_rule === 'MONTHLY' && currentRule.automation_config ? (
                                     <div className="mt-1 text-gray-600 space-y-1">
-                                        <p>매월 1일 09:00 오픈</p>
+                                        <p>매월 {currentRule.automation_config.triggerDay || 1}일 09:00 오픈</p>
                                         <p>
                                             범위: 현재 월 +
                                             <span className="font-bold text-[#1C4526] mx-1">{currentRule.automation_config.monthsToAdd}개월</span>
@@ -258,11 +259,21 @@ export default function OpenDayConfig() {
                             </h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label className="text-xs uppercase tracking-wider text-gray-500">오픈 트리거</Label>
-                                    <div className="p-3 bg-white rounded border border-gray-200 text-sm font-medium text-gray-700">
-                                        매월 1일 오전 09:00
+                                    <Label className="text-xs uppercase tracking-wider text-gray-500">오픈 트리거 일자</Label>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">매월</span>
+                                        <select
+                                            className="h-10 w-24 rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                            value={triggerDay}
+                                            onChange={(e) => setTriggerDay(e.target.value)}
+                                        >
+                                            {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                                                <option key={d} value={d}>{d}일</option>
+                                            ))}
+                                        </select>
+                                        <span className="text-sm font-medium">오전 09:00</span>
                                     </div>
-                                    <p className="text-[11px] text-gray-400">오픈 시간은 현재 고정값입니다.</p>
+                                    <p className="text-[11px] text-gray-400">오류 방지를 위해 1일~28일 사이만 지정할 수 있습니다.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-xs uppercase tracking-wider text-gray-500">예약 가능 기간 자동 계산</Label>
