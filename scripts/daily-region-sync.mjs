@@ -31,7 +31,8 @@ const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 const SIDO_MAP = {
   '서울특별시': 1, '인천광역시': 2, '대전광역시': 3, '대구광역시': 4, '광주광역시': 5, '부산광역시': 6, '울산광역시': 7, '세종특별자치시': 8,
-  '경기도': 31, '강원특별자치도': 32, '충청북도': 33, '충청남도': 34, '경상북도': 35, '경상남도': 36, '전북특별자치도': 37, '전라남도': 38, '제주특별자치도': 39
+  '경기도': 31, '강원특별자치도': 32, '충청북도': 33, '충청남도': 34, '경상북도': 35, '경상남도': 36, '전북특별자치도': 37, '전라남도': 38, '제주특별자치도': 39,
+  '전남광주시': 38, '전남광주시_광주권': 5, '전남광주시_전남권': 38
 };
 
 const SIDO_ORG_MAP = {
@@ -40,23 +41,28 @@ const SIDO_ORG_MAP = {
   '울산광역시': '6310000_ALL', '세종특별자치시': '5690000_ALL', '경기도': '6410000_ALL',
   '강원특별자치도': '6530000_ALL', '충청북도': '6430000_ALL', '충청남도': '6440000_ALL',
   '전북특별자치도': '6540000_ALL', '전라남도': '6460000_ALL', '경상북도': '6470000_ALL',
-  '경상남도': '6480000_ALL', '제주특별자치도': '6500000_ALL'
+  '경상남도': '6480000_ALL', '제주특별자치도': '6500000_ALL',
+  '전남광주시': '6460000_ALL', '전남광주시_광주권': '6290000_ALL', '전남광주시_전남권': '6460000_ALL'
 };
 
 const SIDO_SHORT_MAP = {
   '서울특별시': '서울', '인천광역시': '인천', '대전광역시': '대전', '대구광역시': '대구', '광주광역시': '광주', '부산광역시': '부산', '울산광역시': '울산', '세종특별자치시': '세종',
-  '경기도': '경기', '강원특별자치도': '강원', '충청북도': '충북', '충청남도': '충남', '경상북도': '경북', '경상남도': '경남', '전북특별자치도': '전북', '전라남도': '전남', '제주특별자치도': '제주'
+  '경기도': '경기', '강원특별자치도': '강원', '충청북도': '충북', '충청남도': '충남', '경상북도': '경북', '경상남도': '경남', '전북특별자치도': '전북', '전라남도': '전남', '제주특별자치도': '제주',
+  '전남광주시': '전남광주', '전남광주시_광주권': '광주', '전남광주시_전남권': '전남'
 };
 
 const SIDO_ALIASES = {
   '서울': ['서울'], '부산': ['부산'], '대구': ['대구'], '인천': ['인천'],
-  '광주': ['광주'], '대전': ['대전'], '울산': ['울산'], '세종': ['세종'],
+  '광주': ['광주', '광주광역시', '전남광주시'], '대전': ['대전'], '울산': ['울산'], '세종': ['세종'],
   '경기': ['경기'], '강원': ['강원', '강원도', '강원특별자치도'], 
   '충북': ['충북', '충청북도'], '충남': ['충남', '충청남도'],
-  '전북': ['전북', '전라북도', '전북특별자치도'], '전남': ['전남', '전라남도'],
+  '전북': ['전북', '전라북도', '전북특별자치도'], 
+  '전남': ['전남', '전라남도', '전남광주시'],
+  '전남광주': ['전남광주', '전남광주시', '광주전남', '광주광역시', '전라남도', '광주', '전남'],
   '경북': ['경북', '경상북도'], '경남': ['경남', '경상남도'],
   '제주': ['제주', '제주도', '제주특별자치도']
 };
+
 
 function isValidRegion(addr, shortSido) {
   if (!addr) return false;
@@ -69,6 +75,31 @@ function isValidRegion(addr, shortSido) {
 function getNormalizedAddr(addr) {
   if (!addr) return '';
   let a = addr.replace(/,\s?대한민국$/, '').trim();
+
+  // [vFinal] 1. 경기도 광주시 방어 필터 (경기/경기도 명시 또는 광주시 고유 읍/면이 감지되는 경우)
+  const isGyeonggiGwangju = 
+    /^(경기|경기도)\s/.test(a) || 
+    (/^(광주|광주시)\s/.test(a) && /(오포읍|초월읍|곤지암읍|도척면|퇴촌면|남종면|남한산성면)/.test(a));
+
+  if (isGyeonggiGwangju) {
+    a = a.replace(/^(경기|경기도|광주|광주시)\s(광주시\s)?/, '경기도 광주시 ');
+    return a.trim();
+  }
+
+  // [vFinal] 2. 전남광주시(구 광주광역시 자치구) -> UUID 보존을 위해 '광주광역시'로 가상 정규화
+  const isGwangjuMetro = /(동구|서구|남구|북구|광산구)/.test(a);
+  if (isGwangjuMetro && /^(전남광주시|전남광주|광주전남|광주광역시|광주시|광주)\s/.test(a)) {
+    a = a.replace(/^(전남광주시|전남광주|광주전남|광주광역시|광주시|광주)\s?/, '광주광역시 ');
+    return a.trim();
+  }
+
+  // [vFinal] 3. 전남광주시(구 전남 시군) -> UUID 보존을 위해 '전라남도'로 가상 정규화
+  const isJeonnamLocal = /(목포시|여수시|순천시|나주시|광양시|담양군|곡성군|구례군|고흥군|보성군|화순군|장흥군|강진군|해남군|영암군|무안군|함평군|영광군|장성군|완도군|진도군|신안군)/.test(a);
+  if (isJeonnamLocal && /^(전남광주시|전남광주|광주전남|전라남도|전남|전남도)\s/.test(a)) {
+    a = a.replace(/^(전남광주시|전남광주|광주전남|전라남도|전남|전남도)\s?/, '전라남도 ');
+    return a.trim();
+  }
+
   // Standardize Sido names based on Full Name standards
   a = a.replace(/^(서울|서울특별시)\s?/, '서울특별시 ');
   a = a.replace(/^(부산|부산광역시)\s?/, '부산광역시 ');
@@ -89,6 +120,7 @@ function getNormalizedAddr(addr) {
   a = a.replace(/^(제주|제주도|제주특별자치도)\s?/, '제주특별자치도 ');
   return a.trim();
 }
+
 
 // [SOP v11.3] Aggressive Normalization (Master Key): 공백, 괄호, 소문자 제거로 ID 파생 방지
 function getCleanString(str) {
@@ -236,8 +268,10 @@ async function getLatestOdcloudPath(namespace = "15102255/v1") {
 
 
 const SIDO_ROTATION = [
-  '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', 
-  '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'
+  '서울특별시', '부산광역시', '대구광역시', '인천광역시', 
+  '전남광주시_광주권', '전남광주시_전남권', // 이틀 분산 수집
+  '대전광역시', '울산광역시', '세종특별자치시', '경기도', 
+  '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '경상북도', '경상남도', '제주특별자치도'
 ];
 
 async function dailyRegionSync() {
@@ -316,7 +350,8 @@ async function dailyRegionSync() {
     '제주특별자치도': ['제주특별자치도', '제주도', '제주']
   };
 
-  const aliases = SIDO_ALIASES[targetSido] || [targetSido];
+  const shortSido = SIDO_SHORT_MAP[targetSido] || targetSido;
+  const aliases = SIDO_ALIASES[shortSido] || [targetSido];
 
   for (const [source, key] of Object.entries(sourceToStatKey)) {
     const { count: actCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
@@ -477,7 +512,23 @@ async function dailyRegionSync() {
       continue;
     }
 
-    const { data: existingActive } = await supabase.from('master_places').select('id, miss_count').in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    let existingActive = [];
+    const { data: rawActive, error: selectErr } = await supabase.from('master_places').select('id, miss_count, address, sido').in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    if (!selectErr && rawActive) {
+      if (targetSido === '전남광주시_광주권') {
+        existingActive = rawActive.filter(r => 
+          r.sido === '광주광역시' || 
+          /(동구|서구|남구|북구|광산구)/.test(r.address || '')
+        );
+      } else if (targetSido === '전남광주시_전남권') {
+        existingActive = rawActive.filter(r => 
+          r.sido === '전라남도' || 
+          /(목포시|여수시|순천시|나주시|광양시|담양군|곡성군|구례군|고흥군|보성군|화순군|장흥군|강진군|해남군|영암군|무안군|함평군|영광군|장성군|완도군|진도군|신안군)/.test(r.address || '')
+        );
+      } else {
+        existingActive = rawActive;
+      }
+    }
     
     const seen = [];      // API에서 확인됨 -> miss_count 리셋
     const unseen = [];    // API에서 미확인 -> miss_count 증가
@@ -499,10 +550,10 @@ async function dailyRegionSync() {
       }
     }
 
-    // 일시 업데이트 (500건 단위)
+    // 일시 업데이트 (200건 단위)
     if (seen.length > 0) {
-      for (let i = 0; i < seen.length; i += 500) {
-        await supabase.from('master_places').update({ miss_count: 0 }).in('id', seen.slice(i, i + 500));
+      for (let i = 0; i < seen.length; i += 200) {
+        await supabase.from('master_places').update({ miss_count: 0 }).in('id', seen.slice(i, i + 200));
       }
     }
     for (const item of unseen) {
@@ -913,7 +964,10 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
     const url = `https://file.localdata.go.kr/file/download/${ep.path}/info?orgCode=${orgCode}`;
     
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.data.go.kr/' } });
+      const res = await fetch(url, { 
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.data.go.kr/' },
+        timeout: 120000
+      });
       const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
       if (!res.ok) {
         console.error(`  ❌ Failed to download ${ep.name}: HTTP ${res.status}`);
@@ -962,8 +1016,8 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
       
       // 대량 데이터 Upsert (Stat 트래킹은 개별적으로 진행)
       if (chunk.length > 0) {
-        for (let i = 0; i < chunk.length; i += 500) {
-          const slice = chunk.slice(i, i + 500);
+        for (let i = 0; i < chunk.length; i += 200) {
+          const slice = chunk.slice(i, i + 200);
           // 실제 stat은 각 레코드의 api_source에 맞춰서 분배해야 하나 편의상 ep 기반으로 먼저 트래킹
           // 정밀도를 위해 소스별 stat 분산 호출
           const ssmSlice = slice.filter(it => it.api_source === 'LOCALDATA_MART_SSM');
@@ -994,7 +1048,7 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
   
   // [SOP v11.3] 쿼리 별칭 확장 전략: API 서버마다 선호 명칭이 상이하므로 SIDO_ALIASES(전라북도 등) 전체 시도
   const callNames = SIDO_ALIASES[shortSido] || [shortSido];
-  if (!callNames.includes(sido)) callNames.push(sido);
+  if (!callNames.includes(sido) && !sido.startsWith('전남광주시_')) callNames.push(sido);
 
   try {
     for (const callName of callNames) {
@@ -1198,6 +1252,10 @@ async function syncHospitals(sido, seenIds, stat) {
   const aliases = SIDO_ALIASES[shortSido] || [shortSido];
   const chunk = [];
 
+  let apiSido = sido;
+  if (sido === '전남광주시_광주권') apiSido = '광주광역시';
+  else if (sido === '전남광주시_전남권') apiSido = '전라남도';
+
   try {
     // 1. Supabase에서 기존 병원 좌표 데이터 조회
     const { data: existingHospitals, error: selectErr } = await supabase
@@ -1227,7 +1285,7 @@ async function syncHospitals(sido, seenIds, stat) {
     }
 
     // 2. NMC API 호출
-    const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(sido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
+    const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(apiSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
     const data = await fetchWithRetry(url);
     const items = data.response?.body?.items?.item;
 
@@ -1333,6 +1391,13 @@ async function rotateTourPopularity(fullStats) {
 // Helper: Upsert and Track New/Updated (Deep-Field Comparison 적용)
 async function upsertAndTrack(items, stat) {
   if (items.length === 0) return;
+  
+  // [vFinal] 분할 슬롯 수집 데이터의 표준 sido 명칭을 '전남광주시'로 단일화
+  items.forEach(it => {
+    if (it.sido && it.sido.startsWith('전남광주시_')) {
+      it.sido = '전남광주시';
+    }
+  });
   
   // [SOP v11.1] 정밀 지표 산출을 위해 구형 데이터와 필드값 하드 매칭 수행
   const ids = items.map(it => it.id);

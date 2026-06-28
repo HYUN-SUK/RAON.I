@@ -2,8 +2,8 @@ name: RAONAI Daily Restaurant & Mart Crawl Enrichment
 
 on:
   schedule:
-    # 매일 05:00 KST 실행 (UTC 20:00)
-    - cron: '0 20 * * *'
+    # 매일 05:17 KST 실행 (UTC 20:17)
+    - cron: '17 20 * * *'
   workflow_dispatch: # 수동 실행 허용
 
 jobs:
