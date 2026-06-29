@@ -12,8 +12,8 @@ const nanumPen = Nanum_Pen_Script({ weight: "400", subsets: ["latin"], variable:
 const nanumMyeongjo = Nanum_Myeongjo({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-nanum-myeongjo" });
 
 export const metadata: Metadata = {
-  title: "라온아이 | 예산군 오토캠핑장",
-  description: "두가족도 넉넉한 2배사이트, 깨끗한 개별욕실. 라온아이에서 불편은 덜고, 추억은 쌓으세요.",
+  title: "라온아이 | 스마트 여행 수첩",
+  description: "라온아이 캠핑장 예약과 똑똑한 여행수첩을 한 번에! 2배 사이트와 개별 욕실의 프리미엄 캠핑부터 나의 모든 여행 계획·기록까지 함께하세요.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     apple: "/icons/logo-original.jpg",
   },
   openGraph: {
-    title: "라온아이 | 예산군 오토캠핑장",
-    description: "두가족도 넉넉한 2배사이트, 깨끗한 개별욕실. 라온아이에서 불편은 덜고, 추억은 쌓으세요.",
+    title: "라온아이 | 스마트 여행 수첩",
+    description: "라온아이 캠핑장 예약과 똑똑한 여행수첩을 한 번에! 2배 사이트와 개별 욕실의 프리미엄 캠핑부터 나의 모든 여행 계획·기록까지 함께하세요.",
     type: "website",
     locale: "ko_KR",
   },
