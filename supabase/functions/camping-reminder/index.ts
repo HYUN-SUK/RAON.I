@@ -878,7 +878,7 @@ serve(async (req: any) => {
                     body: `📍 ${displayName}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
                     data: { 
                         link: `/myspace/schedule/${s.id}`,
-                        hero_image: "https://raon-i.vercel.app/images/reminder_hero.png"
+                        hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
                     },
                     status: 'queued'
                 });
@@ -899,7 +899,7 @@ serve(async (req: any) => {
                     body: `📍 ${displayName}\n${weatherLine}\n\n날씨에 딱 맞는 메뉴를 골라봤어요!\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
                     data: { 
                         link: `/recipe`, 
-                        hero_image: "https://raon-i.vercel.app/images/reminder_hero.png"
+                        hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
                     },
                     status: 'queued'
                 });
@@ -926,7 +926,7 @@ serve(async (req: any) => {
                     body: `📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
                     data: { 
                         link: `/myspace/schedule/${s.id}?tab=checklist`,
-                        hero_image: "https://raon-i.vercel.app/images/reminder_hero.png"
+                        hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
                     },
                     status: 'queued' // Fixed status
                 });

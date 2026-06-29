@@ -145,7 +145,7 @@ export default function NotificationsPage() {
                                 <div className="flex items-start gap-4">
                                     <div className="mt-1 flex-shrink-0">
                                         <img 
-                                            src="https://raon-i.vercel.app/icons/icon-192.png" 
+                                            src="/icons/icon-192.png" 
                                             alt="RAON.I" 
                                             className="w-10 h-10 rounded-full border border-stone-200 object-cover" 
                                         />

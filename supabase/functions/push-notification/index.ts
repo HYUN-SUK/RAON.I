@@ -129,7 +129,7 @@ serve(async (req) => {
             const stringData: Record<string, string> = {
                 title: String(title),
                 body: String(body),
-                link: String(data?.link || "https://raon-i.vercel.app/notifications"),
+                link: String(data?.link || "https://raon-i.co.kr/notifications"),
                 event_type: String(event_type || 'default'),
                 related_id: String(related_id || 'general')
             };
@@ -143,7 +143,7 @@ serve(async (req) => {
             const isReservation = String(event_type).startsWith('reservation');
             const heroImage = stringData.hero_image || (
                 (String(event_type).startsWith('upcoming_stay') || isReservation)
-                ? "https://raon-i.vercel.app/images/reminder_hero.png"
+                ? "https://raon-i.co.kr/images/reminder_hero.png"
                 : undefined
             );
 
@@ -157,8 +157,8 @@ serve(async (req) => {
                         notification: {
                             title: String(title),
                             body: String(body),
-                            icon: "https://raon-i.vercel.app/icons/icon-192.png", // 라온아이 공식 마스코트 로고
-                            badge: "https://raon-i.vercel.app/badge.png",       // 투명 단색 아이콘
+                            icon: "https://raon-i.co.kr/icons/icon-192.png", // 라온아이 공식 마스코트 로고
+                            badge: "https://raon-i.co.kr/badge.png",       // 투명 단색 아이콘
                             image: heroImage,                                   // 큰 전경 이미지
                             requireInteraction: isReservation
                         },

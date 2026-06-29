@@ -54,7 +54,7 @@ export default function ServiceWorkerRegister() {
                         console.log('[App] Foreground Message received:', payload);
                         const title = payload.data?.title || payload.notification?.title || '새 알림';
                         const body = payload.data?.body || payload.notification?.body || '';
-                        const iconUrl = "https://raon-i.vercel.app/icons/icon-192.png";
+                        const iconUrl = "/icons/icon-192.png";
 
                         // Show Premium Toast with Brand Icon
                         toast(title, {
