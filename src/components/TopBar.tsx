@@ -205,9 +205,13 @@ export default function TopBar() {
                                 <Bell className="mr-2 h-4 w-4" />
                                 <span>알림 설정 / 권한 허용</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
+                            <DropdownMenuItem onClick={() => router.push('/terms')} className="cursor-pointer">
                                 <FileText className="mr-2 h-4 w-4" />
                                 <span>이용 약관</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push('/privacy-policy')} className="cursor-pointer">
+                                <FileText className="mr-2 h-4 w-4" />
+                                <span>개인정보처리방침</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => router.push('/myspace/settings/withdraw')} className="cursor-pointer text-stone-500">
                                 <Settings className="mr-2 h-4 w-4" />

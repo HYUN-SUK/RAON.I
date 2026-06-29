@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { Loader2, Mail, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -175,7 +176,7 @@ export default function LoginPage() {
                 {/* Footer */}
                 <div className="mt-8 text-center px-2">
                     <p className="text-[10px] text-white/40 leading-relaxed">
-                        계속 진행하면 라온아이의 <span className="underline cursor-pointer hover:text-white/60">이용약관</span> 및 <span className="underline cursor-pointer hover:text-white/60">개인정보처리방침</span>에 동의하게 됩니다.
+                        계속 진행하면 라온아이의 <Link href="/terms" className="underline cursor-pointer hover:text-white/60">이용약관</Link> 및 <Link href="/privacy-policy" className="underline cursor-pointer hover:text-white/60">개인정보처리방침</Link>에 동의하게 됩니다.
                     </p>
                 </div>
             </div>
