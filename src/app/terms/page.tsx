@@ -63,7 +63,7 @@ export default function TermsPage() {
                             <div>
                                 <p className="font-bold mb-1">예약 확정 및 자동 취소 시간</p>
                                 <p className="leading-relaxed">
-                                    예약 신청 후 **2시간 이내**에 입금이 확인되지 않을 경우, 사전 통보 없이 예약 대기 상태가 **자동 취소** 처리됩니다. 원활한 예약을 위해 입금 시간을 준수해 주시기 바랍니다.
+                                    예약 신청 후 **앱 내부에서 고지된 시간 이내**에 입금이 확인되지 않을 경우, 사전 통보 없이 예약 대기 상태가 **자동 취소** 처리됩니다. 원활한 예약을 위해 입금 시간을 준수해 주시기 바랍니다.
                                 </p>
                             </div>
                         </div>
@@ -87,23 +87,31 @@ export default function TermsPage() {
                                 </thead>
                                 <tbody className="divide-y divide-stone-200 text-stone-600">
                                     <tr>
-                                        <td className="px-4 py-2">이용일 10일 전까지</td>
+                                        <td className="px-4 py-2">입실 7일 전까지</td>
                                         <td className="px-4 py-2 text-right text-green-700 font-semibold">100% 환불</td>
                                     </tr>
                                     <tr>
-                                        <td className="px-4 py-2">이용일 7일 전까지</td>
+                                        <td className="px-4 py-2">입실 6일 전</td>
                                         <td className="px-4 py-2 text-right">90% 환불</td>
                                     </tr>
                                     <tr>
-                                        <td className="px-4 py-2">이용일 5일 전까지</td>
-                                        <td className="px-4 py-2 text-right">70% 환불</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="px-4 py-2">이용일 3일 전까지</td>
+                                        <td className="px-4 py-2">입실 5일 전</td>
                                         <td className="px-4 py-2 text-right">50% 환불</td>
                                     </tr>
                                     <tr>
-                                        <td className="px-4 py-2">이용일 2일 전 ~ 당일</td>
+                                        <td className="px-4 py-2">입실 4일 전</td>
+                                        <td className="px-4 py-2 text-right">40% 환불</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-4 py-2">입실 3일 전</td>
+                                        <td className="px-4 py-2 text-right">30% 환불</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-4 py-2">입실 2일 전</td>
+                                        <td className="px-4 py-2 text-right">20% 환불</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-4 py-2">입실 1일 전 및 입실 당일</td>
                                         <td className="px-4 py-2 text-right text-red-600 font-semibold">환불 불가</td>
                                     </tr>
                                 </tbody>
