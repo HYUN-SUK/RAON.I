@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "kr.co.raoni.app",
+    "sha256_cert_fingerprints": ["51:06:35:C4:EF:09:8F:EF:15:A8:E3:BD:55:D5:52:C8:6E:1A:46:D7:A9:62:DA:B7:AA:C0:88:E1:99:A7:0B:A4"]
+  }
+}]
