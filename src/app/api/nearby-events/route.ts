@@ -65,10 +65,10 @@ export async function GET(request: NextRequest) {
         const radius = parseFloat(searchParams.get('radius') || '30000');
         const radiusKm = radius / 1000;
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
+        const todayKst = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
+        const year = todayKst.getUTCFullYear();
+        const month = String(todayKst.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(todayKst.getUTCDate()).padStart(2, '0');
         const todayStr = `${year}${month}${day}`;
         // Base Date for Cache Key (Daily Cache)
         const baseDate = todayStr;
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
                 if (startClean && endClean) {
                     return startClean <= todayStr && todayStr <= endClean;
                 }
-                return true;
+                return false; // 날짜가 비어있거나 올바르지 않으면 제외 (엄격한 가드)
             })
             .sort((a, b) => a.distance_km - b.distance_km);
 

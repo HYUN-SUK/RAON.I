@@ -27,6 +27,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReminderBanner from '@/components/myspace/ReminderBanner';
 import { useFabSparkle } from '@/hooks/useFabSparkle';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
+import MyMapModal from '@/components/myspace/MyMapModal';
+import { useMySpaceStore } from '@/store/useMySpaceStore';
 
 
 
@@ -69,6 +71,7 @@ interface RecommendationItem {
 
 export default function ReturningHome() {
     const router = useRouter();
+    const { isMapOpen, setIsMapOpen } = useMySpaceStore();
     const { initRebook, lastReservation, fetchLastReservation, openDayRule, fetchOpenDayRule, fetchSites, reservations, fetchMyReservations } = useReservationStore();
     const { config } = useSiteConfig();
     const lbs = useLBS();
@@ -436,6 +439,12 @@ export default function ReturningHome() {
                     refresh();
                     fetchMyReservations();
                 }}
+            />
+
+            {/* 지도 모달 바인딩 */}
+            <MyMapModal
+                isOpen={isMapOpen}
+                onClose={() => setIsMapOpen(false)}
             />
         </div>
     );

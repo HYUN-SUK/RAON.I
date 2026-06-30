@@ -33,6 +33,8 @@ import { createClient } from '@/lib/supabase-client';
 import { useFabSparkle } from '@/hooks/useFabSparkle';
 import ReminderBanner from '@/components/myspace/ReminderBanner';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
+import MyMapModal from '@/components/myspace/MyMapModal';
+import { useMySpaceStore } from '@/store/useMySpaceStore';
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
@@ -100,6 +102,7 @@ export default function BeginnerHome() {
 
     const [isRecordOpen, setIsRecordOpen] = useState(false);
     const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
+    const { isMapOpen, setIsMapOpen } = useMySpaceStore();
 
     // 다가오는 예약 판단 (체크아웃이 오늘 이후이면서 승인/대기 중인 예약)
     const hasUpcoming = useMemo(() => {
@@ -698,6 +701,12 @@ export default function BeginnerHome() {
                     refresh();
                     fetchMyReservations();
                 }}
+            />
+
+            {/* 지도 모달 바인딩 */}
+            <MyMapModal
+                isOpen={isMapOpen}
+                onClose={() => setIsMapOpen(false)}
             />
         </div >
     );

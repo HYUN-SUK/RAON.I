@@ -413,10 +413,6 @@ export default function QuickRecordForm({
                                             });
                                         }
                                         useMySpaceStore.getState().setIsMapOpen(true);
-                                        
-                                        // 무조건 내 수첩(지도가 있는 곳)으로 라우팅 이동
-                                        router.push('/myspace');
-                                        
                                         handleClose();
                                     }}
                                     className="w-full bg-[#224732] hover:bg-[#1a3626] text-white font-bold h-12 rounded-xl shadow-lg"
@@ -477,23 +473,50 @@ export default function QuickRecordForm({
                                 )}
                             </div>
 
-                            {/* 2. 공개/비공개 토글 */}
-                            <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-                                <div className="flex items-center gap-2">
-                                    {isPublic ? (
-                                        <Globe className="w-4 h-4 text-[#224732]" />
-                                    ) : (
-                                        <Lock className="w-4 h-4 text-gray-500" />
-                                    )}
-                                    <span className="text-sm font-medium">
-                                        {isPublic ? '후기게시판에 공개' : '나만 보기'}
-                                    </span>
+                            {/* 2. 공개 범위 선택 (카드 선택기 형태) */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">기록 공개 설정</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {/* 비공개 카드 */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPublic(false)}
+                                        className={cn(
+                                            "flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 transition-all active:scale-[0.98] text-left w-full h-[76px]",
+                                            !isPublic
+                                                ? "border-[#224732] bg-[#224732]/5 text-[#224732] font-bold"
+                                                : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <Lock className={cn("w-4 h-4", !isPublic ? "text-[#224732]" : "text-stone-400")} />
+                                            <span className="text-xs">나만 보기</span>
+                                        </div>
+                                        <p className="text-[9px] font-normal leading-tight text-stone-400 dark:text-stone-500 text-center">
+                                            나만 아는 소중한 추억으로 간직할게요.
+                                        </p>
+                                    </button>
+
+                                    {/* 공개 카드 */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPublic(true)}
+                                        className={cn(
+                                            "flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 transition-all active:scale-[0.98] text-left w-full h-[76px]",
+                                            isPublic
+                                                ? "border-[#224732] bg-[#224732]/5 text-[#224732] font-bold"
+                                                : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <Globe className={cn("w-4 h-4", isPublic ? "text-[#224732]" : "text-stone-400")} />
+                                            <span className="text-xs">전체 공개</span>
+                                        </div>
+                                        <p className="text-[9px] font-normal leading-tight text-stone-400 dark:text-stone-500 text-center">
+                                            라온아이 캠퍼들과 이 감성을 나눌게요.
+                                        </p>
+                                    </button>
                                 </div>
-                                <Switch
-                                    checked={isPublic}
-                                    onCheckedChange={setIsPublic}
-                                    className="data-[state=checked]:bg-[#224732]"
-                                />
                             </div>
 
                             {/* 3. 감성 만족도 이모지 선택기 (NEW: 상단 배치) */}
