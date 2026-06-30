@@ -15,6 +15,7 @@ import { ko } from 'date-fns/locale';
 import dynamic from 'next/dynamic';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
 import { compressImage } from '@/utils/imageCompressor';
+import { useRouter } from 'next/navigation';
 
 // 동적 import (SSR 비활성화)
 const ImageEditorModal = dynamic(
@@ -124,6 +125,7 @@ export default function QuickRecordForm({
     scheduleId,
     onSuccess
 }: QuickRecordFormProps) {
+    const router = useRouter();
     const [content, setContent] = useState('');
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -411,6 +413,10 @@ export default function QuickRecordForm({
                                             });
                                         }
                                         useMySpaceStore.getState().setIsMapOpen(true);
+                                        
+                                        // 무조건 내 수첩(지도가 있는 곳)으로 라우팅 이동
+                                        router.push('/myspace');
+                                        
                                         handleClose();
                                     }}
                                     className="w-full bg-[#224732] hover:bg-[#1a3626] text-white font-bold h-12 rounded-xl shadow-lg"
