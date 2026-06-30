@@ -28,6 +28,7 @@ interface ScheduleCardProps {
     onDelete?: (scheduleId: string) => void;
     onComplete?: (scheduleId: string) => void;
     onClick?: (schedule: Schedule) => void;
+    onCancelRequest?: (schedule: Schedule) => void;
 }
 
 export default function ScheduleCard({
@@ -36,6 +37,7 @@ export default function ScheduleCard({
     onDelete,
     onComplete,
     onClick,
+    onCancelRequest,
 }: ScheduleCardProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -262,7 +264,21 @@ export default function ScheduleCard({
 
             {/* 하단 링크 */}
             {onClick && (
-                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-end">
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                    {schedule.source === 'raonai' && onCancelRequest && schedule.status === 'scheduled' ? (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onCancelRequest(schedule);
+                            }}
+                            className="text-xs text-red-500 font-semibold hover:text-red-700 active:scale-95 transition-all py-1 px-2 -ml-2 rounded-lg hover:bg-red-50"
+                        >
+                            취소요청
+                        </button>
+                    ) : (
+                        <div />
+                    )}
                     <span className="text-sm text-[#224732] font-medium flex items-center gap-0.5">
                         상세보기
                         <ChevronRight className="w-4 h-4" />

@@ -14,6 +14,9 @@ import {
 import { Schedule, getMySchedules, deleteSchedule, completeSchedule } from '@/actions/schedule';
 import ScheduleCard from '@/components/schedule/ScheduleCard';
 import ScheduleForm from '@/components/schedule/ScheduleForm';
+import { useReservationStore } from '@/store/useReservationStore';
+import CancelReservationSheet from '@/components/reservation/CancelReservationSheet';
+import { Reservation } from '@/types/reservation';
 import {
     Sheet,
     SheetContent,
@@ -44,6 +47,13 @@ function ScheduleContent() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
+    // 예약 취소 연동용 스토어 및 상태
+    const { reservations, fetchMyReservations, updateReservationStatus } = useReservationStore();
+    const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
+    const [cancelSheetOpen, setCancelSheetOpen] = useState(false);
+    const [pendingCancelConfirmOpen, setPendingCancelConfirmOpen] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+
     // [v11.9.70] 홈 화면 등에서 '일정추가' 파라미터 전달 시 자동 오픈
     useEffect(() => {
         if (searchParams.get('add') === 'external') {
@@ -69,6 +79,7 @@ function ScheduleContent() {
 
     useEffect(() => {
         fetchSchedules();
+        fetchMyReservations();
     }, [activeTab]);
 
     // 일정 삭제
@@ -105,6 +116,41 @@ function ScheduleContent() {
     const handleFormSuccess = () => {
         setIsFormOpen(false);
         fetchSchedules();
+    };
+
+    // 취소 요청 핸들러
+    const handleCancelRequest = (schedule: Schedule) => {
+        if (!schedule.reservation_id) return;
+        const res = reservations.find(r => r.id === schedule.reservation_id);
+        if (!res) {
+            toast.error('예약 정보를 찾을 수 없어요');
+            return;
+        }
+
+        setCancelTarget(res);
+        if (res.status === 'PENDING') {
+            setPendingCancelConfirmOpen(true);
+        } else {
+            setCancelSheetOpen(true);
+        }
+    };
+
+    // 입금대기 바로 취소
+    const handleDirectCancel = async () => {
+        if (!cancelTarget) return;
+        setIsCancelling(true);
+        try {
+            await updateReservationStatus(cancelTarget.id, 'CANCELLED');
+            toast.success('예약이 취소되었어요');
+            setPendingCancelConfirmOpen(false);
+            setCancelTarget(null);
+            fetchSchedules();
+            fetchMyReservations();
+        } catch {
+            toast.error('취소 처리에 실패했어요');
+        } finally {
+            setIsCancelling(false);
+        }
     };
 
     const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
@@ -212,6 +258,7 @@ function ScheduleContent() {
                                 onClick={handleScheduleClick}
                                 onComplete={handleComplete}
                                 onDelete={setDeleteTarget}
+                                onCancelRequest={handleCancelRequest}
                             />
                         ))}
                     </div>
@@ -251,6 +298,43 @@ function ScheduleContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* 입금 대기 취소 확인 다이얼로그 */}
+            <AlertDialog open={pendingCancelConfirmOpen} onOpenChange={setPendingCancelConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>예약을 취소하시겠습니까?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            아직 입금하지 않은 예약입니다. 취소하시면 예약이 즉시 취소됩니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>돌아가기</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDirectCancel}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={isCancelling}
+                        >
+                            {isCancelling ? '취소 중...' : '예약 취소'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* 확정 예약 취소요청 바텀시트 */}
+            {cancelTarget && (
+                <CancelReservationSheet
+                    open={cancelSheetOpen}
+                    onOpenChange={setCancelSheetOpen}
+                    reservation={cancelTarget}
+                    onComplete={() => {
+                        setCancelSheetOpen(false);
+                        setCancelTarget(null);
+                        fetchSchedules();
+                        fetchMyReservations();
+                    }}
+                />
+            )}
         </div>
     );
 }
