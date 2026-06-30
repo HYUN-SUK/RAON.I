@@ -13,8 +13,16 @@ import * as cheerio from 'cheerio';
 import { ADMIN_SIDO_MAP, SIGUNGU_CODE_MASTER, getAdminCodes } from './utils/admin-code-mapping.mjs';
 import { fetchTourPlaceDetails, fetchHospitalDetails } from './utils/public-api-helpers.mjs';
 import proj4 from 'proj4';
+import https from 'https';
 
 dotenv.config({ path: '.env.local' });
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 1000,
+  maxSockets: 10,
+  timeout: 180000
+});
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -965,8 +973,15 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
     
     try {
       const res = await fetch(url, { 
-        headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.data.go.kr/' },
-        timeout: 120000
+        headers: { 
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.localdata.go.kr/',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Connection': 'keep-alive'
+        },
+        agent: httpsAgent,
+        timeout: 180000
       });
       const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
       if (!res.ok) {
