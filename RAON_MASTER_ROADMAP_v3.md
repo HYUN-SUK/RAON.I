@@ -826,3 +826,10 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 * [x] **전국 행정코드 매핑 오류 수정 및 누락 데이터 보완 (v2)**: SIDO_SYNONYMS 구축으로 약칭 매핑 누수 문제 교정 및 Null 주소 3,184건 파싱 복원 완료 (최종 매핑 갭 0건 확인).
 * [/] **공공 API 상세정보 벌크적재 이행 (명소/병원/축제)**: 2,214건 대기 상태 (금일 성공 917건 / 실패 727건 적재 후 쿼터 소진으로 중단, 다음 세션 재개 대기).
 * [/] **제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 이행**: 결제 등록 및 1줄 적재 계획서(implementation_plan.md) 승인 완료, 상세 미적재 Fallback 및 카테고리 프롬프트 탑재한 스크립트(`gemini-enrich-description.mjs`, `run-gemini-description-loop.mjs`) 작성 및 10건 드라이런 검산 완료 (전수 적재 실행을 위한 논의 대기).
+
+### [2026-06-29 Update]
+* [x] **TWA 플레이스토어 심사 준비 완료**: 개인정보처리방침(`privacy-policy/page.tsx`) 및 이용약관(`terms/page.tsx`) 신설 및 연동, 스토어 규격 앱 아이콘(512x512/192x192 PNG) 및 대표 그래픽 배너(1024x500 PNG) AI 제작 및 정합 완료.
+* [x] **앱 이름 및 스플래시 동기화**: 앱 노출명 및 스플래시 화면을 "라온아이 - 스마트 여행 수첩"으로 일괄 수정 및 배포용 manifest.json 연동.
+* [x] **디지털 에셋 링크 배포**: 패키지명 `kr.co.raoni.app`과 SHA-256 서명 지문을 연동한 `assetlinks.json`을 public 경로에 업로드 및 도메인 검증 완료.
+* [/] **DUNS(던스) 번호 발급 대기**: 나이스디앤비 수수료 부과 회피를 위해 D&B 미국 본사(애플 개발자 포털 연계) 무료 발급 우회 신청 완료 (접수 및 3~5일 영업일 대기 중).
+

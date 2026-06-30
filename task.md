@@ -63,7 +63,7 @@
 - [ ] **Phase 3/4: Co-Op & Live Search**: Build real-time Tinder voting via Supabase and integrate Kakao/NMC APIs.
 - [ ] **AI Hero Narrative Refinement**: Audit the AI-generated hero phrases by refining prompts and verifying consistency.
 - [ ] **Festival Scoring Refinement**: Re-verify the differentiate scoring logic between `SPOT` and `FESTIVAL` and remove outdated `readcount` criteria.
-- [ ] **Patent Strategy Phase 2**: Deep dive into patent claim strategy and BM protection for the Smart Plan.
+- [x] **Patent Strategy Phase 2**: Deep dive into patent claim strategy and BM protection for the Smart Plan. (임시명세서 출원 완료 - 2026-06-27)
 - [x] **User Account Deletion & Separation Storage (회원 탈퇴 및 분리 보관)**
     - [x] Create database schema migration for `withdrawn_user_records` and `fn_withdraw_user` RPC.
     - [x] Implement signup validation hook/logic to enforce 30-day block but bypass `toot@naver.com`.
@@ -162,9 +162,27 @@
 - [/] **다음 세션 데이터 정리 및 시스템 보완 작업**
     - [x] 25일 새벽 GitHub Actions 크론 스케줄링(일일 로테이션 및 크롤러) 정상 구동 모니터링 및 표기 모순 개선 완료
     - [ ] 제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 파이프라인 개발 및 실행 계획 수립 (사용자 대기 지시 반영)
-    - [ ] 스마트 플랜 LIVE 캐싱 고도화 및 BM 특허 출원 2단계 기술 검토
+    - [x] 스마트 플랜 LIVE 캐싱 고도화 및 BM 특허 출원 2단계 기술 검토 (임시명세서 출원 및 우선권 확보 완료)
 - [x] **상세정보 적재 고도화 및 미적재 데이터 정밀 복원 [CURRENT]**
     - [x] [1단계] 식당/카페/마트 Playwright 매칭 로직 업그레이드 (상호명 정규화 & 위경도 반경 매칭 강화)
     - [ ] [2단계] `contentid` 누락 명소(1,348건) 대상 Playwright 우회 스크래핑 파이프라인 구축 및 구동
     - [x] [3단계] 네이버 플레이스 2차 모바일 페이지 스위칭 크롤러 연동 개발 및 가동
     - [x] [4단계] 병원 NMC hpid 매핑 누락 보정/백필 스크립트 작성 및 불필요 병의원/동물병원 데이터 정밀 정제 완료
+- [x] **스마트플랜 안정화 및 Vercel 빌드 정상화 (이번 세션 완료)**
+    - [x] 제미나이 호출 503 오류 해결: `gemini-2.5-flash-lite`에서 사용자가 결제한 유료 안정 버젼인 `gemini-2.5-flash`로 변경 완료 및 세부 예외 로깅 보완
+    - [x] Vercel 배포 빌드 오류 해결: 루트 Next.js 검사 대상에서 `mcp-server` 폴더(독립 서브 프로젝트)를 완전히 제외하도록 `tsconfig.json` 및 `eslint.config.mjs` / `.eslintignore` 설정 튜닝 완료
+- [x] **광주/전남 통합 시도 분할 수집 처리 및 주소 정규화 보완 (이번 세션 완료)**
+    - [x] `scripts/daily-region-sync.mjs` 수정 (SIDO_ROTATION에 `전남광주시_광주권`, `전남광주시_전남권` 분산 수집 도입, 광주/전남 구군 단위 필터링 적용 및 NMC API 호출 시 광주광역시/전라남도 단일화 대응)
+    - [x] `scripts/utils/admin-code-mapping.mjs` 수정 (전남광주시 통합 시도 예외 처리 및 하위 구군 단위 분기 매핑 구현)
+    - [x] `src/app/api/cron/sync-smart-plan/route.ts` 수정 (전남광주시 및 경기도 광주시 주소 가상 정규화 방어 필터 적용)
+    - [x] 수정한 3개 파일에 대한 ESLint 린트 오류 해결 및 무결성 검증 완료
+- [x] **TWA (Trusted Web Activity) 플레이스토어 베타 출시 준비 (이번 세션 완료)**
+    - [x] 대한민국 개인정보 보호법 및 개인정보 국외위탁 준수를 보장하는 프리미엄 스타일의 개인정보처리방침(`privacy-policy/page.tsx`) 및 이용약관(`terms/page.tsx`) 전용 페이지 신설
+    - [x] 로그인 화면(`login/page.tsx`) 하단 및 상단바 프로필 드롭다운 메뉴(`TopBar.tsx`)에 각각 약관 및 방침 페이지 링크 연동 완료
+    - [x] 플레이스토어 규격 충족을 위해 512x512 PNG 아이콘(`icon-512.png`) 및 1024x500 대표 그래픽 배너(`feature_graphic.png`) AI 생성 및 텍스트 합성 완료
+    - [x] PWABuilder 빌드 오류 해결을 위해 192x192 PNG 아이콘(`icon-192.png`) 및 512x512 PNG 아이콘(`icon-512.png`)의 해상도 및 포맷(TRUE PNG) 정밀 재생성 적용
+    - [x] 스플래시 및 앱 런처 명칭을 기존 "예산군 오토캠핑장"에서 최종 브랜드 아이덴티티인 "라온아이 - 스마트 여행 수첩"으로 일괄 동기화 완료 (`manifest.json` 및 `layout.tsx` 반영)
+    - [x] PWABuilder 패키징 정보와 일치하는 디지털 에셋 링크 파일(`public/.well-known/assetlinks.json`) 작성, 도메인 배포 및 실시간 호출 검증 완료
+    - [x] 구글 플레이스토어 등록용 스토어 설명문구(간단한 설명 / 자세한 설명) 초안 작성 완료
+    - [x] 미국 D&B 본사를 통한 100% 무료 DUNS(던스) 번호 우회 신청(애플 개발자 포털 연계) 방법 안내 및 접수 완료 (대기 상태)
+
