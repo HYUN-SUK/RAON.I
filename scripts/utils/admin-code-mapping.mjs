@@ -21,7 +21,8 @@ export const ADMIN_SIDO_MAP = {
     '전라남도': '46',
     '경상북도': '47',
     '경상남도': '48',
-    '제주특별자치도': '50'
+    '제주특별자치도': '50',
+    '전남광주시': '29,46' // 통합 시도용 듀얼 코드 매핑
 };
 
 /**
@@ -138,9 +139,10 @@ const SIDO_SYNONYMS = {
     '세종': '세종특별자치시', '세종시': '세종특별자치시',
     '경기': '경기도', '강원': '강원특별자치도',
     '충북': '충청북도', '충남': '충청남도',
-    '전북': '전북특별자치도', '전남': '전라남도',
+    '전북': '전북특별자치도', '전남': '전라남도', '전남도': '전라남도',
     '경북': '경상북도', '경남': '경상남도',
-    '제주': '제주특별자치도', '제주시': '제주특별자치도', '제주도': '제주특별자치도'
+    '제주': '제주특별자치도', '제주시': '제주특별자치도', '제주도': '제주특별자치도',
+    '전남광주시': '전남광주시', '전남광주': '전남광주시', '광주전남': '전남광주시'
 };
 
 // 광역시 구 단위 중복 이름 목록 (이 이름들은 시도 접미사가 필요)
@@ -151,6 +153,17 @@ export function getAdminCodes(sido, sigungu) {
     // 동의어 변환 적용
     if (SIDO_SYNONYMS[normalizedSido]) {
         normalizedSido = SIDO_SYNONYMS[normalizedSido];
+    }
+
+    // [vFinal] 전남광주시 통합 시도 예외 처리: 하위 시군구 명칭을 대조하여 광주/전남으로 세분화
+    if (normalizedSido === '전남광주시' && sigungu) {
+        const cleanSigungu = sigungu.replace(/\s+/g, '').replace(/\(.+?\)/g, '');
+        const isGwangjuGu = /^(동구|서구|남구|북구|광산구)$/.test(cleanSigungu);
+        if (isGwangjuGu) {
+            normalizedSido = '광주광역시';
+        } else {
+            normalizedSido = '전라남도';
+        }
     }
 
     const areaCd = ADMIN_SIDO_MAP[normalizedSido];

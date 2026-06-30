@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createClient } from '@supabase/supabase-js';
 import { scrapeKakaoPlace } from '@/lib/scraper';
 import proj4 from 'proj4';
@@ -26,7 +28,7 @@ function getStandardNmcSido(sido: string): string {
         '경상북도': '경상북도', '경북': '경상북도',
         '경상남도': '경상남도', '경남': '경상남도',
         '제주특별자치도': '제주특별자치도', '제주도': '제주특별자치도', '제주': '제주특별자치도',
-        '전남광주통합시': '전남광주통합시'
+        '전남광주시': '전남광주시', '전남광주': '전남광주시', '광주전남': '전남광주시'
     };
     return nmcSidoMap[cleanSido] || cleanSido.substring(0, 2);
 }
@@ -34,6 +36,31 @@ function getStandardNmcSido(sido: string): string {
 function getNormalizedAddr(addr: string): string {
     if (!addr) return '';
     let a = addr.replace(/,\s?대한민국$/, '').trim();
+
+    // 1. 경기도 광주시 방어 필터 (경기/경기도 명시 또는 광주시 고유 읍/면이 감지되는 경우)
+    const isGyeonggiGwangju = 
+      /^(경기|경기도)\s/.test(a) || 
+      (/^(광주|광주시)\s/.test(a) && /(오포읍|초월읍|곤지암읍|도척면|퇴촌면|남종면|남한산성면)/.test(a));
+
+    if (isGyeonggiGwangju) {
+      a = a.replace(/^(경기|경기도|광주|광주시)\s(광주시\s)?/, '경기도 광주시 ');
+      return a.trim();
+    }
+
+    // 2. 전남광주시(구 광주광역시 자치구) -> UUID 보존을 위해 '광주광역시'로 가상 정규화
+    const isGwangjuMetro = /(동구|서구|남구|북구|광산구)/.test(a);
+    if (isGwangjuMetro && /^(전남광주시|전남광주|광주전남|광주광역시|광주시|광주)\s/.test(a)) {
+      a = a.replace(/^(전남광주시|전남광주|광주전남|광주광역시|광주시|광주)\s?/, '광주광역시 ');
+      return a.trim();
+    }
+
+    // 3. 전남광주시(구 전남 시군) -> UUID 보존을 위해 '전라남도'로 가상 정규화
+    const isJeonnamLocal = /(목포시|여수시|순천시|나주시|광양시|담양군|곡성군|구례군|고흥군|보성군|화순군|장흥군|강진군|해남군|영암군|무안군|함평군|영광군|장성군|완도군|진도군|신안군)/.test(a);
+    if (isJeonnamLocal && /^(전남광주시|전남광주|광주전남|전라남도|전남|전남도)\s/.test(a)) {
+      a = a.replace(/^(전남광주시|전남광주|광주전남|전라남도|전남|전남도)\s?/, '전라남도 ');
+      return a.trim();
+    }
+
     a = a.replace(/^(서울|서울특별시)\s?/, '서울특별시 ');
     a = a.replace(/^(부산|부산광역시)\s?/, '부산광역시 ');
     a = a.replace(/^(대구|대구광역시)\s?/, '대구광역시 ');
@@ -59,7 +86,8 @@ function extractSido(addr: string): string | null {
     const normalized = getNormalizedAddr(addr);
     const standardSidos = [
         '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', 
-        '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'
+        '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도',
+        '전남광주시'
     ];
     return standardSidos.find(s => normalized.startsWith(s)) || null;
 }
@@ -247,7 +275,7 @@ export async function POST(request: Request) {
                                          liveHospitalsMap.get(h.name);
                         
                         let trustScore = 150; // Keep NMC trust_score 150 as requested!
-                        let badgeList = h.raw_data?.badges || [];
+                        const badgeList = h.raw_data?.badges || [];
                         if (h.api_source !== 'NMC_HOSPITAL') {
                             trustScore = h.api_source === 'KAKAO_HP8' && !h.name?.match(/종합병원|의료원|대학병원/) ? 20 : 100;
                         }
@@ -754,7 +782,7 @@ export async function POST(request: Request) {
 
                         if (matched && matched.place_url) {
                             const scResult = await scrapeKakaoPlace(matched.place_url);
-                            let finalScore = (cand.trust_score || 50);
+                            const finalScore = (cand.trust_score || 50);
                             
                             return {
                                 id: generateFactId('MASTER_ENRICHED', cand.name, cand.address), 

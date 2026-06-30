@@ -24,7 +24,9 @@ const args = process.argv.slice(2);
 const limit = parseInt(getArgValue('--limit') || '1000', 10);
 const lastId = getArgValue('--last-id') || null;
 const billingMode = getArgValue('--billing') || 'paid'; // 'free' or 'paid'
+const filterCategory = getArgValue('--category') || null;
 const dryRun = args.includes('--dry-run');
+const forceRebuild = args.includes('--force-rebuild');
 
 function getArgValue(flag) {
   const idx = args.indexOf(flag);
@@ -85,8 +87,8 @@ async function requestGemini(prompt) {
   }
 }
 
-// 0원 로컬 Fallback 처리 헬퍼 (상세 미적재용)
-function makeLocalFallbackDescription(name, category, address) {
+// 0원 로컬 Fallback 처리 헬퍼 (상세 미적재용 - 대안 2 적용)
+function makeLocalFallbackDescription(name, category, address, rawData) {
   const categoryNameKo = {
     RESTAURANT: '식당',
     ROUTE_CAFE: '카페',
@@ -97,7 +99,27 @@ function makeLocalFallbackDescription(name, category, address) {
   }[category] || category || '장소';
 
   const cleanAddr = address ? address.split(' ').slice(0, 3).join(' ') : '해당 지역';
-  return `${name}은(는) ${cleanAddr} 인근에 위치한 ${categoryNameKo} 관련 장소입니다. 구체적인 운영 및 이용 정보는 방문 전 확인을 권장합니다.`;
+  const tel = rawData?.['전화번호'] || rawData?.['RELAX_RSTRNT_TEL'] || rawData?.['tel'] || '';
+  const telSuffix = tel ? `(${tel})` : '';
+
+  return `${cleanAddr} 인근의 ${categoryNameKo} ${name}입니다. 세부 정보는 사전 확인을 권장합니다. ${telSuffix}`.trim();
+}
+
+// 실효 데이터 검사 함수 (식당/마트의 껍데기 상세정보 방어 - CASE B 대안)
+function hasValidDetails(category, rawData) {
+  if (rawData.enriched !== true) return false;
+  
+  // 공공 카테고리(관광지, 병원, 축제 등)는 enriched === true 이면 유효한 상세 데이터로 간주
+  if (category !== 'RESTAURANT' && category !== 'ROUTE_CAFE' && category !== 'MART') {
+    return true;
+  }
+  
+  // 식당 및 마트는 메뉴, 영업시간, 주차 중 최소 1개 이상이 유효하게 채워져 있는지 검증
+  const hasMenu = Array.isArray(rawData.representative_menu) && rawData.representative_menu.length > 0;
+  const hasHours = !!rawData.operating_hours && !rawData.operating_hours.includes('정보 없음') && !rawData.operating_hours.includes('지번 :');
+  const hasParking = !!rawData.parking_available && !rawData.parking_available.includes('확인 불가');
+
+  return hasMenu || hasHours || hasParking;
 }
 
 // 핵심 비즈니스 로직
@@ -109,14 +131,20 @@ async function enrichDescriptions() {
   let selectQuery = supabase
     .from('master_places')
     .select('id, name, address, lat, lng, category, raw_data, description, api_source')
-    .eq('is_active', true)
-    .order('id');
+    .eq('is_active', true);
+
+  if (filterCategory) {
+    selectQuery = selectQuery.eq('category', filterCategory);
+  }
+
+  selectQuery = selectQuery.order('id');
 
   if (lastId) {
     selectQuery = selectQuery.gt('id', lastId);
   }
 
-  const { data: rawPlaces, error: fetchErr } = await selectQuery.limit(limit);
+  const fetchLimit = filterCategory ? 200 : limit;
+  const { data: rawPlaces, error: fetchErr } = await selectQuery.limit(fetchLimit);
   if (fetchErr) {
     console.error("Error fetching places from Supabase:", fetchErr.message);
     process.exit(1);
@@ -132,9 +160,16 @@ async function enrichDescriptions() {
     process.exit(0);
   }
 
-  // 2. 이력을 중복 적재하지 않기 위해 필터링
-  // raw_data.description_enriched === true 인 건은 건너뜁니다.
-  const targetPlaces = rawPlaces.filter(p => !p.raw_data?.description_enriched);
+  // 2. 이력을 중복 적재하지 않기 위해 필터링 및 카테고리 메모리 필터 적용
+  const targetPlaces = rawPlaces.filter(p => {
+    if (filterCategory && p.category !== filterCategory) return false;
+    if (forceRebuild) {
+      // force-rebuild 시 로컬 Fallback은 0원 완료 데이터이므로 유지하고, 구형 1줄설명은 덮어씁니다.
+      const isFallback = p.raw_data?.description_api_source === 'LOCAL_FALLBACK';
+      return !isFallback;
+    }
+    return !p.raw_data?.description_enriched;
+  });
 
   // 다음 회차 스캔을 위해 마지막 ID 저장
   const lastRecordId = rawPlaces[rawPlaces.length - 1].id;
@@ -151,8 +186,8 @@ async function enrichDescriptions() {
   console.log(`Found ${targetPlaces.length} target places to enrich in this chunk (Scanned ${rawPlaces.length} rows).`);
 
   const buffer = [];
-  const concurrencyLimit = billingMode === 'paid' ? 15 : 1;
-  const delayBetweenRequests = billingMode === 'paid' ? 150 : 4500; // paid일 때는 150ms 딜레이, free일 때는 4.5초 대기
+  const concurrencyLimit = 1; // 과금 추적 관찰을 위해 1개씩 순차 진행
+  const delayBetweenRequests = 1000; // 1초 대기
 
   let successCount = 0;
   let fallbackCount = 0;
@@ -163,20 +198,25 @@ async function enrichDescriptions() {
     const chunk = targetPlaces.slice(i, i + concurrencyLimit);
     
     await Promise.all(chunk.map(async (place) => {
-      const { id, name, category, address, raw_data, api_source } = place;
+      const { id, name, category, address, lat, lng, raw_data, api_source } = place;
       const raw = raw_data || {};
       
-      // 💡 [최적화] 상세정보가 없는 장소(enriched: false/null)는 0원 로컬 Fallback 처리
-      const hasDetails = raw.enriched === true;
+      // 💡 [최적화] 상세정보가 없거나 실효 데이터가 전무한 경우 0원 로컬 Fallback 처리 (CASE B 방어)
+      const hasDetails = hasValidDetails(category, raw);
       
       if (!hasDetails) {
-        const localDesc = makeLocalFallbackDescription(name, category, address);
+        const localDesc = makeLocalFallbackDescription(name, category, address, raw);
         fallbackCount++;
         if (dryRun) {
           console.log(`[DRY-RUN Fallback] ${name} (${category}) -> "${localDesc}"`);
         }
         buffer.push({
           id,
+          category,
+          name,
+          address,
+          lat,
+          lng,
           description: localDesc,
           raw_data: { ...raw, description_enriched: true, description_api_source: 'LOCAL_FALLBACK' },
           api_source,
@@ -200,6 +240,11 @@ async function enrichDescriptions() {
           successCount++;
           buffer.push({
             id,
+            category,
+            name,
+            address,
+            lat,
+            lng,
             description: `[DRY-RUN] 요약본 예정`,
             raw_data: { ...raw, description_enriched: true, description_api_source: MODEL_NAME },
             api_source,
@@ -216,6 +261,11 @@ async function enrichDescriptions() {
         successCount++;
         buffer.push({
           id,
+          category,
+          name,
+          address,
+          lat,
+          lng,
           description: cleanReply,
           raw_data: { ...raw, description_enriched: true, description_api_source: MODEL_NAME },
           api_source,
@@ -237,6 +287,11 @@ async function enrichDescriptions() {
     // supabase.upsert를 사용합니다. (id가 매칭되면 description, raw_data, updated_at만 갱신하도록 구성)
     const upsertData = buffer.map(item => ({
       id: item.id,
+      category: item.category,
+      name: item.name,
+      address: item.address,
+      lat: item.lat,
+      lng: item.lng,
       description: item.description,
       raw_data: item.raw_data,
       api_source: item.api_source,

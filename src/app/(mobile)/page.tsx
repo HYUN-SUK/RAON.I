@@ -56,7 +56,7 @@ export default function Home() {
           .from('user_schedules')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', session.user.id)
-          .eq('status', 'scheduled')
+          .neq('status', 'cancelled')
           .lt('check_out', today)
       ]);
 

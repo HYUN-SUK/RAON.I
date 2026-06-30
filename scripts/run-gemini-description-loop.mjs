@@ -5,13 +5,15 @@ const limit = 1000;
 const scanMax = 200000; // 테이블 전체 17만 건을 완전히 순회하기 위한 최대 스캔 한도
 let scannedTotal = 0;
 
-// CLI 인수에서 --billing 및 --dry-run 옵션 전달
+// CLI 인수에서 --billing, --category 및 --dry-run 옵션 전달
 const args = process.argv.slice(2);
 const billingMode = args.includes('--billing') ? args[args.indexOf('--billing') + 1] : 'paid';
+const category = args.includes('--category') ? args[args.indexOf('--category') + 1] : null;
 const dryRun = args.includes('--dry-run');
+const forceRebuild = args.includes('--force-rebuild');
 
 console.log(`=== Starting Gemini Description Preloading Loop Runner ===`);
-console.log(`Scan Limit: ${scanMax}, Limit per batch: ${limit}, Billing: ${billingMode}, Dry-Run: ${dryRun}`);
+console.log(`Scan Limit: ${scanMax}, Limit per batch: ${limit}, Category: ${category || 'ALL'}, Billing: ${billingMode}, Dry-Run: ${dryRun}`);
 
 // 시작 전 scratch 디렉토리 및 last_gemini_cursor_id.txt 파일 확보
 if (!fs.existsSync('scratch/last_gemini_cursor_id.txt')) {
@@ -29,11 +31,17 @@ while (scannedTotal < scanMax) {
     '--billing', billingMode
   ];
   
+  if (category) {
+    runArgs.push('--category', category);
+  }
   if (lastId) {
     runArgs.push('--last-id', lastId);
   }
   if (dryRun) {
     runArgs.push('--dry-run');
+  }
+  if (forceRebuild) {
+    runArgs.push('--force-rebuild');
   }
 
   const result = spawnSync('node', runArgs, { stdio: 'inherit' });

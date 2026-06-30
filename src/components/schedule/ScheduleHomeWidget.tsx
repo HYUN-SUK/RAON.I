@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { SITES } from '@/constants/sites';
 import { useWeather } from '@/hooks/useWeather';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -40,6 +41,7 @@ interface UnifiedSchedule {
  */
 const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?: boolean }) {
     const router = useRouter();
+    const { withAuth } = useRequireAuth();
     const { reservations, fetchMyReservations } = useReservationStore();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const schedulesRef = useRef(schedules);
@@ -297,36 +299,38 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         }
     }, [upcomingItem, isSmartPlanAvailable]);
 
-    const handleCardClick = async () => {
-        if (!upcomingItem || isNavigating) return;
+    const handleCardClick = () => {
+        withAuth(async () => {
+            if (!upcomingItem || isNavigating) return;
 
-        // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
-        if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
-            router.push('/reservation/complete');
-            return;
-        }
+            // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
+            if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
+                router.push('/reservation/complete');
+                return;
+            }
 
-        // 그 외 (예약 확정, 타캠핑장) -> 일정 상세 페이지로
-        if (upcomingItem.type === 'reservation') {
-            setIsNavigating(true);
-            try {
-                // 백그라운드 동기화와 겹치거나 지연 생성 시 직접 호출
-                const result = await ensureScheduleFromReservation(upcomingItem.id);
+            // 그 외 (예약 확정, 타캠핑장) -> 일정 상세 페이지로
+            if (upcomingItem.type === 'reservation') {
+                setIsNavigating(true);
+                try {
+                    // 백그라운드 동기화와 겹치거나 지연 생성 시 직접 호출
+                    const result = await ensureScheduleFromReservation(upcomingItem.id);
 
-                if (result.success && result.scheduleId) {
-                    router.push(`/myspace/schedule/${result.scheduleId}`);
-                } else {
-                    console.error('Failed to ensure schedule:', result.error);
+                    if (result.success && result.scheduleId) {
+                        router.push(`/myspace/schedule/${result.scheduleId}`);
+                    } else {
+                        console.error('Failed to ensure schedule:', result.error);
+                        router.push('/reservation/complete');
+                    }
+                } catch (e) {
+                    console.error('Navigation error:', e);
                     router.push('/reservation/complete');
                 }
-            } catch (e) {
-                console.error('Navigation error:', e);
-                router.push('/reservation/complete');
+            } else {
+                // 이미 스케줄임 (Eager Sync로 인해 99.9% 이 케이스로 즉시 순간이동함)
+                router.push(`/myspace/schedule/${upcomingItem.id}`);
             }
-        } else {
-            // 이미 스케줄임 (Eager Sync로 인해 99.9% 이 케이스로 즉시 순간이동함)
-            router.push(`/myspace/schedule/${upcomingItem.id}`);
-        }
+        });
     };
 
     // 로딩
@@ -348,7 +352,10 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     // 일정 없음
     if (!upcomingItem) {
         return (
-            <Link href="/myspace/schedule">
+            <div 
+                onClick={() => withAuth(() => router.push('/myspace/schedule'))}
+                className="cursor-pointer"
+            >
                 <div className="bg-white rounded-2xl p-4 border border-dashed border-gray-200 hover:border-[#224732]/30 hover:bg-gray-50 transition-all">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#224732]/10 flex items-center justify-center">
@@ -361,7 +368,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         <ChevronRight className="w-5 h-5 text-gray-400" />
                     </div>
                 </div>
-            </Link>
+            </div>
         );
     }
 
@@ -552,7 +559,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             {/* 다른 여행 일정추가 및 나의 여행일정 버튼 */}
             <div className="flex flex-col gap-2 w-full">
                 <button
-                    onClick={() => setIsAlertOpen(true)}
+                    onClick={() => withAuth(() => setIsAlertOpen(true))}
                     className="w-full flex flex-col items-center justify-center gap-0.5 px-4 py-2.5 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
                 >
                     <div className="flex items-center gap-2">
@@ -562,7 +569,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                     <span className="text-[10px] text-stone-500 font-medium">다른 곳으로 가시는 여행 일정도 등록해 보세요. 라온아이가 똑똑한 여행 계획을 자동으로 완성해 드립니다.</span>
                 </button>
                 <button
-                    onClick={() => router.push('/myspace/schedule')}
+                    onClick={() => withAuth(() => router.push('/myspace/schedule'))}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
                 >
                     <Calendar className="w-4 h-4 text-[#C3A675]" />

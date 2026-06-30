@@ -30,6 +30,9 @@ import { usePushNotification } from '@/hooks/usePushNotification';
 import { Database } from '@/types/supabase';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
+import { useFabSparkle } from '@/hooks/useFabSparkle';
+import ReminderBanner from '@/components/myspace/ReminderBanner';
+import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
@@ -95,6 +98,9 @@ export default function BeginnerHome() {
     const [isIntroExpanded, setIsIntroExpanded] = useState(false);
     const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
 
+    const [isRecordOpen, setIsRecordOpen] = useState(false);
+    const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
+
     // 다가오는 예약 판단 (체크아웃이 오늘 이후이면서 승인/대기 중인 예약)
     const hasUpcoming = useMemo(() => {
         const today = new Date();
@@ -113,6 +119,7 @@ export default function BeginnerHome() {
         fetchOpenDayRule();
         fetchMyReservations();
         requestPermission();
+        refresh();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -377,6 +384,23 @@ export default function BeginnerHome() {
             <TopBar />
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
+                {/* 미작성 일정이 있을 때 홈화면 최상단에 리마인더 배너 노출 */}
+                <AnimatePresence>
+                    {unwrittenScheduleDetail && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="px-0"
+                        >
+                            <ReminderBanner
+                                detail={unwrittenScheduleDetail}
+                                onClick={() => setIsRecordOpen(true)}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* 1. Hero Section */}
                 <section className="relative w-full h-[50vh] min-h-[460px] flex flex-col justify-end p-6">
                     <div className="absolute inset-0 z-0 bg-stone-300">
@@ -559,7 +583,7 @@ export default function BeginnerHome() {
                 {/* 3.8 여행 레시피 탐색기 배너 */}
                 <section className="px-4 mb-8">
                     <div 
-                        onClick={() => router.push('/recipe')}
+                        onClick={() => handleProtectedAction(() => router.push('/recipe'))}
                         className="group relative w-full bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-700 hover:to-teal-600 text-white rounded-3xl p-5 border border-emerald-900/50 shadow-md hover:shadow-lg active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
                     >
                         {/* Background Deco */}
@@ -581,7 +605,7 @@ export default function BeginnerHome() {
                 {/* 4. 여행 놀이 탐색기 배너 */}
                 <section className="px-4 mb-8">
                     <div 
-                        onClick={() => router.push('/play')}
+                        onClick={() => handleProtectedAction(() => router.push('/play'))}
                         className="group relative w-full bg-gradient-to-r from-amber-700 to-orange-600 hover:from-amber-600 hover:to-orange-500 text-white rounded-3xl p-5 border border-amber-800/50 shadow-md hover:shadow-lg active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
                     >
                         {/* Background Deco */}
@@ -664,6 +688,17 @@ export default function BeginnerHome() {
                     />
                 )
             }
+
+            {/* 10초 기록 팝업 시트 바인딩 */}
+            <QuickRecordForm
+                isOpen={isRecordOpen}
+                onClose={() => setIsRecordOpen(false)}
+                scheduleId={unwrittenScheduleIds[0]}
+                onSuccess={() => {
+                    refresh();
+                    fetchMyReservations();
+                }}
+            />
         </div >
     );
 }
