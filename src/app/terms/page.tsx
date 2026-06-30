@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Calendar, Clock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, FileText, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function TermsPage() {
@@ -33,7 +33,7 @@ export default function TermsPage() {
                 </div>
 
                 <p className="text-xs text-stone-500 mb-8 leading-relaxed">
-                    본 약관은 '라온아이(RAON.I) 오토캠핑장'(이하 '캠핑장')이 제공하는 온라인 예약 및 관련 서비스(이하 '서비스')의 이용과 관련하여 캠핑장과 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.
+                    {"본 약관은 '라온아이(RAON.I) 오토캠핑장'(이하 '캠핑장')이 제공하는 온라인 예약 및 관련 서비스(이하 '서비스')의 이용과 관련하여 캠핑장과 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다."}
                 </p>
 
                 <div className="space-y-8 text-sm leading-relaxed">

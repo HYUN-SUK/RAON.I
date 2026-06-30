@@ -72,8 +72,9 @@ export default function LoginPage() {
                 router.push("/");
                 router.refresh();
             }
-        } catch (error: any) {
-            toast.error(isSignUp ? "가입 실패" : "로그인 실패", { description: error.message });
+        } catch (error) {
+            const errMessage = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+            toast.error(isSignUp ? "가입 실패" : "로그인 실패", { description: errMessage });
         } finally {
             setLoading(false);
         }
