@@ -270,7 +270,7 @@ export default function ScheduleCard({
             )}
 
             {/* 하단 링크 */}
-            {onClick && (
+            {(onClick || (schedule.source === 'raonai' && onCancelRequest && schedule.status === 'scheduled')) && (
                 <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                     {schedule.source === 'raonai' && onCancelRequest && schedule.status === 'scheduled' ? (
                         <button
@@ -286,7 +286,7 @@ export default function ScheduleCard({
                     ) : (
                         <div />
                     )}
-                    {!(schedule as any).is_pending_reservation && (
+                    {onClick && !(schedule as any).is_pending_reservation && (
                         <span className="text-sm text-[#224732] font-medium flex items-center gap-0.5">
                             상세보기
                             <ChevronRight className="w-4 h-4" />
