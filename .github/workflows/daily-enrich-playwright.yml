@@ -35,5 +35,12 @@ jobs:
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
         run: node scripts/daily-enrich-playwright.mjs
 
+      - name: Commit and Push Cursor File
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add scratch/last_enrich_cursor_id.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chrono: update daily enrichment cursor ID" && git push)
+
       - name: Log Result
         run: echo "Crawl enrichment completed successfully at $(date)"

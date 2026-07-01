@@ -414,8 +414,8 @@ async function startEnrichment() {
 
   // --test 플래그 체크 및 수집 한도 설정
   const isTest = process.argv.includes('--test');
-  const restLimit = isTest ? 2 : 250;
-  const martLimit = isTest ? 1 : 50;
+  const restLimit = isTest ? 2 : 90;
+  const martLimit = isTest ? 1 : 10;
   const targetTotal = restLimit + martLimit;
 
   // 1. 커서 파일 로드
