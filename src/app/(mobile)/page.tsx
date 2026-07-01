@@ -33,6 +33,12 @@ export default function Home() {
    */
   const checkUserType = async () => {
     try {
+      // [v11.9.85] 기획 방향 변경: 모든 유저에게 초보자 홈(BeginnerHome)을 우선 노출하여 심플한 UI 유지 및 튕김 현상 제거
+      setIsFirstTimeUser(true);
+      setIsLoading(false);
+      return;
+
+      /* 기존 예약/일정 기반 자동 분류 로직 보존 (필요 시 복원 가능)
       const supabase = createClient();
 
       // 1. 로그인 상태 확인
@@ -70,6 +76,7 @@ export default function Home() {
         // 이용 완료 예약 또는 일정이 1건 이상이면 기존 사용자
         setIsFirstTimeUser(count === 0 && scheduleCount === 0);
       }
+      */
     } catch (err) {
       console.error('Error in checkUserType:', err);
       setIsFirstTimeUser(true);
