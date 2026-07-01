@@ -17,6 +17,7 @@ import ScheduleForm from '@/components/schedule/ScheduleForm';
 import { useReservationStore } from '@/store/useReservationStore';
 import CancelReservationSheet from '@/components/reservation/CancelReservationSheet';
 import { Reservation } from '@/types/reservation';
+import { SITES } from '@/constants/sites';
 import {
     Sheet,
     SheetContent,
@@ -78,21 +79,24 @@ function ScheduleContent() {
                 // PENDING 상태인 예약들을 Schedule 포맷으로 변환
                 const pendingReservations = latestReservations
                     .filter(r => r.status === 'PENDING' && new Date(r.checkOutDate) >= new Date(todayStr))
-                    .map(r => ({
-                        id: r.id,
-                        reservation_id: r.id,
-                        user_id: r.userId,
-                        campground_name: '라온아이 캠핑장',
-                        campground_address: r.siteId,
-                        check_in: r.checkInDate instanceof Date ? r.checkInDate.toISOString() : r.checkInDate,
-                        check_out: r.checkOutDate instanceof Date ? r.checkOutDate.toISOString() : r.checkOutDate,
-                        memo: r.requests || '',
-                        status: 'scheduled' as const,
-                        source: 'raonai' as const,
-                        created_at: r.createdAt ? (r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt) : new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        is_pending_reservation: true // 가상 플래그
-                    }));
+                    .map(r => {
+                        const siteName = SITES.find(s => s.id === r.siteId)?.name || r.siteId;
+                        return {
+                            id: r.id,
+                            reservation_id: r.id,
+                            user_id: r.userId,
+                            campground_name: `라온아이 (${siteName})`,
+                            campground_address: r.siteId,
+                            check_in: r.checkInDate instanceof Date ? r.checkInDate.toISOString() : r.checkInDate,
+                            check_out: r.checkOutDate instanceof Date ? r.checkOutDate.toISOString() : r.checkOutDate,
+                            memo: r.requests || '',
+                            status: 'scheduled' as const,
+                            source: 'raonai' as const,
+                            created_at: r.createdAt ? (r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt) : new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                            is_pending_reservation: true // 가상 플래그
+                        };
+                    });
 
                 // 데이터 병합
                 const combined = [...pendingReservations, ...data];
@@ -293,7 +297,7 @@ function ScheduleContent() {
                             <ScheduleCard
                                 key={schedule.id}
                                 schedule={schedule}
-                                onClick={handleScheduleClick}
+                                onClick={(schedule as any).is_pending_reservation ? undefined : handleScheduleClick}
                                 onComplete={handleComplete}
                                 onDelete={setDeleteTarget}
                                 onCancelRequest={handleCancelRequest}

@@ -286,10 +286,12 @@ export default function ScheduleCard({
                     ) : (
                         <div />
                     )}
-                    <span className="text-sm text-[#224732] font-medium flex items-center gap-0.5">
-                        {(schedule as any).is_pending_reservation ? '예약 확인' : '상세보기'}
-                        <ChevronRight className="w-4 h-4" />
-                    </span>
+                    {!(schedule as any).is_pending_reservation && (
+                        <span className="text-sm text-[#224732] font-medium flex items-center gap-0.5">
+                            상세보기
+                            <ChevronRight className="w-4 h-4" />
+                        </span>
+                    )}
                 </div>
             )}
         </div>
