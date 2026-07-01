@@ -630,7 +630,11 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                             {/* 버튼 */}
                             <div className="pt-2">
                                 <button
-                                    onClick={() => handleDirectCancel(selectedPending.id)}
+                                    onClick={() => {
+                                        if (window.confirm("예약을 취소하시겠습니까?\n아직 입금 전인 예약으로, 취소하시면 즉시 예약이 취소됩니다.")) {
+                                            handleDirectCancel(selectedPending.id);
+                                        }
+                                    }}
                                     disabled={directCancelling}
                                     className="w-full py-4 text-red-600 bg-red-50 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                                 >
