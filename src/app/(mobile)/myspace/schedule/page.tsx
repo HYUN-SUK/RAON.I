@@ -68,7 +68,41 @@ function ScheduleContent() {
         setIsLoading(true);
         try {
             const data = await getMySchedules(activeTab);
-            setSchedules(data);
+            
+            if (activeTab === 'scheduled') {
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                // 최신 예약을 한 번 더 로드하여 안전하게 확보
+                const latestReservations = await fetchMyReservations();
+                
+                // PENDING 상태인 예약들을 Schedule 포맷으로 변환
+                const pendingReservations = latestReservations
+                    .filter(r => r.status === 'PENDING' && new Date(r.checkOutDate) >= new Date(todayStr))
+                    .map(r => ({
+                        id: r.id,
+                        reservation_id: r.id,
+                        user_id: r.userId,
+                        campground_name: '라온아이 캠핑장',
+                        campground_address: r.siteId,
+                        check_in: r.checkInDate instanceof Date ? r.checkInDate.toISOString() : r.checkInDate,
+                        check_out: r.checkOutDate instanceof Date ? r.checkOutDate.toISOString() : r.checkOutDate,
+                        memo: r.requests || '',
+                        status: 'scheduled' as const,
+                        source: 'raonai' as const,
+                        created_at: r.createdAt ? (r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt) : new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_pending_reservation: true // 가상 플래그
+                    }));
+
+                // 데이터 병합
+                const combined = [...pendingReservations, ...data];
+                
+                // 날짜 정렬 (체크인 빠른 순)
+                combined.sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
+                setSchedules(combined as any);
+            } else {
+                setSchedules(data);
+            }
         } catch (error) {
             console.error('Fetch schedules error:', error);
             toast.error('일정을 불러오는데 실패했어요');
@@ -109,6 +143,10 @@ function ScheduleContent() {
 
     // 일정 상세로 이동
     const handleScheduleClick = (schedule: Schedule) => {
+        if ((schedule as any).is_pending_reservation) {
+            router.push('/reservation/complete');
+            return;
+        }
         router.push(`/myspace/schedule/${schedule.id}`);
     };
 

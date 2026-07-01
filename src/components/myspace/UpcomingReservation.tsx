@@ -628,27 +628,18 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                             </div>
 
                             {/* 버튼 */}
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={() => {
-                                        setPendingDetailOpen(false);
-                                        router.push('/reservation/complete');
-                                    }}
-                                    className="flex-1 py-4 bg-yellow-500 text-white rounded-xl font-bold hover:bg-yellow-600 transition-colors"
-                                >
-                                    상세보기
-                                </button>
+                            <div className="pt-2">
                                 <button
                                     onClick={() => handleDirectCancel(selectedPending.id)}
                                     disabled={directCancelling}
-                                    className="py-4 px-6 text-red-600 bg-red-50 rounded-xl font-medium border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                    className="w-full py-4 text-red-600 bg-red-50 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                                 >
                                     {directCancelling ? (
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <Loader2 size={16} className="animate-spin mr-1.5" />
                                     ) : (
-                                        <X size={16} />
+                                        <X size={16} className="mr-1.5" />
                                     )}
-                                    취소
+                                    예약 취소요청
                                 </button>
                             </div>
                         </div>

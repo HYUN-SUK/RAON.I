@@ -89,6 +89,10 @@ export default function ScheduleCard({
 
     // 스마트플랜 안내 문구/뱃지 결정 (홈화면 위젯과 100% 동일)
     const smartPlanMessage = useMemo(() => {
+        if ((schedule as any).is_pending_reservation) {
+            return null;
+        }
+
         if (schedule.smart_plan_data) {
             return '✨ 스마트플랜 생성 완료';
         }
@@ -126,6 +130,7 @@ export default function ScheduleCard({
 
     // D-Day 텍스트
     const getDDayText = () => {
+        if ((schedule as any).is_pending_reservation) return '입금 대기';
         if (schedule.status === 'completed') return '완료';
         if (schedule.status === 'cancelled') return '취소됨';
         if (daysUntil < 0) return '지난 일정';
@@ -136,6 +141,7 @@ export default function ScheduleCard({
 
     // D-Day 배지 색상
     const getDDayColor = () => {
+        if ((schedule as any).is_pending_reservation) return 'bg-yellow-500 text-white animate-pulse';
         if (schedule.status === 'completed') return 'bg-[#224732] text-white';
         if (schedule.status === 'cancelled') return 'bg-gray-400 text-white';
         if (daysUntil < 0) return 'bg-gray-300 text-gray-600';
@@ -151,6 +157,7 @@ export default function ScheduleCard({
         <div
             className={cn(
                 "bg-white rounded-2xl p-4 shadow-sm border border-gray-100",
+                (schedule as any).is_pending_reservation && "border-yellow-200 bg-yellow-50/10 shadow-sm",
                 "transition-all duration-200 hover:shadow-md",
                 onClick && "cursor-pointer"
             )}
@@ -280,7 +287,7 @@ export default function ScheduleCard({
                         <div />
                     )}
                     <span className="text-sm text-[#224732] font-medium flex items-center gap-0.5">
-                        상세보기
+                        {(schedule as any).is_pending_reservation ? '예약 확인' : '상세보기'}
                         <ChevronRight className="w-4 h-4" />
                     </span>
                 </div>
