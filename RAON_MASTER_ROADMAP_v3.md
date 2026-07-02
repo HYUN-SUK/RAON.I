@@ -833,3 +833,9 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 * [x] **디지털 에셋 링크 배포**: 패키지명 `kr.co.raoni.app`과 SHA-256 서명 지문을 연동한 `assetlinks.json`을 public 경로에 업로드 및 도메인 검증 완료.
 * [/] **DUNS(던스) 번호 발급 대기**: 나이스디앤비 수수료 부과 회피를 위해 D&B 미국 본사(애플 개발자 포털 연계) 무료 발급 우회 신청 완료 (접수 및 3~5일 영업일 대기 중).
 
+### [2026-07-02 Update]
+* [x] **일일 크롤러 100건 최적화 및 3진 아웃 오진단 가드 적용**: 하루 60분 시간 제한 해결을 위해 식당 90건, 마트 10건(총 100건) 수집 한도 조정. 네트워크/타임아웃 등 일시 오류 시 `miss_count` 누적을 건너뛰는 예외 가드 도입.
+* [x] **일일 로테이션 WAF 영구 우회 (Vercel Proxy)**: 깃허브 Actions 가상머신 IP가 행안부 WAF에 ETIMEDOUT 차단되는 로또성 장애를 해결하기 위해 Next.js 백엔드에 CSV 프록시 API Route 개설 및 연동 완료.
+* [x] **GHA 쓰기 권한 부여**: 커서 파일 자동 푸시 단계(`Commit and Push Cursor File`)를 무사 완수하도록 `permissions: contents: write` 권한 및 자동 커밋 스텝 최종 활성화.
+* [x] **3진 아웃 마트 2개 매장 정밀 복구**: 오늘 새벽 오진단 비활성화 처리되었던 마트 2개 매장(`주식회사 엔마트용인점`, `(주)이마트에브리데이 가운점`)만 정밀 타겟팅해 DB 활성 및 miss_count 초기화 완료.
+
