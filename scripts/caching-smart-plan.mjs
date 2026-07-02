@@ -1125,8 +1125,13 @@ async function main() {
                     quality_score: s.trust_score,
                     distance_meters: Math.round(s.distance_km * 1000),
                     penalty_score: parseFloat((s.trust_score - s.final_score).toFixed(2)),
-                    final_score: s.final_score,
-                    raw_data: s.raw_data
+                    raw_data: {
+                        ...(s.raw_data || {}),
+                        description: s.description || '',
+                        description_enriched: s.description ? true : false,
+                        description_api_source: s.raw_data?.description_api_source || 
+                            (s.description && (s.description.includes('식당/카페입니다') || s.description.includes('유선 확인')) ? 'LOCAL_FALLBACK' : 'LOCAL_SPECIAL')
+                    }
                 })));
 
                 // [v11.9.23] Stage 4: 예약자별 최종 적재량 카운트 (개인별 쿼터 누적)

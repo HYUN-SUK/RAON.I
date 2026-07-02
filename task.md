@@ -123,16 +123,16 @@
     - [x] 최초 100건 드라이런 실행 및 실효 데이터 적재 여부 전수 검증
     - [x] 1단계: 식당 카테고리(RESTAURANT) (100% 완료: 50,724건 Gemini 요약 + 29,744건 0원 로컬 Fallback, CAFE 통합 완료)
     - [x] 2단계: 마트 카테고리(MART) (100% 완료: 1,766건 최신 고품질 덮어쓰기 완료, 나머지 구형 7,172건 및 0원 Fallback 2,371건 보존 상태로 안전 종료)
-    - [ ] 3단계: 명소/공공 카테고리(SPOT, HOSPITAL, FESTIVAL) 1줄 설명 사전 적재 (진행 중)
+    - [ ] 3단계: 명소/공공 카테고리(SPOT, HOSPITAL, FESTIVAL) 1줄 설명 사전 적재 및 Key Rotation 대안 수립 (대기)
     - [ ] 4단계: 전체 적재 데이터 무결성 검산 및 최종 검증 (대기)
-    - [ ] 5단계: 구글 결제 및 실시간 사용량 최종 교차 검증 (대기)
+    - [ ] 5단계: 구글 결제 및 실시간 사용량 최종 교차 검증 및 환급 현황 추적 (진행 중)
 - [x] **제미나이(Gemini) 유료 API 기반 장소 1줄 설명 사전 적재 이행**
     - [x] Google AI Studio 결제 계정 연결 및 선결제 등록 (PRO 활성화 검증 완료, gemini-2.5-flash 연동 확인)
     - [x] 1줄 적재 이행 계획서(implementation_plan.md) 아티팩트 작성 및 사용자 컨펌 완료
     - [x] `scripts/gemini-enrich-description.mjs` 신규 스크립트 작성 (상세 미적재 Fallback 및 카테고리별 프롬프트 탑재)
     - [x] `scripts/run-gemini-description-loop.mjs` 신규 루프 러너 작성 (ID 커서 페이징 연동)
     - [x] 최초 10건 드라이런 실행 및 1줄 설명 품질 검산 보고서 생성 (사용자 승인 대기)
-    - [ ] 유료 고속 적재(Concurrency 15~20) 가동 및 마스터 DB 전수 적재
+    - [/] 유료 고속 적재(Concurrency 15~20) 가동 및 마스터 DB 전수 적재 (비용 폭증 이슈로 일시 정지 및 대기)
     - [ ] 빌드 검증 및 최종 결과 검산 보고서 작성
 - [x] **전국 행정코드 매핑 오류 수정 및 누락 데이터 보완 (v2 - 듀얼 규격 안전화)**
     - [x] `scripts/utils/admin-code-mapping.mjs` 약칭 동의어 사전(`SIDO_SYNONYMS`) 탑재 및 듀얼 규격(행안부 법정동 vs KTO) 격리 보완 리팩토링

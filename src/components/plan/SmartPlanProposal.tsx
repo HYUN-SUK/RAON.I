@@ -518,7 +518,7 @@ export default function SmartPlanProposal({
                             </p>
                         )}
 
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-1 leading-relaxed">
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full">
                             {card.description}
                         </p>
 
