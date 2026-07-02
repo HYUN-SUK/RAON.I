@@ -969,7 +969,8 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
     console.log(`📥 [LocalData CSV] ${sido} ${ep.name} 다운로드 및 파싱 중...`);
     // [WAF 방어막 회피] 파일 다중 연속 다운로드로 인한 403 Forbidden 상태 방어 (3초 대기)
     await delay(3000);
-    const url = `https://file.localdata.go.kr/file/download/${ep.path}/info?orgCode=${orgCode}`;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://raon-i.co.kr';
+    const url = `${siteUrl}/api/cron/localdata-proxy?path=${ep.path}&orgCode=${orgCode}`;
     
     try {
       const res = await fetch(url, { 

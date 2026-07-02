@@ -512,6 +512,7 @@ async function startEnrichment() {
     let placeUrl = place.raw_data?.place_url || place.raw_data?.placeUrl || place.raw_data?.kakao_url;
     let scrapSuccess = false;
     let newDetails = null;
+    let isNetworkError = false;
 
     try {
       if (!placeUrl) {
@@ -574,6 +575,20 @@ async function startEnrichment() {
       }
     } catch (err) {
       console.warn(`    ⚠️ Crawler failed for ${name}: ${err.message}`);
+      const errMsg = err.message || '';
+      if (
+        errMsg.includes('timeout') || 
+        errMsg.includes('Timeout') || 
+        errMsg.includes('Navigation') || 
+        errMsg.includes('navigation') ||
+        errMsg.includes('429') || 
+        errMsg.includes('503') || 
+        errMsg.includes('net::') ||
+        errMsg.includes('Network') ||
+        errMsg.includes('network')
+      ) {
+        isNetworkError = true;
+      }
     }
 
     const curTimeStr = new Date().toISOString();
@@ -639,33 +654,51 @@ async function startEnrichment() {
     } else {
       // ⚠️ 수집 실패 (카카오맵 존재하지 않음, 폐업, 통신장애 등)
       // 사용자의 엄격한 피드백 반영: 실패하더라도 updated_at을 최신화하여 순회 큐의 맨 뒤로 밀어내어 Stuck 방지
-      const newMissCount = (place.miss_count || 0) + 1;
-      const willDeactivate = newMissCount >= 3;
       
-      console.log(`    ⚠️ Failure (Miss #${newMissCount}/${willDeactivate ? 'Deactivating' : '3'}). Moving to back of queue.`);
+      if (isNetworkError) {
+        console.log(`    ⚠️ Network/Timeout failure detected. Skipping miss_count increment. Moving to back of queue.`);
+        
+        const { error: netErr } = await supabase
+          .from('master_places')
+          .update({
+            updated_at: curTimeStr
+          })
+          .eq('id', place.id);
 
-      const updatePayload = {
-        updated_at: curTimeStr,
-        miss_count: newMissCount
-      };
+        if (netErr) {
+          console.error(`    ❌ DB Network-Failure Update Error: ${netErr.message}`);
+        }
+        failedCount++;
+        processedList.push({ name, status: 'FAILED', category: place.category });
+      } else {
+        const newMissCount = (place.miss_count || 0) + 1;
+        const willDeactivate = newMissCount >= 3;
+        
+        console.log(`    ⚠️ Failure (Miss #${newMissCount}/${willDeactivate ? 'Deactivating' : '3'}). Moving to back of queue.`);
 
-      if (willDeactivate) {
-        updatePayload.is_active = false;
-        deactivatedCount++;
-        console.log(`    🚨 [DEACTIVATION] Place ${name} has failed 3 consecutive times. Set is_active = false.`);
+        const updatePayload = {
+          updated_at: curTimeStr,
+          miss_count: newMissCount
+        };
+
+        if (willDeactivate) {
+          updatePayload.is_active = false;
+          deactivatedCount++;
+          console.log(`    🚨 [DEACTIVATION] Place ${name} has failed 3 consecutive times. Set is_active = false.`);
+        }
+
+        const { error: failErr } = await supabase
+          .from('master_places')
+          .update(updatePayload)
+          .eq('id', place.id);
+
+        if (failErr) {
+          console.error(`    ❌ DB Failure Update Error: ${failErr.message}`);
+        }
+        
+        failedCount++;
+        processedList.push({ name, status: willDeactivate ? 'DEACTIVATED' : 'FAILED', category: place.category });
       }
-
-      const { error: failErr } = await supabase
-        .from('master_places')
-        .update(updatePayload)
-        .eq('id', place.id);
-
-      if (failErr) {
-        console.error(`    ❌ DB Failure Update Error: ${failErr.message}`);
-      }
-      
-      failedCount++;
-      processedList.push({ name, status: willDeactivate ? 'DEACTIVATED' : 'FAILED', category: place.category });
     }
 
     const randomDelay = 1500 + Math.random() * 1500;
