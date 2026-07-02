@@ -1176,7 +1176,56 @@ export async function generatePersonalizedSmartPlan(
                 stageIntros['stage1_timeline'] = "설레는 마음으로 기분 좋게 짐을 싸서, 라온아이 캠핑장으로 활기차게 출발해 보아요!";
             }
 
-            // I. 장소별 1줄설명 매핑 및 2중 노출 완벽 차단
+            // [v12.5.0] 런타임 공간 중복 제거 안전망 (Spatial Deduplication Safety Net) 적용
+            const deduplicateSpatial = (cards: FactCard[]): FactCard[] => {
+                const result: FactCard[] = [];
+                const getDist = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+                    const R = 6371e3;
+                    const f1 = lat1 * Math.PI/180, f2 = lat2 * Math.PI/180;
+                    const df = (lat2-lat1) * Math.PI/180, dl = (lng2-lng1) * Math.PI/180;
+                    const a = Math.sin(df/2) * Math.sin(df/2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl/2) * Math.sin(dl/2);
+                    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                };
+                const clean = (s: string) => (s || '').replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\s/g, '').toLowerCase();
+
+                for (const card of cards) {
+                    let isDup = false;
+                    for (const existing of result) {
+                        const dist = getDist(card.lat, card.lng, existing.lat, existing.lng);
+                        const n1 = clean(card.name), n2 = clean(existing.name);
+                        
+                        if (dist < 500 && (n1.includes(n2) || n2.includes(n1))) {
+                            isDup = true;
+                            if (card.trustScore > existing.trustScore) {
+                                Object.assign(existing, card);
+                            }
+                            break;
+                        }
+                    }
+                    if (!isDup) {
+                        result.push(card);
+                    }
+                }
+                return result;
+            };
+
+            const cleanActive = deduplicateSpatial(activeFacts);
+            const cleanRoute = deduplicateSpatial(routeFacts);
+            const cleanReturn = deduplicateSpatial(returnFacts);
+            const cleanFeatured = deduplicateSpatial(featuredFestival);
+            const cleanAlts: Record<string, FactCard[]> = {};
+            for (const [cat, list] of Object.entries(alternatives)) {
+                cleanAlts[cat] = deduplicateSpatial(list);
+            }
+
+            activeFacts.length = 0; activeFacts.push(...cleanActive);
+            routeFacts.length = 0; routeFacts.push(...cleanRoute);
+            returnFacts.length = 0; returnFacts.push(...cleanReturn);
+            featuredFestival.length = 0; featuredFestival.push(...cleanFeatured);
+            for (const cat of Object.keys(alternatives)) {
+                alternatives[cat] = cleanAlts[cat];
+            }
+
             const allCards = [
                 ...routeFacts, ...activeFacts, ...featuredFestival, ...returnFacts,
                 ...Object.values(alternatives).flat()
