@@ -199,4 +199,10 @@
     - [x] 크롤러 일시적 네트워크 오류 시 miss_count 미누적 및 오진단 3진 아웃 방지 가드 구현 완료
     - [x] 일일 로테이션 WAF IP 영구 차단 우회를 위한 Next.js 백엔드 Vercel 프록시 API Route 개설 및 연동 완료
     - [x] 7월 2일 새벽 오진단 비활성화 처리된 마트 2개 매장(`주식회사 엔마트용인점`, `(주)이마트에브리데이 가운점`) 수동 DB 정밀 복원 완료
+
+- [x] **일일 자동화 장애 복구 & 크롤링 커서 DB 보관 (7월 3일 완료)**
+    - [x] 스마트플랜 캐싱 1218라인 final_score TypeError 수정 및 어드민 표기 복구 완료
+    - [x] Vercel 프록시 API에 Referer 헤더 추가하여 행안부 WAF 403 Forbidden 차단 우회 연동 완료
+    - [x] 크롤러 커서 데이터를 Git 원격 대신 DB(automation_logs JSONB) 보관 방식으로 이전 완료
+    - [x] GHA yml에서 Git push 단계를 삭제하여 개발자 로컬 rejected 충돌 원천 제거 완료
 
