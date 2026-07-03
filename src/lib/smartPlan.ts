@@ -1176,7 +1176,7 @@ export async function generatePersonalizedSmartPlan(
                 stageIntros['stage1_timeline'] = "설레는 마음으로 기분 좋게 짐을 싸서, 라온아이 캠핑장으로 활기차게 출발해 보아요!";
             }
 
-            // [v12.5.0] 런타임 공간 중복 제거 안전망 (Spatial Deduplication Safety Net) 적용
+            // [v12.5.2] 런타임 공간 중복 제거 안전망 (Spatial Deduplication Safety Net) 고도화
             const deduplicateSpatial = (cards: FactCard[]): FactCard[] => {
                 const result: FactCard[] = [];
                 const getDist = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -1194,7 +1194,10 @@ export async function generatePersonalizedSmartPlan(
                         const dist = getDist(card.lat, card.lng, existing.lat, existing.lng);
                         const n1 = clean(card.name), n2 = clean(existing.name);
                         
-                        if (dist < 500 && (n1.includes(n2) || n2.includes(n1))) {
+                        // [v12.5.2] 물리적 거리가 50m 이내로 극히 근접하면 이름 차이와 무관하게 100% 중복 처리 (달서별빛캠프캠핑장 중복 회피)
+                        const isSpatialDup = dist < 50 || (dist < 500 && (n1.includes(n2) || n2.includes(n1)));
+                        
+                        if (isSpatialDup) {
                             isDup = true;
                             if (card.trustScore > existing.trustScore) {
                                 Object.assign(existing, card);
@@ -1213,10 +1216,48 @@ export async function generatePersonalizedSmartPlan(
             const cleanRoute = deduplicateSpatial(routeFacts);
             const cleanReturn = deduplicateSpatial(returnFacts);
             const cleanFeatured = deduplicateSpatial(featuredFestival);
+
+            // [v12.5.2] 교차 카테고리 간 명소(SPOT/ROUTE_SPOT 등) 중복 도려내기를 위해 alternatives 전체를 평탄화하여 글로벌 제거 가동
+            const primaryGroup = [...cleanActive, ...cleanRoute, ...cleanReturn, ...cleanFeatured];
+            const getDistHelper = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+                const R = 6371e3;
+                const f1 = lat1 * Math.PI/180, f2 = lat2 * Math.PI/180;
+                const df = (lat2-lat1) * Math.PI/180, dl = (lng2-lng1) * Math.PI/180;
+                const a = Math.sin(df/2) * Math.sin(df/2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl/2) * Math.sin(dl/2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            };
+            const cleanStrHelper = (s: string) => (s || '').replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\s/g, '').toLowerCase();
+
+            const allAltsRaw = Object.values(alternatives).flat();
+            const globalCleanedAlts = deduplicateSpatial(allAltsRaw);
+
+            // 기본 추천 그룹과의 교차 중복 필터링 (비어있는 이름 방어 가드 추가)
+            const finalCleanedAlts = globalCleanedAlts.filter(altCard => {
+                const altName = cleanStrHelper(altCard.name);
+                if (!altName) return false;
+
+                const isDupWithPrimary = primaryGroup.some(priCard => {
+                    const dist = getDistHelper(altCard.lat, altCard.lng, priCard.lat, priCard.lng);
+                    const priName = cleanStrHelper(priCard.name);
+                    if (!priName) return false; // 비교 대상 기본 추천 장소명이 비어 있으면 스킵
+
+                    return dist < 50 || (dist < 500 && (altName.includes(priName) || priName.includes(altName)));
+                });
+                return !isDupWithPrimary;
+            });
+
+            // 카테고리별로 정제된 대체 목록 재정리 및 분배
             const cleanAlts: Record<string, FactCard[]> = {};
-            for (const [cat, list] of Object.entries(alternatives)) {
-                cleanAlts[cat] = deduplicateSpatial(list);
+            for (const cat of Object.keys(alternatives)) {
+                cleanAlts[cat] = [];
             }
+            finalCleanedAlts.forEach(card => {
+                if (cleanAlts[card.category]) {
+                    cleanAlts[card.category].push(card);
+                } else {
+                    cleanAlts[card.category] = [card];
+                }
+            });
 
             activeFacts.length = 0; activeFacts.push(...cleanActive);
             routeFacts.length = 0; routeFacts.push(...cleanRoute);

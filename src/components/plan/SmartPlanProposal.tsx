@@ -916,20 +916,75 @@ export default function SmartPlanProposal({
                     <div className="py-5 space-y-4">
                         {(() => {
                             if (!swapCategory) return null;
-                            const currentActive = plan.itemListElement.find(c => c.id === swapTargetId) || 
+                            const currentActive = plan.itemListElement?.find(c => c.id === swapTargetId) || 
                                                  plan.routeListElement?.find(c => c.id === swapTargetId) || 
                                                  plan.returnListElement?.find(c => c.id === swapTargetId);
                             
                             const rawAlternatives = plan.alternatives?.[swapCategory] || [];
-                            const uniqueAlternatives = Array.from(new Map(rawAlternatives.map(c => [c.id, c])).values());
                             
-                            const activeIds = [
-                                ...(plan.itemListElement?.map(c => c.id) || []),
-                                ...(plan.routeListElement?.map(c => c.id) || []),
-                                ...(plan.returnListElement?.map(c => c.id) || [])
-                            ];
+                            const getDistHelper = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+                                const R = 6371e3;
+                                const f1 = lat1 * Math.PI/180, f2 = lat2 * Math.PI/180;
+                                const df = (lat2-lat1) * Math.PI/180, dl = (lng2-lng1) * Math.PI/180;
+                                const a = Math.sin(df/2) * Math.sin(df/2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl/2) * Math.sin(dl/2);
+                                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                            };
+                            const cleanStrHelper = (s: string) => (s || '').replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\s/g, '').toLowerCase();
+
+                            // [v12.5.5] 클라이언트 단 대안 리스트 자체 공간 중복 제거 가드 추가 (이름 무관 50m 초근접 소거)
+                            const deduplicateSpatialClient = (cards: any[]): any[] => {
+                                const result: any[] = [];
+                                for (const card of cards) {
+                                    let isDup = false;
+                                    const cName = cleanStrHelper(card.name);
+                                    for (const existing of result) {
+                                        const dist = getDistHelper(card.lat, card.lng, existing.lat, existing.lng);
+                                        const extName = cleanStrHelper(existing.name);
+                                        
+                                        const isSpatialDup = dist < 50 || (dist < 500 && (cName.includes(extName) || extName.includes(cName)));
+                                        if (isSpatialDup) {
+                                            isDup = true;
+                                            if (card.trustScore > existing.trustScore) {
+                                                Object.assign(existing, card);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    if (!isDup) {
+                                        result.push(card);
+                                    }
+                                }
+                                return result;
+                            };
+
+                            const uniqueAlternatives = deduplicateSpatialClient(rawAlternatives);
+
+                            // [v12.5.4] 클라이언트 단 교차 공간 중복 제거 및 PRO/BASIC 모드 호환 적용
+                            const activeCards = (plan as any).mode === 'PRO'
+                                ? ((plan as any).factCards || [])
+                                : [
+                                    ...(plan.itemListElement || []),
+                                    ...(plan.routeListElement || []),
+                                    ...(plan.returnListElement || [])
+                                  ];
                             
-                            const availableAlternatives = uniqueAlternatives.filter(c => !activeIds.includes(c.id));
+                            const activeIds = activeCards.map((c: any) => c.id);
+
+                            const availableAlternatives = uniqueAlternatives.filter(c => {
+                                if (activeIds.includes(c.id)) return false;
+
+                                const cName = cleanStrHelper(c.name);
+                                if (!cName) return false;
+
+                                const isSpatialDup = activeCards.some((actCard: any) => {
+                                    const dist = getDistHelper(c.lat, c.lng, actCard.lat, actCard.lng);
+                                    const actName = cleanStrHelper(actCard.name);
+                                    if (!actName) return false;
+                                    return dist < 50 || (dist < 500 && (cName.includes(actName) || actName.includes(cName)));
+                                });
+                                return !isSpatialDup;
+                            });
+
                             const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
                             
                             const pageSize = 3;
@@ -983,7 +1038,7 @@ export default function SmartPlanProposal({
                                                                             {opt.evidence?.stars && (
                                                                                 <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold border border-yellow-100/30">⭐ {opt.evidence.stars.toFixed(1)}</span>
                                                                             )}
-                                                                            {opt.evidence?.certifications.map((c, i) => (
+                                                                            {opt.evidence?.certifications.map((c: any, i: number) => (
                                                                                 <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold border border-blue-100/30">{c}</span>
                                                                             ))}
                                                                             {opt.category === 'GAS_STATION' && (opt.metadata?.kerosenePrice || opt.description?.match(/등유:\s?(\d+)원/)) && (() => {
