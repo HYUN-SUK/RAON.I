@@ -1125,6 +1125,7 @@ async function main() {
                     quality_score: s.trust_score,
                     distance_meters: Math.round(s.distance_km * 1000),
                     penalty_score: parseFloat((s.trust_score - s.final_score).toFixed(2)),
+                    final_score: s.final_score,
                     raw_data: {
                         ...(s.raw_data || {}),
                         description: s.description || '',

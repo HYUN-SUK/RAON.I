@@ -418,15 +418,30 @@ async function startEnrichment() {
   const martLimit = isTest ? 1 : 10;
   const targetTotal = restLimit + martLimit;
 
-  // 1. 커서 파일 로드
-  const cursorDir = 'scratch';
-  const cursorFile = path.join(cursorDir, 'last_enrich_cursor_id.txt');
-  if (!fs.existsSync(cursorDir)) {
-    fs.mkdirSync(cursorDir, { recursive: true });
-  }
+  // 1. 커서 로드 (Supabase automation_logs 테이블 기반 DB로 이전)
   let lastId = '';
-  if (fs.existsSync(cursorFile)) {
-    lastId = fs.readFileSync(cursorFile, 'utf8').trim();
+  try {
+    const { data: latestLog, error: logError } = await supabase
+      .from('automation_logs')
+      .select('api_status')
+      .eq('job_name', 'DAILY_CRAWL_ENRICHMENT')
+      .eq('status', 'SUCCESS')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!logError && latestLog && latestLog.length > 0) {
+      lastId = String(latestLog[0].api_status?.last_enrich_cursor_id || '').trim();
+      console.log(`📡 Loaded last_enrich_cursor_id from DB logs: [${lastId}]`);
+    } else {
+      console.log("📡 No previous successful crawler log found in DB. Falling back to local/default.");
+      const cursorDir = 'scratch';
+      const cursorFile = path.join(cursorDir, 'last_enrich_cursor_id.txt');
+      if (fs.existsSync(cursorFile)) {
+        lastId = fs.readFileSync(cursorFile, 'utf8').trim();
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️ Failed to load cursor from DB:", err.message);
   }
   
   console.log(`Cursor initialized. Last ID: [${lastId || 'START OF TABLE'}]`);
@@ -707,17 +722,24 @@ async function startEnrichment() {
 
   await browser.close();
 
-  // 3. 마지막 쿼리 cursor ID 저장
-  fs.writeFileSync(cursorFile, currentCursor, 'utf8');
-  console.log(`Cursor updated and saved: [${currentCursor}]`);
+  // 3. 마지막 쿼리 cursor ID 저장 (로컬 백업 기록)
+  try {
+    const cursorDir = 'scratch';
+    const cursorFile = path.join(cursorDir, 'last_enrich_cursor_id.txt');
+    if (!fs.existsSync(cursorDir)) fs.mkdirSync(cursorDir, { recursive: true });
+    fs.writeFileSync(cursorFile, currentCursor, 'utf8');
+    console.log(`Local cursor backup updated: [${currentCursor}]`);
+  } catch (e) {
+    console.warn("⚠️ Failed to write local cursor backup:", e.message);
+  }
 
   const totalTime = Date.now() - startTime;
   console.log(`\n=== Enrichment session completed in ${Math.round(totalTime / 1000)}s ===`);
   console.log(`Total: ${targets.length} | Success (Updated): ${successCount} | Skipped: ${skippedCount} | Failed (Missed): ${failedCount} (Deactivated: ${deactivatedCount})`);
 
-  // 4. automation_logs 기록
+  // 4. automation_logs 기록 (api_status JSONB 내부에 last_enrich_cursor_id 값 저장)
   try {
-    await supabase.from('automation_logs').insert({
+    const { error: insertError } = await supabase.from('automation_logs').insert({
       job_name: 'DAILY_CRAWL_ENRICHMENT',
       status: (successCount + skippedCount) > 0 ? 'SUCCESS' : 'FAILURE',
       processed_count: successCount + skippedCount,
@@ -729,13 +751,19 @@ async function startEnrichment() {
         skipped: skippedCount,
         failed: failedCount,
         deactivated: deactivatedCount,
+        last_enrich_cursor_id: currentCursor, // DB로 커서 보관 처리!
         history: processedList.slice(0, 50)
       },
       created_at: new Date().toISOString()
     });
-    console.log("Automation log inserted successfully.");
+    
+    if (insertError) {
+      console.error("❌ Failed to insert automation log:", insertError.message);
+    } else {
+      console.log("✅ Automation log inserted successfully. Cursor saved to DB.");
+    }
   } catch (err) {
-    console.error("Failed to insert automation log:", err.message);
+    console.error("Failed to insert automation log (exception):", err.message);
   }
 }
 

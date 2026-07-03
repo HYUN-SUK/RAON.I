@@ -12,7 +12,6 @@ async function run() {
   const { data: logs, error } = await supabase
     .from('automation_logs')
     .select('id, job_name, status, processed_count, message, duration_ms, api_status, created_at')
-    .in('job_name', ['DAILY_REGION_SYNC', 'DAILY_CRAWL_ENRICHMENT'])
     .order('created_at', { ascending: false })
     .limit(10);
 
@@ -23,7 +22,11 @@ async function run() {
 
   logs.forEach((log) => {
     console.log(`[${log.created_at}] Job: ${log.job_name} | Status: ${log.status} | Msg: ${log.message}`);
-    if (log.api_status) {
+    if (log.api_status && Array.isArray(log.api_status)) {
+      log.api_status.forEach((cat) => {
+        console.log(`  -> Category: ${cat.label} (Region: ${cat.region}) | Fetched: ${cat.fetched_count?.active || 0}/${cat.fetched_count?.inactive || 0} | Note: ${cat.note || 'OK'}`);
+      });
+    } else if (log.api_status) {
       console.log(`  -> API Status:`, JSON.stringify(log.api_status).substring(0, 300));
     }
   });
