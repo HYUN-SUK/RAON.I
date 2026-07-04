@@ -519,25 +519,34 @@ export default function SmartPlanProposal({
                             </p>
                         )}
 
-                        <div className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full font-medium flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                            <span>{formatPlaceDetailText(card)}</span>
-                            {(() => {
-                                const tel = getPlacePhoneNumber(card);
-                                if (tel) {
-                                    return (
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full font-medium">
+                            {formatPlaceDetailText(card)}
+                        </p>
+                        {(() => {
+                            const tel = getPlacePhoneNumber(card);
+                            if (tel) {
+                                return (
+                                    <div className="mt-1 flex items-center">
                                         <a 
                                             href={`tel:${tel}`}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 active:scale-95 transition-transform underline font-bold shrink-0"
+                                            className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-transform underline font-bold"
                                         >
                                             <Phone className="w-3 h-3" />
-                                            {tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')}
+                                            방문 전 유선 확인 권장 ({tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')})
                                         </a>
-                                    );
-                                }
-                                return null;
-                            })()}
-                        </div>
+                                    </div>
+                                );
+                            }
+                            if (card.category && card.category !== 'GAS_STATION') {
+                                return (
+                                    <p className="mt-1 text-[11px] text-amber-600/90 font-bold flex items-center gap-0.5 animate-pulse">
+                                        👉 터치하여 오늘 영업유무 확인권장!
+                                    </p>
+                                );
+                            }
+                            return null;
+                        })()}
 
                         {/* [v11.9.25] 한 줄 소개 */}
                         {card.reasoning && (
@@ -1040,26 +1049,32 @@ export default function SmartPlanProposal({
                                                                                 <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                                                             )}
                                                                         </div>
-                                                                        
-                                                                        <div className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium flex flex-wrap items-center gap-1">
-                                                                            <span>{formatPlaceDetailText(opt)}</span>
-                                                                            {(() => {
-                                                                                const tel = getPlacePhoneNumber(opt);
-                                                                                if (tel) {
-                                                                                    return (
+                                                                        <p className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium">{formatPlaceDetailText(opt)}</p>
+                                                                        {(() => {
+                                                                            const tel = getPlacePhoneNumber(opt);
+                                                                            if (tel) {
+                                                                                return (
+                                                                                    <div className="mb-1">
                                                                                         <a 
                                                                                             href={`tel:${tel}`}
                                                                                             onClick={(e) => e.stopPropagation()}
-                                                                                            className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 active:scale-95 transition-transform underline font-bold shrink-0 ml-0.5"
+                                                                                            className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-transform underline font-bold"
                                                                                         >
                                                                                             <Phone className="w-2.5 h-2.5" />
-                                                                                            {tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')}
+                                                                                            유선 확인 권장 ({tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')})
                                                                                         </a>
-                                                                                    );
-                                                                                }
-                                                                                return null;
-                                                                            })()}
-                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            }
+                                                                            if (opt.category && opt.category !== 'GAS_STATION') {
+                                                                                return (
+                                                                                    <p className="mb-1 text-[10px] text-amber-600/90 font-bold flex items-center gap-0.5 animate-pulse">
+                                                                                        👉 터치하여 오늘 영업유무 확인권장!
+                                                                                    </p>
+                                                                                );
+                                                                            }
+                                                                            return null;
+                                                                        })()}
                                                                         {opt.reasoning && (
                                                                             <p className="text-[10px] text-blue-600 font-semibold mb-2 leading-tight">
                                                                                 <span className="opacity-60 mr-1">AI Pick:</span>

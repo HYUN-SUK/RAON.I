@@ -425,20 +425,31 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
 
                                                         {/* Description */}
                                                         {(block.factCard || block.description) && (
-                                                            <div className="text-[11px] opacity-70 mt-1 line-clamp-1 flex flex-wrap items-center gap-1">
-                                                                <span>{block.factCard ? formatPlaceDetailText(block.factCard) : block.description}</span>
+                                                            <div>
+                                                                <p className="text-[11px] opacity-70 mt-1 line-clamp-1">
+                                                                    {block.factCard ? formatPlaceDetailText(block.factCard) : block.description}
+                                                                </p>
                                                                 {block.factCard && (() => {
                                                                     const tel = getPlacePhoneNumber(block.factCard);
                                                                     if (tel) {
                                                                         return (
-                                                                            <a 
-                                                                                href={`tel:${tel}`}
-                                                                                onClick={(e) => e.stopPropagation()}
-                                                                                className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 active:scale-95 transition-transform underline font-bold shrink-0 ml-0.5"
-                                                                            >
-                                                                                <Phone className="w-2.5 h-2.5" />
-                                                                                {tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')}
-                                                                            </a>
+                                                                            <div className="mt-1">
+                                                                                <a 
+                                                                                    href={`tel:${tel}`}
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-transform underline font-bold"
+                                                                                >
+                                                                                    <Phone className="w-2.5 h-2.5" />
+                                                                                    유선 확인 권장 ({tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')})
+                                                                                </a>
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    if (block.factCard.category && block.factCard.category !== 'GAS_STATION') {
+                                                                        return (
+                                                                            <p className="mt-1 text-[10px] text-amber-600/90 font-bold flex items-center gap-0.5 animate-pulse">
+                                                                                👉 터치하여 오늘 영업유무 확인권장!
+                                                                            </p>
                                                                         );
                                                                     }
                                                                     return null;

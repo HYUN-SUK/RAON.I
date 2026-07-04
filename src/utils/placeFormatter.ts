@@ -58,7 +58,7 @@ export function cleanOperatingHours(hoursStr: string): string {
     
     if (uniqueNormTimes.length === 1) {
       const sampleDay = matches[0].day;
-      return `매일 ${timeMap.get(sampleDay)}`;
+      return `운영시간 ${timeMap.get(sampleDay)}`;
     }
     
     // 평일/주말 분리 판정
@@ -99,7 +99,7 @@ export function cleanOperatingHours(hoursStr: string): string {
       const exceptionStr = exceptions.map(e => `${e.day}요일 ${e.time}`).join(', ');
       
       if (commonOriginalTime) {
-        return `매일 ${commonOriginalTime} (${exceptionStr} 제외)`;
+        return `운영시간 ${commonOriginalTime} (${exceptionStr} 제외)`;
       }
     }
   }
