@@ -35,14 +35,14 @@ export function cleanOperatingHours(hoursStr: string): string {
   // 1. 날짜 괄호 패턴 (M/D) 제거: "(6/18)" -> ""
   let cleaned = hoursStr.replace(/\(\d{1,2}\/\d{1,2}\)/g, '').replace(/\s+/g, ' ').trim();
   
-  // 2. "요일 시간 요일 시간" 형태로 요일별 패턴이 반복되는 경우 (예: "목 06:00 ~ 21:00 금 06:00 ~ 21:00...")
-  // 요일별 시간 추출 시도
-  const dayTimeRegex = /([월화수목금토일])요일?\s*(\d{2}:\d{2}\s*[-~-]\s*\d{2}:\d{2})/g;
+  // 2. 범용 요일별 시간대 매칭 정규식
+  // [월화수목금토일]요일? 뒤에 바로 또는 공백을 두고 XX:XX ~ YY:YY 가 오는 패턴
+  const dayTimeRegex = /([월화수목금토일])요일?\s*(\d{2}:\d{2}\s*[^월화수목금토일\d\s,]+?\s*\d{2}:\d{2})/g;
   const matches: { day: string; time: string }[] = [];
   let match;
   
   while ((match = dayTimeRegex.exec(cleaned)) !== null) {
-    matches.push({ day: match[1], time: match[2].replace(/\s+/g, '') });
+    matches.push({ day: match[1], time: match[2].trim() });
   }
   
   if (matches.length >= 3) {
@@ -50,39 +50,70 @@ export function cleanOperatingHours(hoursStr: string): string {
     const timeMap = new Map<string, string>();
     matches.forEach(m => timeMap.set(m.day, m.time));
     
-    const uniqueTimes = Array.from(new Set(matches.map(m => m.time)));
+    // 비교용 정규화 시간대 맵 (공백 없이 매치 판정)
+    const normMap = new Map<string, string>();
+    matches.forEach(m => normMap.set(m.day, m.time.replace(/\s+/g, '')));
     
-    if (uniqueTimes.length === 1) {
-      return `매일 ${uniqueTimes[0]}`;
+    const uniqueNormTimes = Array.from(new Set(Array.from(normMap.values())));
+    
+    if (uniqueNormTimes.length === 1) {
+      const sampleDay = matches[0].day;
+      return `매일 ${timeMap.get(sampleDay)}`;
     }
     
-    const weekdayTimes = dayOrder.slice(0, 5).map(d => timeMap.get(d)).filter(Boolean);
-    const weekendTimes = dayOrder.slice(5, 7).map(d => timeMap.get(d)).filter(Boolean);
+    // 평일/주말 분리 판정
+    const weekdayNorm = dayOrder.slice(0, 5).map(d => normMap.get(d)).filter(Boolean);
+    const weekendNorm = dayOrder.slice(5, 7).map(d => normMap.get(d)).filter(Boolean);
     
-    const uniqueWeekday = Array.from(new Set(weekdayTimes));
-    const uniqueWeekend = Array.from(new Set(weekendTimes));
+    const uniqueWeekdayNorm = Array.from(new Set(weekdayNorm));
+    const uniqueWeekendNorm = Array.from(new Set(weekendNorm));
     
-    if (uniqueWeekday.length === 1 && uniqueWeekend.length === 1) {
-      return `평일 ${uniqueWeekday[0]} | 주말 ${uniqueWeekend[0]}`;
+    if (uniqueWeekdayNorm.length === 1 && uniqueWeekendNorm.length === 1) {
+      const weekdaySampleDay = dayOrder.slice(0, 5).find(d => timeMap.has(d));
+      const weekendSampleDay = dayOrder.slice(5, 7).find(d => timeMap.has(d));
+      
+      const wdTime = weekdaySampleDay ? timeMap.get(weekdaySampleDay) : '';
+      const weTime = weekendSampleDay ? timeMap.get(weekendSampleDay) : '';
+      
+      if (wdTime && weTime) {
+        return `평일 ${wdTime} | 주말 ${weTime}`;
+      }
     }
     
+    // 특정 요일 하나만 예외인 케이스
     const timeCounts = new Map<string, number>();
-    matches.forEach(m => timeCounts.set(m.time, (timeCounts.get(m.time) || 0) + 1));
+    normMap.forEach(time => timeCounts.set(time, (timeCounts.get(time) || 0) + 1));
     
-    let mostCommonTime = '';
+    let commonNormTime = '';
     let maxCount = 0;
     timeCounts.forEach((count, time) => {
       if (count > maxCount) {
         maxCount = count;
-        mostCommonTime = time;
+        commonNormTime = time;
       }
     });
     
     if (maxCount >= 5) {
-      const exceptions = matches.filter(m => m.time !== mostCommonTime);
-      const exceptionStr = exceptions.map(e => `${e.day} ${e.time}`).join(', ');
-      return `매일 ${mostCommonTime} (${exceptionStr} 제외)`;
+      const commonOriginalTime = matches.find(m => m.time.replace(/\s+/g, '') === commonNormTime)?.time || '';
+      const exceptions = matches.filter(m => m.time.replace(/\s+/g, '') !== commonNormTime);
+      const exceptionStr = exceptions.map(e => `${e.day}요일 ${e.time}`).join(', ');
+      
+      if (commonOriginalTime) {
+        return `매일 ${commonOriginalTime} (${exceptionStr} 제외)`;
+      }
     }
+  }
+  
+  // 압축 실패 시, 날짜 괄호만 지우고 가독성 향상을 위해 요일별 띄어쓰기 정돈
+  const formattedParts: string[] = [];
+  const fallbackRegex = /([월화수목금토일])요일?\s*(\d{2}:\d{2}\s*[^월화수목금토일\d\s,]+?\s*\d{2}:\d{2})/g;
+  let fallbackMatch;
+  while ((fallbackMatch = fallbackRegex.exec(cleaned)) !== null) {
+    formattedParts.push(`${fallbackMatch[1]} ${fallbackMatch[2].trim()}`);
+  }
+  
+  if (formattedParts.length > 0) {
+    return formattedParts.join(' | ');
   }
   
   return cleaned;
