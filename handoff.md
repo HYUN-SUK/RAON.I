@@ -1,37 +1,40 @@
-# 🚀 라온아이(RAON.I) 일일 자동화 장애 극복 및 커서 DB 이전 완료 헨드오프 (Handoff)
+# 📝 세션 인계 보고서 (Handoff Summary)
 
-이 문서는 7월 3일에 완수한 스마트플랜 캐싱 크래시 해결, Vercel 프록시 API 403 Forbidden 우회 패치, 그리고 크롤러 커서 DB 이전을 통한 깃 rejected 충돌 영구 제거 내역을 인수인계하기 위해 작성되었습니다.
-
----
-
-## 1. 이번 세션 완료 작업 (Current Status Summary)
-
-*   **스마트플랜 캐싱 TypeError 크래시 & 어드민 표기 누락 복구 완료**:
-    *   *원인*: 2차 추천 쿼터 개인화 리포트 파일(`smart_plan_stage4_personalized.md`)을 작성할 때, `candidateRows` 맵핑 단계에서 `final_score` 속성이 누락되어 `undefined`가 되었고, 이에 따라 `c.final_score.toFixed(1)`을 실행하려다 **`TypeError` 크래시**가 발생하여 스케줄러가 비정상 종료되었습니다. (데이터는 이전 단계에서 upsert되어 잘 들어갔으나 로깅 단계 전에 죽어 어드민 대시보드 표기만 생략됨)
-    *   *해결*: [caching-smart-plan.mjs](file:///c:/Users/USER/Desktop/RAON.I/scripts/caching-smart-plan.mjs#L1125)에 `final_score: s.final_score`를 삽입해 주어, 1218라인 TypeError를 완벽히 해결했습니다. 로컬 강제 캐싱 테스트를 통해 `SUCCESS` 로그가 정상 적재됨을 교차 확인했습니다.
-*   **WAF & Referer 우회 패치 완료 (전북특별자치도 403 Forbidden 복구)**:
-    *   *원인*: 행안부 파일 다운로드 서버는 요청 시 `Referer` 헤더가 `https://www.localdata.go.kr/` 이 아닐 경우 즉시 **`HTTP 403 Forbidden`** 오류를 내며 차단합니다. 어제 신설한 Vercel 프록시 API에 이 헤더가 누락되어 프록시 우회조차 행안부 필터에 차단당했던 것입니다. (로컬 격리 실험 검증 완료)
-    *   *해결*: Vercel 프록시 [route.ts](file:///c:/Users/USER/Desktop/RAON.I/src/app/api/cron/localdata-proxy/route.ts#L22)의 fetch headers 에 `'Referer': 'https://www.localdata.go.kr/'` 헤더를 추가하여 403 Forbidden을 우회 통과했습니다.
-*   **크롤러 진도 커서 DB 보관 이전 완료 (Git Rejected 100% 자동 해결)**:
-    *   *원인*: 매일 새벽 크롤러가 수집한 마지막 커서 ID를 원격 깃허브 리포지토리에 push하면서 로컬 PC와 싱크가 어긋나 push 거절(`rejected main -> main (fetch first)`)이 매일 유발되었습니다.
-    *   *해결*: 진도 데이터(`last_enrich_cursor_id.txt`)를 Git 파일 시스템 대신 Supabase DB의 `automation_logs` 테이블의 최신 `SUCCESS` 로그의 `api_status.last_enrich_cursor_id` JSONB 필드에서 가져오고 쓰도록 아키텍처를 변경했습니다.
-    *   *GHA 최적화*: [.github/workflows/daily-enrich-playwright.yml](file:///c:/Users/USER/Desktop/RAON.I/.github/workflows/daily-enrich-playwright.yml)에서 Git Commit & Push 단계를 삭제하여 원격 push를 0건으로 만들어 rejected 충돌 문제를 근본적으로 해소했습니다.
-    *   *작동 검증*: 2회 연속 크롤러 테스트를 구동한 결과, 1차 수집 후 저장된 커서 ID(`0267c7cc-4ec3-5d23-9e07-ddfb384a99c2`)를 2차 구동 시 DB로부터 완벽히 SELECT 로드함을 눈으로 검산 확인했습니다.
+이전 세션들의 작업 내역과 사용자 피드백을 기반으로 한 최종 고도화 결과 및 **다음 세션 제미나이 무료쿼터 1줄 적재 작업**을 위한 상세 인계 사항입니다.
 
 ---
 
-## 2. 주요 기술적 결정 사항 (Technical Decisions)
-
-*   **별도 마이그레이션 DDL 없는 격리된 DB 보관**:
-    *   원격 DB의 PostgreSQL 비밀번호에 접근할 수 없는 조건에서, 이미 정상 작동 중이며 `service_role` 권한으로 RLS가 해제되어 있고 서비스와 분리된 `automation_logs` 테이블의 JSONB 필드(`api_status`)에 커서 ID를 얹어서 보관하도록 우회 설계했습니다. 
-    *   이를 통해 복잡한 DB push나 DDL 실행 과정 없이 100% 안전하게 동작함을 증명했습니다.
+## 1. Outstanding & Next User Requests (미해결 및 다음 세션 요구사항)
+*   **🎯 제미나이 무료쿼터 1줄 적재 자동화 파이프라인 구축 (Next Session)**
+    - *사용자 피드백*: *"다음 세션에서 제미나이 무료쿼터 1줄 적재를 진행할꺼야!!"*
+    - *목표*: 현재 대구 달서구 식당 500건 중 **91.6%(458건)가 제미나이 요약 없이 폴백 상태("~은 식당입니다. 유선 확인 필요")로 렌더링**되고 있습니다.
+    - *수행 계획*:
+      1.  `master_places` 테이블에서 `category`가 `'RESTAURANT'` 또는 `'SPOT'`인 장소 중, `description_api_source`가 `'gemini-2.5-flash'`가 아니거나 비어 있는 데이터를 슬라이싱하여 추출합니다.
+      2.  Gemini API 무료 티어(Rate Limit: 1분당 15회 등) 쿼터에 걸리지 않도록 **3.5초~4초 간격의 슬롯 스로틀링(Throttling Delay)**을 준 채 순차적으로 API를 호출하여 1줄 요약을 생성합니다.
+      3.  성공적으로 생성된 요약문을 `master_places` 테이블의 `description` 및 `description_api_source` 컬럼에 업데이트하여 적재하는 **자동 요약 적재 스크립트(`scripts/enrich-places-gemini.mjs`)**를 개발 및 실행합니다.
 
 ---
 
-## 3. 다음 세션 우선 작업 가이드 (내일 오전 점검 항목)
+## 2. Work Accomplished (이번 세션에 완료된 작업)
+*   **🌦️ 날씨 타임존 버그 해결**: KST(+9시간) 가산 헬퍼 `getKSTDateString`을 도입하여 최고/최저 기온 및 바람 세기가 여행개요에 정상 바인딩되도록 전면 수정했습니다.
+*   **🌬️ 바람 이중 지표 병기**: 여행개요 바람 브리핑에 `(평균 풍속 초속 Xm/s, 최고 풍속 초속 Ym/s)`의 구체적인 수치 지표가 100% 보이도록 수정했습니다.
+*   **☔ 비 예보 시 맑음 감성 묘사 차단**: 비/눈/흐림 상태일 때 인사말 풀에서 맑은 묘사어(`햇살`, `화창` 등)가 들어간 문장을 사전 필터링하여 감성 어긋남을 원천 방지했습니다.
+*   **🍔 1줄설명 3대 계층 구조 및 2중 노출 차단**: 1순위(제미나이), 2순위(백년가게), 3순위(폴백 안내) 구조를 확립하고 `card.reasoning = ''` 로 상하 중복 노출을 전면 제거했습니다.
+*   **📏 1줄설명 말줄임(...) 방지 CSS 적용**: `SmartPlanProposal.tsx` 의 `line-clamp-1` 제약을 걷어내고 `whitespace-normal break-words` 스타일을 입혀 긴 글 전체를 온전히 노출했습니다.
+*   **🗺️ 글로벌 교차 및 클라이언트 단 2중 공간 중복 제거 완성 (v12.5.5)**:
+    - **원인 진단**: DB에 주소 텍스트 표기 차이로 다른 ID를 가진 매장들이 존재하였고, 클라이언트 단에서 기존 ID 기준으로만 대안을 거르다 보니 `대구수목원` 과 `달서별빛캠핑장` 등이 대안 리스트 팝업에 교차 중복 노출되는 프론트엔드 버그가 있었습니다.
+    - **해결**:
+      1.  서버 단(`smartPlan.ts`)에서 전체 대안을 1차 평탄화하여 글로벌 공간 중복 제거를 하도록 수정했습니다.
+      2.  프론트엔드 단(`SmartPlanProposal.tsx`)에서 대안 카드를 렌더링하기 직전, 추천에 박힌 카드군(`activeCards`) 및 대안 후보군 자체(`uniqueAlternatives`)에 대해서도 **Haversine 거리 50m 이내(이름 차이 무관 강제 소거) 공간 중복 제거 안전망 필터**를 2중으로 이식하여 중복을 100% 영구 박멸했습니다.
+    - **빌드 성공**: 관련 코드에 명시적인 TS 타입을 입혀 `npm run build` 컴파일 무결성을 확보했습니다.
 
-1.  **내일 새벽 배치 자동 구동 결과 모니터링**:
-    *   내일 아침 KST 05:17에 실행되는 `DAILY_CRAWL_ENRICHMENT` (일일 크롤러)가 Git push 없이 DB 커서 진도를 갱신하고 `SUCCESS`로 끝나는지 확인합니다.
-    *   내일 아침 KST 04:08에 실행되는 `DAILY_REGION_SYNC` (일일 로테이션: 경상북도)가 Vercel 프록시의 Referer 우회 덕분에 `ERROR 403` 없이 모범식당/마트 CSV를 200 OK로 다운로드받아 성공하는지 로그로 교차 검증합니다.
-2.  **어드민 대시보드 표기 정상화 확인**:
-    *   캐싱 크래시 해결 후 정상 insert된 `SMART_PLAN_CACHING` 로그 카드가 관리자 화면에 에러 없이 예쁘게 노출되는지 최종 점검합니다.
+---
+
+## 3. Files and Code (관련 파일 맵)
+*   `src/lib/smartPlan.ts`: 서버 단 날씨 KST 패치, 최고/평균 풍속 바인딩, 비 예보 시 맑음 감성인사 차단, 1줄설명 중복 제거, 서버 글로벌 공간 중복 제거 이식.
+*   `src/components/plan/SmartPlanProposal.tsx`: 클라이언트 단 대안 리스트 자체 50m 공간 중복 제거 및 교차 공간 필터 이식, line-clamp-1 제거, TS certifications map 타입 경고 패치.
+
+---
+
+## 4. Technical Decisions & Warning (기술적 결정 및 주의사항)
+*   **로컬 캐시 보존**: git pull 시 `scratch/` 내 작업파일들의 보존을 위해 `git stash` -> `git pull --rebase` -> `git stash pop` 기법을 사용하여 동기화를 성공시켰습니다. 로컬에서 안심하고 `git push origin main`을 실행하셔도 됩니다.

@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { ProTimelinePlan, TimelineBlock, TimelineDay, FactCard } from '@/lib/smartPlan';
 import { recalcTimelineFrom } from '@/lib/timelineBuilder';
 import { openNavApp } from '@/lib/nav-utils';
+import { formatPlaceDetailText } from '@/utils/placeFormatter';
 
 // ========================================================================================
 // Time/Coord Helpers
@@ -423,8 +424,10 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                                         )}
 
                                                         {/* Description */}
-                                                        {block.description && (
-                                                            <p className="text-[11px] opacity-70 mt-1 line-clamp-1">{block.description}</p>
+                                                        {(block.factCard || block.description) && (
+                                                            <p className="text-[11px] opacity-70 mt-1 line-clamp-1">
+                                                                {block.factCard ? formatPlaceDetailText(block.factCard) : block.description}
+                                                            </p>
                                                         )}
 
                                                         {/* Badges */}
@@ -500,7 +503,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                     {cards.slice(0, 5).map(card => (
                                         <div key={card.id} className="flex-shrink-0 w-36 p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm">
                                             <p className="text-xs font-bold text-gray-900 truncate">{card.name}</p>
-                                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">{card.description}</p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">{formatPlaceDetailText(card)}</p>
                                             {card.distanceKm && (
                                                 <p className="text-[10px] text-[#224732] font-bold mt-1">
                                                     <MapPin className="w-2.5 h-2.5 inline mr-0.5" />{card.distanceKm.toFixed(1)}km
@@ -613,7 +616,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                     <div className="flex items-center justify-between">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-900 truncate">{card.name}</p>
-                                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">{card.reasoning || card.description}</p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">{card.reasoning || formatPlaceDetailText(card)}</p>
                                         </div>
                                         {card.evidence?.stars && (
                                             <span className="text-[10px] font-bold text-yellow-600 flex-shrink-0 ml-2">

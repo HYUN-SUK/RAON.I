@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { toast } from 'sonner';
 import RouteSelector from './RouteSelector';
 import { openNavApp } from '@/lib/nav-utils';
+import { formatPlaceDetailText } from '@/utils/placeFormatter';
 
 interface SmartPlanProposalProps {
     scheduleId?: string;
@@ -518,8 +519,8 @@ export default function SmartPlanProposal({
                             </p>
                         )}
 
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full">
-                            {card.description}
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full font-medium">
+                            {formatPlaceDetailText(card)}
                         </p>
 
                         {/* [v11.9.25] 한 줄 소개 */}
@@ -1025,7 +1026,7 @@ export default function SmartPlanProposal({
                                                                         </div>
                                                                         
                                                                         {/* [v11.9.56] 한줄소개 및 추천이유 복구 */}
-                                                                        <p className="text-[11px] text-gray-500 line-clamp-1 mb-1">{opt.description}</p>
+                                                                        <p className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium">{formatPlaceDetailText(opt)}</p>
                                                                         {opt.reasoning && (
                                                                             <p className="text-[10px] text-blue-600 font-semibold mb-2 leading-tight">
                                                                                 <span className="opacity-60 mr-1">AI Pick:</span>

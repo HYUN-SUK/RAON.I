@@ -1290,9 +1290,9 @@ export async function generatePersonalizedSmartPlan(
                     card.description = desc;
                     card.reasoning = '';
                 } else {
-                    // 3순위: 둘 다 없는 로컬 폴백 매장은 회색 기본 설명을 숨기고 터치 액션 유도 가이드만 단 1번 표시
-                    card.description = '';
-                    card.reasoning = '화면을 터치해서 상세정보를 얻으세요!';
+                    // 3순위: 제미나이나 백년가게 설명이 없더라도, 상세 크롤링 정보가 존재할 수 있으므로
+                    // description을 강제 초기화하지 않고 보존하며, reasoning만 소거하여 중복 가이드 노출을 차단합니다.
+                    card.reasoning = '';
                 }
             });
 

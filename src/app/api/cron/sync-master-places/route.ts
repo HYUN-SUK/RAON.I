@@ -239,9 +239,6 @@ export async function POST(request: Request) {
                             if (h.raw_data?.hpid) {
                                 existingMap.set(h.raw_data.hpid, val);
                             }
-                            if (h.name) {
-                                existingMap.set(h.name, val);
-                            }
                         }
                     });
                 }
@@ -259,10 +256,9 @@ export async function POST(request: Request) {
                             const hAddr = item.dutyAddr || '';
                             const tempFid = generateFactId('NMC_HOSPITAL', item.dutyName, hAddr);
                             
-                            // id, hpid, name 순으로 기존 매핑 룩업 시도하여 주소 누락 시에도 좌표 매칭 성공 보장
+                            // id, hpid 순으로 기존 매핑 룩업 시도 (동일 병원명 오인 매칭 방지를 위해 name 단독 룩업 제거)
                             const exist = existingMap.get(tempFid) || 
-                                          (item.hpid ? existingMap.get(item.hpid) : null) || 
-                                          existingMap.get(item.dutyName);
+                                          (item.hpid ? existingMap.get(item.hpid) : null);
 
                             let hLat = parseFloat(item.wgs84Lat);
                             let hLng = parseFloat(item.wgs84Lon);
