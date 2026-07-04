@@ -523,6 +523,9 @@ export default function SmartPlanProposal({
                             {formatPlaceDetailText(card)}
                         </p>
                         {(() => {
+                            if (card.category === 'HOSPITAL' && card.metadata?.dutyTel3) {
+                                return null;
+                            }
                             const tel = getPlacePhoneNumber(card);
                             if (tel) {
                                 return (
@@ -1051,6 +1054,9 @@ export default function SmartPlanProposal({
                                                                         </div>
                                                                         <p className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium">{formatPlaceDetailText(opt)}</p>
                                                                         {(() => {
+                                                                            if (opt.category === 'HOSPITAL' && opt.metadata?.dutyTel3) {
+                                                                                return null;
+                                                                            }
                                                                             const tel = getPlacePhoneNumber(opt);
                                                                             if (tel) {
                                                                                 return (

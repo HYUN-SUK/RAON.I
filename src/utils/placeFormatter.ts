@@ -147,7 +147,7 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
     }
 
     if (parts.length > 0) return parts.join(' | ');
-    return `터치해서 축제 일정을 확인하세요!`;
+    return '';
   }
 
   // 2. 체인형 템플릿 판정
@@ -163,7 +163,7 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
   if (isChain) {
     const hoursMatch = hours.match(/(\d{1,2}):?(\d{2})\s*[-~]\s*(\d{1,2}):?(\d{2})/);
     const hoursStr = hoursMatch ? `${hoursMatch[1]}-${hoursMatch[3]}시` : '09-22시';
-    return `기본 ${hoursStr}, 2·4주 일요일 휴무(지역별 상이). 방문 전 확인 권장`;
+    return `기본 ${hoursStr}, 2·4주 일요일 휴무(지역별 상이)`;
   }
 
   // 3. 주소 오염 판정
@@ -195,10 +195,6 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
     return parts.join(' | ');
   }
 
-  // 5. 상세 데이터 전무 (NO_DETAIL) -> "터치해서 상세정보를 확인하세요!"
-  const tel = getPlacePhoneNumber(place);
-  if (tel) {
-    return `방문 전 유선 확인을 권장합니다.`;
-  }
-  return `터치해서 상세정보를 확인하세요!`;
+  // 5. 상세 데이터 전무 (NO_DETAIL) -> 하단 넛지와 겹치지 않게 빈 값 리턴
+  return '';
 }

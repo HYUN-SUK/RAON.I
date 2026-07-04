@@ -430,6 +430,9 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                                                     {block.factCard ? formatPlaceDetailText(block.factCard) : block.description}
                                                                 </p>
                                                                 {block.factCard && (() => {
+                                                                    if (block.factCard.category === 'HOSPITAL' && block.factCard.metadata?.dutyTel3) {
+                                                                        return null;
+                                                                    }
                                                                     const tel = getPlacePhoneNumber(block.factCard);
                                                                     if (tel) {
                                                                         return (
