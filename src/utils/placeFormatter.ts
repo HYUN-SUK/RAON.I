@@ -36,13 +36,13 @@ export function cleanOperatingHours(hoursStr: string): string {
   let cleaned = hoursStr.replace(/\(\d{1,2}\/\d{1,2}\)/g, '').replace(/\s+/g, ' ').trim();
   
   // 2. 범용 요일별 시간대 매칭 정규식
-  // [월화수목금토일]요일? 뒤에 바로 또는 공백을 두고 XX:XX ~ YY:YY 가 오는 패턴
-  const dayTimeRegex = /([월화수목금토일])요일?\s*(\d{2}:\d{2}\s*[^월화수목금토일\d\s,]+?\s*\d{2}:\d{2})/g;
+  // [월화수목금토일](요일) 뒤에 바로 또는 공백을 두고 XX:XX ~ YY:YY 가 오는 패턴
+  const dayTimeRegex = /([월화수목금토일])(?:요일)?\s*(\d{1,2}:\d{2})\s*(?:~|～|∼|-|—|–)\s*(\d{1,2}:\d{2})/g;
   const matches: { day: string; time: string }[] = [];
   let match;
   
   while ((match = dayTimeRegex.exec(cleaned)) !== null) {
-    matches.push({ day: match[1], time: match[2].trim() });
+    matches.push({ day: match[1], time: `${match[2]} ~ ${match[3]}` });
   }
   
   if (matches.length >= 3) {
@@ -106,10 +106,10 @@ export function cleanOperatingHours(hoursStr: string): string {
   
   // 압축 실패 시, 날짜 괄호만 지우고 가독성 향상을 위해 요일별 띄어쓰기 정돈
   const formattedParts: string[] = [];
-  const fallbackRegex = /([월화수목금토일])요일?\s*(\d{2}:\d{2}\s*[^월화수목금토일\d\s,]+?\s*\d{2}:\d{2})/g;
+  const fallbackRegex = /([월화수목금토일])(?:요일)?\s*(\d{1,2}:\d{2})\s*(?:~|～|∼|-|—|–)\s*(\d{1,2}:\d{2})/g;
   let fallbackMatch;
   while ((fallbackMatch = fallbackRegex.exec(cleaned)) !== null) {
-    formattedParts.push(`${fallbackMatch[1]} ${fallbackMatch[2].trim()}`);
+    formattedParts.push(`${fallbackMatch[1]} ${fallbackMatch[2].trim()} ~ ${fallbackMatch[3].trim()}`);
   }
   
   if (formattedParts.length > 0) {
