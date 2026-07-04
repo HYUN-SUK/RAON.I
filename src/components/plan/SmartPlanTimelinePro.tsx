@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Navigation, Clock, EyeOff, ArrowRightLeft, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
+import { Navigation, Clock, EyeOff, ArrowRightLeft, ChevronDown, ChevronUp, MapPin, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { ProTimelinePlan, TimelineBlock, TimelineDay, FactCard } from '@/lib/smartPlan';
 import { recalcTimelineFrom } from '@/lib/timelineBuilder';
 import { openNavApp } from '@/lib/nav-utils';
-import { formatPlaceDetailText } from '@/utils/placeFormatter';
+import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
 
 // ========================================================================================
 // Time/Coord Helpers
@@ -425,9 +425,25 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
 
                                                         {/* Description */}
                                                         {(block.factCard || block.description) && (
-                                                            <p className="text-[11px] opacity-70 mt-1 line-clamp-1">
-                                                                {block.factCard ? formatPlaceDetailText(block.factCard) : block.description}
-                                                            </p>
+                                                            <div className="text-[11px] opacity-70 mt-1 line-clamp-1 flex flex-wrap items-center gap-1">
+                                                                <span>{block.factCard ? formatPlaceDetailText(block.factCard) : block.description}</span>
+                                                                {block.factCard && (() => {
+                                                                    const tel = getPlacePhoneNumber(block.factCard);
+                                                                    if (tel) {
+                                                                        return (
+                                                                            <a 
+                                                                                href={`tel:${tel}`}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 active:scale-95 transition-transform underline font-bold shrink-0 ml-0.5"
+                                                                            >
+                                                                                <Phone className="w-2.5 h-2.5" />
+                                                                                {tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')}
+                                                                            </a>
+                                                                        );
+                                                                    }
+                                                                    return null;
+                                                                })()}
+                                                            </div>
                                                         )}
 
                                                         {/* Badges */}

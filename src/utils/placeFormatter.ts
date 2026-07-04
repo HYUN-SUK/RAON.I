@@ -27,15 +27,81 @@ function formatPhoneNumber(tel: string): string {
 }
 
 /**
+ * 요일별 날짜 괄호 제거 및 평일/주말 운영시간 단순화 핵심 정제기
+ */
+export function cleanOperatingHours(hoursStr: string): string {
+  if (!hoursStr) return '';
+  
+  // 1. 날짜 괄호 패턴 (M/D) 제거: "(6/18)" -> ""
+  let cleaned = hoursStr.replace(/\(\d{1,2}\/\d{1,2}\)/g, '').replace(/\s+/g, ' ').trim();
+  
+  // 2. "요일 시간 요일 시간" 형태로 요일별 패턴이 반복되는 경우 (예: "목 06:00 ~ 21:00 금 06:00 ~ 21:00...")
+  // 요일별 시간 추출 시도
+  const dayTimeRegex = /([월화수목금토일])요일?\s*(\d{2}:\d{2}\s*[-~-]\s*\d{2}:\d{2})/g;
+  const matches: { day: string; time: string }[] = [];
+  let match;
+  
+  while ((match = dayTimeRegex.exec(cleaned)) !== null) {
+    matches.push({ day: match[1], time: match[2].replace(/\s+/g, '') });
+  }
+  
+  if (matches.length >= 3) {
+    const dayOrder = ['월', '화', '수', '목', '금', '토', '일'];
+    const timeMap = new Map<string, string>();
+    matches.forEach(m => timeMap.set(m.day, m.time));
+    
+    const uniqueTimes = Array.from(new Set(matches.map(m => m.time)));
+    
+    if (uniqueTimes.length === 1) {
+      return `매일 ${uniqueTimes[0]}`;
+    }
+    
+    const weekdayTimes = dayOrder.slice(0, 5).map(d => timeMap.get(d)).filter(Boolean);
+    const weekendTimes = dayOrder.slice(5, 7).map(d => timeMap.get(d)).filter(Boolean);
+    
+    const uniqueWeekday = Array.from(new Set(weekdayTimes));
+    const uniqueWeekend = Array.from(new Set(weekendTimes));
+    
+    if (uniqueWeekday.length === 1 && uniqueWeekend.length === 1) {
+      return `평일 ${uniqueWeekday[0]} | 주말 ${uniqueWeekend[0]}`;
+    }
+    
+    const timeCounts = new Map<string, number>();
+    matches.forEach(m => timeCounts.set(m.time, (timeCounts.get(m.time) || 0) + 1));
+    
+    let mostCommonTime = '';
+    let maxCount = 0;
+    timeCounts.forEach((count, time) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommonTime = time;
+      }
+    });
+    
+    if (maxCount >= 5) {
+      const exceptions = matches.filter(m => m.time !== mostCommonTime);
+      const exceptionStr = exceptions.map(e => `${e.day} ${e.time}`).join(', ');
+      return `매일 ${mostCommonTime} (${exceptionStr} 제외)`;
+    }
+  }
+  
+  return cleaned;
+}
+
+/**
+ * 전화번호 획득 헬퍼
+ */
+export function getPlacePhoneNumber(place: PlaceFormatterInput): string {
+  const { metadata = {} } = place;
+  return metadata.전화번호 || metadata.tel || metadata.dutyTel3 || metadata.sponsor1tel || '';
+}
+
+/**
  * 카테고리별 동적 1줄 설명 생성 핵심 헬퍼
  */
 export function formatPlaceDetailText(place: PlaceFormatterInput): string {
   const { category, metadata = {}, description = '' } = place;
   
-  // 전화번호 획득 및 깔끔한 포맷팅
-  const tel = metadata.전화번호 || metadata.tel || metadata.dutyTel3 || metadata.sponsor1tel || '';
-  const formattedTel = tel ? ` (${formatPhoneNumber(tel)})` : '';
-
   // 1. 축제 카테고리 (FESTIVAL)
   if (category === 'FESTIVAL') {
     const start = formatFestivalDate(metadata.event_start_date);
@@ -49,8 +115,8 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
       parts.push(`🚗 주차 ${metadata.parking_available}`);
     }
 
-    if (parts.length > 0) return parts.join(' | ') + formattedTel;
-    return `터치해서 축제 일정을 확인하세요!${formattedTel}`;
+    if (parts.length > 0) return parts.join(' | ');
+    return `터치해서 축제 일정을 확인하세요!`;
   }
 
   // 2. 체인형 템플릿 판정
@@ -66,7 +132,7 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
   if (isChain) {
     const hoursMatch = hours.match(/(\d{1,2}):?(\d{2})\s*[-~]\s*(\d{1,2}):?(\d{2})/);
     const hoursStr = hoursMatch ? `${hoursMatch[1]}-${hoursMatch[3]}시` : '09-22시';
-    return `기본 ${hoursStr}, 2·4주 일요일 휴무(지역별 상이). 방문 전 확인 권장${formattedTel}`;
+    return `기본 ${hoursStr}, 2·4주 일요일 휴무(지역별 상이). 방문 전 확인 권장`;
   }
 
   // 3. 주소 오염 판정
@@ -80,7 +146,7 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
   if (hasRealHours || hasRealClosed || hasRealParking) {
     const parts = [];
     if (hasRealHours) {
-      const cleanHours = hours.split(',')[0].trim();
+      const cleanHours = cleanOperatingHours(hours);
       parts.push(`⏰ ${cleanHours}`);
     }
     if (hasRealClosed) parts.push(`🗓️ ${closed}`);
@@ -95,12 +161,13 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
       }
     }
 
-    return parts.join(' | ') + formattedTel;
+    return parts.join(' | ');
   }
 
   // 5. 상세 데이터 전무 (NO_DETAIL) -> "터치해서 상세정보를 확인하세요!"
+  const tel = getPlacePhoneNumber(place);
   if (tel) {
-    return `방문 전 유선 확인을 권장합니다.${formattedTel}`;
+    return `방문 전 유선 확인을 권장합니다.`;
   }
   return `터치해서 상세정보를 확인하세요!`;
 }

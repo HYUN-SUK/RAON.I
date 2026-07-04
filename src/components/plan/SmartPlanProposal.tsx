@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { toast } from 'sonner';
 import RouteSelector from './RouteSelector';
 import { openNavApp } from '@/lib/nav-utils';
-import { formatPlaceDetailText } from '@/utils/placeFormatter';
+import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
 
 interface SmartPlanProposalProps {
     scheduleId?: string;
@@ -519,9 +519,25 @@ export default function SmartPlanProposal({
                             </p>
                         )}
 
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full font-medium">
-                            {formatPlaceDetailText(card)}
-                        </p>
+                        <div className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full font-medium flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                            <span>{formatPlaceDetailText(card)}</span>
+                            {(() => {
+                                const tel = getPlacePhoneNumber(card);
+                                if (tel) {
+                                    return (
+                                        <a 
+                                            href={`tel:${tel}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 active:scale-95 transition-transform underline font-bold shrink-0"
+                                        >
+                                            <Phone className="w-3 h-3" />
+                                            {tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')}
+                                        </a>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </div>
 
                         {/* [v11.9.25] 한 줄 소개 */}
                         {card.reasoning && (
@@ -1025,8 +1041,25 @@ export default function SmartPlanProposal({
                                                                             )}
                                                                         </div>
                                                                         
-                                                                        {/* [v11.9.56] 한줄소개 및 추천이유 복구 */}
-                                                                        <p className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium">{formatPlaceDetailText(opt)}</p>
+                                                                        <div className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium flex flex-wrap items-center gap-1">
+                                                                            <span>{formatPlaceDetailText(opt)}</span>
+                                                                            {(() => {
+                                                                                const tel = getPlacePhoneNumber(opt);
+                                                                                if (tel) {
+                                                                                    return (
+                                                                                        <a 
+                                                                                            href={`tel:${tel}`}
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                            className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 active:scale-95 transition-transform underline font-bold shrink-0 ml-0.5"
+                                                                                        >
+                                                                                            <Phone className="w-2.5 h-2.5" />
+                                                                                            {tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')}
+                                                                                        </a>
+                                                                                    );
+                                                                                }
+                                                                                return null;
+                                                                            })()}
+                                                                        </div>
                                                                         {opt.reasoning && (
                                                                             <p className="text-[10px] text-blue-600 font-semibold mb-2 leading-tight">
                                                                                 <span className="opacity-60 mr-1">AI Pick:</span>
