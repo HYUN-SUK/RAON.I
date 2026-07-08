@@ -52,11 +52,16 @@ export default function TravelRecipePage() {
     const supabase = createClient();
 
     // State
+    const [isMounted, setIsMounted] = useState<boolean>(false);
     const [categories, setCategories] = useState<CategoryNode[]>([]);
     const [recipes, setRecipes] = useState<RecipeItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [localQuery, setLocalQuery] = useState<string>('');
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -460,6 +465,14 @@ export default function TravelRecipePage() {
             }, 800);
         }
     };
+
+    if (!isMounted) {
+        return (
+            <div className="w-full min-h-screen bg-[#F7F5EF] dark:bg-[#0f0e0c] flex items-center justify-center text-stone-400 text-sm">
+                로딩 중...
+            </div>
+        );
+    }
 
     return (
         <div className="w-full min-h-screen bg-[#F7F5EF] dark:bg-[#0f0e0c] text-stone-800 dark:text-stone-200 pb-20 font-sans">

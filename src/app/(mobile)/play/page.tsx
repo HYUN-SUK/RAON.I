@@ -56,12 +56,17 @@ export default function PlayExplorerPage() {
     const supabase = createClient();
 
     // States
+    const [isMounted, setIsMounted] = useState<boolean>(false);
     const [categories, setCategories] = useState<PlayCategory[]>([]);
     const [plays, setPlays] = useState<PlayItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [recommending, setRecommending] = useState<boolean>(false);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [localQuery, setLocalQuery] = useState<string>('');
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -428,6 +433,14 @@ export default function PlayExplorerPage() {
 
     // Color array for Roulette slices
     const rouletteColors = ['#E28743', '#EAB308', '#10B981', '#3B82F6', '#6366F1', '#EC4899', '#8B5CF6', '#14B8A6'];
+
+    if (!isMounted) {
+        return (
+            <div className="w-full min-h-screen bg-[#F7F5EF] dark:bg-[#0f0e0c] flex items-center justify-center text-stone-400 text-sm">
+                로딩 중...
+            </div>
+        );
+    }
 
     return (
         <div className="w-full min-h-screen bg-[#F7F5EF] dark:bg-[#0f0e0c] text-stone-800 dark:text-stone-200 pb-20 font-sans">

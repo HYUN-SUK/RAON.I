@@ -72,7 +72,12 @@ export default function ScheduleDetailPage() {
     const scheduleId = params.id as string;
     const initialRecipeId = searchParams.get('recipeId');
 
+    const [isMounted, setIsMounted] = useState(false);
     const [userId, setUserId] = useState<string>();
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
     const [userEmail, setUserEmail] = useState<string>();
     const [showSmartPlan, setShowSmartPlan] = useState(false);
     const [smartPlanOrigin, setSmartPlanOrigin] = useState<{ lat: number; lng: number } | undefined>();
@@ -382,7 +387,7 @@ export default function ScheduleDetailPage() {
     };
 
     // 로딩 상태
-    if (isLoading) {
+    if (!isMounted || isLoading) {
         return (
             <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />

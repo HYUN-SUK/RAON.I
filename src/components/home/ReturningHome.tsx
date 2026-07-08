@@ -71,6 +71,7 @@ interface RecommendationItem {
 
 export default function ReturningHome() {
     const router = useRouter();
+    const [isMounted, setIsMounted] = useState(false);
     const { isMapOpen, setIsMapOpen } = useMySpaceStore();
     const { initRebook, lastReservation, fetchLastReservation, openDayRule, fetchOpenDayRule, fetchSites, reservations, fetchMyReservations } = useReservationStore();
     const { config } = useSiteConfig();
@@ -98,6 +99,7 @@ export default function ReturningHome() {
     const { requestPermission } = usePushNotification();
 
     React.useEffect(() => {
+        setIsMounted(true);
         fetchSites();
         fetchOpenDayRule();
         fetchLastReservation();
@@ -176,6 +178,15 @@ export default function ReturningHome() {
         });
         setDetailSheetOpen(true);
     }, []);
+
+    if (!isMounted) {
+        return (
+            <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative items-center justify-center text-stone-400 text-sm">
+                로딩 중...
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
             {/* Global TopBar */}

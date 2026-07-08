@@ -93,6 +93,8 @@ export default function BeginnerHome() {
     const { config } = useSiteConfig(); // Dynamic Config
     const lbs = useLBS(); // Real-time Location
 
+    const [isMounted, setIsMounted] = useState(false);
+
     // Contextual Data
     const { reservations, fetchMyReservations, openDayRule, fetchOpenDayRule } = useReservationStore();
 
@@ -119,6 +121,7 @@ export default function BeginnerHome() {
     const { requestPermission } = usePushNotification();
 
     React.useEffect(() => {
+        setIsMounted(true);
         fetchOpenDayRule();
         fetchMyReservations();
         requestPermission();
@@ -381,6 +384,14 @@ export default function BeginnerHome() {
             setDetailSheetOpen(true);
         });
     }, [withAuth, lbs]);
+
+    if (!isMounted) {
+        return (
+            <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative items-center justify-center text-stone-400 text-sm">
+                로딩 중...
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">

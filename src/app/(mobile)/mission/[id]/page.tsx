@@ -33,9 +33,13 @@ export default function MissionDetailPage() {
     const { currentMission, userMission, participants, fetchCurrentMission, joinMission, completeMission, toggleLike, deleteParticipation, isLoading, error } = useMissionStore();
     const [preview, setPreview] = useState<string | null>(null);
 
-    // States for Pivot
+    const [isMounted, setIsMounted] = useState(false);
     const [healingPhrase, setHealingPhrase] = useState('');
     const [completedCount, setCompletedCount] = useState<number>(0);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Initial Load
     useEffect(() => {
@@ -176,7 +180,7 @@ export default function MissionDetailPage() {
         }
     };
 
-    if (isLoading && !currentMission) {
+    if (!isMounted || (isLoading && !currentMission)) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#F7F5EF] dark:bg-black">
                 <p className="text-stone-500">미션을 불러오는 중...</p>

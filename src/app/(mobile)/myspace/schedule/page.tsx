@@ -42,11 +42,16 @@ type TabType = 'scheduled' | 'completed' | 'cancelled';
 function ScheduleContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const [isMounted, setIsMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>('scheduled');
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // 예약 취소 연동용 스토어 및 상태
     const { reservations, fetchMyReservations, updateReservationStatus } = useReservationStore();
@@ -200,6 +205,14 @@ function ScheduleContent() {
         { key: 'completed', label: '완료', icon: <CheckCircle2 className="w-4 h-4" /> },
         { key: 'cancelled', label: '취소', icon: <XCircle className="w-4 h-4" /> },
     ];
+
+    if (!isMounted) {
+        return (
+            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#224732]" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#F7F5EF]">
