@@ -77,7 +77,7 @@ export default function AdminLayout({
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-full">
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-full min-w-0">
                 {children}
             </main>
         </div>

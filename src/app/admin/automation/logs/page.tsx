@@ -790,31 +790,31 @@ export default function AutomationLogsPage() {
   return (
     <div className="p-8 max-w-screen-2xl mx-auto space-y-8 bg-[#f8fafc] min-h-screen">
       {/* 1. 최상단 헤더 & 컨트롤 */}
-      <div className="bg-[#224732] p-8 rounded-[2.5rem] text-white shadow-2xl shadow-brand-100 flex justify-between items-center relative overflow-hidden">
+      <div className="bg-[#224732] p-6 md:p-8 rounded-[2.5rem] text-white shadow-2xl shadow-brand-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center space-x-3 mb-2">
-            <Activity className="w-10 h-10 text-brand-400" />
-            <h1 className="text-4xl font-black tracking-tighter uppercase">RAONAI Live Monitor</h1>
+            <Activity className="w-8 h-8 md:w-10 md:h-10 text-brand-400" />
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter uppercase">RAONAI Live Monitor</h1>
           </div>
-          <p className="text-brand-100/70 font-bold flex items-center">
-            <span className="w-2.4 h-2.5 bg-green-400 rounded-full mr-2 animate-pulse" />
+          <p className="text-brand-100/70 text-xs md:text-sm font-bold flex items-center">
+            <span className="w-2 h-2 md:w-2.4 md:h-2.5 bg-green-400 rounded-full mr-2 animate-pulse" />
             SSOT v9 기반 전계통 API 및 자동화 배치 실시간 점검 현황
           </p>
         </div>
-        <div className="flex gap-4 relative z-10">
+        <div className="flex flex-wrap gap-3 relative z-10 w-full md:w-auto">
           <button 
             onClick={runApiHealthCheck}
             disabled={checkingHealth}
-            className="px-8 py-4 bg-brand-500 text-white rounded-2xl text-base font-black hover:bg-brand-400 transition-all flex items-center shadow-xl disabled:opacity-50 active:scale-95 group"
+            className="flex-1 md:flex-initial px-4 md:px-8 py-3 md:py-4 bg-brand-500 text-white rounded-2xl text-sm md:text-base font-black hover:bg-brand-400 transition-all flex items-center justify-center shadow-xl disabled:opacity-50 active:scale-95 group"
           >
-            {checkingHealth ? <RefreshCw className="w-5 h-5 mr-3 animate-spin" /> : <Wifi className="w-5 h-5 mr-3 group-hover:animate-bounce" />}
-            전계통 실시간 점검 실행
+            {checkingHealth ? <RefreshCw className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 animate-spin" /> : <Wifi className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 group-hover:animate-bounce" />}
+            전계통 실시간 점검
           </button>
           <button 
             onClick={fetchLogs}
-            className="px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-base font-black text-white hover:bg-white/20 transition-all flex items-center active:scale-95"
+            className="px-4 md:px-8 py-3 md:py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-sm md:text-base font-black text-white hover:bg-white/20 transition-all flex items-center justify-center active:scale-95"
           >
-            <RefreshCw className="w-5 h-5 mr-3" />
+            <RefreshCw className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
             새로고침
           </button>
         </div>
@@ -903,7 +903,7 @@ export default function AutomationLogsPage() {
           <h3 className="text-xl font-black text-gray-800 tracking-tight flex items-center px-1">
             <Clock className="w-6 h-6 mr-2 text-brand-600" /> 최근 자동화 작업 타임라인
           </h3>
-          <div className="bg-white rounded-[3rem] border-4 border-white shadow-xl overflow-hidden">
+          <div className="bg-white rounded-[3rem] border-4 border-white shadow-xl overflow-hidden overflow-x-auto scrollbar-thin">
             <table className="min-w-full">
               <thead>
                 <tr className="bg-gray-50/50">
