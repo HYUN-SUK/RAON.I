@@ -15,12 +15,40 @@ interface ReservationCardProps {
 }
 
 import { useMySpaceStore } from '@/store/useMySpaceStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
 
 export default function ReservationCard({ reservation }: ReservationCardProps) {
-    const { updateReservationStatus, deadlineHours } = useReservationStore();
+    const { updateReservationStatus, deadlineHours, getUserHistory } = useReservationStore();
     const { addXp, addToken } = useMySpaceStore();
     const site = SITES.find(s => s.id === reservation.siteId);
     const [confirmStep, setConfirmStep] = useState<'IDLE' | 'CONFIRMING' | 'CANCELLING'>('IDLE');
+
+    const [visitCount, setVisitCount] = useState<number>(0);
+    const [historyList, setHistoryList] = useState<Reservation[]>([]);
+    const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+
+    useEffect(() => {
+        const loadHistory = async () => {
+            const userIdQuery = reservation.userId || reservation.guestName;
+            if (userIdQuery) {
+                try {
+                    const history = await getUserHistory(userIdQuery);
+                    const today = new Date();
+                    const completed = history.filter(h => {
+                        const checkOut = new Date(h.checkOutDate);
+                        return h.status !== 'CANCELLED' && checkOut < today;
+                    });
+                    setVisitCount(completed.length);
+                    setHistoryList(history);
+                } catch (e) {
+                     console.error("Failed to load user history in ReservationCard:", e);
+                }
+            }
+        };
+        loadHistory();
+    }, [reservation.userId, reservation.guestName, getUserHistory]);
 
     // 입금 기한 및 유예 만료 시간 연산
     const createdAt = new Date(reservation.createdAt);
@@ -143,6 +171,25 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                     <p className="font-semibold">요청사항</p>
                     <p className="text-gray-600">{reservation.requests || '-'}</p>
                 </div>
+                <div className="col-span-2 mt-1 p-2 bg-gray-50 dark:bg-stone-900 rounded border border-gray-100 dark:border-stone-800 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                    <div>
+                        <span className="font-bold text-gray-500">예약자: </span>
+                        <span className="font-extrabold text-gray-900 dark:text-gray-100">{reservation.guestName || '이름 없음'}</span>
+                    </div>
+                    <div>
+                        <span className="font-bold text-gray-500">연락처: </span>
+                        <span className="font-medium text-gray-800 dark:text-gray-200">{reservation.guestPhone || '연락처 없음'}</span>
+                    </div>
+                    <div>
+                        <span className="font-bold text-gray-500">이력: </span>
+                        <span
+                            onClick={() => historyList.length > 0 && setIsHistoryOpen(true)}
+                            className={`font-bold text-blue-600 dark:text-blue-400 underline decoration-dotted cursor-pointer hover:text-blue-800 ${historyList.length === 0 ? 'pointer-events-none text-gray-400 no-underline' : ''}`}
+                        >
+                            방문 {visitCount}회
+                        </span>
+                    </div>
+                </div>
             </div>
 
             {/* 환불 정보 (REFUND_PENDING 상태일 때) */}
@@ -218,6 +265,47 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                     />
                 )}
             </div>
+
+            {/* 과거 이력 팝업 모달 */}
+            <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+                <DialogContent className="max-w-md w-full bg-white p-6 rounded-lg shadow-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold flex items-center gap-2 text-stone-900">
+                            📜 {reservation.guestName || '고객'}님의 과거 이용 내역
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="my-4 max-h-[300px] overflow-y-auto pr-2 space-y-2.5">
+                        {historyList.length === 0 ? (
+                            <p className="text-sm text-gray-400 text-center py-4">과거 이용 내역이 없습니다.</p>
+                        ) : (
+                            historyList.map(h => (
+                                <div key={h.id} className="text-xs border p-3 rounded-lg bg-gray-50 flex justify-between items-center text-stone-800">
+                                    <div className="space-y-1">
+                                        <p className="font-bold text-gray-800">
+                                            {format(new Date(h.checkInDate), 'yy.MM.dd')} ~ {format(new Date(h.checkOutDate), 'MM.dd')}
+                                        </p>
+                                        <p className="text-gray-500 font-medium">
+                                            {SITES.find(s => s.id === h.siteId)?.name || h.siteId} / {h.guests}명
+                                        </p>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                        h.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                                        h.status === 'CANCELLED' ? 'bg-gray-200 text-gray-600 line-through' :
+                                        h.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
+                                    }`}>
+                                        {h.status === 'CONFIRMED' ? '이용 완료' : h.status}
+                                    </span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                    <DialogFooter className="flex justify-end pt-2 border-t">
+                        <Button onClick={() => setIsHistoryOpen(false)} className="bg-gray-900 hover:bg-gray-800 text-white text-sm">
+                            닫기
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

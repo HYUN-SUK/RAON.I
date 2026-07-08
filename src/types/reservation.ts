@@ -47,6 +47,8 @@ export interface Reservation {
     refundedAt?: Date;
     refundAmount?: number;
     refundRate?: number; // 환불율 (0~100)
+    guestName?: string;
+    guestPhone?: string;
 }
 
 export interface PriceBreakdown {

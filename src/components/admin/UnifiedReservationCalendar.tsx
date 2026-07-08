@@ -213,11 +213,12 @@ export default function UnifiedReservationCalendar() {
             </div>
 
             {/* Calendar Grid */}
-            <div className="bg-white rounded-xl border shadow-sm p-1">
-                <div className="grid grid-cols-7 border-b bg-gray-50 text-center py-2 text-sm font-bold text-gray-600">
-                    <div className="text-red-500">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div className="text-blue-500">토</div>
-                </div>
-                <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y">
+            <div className="bg-white rounded-xl border shadow-sm p-1 overflow-x-auto scrollbar-thin">
+                <div className="min-w-[800px]">
+                    <div className="grid grid-cols-7 border-b bg-gray-50 text-center py-2 text-sm font-bold text-gray-600">
+                        <div className="text-red-500">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div className="text-blue-500">토</div>
+                    </div>
+                    <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y">
                     {calendarDays.map((day, idx) => {
                         const isCurrentMonth = isSameMonth(day, monthStart);
                         const isTodayDate = isToday(day);
@@ -272,6 +273,7 @@ export default function UnifiedReservationCalendar() {
                     })}
                 </div>
             </div>
+        </div>
 
             {/* Block Modal with Smart Duration */}
             <Dialog open={viewMode === 'BLOCK'} onOpenChange={(o) => !o && setViewMode(null)}>
@@ -325,8 +327,22 @@ export default function UnifiedReservationCalendar() {
                         <div className="space-y-4">
                             {selectedReservation && (
                                 <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                                    <div><Label className="text-xs text-gray-500">예약자</Label>
-                                        <p className="font-bold text-lg cursor-pointer hover:text-blue-600 underline decoration-dotted" onClick={loadUserHistory}>{selectedReservation.userId}</p></div>
+                                    <div><Label className="text-xs text-gray-500">예약자 정보</Label>
+                                        <p className="font-bold text-base text-gray-900 cursor-pointer hover:text-blue-600 underline decoration-dotted" onClick={loadUserHistory}>
+                                            {selectedReservation.guestName || '이름 없음'} ({selectedReservation.guestPhone || '연락처 없음'})
+                                        </p>
+                                        {!showHistory && (
+                                            <span 
+                                                className="text-xs text-blue-500 cursor-pointer hover:underline block mt-1" 
+                                                onClick={loadUserHistory}
+                                            >
+                                                🔍 클릭하여 방문 횟수 및 이전 내역 조회
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div><Label className="text-xs text-gray-400">ID (UUID)</Label>
+                                        <p className="text-xs text-gray-400 font-mono">{selectedReservation.userId}</p>
+                                    </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div><Label className="text-xs text-gray-500">상태</Label><p className="font-bold">{selectedReservation.status}</p></div>
                                         <div><Label className="text-xs text-gray-500">인원</Label><p>{selectedReservation.guests}명</p></div>
@@ -381,7 +397,14 @@ export default function UnifiedReservationCalendar() {
 
                         {/* History Section (Visible on click) */}
                         <div className={`border-l pl-6 ${!showHistory ? 'hidden' : 'block'}`}>
-                            <h3 className="font-bold mb-3 flex items-center gap-2"><History className="w-4 h-4" /> 과거 이력</h3>
+                            <h3 className="font-bold mb-3 flex items-center gap-2">
+                                <History className="w-4 h-4" /> 과거 이력 (방문 {
+                                    userHistory.filter(h => {
+                                        const checkOut = new Date(h.checkOutDate);
+                                        return h.status !== 'CANCELLED' && checkOut < new Date();
+                                    }).length
+                                }회)
+                            </h3>
                             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                                 {userHistory.length === 0 ? <p className="text-sm text-gray-400">이력이 없습니다.</p> : userHistory.map(h => (
                                     <div key={h.id} className="text-xs border p-2 rounded bg-white">
