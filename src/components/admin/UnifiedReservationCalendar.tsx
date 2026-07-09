@@ -23,7 +23,7 @@ import { NotificationEventType } from '@/types/notificationEvents';
 
 export default function UnifiedReservationCalendar() {
     const {
-        reservations, blockedDates, fetchBlockedDates,
+        reservations, blockedDates, fetchBlockedDates, fetchAllReservations,
         addBlockDate, removeBlockDate, toggleBlockPaid, getUserHistory,
         fetchHolidays, holidays, updateReservation, sites, calculatePrice
     } = useReservationStore();
@@ -56,6 +56,7 @@ export default function UnifiedReservationCalendar() {
     const [modifyPricePreview, setModifyPricePreview] = useState<{ oldPrice: number; newPrice: number; diff: number } | null>(null);
 
     useEffect(() => {
+        fetchAllReservations();
         fetchBlockedDates();
         fetchHolidays(); // Fetch holidays
     }, []);
