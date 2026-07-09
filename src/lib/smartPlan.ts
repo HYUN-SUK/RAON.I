@@ -1139,8 +1139,7 @@ export async function generatePersonalizedSmartPlan(
                         .replace('${windSpeed}', String(maxWindSpeed));
                 }
 
-                // [v12.2.0] 바람 수치(평균 풍속, 최고 풍속) 정보 2중 강제 바인딩 노출 보장
-                windNarrative = windNarrative + ` (평균 풍속 초속 ${avgWindSpeed}m/s, 최고 풍속 초속 ${maxWindSpeed}m/s)`;
+                // [v12.2.0] 수치형 괄호 풍속 강제 바인딩 노출 제거 (감성 작가 에이전트 다듬음 적용)
             }
 
             // F. 조립 블록 4: 사용자 선호 행동 취향 태그 코멘트 결합
@@ -1153,9 +1152,9 @@ export async function generatePersonalizedSmartPlan(
                 tagNarrative = tagPhrases[Math.floor(Math.random() * tagPhrases.length)];
             }
 
-            // G. 5단계 stageIntros 조립
+            // G. 5단계 stageIntros 조립 (한 문단으로 결합 및 슬림화)
             stageIntros['1'] = `${greeting} ${companionNarrative} ${weatherNarrative}` + 
-                (tempNarrative ? `\n\n${tempNarrative} ${windNarrative}` : '') + 
+                (tempNarrative ? ` ${tempNarrative} ${windNarrative}` : '') + 
                 (tagNarrative ? ` ${tagNarrative}` : '');
             
             stageIntros['2'] = "설레는 출발의 순간! 캠핑장으로 향하며 가볍게 들러갈 수 있는 아늑한 맛집과 쉼표 같은 카페를 지나가 볼까요?";

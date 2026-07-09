@@ -598,7 +598,7 @@ async function getMidTermForecast(lat: number, lng: number) {
 // --- Open-Meteo Fallback Logic ---
 async function fetchOpenMeteoFallback(lat: number, lng: number): Promise<CachedWeather | null> {
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=10`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,cloud_cover,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&wind_speed_unit=ms&forecast_days=10`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
         const data = await res.json();
@@ -654,6 +654,7 @@ async function fetchOpenMeteoFallback(lat: number, lng: number): Promise<CachedW
                 sky,
                 pty: data.hourly.precipitation[i] > 0 ? 1 : 0,
                 pop: data.hourly.precipitation_probability[i],
+                wsd: data.hourly.wind_speed_10m ? Math.round(data.hourly.wind_speed_10m[i] * 10) / 10 : 1.5,
                 weatherCode: mapWeatherCode(data.hourly.weather_code[i])
             });
 

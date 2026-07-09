@@ -651,23 +651,102 @@ export default function SmartPlanProposal({
         </Card>
     );
 
-    const showMidTermBanner = diffDaysForRegen >= 4 && diffDaysForRegen <= 10;
+    const showNoWeatherBanner = diffDaysForRegen >= 11;
+    const showMidTermActionBanner = diffDaysForRegen >= 4 && diffDaysForRegen <= 7 && onReset;
+    const showMidTermStaticBanner = diffDaysForRegen >= 8 && diffDaysForRegen <= 10;
+    const showShortTermActionBanner = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset;
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">
-            {showMidTermBanner && (
-                <div className="bg-amber-50/95 border border-amber-200/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                    <span className="text-lg shrink-0">📅</span>
+            {showNoWeatherBanner && (
+                <div className="bg-blue-50/95 border border-blue-200/70 rounded-2xl p-4 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <span className="text-xl shrink-0">📅</span>
                     <div className="flex flex-col min-w-0">
-                        <p className="text-[12px] font-bold text-amber-900 leading-normal">
-                            현재 중기 예보 기반으로 구성된 일정입니다.
+                        <p className="text-[13px] font-bold text-blue-900 leading-normal">
+                            날씨 정보가 아직 준비되지 않았습니다.
                         </p>
-                        <p className="text-[11px] text-amber-700 leading-normal mt-0.5 font-medium">
-                            체크인 3일 전 오전 9시부터 단기 최신 정보로 새로 생성할 수 있습니다.
+                        <p className="text-[11px] text-blue-700 leading-normal mt-0.5 font-medium">
+                            여행 7일 전부터 날씨 정보가 채워지며, 정밀 풍속은 3일 전부터 반영됩니다. 조금만 기다려주세요!
                         </p>
                     </div>
                 </div>
             )}
+            
+            {showMidTermStaticBanner && (
+                <div className="bg-amber-50/95 border border-amber-200/70 rounded-2xl p-4 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <span className="text-xl shrink-0">🌤️</span>
+                    <div className="flex flex-col min-w-0">
+                        <p className="text-[13px] font-bold text-amber-900 leading-normal">
+                            현재 중기 예보 기반으로 구성된 일정입니다.
+                        </p>
+                        <p className="text-[11px] text-amber-700 leading-normal mt-0.5 font-medium">
+                            체크인 7일 전부터 기상청 날씨를 계획에 즉시 업데이트할 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {showMidTermActionBanner && (
+                <div className="bg-[#fcf8e3]/95 border border-amber-300/60 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-xl shrink-0">🌤️</span>
+                        <div className="flex flex-col min-w-0">
+                            <p className="text-[13px] font-bold text-amber-900 leading-normal">
+                                주간 날씨 정보가 준비되었습니다!
+                            </p>
+                            <p className="text-[11px] text-amber-700/90 leading-normal mt-0.5 font-medium">
+                                최신 여행 계획으로 갱신하여 날씨에 알맞은 일정을 받아보세요.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setPlan(null);
+                            setSelectedMidpoint(null);
+                            setSelectedRouteData(null);
+                            onReset();
+                        }}
+                        className="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black h-8 px-3.5 rounded-xl shrink-0 flex items-center gap-1 active:scale-95 transition-transform shadow-sm border border-amber-500/20"
+                    >
+                        <RefreshCw className="w-3 h-3" />
+                        업데이트 받기
+                    </Button>
+                </div>
+            )}
+
+            {showShortTermActionBanner && (
+                <div className="bg-gradient-to-r from-emerald-50 via-emerald-50/90 to-green-50/80 border border-green-300/50 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out" />
+                    <div className="flex items-center gap-3 min-w-0 z-10">
+                        <span className="text-xl shrink-0 animate-bounce">⚡</span>
+                        <div className="flex flex-col min-w-0">
+                            <p className="text-[13px] font-bold text-green-900 leading-normal">
+                                단기 날씨 및 실시간 풍속 정보가 준비되었습니다!
+                            </p>
+                            <p className="text-[11px] text-green-700 leading-normal mt-0.5 font-medium">
+                                초정밀 기상을 바탕으로 최신 여행 계획을 새롭게 받아보세요.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setPlan(null);
+                            setSelectedMidpoint(null);
+                            setSelectedRouteData(null);
+                            onReset();
+                        }}
+                        className="bg-green-700 hover:bg-green-800 text-white text-[11px] font-black h-8 px-3.5 rounded-xl shrink-0 flex items-center gap-1 active:scale-95 transition-transform shadow-md z-10 border border-green-600/20"
+                    >
+                        <RefreshCw className="w-3 h-3 animate-spin duration-1000" />
+                        업데이트 받기
+                    </Button>
+                </div>
+            )}
+
             {/* 1. Header & AI Narration Section */}
             <div className="relative p-6 bg-gradient-to-br from-[#224732] via-[#1a3626] to-[#0f2117] rounded-[24px] overflow-hidden shadow-md">
                 <div className="absolute -top-4 -right-4 p-4 opacity-10 transform rotate-12">
@@ -675,97 +754,51 @@ export default function SmartPlanProposal({
                 </div>
 
                 <div className="relative pt-6 pb-12 px-6">
-                    {/* 단기 날씨로 재생성 🔄 또는 기존 실험용 재구성 버튼 */}
-                    {showShortTermRegen ? (
+                    {/* 개발자 리셋 기어 아이콘 유지 */}
+                    {isDeveloper && onReset && !showShortTermActionBanner && !showMidTermActionBanner && (
                         <div className="absolute top-6 right-6 z-30 flex items-center">
-                            {showRegenConfirm ? (
+                            {showResetConfirm ? (
                                 <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#224732]/20 shadow-xl animate-in fade-in zoom-in duration-200">
-                                    <span className="text-[10px] font-bold text-[#224732] px-1">초정밀 단기 예보로 재생성할까요?</span>
+                                    <span className="text-[10px] font-bold text-[#224732] px-1">재구성할까요?</span>
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setShowRegenConfirm(false);
+                                            setShowResetConfirm(false);
                                             setPlan(null);
                                             setSelectedMidpoint(null);
                                             setSelectedRouteData(null);
                                             onReset();
                                         }}
-                                        className="text-[10px] px-2.5 py-1.5 bg-amber-600 text-white rounded-lg font-bold hover:bg-amber-700"
+                                        className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"
                                     >
-                                        재생성
+                                        네
                                     </button>
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setShowRegenConfirm(false);
+                                            setShowResetConfirm(false);
                                         }}
                                         className="text-[10px] px-2.5 py-1.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200"
                                     >
-                                        취소
+                                        아니오
                                     </button>
                                 </div>
                             ) : (
-                                <Button
+                                <button
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setShowRegenConfirm(true);
+                                        setShowResetConfirm(true);
                                     }}
-                                    className="h-9 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all border border-amber-500/30"
+                                    className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group"
+                                    title="플랜 재구성 (실험용)"
                                 >
-                                    <RefreshCw className="w-3.5 h-3.5" />
-                                    단기 날씨로 재생성 🔄
-                                </Button>
+                                    <RefreshCcw className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:rotate-180 duration-700" />
+                                </button>
                             )}
                         </div>
-                    ) : (
-                        isDeveloper && onReset && (
-                            <div className="absolute top-6 right-6 z-30 flex items-center">
-                                {showResetConfirm ? (
-                                    <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#224732]/20 shadow-xl animate-in fade-in zoom-in duration-200">
-                                        <span className="text-[10px] font-bold text-[#224732] px-1">재구성할까요?</span>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setShowResetConfirm(false);
-                                                setPlan(null);
-                                                setSelectedMidpoint(null);
-                                                setSelectedRouteData(null);
-                                                onReset();
-                                            }}
-                                            className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"
-                                        >
-                                            네
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setShowResetConfirm(false);
-                                            }}
-                                            className="text-[10px] px-2.5 py-1.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200"
-                                        >
-                                            아니오
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowResetConfirm(true);
-                                        }}
-                                        className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group"
-                                        title="플랜 재구성 (실험용)"
-                                    >
-                                        <RefreshCcw className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:rotate-180 duration-700" />
-                                    </button>
-                                )}
-                            </div>
-                        )
                     )}
                     <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold tracking-wide backdrop-blur-sm">
                         <span className="relative flex h-2 w-2">
