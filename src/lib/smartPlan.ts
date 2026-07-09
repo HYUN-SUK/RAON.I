@@ -739,101 +739,108 @@ export async function generatePersonalizedSmartPlan(
             }
         }
 
-        // 2. Weather
+        // 2. Weather (Bypass if startDate is 8+ days away to optimize performance)
         let weatherSummary = "날씨 정보를 확인하고 있습니다.";
         let isWinter = false;
         let isRainy = false; 
-        let isWeatherAvailable = false; // [v11.9.62] 날씨 수집 성공 여부 판별
-        let w: any = null; // [v12.0.0] w의 스코프 인출
+        let isWeatherAvailable = false; 
+        let w: any = null; 
+
+        // KST 기준 D-Day 계산
+        const kstNow = new Date(new Date().getTime() + 9 * 3600000);
+        const todayDateOnly = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+        const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const diffDays = Math.round((startDateOnly.getTime() - todayDateOnly.getTime()) / (24 * 60 * 60 * 1000));
+        const shouldFetchWeather = diffDays <= 7; // 7일 이내일 때만 실시간 호출
+
         try {
-            w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
-            if (w && w.daily && Array.isArray(w.daily)) {
-                // [v11.9.60] 날짜 매칭 불일치 해결: 하이픈(-) 제거 후 비교
-                const startStr = startDate.toISOString().split('T')[0].replace(/-/g, '');
-                const endStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
-                
-                const weatherList: string[] = [];
-                for (const dayForecast of w.daily) {
-                    const cleanDate = dayForecast.date.replace(/-/g, '');
-                    if (cleanDate >= startStr && cleanDate <= endStr) {
-                        const shortDate = dayForecast.date.length === 8 
-                            ? `${dayForecast.date.substring(4, 6)}/${dayForecast.date.substring(6, 8)}`
-                            : dayForecast.date.substring(5).replace('-', '/');
-                        
-                        const isPrecipitation = (dayForecast.pop || 0) >= 50 || ['rainy', 'snowy'].includes(dayForecast.weatherCode);
-                        const skyText = isPrecipitation ? (dayForecast.weatherCode === 'snowy' ? '눈' : '비') : '맑음/구름';
-                        
-                        weatherList.push(`${shortDate}(${skyText}, ${dayForecast.min || '-'}~${dayForecast.max || '-'}도)`);
-                        
-                        if (dayForecast.min && dayForecast.min <= 5) isWinter = true;
-                        if (isPrecipitation) isRainy = true;
-                    }
-                }
-                if (weatherList.length > 0) {
-                    weatherSummary = weatherList.join(', ');
-                    isWeatherAvailable = true; // [v11.9.62]
-                }
-
-                // D-3 이내 단기 구간일 때 3시간 단위 상세 정보 추가
-                const kstNow = new Date(new Date().getTime() + 9 * 3600000);
-                const todayDateOnly = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
-                const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-                const diffDays = Math.round((startDateOnly.getTime() - todayDateOnly.getTime()) / (24 * 60 * 60 * 1000));
-
-                if (diffDays <= 3 && w.timeline && Array.isArray(w.timeline)) {
-                    const timelineByDate: Record<string, string[]> = {};
+            if (shouldFetchWeather) {
+                w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
+                if (w && w.daily && Array.isArray(w.daily)) {
+                    // [v11.9.60] 날짜 매칭 불일치 해결: 하이픈(-) 제거 후 비교
+                    const startStr = startDate.toISOString().split('T')[0].replace(/-/g, '');
+                    const endStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
                     
-                    const getWindDirectionText = (deg: number | undefined): string => {
-                        if (deg === undefined) return '';
-                        const index = Math.floor(((deg + 22.5) % 360) / 45);
-                        const directions = ['북풍', '북동풍', '동풍', '남동풍', '남풍', '남서풍', '서풍', '북서풍'];
-                        return directions[index];
-                    };
-
-                    const getWeatherStateText = (pty: number, sky: number): string => {
-                        if (pty === 1) return '비';
-                        if (pty === 2) return '비/눈';
-                        if (pty === 3) return '눈';
-                        if (pty === 4) return '소나기';
-                        if (sky === 1) return '맑음';
-                        if (sky === 3) return '구름많음';
-                        if (sky === 4) return '흐림';
-                        return '맑음';
-                    };
-
-                    for (const t of w.timeline) {
-                        const cleanTDate = t.date.replace(/-/g, '');
-                        if (cleanTDate >= startStr && cleanTDate <= endStr) {
-                            const dateLabel = t.date.length === 8 
-                                ? `${t.date.substring(4, 6)}/${t.date.substring(6, 8)}`
-                                : t.date.substring(5).replace('-', '/');
+                    const weatherList: string[] = [];
+                    for (const dayForecast of w.daily) {
+                        const cleanDate = dayForecast.date.replace(/-/g, '');
+                        if (cleanDate >= startStr && cleanDate <= endStr) {
+                            const shortDate = dayForecast.date.length === 8 
+                                ? `${dayForecast.date.substring(4, 6)}/${dayForecast.date.substring(6, 8)}`
+                                : dayForecast.date.substring(5).replace('-', '/');
                             
-                            const hourStr = t.time.substring(0, 2) + '시';
-                            const skyVal = typeof t.sky === 'string' ? parseInt(t.sky) : t.sky;
-                            const ptyVal = typeof t.pty === 'string' ? parseInt(t.pty) : t.pty;
-                            const stateText = getWeatherStateText(ptyVal || 0, skyVal || 1);
-                            const tempText = `${t.temp}도`;
+                            const isPrecipitation = (dayForecast.pop || 0) >= 50 || ['rainy', 'snowy'].includes(dayForecast.weatherCode);
+                            const skyText = isPrecipitation ? (dayForecast.weatherCode === 'snowy' ? '눈' : '비') : '맑음/구름';
                             
-                            const windDir = getWindDirectionText(t.vec);
-                            const windSpd = t.wsd !== undefined ? `${t.wsd}m/s` : '';
-                            const windText = windDir && windSpd ? `, ${windDir} ${windSpd}` : '';
+                            weatherList.push(`${shortDate}(${skyText}, ${dayForecast.min || '-'}~${dayForecast.max || '-'}도)`);
                             
-                            const detail = `${hourStr}(${stateText}, ${tempText}${windText})`;
-                            if (!timelineByDate[dateLabel]) {
-                                timelineByDate[dateLabel] = [];
-                            }
-                            timelineByDate[dateLabel].push(detail);
+                            if (dayForecast.min && dayForecast.min <= 5) isWinter = true;
+                            if (isPrecipitation) isRainy = true;
                         }
                     }
-
-                    const detailParts: string[] = [];
-                    for (const [dateLabel, list] of Object.entries(timelineByDate)) {
-                        detailParts.push(`\n- ${dateLabel} 3시간별 상세: ${list.join(', ')}`);
+                    if (weatherList.length > 0) {
+                        weatherSummary = weatherList.join(', ');
+                        isWeatherAvailable = true; 
                     }
-                    if (detailParts.length > 0) {
-                        weatherSummary += detailParts.join('');
+
+                    // D-3 이내 단기 구간일 때 3시간 단위 상세 정보 추가
+                    if (diffDays <= 3 && w.timeline && Array.isArray(w.timeline)) {
+                        const timelineByDate: Record<string, string[]> = {};
+                        
+                        const getWindDirectionText = (deg: number | undefined): string => {
+                            if (deg === undefined) return '';
+                            const index = Math.floor(((deg + 22.5) % 360) / 45);
+                            const directions = ['북풍', '북동풍', '동풍', '남동풍', '남풍', '남서풍', '서풍', '북서풍'];
+                            return directions[index];
+                        };
+
+                        const getWeatherStateText = (pty: number, sky: number): string => {
+                            if (pty === 1) return '비';
+                            if (pty === 2) return '비/눈';
+                            if (pty === 3) return '눈';
+                            if (pty === 4) return '소나기';
+                            if (sky === 1) return '맑음';
+                            if (sky === 3) return '구름많음';
+                            if (sky === 4) return '흐림';
+                            return '맑음';
+                        };
+
+                        for (const t of w.timeline) {
+                            const cleanTDate = t.date.replace(/-/g, '');
+                            if (cleanTDate >= startStr && cleanTDate <= endStr) {
+                                const dateLabel = t.date.length === 8 
+                                    ? `${t.date.substring(4, 6)}/${t.date.substring(6, 8)}`
+                                    : t.date.substring(5).replace('-', '/');
+                                
+                                const hourStr = t.time.substring(0, 2) + '시';
+                                const skyVal = typeof t.sky === 'string' ? parseInt(t.sky) : t.sky;
+                                const ptyVal = typeof t.pty === 'string' ? parseInt(t.pty) : t.pty;
+                                const stateText = getWeatherStateText(ptyVal || 0, skyVal || 1);
+                                const tempText = `${t.temp}도`;
+                                
+                                const windDir = getWindDirectionText(t.vec);
+                                const windSpd = t.wsd !== undefined ? `${t.wsd}m/s` : '';
+                                const windText = windDir && windSpd ? `, ${windDir} ${windSpd}` : '';
+                                
+                                const detail = `${hourStr}(${stateText}, ${tempText}${windText})`;
+                                if (!timelineByDate[dateLabel]) {
+                                    timelineByDate[dateLabel] = [];
+                                }
+                                timelineByDate[dateLabel].push(detail);
+                            }
+                        }
+
+                        const detailParts: string[] = [];
+                        for (const [dateLabel, list] of Object.entries(timelineByDate)) {
+                            detailParts.push(`\n- ${dateLabel} 3시간별 상세: ${list.join(', ')}`);
+                        }
+                        if (detailParts.length > 0) {
+                            weatherSummary += detailParts.join('');
+                        }
                     }
                 }
+            } else {
+                weatherSummary = "출발일이 아직 넉넉히 남아 날씨 정보는 대기 중입니다.";
             }
         } catch(e) {
             console.error("[SmartPlan] Weather Fetch Failed:", e);
