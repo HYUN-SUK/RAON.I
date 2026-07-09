@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield, LogOut, Star, Wrench, Tent, Send, Activity, Menu, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
@@ -13,6 +13,13 @@ export default function AdminLayout({
     const router = useRouter();
     const supabase = createClient();
     const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        document.body.classList.add('admin-body');
+        return () => {
+            document.body.classList.remove('admin-body');
+        };
+    }, []);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();

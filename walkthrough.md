@@ -17,7 +17,8 @@
 
 ### 2. 관리자 자동화 타임라인 화면 연동 및 렌더링 핫픽스
 * **파일**: [logs/page.tsx](file:///c:/Users/USER/Desktop/RAON.I/src/app/admin/automation/logs/page.tsx)
-* **내용4. **클라이언트 실시간 세션 감지 센서(`onAuthStateChange`) 탑재 완료**
+* **내용**: 
+4. **클라이언트 실시간 세션 감지 센서(`onAuthStateChange`) 탑재 완료**
    - `src/components/TopBar.tsx`
    - `useEffect` 내부에 Supabase Auth 상태 변경 리스너를 결합하여, 2차 모바일 인증 완료 후 백그라운드 세션이 획득되는 즉시 브라우저가 화면을 켠 채로 즉각 로그인 성공 상태로 자동 전환되도록 동기화 수신 장치를 고도화했습니다.
 
@@ -35,6 +36,10 @@
    - `src/app/admin/layout.tsx` / `src/app/admin/automation/logs/page.tsx`
    - flex 자식 요소의 팽창 버그를 해결하기 위해 `main` 태그에 `min-w-0`을 추가하여 가로폭 한계를 강제 격리했습니다.
    - 가로폭이 넓은 자동화 헤더 바를 모바일 전용 `flex-col`로 최적화하고, 타임라인 표 래퍼에 `overflow-x-auto` 가로 스크롤 레이어를 바인딩하여 뷰포트가 찢어져 생기는 좌측 잘림 문제를 원천 해결했습니다.
+
+8. **관리자 모드 전용 body 레이아웃 격리 (.admin-body) 추가 완료**
+   - `src/app/globals.css` / `src/app/admin/layout.tsx`
+   - 글로벌 CSS의 body flex center 속성으로 인해 모바일 뷰포트에서 화면 전체가 우측으로 shift 되며 왼쪽이 잘리던 문제를 해결하고자 관리자 모드 전용 `body.admin-body`를 선언하고 layout 마운트/언마운트 시점에 탈착하도록 로직을 탑재했습니다.
 
 ---
 

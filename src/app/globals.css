@@ -375,3 +375,10 @@ html:has(body.image-editor-open) {
   color: #1C4526 !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
+
+/* 관리자 화면 진입 시 body 정렬 해제 (좌측 밀림 및 스크롤 먹통 방지) */
+body.admin-body {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
