@@ -108,8 +108,8 @@ export default function SmartPlanProposal({
     const isDeveloper = userEmail === 'tootg@naver.com' || userEmail === 'admin@raon.ai' || process.env.NODE_ENV === 'development';
 
     // D-3 및 weather_window 확인용 날짜 연산
-    const kstNowForRegen = new Date(new Date().getTime() + 9 * 3600000);
-    const todayDateOnlyForRegen = new Date(kstNowForRegen.getFullYear(), kstNowForRegen.getMonth(), kstNowForRegen.getDate());
+    const nowKSTForRegen = new Date();
+    const todayDateOnlyForRegen = new Date(nowKSTForRegen.getFullYear(), nowKSTForRegen.getMonth(), nowKSTForRegen.getDate());
     const startDateOnlyForRegen = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const diffDaysForRegen = Math.round((startDateOnlyForRegen.getTime() - todayDateOnlyForRegen.getTime()) / (24 * 60 * 60 * 1000));
     const isWithinD3 = diffDaysForRegen <= 3;
@@ -652,7 +652,7 @@ export default function SmartPlanProposal({
     );
 
     const showNoWeatherBanner = diffDaysForRegen >= 11;
-    const showMidTermActionBanner = diffDaysForRegen >= 4 && diffDaysForRegen <= 7 && onReset;
+    const showMidTermActionBanner = diffDaysForRegen >= 4 && diffDaysForRegen <= 7 && currentWeatherWindow !== 'MID' && currentWeatherWindow !== 'SHORT' && onReset;
     const showMidTermStaticBanner = diffDaysForRegen >= 8 && diffDaysForRegen <= 10;
     const showShortTermActionBanner = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset;
 

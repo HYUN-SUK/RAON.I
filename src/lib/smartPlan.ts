@@ -13,9 +13,10 @@ import {
   kidsPhrases,
   petPhrases,
   seniorPhrases,
-  weatherFlowPhrases,
-  tempStatusPhrases,
-  windStatusPhrases,
+  weatherPhrases,
+  tempPhrases,
+  humidPhrases,
+  windPhrases,
   tagStatusPhrases,
   futureWeatherPhrases
 } from '../constants/smartPlanPhrases';
@@ -746,9 +747,9 @@ export async function generatePersonalizedSmartPlan(
         let isWeatherAvailable = false; 
         let w: any = null; 
 
-        // KST 기준 D-Day 계산
-        const kstNow = new Date(new Date().getTime() + 9 * 3600000);
-        const todayDateOnly = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+        // KST 기준 D-Day 계산 (보정 왜곡이 없는 UTC/로컬 순수 일 계산식)
+        const nowKST = new Date();
+        const todayDateOnly = new Date(nowKST.getFullYear(), nowKST.getMonth(), nowKST.getDate());
         const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
         const diffDays = Math.round((startDateOnly.getTime() - todayDateOnly.getTime()) / (24 * 60 * 60 * 1000));
         const shouldFetchWeather = diffDays <= 7; // 7일 이내일 때만 실시간 호출
@@ -980,11 +981,16 @@ export async function generatePersonalizedSmartPlan(
             let hasRain = false;
             let hasSnow = false;
             let hasShower = false;
+            let totalHumidity = 0;
+            let humidityCount = 0;
+            let maxPop = 0;
 
-            // [v12.1.0] KST (+9시간) 타임존 보정 헬퍼를 도입하여 날짜 매칭 불일치 버그 전면 해결
+            // [v12.1.0] KST 타임존 보정 헬퍼 (로컬 OS/시스템 타임존 기반으로 왜곡 없이 일치)
             const getKSTDateString = (d: Date) => {
-                const kst = new Date(d.getTime() + 9 * 3600000);
-                return kst.toISOString().split('T')[0];
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
             };
             const startStr = getKSTDateString(startDate).replace(/-/g, '');
             const endStr = getKSTDateString(endDate).replace(/-/g, '');
@@ -1000,6 +1006,14 @@ export async function generatePersonalizedSmartPlan(
                         if (dayForecast.max !== undefined && dayForecast.max !== null) {
                             const val = Number(dayForecast.max);
                             if (maxTemp === null || val > maxTemp) maxTemp = val;
+                        }
+                        if (dayForecast.pop !== undefined && dayForecast.pop !== null) {
+                            const val = Number(dayForecast.pop);
+                            if (val > maxPop) maxPop = val;
+                        }
+                        if (dayForecast.humidity !== undefined && dayForecast.humidity !== null) {
+                            totalHumidity += Number(dayForecast.humidity);
+                            humidityCount++;
                         }
                         if (['rainy', 'shower'].includes(dayForecast.weatherCode) || (dayForecast.pop || 0) >= 50) {
                             hasRain = true;
@@ -1036,26 +1050,67 @@ export async function generatePersonalizedSmartPlan(
                 maxWindSpeed = parseFloat(currentMaxWind.toFixed(1));
             }
 
-            // B. 날씨 흐름 시나리오 결정 & 온도 크로스 체크 가드 (영하 시 눈길로 강제 치환)
-            let weatherFlow: 'ClearOnly' | 'RainOnly' | 'SnowOnly' | 'ClearToRainToClear' | 'SuddenShowers' = 'ClearOnly';
-            const isExtremeCold = minTemp !== null && minTemp <= 0;
+            // 습도 평균 연산
+            const avgHumidity = humidityCount > 0 ? Math.round(totalHumidity / humidityCount) : 50;
 
-            if (hasSnow || (isExtremeCold && hasRain)) {
-                weatherFlow = 'SnowOnly';
-            } else if (hasShower) {
-                weatherFlow = 'SuddenShowers';
-            } else if (hasRain) {
-                // 맑다가 중간에 소나기 또는 날씨 흐름 대변
-                weatherFlow = 'ClearToRainToClear';
-            } else if (isRainy) {
-                weatherFlow = 'RainOnly';
+            // B. 날씨 흐름 시나리오 결정 & 기온/습도/바람 4대 상태 판정
+            let flowState: 'CLEAR_ONLY' | 'CLOUDY_ONLY' | 'RAIN_SNOW_ONLY' | 'CLEAR_TO_RAIN' | 'RAIN_TO_CLEAR' | 'COMPLEX_TRANSITION' = 'CLEAR_ONLY';
+            if (hasSnow) {
+                flowState = 'RAIN_SNOW_ONLY';
+            } else if (hasRain || hasShower) {
+                if (hasShower) {
+                    flowState = 'COMPLEX_TRANSITION';
+                } else {
+                    flowState = 'CLEAR_TO_RAIN';
+                }
+            } else {
+                let cloudyCount = 0;
+                let totalCount = 0;
+                if (w && w.timeline && Array.isArray(w.timeline)) {
+                    for (const t of w.timeline) {
+                        const cleanTDate = t.date.replace(/-/g, '');
+                        if (cleanTDate >= startStr && cleanTDate <= endStr) {
+                            const skyVal = typeof t.sky === 'string' ? parseInt(t.sky) : t.sky;
+                            if (skyVal === 4 || skyVal === 3) {
+                                cloudyCount++;
+                            }
+                            totalCount++;
+                        }
+                    }
+                }
+                if (totalCount > 0 && (cloudyCount / totalCount) >= 0.6) {
+                    flowState = 'CLOUDY_ONLY';
+                }
+            }
+
+            let tempState: 'COLD' | 'CHILLY' | 'MILD' | 'HOT' = 'MILD';
+            if (minTemp !== null && minTemp <= 0) {
+                tempState = 'COLD';
+            } else if (minTemp !== null && minTemp > 0 && maxTemp !== null && maxTemp <= 15) {
+                tempState = 'CHILLY';
+            } else if (maxTemp !== null && maxTemp >= 28) {
+                tempState = 'HOT';
+            }
+
+            let humidState: 'DRY' | 'NORMAL' | 'WET' = 'NORMAL';
+            if (avgHumidity <= 35) {
+                humidState = 'DRY';
+            } else if (avgHumidity >= 75) {
+                humidState = 'WET';
+            }
+
+            let windState: 'MILD' | 'MODERATE' | 'STRONG' = 'MILD';
+            if (maxWindSpeed >= 8) {
+                windState = 'STRONG';
+            } else if (maxWindSpeed >= 4) {
+                windState = 'MODERATE';
             }
 
             // C. 조립 블록 1: 계절/월별 인사말 선택 (날씨가 비/눈/흐림일 경우 맑은 감성 묘사 차단 필터 적용)
             const month = startDate.getMonth() + 1;
             let greeting = "";
             
-            const isRainyOrSnowy = weatherFlow !== 'ClearOnly';
+            const isRainyOrSnowy = hasRain || hasSnow || hasShower;
             const filterGreetings = (pool: string[]): string[] => {
                 if (!isRainyOrSnowy) return pool;
                 const clearKeywords = ['햇살', '눈부신', '화창', '쨍한', '맑고', '맑은', '봄볕', '봄볕이', '햇빛'];
@@ -1105,63 +1160,87 @@ export async function generatePersonalizedSmartPlan(
             }
             const companionNarrative = companionParts.join(' ');
 
-            // E. 조립 블록 3: 기상 시나리오 및 기온/바람 수치형 브리핑 조립
+            // E. 조립 블록 3: 기상 시나리오 및 기온/습도/바람 수치형 브리핑 조립 (5대 지표 조각 결합식)
             let weatherNarrative = "";
-            let tempNarrative = "";
-            let windNarrative = "";
 
-            // [v12.1.0] 먼 날짜 일정(기상 정보 수집 실패 포함) 시 미래 일정용 멘트 조립 및 수치형 묘사 생략
             if (!isWeatherAvailable || minTemp === null || maxTemp === null) {
                 weatherNarrative = futureWeatherPhrases[Math.floor(Math.random() * futureWeatherPhrases.length)];
-                tempNarrative = "";
-                windNarrative = "";
             } else {
-                const wFlowList = weatherFlowPhrases[weatherFlow] || weatherFlowPhrases.ClearOnly;
-                weatherNarrative = wFlowList[Math.floor(Math.random() * wFlowList.length)];
+                const minTempAbs = Math.abs(minTemp);
 
-                const currentMin = minTemp;
-                const currentMax = maxTemp;
-
-                if (currentMin <= 0) {
-                    const minAbs = Math.abs(currentMin);
-                    tempNarrative = tempStatusPhrases.cold[Math.floor(Math.random() * tempStatusPhrases.cold.length)]
-                        .replace('${minTempAbs}', String(minAbs));
-                } else if (currentMax >= 28) {
-                    tempNarrative = tempStatusPhrases.hot[Math.floor(Math.random() * tempStatusPhrases.hot.length)]
-                        .replace('${maxTemp}', String(currentMax));
-                } else {
-                    tempNarrative = tempStatusPhrases.mild[Math.floor(Math.random() * tempStatusPhrases.mild.length)]
-                        .replace('${minTemp}', String(currentMin))
-                        .replace('${maxTemp}', String(currentMax));
+                // 1) 하늘/강수 조각 선택
+                let skyKey: 'CLEAR' | 'CLOUDY' | 'RAIN' | 'SNOW' = 'CLEAR';
+                if (hasSnow || (minTemp <= 0 && hasRain)) {
+                    skyKey = 'SNOW';
+                } else if (hasRain || hasShower) {
+                    skyKey = 'RAIN';
+                } else if (flowState === 'CLOUDY_ONLY') {
+                    skyKey = 'CLOUDY';
                 }
+                const skyList = weatherPhrases[skyKey] || weatherPhrases.CLEAR;
+                let skyPart = skyList[Math.floor(Math.random() * skyList.length)];
 
-                if (maxWindSpeed >= 8) {
-                    windNarrative = windStatusPhrases.strong[Math.floor(Math.random() * windStatusPhrases.strong.length)]
-                        .replace('${windSpeed}', String(maxWindSpeed));
-                } else if (maxWindSpeed >= 4) {
-                    windNarrative = windStatusPhrases.moderate[Math.floor(Math.random() * windStatusPhrases.moderate.length)]
-                        .replace('${windSpeed}', String(maxWindSpeed));
-                } else {
-                    windNarrative = windStatusPhrases.mild[Math.floor(Math.random() * windStatusPhrases.mild.length)]
-                        .replace('${windSpeed}', String(maxWindSpeed));
+                // 2) 온도 조각 선택
+                const tempList = tempPhrases[tempState] || tempPhrases.MILD;
+                let tempPart = tempList[Math.floor(Math.random() * tempList.length)];
+
+                // 3) 습도 조각 선택
+                const humidList = humidPhrases[humidState] || humidPhrases.NORMAL;
+                let humidPart = humidList[Math.floor(Math.random() * humidList.length)];
+
+                // 4) 바람 조각 선택
+                const windList = windPhrases[windState] || windPhrases.MILD;
+                let windPart = windList[Math.floor(Math.random() * windList.length)];
+
+                // 변수 수혈 보정 헬퍼
+                const bindVariables = (str: string): string => {
+                    return str
+                        .replace(/\${pop}/g, String(maxPop))
+                        .replace(/\${minTemp}/g, String(minTemp))
+                        .replace(/\${maxTemp}/g, String(maxTemp))
+                        .replace(/\${minTempAbs}/g, String(minTempAbs))
+                        .replace(/\${humidity}/g, String(avgHumidity))
+                        .replace(/\${windSpeed}/g, String(maxWindSpeed));
+                };
+
+                skyPart = bindVariables(skyPart);
+                tempPart = bindVariables(tempPart);
+                humidPart = bindVariables(humidPart);
+                windPart = bindVariables(windPart);
+
+                // 5대 날씨 융합
+                weatherNarrative = `${skyPart} ${tempPart} ${humidPart} ${windPart}`;
+
+                // 3일 전 단기 날씨정보 구간에 풍속(평균, 최고) 강제 괄호 수치 노출
+                // KST 기준 D-Day 계산
+                const dNowKST = new Date();
+                const dToday = new Date(dNowKST.getFullYear(), dNowKST.getMonth(), dNowKST.getDate());
+                const dStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                const dDiff = Math.round((dStart.getTime() - dToday.getTime()) / (24 * 60 * 60 * 1000));
+
+                if (dDiff <= 3) {
+                    weatherNarrative += ` (실시간 평균 풍속 초속 ${avgWindSpeed}m/s, 최고 풍속 초속 ${maxWindSpeed}m/s 예보)`;
                 }
-
-                // [v12.2.0] 수치형 괄호 풍속 강제 바인딩 노출 제거 (감성 작가 에이전트 다듬음 적용)
             }
 
             // F. 조립 블록 4: 사용자 선호 행동 취향 태그 코멘트 결합
             const topTags = persona.topTags || [];
             let tagNarrative = "";
-            const matchedTags = topTags.filter(t => t.tagId in tagStatusPhrases);
+            const tagMapKey: Record<string, 'food' | 'nature' | 'photo'> = {
+                'FOOD_LOCAL': 'food',
+                'MOOD_QUIET': 'nature',
+                'ACTIVITY_PHOTO': 'photo'
+            };
+            const matchedTags = topTags.filter(t => t.tagId in tagMapKey);
             if (matchedTags.length > 0) {
-                const targetTagId = matchedTags[0].tagId as keyof typeof tagStatusPhrases;
-                const tagPhrases = tagStatusPhrases[targetTagId];
+                const legacyTagId = matchedTags[0].tagId;
+                const newTagId = tagMapKey[legacyTagId];
+                const tagPhrases = tagStatusPhrases[newTagId];
                 tagNarrative = tagPhrases[Math.floor(Math.random() * tagPhrases.length)];
             }
 
-            // G. 5단계 stageIntros 조립 (한 문단으로 결합 및 슬림화)
-            stageIntros['1'] = `${greeting} ${companionNarrative} ${weatherNarrative}` + 
-                (tempNarrative ? ` ${tempNarrative} ${windNarrative}` : '') + 
+            // G. 5단계 stageIntros 조립 (사용자 요청 Flow: 계절 인사말 => 시나리오별 날씨설명 => 동반자 구성 => 취향 태그)
+            stageIntros['1'] = `${greeting} ${weatherNarrative} ${companionNarrative}` + 
                 (tagNarrative ? ` ${tagNarrative}` : '');
             
             stageIntros['2'] = "설레는 출발의 순간! 캠핑장으로 향하며 가볍게 들러갈 수 있는 아늑한 맛집과 쉼표 같은 카페를 지나가 볼까요?";
@@ -1171,9 +1250,9 @@ export async function generatePersonalizedSmartPlan(
 
             // H. stage1_timeline 타임라인 출발 인사말 정의
             if (isWeatherAvailable && minTemp !== null && maxTemp !== null) {
-                if (weatherFlow === 'SnowOnly') {
+                if (hasSnow) {
                     stageIntros['stage1_timeline'] = "하얀 눈송이가 낭만을 그리는 캠핑 날, 눈길 조심해서 포근한 설국으로 출발해요!";
-                } else if (weatherFlow === 'RainOnly') {
+                } else if (hasRain || hasShower) {
                     stageIntros['stage1_timeline'] = "토닥토닥 빗소리가 감성을 더하는 캠핑 날, 안전운전하여 낭만적인 하루를 시작해 봐요.";
                 } else {
                     stageIntros['stage1_timeline'] = "드디어 오랫동안 기다렸던 캠핑 날! 안전하고 신나는 발걸음으로 출발해 볼까요?";
