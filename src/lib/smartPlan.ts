@@ -1296,19 +1296,19 @@ export async function generatePersonalizedSmartPlan(
                 humidComment = bindVariables(humidComment);
                 windComment = bindVariables(windComment);
 
-                // 최종 3단계 조립
-                weatherNarrative = `${mainNarrative}` +
-                    (flowComment ? ` ${flowComment}` : '') +
-                    ` ${humidComment} ${windComment}`;
-
-                // 3일 전 단기 날씨정보 구간에 풍속(평균, 최고) 강제 괄호 수치 노출
                 // KST 기준 D-Day 계산
                 const dNowKST = new Date();
                 const dToday = new Date(dNowKST.getFullYear(), dNowKST.getMonth(), dNowKST.getDate());
                 const dStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
                 const dDiff = Math.round((dStart.getTime() - dToday.getTime()) / (24 * 60 * 60 * 1000));
+                const isShortTerm = dDiff <= 3;
 
-                if (dDiff <= 3) {
+                // 최종 3단계 조립 (단기 예보일 때만 습도와 풍속 결합하여 신뢰도 극대화)
+                weatherNarrative = `${mainNarrative}` +
+                    (flowComment ? ` ${flowComment}` : '') +
+                    (isShortTerm ? ` ${humidComment} ${windComment}` : '');
+
+                if (isShortTerm) {
                     weatherNarrative += ` (실시간 평균 풍속 초속 ${avgWindSpeed}m/s, 최고 풍속 초속 ${maxWindSpeed}m/s 예보)`;
                 }
             }
