@@ -1141,24 +1141,35 @@ export async function generatePersonalizedSmartPlan(
             const kidCount = preschool + elementary + teen;
             const hasPet = persona.guestDetails?.hasPet || false;
 
-            const companionParts: string[] = [];
-            if (kidCount > 0) {
-                const kPhrase = kidsPhrases[Math.floor(Math.random() * kidsPhrases.length)].replace('${kids}', String(kidCount));
-                companionParts.push(kPhrase);
+            let companionNarrative = "";
+            
+            // 다중 동반자 상황별 정교한 감성 융합 작문
+            if (kidCount > 0 && hasPet && seniors > 0) {
+                companionNarrative = `사랑하는 부모님과 ${kidCount}명의 아이들, 그리고 귀여운 반려견까지 온 가족이 다 함께 발걸음을 맞춰 안전하고 포근하게 머물 수 있는 시간입니다.`;
+            } else if (kidCount > 0 && hasPet) {
+                companionNarrative = `${kidCount}명의 아이들이 자연의 흙을 밟으며 맑게 웃고, 귀여운 반려견도 솔방울을 킁킁거리며 다 함께 보물 같은 동심을 만끽할 수 있는 다정한 시간입니다.`;
+            } else if (kidCount > 0 && seniors > 0) {
+                companionNarrative = `든든한 부모님을 정성스레 모시고 ${kidCount}명의 소중한 아이들과 도란도란 정겨운 옛이야기를 나누며 천천히 걷기 편안한 여정입니다.`;
+            } else if (hasPet && seniors > 0) {
+                companionNarrative = `사랑하는 부모님과 꼬리 치는 반려견을 품에 포근히 안아주며 무리 없이 편안히 거닐 수 있는 안심 숲길 코스입니다.`;
+            } else {
+                // 단독 동반자 매칭
+                const companionParts: string[] = [];
+                if (kidCount > 0) {
+                    const kPhrase = kidsPhrases[Math.floor(Math.random() * kidsPhrases.length)].replace('${kids}', String(kidCount));
+                    companionParts.push(kPhrase);
+                } else if (hasPet) {
+                    const pPhrase = petPhrases[Math.floor(Math.random() * petPhrases.length)];
+                    companionParts.push(pPhrase);
+                } else if (seniors > 0) {
+                    const sPhrase = seniorPhrases[Math.floor(Math.random() * seniorPhrases.length)];
+                    companionParts.push(sPhrase);
+                } else {
+                    const scPhrase = soloCouplePhrases[Math.floor(Math.random() * soloCouplePhrases.length)];
+                    companionParts.push(scPhrase);
+                }
+                companionNarrative = companionParts.join(' ');
             }
-            if (hasPet) {
-                const pPhrase = petPhrases[Math.floor(Math.random() * petPhrases.length)];
-                companionParts.push(pPhrase);
-            }
-            if (seniors > 0) {
-                const sPhrase = seniorPhrases[Math.floor(Math.random() * seniorPhrases.length)];
-                companionParts.push(sPhrase);
-            }
-            if (companionParts.length === 0) {
-                const scPhrase = soloCouplePhrases[Math.floor(Math.random() * soloCouplePhrases.length)];
-                companionParts.push(scPhrase);
-            }
-            const companionNarrative = companionParts.join(' ');
 
             // E. 조립 블록 3: 기상 시나리오 및 기온/습도/바람 수치형 브리핑 조립 (5대 지표 조각 결합식)
             let weatherNarrative = "";
