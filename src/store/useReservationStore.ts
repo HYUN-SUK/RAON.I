@@ -58,7 +58,7 @@ interface ReservationState {
         siteId?: string;
         familyCount?: number;
         visitorCount?: number;
-    }) => { success: boolean; oldPrice: number; newPrice: number; diff: number; error?: string };
+    }) => Promise<{ success: boolean; oldPrice: number; newPrice: number; diff: number; error?: string }>;
     reset: () => void;
 
     // 예약 취소/환불 관련 액션
@@ -807,7 +807,8 @@ export const useReservationStore = create<ReservationState>()(
             },
 
             // 예약 변경 (관리자 전용): 일정/사이트 변경 + 차액 계산
-            updateReservation: (id, updates) => {
+            // 예약 변경 (관리자 전용): 일정/사이트 변경 + 차액 계산 (DB 동기화 연동)
+            updateReservation: async (id, updates) => {
                 const { reservations, sites, calculatePrice: calcPrice } = get();
                 const reservation = reservations.find(r => r.id === id);
 
@@ -845,6 +846,20 @@ export const useReservationStore = create<ReservationState>()(
                 const oldPrice = reservation.totalPrice;
                 const newPrice = priceBreakdown.totalPrice;
                 const diff = newPrice - oldPrice;
+
+                // [연동] DB 업데이트 서버 액션 호출 (예약 + 사용자 여정 동기화 및 플랜 리셋)
+                try {
+                    const { updateReservationAction } = await import('@/actions/reservation');
+                    await updateReservationAction(id, {
+                        checkInDate: newCheckIn,
+                        checkOutDate: newCheckOut,
+                        siteId: newSiteId,
+                        totalPrice: newPrice
+                    });
+                } catch (dbErr: any) {
+                    console.error('[Store] Failed to update reservation in DB:', dbErr);
+                    return { success: false, oldPrice, newPrice, diff, error: dbErr.message || '데이터베이스 갱신 실패' };
+                }
 
                 // 예약 업데이트
                 set((state) => ({

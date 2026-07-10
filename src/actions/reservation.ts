@@ -102,3 +102,51 @@ export async function updateReservationStatusAction(
 
     return { success: true };
 }
+
+/**
+ * 예약 상세 정보 수정 및 연동 사용자 일정 동기화 (관리자 전용)
+ */
+export async function updateReservationAction(
+    id: string,
+    updates: { checkInDate: Date; checkOutDate: Date; siteId: string; totalPrice: number }
+) {
+    const supabase = createAdminClient();
+
+    // 1. reservations 테이블 업데이트
+    const { error: resError } = await (supabase
+        .from('reservations') as any)
+        .update({
+            check_in_date: updates.checkInDate.toISOString().split('T')[0],
+            check_out_date: updates.checkOutDate.toISOString().split('T')[0],
+            site_id: updates.siteId,
+            total_price: updates.totalPrice,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+    if (resError) {
+        console.error('[Action] Failed to update reservation in DB:', resError);
+        throw new Error(resError.message);
+    }
+
+    // 2. user_schedules 테이블 연동 동기화 + 스마트플랜 리셋
+    const { error: schedError } = await (supabase
+        .from('user_schedules') as any)
+        .update({
+            check_in: updates.checkInDate.toISOString().split('T')[0],
+            check_out: updates.checkOutDate.toISOString().split('T')[0],
+            smart_plan_data: null, // 날짜 변경으로 인한 기존 스마트플랜 캐시 리셋
+            updated_at: new Date().toISOString()
+        })
+        .eq('reservation_id', id);
+
+    if (schedError) {
+        console.warn('[Action] user_schedules update failed or record not found:', schedError.message);
+    }
+
+    // 3. 경로 캐시 무효화
+    revalidatePath('/admin/reservations');
+    revalidatePath('/myspace/schedule');
+    
+    return { success: true };
+}

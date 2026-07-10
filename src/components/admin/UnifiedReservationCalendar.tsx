@@ -521,7 +521,7 @@ export default function UnifiedReservationCalendar() {
                             onClick={async () => {
                                 if (!selectedReservation || !modifyCheckIn || !modifyPricePreview) return;
                                 const newCheckOut = addDays(modifyCheckIn, parseInt(modifyDuration));
-                                const result = updateReservation(selectedReservation.id, {
+                                const result = await updateReservation(selectedReservation.id, {
                                     checkInDate: modifyCheckIn,
                                     checkOutDate: newCheckOut,
                                     siteId: modifySiteId
