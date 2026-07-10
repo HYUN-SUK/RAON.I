@@ -697,7 +697,7 @@ export default function ScheduleDetailPage() {
                                     if (daysDiff <= 7 && daysDiff >= 0) {
                                         return (
                                             <p className="mt-3 text-center text-xs text-[#224732] dark:text-stone-300 font-medium bg-[#224732]/5 rounded-xl py-2.5 px-3 leading-relaxed border border-[#224732]/10 animate-fade-in">
-                                                💡 출발 3일 전에 스마트플랜을 가동하시면, 가장 정확한 실시간 날씨 정보가 반영된 여행계획을 생성하실 수 있습니다.
+                                                💡 출발 당일에 스마트플랜을 가동하시면, 가장 정확한 실시간 날씨 정보가 반영된 여행계획을 생성하실 수 있습니다.
                                             </p>
                                         );
                                     }
