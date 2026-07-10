@@ -539,7 +539,7 @@ export default function SmartPlanProposal({
     const renderFactCard = (card: FactCard, stage?: string) => (
         <Card
             key={card.id}
-            className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white w-[calc(100%-2rem)] ml-4 mr-4`}
+            className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white w-full`}
             onClick={() => handleCardClick(card)}
         >
             <CardContent className="p-4">
@@ -892,10 +892,10 @@ export default function SmartPlanProposal({
             </div>
 
             {/* 2. Fact List / 5-Stage Emotional Timeline UI */}
-            <div className="space-y-6 pt-2">
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-2 flex items-center justify-between">
+            <div className="space-y-6 pt-2 overflow-x-hidden">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-4 flex flex-col gap-1.5 md:flex-row md:items-center md:justify-between min-w-0">
                     <span>{plan.target_date || ''} 최종 추천 일정표</span>
-                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">카드를 터치해 일정을 교체하세요</span>
+                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full w-fit">카드를 터치해 일정을 교체하세요</span>
                 </h3>
 
                 <div className="grid gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0">
@@ -925,7 +925,9 @@ export default function SmartPlanProposal({
                                     <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['2']}"</p>
                                 )}
                             </div>
-                            {plan.routeListElement?.map((card) => renderFactCard(card, '2'))}
+                            <div className="px-4 space-y-3">
+                                {plan.routeListElement?.map((card) => renderFactCard(card, '2'))}
+                            </div>
 
                         </div>
                     )}
@@ -941,9 +943,11 @@ export default function SmartPlanProposal({
                                 <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['3']}"</p>
                             )}
                         </div>
-                        {plan.itemListElement
-                            .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
-                            .map((card) => renderFactCard(card, '3'))}
+                        <div className="px-4 space-y-3">
+                            {plan.itemListElement
+                                .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
+                                .map((card) => renderFactCard(card, '3'))}
+                        </div>
                     </div>
 
                     {/* Stage 4: 캠핑장 주변 (Spot / Hospital / Gas) */}
@@ -958,13 +962,15 @@ export default function SmartPlanProposal({
                             )}
                         </div>
                         {/* 힐링 장소 (Spot, Festival) 우선 노출 */}
-                        {plan.itemListElement
-                            .filter(c => ['SPOT', 'FESTIVAL'].includes(c.category))
-                            .map((card) => renderFactCard(card, '4'))}
+                        <div className="px-4 space-y-3">
+                            {plan.itemListElement
+                                .filter(c => ['SPOT', 'FESTIVAL'].includes(c.category))
+                                .map((card) => renderFactCard(card, '4'))}
+                        </div>
 
                         {/* 편의 시설 (Hospital, Gas) 하단 노출 */}
                         {(plan.itemListElement.some(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))) && (
-                            <div className="mt-4 pt-4 border-t-2 border-blue-200 bg-blue-50/30 rounded-xl p-3">
+                            <div className="mt-4 pt-4 border-t-2 border-blue-200 bg-blue-50/30 rounded-xl p-3 mx-4">
                                 <p className="text-[11px] font-bold text-blue-600 mb-3 ml-10 flex items-center gap-1.5">
                                     🛡️ 안전을 위한 편의시설
                                 </p>
@@ -986,7 +992,9 @@ export default function SmartPlanProposal({
                                 <p className="text-[11px] text-gray-500 italic ml-[38px] leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['5']}"</p>
                             )}
                         </div>
-                        {(plan.returnListElement || []).map((card) => renderFactCard(card, '5'))}
+                        <div className="px-4 space-y-3">
+                            {(plan.returnListElement || []).map((card) => renderFactCard(card, '5'))}
+                        </div>
 
                         
                         {/* 여정 종료 마커 */}
