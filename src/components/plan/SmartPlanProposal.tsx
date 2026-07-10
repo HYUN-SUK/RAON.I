@@ -542,16 +542,41 @@ export default function SmartPlanProposal({
             className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white w-full`}
             onClick={() => handleCardClick(card)}
         >
-            <CardContent className="p-4">
-                <div className="flex gap-4 items-center w-full min-w-0">
-                    {/* Icon */}
-                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)] text-xl border border-[#224732]/5">
-                        {CATEGORY_ICONS[card.category] || '📍'}
+            <CardContent className="p-3">
+                <div className="flex gap-2 items-start w-full min-w-0">
+                    {/* Left Compact Control Area (Touch targets preserved) */}
+                    <div className="flex flex-col items-center gap-1 shrink-0 w-10 min-w-[40px] pt-1">
+                        {/* Icon */}
+                        <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5">
+                            {CATEGORY_ICONS[card.category] || '📍'}
+                        </div>
+                        {/* Swap Button (h-8 w-8 Touch Target Preserved) */}
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setSwapCategory(card.category); 
+                                setSwapTargetId(card.id);
+                                setSwapPage(0); 
+                            }}
+                            className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
+                        >
+                            <ArrowRightLeft className="w-4 h-4" />
+                        </Button>
+                        {/* Nav Map Button (h-8 w-8 Touch Target Preserved) */}
+                        <Button
+                            size="icon"
+                            onClick={(e) => handleNavClick(e, card)}
+                            className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-none border-none"
+                        >
+                            <MapPin className="w-4 h-4" />
+                        </Button>
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center gap-1.5 mb-1">
+                    {/* Right Info Area (Maximizing width) */}
+                    <div className="flex-1 min-w-0 pr-1">
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                             <span className="text-[10px] font-bold text-[#224732] px-1.5 py-0.5 bg-[#224732]/5 rounded-sm">
                                 {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
                             </span>
@@ -572,7 +597,7 @@ export default function SmartPlanProposal({
                             </p>
                         )}
 
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-all max-w-full font-medium">
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal keep-all break-words max-w-full font-medium">
                             {formatPlaceDetailText(card)}
                         </p>
                         {(() => {
@@ -586,7 +611,7 @@ export default function SmartPlanProposal({
                                         <a 
                                             href={`tel:${tel}`}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="inline-flex flex-wrap items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-transform underline font-bold whitespace-normal break-words max-w-full"
+                                            className="inline-flex flex-wrap items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-transform underline font-bold whitespace-normal keep-all break-words max-w-full"
                                         >
                                             <Phone className="w-3 h-3 shrink-0" />
                                             방문 전 유선 확인 권장 ({tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')})
@@ -596,7 +621,7 @@ export default function SmartPlanProposal({
                             }
                             if (card.category && card.category !== 'GAS_STATION') {
                                 return (
-                                    <p className="mt-1 text-[11px] text-amber-600/90 font-bold flex flex-wrap items-center gap-0.5 whitespace-normal break-all max-w-full min-w-0 animate-pulse">
+                                    <p className="mt-1 text-[11px] text-amber-600/90 font-bold flex flex-wrap items-center gap-0.5 whitespace-normal keep-all break-words max-w-full min-w-0 animate-pulse">
                                         👉 터치하여 오늘 영업유무 확인권장!
                                     </p>
                                 );
@@ -606,12 +631,12 @@ export default function SmartPlanProposal({
 
                         {/* [v11.9.25] 한 줄 소개 */}
                         {card.reasoning && (
-                            <p className="text-[12px] text-gray-600 mt-0.5 leading-snug italic whitespace-normal break-words max-w-full min-w-0 pr-2">
+                            <p className="text-[12px] text-gray-600 mt-0.5 leading-snug italic whitespace-normal keep-all break-words max-w-full min-w-0 pr-2">
                                 "{card.reasoning}"
                             </p>
                         )}
 
-                        {/* Fact Chips (v2 Phase 2) */}
+                        {/* Fact Chips (v2 Phase 2) - Flex Wrap으로 정돈 */}
                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             {card.evidence?.stars !== undefined && card.evidence.stars > 0 && (
                                 <span className="text-[10px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold border border-yellow-100/50">
@@ -623,20 +648,17 @@ export default function SmartPlanProposal({
                                     💬 리뷰 {card.evidence.reviews >= 100 ? '100+' : card.evidence.reviews}
                                 </span>
                             )}
-                            {/* [v11.9.26] 인증 이모지만 노출 (기존 스타일 복구) */}
                             {(card.evidence?.displayBadges || []).map((badge, idx) => (
                                 <span key={idx} className="text-[12px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center justify-center leading-none shadow-sm" title={badge.label}>
                                     {badge.emoji}
                                 </span>
                             ))}
-                            {/* [v11.9.56] 주유소 등유 가격 배지 */}
                             {card.category === 'GAS_STATION' && card.metadata?.kerosenePrice && (
                                 <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold border border-blue-100 flex items-center gap-1">
                                     <span className="text-[9px] opacity-70">등유</span>
                                     {Number(card.metadata.kerosenePrice).toLocaleString()}원
                                 </span>
                             )}
-                            {/* [v11.9.10] 실시간 병상 정보 배지 */}
                             {card.category === 'HOSPITAL' && (
                                 <>
                                     {card.metadata?.hvec !== undefined && parseInt(card.metadata.hvec) > 0 && (
@@ -651,7 +673,6 @@ export default function SmartPlanProposal({
                                     )}
                                 </>
                             )}
-                            {/* [v11.9.26] 스테이지 2, 5(경유지)는 거리 제거 */}
                             {!['2', '5'].includes(stage || '') && card.distanceKm && (
                                 <span className="text-[10px] text-gray-400 font-medium">
                                     📍 {card.distanceKm}km 거리
@@ -666,38 +687,13 @@ export default function SmartPlanProposal({
                                         e.stopPropagation();
                                         window.location.href = `tel:${card.metadata.dutyTel3}`;
                                     }}
-                                    className="h-7 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 shadow-none border border-rose-200/50 flex items-center gap-1.5 text-[11px] font-black rounded-lg"
+                                    className="h-7 w-full md:w-auto bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 shadow-none border border-rose-200/50 flex items-center justify-center gap-1.5 text-[11px] font-black rounded-lg whitespace-normal keep-all break-words"
                                 >
-                                    <Phone className="w-3 h-3 animate-bounce" />
+                                    <Phone className="w-3 h-3 shrink-0" />
                                     응급실 직통전화 ({card.metadata.dutyTel3})
                                 </Button>
                             </div>
                         )}
-                    </div>
-
-
-                    {/* Actions */}
-                    <div className="flex flex-col gap-2 shrink-0">
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                setSwapCategory(card.category); 
-                                setSwapTargetId(card.id);
-                                setSwapPage(0); 
-                            }}
-                            className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
-                        >
-                            <ArrowRightLeft className="w-4 h-4" />
-                        </Button>
-                        <Button
-                            size="icon"
-                            onClick={(e) => handleNavClick(e, card)}
-                            className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-none border-none"
-                        >
-                            <MapPin className="w-4 h-4" />
-                        </Button>
                     </div>
                 </div>
             </CardContent>
@@ -925,7 +921,7 @@ export default function SmartPlanProposal({
                                     <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['2']}"</p>
                                 )}
                             </div>
-                            <div className="px-4 space-y-3 w-full min-w-0">
+                            <div className="px-2 space-y-3 w-full min-w-0">
                                 {plan.routeListElement?.map((card) => renderFactCard(card, '2'))}
                             </div>
                         </div>
@@ -942,7 +938,7 @@ export default function SmartPlanProposal({
                                 <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['3']}"</p>
                             )}
                         </div>
-                        <div className="px-4 space-y-3 w-full min-w-0">
+                        <div className="px-2 space-y-3 w-full min-w-0">
                             {plan.itemListElement
                                 .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
                                 .map((card) => renderFactCard(card, '3'))}
@@ -991,7 +987,7 @@ export default function SmartPlanProposal({
                                 <p className="text-[11px] text-gray-500 italic ml-[38px] leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['5']}"</p>
                             )}
                         </div>
-                        <div className="px-4 space-y-3 w-full min-w-0">
+                        <div className="px-2 space-y-3 w-full min-w-0">
                             {(plan.returnListElement || []).map((card) => renderFactCard(card, '5'))}
                         </div>
 
