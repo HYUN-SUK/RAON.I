@@ -226,7 +226,7 @@ export const useMySpaceStore = create<MySpaceState>()(
                     id: `record-${r.id}`,
                     type: 'record',
                     date: r.created_at,
-                    title: r.campground_name ? `1분 기록: ${r.campground_name}` : '나의 1분 기록',
+                    title: r.campground_name ? `10초 기록: ${r.campground_name}` : '나의 10초 기록',
                     content: r.content,
                     images: r.photo_url ? [r.photo_url] : [],
                     recordId: r.id

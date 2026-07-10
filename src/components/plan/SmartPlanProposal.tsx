@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone } from 'lucide-react';
@@ -104,6 +104,24 @@ export default function SmartPlanProposal({
     const [isLocating, setIsLocating] = useState(false); // [v11.9.61] 위치 확인 중 상태
     const [showRegenConfirm, setShowRegenConfirm] = useState(false);
     const [hasTriggeredRegen, setHasTriggeredRegen] = useState(false);
+
+    // 자동 정렬 타겟 Refs
+    const routeSelectorRef = useRef<HTMLDivElement>(null);
+    const generatingLoaderRef = useRef<HTMLDivElement>(null);
+
+    // 추천 경로 단계 진입 시 화면 중앙 스크롤
+    useEffect(() => {
+        if (!plan && !proPlan && userOrigin && !selectedMidpoint && routeSelectorRef.current) {
+            routeSelectorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [plan, proPlan, userOrigin, selectedMidpoint]);
+
+    // 계획 조립(로딩) 시 화면 중앙 스크롤
+    useEffect(() => {
+        if (isGenerating && generatingLoaderRef.current) {
+            generatingLoaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [isGenerating]);
 
     // tootg 및 admin 권한 판별용 가드
     const isDeveloper = userEmail === 'tootg@naver.com' || userEmail === 'admin@raon.ai' || process.env.NODE_ENV === 'development';
@@ -366,12 +384,46 @@ export default function SmartPlanProposal({
         if (userId) {
             dispatchPersonaAction(userId, 'PLAN_SHARE_SNS').catch(console.error);
         }
-        toast.info('기능 구현예정입니다.');
+        
+        // 플랜 모드별 대상 추출
+        const targetPlan = plan || proPlan;
+        
+        let placeName = '라온아이';
+        if (plan && plan.itemListElement && plan.itemListElement.length > 0) {
+            placeName = plan.itemListElement[0].name;
+        } else if (proPlan && proPlan.factCards && proPlan.factCards.length > 0) {
+            placeName = proPlan.factCards[0].name;
+        }
+
+        const planTitle = `🏕️ ${placeName} 캠핑 스마트플랜`;
+        const shareText = `${targetPlan?.narration || '행복한 여정을 담은 스마트플랜입니다.'}`;
+        const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+        if (navigator.share) {
+            navigator.share({
+                title: planTitle,
+                text: shareText,
+                url: shareUrl,
+            }).catch(err => console.error('[SmartPlan] Share error:', err));
+        } else {
+            // Web Share API가 미지원될 때 클립보드 복사 백업
+            const routeSummary = [
+                plan?.routeListElement?.length ? `• 가는 길: ${plan.routeListElement.map(r => r.name).join(' → ')}` : '',
+                plan?.itemListElement?.length ? `• 주요 일정: ${plan.itemListElement.map(i => i.name).join(', ')}` : '',
+                plan?.returnListElement?.length ? `• 복귀 길: ${plan.returnListElement.map(r => r.name).join(' → ')}` : ''
+            ].filter(Boolean).join('\n');
+
+            const fullCopyText = `${planTitle}\n일정: ${plan?.target_date || ''}\n\n${shareText}\n\n[주요 방문지]\n${routeSummary}\n\n확인하기: ${shareUrl}`;
+
+            navigator.clipboard.writeText(fullCopyText)
+                .then(() => toast.success('클립보드에 플랜 정보가 복사되었어요!'))
+                .catch(() => toast.error('공유 복사에 실패했습니다.'));
+        }
     };
 
     if (isGenerating) {
         return (
-            <div className="w-full flex flex-col items-center justify-center p-12 space-y-5 bg-[#F7F5EF] rounded-3xl border border-dashed border-[#224732]/20 shadow-sm animate-pulse m-0">
+            <div ref={generatingLoaderRef} className="w-full flex flex-col items-center justify-center p-12 space-y-5 bg-[#F7F5EF] rounded-3xl border border-dashed border-[#224732]/20 shadow-sm animate-pulse m-0">
                 <RefreshCw className="w-10 h-10 text-[#224732] animate-spin" />
                 <div className="text-center space-y-2">
                     <p className="text-sm font-bold text-[#224732]">
@@ -388,7 +440,7 @@ export default function SmartPlanProposal({
     // 3. Step 1: Route Selection
     if (!plan && !proPlan && userOrigin && !selectedMidpoint) {
         return (
-            <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div ref={routeSelectorRef} className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <RouteSelector 
                     origin={userOrigin} 
                     destination={location} 

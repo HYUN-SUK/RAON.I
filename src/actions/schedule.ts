@@ -219,13 +219,19 @@ export async function getScheduleById(scheduleId: string): Promise<Schedule | nu
  */
 export async function updateSchedule(
     scheduleId: string,
-    updates: Partial<Pick<Schedule, 'campground_name' | 'campground_address' | 'check_in' | 'check_out' | 'status' | 'memo'>>
+    updates: Partial<Pick<Schedule, 'campground_name' | 'campground_address' | 'check_in' | 'check_out' | 'status' | 'memo' | 'smart_plan_data'>>
 ): Promise<{ success: boolean; error?: string }> {
     const supabase = await createClient();
 
+    // 일정 날짜(check_in 또는 check_out)가 변경되는 경우 기존 스마트플랜 캐시 리셋
+    const finalUpdates = { ...updates };
+    if (updates.check_in || updates.check_out) {
+        finalUpdates.smart_plan_data = null;
+    }
+
     const { error } = await supabase
         .from('user_schedules')
-        .update(updates)
+        .update(finalUpdates)
         .eq('id', scheduleId);
 
     if (error) {
