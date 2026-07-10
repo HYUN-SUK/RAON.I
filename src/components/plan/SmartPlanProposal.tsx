@@ -543,7 +543,7 @@ export default function SmartPlanProposal({
             onClick={() => handleCardClick(card)}
         >
             <CardContent className="p-4">
-                <div className="flex gap-4 items-center">
+                <div className="flex gap-4 items-center w-full min-w-0">
                     {/* Icon */}
                     <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)] text-xl border border-[#224732]/5">
                         {CATEGORY_ICONS[card.category] || '📍'}
@@ -582,13 +582,13 @@ export default function SmartPlanProposal({
                             const tel = getPlacePhoneNumber(card);
                             if (tel) {
                                 return (
-                                    <div className="mt-1 flex items-center">
+                                    <div className="mt-1 flex flex-wrap items-center min-w-0 w-full">
                                         <a 
                                             href={`tel:${tel}`}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-transform underline font-bold"
+                                            className="inline-flex flex-wrap items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 active:scale-[0.97] transition-transform underline font-bold whitespace-normal break-words max-w-full"
                                         >
-                                            <Phone className="w-3 h-3" />
+                                            <Phone className="w-3 h-3 shrink-0" />
                                             방문 전 유선 확인 권장 ({tel.includes('-') ? tel : tel.replace(/[^0-9]/g, '').replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3')})
                                         </a>
                                     </div>
