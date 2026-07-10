@@ -103,6 +103,7 @@ export default function SmartPlanProposal({
     const [showRouteNav, setShowRouteNav] = useState(false);
     const [isLocating, setIsLocating] = useState(false); // [v11.9.61] 위치 확인 중 상태
     const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+    const [hasTriggeredRegen, setHasTriggeredRegen] = useState(false);
 
     // tootg 및 admin 권한 판별용 가드
     const isDeveloper = userEmail === 'tootg@naver.com' || userEmail === 'admin@raon.ai' || process.env.NODE_ENV === 'development';
@@ -116,7 +117,7 @@ export default function SmartPlanProposal({
     
     // initialPlan의 weather_window 정보 추출 (wrapped 대응)
     const currentWeatherWindow = initialPlan?.weather_window || (initialPlan?.ai_plan?.weather_window);
-    const showShortTermRegen = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset;
+    const showShortTermRegen = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset && !hasTriggeredRegen;
 
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
@@ -654,7 +655,7 @@ export default function SmartPlanProposal({
     const showNoWeatherBanner = diffDaysForRegen >= 11;
     const showMidTermActionBanner = diffDaysForRegen >= 4 && diffDaysForRegen <= 7 && currentWeatherWindow !== 'MID' && currentWeatherWindow !== 'SHORT' && onReset;
     const showMidTermStaticBanner = diffDaysForRegen >= 8 && diffDaysForRegen <= 10;
-    const showShortTermActionBanner = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset;
+    const showShortTermActionBanner = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset && !hasTriggeredRegen;
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">
@@ -734,6 +735,7 @@ export default function SmartPlanProposal({
                         size="sm"
                         onClick={(e) => {
                             e.stopPropagation();
+                            setHasTriggeredRegen(true);
                             setPlan(null);
                             setSelectedMidpoint(null);
                             setSelectedRouteData(null);

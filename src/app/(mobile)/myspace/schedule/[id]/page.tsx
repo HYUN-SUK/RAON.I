@@ -729,7 +729,10 @@ export default function ScheduleDetailPage() {
                                 setPlanMode('BASIC');
                                 setPlanKey(prev => prev + 1);
                             }}
-                            onGenerated={() => setIsReconstructing(false)}
+                            onGenerated={async () => {
+                                await loadData();
+                                setIsReconstructing(false);
+                            }}
                         />
                     )}
                 </div>
