@@ -1247,7 +1247,9 @@ export async function generatePersonalizedSmartPlan(
                 let flowComment = "";
                 if (flowPattern !== 'STEADY' && flowComments[flowPattern]) {
                     const fPool = flowComments[flowPattern];
-                    flowComment = fPool[Math.floor(Math.random() * fPool.length)];
+                    const rawComment = fPool[Math.floor(Math.random() * fPool.length)];
+                    // 시간적 흐름을 매끄럽게 이어줄 전환 어구 삽입
+                    flowComment = `특히 일정 중에 ${rawComment}`;
                 }
 
                 // 4) 지능형 습도 코멘트 분기
@@ -1303,8 +1305,8 @@ export async function generatePersonalizedSmartPlan(
                 const dDiff = Math.round((dStart.getTime() - dToday.getTime()) / (24 * 60 * 60 * 1000));
                 const isShortTerm = dDiff <= 3;
 
-                // 최종 3단계 조립 (단기 예보일 때만 습도와 풍속 결합하여 신뢰도 극대화)
-                weatherNarrative = `${mainNarrative}` +
+                // 최종 3단계 조립 (단기 예보일 때만 습도와 풍속 결합하여 신뢰도 극대화, 마침 접속 조사 삽입)
+                weatherNarrative = `마침 여행지에는 ${mainNarrative}` +
                     (flowComment ? ` ${flowComment}` : '') +
                     (isShortTerm ? ` ${humidComment} ${windComment}` : '');
 
@@ -1329,9 +1331,18 @@ export async function generatePersonalizedSmartPlan(
                 tagNarrative = tagPhrases[Math.floor(Math.random() * tagPhrases.length)];
             }
 
-            // G. 5단계 stageIntros 조립 (사용자 요청 Flow: 계절 인사말 => 시나리오별 날씨설명 => 동반자 구성 => 취향 태그)
-            stageIntros['1'] = `${greeting} ${weatherNarrative} ${companionNarrative}` + 
-                (tagNarrative ? ` ${tagNarrative}` : '');
+            // 취향태그 매핑 실패 시 기본 감성 제안형 맺음말 제공
+            if (!tagNarrative) {
+                const fallbackEndings = [
+                    "자연 속에서 온전한 쉼을 누릴 수 있는 이번 캠핑을 가장 평온한 여정으로 제안해 드립니다.",
+                    "소중한 사람과 함께 자연의 품에서 조용히 숨 쉬어 갈 이번 코스를 포근한 여행으로 추천합니다.",
+                    "일상의 분주함을 털어내고 오롯이 서로에게 집중할 수 있는 이번 여정을 다정한 여행으로 제안해 드립니다."
+                ];
+                tagNarrative = fallbackEndings[Math.floor(Math.random() * fallbackEndings.length)];
+            }
+
+            // G. 5단계 stageIntros 조립 (계절 인사말 => 동반자 구성 => 날씨 및 시간 흐름 설명 => 취향 태그 제안형 맺음)
+            stageIntros['1'] = `${greeting} ${companionNarrative} ${weatherNarrative} ${tagNarrative}`;
             
             stageIntros['2'] = "설레는 출발의 순간! 캠핑장으로 향하며 가볍게 들러갈 수 있는 아늑한 맛집과 쉼표 같은 카페를 지나가 볼까요?";
             stageIntros['3'] = "캠핑의 든든한 기본! 캠핑장에 입실하기 전 신선한 식재료를 채워줄 보급소와 따뜻한 겨울을 준비할 등유 주유소에 들르는 시간이에요.";
