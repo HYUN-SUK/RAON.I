@@ -965,8 +965,8 @@ export default function SmartPlanProposal({
 
                         {/* 편의 시설 (Hospital, Gas) 하단 노출 */}
                         {(plan.itemListElement.some(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))) && (
-                            <div className="mt-4 pt-4 border-t-2 border-blue-200 bg-blue-50/30 rounded-xl p-3 mx-4">
-                                <p className="text-[11px] font-bold text-blue-600 mb-3 ml-10 flex items-center gap-1.5">
+                            <div className="mt-4 pt-4 border-t-2 border-blue-200 bg-blue-50/30 rounded-xl py-3 px-0 mx-0 min-w-0">
+                                <p className="text-[11px] font-bold text-blue-600 mb-3 ml-4 flex items-center gap-1.5">
                                     🛡️ 안전을 위한 편의시설
                                 </p>
                                 {plan.itemListElement
