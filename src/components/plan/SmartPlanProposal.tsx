@@ -572,7 +572,7 @@ export default function SmartPlanProposal({
                             </p>
                         )}
 
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-words max-w-full font-medium">
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-normal break-all max-w-full font-medium">
                             {formatPlaceDetailText(card)}
                         </p>
                         {(() => {
@@ -596,7 +596,7 @@ export default function SmartPlanProposal({
                             }
                             if (card.category && card.category !== 'GAS_STATION') {
                                 return (
-                                    <p className="mt-1 text-[11px] text-amber-600/90 font-bold flex items-center gap-0.5 animate-pulse">
+                                    <p className="mt-1 text-[11px] text-amber-600/90 font-bold flex flex-wrap items-center gap-0.5 whitespace-normal break-all max-w-full min-w-0 animate-pulse">
                                         👉 터치하여 오늘 영업유무 확인권장!
                                     </p>
                                 );
@@ -898,7 +898,7 @@ export default function SmartPlanProposal({
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full w-fit">카드를 터치해 일정을 교체하세요</span>
                 </h3>
 
-                <div className="grid gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0">
+                <div className="grid grid-cols-1 gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0 w-full min-w-0">
 
                     {/* Stage 1: 출발 (Intro) */}
                     <div className="space-y-3 relative z-10 w-full">
@@ -915,35 +915,34 @@ export default function SmartPlanProposal({
 
                     {/* Stage 2: 가는 길 (Route Facts) */}
                     {(plan.routeListElement || []).length > 0 && (
-                        <div className="space-y-3 relative z-10 w-full">
+                        <div className="space-y-3 relative z-10 w-full min-w-0">
                             <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
                                     <span className="text-xs font-bold text-[#224732]">Stage 2. 여정의 즐거움 (경유지)</span>
                                 </div>
                                 {plan.stageIntros?.['2'] && (
-                                    <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['2']}"</p>
+                                    <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['2']}"</p>
                                 )}
                             </div>
-                            <div className="px-4 space-y-3">
+                            <div className="px-4 space-y-3 w-full min-w-0">
                                 {plan.routeListElement?.map((card) => renderFactCard(card, '2'))}
                             </div>
-
                         </div>
                     )}
 
                     {/* Stage 3: 캠프 준비 (Mart / Restaurant) */}
-                    <div className="space-y-3 relative z-10 w-full">
+                    <div className="space-y-3 relative z-10 w-full min-w-0">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
                                 <span className="text-xs font-bold text-[#224732]">Stage 3. 든든한 준비 (식사/장보기)</span>
                             </div>
                             {plan.stageIntros?.['3'] && (
-                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['3']}"</p>
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['3']}"</p>
                             )}
                         </div>
-                        <div className="px-4 space-y-3">
+                        <div className="px-4 space-y-3 w-full min-w-0">
                             {plan.itemListElement
                                 .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
                                 .map((card) => renderFactCard(card, '3'))}
@@ -982,7 +981,7 @@ export default function SmartPlanProposal({
                     </div>
 
                     {/* Stage 5: 안전한 귀가 (Return Trip) */}
-                    <div className="space-y-3 relative z-10 w-full">
+                    <div className="space-y-3 relative z-10 w-full min-w-0">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
@@ -992,7 +991,7 @@ export default function SmartPlanProposal({
                                 <p className="text-[11px] text-gray-500 italic ml-[38px] leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['5']}"</p>
                             )}
                         </div>
-                        <div className="px-4 space-y-3">
+                        <div className="px-4 space-y-3 w-full min-w-0">
                             {(plan.returnListElement || []).map((card) => renderFactCard(card, '5'))}
                         </div>
 

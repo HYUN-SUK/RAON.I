@@ -192,7 +192,7 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
       }
     }
 
-    return parts.join(' | ');
+    return parts.join(' | ').replace(/\u00A0/g, ' ');
   }
 
   // 5. 상세 데이터 전무 (NO_DETAIL) -> 하단 넛지와 겹치지 않게 빈 값 리턴
