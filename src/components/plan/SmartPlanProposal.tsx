@@ -195,7 +195,7 @@ export default function SmartPlanProposal({
                 
                 // [v11.9.52] AI 플랜과 선택된 경로 데이터를 통합하여 영구 저장
                 if (scheduleId) {
-                    const weatherWindow = diffDaysForRegen <= 3 ? 'SHORT' : 'MID';
+                    const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : 'MID';
                     const wrappedData = {
                         wrapped: true,
                         mode: restoredMode,
@@ -294,7 +294,7 @@ export default function SmartPlanProposal({
 
             setPlan(updatedPlan);
             if (scheduleId) {
-                const weatherWindow = diffDaysForRegen <= 3 ? 'SHORT' : 'MID';
+                const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : 'MID';
                 // [v11.9.53] 카드 교체 시에도 선택된 경로 정보가 누락되지 않도록 래핑하여 저장
                 const wrappedData = {
                     wrapped: true,
@@ -652,10 +652,10 @@ export default function SmartPlanProposal({
         </Card>
     );
 
-    const showNoWeatherBanner = diffDaysForRegen >= 11;
-    const showMidTermActionBanner = diffDaysForRegen >= 4 && diffDaysForRegen <= 7 && currentWeatherWindow !== 'MID' && currentWeatherWindow !== 'SHORT' && onReset;
-    const showMidTermStaticBanner = diffDaysForRegen >= 8 && diffDaysForRegen <= 10;
-    const showShortTermActionBanner = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset && !hasTriggeredRegen;
+    const showNoWeatherBanner = diffDaysForRegen >= 8;
+    const showMidTermActionBanner = diffDaysForRegen >= 1 && diffDaysForRegen <= 7 && currentWeatherWindow !== 'MID' && currentWeatherWindow !== 'SHORT' && onReset;
+    const showMidTermStaticBanner = false; // 8일 전 이상은 showNoWeatherBanner가 통합 처리
+    const showShortTermActionBanner = diffDaysForRegen <= 0 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset && !hasTriggeredRegen;
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">
@@ -667,21 +667,7 @@ export default function SmartPlanProposal({
                             날씨 정보가 아직 준비되지 않았습니다.
                         </p>
                         <p className="text-[11px] text-blue-700 leading-normal mt-0.5 font-medium">
-                            여행 7일 전부터 날씨 정보가 채워지며, 정밀 풍속은 3일 전부터 반영됩니다. 조금만 기다려주세요!
-                        </p>
-                    </div>
-                </div>
-            )}
-            
-            {showMidTermStaticBanner && (
-                <div className="bg-amber-50/95 border border-amber-200/70 rounded-2xl p-4 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                    <span className="text-xl shrink-0">🌤️</span>
-                    <div className="flex flex-col min-w-0">
-                        <p className="text-[13px] font-bold text-amber-900 leading-normal">
-                            현재 중기 예보 기반으로 구성된 일정입니다.
-                        </p>
-                        <p className="text-[11px] text-amber-700 leading-normal mt-0.5 font-medium">
-                            체크인 7일 전부터 기상청 날씨를 계획에 즉시 업데이트할 수 있습니다.
+                            여행 7일 전부터 주간 날씨 정보가 채워지며, 초정밀 실시간 예보는 출발 당일부터 반영됩니다. 조금만 기다려주세요!
                         </p>
                     </div>
                 </div>
@@ -693,10 +679,10 @@ export default function SmartPlanProposal({
                         <span className="text-xl shrink-0">🌤️</span>
                         <div className="flex flex-col min-w-0">
                             <p className="text-[13px] font-bold text-amber-900 leading-normal">
-                                주간 날씨 정보가 준비되었습니다!
+                                주간 예보 정보가 준비되었습니다!
                             </p>
                             <p className="text-[11px] text-amber-700/90 leading-normal mt-0.5 font-medium">
-                                최신 여행 계획으로 갱신하여 날씨에 알맞은 일정을 받아보세요.
+                                체크인 7일 전부터 제공되는 기상청 주간 날씨에 맞추어 캠핑 일정을 첫 번째로 최신화해 보세요.
                             </p>
                         </div>
                     </div>
@@ -724,10 +710,10 @@ export default function SmartPlanProposal({
                         <span className="text-xl shrink-0 animate-bounce">⚡</span>
                         <div className="flex flex-col min-w-0">
                             <p className="text-[13px] font-bold text-green-900 leading-normal">
-                                단기 날씨 및 실시간 풍속 정보가 준비되었습니다!
+                                드디어 캠핑 출발 당일! 실시간 기상 정보가 완성되었습니다.
                             </p>
                             <p className="text-[11px] text-green-700 leading-normal mt-0.5 font-medium">
-                                초정밀 기상을 바탕으로 최신 여행 계획을 새롭게 받아보세요.
+                                마지막 퇴실/철수일 예보까지 모두 개방된 100% 정확한 기상청 풍속 및 습도를 바탕으로 완벽한 계획을 받아보세요.
                             </p>
                         </div>
                     </div>
