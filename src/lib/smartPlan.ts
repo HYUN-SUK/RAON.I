@@ -588,7 +588,8 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
             const spotBlacklist = /산$|봉$|산맥|국립공원|도립공원|군립공원|자연휴양림|해수욕장|계곡|섬$|둘레길|트래킹|오름|테마파크|워터파크|리조트|민속촌|수목원|산성|읍성|대교|터널|IC|휴게소/;
             const whitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|베이커리|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대/;
             
-            if (spotBlacklist.test(nameDesc)) simpleSpotBonus -= 100; // 사실상 제거
+            const isBlacklisted = spotBlacklist.test(f.name.toLowerCase()) || spotBlacklist.test(nameDesc);
+            if (isBlacklisted) simpleSpotBonus -= 100; // 사실상 제거
             if (whitelistRegex.test(nameDesc)) simpleSpotBonus += 40; 
         }
 

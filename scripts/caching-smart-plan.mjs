@@ -901,10 +901,10 @@ async function main() {
                                 if (ktoRank && ktoRank <= 100) ktoScore = 100 * (1 - (ktoRank - 1) / 100);
                                 else {
                                     const tmapRank = sortedRawRelated.findIndex(x => x.id === spot.id);
-                                    ktoScore = ((sortedRawRelated.length - 1 - tmapRank) / Math.max(1, sortedRawRelated.length - 1)) * 100;
+                                    ktoScore = tmapRank === -1 ? 0 : ((sortedRawRelated.length - 1 - tmapRank) / Math.max(1, sortedRawRelated.length - 1)) * 100;
                                 }
                                 const tmapIdx = sortedRawRelated.findIndex(x => x.id === spot.id);
-                                const tmapScore = ((sortedRawRelated.length - 1 - tmapIdx) / Math.max(1, sortedRawRelated.length - 1)) * 100;
+                                const tmapScore = tmapIdx === -1 ? 0 : ((sortedRawRelated.length - 1 - tmapIdx) / Math.max(1, sortedRawRelated.length - 1)) * 100;
                                 const ktScore = parseFloat(spot.raw_data?.kt_concentration || spot.raw_data?.popularity_v2?.base_pop || 10);
                                 const combinedPop = (ktoScore * 0.6) + (tmapScore * 0.2) + (ktScore * 0.2);
                                 const confMultiplier = 0.8 + (0.2 * ((spot.raw_data?.tmap_related?.length > 0 ? 0.4 : 0) + (ktScore > 10 ? 0.3 : 0) + (tier ? 0.3 : 0)));
