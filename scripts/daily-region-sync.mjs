@@ -40,7 +40,7 @@ const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 const SIDO_MAP = {
   '서울특별시': 1, '인천광역시': 2, '대전광역시': 3, '대구광역시': 4, '광주광역시': 5, '부산광역시': 6, '울산광역시': 7, '세종특별자치시': 8,
   '경기도': 31, '강원특별자치도': 32, '충청북도': 33, '충청남도': 34, '경상북도': 35, '경상남도': 36, '전북특별자치도': 37, '전라남도': 38, '제주특별자치도': 39,
-  '전남광주시': 38, '전남광주시_광주권': 5, '전남광주시_전남권': 38
+  '전남광주시': 38
 };
 
 const SIDO_ORG_MAP = {
@@ -50,13 +50,13 @@ const SIDO_ORG_MAP = {
   '강원특별자치도': '6530000_ALL', '충청북도': '6430000_ALL', '충청남도': '6440000_ALL',
   '전북특별자치도': '6540000_ALL', '전라남도': '6460000_ALL', '경상북도': '6470000_ALL',
   '경상남도': '6480000_ALL', '제주특별자치도': '6500000_ALL',
-  '전남광주시': '6460000_ALL', '전남광주시_광주권': '6290000_ALL', '전남광주시_전남권': '6460000_ALL'
+  '전남광주시': '6460000_ALL'
 };
 
 const SIDO_SHORT_MAP = {
   '서울특별시': '서울', '인천광역시': '인천', '대전광역시': '대전', '대구광역시': '대구', '광주광역시': '광주', '부산광역시': '부산', '울산광역시': '울산', '세종특별자치시': '세종',
   '경기도': '경기', '강원특별자치도': '강원', '충청북도': '충북', '충청남도': '충남', '경상북도': '경북', '경상남도': '경남', '전북특별자치도': '전북', '전라남도': '전남', '제주특별자치도': '제주',
-  '전남광주시': '전남광주', '전남광주시_광주권': '광주', '전남광주시_전남권': '전남'
+  '전남광주시': '전남광주'
 };
 
 const SIDO_ALIASES = {
@@ -67,6 +67,7 @@ const SIDO_ALIASES = {
   '전북': ['전북', '전라북도', '전북특별자치도'], 
   '전남': ['전남', '전라남도', '전남광주시'],
   '전남광주': ['전남광주', '전남광주시', '광주전남', '광주광역시', '전라남도', '광주', '전남'],
+  '전남광주시': ['전남광주', '전남광주시', '광주전남', '광주광역시', '전라남도', '광주', '전남'],
   '경북': ['경북', '경상북도'], '경남': ['경남', '경상남도'],
   '제주': ['제주', '제주도', '제주특별자치도']
 };
@@ -277,7 +278,7 @@ async function getLatestOdcloudPath(namespace = "15102255/v1") {
 
 const SIDO_ROTATION = [
   '서울특별시', '부산광역시', '대구광역시', '인천광역시', 
-  '전남광주시_광주권', '전남광주시_전남권', // 이틀 분산 수집
+  '전남광주시', // 전남광주통합특별시 단일 수집일로 병합
   '대전광역시', '울산광역시', '세종특별자치시', '경기도', 
   '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '경상북도', '경상남도', '제주특별자치도'
 ];
@@ -338,25 +339,6 @@ async function dailyRegionSync() {
     'NMC_HOSPITAL': 'HOSPITAL'
   };
 
-  const SIDO_ALIASES = {
-    '서울특별시': ['서울특별시', '서울'],
-    '부산광역시': ['부산광역시', '부산'],
-    '대구광역시': ['대구광역시', '대구'],
-    '인천광역시': ['인천광역시', '인천'],
-    '광주광역시': ['광주광역시', '광주'],
-    '대전광역시': ['대전광역시', '대전'],
-    '울산광역시': ['울산광역시', '울산'],
-    '세종특별자치시': ['세종특별자치시', '세종시', '세종'],
-    '경기도': ['경기도', '경기'],
-    '강원특별자치도': ['강원특별자치도', '강원도', '강원'],
-    '충청북도': ['충청북도', '충북'],
-    '충청남도': ['충청남도', '충남'],
-    '전라북도': ['전라북도', '전북특별자치도', '전북'],
-    '전라남도': ['전라남도', '전남'],
-    '경상북도': ['경상북도', '경북'],
-    '경상남도': ['경상남도', '경남'],
-    '제주특별자치도': ['제주특별자치도', '제주도', '제주']
-  };
 
   const shortSido = SIDO_SHORT_MAP[targetSido] || targetSido;
   const aliases = SIDO_ALIASES[shortSido] || [targetSido];
@@ -698,12 +680,6 @@ async function updateSpotPopularity(targetSido, stats) {
   
   const aliases = SIDO_ALIASES[targetSido] || [targetSido];
   const baseYm = await findLatestBaseYm();
-  const { areaCd } = getAdminCodes(targetSido);
-  
-  if (!areaCd) {
-    console.warn(`  - [Popularity] Admin areaCd not found for ${targetSido}. Skipping.`);
-    return;
-  }
 
   // 1. 해당 지역의 활성화된 TOUR_SPOT 조회 (페이징 처리)
   let spots = [];
@@ -739,13 +715,17 @@ async function updateSpotPopularity(targetSido, stats) {
   console.log(`  - Grouping ${spots.length} spots into ${sigungus.length} sigungus.`);
 
   for (const sigungu of sigungus) {
-    const { signguCd } = getAdminCodes(targetSido, sigungu);
-    if (!signguCd) {
-      console.warn(`    ⚠️ [Popularity] Standard signguCd not found for ${sigungu}. Probing might follow.`);
+    const refSpot = spots.find(s => s.sigungu === sigungu);
+    const refSido = refSpot ? refSpot.sido : targetSido;
+    const { areaCd } = getAdminCodes(refSido);
+    const { signguCd } = getAdminCodes(refSido, sigungu);
+
+    if (!areaCd || !signguCd) {
+      console.warn(`    ⚠️ [Popularity] Standard codes not found for ${sigungu} under ${refSido}. Skipping.`);
       continue;
     }
 
-    console.log(`    - Processing ${sigungu} (${signguCd})...`);
+    console.log(`    - Processing ${sigungu} (${signguCd}) under ${refSido} (areaCd: ${areaCd})...`);
 
     // (A) TMAP Associated Attractions
     try {
@@ -967,27 +947,39 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
 
   for (const ep of endpoints) {
     console.log(`📥 [LocalData CSV] ${sido} ${ep.name} 다운로드 및 파싱 중...`);
-    // [WAF 방어막 회피] 파일 다중 연속 다운로드로 인한 403 Forbidden 상태 방어 (3초 대기)
-    await delay(3000);
+    // [WAF 방어막 회피] 파일 다중 연속 다운로드로 인한 차단 방어 (10초 대기)
+    await delay(10000);
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://raon-i.co.kr';
     const url = `${siteUrl}/api/cron/localdata-proxy?path=${ep.path}&orgCode=${orgCode}`;
     
     try {
-      const res = await fetch(url, { 
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://www.localdata.go.kr/',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Connection': 'keep-alive'
-        },
-        agent: httpsAgent,
-        timeout: 180000
-      });
+      let res = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          res = await fetch(url, { 
+            headers: { 
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Referer': 'https://www.localdata.go.kr/',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Connection': 'keep-alive'
+            },
+            agent: httpsAgent,
+            timeout: 180000
+          });
+          if (res.ok) break;
+          console.warn(`  ⚠️ Attempt ${attempt} failed with HTTP ${res.status}. Retrying in 10s...`);
+        } catch (fetchErr) {
+          console.warn(`  ⚠️ Attempt ${attempt} failed: ${fetchErr.message}. Retrying in 10s...`);
+        }
+        await delay(10000);
+      }
+
       const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
-      if (!res.ok) {
-        console.error(`  ❌ Failed to download ${ep.name}: HTTP ${res.status}`);
-        errStat.note = `💥 ERROR: WAF 다운로드 차단 (HTTP ${res.status})`;
+      if (!res || !res.ok) {
+        const statusStr = res ? `HTTP ${res.status}` : 'Unknown Error';
+        console.error(`  ❌ Failed to download ${ep.name}: ${statusStr}`);
+        errStat.note = `💥 ERROR: WAF 다운로드 차단 (${statusStr})`;
         continue;
       }
       
@@ -1269,8 +1261,9 @@ async function syncHospitals(sido, seenIds, stat) {
   const chunk = [];
 
   let apiSido = sido;
-  if (sido === '전남광주시_광주권') apiSido = '광주광역시';
-  else if (sido === '전남광주시_전남권') apiSido = '전라남도';
+  if (sido === '전남광주시' || sido.startsWith('전남광주시_')) {
+    apiSido = '전라남도';
+  }
 
   try {
     // 1. Supabase에서 기존 병원 좌표 데이터 조회

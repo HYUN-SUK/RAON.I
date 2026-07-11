@@ -714,7 +714,9 @@ export async function generatePersonalizedSmartPlan(
         // 1. Find Reservation ID for Track A (Location-Aware Matching)
         let reservationId: string | null = null;
         if (userId) {
-            const formattedDate = startDate.toISOString().split('T')[0];
+            // [KST Timezone 보정] UTC 변환으로 인한 1일 왜곡 방지 (+9시간 적용)
+            const kstStartDate = new Date(startDate.getTime() + (9 * 60 * 60 * 1000));
+            const formattedDate = kstStartDate.toISOString().split('T')[0];
 
             // [v11.9.61] 1차: user_schedules에서 조회 (공간 매칭 도입)
             const { data: resData } = await supabase
@@ -757,10 +759,10 @@ export async function generatePersonalizedSmartPlan(
                 }
             }
             
-            // 3차 Fallback: 날짜를 ±1일 범위로 확장 검색 (여전히 공간 매칭 고려)
+            // 3차 Fallback: 날짜를 ±3일 범위로 확장 검색 (여전히 공간 매칭 고려)
             if (!reservationId) {
-                const prevDate = new Date(startDate.getTime() - 86400000).toISOString().split('T')[0];
-                const nextDate = new Date(startDate.getTime() + 86400000).toISOString().split('T')[0];
+                const prevDate = new Date(startDate.getTime() - (3 * 86400000)).toISOString().split('T')[0];
+                const nextDate = new Date(startDate.getTime() + (3 * 86400000)).toISOString().split('T')[0];
                 const { data: expandData } = await supabase
                     .from('user_schedules')
                     .select('id, campground_lat, campground_lng')
@@ -964,8 +966,22 @@ export async function generatePersonalizedSmartPlan(
                 featuredFestival.push(fests[0]);
             }
         } else {
-            // No reservation ID (Fallback or Just View)
-            console.warn("No reservation ID found. Track A is empty.");
+            console.warn("No reservation ID found. Track A is empty. Executing realtime fallback for essentials...");
+            // 예약 매칭에 실패한 경우, 캠핑장 위치(location) 반경 20km 이내의 마트, 병원, 주유소, 식당, 명소를 실시간 룩업하여 적재
+            try {
+                const fallbackEssentials = await fetchMidpointTrackB(location, weatherSummary, isWinter, persona);
+                ['HOSPITAL', 'MART', 'GAS_STATION', 'RESTAURANT', 'SPOT'].forEach(cat => {
+                    let catFacts = fallbackEssentials.filter(f => f.category === cat);
+                    catFacts.sort((a, b) => b.trustScore - a.trustScore);
+                    if (catFacts.length > 0) {
+                        catFacts[0].selectionTier = 'PRIMARY';
+                        activeFacts.push(catFacts[0]);
+                        alternatives[cat] = catFacts.slice(1, 15).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
+                    }
+                });
+            } catch (fallbackErr) {
+                console.error("[smartPlan] Failed to query realtime fallback for essentials:", fallbackErr);
+            }
         }
 
         // [v11.9.26] Stage 5: 귀갓길 추천 (Track B에서 식당, 카페, 명소 1개씩 선정)
@@ -1377,6 +1393,9 @@ export async function generatePersonalizedSmartPlan(
                 for (const card of cards) {
                     let isDup = false;
                     for (const existing of result) {
+                        // [교차 카테고리 보호 안전망] 서로 다른 종류의 시설은 거리가 가깝더라도 중복 제거하지 않음
+                        if (card.category !== existing.category) continue;
+
                         const dist = getDist(card.lat, card.lng, existing.lat, existing.lng);
                         const n1 = clean(card.name), n2 = clean(existing.name);
                         
