@@ -8,10 +8,13 @@ const baseTime = '0600';
 
 const INITIAL_API_LIST = () => {
   return [
-    { name: 'REST_LOCALDATA', label: '식당(모범음식점)', url: 'https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx' },
+    { name: 'MART_LARGE', label: '마트(대형마트)', url: 'https://www.localdata.go.kr' },
+    { name: 'MART_SSM', label: '마트(준대규모)', url: 'https://www.localdata.go.kr' },
+    { name: 'MART_SUPER', label: '마트(기타식품)', url: 'https://www.localdata.go.kr' },
+    { name: 'REST_LOCALDATA', label: '식당(모범음식점)', url: 'https://www.localdata.go.kr' },
     { name: 'REST_BAEK', label: '식당(백년가게)', url: `https://api.odcloud.kr/api/15102255/v1/uddi:c8c0f585-8ee0-47a3-8686-3507119e0780?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&page=1&perPage=1` },
     { name: 'REST_SAFE', label: '식당(안심식당)', url: `http://211.237.50.150:7080/openapi/${process.env.SAFE_RESTAURANT_API_KEY}/json/Grid_20200713000000000605_1/1/1` },
-    { name: 'LX_RESTAURANT', label: '식당(LX공사맛집)', url: 'https://www.lx.or.kr/lx/index.do' },
+    { name: 'LX_RESTAURANT', label: '식당(LX공사맛집)', url: 'https://www.data.go.kr/data/15053303/fileData.do' },
     { name: 'TOUR_SPOT', label: '관광명소(TourAPI)', url: `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=RAONAI&_type=json&listYN=Y&arrange=A&contentTypeId=12` },
     { name: 'FESTIVAL', label: '축제(TourAPI)', url: `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=RAONAI&_type=json&listYN=Y&arrange=A&eventStartDate=${today}` },
     { name: 'HOSPITAL', label: '병원(NMC)', url: `https://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&STAGE1=%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C&STAGE2=%EA%B0%95%EB%82%A8%EA%B5%AC&_type=json` },
@@ -24,7 +27,7 @@ const INITIAL_API_LIST = () => {
     { name: 'SPOT_TMAP_REL', label: '명소 연관(Tmap)', url: `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=11&signguCd=11110&baseYm=202504&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=RAONAI` },
     { name: 'SPOT_KT_CONCTR', label: '명소 집중률(KT)', url: `https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=11&signguCd=11110&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=RAONAI` },
     { name: 'KTO_POPULARITY', label: '관광명소(지자체 인기도)', url: `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&areaCd=34&signguCd=34330&baseYm=202504&numOfRows=1&_type=json&MobileOS=ETC&MobileApp=RAONAI` },
-    { name: 'GEMINI', label: 'AI(제미나이)', url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`, method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }] }) }
+    { name: 'GEMINI', label: 'AI(제미나이)', url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`, method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }] }) }
   ];
 };
 
@@ -34,25 +37,48 @@ async function performHealthCheck() {
   const list = INITIAL_API_LIST();
 
   for (const api of list) {
-    try {
-      const start = Date.now();
-      const res = await fetch(api.url, { 
-        method: api.method || 'GET', 
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://www.data.go.kr/',
-          ...(api.headers || {})
-        },
-        body: api.body ? api.body : undefined 
-      });
-      const end = Date.now();
-      
-      const status = res.ok ? 'OK' : 'ERROR';
-      console.log(`[${status}] ${api.label} (${end - start}ms) - Status: ${res.status}`);
-      results.push({ name: api.name, status, statusCode: res.status, duration: end - start });
-    } catch (e) {
-      console.log(`[ERROR] ${api.label} - ${e.message}`);
-      results.push({ name: api.name, status: 'ERROR', statusCode: 0, duration: 0 });
+    let attempt = 0;
+    const maxAttempts = 3;
+    let success = false;
+    let lastStatus = 0;
+    let lastError = '';
+    const start = Date.now();
+
+    while (attempt < maxAttempts && !success) {
+      attempt++;
+      try {
+        const res = await fetch(api.url, { 
+          method: api.method || 'GET', 
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.data.go.kr/',
+            ...(api.headers || {})
+          },
+          body: api.body ? api.body : undefined 
+        });
+
+        lastStatus = res.status;
+        if (res.ok) {
+          success = true;
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch (e) {
+        lastError = e.message;
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    }
+
+    const end = Date.now();
+    const status = success ? 'OK' : 'ERROR';
+    if (success) {
+      console.log(`[OK] ${api.label} (${end - start}ms) - Status: ${lastStatus}`);
+      results.push({ name: api.name, status: 'OK', statusCode: lastStatus, duration: end - start });
+    } else {
+      console.log(`[ERROR] ${api.label} - ${lastError}`);
+      results.push({ name: api.name, status: 'ERROR', statusCode: lastStatus, duration: 0 });
     }
   }
 

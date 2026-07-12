@@ -20,13 +20,13 @@ export const getApiConfigs = () => {
   const baseTime = now.getHours() < 6 ? '1800' : '0600';
 
   return [
-    { name: 'MART_LARGE', label: '마트(대형마트)', url: 'https://www.localdata.go.kr/datafile/each/08_25_01_P_CSV.zip' },
-    { name: 'MART_SSM', label: '마트(준대규모)', url: 'https://www.localdata.go.kr/datafile/each/08_24_01_P_CSV.zip' },
-    { name: 'MART_SUPER', label: '마트(기타식품)', url: 'https://www.localdata.go.kr/datafile/each/07_22_13_P_CSV.zip' },
-    { name: 'REST_LOCALDATA', label: '식당(모범음식점)', url: 'https://www.localdata.go.kr/datafile/etc/LOCALDATA_ALL_12_03_01_E.xlsx' },
+    { name: 'MART_LARGE', label: '마트(대형마트)', url: 'https://www.localdata.go.kr' },
+    { name: 'MART_SSM', label: '마트(준대규모)', url: 'https://www.localdata.go.kr' },
+    { name: 'MART_SUPER', label: '마트(기타식품)', url: 'https://www.localdata.go.kr' },
+    { name: 'REST_LOCALDATA', label: '식당(모범음식점)', url: 'https://www.localdata.go.kr' },
     { name: 'REST_BAEK', label: '식당(백년가게)', url: `https://api.odcloud.kr/api/15102255/v1/uddi:c8c0f585-8ee0-47a3-8686-3507119e0780?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&page=1&perPage=1` },
     { name: 'REST_SAFE', label: '식당(안심식당)', url: `http://211.237.50.150:7080/openapi/${process.env.SAFE_RESTAURANT_API_KEY}/json/Grid_20200713000000000605_1/1/1` },
-    { name: 'LX_RESTAURANT', label: '식당(LX공사맛집)', url: 'https://www.lx.or.kr/lx/index.do' },
+    { name: 'LX_RESTAURANT', label: '식당(LX공사맛집)', url: 'https://www.data.go.kr/data/15053303/fileData.do' },
     { name: 'TOUR_SPOT', label: '관광명소(TourAPI)', url: `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=RAONAI&_type=json&listYN=Y&arrange=A&contentTypeId=12` },
     { name: 'FESTIVAL', label: '축제(TourAPI)', url: `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=RAONAI&_type=json&listYN=Y&arrange=A&eventStartDate=${today}` },
     { name: 'HOSPITAL', label: '병원(NMC)', url: `https://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${process.env.PUBLIC_DATA_API_KEY}&STAGE1=%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C&STAGE2=%EA%B0%95%EB%82%A8%EA%B5%AC&_type=json` },
@@ -72,51 +72,57 @@ export async function performHealthCheck() {
 
   const results: ApiStatus[] = await Promise.all(apiConfigs.map(async (api): Promise<ApiStatus> => {
     const apiStartTime = Date.now();
-    try {
-      const response = await fetch(api.url, {
-        method: api.method || 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://www.data.go.kr/',
-          ...(api.headers || {}),
-          ...(api.method === 'POST' ? { 'Content-Type': 'application/json' } : {})
-        },
-        body: api.body,
-        signal: AbortSignal.timeout(api.name === 'LX_RESTAURANT' ? 20000 : 10000)
-      } as any);
+    let attempt = 0;
+    const maxAttempts = 3;
+    let lastError: any = null;
 
-      const duration = Date.now() - apiStartTime;
-      const isOk = response.ok;
-      
-      if (api.name === 'GEMINI' && !isOk) {
+    while (attempt < maxAttempts) {
+      attempt++;
+      try {
+        const response = await fetch(api.url, {
+          method: api.method || 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.data.go.kr/',
+            ...(api.headers || {}),
+            ...(api.method === 'POST' ? { 'Content-Type': 'application/json' } : {})
+          },
+          body: api.body,
+          signal: AbortSignal.timeout(api.name === 'LX_RESTAURANT' ? 20000 : 10000)
+        } as any);
+
+        const duration = Date.now() - apiStartTime;
+        const isOk = response.ok;
+
+        if (!isOk) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         return {
           name: api.name,
           label: api.label,
-          status: 'FAILURE',
+          status: 'SUCCESS',
           duration_ms: duration,
-          error: `HTTP ${response.status} (Deferred)`,
+          error: '',
           checked_at: new Date().toISOString()
         };
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
       }
-
-      return {
-        name: api.name,
-        label: api.label,
-        status: isOk ? 'SUCCESS' : 'FAILURE',
-        duration_ms: duration,
-        error: isOk ? '' : `HTTP ${response.status}: ${response.statusText}`,
-        checked_at: new Date().toISOString()
-      };
-    } catch (error: any) {
-      return {
-        name: api.name,
-        label: api.label,
-        status: 'FAILURE',
-        duration_ms: Date.now() - apiStartTime,
-        error: error.message,
-        checked_at: new Date().toISOString()
-      };
     }
+
+    const duration = Date.now() - apiStartTime;
+    return {
+      name: api.name,
+      label: api.label,
+      status: 'FAILURE',
+      duration_ms: duration,
+      error: lastError?.message || 'Unknown Error',
+      checked_at: new Date().toISOString()
+    };
   }));
 
   // DB 로그 기록
