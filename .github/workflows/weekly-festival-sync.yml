@@ -1,0 +1,16 @@
+name: RAONAI Weekly Festival Precision Sync
+
+on:
+  schedule:
+    # 매주 월요일 05:13 KST 실행 (UTC 일요일 20:13)
+    - cron: '13 20 * * 0'
+  workflow_dispatch: # 수동 트리거 허용
+
+jobs:
+  sync-festivals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Weekly Festival Sync API
+        run: |
+          curl -X GET "https://raonai.com/api/cron/sync-festivals?secret=${{ secrets.CRON_SECRET }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
