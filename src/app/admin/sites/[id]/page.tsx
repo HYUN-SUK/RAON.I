@@ -9,12 +9,25 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, ArrowLeft, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { communityService } from '@/services/communityService';
 
-type Site = Database['public']['Tables']['sites']['Row'];
+type Site = Database['public']['Tables']['sites']['Row'] & {
+    weekday?: number | null;
+    weekend?: number | null;
+    peak_weekday?: number | null;
+    peak_weekend?: number | null;
+};
+
+// 전역 요금 기본값 상수 (site_config 또는 전역 default_price_config 동기화용)
+const GLOBAL_DEFAULT_PRICES = {
+    weekday: 40000,
+    weekend: 70000,
+    peakWeekday: 50000,
+    peakWeekend: 70000
+};
 
 export default function AdminSiteEditPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -33,8 +46,13 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
         base_price: 0,
         max_occupancy: 4,
         image_url: '',
-        features: '', // converted to string for edit
+        features: '', 
         is_active: true,
+        // 신규 추가된 4대 요금 커스텀 필드
+        weekday: '',
+        weekend: '',
+        peak_weekday: '',
+        peak_weekend: ''
     });
 
     useEffect(() => {
@@ -48,16 +66,21 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
 
                 if (error) throw error;
                 if (data) {
-                    setSite(data);
+                    const rawSite = data as Site;
+                    setSite(rawSite);
                     setFormData({
-                        name: data.name,
-                        description: data.description || '',
-                        price: data.price,
-                        base_price: data.base_price,
-                        max_occupancy: data.max_occupancy,
-                        image_url: data.image_url || '',
-                        features: data.features ? data.features.join(', ') : '',
-                        is_active: data.is_active,
+                        name: rawSite.name,
+                        description: rawSite.description || '',
+                        price: rawSite.price || 0,
+                        base_price: rawSite.base_price,
+                        max_occupancy: rawSite.capacity,
+                        image_url: rawSite.image_url || '',
+                        features: rawSite.features ? rawSite.features.join(', ') : '',
+                        is_active: rawSite.is_active,
+                        weekday: rawSite.weekday !== null && rawSite.weekday !== undefined ? String(rawSite.weekday) : '',
+                        weekend: rawSite.weekend !== null && rawSite.weekend !== undefined ? String(rawSite.weekend) : '',
+                        peak_weekday: rawSite.peak_weekday !== null && rawSite.peak_weekday !== undefined ? String(rawSite.peak_weekday) : '',
+                        peak_weekend: rawSite.peak_weekend !== null && rawSite.peak_weekend !== undefined ? String(rawSite.peak_weekend) : '',
                     });
                 }
             } catch (error) {
@@ -77,7 +100,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
         if (!file) return;
 
         try {
-            setSaving(true); // temporary loading state
+            setSaving(true);
             const url = await communityService.uploadImage(file);
             setFormData(prev => ({ ...prev, image_url: url }));
             toast.success('이미지가 업로드되었습니다.');
@@ -110,6 +133,10 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                     image_url: formData.image_url,
                     features: featuresArray,
                     is_active: formData.is_active,
+                    weekday: formData.weekday ? Number(formData.weekday) : null,
+                    weekend: formData.weekend ? Number(formData.weekend) : null,
+                    peak_weekday: formData.peak_weekday ? Number(formData.peak_weekday) : null,
+                    peak_weekend: formData.peak_weekend ? Number(formData.peak_weekend) : null,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', id);
@@ -153,6 +180,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                                     alt="Preview"
                                     fill
                                     className="object-cover"
+                                    unoptimized
                                 />
                             ) : (
                                 <div className="flex items-center justify-center h-full text-gray-400">
@@ -175,7 +203,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                             />
                         </div>
                         <p className="text-xs text-gray-500">
-                            운영 중단 시 예약 화면에서 '예약 불가' 상태로 표시되거나 숨겨집니다.
+                            운영 중단 시 사용자 화면의 사이트 목록에서 숨김 처리되어 예약을 원천 방어합니다.
                         </p>
                     </div>
                 </div>
@@ -196,13 +224,13 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                             <Textarea
                                 value={formData.description}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
+                                rows={3}
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>기본 가격 (평일)</Label>
+                                <Label>레거시 평일가 (base_price)</Label>
                                 <Input
                                     type="number"
                                     value={formData.base_price}
@@ -210,20 +238,72 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>최대 가격 (주말/성수기)</Label>
+                                <Label>레거시 주말가 (price)</Label>
                                 <Input
                                     type="number"
                                     value={formData.price}
                                     onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>최대 인원</Label>
+                            <div className="space-y-2 col-span-2">
+                                <Label>최대 수용 인원</Label>
                                 <Input
                                     type="number"
                                     value={formData.max_occupancy}
                                     onChange={e => setFormData({ ...formData, max_occupancy: Number(e.target.value) })}
                                 />
+                            </div>
+                        </div>
+
+                        {/* 신규 추가된 4대 요금제 설정 */}
+                        <div className="space-y-4 pt-4 border-t">
+                            <div className="space-y-1">
+                                <Label className="font-bold text-stone-800">개별 가격 커스텀 설정</Label>
+                                <p className="text-xs text-stone-500 mb-2">
+                                    값을 비워두시면, 전역 가격/시즌의 전체 설정 요금이 자동으로 일괄 반영됩니다.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom-weekday">평일 요금</Label>
+                                    <Input
+                                        id="custom-weekday"
+                                        type="number"
+                                        placeholder={`일괄 자동 (${GLOBAL_DEFAULT_PRICES.weekday.toLocaleString()}원)`}
+                                        value={formData.weekday}
+                                        onChange={e => setFormData({ ...formData, weekday: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom-weekend">주말 요금</Label>
+                                    <Input
+                                        id="custom-weekend"
+                                        type="number"
+                                        placeholder={`일괄 자동 (${GLOBAL_DEFAULT_PRICES.weekend.toLocaleString()}원)`}
+                                        value={formData.weekend}
+                                        onChange={e => setFormData({ ...formData, weekend: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom-peak-weekday">성수기 평일 요금</Label>
+                                    <Input
+                                        id="custom-peak-weekday"
+                                        type="number"
+                                        placeholder={`일괄 자동 (${GLOBAL_DEFAULT_PRICES.peakWeekday.toLocaleString()}원)`}
+                                        value={formData.weekday ? '' : formData.peak_weekday} // disabled or clear if needed, just standard value mapping
+                                        onChange={e => setFormData({ ...formData, peak_weekday: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom-peak-weekend">성수기 주말 요금</Label>
+                                    <Input
+                                        id="custom-peak-weekend"
+                                        type="number"
+                                        placeholder={`일괄 자동 (${GLOBAL_DEFAULT_PRICES.peakWeekend.toLocaleString()}원)`}
+                                        value={formData.peak_weekend}
+                                        onChange={e => setFormData({ ...formData, peak_weekend: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -237,7 +317,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full bg-[#1C4526]" disabled={saving}>
+                    <Button type="submit" className="w-full bg-[#1C4526] hover:bg-[#15341d]" disabled={saving}>
                         {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                         변경사항 저장
                     </Button>

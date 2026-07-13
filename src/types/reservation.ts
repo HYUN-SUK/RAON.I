@@ -1,4 +1,4 @@
-export type SiteType = 'TENT' | 'GLAMPING' | 'CARAVAN' | 'AUTO';
+export type SiteType = 'TENT' | 'GLAMPING' | 'CARAVAN' | 'AUTO' | 'AIR_CON';
 
 export interface Site {
     id: string;
@@ -10,6 +10,11 @@ export interface Site {
     maxOccupancy: number;
     imageUrl: string;
     features: string[];
+    isActive?: boolean;
+    weekday?: number;
+    weekend?: number;
+    peakWeekday?: number;
+    peakWeekend?: number;
 }
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REFUND_PENDING' | 'REFUNDED' | 'COMPLETED' | 'NO-SHOW';

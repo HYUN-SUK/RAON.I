@@ -228,17 +228,25 @@ export const useReservationStore = create<ReservationState>()(
                 const { data } = await supabase.from('sites').select('*').order('id');
 
                 if (data) {
-                    const mappedSites: Site[] = data.map((s: DbSite) => ({
-                        id: String(s.id),
-                        name: s.name,
-                        type: (s.site_type as SiteType) || 'TENT',
-                        description: s.description || '',
-                        price: s.price || s.base_price,
-                        basePrice: s.base_price,
-                        maxOccupancy: s.capacity,
-                        imageUrl: s.image_url || '',
-                        features: (Array.isArray(s.features) ? s.features : []) as string[]
-                    }));
+                    const mappedSites: Site[] = data.map((s: DbSite) => {
+                        const raw = s as any;
+                        return {
+                            id: String(s.id),
+                            name: s.name,
+                            type: (raw.type as SiteType) || (raw.site_type as SiteType) || 'TENT',
+                            description: s.description || '',
+                            price: s.price || s.base_price,
+                            basePrice: s.base_price,
+                            maxOccupancy: raw.max_occupancy ?? raw.capacity ?? 4,
+                            imageUrl: s.image_url || '',
+                            features: (Array.isArray(s.features) ? s.features : []) as string[],
+                            isActive: raw.is_active !== false,
+                            weekday: raw.weekday ?? undefined,
+                            weekend: raw.weekend ?? undefined,
+                            peakWeekday: raw.peak_weekday ?? undefined,
+                            peakWeekend: raw.peak_weekend ?? undefined
+                        };
+                    });
                     set({ sites: mappedSites });
                 }
             },
