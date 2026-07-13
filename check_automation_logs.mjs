@@ -8,22 +8,16 @@ const supabaseKey = env.match(/SUPABASE_SERVICE_ROLE_KEY=(.*)/)[1];
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkNonNullSido() {
-  const { count } = await supabase
-    .from('master_places')
-    .select('*', { count: 'exact', head: true })
-    .not('sido', 'is', null);
-
-  console.log(`Master places with non-null sido: ${count || 0}`);
+async function deployPublicReservationFix() {
+  console.log('🚀 Deploying public reservation fix to Supabase DB...');
+  const sql = fs.readFileSync('supabase/migrations/20260124000000_get_public_reservations.sql', 'utf8');
   
-  if (count > 0) {
-    const { data } = await supabase
-      .from('master_places')
-      .select('sido')
-      .not('sido', 'is', null)
-      .limit(10);
-    console.log('Sample non-null sidos:', [...new Set(data.map(d => d.sido))]);
+  const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
+  if (error) {
+    console.error('❌ SQL Migration Failed:', error.message);
+  } else {
+    console.log('✅ SQL Migration Completed successfully!');
   }
 }
 
-checkNonNullSido();
+deployPublicReservationFix();

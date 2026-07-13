@@ -29,9 +29,18 @@ BEGIN
   UNION ALL
 
   -- 2) 관리자 차단/수동 예약 (신규 추가)
-  SELECT b.site_id, b.start_date AS check_in_date, b.end_date AS check_out_date,
-         'BLOCKED'::TEXT AS status
+  SELECT 
+    CASE 
+      WHEN b.site_id = 'ALL' THEN unnested_sites.site_id
+      ELSE b.site_id
+    END AS site_id,
+    b.start_date AS check_in_date, 
+    b.end_date AS check_out_date,
+    'BLOCKED'::TEXT AS status
   FROM blocked_dates b
+  LEFT JOIN LATERAL (
+    SELECT unnest(ARRAY['site-1', 'site-2', 'site-3', 'site-4', 'site-5', 'site-6', 'site-7', 'site-8']) AS site_id
+  ) unnested_sites ON b.site_id = 'ALL'
   WHERE b.end_date > p_start_date
     AND b.start_date < p_end_date;
 

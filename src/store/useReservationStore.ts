@@ -642,21 +642,44 @@ export const useReservationStore = create<ReservationState>()(
                 }
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const publicReservations: Reservation[] = data.map((r: any) => ({
-                    id: `public-${r.site_id}-${r.check_in_date}`, // 임시 ID
-                    userId: '00000000-0000-0000-0000-000000000000', // 익명
-                    siteId: r.site_id,
-                    checkInDate: parseSafeDate(r.check_in_date),
-                    checkOutDate: parseSafeDate(r.check_out_date),
-                    familyCount: 1,
-                    visitorCount: 0,
-                    vehicleCount: 1,
-                    guests: 1,
-                    totalPrice: 0,
-                    status: 'CONFIRMED', // 마감 처리됨
-                    requests: '',
-                    createdAt: new Date(),
-                }));
+                const publicReservations: Reservation[] = [];
+                data.forEach((r: any) => {
+                    if (r.site_id === 'ALL') {
+                        ['site-1', 'site-2', 'site-3', 'site-4', 'site-5', 'site-6', 'site-7', 'site-8'].forEach(sId => {
+                            publicReservations.push({
+                                id: `public-${sId}-${r.check_in_date}-${Math.random()}`,
+                                userId: '00000000-0000-0000-0000-000000000000',
+                                siteId: sId,
+                                checkInDate: parseSafeDate(r.check_in_date),
+                                checkOutDate: parseSafeDate(r.check_out_date),
+                                familyCount: 1,
+                                visitorCount: 0,
+                                vehicleCount: 1,
+                                guests: 1,
+                                totalPrice: 0,
+                                status: 'CONFIRMED',
+                                requests: '',
+                                createdAt: new Date(),
+                            });
+                        });
+                    } else {
+                        publicReservations.push({
+                            id: `public-${r.site_id}-${r.check_in_date}`,
+                            userId: '00000000-0000-0000-0000-000000000000',
+                            siteId: r.site_id,
+                            checkInDate: parseSafeDate(r.check_in_date),
+                            checkOutDate: parseSafeDate(r.check_out_date),
+                            familyCount: 1,
+                            visitorCount: 0,
+                            vehicleCount: 1,
+                            guests: 1,
+                            totalPrice: 0,
+                            status: 'CONFIRMED',
+                            requests: '',
+                            createdAt: new Date(),
+                        });
+                    }
+                });
 
                 // 서버에서 받아온 공개 예약 데이터로 완전히 교체
                 // (localStorage 캐시된 오래된 데이터를 무시하고 최신 서버 데이터만 사용)
