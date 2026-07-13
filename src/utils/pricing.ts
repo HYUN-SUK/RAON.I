@@ -60,6 +60,18 @@ export const calculatePrice = (
         };
     }
 
+    // 0. 에어컨 대여 요금 계산 예외 가드 (1박당 10,000원 고정, 다른 요인 일체 제외)
+    if (site.id.startsWith('air-') || site.type === 'AIR_CON' || site.id === 'air-group') {
+        const airPrice = 10000 * nights;
+        return {
+            basePrice: airPrice,
+            options: { extraFamily: 0, visitor: 0 },
+            discount: { consecutive: 0, pkg: 0 },
+            totalPrice: airPrice,
+            nights
+        };
+    }
+
     let basePrice = 0;
     let consecutiveDiscount = 0;
     const pkgDiscount = 0;
@@ -69,6 +81,12 @@ export const calculatePrice = (
     // 일요일 날짜를 평일 요금으로 적용. 금/토 입실 예약에서 일요일이
     // 포함되는 경우에는 기존 주말 요금(7만)을 유지한다.
     const checkInDay = checkIn.getDay();
+    
+    // 개별 사이트 요금 덮어쓰기 적용 (값이 지정되어 있다면 사용, 비어있다면 전체 설정 config 적용)
+    const weekday = site.weekday !== undefined && site.weekday !== null ? site.weekday : config.weekday;
+    const weekend = site.weekend !== undefined && site.weekend !== null ? site.weekend : config.weekend;
+    const peakWeekday = site.peakWeekday !== undefined && site.peakWeekday !== null ? site.peakWeekday : config.peakWeekday;
+    const peakWeekend = site.peakWeekend !== undefined && site.peakWeekend !== null ? site.peakWeekend : config.peakWeekend;
 
     for (let i = 0; i < nights; i++) {
         const currentDate = new Date(checkIn.getTime() + (i * oneDay));
@@ -79,9 +97,9 @@ export const calculatePrice = (
         const isSundayAsWeekday = currentDate.getDay() === 0 && checkInDay === 0;
 
         if (isHigh && !isSundayAsWeekday) {
-            basePrice += isPeak ? config.peakWeekend : config.weekend;
+            basePrice += isPeak ? peakWeekend : weekend;
         } else {
-            basePrice += isPeak ? config.peakWeekday : config.weekday;
+            basePrice += isPeak ? peakWeekday : weekday;
         }
     }
 

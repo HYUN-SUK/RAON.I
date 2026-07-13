@@ -19,7 +19,7 @@ interface ReservationFormProps {
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo } = useReservationStore();
+    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -40,14 +40,18 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const [termsDialogOpen, setTermsDialogOpen] = useState(false);
     const { config: fullConfig } = useSiteConfig();
 
+    // 에어컨 선택 전용 상태
+    const [airOptions, setAirOptions] = useState<{ id: string; name: string; available: boolean }[]>([]);
+    const [selectedAirId, setSelectedAirId] = useState('');
+
     useEffect(() => {
         setIsMounted(true);
         setSelectedSite(site);
         fetchSiteConfig();
 
         const loadInitialData = async () => {
-            // 0. 2차 실시간 예약 가능 여부 검증 (Double Guard)
-            if (selectedDateRange.from && selectedDateRange.to) {
+            // 0. 2차 실시간 예약 가능 여부 검증 (Double Guard - 가상 대표 카드는 우회)
+            if (site.id !== 'air-group' && selectedDateRange.from && selectedDateRange.to) {
                 const supabaseClient = createClient();
                 const checkInStr = format(new Date(selectedDateRange.from), 'yyyy-MM-dd');
                 const checkOutStr = format(new Date(selectedDateRange.to), 'yyyy-MM-dd');
@@ -126,10 +130,42 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     // userContactInfo가 로드되면 폼에 적용 (이미 입력된 값이 없을 때만)
     useEffect(() => {
         if (!rebookData && userContactInfo) {
-            if (!name && userContactInfo.guestName) setName(userContactInfo.guestName);
-            if (!phone && userContactInfo.guestPhone) setPhone(userContactInfo.guestPhone);
+            if (!name && userContactInfo.guestName) setName(name => name || userContactInfo.guestName);
+            if (!phone && userContactInfo.guestPhone) setPhone(phone => phone || userContactInfo.guestPhone);
         }
     }, [userContactInfo, rebookData]);
+
+    // 에어컨 가용 번호 조회 및 자동 선택 연동
+    useEffect(() => {
+        if (site.id === 'air-group' && selectedDateRange.from && selectedDateRange.to) {
+            const checkIn = new Date(selectedDateRange.from);
+            const checkOut = new Date(selectedDateRange.to);
+
+            const options = sites
+                .filter(s => s.id.startsWith('air-') && s.isActive)
+                .map(s => {
+                    const hasOverlap = reservations.some(r => {
+                        if (r.siteId !== s.id || r.status === 'CANCELLED') return false;
+                        const rCheckIn = new Date(r.checkInDate);
+                        const rCheckOut = new Date(r.checkOutDate);
+                        return rCheckIn < checkOut && rCheckOut > checkIn;
+                    });
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        available: !hasOverlap
+                    };
+                });
+            setAirOptions(options);
+
+            const firstAvail = options.find(o => o.available);
+            if (firstAvail) {
+                setSelectedAirId(firstAvail.id);
+            } else {
+                setSelectedAirId('');
+            }
+        }
+    }, [site, selectedDateRange, sites, reservations]);
 
     // Calculate dates
     const fromDate = selectedDateRange.from ? new Date(selectedDateRange.from) : undefined;
@@ -166,7 +202,14 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             return;
         }
 
-        const validationError = validateReservation(site.id, fromDate, toDate);
+        const targetSiteId = site.id === 'air-group' ? selectedAirId : site.id;
+        
+        if (site.id === 'air-group' && !targetSiteId) {
+            toast.error('대여할 에어컨 기기 번호를 선택해 주세요.');
+            return;
+        }
+
+        const validationError = validateReservation(targetSiteId, fromDate, toDate);
         if (validationError) {
             toast.error(validationError);
             return;
@@ -175,7 +218,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         try {
             // 동시성 제어가 적용된 안전한 예약 생성 (DB RPC)
             const result = await createReservationSafe({
-                siteId: site.id,
+                siteId: targetSiteId,
                 checkIn: fromDate,
                 checkOut: toDate,
                 familyCount,
@@ -281,6 +324,39 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         <>
             <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-white/5 rounded-2xl border border-white/10">
                 <h3 className="text-xl font-bold text-white mb-4">예약 정보 입력</h3>
+
+                {/* 에어컨 기기 선택 UI (2-Step) */}
+                {site.id === 'air-group' && (
+                    <div className="space-y-3 bg-white/5 p-4 rounded-xl border border-white/10 mb-6">
+                        <label className="block text-sm font-bold text-white/90">대여할 에어컨 기기 번호 선택</label>
+                        <div className="grid grid-cols-4 gap-2">
+                            {airOptions.map((opt) => (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    disabled={!opt.available}
+                                    onClick={() => setSelectedAirId(opt.id)}
+                                    className={`
+                                        h-12 text-sm font-semibold rounded-lg border transition-all flex items-center justify-center touch-manipulation
+                                        ${!opt.available 
+                                            ? 'bg-red-950/20 text-red-400/60 border-red-900/30 cursor-not-allowed opacity-30 line-through' 
+                                            : selectedAirId === opt.id
+                                                ? 'bg-[#2F5233] text-white border-[#2F5233] ring-2 ring-[#2F5233]/30 shadow-md'
+                                                : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20 active:scale-[0.97]'
+                                        }
+                                    `}
+                                >
+                                    {opt.name.replace('에어컨 ', '')}
+                                </button>
+                            ))}
+                        </div>
+                        {selectedAirId ? (
+                            <p className="text-xs text-green-400">✓ 선택된 기기: {airOptions.find(o => o.id === selectedAirId)?.name} (예약 가능)</p>
+                        ) : (
+                            <p className="text-xs text-red-400">⚠️ 선택한 일정에 대여 가능한 에어컨 기기가 없습니다.</p>
+                        )}
+                    </div>
+                )}
 
                 {/* Basic Info */}
                 <div className="space-y-4">

@@ -86,9 +86,47 @@ export default function SiteList() {
         return true;
     };
 
-    const sortedSites = [...sites].sort((a, b) => {
-        const aAvailable = isSiteAvailable(a.id);
-        const bAvailable = isSiteAvailable(b.id);
+    const isAirGroupAvailable = () => {
+        const airSites = sites.filter(s => s.id.startsWith('air-') && s.isActive !== false);
+        if (airSites.length === 0) return false;
+        return airSites.some(s => isSiteAvailable(s.id));
+    };
+
+    const isAvailableExtended = (siteId: string) => {
+        if (siteId === 'air-group') {
+            return isAirGroupAvailable();
+        }
+        return isSiteAvailable(siteId);
+    };
+
+    // 1. 운영 활성화된(isActive !== false) 사이트만 필터링 (기본값 true)
+    const activeSites = sites.filter(s => s.isActive !== false);
+
+    // 2. 일반 사이트와 에어컨 사이트를 분리
+    const normalSites = activeSites.filter(s => !s.id.startsWith('air-'));
+    const airSites = activeSites.filter(s => s.id.startsWith('air-'));
+
+    // 3. 에어컨 대여가 1개 이상 운영 중이면 대표 가상 사이트 카드를 Normal 리스트에 추가
+    const finalSitesToRender = [...normalSites];
+    if (airSites.length > 0) {
+        const airGroupSite: Site = {
+            id: 'air-group',
+            name: '에어컨 대여',
+            type: 'AIR_CON',
+            description: '여름 한시 에어컨 대여 서비스입니다. (상세 페이지에서 에어컨 번호 1~8번 선택 가능)',
+            price: 10000,
+            basePrice: 10000,
+            maxOccupancy: 1,
+            imageUrl: '/라온아이 로고.jpg', // 기존 프로젝트에 포함된 라온아이 로고 활용
+            features: ['8대 운영중', '하루 1만원', '할인 제외'],
+            isActive: true
+        };
+        finalSitesToRender.push(airGroupSite);
+    }
+
+    const sortedSites = finalSitesToRender.sort((a, b) => {
+        const aAvailable = isAvailableExtended(a.id);
+        const bAvailable = isAvailableExtended(b.id);
         if (aAvailable === bAvailable) return 0;
         return aAvailable ? -1 : 1;
     });
@@ -100,7 +138,7 @@ export default function SiteList() {
             return;
         }
 
-        if (!isSiteAvailable(site.id)) {
+        if (!isAvailableExtended(site.id)) {
             toast.error('선택하신 날짜에 예약할 수 없는 사이트입니다.');
             return;
         }
@@ -151,7 +189,7 @@ export default function SiteList() {
     return (
         <div className="grid grid-cols-2 gap-3 pb-20">
             {sortedSites.map((site) => {
-                const available = isSiteAvailable(site.id);
+                const available = isAvailableExtended(site.id);
                 const priceText = getPriceDisplay(site);
 
                 return (

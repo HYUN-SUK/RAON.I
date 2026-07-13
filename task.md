@@ -211,4 +211,15 @@
     - [x] `formatPlaceDetailText` 에서 불필요한 기본 폴백 멘트 및 중복 권장 문구를 지워 하단 넛지와의 텍스트 중복 원천 제거
     - [x] 병원(`HOSPITAL`) 카테고리에서 응급실 버튼이 존재할 때 파란색 전화 넛지를 생략하여 이중 다이얼 버그 차단
     - [x] 빌드 통과 및 깃 최종 커밋 반영 완료
+
+- [x] **사이트 관리, 개별 가격 정책 및 에어컨 대여 시스템 구현 (이번 세션 완료)**
+    - [x] [1단계] SQL Migration 스크립트 작성 완료 (supabase/migrations/20260713_extend_sites_and_aircon.sql)
+    - [x] [2단계] SiteType 및 Site 인터페이스에 isActive 및 개별 가격 필드 추가 완료
+    - [x] [3단계] useReservationStore.ts 내 fetchSites 매핑 연동 수정 완료
+    - [x] [4단계] pricing.ts 요금 계산 로직에 에어컨 가드 및 개별 가격 정책 연동 패치 완료
+    - [x] [5단계] SiteList.tsx 수정 (is_active 필터링 및 에어컨 대표 카드 통합 노출) 완료
+    - [x] [6단계] 사용자 예약 화면 내 에어컨 1~8번 하위 선택기(2-Step) 및 예약 전환 로직 구현 완료
+    - [x] [7단계] 관리자 사이트 관리(page.tsx)에 "새 사이트 추가" 다이얼로그 모달 구현 및 INSERT 연동 완료
+    - [x] [8단계] 관리자 사이트 상세 수정([id]/page.tsx)에 4대 요금 및 전체 요금 자동 반영 UI 개편 완료
+    - [x] [9단계] 전체 기능 작동 검증 및 빌드 확인 완료 (npm run build 통과)
 
