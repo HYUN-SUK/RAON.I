@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, Plus, Edit2, MapPin, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { insertSiteAdmin } from '@/actions/admin-sites';
 import {
     Dialog,
     DialogContent,
@@ -66,7 +67,11 @@ export default function AdminSitesPage() {
                 .order('id', { ascending: true });
 
             if (error) throw error;
-            if (data) setSites(data as Site[]);
+            if (data) {
+                // air-1 ~ air-8 개별 기기들은 관리자 리스트에서 제외 (air-group 통합카드만 편집하도록 노출)
+                const filtered = (data as Site[]).filter(s => !/^air-\d+$/.test(s.id));
+                setSites(filtered);
+            }
         } catch (error) {
             console.error(error);
             toast.error('사이트 리스트를 불러오지 못했습니다.');
@@ -100,45 +105,45 @@ export default function AdminSitesPage() {
 
         setSubmitting(true);
         try {
-            const { error } = await supabase
-                .from('sites')
-                .insert({
-                    id: newSite.id.trim(),
-                    name: newSite.name.trim(),
-                    type: newSite.site_type,
-                    max_occupancy: Number(newSite.capacity),
-                    base_price: Number(newSite.base_price),
-                    price: Number(newSite.price),
-                    description: newSite.description.trim() || null,
-                    features: newSite.features ? newSite.features.split(',').map(f => f.trim()).filter(f => f.length > 0) : [],
-                    is_active: newSite.is_active,
-                    weekday: newSite.weekday ? Number(newSite.weekday) : null,
-                    weekend: newSite.weekend ? Number(newSite.weekend) : null,
-                    peak_weekday: newSite.peak_weekday ? Number(newSite.peak_weekday) : null,
-                    peak_weekend: newSite.peak_weekend ? Number(newSite.peak_weekend) : null
-                });
-
-            if (error) throw error;
-
-            toast.success('새 사이트가 추가되었습니다.');
-            setIsAddOpen(false);
-            // 폼 초기화
-            setNewSite({
-                id: '',
-                name: '',
-                site_type: 'AUTO',
-                capacity: 4,
-                base_price: 40000,
-                price: 70000,
-                description: '',
-                features: '',
-                is_active: true,
-                weekday: '',
-                weekend: '',
-                peak_weekday: '',
-                peak_weekend: ''
+            const result = await insertSiteAdmin({
+                id: newSite.id.trim(),
+                name: newSite.name.trim(),
+                type: newSite.site_type,
+                max_occupancy: Number(newSite.capacity),
+                base_price: Number(newSite.base_price),
+                price: Number(newSite.price),
+                description: newSite.description.trim() || null,
+                features: newSite.features ? newSite.features.split(',').map(f => f.trim()).filter(f => f.length > 0) : [],
+                is_active: newSite.is_active,
+                weekday: newSite.weekday ? Number(newSite.weekday) : undefined,
+                weekend: newSite.weekend ? Number(newSite.weekend) : undefined,
+                peak_weekday: newSite.peak_weekday ? Number(newSite.peak_weekday) : undefined,
+                peak_weekend: newSite.peak_weekend ? Number(newSite.peak_weekend) : undefined,
             });
-            fetchSites();
+
+            if (result.success) {
+                toast.success('새 사이트가 성공적으로 추가되었습니다.');
+                setIsAddOpen(false);
+                // 폼 초기화
+                setNewSite({
+                    id: '',
+                    name: '',
+                    site_type: 'AUTO',
+                    capacity: 4,
+                    base_price: 40000,
+                    price: 70000,
+                    description: '',
+                    features: '',
+                    is_active: true,
+                    weekday: '',
+                    weekend: '',
+                    peak_weekday: '',
+                    peak_weekend: ''
+                });
+                fetchSites();
+            } else {
+                toast.error(result.error || '사이트 추가 중 오류가 발생했습니다.');
+            }
         } catch (error) {
             console.error(error);
             toast.error('사이트 추가 중 오류가 발생했습니다.');

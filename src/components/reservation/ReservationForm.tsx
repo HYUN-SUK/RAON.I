@@ -142,7 +142,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             const checkOut = new Date(selectedDateRange.to);
 
             const options = sites
-                .filter(s => s.id.startsWith('air-') && s.isActive)
+                .filter(s => s.id.startsWith('air-') && s.id !== 'air-group' && s.isActive)
                 .map(s => {
                     const hasOverlap = reservations.some(r => {
                         if (r.siteId !== s.id || r.status === 'CANCELLED') return false;

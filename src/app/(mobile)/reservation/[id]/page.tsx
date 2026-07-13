@@ -23,38 +23,21 @@ export async function generateStaticParams() {
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     
-    let site: Site;
+    const supabase = await createClient();
+    // DB에서 사이트 정보 조회
+    const { data: siteData, error } = await supabase
+        .from('sites')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (id === 'air-group') {
-        // 에어컨 가상 대표 사이트 처리 (DB 쿼리 생략)
-        site = {
-            id: 'air-group',
-            name: '에어컨 대여',
-            type: 'AIR_CON',
-            description: '여름 한시 에어컨 대여 서비스입니다. (원하시는 에어컨 번호 1~8번을 선택하여 예약하실 수 있습니다.)',
-            price: 10000,
-            basePrice: 10000,
-            maxOccupancy: 1,
-            imageUrl: '/라온아이 로고.jpg',
-            features: ['8대 운영중', '하루 1만원', '할인 제외'],
-            isActive: true
-        };
-    } else {
-        const supabase = await createClient();
-        // DB에서 사이트 정보 조회
-        const { data: siteData, error } = await supabase
-            .from('sites')
-            .select('*')
-            .eq('id', id)
-            .single();
+    if (error || !siteData) {
+        notFound();
+    }
 
-        if (error || !siteData) {
-            notFound();
-        }
-
-        // DB 데이터를 Site 타입으로 변환
-        const raw = siteData as any;
-        site = {
+    // DB 데이터를 Site 타입으로 변환
+    const raw = siteData as any;
+    const site: Site = {
             id: siteData.id,
             name: siteData.name,
             type: (raw.type as any) || (raw.site_type as any) || 'AUTO',
@@ -70,7 +53,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             peakWeekday: raw.peak_weekday || undefined,
             peakWeekend: raw.peak_weekend || undefined
         };
-    }
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] text-white pb-24">

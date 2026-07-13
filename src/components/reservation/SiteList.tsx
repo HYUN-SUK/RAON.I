@@ -13,13 +13,14 @@ import { createClient } from '@/lib/supabase-client';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites, fetchPublicReservations } = useReservationStore();
+    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites, fetchPublicReservations, fetchSites } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
-    }, []);
+        fetchSites(); // 실시간 DB 사이트 상태 동기화
+    }, [fetchSites]);
 
     // Check availability based on reservations and rules
     const isSiteAvailable = (siteId: string) => {
@@ -102,26 +103,14 @@ export default function SiteList() {
     // 1. 운영 활성화된(isActive !== false) 사이트만 필터링 (기본값 true)
     const activeSites = sites.filter(s => s.isActive !== false);
 
-    // 2. 일반 사이트와 에어컨 사이트를 분리
+    // 2. 일반 사이트와 에어컨 대표 사이트 필터링
+    // air-1 ~ air-8 개별 기기들은 사용자 사이트 목록에서 노출 제외 (상세 화면에서 기기 번호를 2-Step으로 선택하므로)
     const normalSites = activeSites.filter(s => !s.id.startsWith('air-'));
-    const airSites = activeSites.filter(s => s.id.startsWith('air-'));
+    const airGroupInDb = activeSites.find(s => s.id === 'air-group');
 
-    // 3. 에어컨 대여가 1개 이상 운영 중이면 대표 가상 사이트 카드를 Normal 리스트에 추가
     const finalSitesToRender = [...normalSites];
-    if (airSites.length > 0) {
-        const airGroupSite: Site = {
-            id: 'air-group',
-            name: '에어컨 대여',
-            type: 'AIR_CON',
-            description: '여름 한시 에어컨 대여 서비스입니다. (상세 페이지에서 에어컨 번호 1~8번 선택 가능)',
-            price: 10000,
-            basePrice: 10000,
-            maxOccupancy: 1,
-            imageUrl: '/라온아이 로고.jpg', // 기존 프로젝트에 포함된 라온아이 로고 활용
-            features: ['8대 운영중', '하루 1만원', '할인 제외'],
-            isActive: true
-        };
-        finalSitesToRender.push(airGroupSite);
+    if (airGroupInDb) {
+        finalSitesToRender.push(airGroupInDb);
     }
 
     const sortedSites = finalSitesToRender.sort((a, b) => {

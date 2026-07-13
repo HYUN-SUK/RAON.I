@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, ArrowLeft, ImageIcon } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, ImageIcon, Trash2, Plus, Check } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { communityService } from '@/services/communityService';
+import { updateSiteAdmin } from '@/actions/admin-sites';
+import { fetchAirconUnits, addAirconUnit, deleteAirconUnit, updateAirconUnitStatus, updateAirconUnitDetails } from '@/actions/admin-aircon';
 
 type Site = Database['public']['Tables']['sites']['Row'] & {
     weekday?: number | null;
@@ -37,6 +39,81 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [site, setSite] = useState<Site | null>(null);
+
+    // 에어컨 개별 기기 상태
+    const isAirGroup = id === 'air-group';
+    const [airconUnits, setAirconUnits] = useState<any[]>([]);
+    const [loadingUnits, setLoadingUnits] = useState(false);
+    const [tempAirData, setTempAirData] = useState<Record<string, { name: string; price: string }>>({});
+
+    const loadAirconUnits = async () => {
+        setLoadingUnits(true);
+        const res = await fetchAirconUnits();
+        if (res.success && res.data) {
+            setAirconUnits(res.data);
+            const initialTemp: Record<string, { name: string; price: string }> = {};
+            res.data.forEach((unit: any) => {
+                initialTemp[unit.id] = {
+                    name: unit.name,
+                    price: String(unit.price || 10000)
+                };
+            });
+            setTempAirData(initialTemp);
+        }
+        setLoadingUnits(false);
+    };
+
+    const handleAddUnit = async () => {
+        const res = await addAirconUnit();
+        if (res.success) {
+            toast.success('새 에어컨 기기가 추가되었습니다.');
+            loadAirconUnits();
+        } else {
+            toast.error(res.error || '기기 추가 실패');
+        }
+    };
+
+    const handleDeleteUnit = async (unitId: string) => {
+        if (!confirm('정말 이 에어컨 기기를 삭제하시겠습니까?')) return;
+        const res = await deleteAirconUnit(unitId);
+        if (res.success) {
+            toast.success('에어컨 기기가 삭제되었습니다.');
+            loadAirconUnits();
+        } else {
+            toast.error(res.error || '기기 삭제 실패');
+        }
+    };
+
+    const handleToggleUnit = async (unitId: string, currentStatus: boolean) => {
+        const res = await updateAirconUnitStatus(unitId, !currentStatus);
+        if (res.success) {
+            toast.success('기기 운영상태가 변경되었습니다.');
+            loadAirconUnits();
+        } else {
+            toast.error(res.error || '상태 변경 실패');
+        }
+    };
+
+    const handleSaveUnitDetails = async (unitId: string) => {
+        const tempData = tempAirData[unitId];
+        if (!tempData) return;
+        if (!tempData.name.trim()) {
+            toast.error('기기 이름을 입력해주세요.');
+            return;
+        }
+        if (isNaN(Number(tempData.price))) {
+            toast.error('올바른 가격(숫자)을 입력해주세요.');
+            return;
+        }
+
+        const res = await updateAirconUnitDetails(unitId, tempData.name.trim(), Number(tempData.price));
+        if (res.success) {
+            toast.success('에어컨 기기 정보가 수정되었습니다.');
+            loadAirconUnits();
+        } else {
+            toast.error(res.error || '기기 정보 수정 실패');
+        }
+    };
 
     // Form State
     const [formData, setFormData] = useState({
@@ -66,14 +143,14 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
 
                 if (error) throw error;
                 if (data) {
-                    const rawSite = data as Site;
+                    const rawSite = data as any;
                     setSite(rawSite);
                     setFormData({
                         name: rawSite.name,
                         description: rawSite.description || '',
                         price: rawSite.price || 0,
                         base_price: rawSite.base_price,
-                        max_occupancy: rawSite.capacity,
+                        max_occupancy: rawSite.max_occupancy ?? rawSite.capacity ?? 4,
                         image_url: rawSite.image_url || '',
                         features: rawSite.features ? rawSite.features.join(', ') : '',
                         is_active: rawSite.is_active,
@@ -93,6 +170,9 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
         };
 
         fetchSite();
+        if (id === 'air-group') {
+            loadAirconUnits();
+        }
     }, [id, supabase, router]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,32 +202,30 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                 .map(f => f.trim())
                 .filter(f => f.length > 0);
 
-            const { error } = await supabase
-                .from('sites')
-                .update({
-                    name: formData.name,
-                    description: formData.description,
-                    price: formData.price,
-                    base_price: formData.base_price,
-                    max_occupancy: formData.max_occupancy,
-                    image_url: formData.image_url,
-                    features: featuresArray,
-                    is_active: formData.is_active,
-                    weekday: formData.weekday ? Number(formData.weekday) : null,
-                    weekend: formData.weekend ? Number(formData.weekend) : null,
-                    peak_weekday: formData.peak_weekday ? Number(formData.peak_weekday) : null,
-                    peak_weekend: formData.peak_weekend ? Number(formData.peak_weekend) : null,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', id);
+            const result = await updateSiteAdmin(id, {
+                name: formData.name,
+                description: formData.description,
+                price: formData.price,
+                base_price: formData.base_price,
+                max_occupancy: formData.max_occupancy,
+                image_url: formData.image_url,
+                features: featuresArray,
+                is_active: formData.is_active,
+                weekday: formData.weekday ? Number(formData.weekday) : undefined,
+                weekend: formData.weekend ? Number(formData.weekend) : undefined,
+                peak_weekday: formData.peak_weekday ? Number(formData.peak_weekday) : undefined,
+                peak_weekend: formData.peak_weekend ? Number(formData.peak_weekend) : undefined,
+            });
 
-            if (error) throw error;
-
-            toast.success('사이트 정보가 수정되었습니다.');
-            router.refresh();
-        } catch (error) {
+            if (result.success) {
+                toast.success('사이트 정보가 성공적으로 수정되었습니다.');
+                router.push('/admin/sites');
+            } else {
+                toast.error(result.error || '저장 중 오류가 발생했습니다.');
+            }
+        } catch (error: any) {
             console.error(error);
-            toast.error('저장 중 오류가 발생했습니다.');
+            toast.error(error.message || '저장 중 예외가 발생했습니다.');
         } finally {
             setSaving(false);
         }
@@ -290,7 +368,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                                         id="custom-peak-weekday"
                                         type="number"
                                         placeholder={`일괄 자동 (${GLOBAL_DEFAULT_PRICES.peakWeekday.toLocaleString()}원)`}
-                                        value={formData.weekday ? '' : formData.peak_weekday} // disabled or clear if needed, just standard value mapping
+                                        value={formData.peak_weekday}
                                         onChange={e => setFormData({ ...formData, peak_weekday: e.target.value })}
                                     />
                                 </div>
@@ -322,6 +400,129 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                         변경사항 저장
                     </Button>
                 </div>
+
+                {/* 개별 에어컨 기기 관리 섹션 (그리드 하단에 전체 가로 넓이 col-span-3로 독립 배치) */}
+                {isAirGroup && (
+                    <div className="md:col-span-3 bg-white p-6 rounded-xl border shadow-sm space-y-4 mt-2">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-stone-950 flex items-center gap-2">
+                                    개별 에어컨 기기 목록 및 상태 설정 ({airconUnits.length}대)
+                                </h3>
+                                <p className="text-xs text-stone-500">
+                                    각 개별 에어컨의 기기명과 대여 요금(가격), 그리고 개별 운영 여부를 즉시 수정하여 저장할 수 있습니다.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleAddUnit}
+                                className="border-[#1C4526] text-[#1C4526] hover:bg-[#1C4526]/5 flex items-center gap-1 font-semibold"
+                            >
+                                <Plus className="w-4 h-4" />
+                                기기 추가
+                            </Button>
+                        </div>
+
+                        {loadingUnits ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="animate-spin text-stone-400 w-6 h-6" />
+                            </div>
+                        ) : airconUnits.length === 0 ? (
+                            <div className="border border-dashed border-stone-200 rounded-xl p-8 text-center text-stone-400 text-sm bg-stone-50/50">
+                                등록된 개별 에어컨 기기가 없습니다. [기기 추가] 버튼을 눌러 개설하세요.
+                            </div>
+                        ) : (
+                            <div className="border border-stone-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                <table className="min-w-full divide-y divide-stone-100">
+                                    <thead className="bg-stone-50 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                                        <tr>
+                                            <th className="px-4 py-3">기기 ID</th>
+                                            <th className="px-4 py-3">기기 이름 (수정 가능)</th>
+                                            <th className="px-4 py-3">대여 요금 (원화, 수정 가능)</th>
+                                            <th className="px-4 py-3">운영 상태</th>
+                                            <th className="px-4 py-3 text-center">작업</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-stone-100 text-sm text-stone-700">
+                                        {airconUnits.map(unit => {
+                                            const currentTemp = tempAirData[unit.id] || { name: unit.name, price: String(unit.price || 10000) };
+                                            return (
+                                                <tr key={unit.id} className="hover:bg-stone-50/50 transition-colors">
+                                                    <td className="px-4 py-2 font-mono text-xs text-stone-500">{unit.id}</td>
+                                                    <td className="px-4 py-2">
+                                                        <Input
+                                                            className="h-9 py-1 px-3 text-stone-900 border-stone-200 focus:border-[#1C4526] focus:ring-0 max-w-xs font-medium bg-stone-50/50 focus:bg-white"
+                                                            value={currentTemp.name}
+                                                            onChange={e => {
+                                                                const val = e.target.value;
+                                                                setTempAirData(prev => ({
+                                                                    ...prev,
+                                                                    [unit.id]: {
+                                                                        name: val,
+                                                                        price: prev[unit.id]?.price || String(unit.price || 10000)
+                                                                    }
+                                                                }));
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <Input
+                                                            type="number"
+                                                            className="h-9 py-1 px-3 text-stone-900 border-stone-200 focus:border-[#1C4526] focus:ring-0 w-36 bg-stone-50/50 focus:bg-white"
+                                                            value={currentTemp.price}
+                                                            onChange={e => {
+                                                                const val = e.target.value;
+                                                                setTempAirData(prev => ({
+                                                                    ...prev,
+                                                                    [unit.id]: {
+                                                                        name: prev[unit.id]?.name || unit.name,
+                                                                        price: val
+                                                                    }
+                                                                }));
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <Switch
+                                                            checked={unit.is_active !== false}
+                                                            onCheckedChange={() => handleToggleUnit(unit.id, unit.is_active !== false)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleSaveUnitDetails(unit.id)}
+                                                                className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 h-8 w-8 rounded-md"
+                                                                title="기기 저장"
+                                                            >
+                                                                <Check className="w-4.5 h-4.5" />
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleDeleteUnit(unit.id)}
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 rounded-md"
+                                                                title="기기 삭제"
+                                                            >
+                                                                <Trash2 className="w-4.5 h-4.5" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
             </form>
         </div>
     );

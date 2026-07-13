@@ -7,19 +7,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function check() {
     try {
-        console.log("Fetching one row from 'sites' table to inspect columns...");
-        const { data, error } = await supabase.from('sites').select('*').limit(1);
+        console.log("Fetching ALL rows from 'sites' table to inspect contents...");
+        const { data, error } = await supabase.from('sites').select('id, name, type, is_active, price');
         if (error) {
             console.error("Error fetching sites:", error);
             return;
         }
-        if (data && data.length > 0) {
-            console.log("Columns present in remote 'sites' table:");
-            console.log(Object.keys(data[0]));
-            console.log("Sample row:", data[0]);
-        } else {
-            console.log("No rows found in 'sites' table.");
-        }
+        console.log("Total rows found:", data.length);
+        console.log("All sites in DB:", data);
     } catch (e) {
         console.error("Exception:", e);
     }
