@@ -887,7 +887,7 @@ export default function AutomationLogsPage() {
 
       {/* 3. 상단 Full-Width 독립 상세 패널 (DAILY_REGION_SYNC, SMART_PLAN_CACHING, DAILY_CRAWL_ENRICHMENT) */}
       {(() => {
-        const selectedLog = logs.find(l => l.id === expandedLogId && (l.job_name === 'DAILY_REGION_SYNC' || l.job_name === 'SMART_PLAN_CACHING' || l.job_name === 'DAILY_CRAWL_ENRICHMENT'));
+        const selectedLog = logs.find(l => l.id === expandedLogId && (l.job_name === 'DAILY_REGION_SYNC' || l.job_name === 'SMART_PLAN_CACHING' || l.job_name === 'DAILY_CRAWL_ENRICHMENT' || l.job_name === 'WEEKLY_FESTIVAL_SYNC'));
         if (!selectedLog) return null;
         return (
           <section className="pt-4 animate-in slide-in-from-top-4 fade-in duration-500">
@@ -943,7 +943,7 @@ export default function AutomationLogsPage() {
                         {expandedLogId === log.id ? <ChevronUp className="w-4 h-4 text-brand-600" /> : <ChevronDown className="w-4 h-4" />}
                       </td>
                     </tr>
-                    {expandedLogId === log.id && !['DAILY_REGION_SYNC', 'SMART_PLAN_CACHING', 'DAILY_CRAWL_ENRICHMENT'].includes(log.job_name) && (
+                    {expandedLogId === log.id && !['DAILY_REGION_SYNC', 'SMART_PLAN_CACHING', 'DAILY_CRAWL_ENRICHMENT', 'WEEKLY_FESTIVAL_SYNC'].includes(log.job_name) && (
                       <tr>
                         <td colSpan={4} className="bg-white">
                           {renderLogDetails(log)}
