@@ -180,6 +180,40 @@ export default function UnifiedReservationCalendar() {
         }
     };
 
+    const handleBlockAllClick = () => {
+        if (!selectedDate) return;
+        setSelectedSiteId('ALL');
+        setBlockMemo('');
+        setGuestName('');
+        setContact('');
+        setIsPaid(false);
+        setMaxDuration(30); 
+        setBlockDuration('1');
+        setViewMode('BLOCK');
+    };
+
+    const handleUnblockAll = async () => {
+        if (!selectedDate) return;
+        const checkTime = startOfDay(selectedDate).getTime();
+        const targets = blockedDates.filter(b => 
+            startOfDay(new Date(b.startDate)).getTime() <= checkTime &&
+            startOfDay(new Date(b.endDate)).getTime() > checkTime
+        );
+
+        if (targets.length === 0) {
+            toast.error('해당 날짜에 설정된 차단 내역이 없습니다.');
+            return;
+        }
+
+        try {
+            await Promise.all(targets.map(t => removeBlockDate(t.id)));
+            toast.success('선택일의 모든 사이트 차단이 해제되었습니다.');
+            setViewMode(null);
+        } catch (e) {
+            toast.error('일괄 해제 처리 중 오류가 발생했습니다.');
+        }
+    };
+
     // Customer History
     const loadUserHistory = async () => {
         if (selectedReservation) {
@@ -569,7 +603,19 @@ export default function UnifiedReservationCalendar() {
             {/* Enhanced Daily View (List) */}
             <Dialog open={viewMode === 'DAILY'} onOpenChange={(o) => !o && setViewMode(null)}>
                 <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
-                    <DialogHeader><DialogTitle>{selectedDate && format(selectedDate, 'yyyy년 M월 d일 (eee)', { locale: ko })} 예약 현황</DialogTitle></DialogHeader>
+                    <DialogHeader className="flex flex-row justify-between items-center pr-10">
+                        <div>
+                            <DialogTitle>{selectedDate && format(selectedDate, 'yyyy년 M월 d일 (eee)', { locale: ko })} 예약 현황</DialogTitle>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant="destructive" className="bg-red-600 hover:bg-red-700" onClick={handleBlockAllClick}>
+                                <Ban className="w-4 h-4 mr-1.5" /> 전체 차단
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-gray-700 hover:bg-gray-100" onClick={handleUnblockAll}>
+                                <CheckCircle className="w-4 h-4 mr-1.5" /> 전체 해제
+                            </Button>
+                        </div>
+                    </DialogHeader>
                     <div className="flex-1 overflow-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-gray-500 bg-gray-50 uppercase sticky top-0">
