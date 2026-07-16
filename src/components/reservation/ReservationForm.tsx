@@ -19,7 +19,7 @@ interface ReservationFormProps {
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations } = useReservationStore();
+    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations, blockedDates, fetchBlockedDates } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -48,6 +48,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         setIsMounted(true);
         setSelectedSite(site);
         fetchSiteConfig();
+        fetchBlockedDates(); // 관리자 차단일 데이터 동기화
 
         const loadInitialData = async () => {
             // 0. 2차 실시간 예약 가능 여부 검증 (Double Guard - 가상 대표 카드는 우회)
@@ -125,7 +126,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         return () => {
             clearRebookData();
         };
-    }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo]);
+    }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo, fetchBlockedDates]);
 
     // userContactInfo가 로드되면 폼에 적용 (이미 입력된 값이 없을 때만)
     useEffect(() => {
@@ -144,16 +145,26 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             const options = sites
                 .filter(s => s.id.startsWith('air-') && s.id !== 'air-group' && s.isActive)
                 .map(s => {
+                    // 웹 예약 중복 검사
                     const hasOverlap = reservations.some(r => {
                         if (r.siteId !== s.id || r.status === 'CANCELLED') return false;
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
                         return rCheckIn < checkOut && rCheckOut > checkIn;
                     });
+
+                    // 관리자 차단 중복 검사
+                    const hasBlock = blockedDates.some(b => {
+                        if (b.siteId !== s.id && b.siteId !== 'ALL') return false;
+                        const bStart = new Date(b.startDate);
+                        const bEnd = new Date(b.endDate);
+                        return bStart < checkOut && bEnd > checkIn;
+                    });
+
                     return {
                         id: s.id,
                         name: s.name,
-                        available: !hasOverlap
+                        available: !hasOverlap && !hasBlock
                     };
                 });
             setAirOptions(options);
@@ -165,7 +176,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 setSelectedAirId('');
             }
         }
-    }, [site, selectedDateRange, sites, reservations]);
+    }, [site, selectedDateRange, sites, reservations, blockedDates]);
 
     // Calculate dates
     const fromDate = selectedDateRange.from ? new Date(selectedDateRange.from) : undefined;

@@ -8,7 +8,6 @@ import {
 import { ko } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Ban, CheckCircle, Clock, XCircle, Info, User, Phone, Search, Trash2, Edit2, Calendar, History } from 'lucide-react';
 import { useReservationStore } from '@/store/useReservationStore';
-import { SITES } from '@/constants/sites';
 import { Reservation, BlockedDate } from '@/types/reservation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -25,13 +24,14 @@ export default function UnifiedReservationCalendar() {
     const {
         reservations, blockedDates, fetchBlockedDates, fetchAllReservations,
         addBlockDate, removeBlockDate, toggleBlockPaid, getUserHistory,
-        fetchHolidays, holidays, updateReservation, sites, calculatePrice
+        fetchHolidays, holidays, updateReservation, sites, calculatePrice,
+        fetchSites
     } = useReservationStore();
 
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // Modal State
-    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | null>(null);
+    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
@@ -59,6 +59,7 @@ export default function UnifiedReservationCalendar() {
         fetchAllReservations();
         fetchBlockedDates();
         fetchHolidays(); // Fetch holidays
+        fetchSites(); // Fetch sites from Supabase DB
     }, []);
 
     // Calendar Calculations
@@ -124,6 +125,41 @@ export default function UnifiedReservationCalendar() {
         if (blocked) return { type: 'BLOCKED', data: blocked };
 
         return null;
+    };
+
+    // 특정 일자 기준 개별 에어컨 기기(air-1 ~ air-8)의 예약 및 차단 점유 개수와 상태를 조회합니다.
+    const getAirconOccupancy = (date: Date) => {
+        const checkTime = startOfDay(date).getTime();
+        const aircons = sites.filter(s => s.type === 'AIR_CON' && s.id !== 'air-group');
+        const total = aircons.length;
+
+        let occupied = 0;
+        const details = aircons.map(s => {
+            // 웹 예약 내역 검사
+            const r = reservations.find(res =>
+                res.siteId === s.id &&
+                res.status !== 'CANCELLED' &&
+                startOfDay(new Date(res.checkInDate)).getTime() <= checkTime &&
+                startOfDay(new Date(res.checkOutDate)).getTime() > checkTime
+            );
+            // 관리자 차단 내역 검사
+            const b = blockedDates.find(blk =>
+                (blk.siteId === 'ALL' || blk.siteId === s.id) &&
+                startOfDay(new Date(blk.startDate)).getTime() <= checkTime &&
+                startOfDay(new Date(blk.endDate)).getTime() > checkTime
+            );
+
+            const status = r ? { type: 'RESERVED', data: r } : b ? { type: 'BLOCKED', data: b } : null;
+            if (status) occupied++;
+            return { site: s, status };
+        });
+
+        return { total, occupied, details };
+    };
+
+    const handleAirconCellClick = (date: Date) => {
+        setSelectedDate(date);
+        setViewMode('AIRCON_DAILY');
     };
 
     const handleCellClick = (date: Date, siteId: string, status: any) => {
@@ -278,7 +314,35 @@ export default function UnifiedReservationCalendar() {
                                     </span>
                                 </div>
                                 <div className="flex-1 flex flex-col gap-1">
-                                    {SITES.map(site => {
+                                    {sites.filter(s => s.type !== 'AIR_CON' || s.id === 'air-group').map(site => {
+                                        if (site.id === 'air-group') {
+                                            const { total, occupied } = getAirconOccupancy(day);
+                                            let bgClass = 'bg-white border-transparent hover:border-blue-200 hover:bg-gray-50 text-gray-600';
+                                            if (occupied > 0) {
+                                                if (occupied <= 2) {
+                                                    bgClass = 'bg-emerald-50 text-emerald-800 border-emerald-100 hover:border-emerald-200';
+                                                } else if (occupied <= 4) {
+                                                    bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:border-emerald-300';
+                                                } else if (occupied <= 6) {
+                                                    bgClass = 'bg-emerald-200 text-emerald-900 border-emerald-300 hover:border-emerald-400';
+                                                } else if (occupied < total) {
+                                                    bgClass = 'bg-emerald-400 text-white border-emerald-500 hover:border-emerald-600';
+                                                } else {
+                                                    bgClass = 'bg-emerald-600 text-white border-emerald-700 hover:border-emerald-800';
+                                                }
+                                            }
+                                            return (
+                                                <div key={site.id} onClick={(e) => { e.stopPropagation(); handleAirconCellClick(day); }}
+                                                    className={`
+                                                        text-[10px] px-1.5 py-0.5 rounded cursor-pointer border flex justify-between items-center font-bold
+                                                        ${bgClass}
+                                                    `}
+                                                >
+                                                    <span className="truncate max-w-[85px]">{site.name} ({occupied}/{total})</span>
+                                                </div>
+                                            );
+                                        }
+
                                         const status = getStatusForSite(day, site.id);
                                         return (
                                             <div key={site.id} onClick={(e) => { e.stopPropagation(); handleCellClick(day, site.id, status); }}
@@ -315,7 +379,7 @@ export default function UnifiedReservationCalendar() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>차단 / 예약 설정</DialogTitle>
-                        <DialogDescription>{selectedDate && format(selectedDate, 'yyyy-MM-dd')} / {SITES.find(s => s.id === selectedSiteId)?.name}</DialogDescription>
+                        <DialogDescription>{selectedDate && format(selectedDate, 'yyyy-MM-dd')} / {sites.find(s => s.id === selectedSiteId)?.name}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
                         <div className="grid grid-cols-2 gap-4">
@@ -447,7 +511,7 @@ export default function UnifiedReservationCalendar() {
                                             <span>{format(new Date(h.checkInDate), 'yy.MM.dd')}</span>
                                             <span className={h.status === 'CONFIRMED' ? 'text-green-600' : 'text-gray-500'}>{h.status}</span>
                                         </div>
-                                        <div>{SITES.find(s => s.id === h.siteId)?.name} / {h.guests}명</div>
+                                        <div>{sites.find(s => s.id === h.siteId)?.name || h.siteId} / {h.guests}명</div>
                                     </div>
                                 ))}
                             </div>
@@ -463,7 +527,7 @@ export default function UnifiedReservationCalendar() {
                     <DialogHeader>
                         <DialogTitle>예약 변경</DialogTitle>
                         <DialogDescription>
-                            {selectedReservation && `${SITES.find(s => s.id === selectedReservation.siteId)?.name} - ${format(new Date(selectedReservation.checkInDate), 'yyyy.MM.dd')} 예약`}
+                            {selectedReservation && `${sites.find(s => s.id === selectedReservation.siteId)?.name || selectedReservation.siteId} - ${format(new Date(selectedReservation.checkInDate), 'yyyy.MM.dd')} 예약`}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
@@ -505,7 +569,7 @@ export default function UnifiedReservationCalendar() {
                                 <Select value={modifySiteId} onValueChange={(v) => { setModifySiteId(v); setModifyPricePreview(null); }}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        {SITES.map(s => (
+                                        {sites.map(s => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -565,8 +629,8 @@ export default function UnifiedReservationCalendar() {
 
                                     // 푸시 알림 발송: 예약 변경
                                     if (selectedReservation.userId) {
-                                        const oldSite = SITES.find(s => s.id === selectedReservation.siteId);
-                                        const newSite = SITES.find(s => s.id === modifySiteId);
+                                        const oldSite = sites.find(s => s.id === selectedReservation.siteId);
+                                        const newSite = sites.find(s => s.id === modifySiteId);
                                         const priceDiffText = result.diff > 0
                                             ? `\n추가 입금: +${result.diff.toLocaleString()}원`
                                             : result.diff < 0
@@ -629,7 +693,29 @@ export default function UnifiedReservationCalendar() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-gray-700">
-                                {selectedDate && SITES.map(site => {
+                                {selectedDate && sites.filter(s => s.type !== 'AIR_CON' || s.id === 'air-group').map(site => {
+                                    if (site.id === 'air-group') {
+                                        const { total, occupied } = getAirconOccupancy(selectedDate);
+                                        return (
+                                            <tr key={site.id} className="hover:bg-gray-50 bg-emerald-50/20">
+                                                <td className="px-4 py-3 font-bold text-emerald-800">{site.name}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full font-bold">
+                                                        대여 중 ({occupied}/{total})
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-xs text-gray-500">기기별 개별 현황 참조</td>
+                                                <td className="px-4 py-3">-</td>
+                                                <td className="px-4 py-3 text-gray-400 text-xs">-</td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <Button size="sm" variant="ghost" onClick={() => handleAirconCellClick(selectedDate)}>
+                                                        <Edit2 className="w-4 h-4 text-emerald-600 hover:text-emerald-800" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+
                                     const status = getStatusForSite(selectedDate, site.id);
                                     return (
                                         <tr key={site.id} className="hover:bg-gray-50">
@@ -641,7 +727,7 @@ export default function UnifiedReservationCalendar() {
                                                 {!status && <span className="text-gray-400 text-xs">가능</span>}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {status?.type === 'RESERVED' ? (status.data as Reservation).userId :
+                                                {status?.type === 'RESERVED' ? (status.data as Reservation).guestName || (status.data as Reservation).userId :
                                                     status?.type === 'BLOCKED' ? (
                                                         <div>
                                                             <div className="font-bold">{(status.data as BlockedDate).guestName || '-'}</div>
@@ -669,6 +755,85 @@ export default function UnifiedReservationCalendar() {
                             </tbody>
                         </table>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* 에어컨 개별 상세 현황 모달 */}
+            <Dialog open={viewMode === 'AIRCON_DAILY'} onOpenChange={(o) => !o && setViewMode(null)}>
+                <DialogContent className="max-w-2xl h-[70vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {selectedDate && format(selectedDate, 'yyyy년 M월 d일 (eee)', { locale: ko })} 에어컨 개별 현황
+                        </DialogTitle>
+                        <DialogDescription>
+                            개별 에어컨 기기의 예약 및 차단 상태를 세부 관리할 수 있습니다.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-auto mt-4">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-500 bg-gray-50 uppercase sticky top-0">
+                                <tr>
+                                    <th className="px-4 py-3">에어컨 기기</th>
+                                    <th className="px-4 py-3">상태</th>
+                                    <th className="px-4 py-3">고객명/연락처</th>
+                                    <th className="px-4 py-3">기간</th>
+                                    <th className="px-4 py-3">메모</th>
+                                    <th className="px-4 py-3 text-right">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y text-gray-700">
+                                {selectedDate && getAirconOccupancy(selectedDate).details.map(({ site, status }) => {
+                                    return (
+                                        <tr key={site.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 font-bold">{site.name}</td>
+                                            <td className="px-4 py-3">
+                                                {status?.type === 'RESERVED' && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">확정</span>}
+                                                {status?.type === 'BLOCKED' && (status.data as BlockedDate).isPaid && <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">입금</span>}
+                                                {status?.type === 'BLOCKED' && !(status.data as BlockedDate).isPaid && <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold">미입금</span>}
+                                                {!status && <span className="text-gray-400 text-xs">가능</span>}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {status?.type === 'RESERVED' ? (
+                                                    <div>
+                                                        <div className="font-bold">{(status.data as Reservation).guestName || '-'}</div>
+                                                        <div className="text-xs text-gray-500">{(status.data as Reservation).guestPhone || '-'}</div>
+                                                    </div>
+                                                ) :
+                                                    status?.type === 'BLOCKED' ? (
+                                                        <div>
+                                                            <div className="font-bold">{(status.data as BlockedDate).guestName || '-'}</div>
+                                                            <div className="text-xs text-gray-500">{(status.data as BlockedDate).contact || '-'}</div>
+                                                        </div>
+                                                    ) : '-'}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {status?.type === 'RESERVED' ? (
+                                                    <span className="text-xs">{format(new Date((status.data as Reservation).checkInDate), 'MM/dd')}~{format(new Date((status.data as Reservation).checkOutDate), 'MM/dd')}</span>
+                                                ) :
+                                                    status?.type === 'BLOCKED' ? (
+                                                        <span className="text-xs">{format(new Date((status.data as BlockedDate).startDate), 'MM/dd')}~{format(new Date((status.data as BlockedDate).endDate), 'MM/dd')}</span>
+                                                    ) : '-'}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500 truncate max-w-[120px]">
+                                                {status?.type === 'RESERVED' ? (status.data as Reservation).requests : (status?.data as BlockedDate)?.memo}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <Button size="sm" variant="outline" className="text-xs" onClick={() => {
+                                                    // 개별 에어컨에 대한 상세 정보 모달 띄우기
+                                                    handleCellClick(selectedDate, site.id, status);
+                                                }}>
+                                                    {status ? '상세 관리' : '차단/등록'}
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setViewMode(null)}>닫기</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
