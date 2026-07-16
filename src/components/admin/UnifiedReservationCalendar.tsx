@@ -721,7 +721,8 @@ export default function UnifiedReservationCalendar() {
                                         <tr key={site.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 font-bold">{site.name}</td>
                                             <td className="px-4 py-3">
-                                                {status?.type === 'RESERVED' && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">확정</span>}
+                                                {status?.type === 'RESERVED' && (status.data as Reservation).status === 'CONFIRMED' && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">확정</span>}
+                                                {status?.type === 'RESERVED' && (status.data as Reservation).status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">대기</span>}
                                                 {status?.type === 'BLOCKED' && (status.data as BlockedDate).isPaid && <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">입금</span>}
                                                 {status?.type === 'BLOCKED' && !(status.data as BlockedDate).isPaid && <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold">미입금</span>}
                                                 {!status && <span className="text-gray-400 text-xs">가능</span>}
@@ -787,7 +788,8 @@ export default function UnifiedReservationCalendar() {
                                         <tr key={site.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 font-bold">{site.name}</td>
                                             <td className="px-4 py-3">
-                                                {status?.type === 'RESERVED' && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">확정</span>}
+                                                {status?.type === 'RESERVED' && (status.data as Reservation).status === 'CONFIRMED' && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">확정</span>}
+                                                {status?.type === 'RESERVED' && (status.data as Reservation).status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">대기</span>}
                                                 {status?.type === 'BLOCKED' && (status.data as BlockedDate).isPaid && <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">입금</span>}
                                                 {status?.type === 'BLOCKED' && !(status.data as BlockedDate).isPaid && <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold">미입금</span>}
                                                 {!status && <span className="text-gray-400 text-xs">가능</span>}

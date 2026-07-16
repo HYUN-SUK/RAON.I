@@ -19,7 +19,7 @@ interface ReservationFormProps {
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations, blockedDates, fetchBlockedDates } = useReservationStore();
+    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations, blockedDates, fetchBlockedDates, fetchSites } = useReservationStore();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [familyCount, setFamilyCount] = useState(1);
@@ -49,6 +49,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         setSelectedSite(site);
         fetchSiteConfig();
         fetchBlockedDates(); // 관리자 차단일 데이터 동기화
+        fetchSites(); // 개별 에어컨 기기 최신 목록 동기화
 
         const loadInitialData = async () => {
             // 0. 2차 실시간 예약 가능 여부 검증 (Double Guard - 가상 대표 카드는 우회)
@@ -126,7 +127,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         return () => {
             clearRebookData();
         };
-    }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo, fetchBlockedDates]);
+    }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo, fetchBlockedDates, fetchSites]);
 
     // userContactInfo가 로드되면 폼에 적용 (이미 입력된 값이 없을 때만)
     useEffect(() => {
