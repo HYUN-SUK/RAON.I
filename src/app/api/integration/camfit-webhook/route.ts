@@ -133,14 +133,25 @@ export async function POST(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // RLS 우회하여 예약을 강제 적재하기 위해 Service Role Client 사용
     const supabase = createClient(supabaseUrl!, supabaseKey!);
 
-    let rawBody: any = null;
     let messageRaw = '';
     
     try {
-        rawBody = await req.json();
-        messageRaw = rawBody.message || '';
+        const bodyText = await req.text();
+        const contentType = req.headers.get('content-type') || '';
+        
+        // JSON 형태와 일반 텍스트 형태를 하이브리드로 수용
+        if (contentType.includes('application/json')) {
+            try {
+                const json = JSON.parse(bodyText);
+                messageRaw = json.message || bodyText;
+            } catch {
+                messageRaw = bodyText; // 파싱 실패 시 원문 그대로 수집
+            }
+        } else {
+            messageRaw = bodyText; // 일반 텍스트 전송 시 그대로 수집
+        }
     } catch (e) {
-        return NextResponse.json({ success: false, error: 'INVALID_JSON', message: '요청 바디가 올바른 JSON 형식이 아닙니다.' }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'READ_BODY_ERROR', message: '요청 바디 텍스트를 읽는 도중 오류가 발생했습니다.' }, { status: 400 });
     }
 
     // 1. 헤더 인증 검사 (Bearer Token)
