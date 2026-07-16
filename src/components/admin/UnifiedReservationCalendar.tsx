@@ -31,7 +31,7 @@ export default function UnifiedReservationCalendar() {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // Modal State
-    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | null>(null);
+    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | 'CAMFIT_MONITOR' | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
@@ -40,6 +40,10 @@ export default function UnifiedReservationCalendar() {
     const [selectedBlock, setSelectedBlock] = useState<BlockedDate | null>(null);
     const [userHistory, setUserHistory] = useState<Reservation[]>([]);
     const [showHistory, setShowHistory] = useState(false);
+
+    // 캠핏 예약 연동 관제용 상태
+    const [camfitLogs, setCamfitLogs] = useState<any[]>([]);
+    const [failedLogsCount, setFailedLogsCount] = useState(0);
 
     // Form State
     const [blockMemo, setBlockMemo] = useState('');
@@ -55,11 +59,33 @@ export default function UnifiedReservationCalendar() {
     const [modifySiteId, setModifySiteId] = useState<string>('');
     const [modifyPricePreview, setModifyPricePreview] = useState<{ oldPrice: number; newPrice: number; diff: number } | null>(null);
 
+    // 캠핏 알림 연동 로그 데이터베이스 동적 로드
+    const fetchCamfitLogs = async () => {
+        try {
+            const { createClient } = await import('@/lib/supabase-client');
+            const supabase = createClient();
+            const { data } = await supabase
+                .from('camfit_integration_logs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
+            if (data) {
+                setCamfitLogs(data);
+                // 최근 50건 중 실패(FAILED)한 누적 건수 산출
+                const failed = data.filter((l: any) => l.status === 'FAILED').length;
+                setFailedLogsCount(failed);
+            }
+        } catch (e) {
+            console.error('[UnifiedReservationCalendar] Failed to fetch camfit logs:', e);
+        }
+    };
+
     useEffect(() => {
         fetchAllReservations();
         fetchBlockedDates();
         fetchHolidays(); // Fetch holidays
         fetchSites(); // Fetch sites from Supabase DB
+        fetchCamfitLogs(); // 캠핏 로그 동기화
     }, []);
 
     // Calendar Calculations
@@ -266,14 +292,23 @@ export default function UnifiedReservationCalendar() {
     return (
         <div className="space-y-4">
             {/* Header Controls */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-                <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm flex-wrap gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                     <h2 className="text-xl font-bold">{format(currentDate, 'yyyy년 M월', { locale: ko })}</h2>
                     <div className="flex gap-1">
                         <Button variant="outline" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
                         <Button variant="outline" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
                         <Button variant="ghost" onClick={today}>오늘</Button>
                     </div>
+                    {/* 캠핏 연동 관제 모니터 버튼 신설 */}
+                    <Button variant="outline" className="relative ml-2 flex items-center gap-1.5" onClick={() => { fetchCamfitLogs(); setViewMode('CAMFIT_MONITOR'); }}>
+                        <Calendar className="w-4 h-4 text-[#2F5233]" /> 캠핏 연동 모니터
+                        {failedLogsCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] w-4.5 h-4.5 flex items-center justify-center font-bold border border-white animate-pulse">
+                                {failedLogsCount}
+                            </span>
+                        )}
+                    </Button>
                 </div>
                 <div className="flex items-center gap-4 text-xs font-medium flex-wrap">
                     <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500"></span>웹 확정</div>
@@ -851,6 +886,75 @@ export default function UnifiedReservationCalendar() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setViewMode('DETAIL')}>취소</Button>
                         <Button variant="destructive" onClick={confirmDelete}>삭제하기</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* 캠핏 연동 모니터 모달 */}
+            <Dialog open={viewMode === 'CAMFIT_MONITOR'} onOpenChange={(o) => !o && setViewMode(null)}>
+                <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-[#2F5233] font-bold">
+                            <Calendar className="w-5 h-5" />
+                            캠핏(Camfit) 자동 예약 연동 모니터
+                        </DialogTitle>
+                        <DialogDescription>
+                            알림톡을 통해 감지된 실시간 예약 신청/성사/취소 연동 상태를 관제합니다.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-auto mt-4 pr-1 scrollbar-thin">
+                        <div className="space-y-3">
+                            {camfitLogs.length === 0 ? (
+                                <p className="text-sm text-gray-400 text-center py-10">연동 내역이 아직 존재하지 않습니다.</p>
+                            ) : (
+                                camfitLogs.map((log: any) => {
+                                    const isSuccess = log.status === 'SUCCESS';
+                                    return (
+                                        <div key={log.id} className="border rounded-lg p-3.5 bg-white shadow-xs space-y-2 text-left">
+                                            <div className="flex justify-between items-center flex-wrap gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold
+                                                        ${isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                                    >
+                                                        {isSuccess ? '성공' : '실패'}
+                                                    </span>
+                                                    <span className="text-xs font-mono font-bold text-gray-700">
+                                                        {log.external_id || '(번호 없음)'}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-400">
+                                                        {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                                                    </span>
+                                                </div>
+                                                <Button size="sm" variant="ghost" className="text-xs h-7 text-gray-500 hover:bg-gray-100"
+                                                    onClick={() => {
+                                                        const el = document.getElementById(`raw-${log.id}`);
+                                                        if (el) el.classList.toggle('hidden');
+                                                    }}
+                                                >
+                                                    문자 원본 [접기/펴기]
+                                                </Button>
+                                            </div>
+                                            
+                                            {!isSuccess && log.error_message && (
+                                                <p className="text-xs text-red-600 font-medium bg-red-50/50 p-2 rounded border border-red-100">
+                                                    ⚠️ 실패 원인: {log.error_message}
+                                                </p>
+                                            )}
+
+                                            <div id={`raw-${log.id}`} className="hidden bg-gray-50 p-3 rounded border font-mono text-[11px] text-gray-600 whitespace-pre-wrap leading-relaxed">
+                                                {log.message_raw}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter className="flex justify-between items-center sm:justify-between border-t pt-4">
+                        <Button variant="outline" size="sm" onClick={fetchCamfitLogs} className="hover:bg-gray-100">
+                            🔄 새로고침
+                        </Button>
+                        <Button size="sm" onClick={() => setViewMode(null)} className="bg-[#2F5233] hover:bg-[#223d26] text-white">닫기</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
