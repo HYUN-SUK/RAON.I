@@ -30,6 +30,9 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ko_KR",
   },
+  verification: {
+    google: "HWRUdDrGbR0obOn0gVQdzQFmaZI4h0-JM1w95fGHea8",
+  },
 };
 
 export const dynamic = 'force-dynamic';
