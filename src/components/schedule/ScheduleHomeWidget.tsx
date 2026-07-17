@@ -51,6 +51,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const [isNavigating, setIsNavigating] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
+    const [dontShowToday, setDontShowToday] = useState(false);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -333,6 +334,29 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         });
     };
 
+    const handleExternalScheduleClick = () => {
+        withAuth(() => {
+            const hideTime = localStorage.getItem('raonai_hide_add_alert_today');
+            const now = new Date().getTime();
+            
+            if (hideTime && now < parseInt(hideTime, 10)) {
+                router.push('/myspace/schedule?add=external');
+            } else {
+                setDontShowToday(false);
+                setIsAlertOpen(true);
+            }
+        });
+    };
+
+    const handleConfirmExternalAlert = () => {
+        if (dontShowToday) {
+            const expireTime = new Date().getTime() + 24 * 60 * 60 * 1000;
+            localStorage.setItem('raonai_hide_add_alert_today', expireTime.toString());
+        }
+        setIsAlertOpen(false);
+        router.push('/myspace/schedule?add=external');
+    };
+
     // 로딩
     if (isLoading) {
         return (
@@ -559,14 +583,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             {/* 다른 여행 일정추가 및 나의 여행일정 버튼 */}
             <div className="flex flex-col gap-2 w-full">
                 <button
-                    onClick={() => withAuth(() => setIsAlertOpen(true))}
-                    className="w-full flex flex-col items-center justify-center gap-0.5 px-4 py-2.5 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
+                    onClick={handleExternalScheduleClick}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
                 >
-                    <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        <span className="text-sm font-semibold">다른 여행 일정추가</span>
-                    </div>
-                    <span className="text-[10px] text-stone-500 font-medium">다른 곳으로 가시는 여행 일정도 등록해 보세요. 라온아이가 똑똑한 여행 계획을 자동으로 완성해 드립니다.</span>
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-semibold">다른 여행 일정추가</span>
                 </button>
                 <button
                     onClick={() => withAuth(() => router.push('/myspace/schedule'))}
@@ -588,12 +609,24 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                             다른 곳으로 가시는 여행 일정도 등록해 보세요. 라온아이가 똑똑한 여행 계획을 자동으로 완성해 드립니다.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+
+                    {/* 오늘 하루 보지 않기 선택지 추가 */}
+                    <div className="flex items-center gap-2 mt-4 justify-center">
+                        <input
+                            type="checkbox"
+                            id="dontShowToday"
+                            checked={dontShowToday}
+                            onChange={(e) => setDontShowToday(e.target.checked)}
+                            className="w-4 h-4 rounded border-stone-300 text-[#224732] focus:ring-[#224732] cursor-pointer"
+                        />
+                        <label htmlFor="dontShowToday" className="text-xs text-stone-500 dark:text-stone-400 font-semibold cursor-pointer select-none">
+                            오늘 하루 보지 않기
+                        </label>
+                    </div>
+
                     <AlertDialogFooter className="mt-5 flex flex-row justify-center gap-2 sm:justify-center">
                         <AlertDialogAction
-                            onClick={() => {
-                                setIsAlertOpen(false);
-                                router.push('/myspace/schedule?add=external');
-                            }}
+                            onClick={handleConfirmExternalAlert}
                             className="bg-[#224732] hover:bg-[#1a3626] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
                         >
                             확인
