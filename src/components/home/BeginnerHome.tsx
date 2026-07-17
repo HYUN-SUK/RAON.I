@@ -418,7 +418,7 @@ export default function BeginnerHome() {
                 </AnimatePresence>
 
                 {/* 1. Hero Section */}
-                <section className="relative w-full h-[35vh] min-h-[300px] flex flex-col justify-end p-6">
+                <section className="relative w-full h-[42vh] min-h-[380px] flex flex-col justify-end p-6">
                     <div className="absolute inset-0 z-0 bg-stone-300">
                         {/* Hero Image */}
                         <div
