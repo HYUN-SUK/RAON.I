@@ -454,7 +454,7 @@ export default function BeginnerHome() {
                 <div className="px-4 -mt-8 relative z-30 mb-4">
                     <button
                         onClick={() => setIsIntroExpanded(!isIntroExpanded)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-[#E7ECE8] dark:bg-zinc-900 border-[3px] border-[#3C5847] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#dbdedb] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#3C5847] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#f4f7f5] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-[#3C5847] text-white rounded-xl">
@@ -564,7 +564,7 @@ export default function BeginnerHome() {
                 <div className="px-4 mb-4">
                     <button
                         onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F3EFE9] dark:bg-zinc-900 border-[3px] border-[#6E6252] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#e7e1d6] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#6E6252] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#f8f7f5] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-[#6E6252] text-white rounded-xl">
@@ -601,7 +601,7 @@ export default function BeginnerHome() {
                 <div className="px-4 mb-8">
                     <button
                         onClick={() => setSosoCareSheetOpen(true)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-[#FAF6F0] dark:bg-zinc-900 border-[3px] border-[#7D7164] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#f2ece2] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#7D7164] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#faf9f7] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-[#7D7164] text-white rounded-xl">
