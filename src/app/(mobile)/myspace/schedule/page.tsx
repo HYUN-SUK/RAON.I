@@ -324,7 +324,7 @@ function ScheduleContent() {
             <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
                     <SheetHeader className="mb-4">
-                        <SheetTitle className="text-left">새 캠핑 일정</SheetTitle>
+                        <SheetTitle className="text-left">새로운 여행 등록</SheetTitle>
                     </SheetHeader>
                     <ScheduleForm
                         onSuccess={handleFormSuccess}
