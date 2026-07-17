@@ -418,7 +418,7 @@ export default function BeginnerHome() {
                 </AnimatePresence>
 
                 {/* 1. Hero Section */}
-                <section className="relative w-full h-[50vh] min-h-[460px] flex flex-col justify-end p-6">
+                <section className="relative w-full h-[35vh] min-h-[300px] flex flex-col justify-end p-6">
                     <div className="absolute inset-0 z-0 bg-stone-300">
                         {/* Hero Image */}
                         <div
@@ -433,7 +433,7 @@ export default function BeginnerHome() {
                         <NotificationBadge variant="hero" />
                     </div>
 
-                    <div className="relative z-20 text-white space-y-2 mb-16 w-full text-center">
+                    <div className="relative z-20 text-white space-y-2 mb-8 w-full text-center">
                         <p className="text-white/90 text-lg mb-4 leading-relaxed font-medium">
                             {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
                         </p>
