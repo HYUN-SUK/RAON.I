@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, memo, useRef } from 'react';
-import Link from 'next/link';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Calendar, ChevronRight, Tent, Clock, Plus, MapPin } from 'lucide-react';
