@@ -454,19 +454,19 @@ export default function BeginnerHome() {
                 <div className="px-4 -mt-8 relative z-30 mb-4">
                     <button
                         onClick={() => setIsIntroExpanded(!isIntroExpanded)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-[#E5ECE6] dark:bg-zinc-900 border-[3px] border-[#2D4F38] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#d9e2da] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F5F5F4] dark:bg-zinc-900 border-[3px] border-[#1B3E25] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#eaeae8] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-[#2D4F38] text-white rounded-xl">
+                            <div className="p-3 bg-[#1B3E25] text-white rounded-xl">
                                 <Tent className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-[#2D4F38] dark:text-stone-200 tracking-tight leading-tight">
+                                <h3 className="text-lg font-black text-[#1B3E25] dark:text-stone-200 tracking-tight leading-tight">
                                     라온아이캠핑장<br />소개 · 예약하기
                                 </h3>
                             </div>
                         </div>
-                        <div className={`text-[#2D4F38] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isIntroExpanded ? 'rotate-180' : 'animate-pulse'}`}>
+                        <div className={`text-[#1B3E25] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isIntroExpanded ? 'rotate-180' : 'animate-pulse'}`}>
                             <ChevronDown className="w-5 h-5" />
                         </div>
                     </button>
@@ -564,19 +564,19 @@ export default function BeginnerHome() {
                 <div className="px-4 mb-4">
                     <button
                         onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F5EFEB] dark:bg-zinc-900 border-[3px] border-[#7D6555] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#ebe1da] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F5F5F4] dark:bg-zinc-900 border-[3px] border-[#345F45] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#eaeae8] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-[#7D6555] text-white rounded-xl">
+                            <div className="p-3 bg-[#345F45] text-white rounded-xl">
                                 <Calendar className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-[#7D6555] dark:text-stone-200 tracking-tight leading-tight">
+                                <h3 className="text-lg font-black text-[#345F45] dark:text-stone-200 tracking-tight leading-tight">
                                     여행계획 자동생성<br />· 여행일정 관리
                                 </h3>
                             </div>
                         </div>
-                        <div className={`text-[#7D6555] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : 'animate-pulse'}`}>
+                        <div className={`text-[#345F45] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : 'animate-pulse'}`}>
                             <ChevronDown className="w-5 h-5" />
                         </div>
                     </button>
@@ -601,18 +601,18 @@ export default function BeginnerHome() {
                 <div className="px-4 mb-8">
                     <button
                         onClick={() => setSosoCareSheetOpen(true)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F6ECE6] dark:bg-zinc-900 border-[3px] border-[#996853] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#ebdcd2] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F5F5F4] dark:bg-zinc-900 border-[3px] border-[#5C836C] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#eaeae8] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-[#996853] text-white rounded-xl">
+                            <div className="p-3 bg-[#5C836C] text-white rounded-xl">
                                 <ChefHat className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-[#996853] dark:text-stone-200 tracking-tight leading-tight">소소한 챙김</h3>
+                                <h3 className="text-lg font-black text-[#5C836C] dark:text-stone-200 tracking-tight leading-tight">소소한 챙김</h3>
                                 <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 font-medium">주간 미션, 캠핑 요리 레시피, 놀이 탐색기</p>
                             </div>
                         </div>
-                        <div className="text-[#996853] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full">
+                        <div className="text-[#5C836C] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full">
                             <ChevronRight className="w-5 h-5" />
                         </div>
                     </button>
