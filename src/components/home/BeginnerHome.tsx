@@ -15,6 +15,7 @@ import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import RecipeDetailSheet, { RecipeData } from '@/components/common/RecipeDetailSheet';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
@@ -101,6 +102,7 @@ export default function BeginnerHome() {
     // Accordion States
     const [isIntroExpanded, setIsIntroExpanded] = useState(false);
     const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
+    const [sosoCareSheetOpen, setSosoCareSheetOpen] = useState(false);
 
     const [isRecordOpen, setIsRecordOpen] = useState(false);
     const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
@@ -431,35 +433,40 @@ export default function BeginnerHome() {
                         <NotificationBadge variant="hero" />
                     </div>
 
-                    <div className="relative z-20 text-white space-y-4 mb-6 w-full">
-                        <p className="text-white/90 text-lg mb-1 leading-relaxed">
+                    <div className="relative z-20 text-white space-y-2 mb-16 w-full text-center">
+                        <p className="text-white/90 text-lg mb-1 leading-relaxed font-medium">
                             {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
                         </p>
+                        
+                        <span className="tracking-[0.2em] font-black text-white/90 text-[18px] block mb-3 pl-[0.2em]">
+                            나만의 스마트 여행수첩
+                        </span>
 
                         <div className="py-1 w-full">
-                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2.5" />
+                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2" />
                             <span className="tracking-[0.4em] font-bold text-white/95 text-[30px] text-center block pl-[0.4em]">라 온 아 이</span>
-                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2.5" />
+                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2" />
                         </div>
                     </div>
                 </section>
 
-                {/* Accordion 1: 캠핑장 소개 및 예약하기 */}
+                {/* Card 1: 라온아이캠핑장 소개 · 예약하기 */}
                 <div className="px-4 -mt-8 relative z-30 mb-4">
                     <button
                         onClick={() => setIsIntroExpanded(!isIntroExpanded)}
-                        className="w-full flex items-center justify-between px-5 py-4 bg-[#FAF9F6] dark:bg-zinc-900 border-[3px] border-amber-700 dark:border-amber-600 rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-[#EAF2EC] dark:bg-zinc-900 border-[3px] border-[#224732] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#dce9df] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-100 dark:bg-amber-950/40 rounded-xl text-amber-700 dark:text-amber-500">
-                                <Tent className="w-5 h-5" />
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-[#224732] text-white rounded-xl">
+                                <Tent className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-500 tracking-tight">캠핑장 소개 및 예약하기</h3>
-                                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-medium">캠핑장 배치도, 가격안내 및 처음이신 분들을 위한 가이드</p>
+                                <h3 className="text-lg font-black text-[#224732] dark:text-stone-200 tracking-tight leading-tight">
+                                    라온아이캠핑장<br />소개 · 예약하기
+                                </h3>
                             </div>
                         </div>
-                        <div className={`text-amber-800 dark:text-amber-500 p-1.5 bg-amber-200 dark:bg-amber-950/60 rounded-full transition-transform duration-300 ${isIntroExpanded ? 'rotate-180' : 'animate-pulse'}`}>
+                        <div className={`text-[#224732] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isIntroExpanded ? 'rotate-180' : 'animate-pulse'}`}>
                             <ChevronDown className="w-5 h-5" />
                         </div>
                     </button>
@@ -553,22 +560,23 @@ export default function BeginnerHome() {
                             </section>
                 </motion.div>
 
-                {/* Accordion 2: 여행 일정 및 계획하기 */}
+                {/* Card 2: 여행계획 자동생성 · 여행일정 관리 */}
                 <div className="px-4 mb-4">
                     <button
                         onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
-                        className="w-full flex items-center justify-between px-5 py-4 bg-[#FAF9F6] dark:bg-zinc-900 border-[3px] border-amber-700 dark:border-amber-600 rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F1F6F2] dark:bg-zinc-900 border-[3px] border-[#2D5C41] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#e4ece5] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-100 dark:bg-amber-950/40 rounded-xl text-amber-700 dark:text-amber-500">
-                                <Calendar className="w-5 h-5" />
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-[#2D5C41] text-white rounded-xl">
+                                <Calendar className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-500 tracking-tight">여행일정 및 자동여행계획 생성하기</h3>
-                                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 font-medium">캠핑장 기상예보, 자동여행계획 생성 및 일정관리</p>
+                                <h3 className="text-lg font-black text-[#2D5C41] dark:text-stone-200 tracking-tight font-sans leading-tight">
+                                    여행계획 자동생성<br />· 여행일정 관리
+                                </h3>
                             </div>
                         </div>
-                        <div className={`text-amber-800 dark:text-amber-500 p-1.5 bg-amber-200 dark:bg-amber-950/60 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : 'animate-pulse'}`}>
+                        <div className={`text-[#2D5C41] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : 'animate-pulse'}`}>
                             <ChevronDown className="w-5 h-5" />
                         </div>
                     </button>
@@ -589,54 +597,26 @@ export default function BeginnerHome() {
                             </section>
                 </motion.div>
 
-                {/* 3.5 Mission Widget */}
-                <section className="px-4 mb-8">
-                    <MissionHomeWidget />
-                </section>
-
-                {/* 3.8 여행 레시피 탐색기 배너 */}
-                <section className="px-4 mb-8">
-                    <div 
-                        onClick={() => handleProtectedAction(() => router.push('/recipe'))}
-                        className="group relative w-full bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-700 hover:to-teal-600 text-white rounded-3xl p-5 border border-emerald-900/50 shadow-md hover:shadow-lg active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
+                {/* Card 3: 소소한 챙김 */}
+                <div className="px-4 mb-8">
+                    <button
+                        onClick={() => setSosoCareSheetOpen(true)}
+                        className="w-full flex items-center justify-between px-6 py-6 bg-[#F7FAF7] dark:bg-zinc-900 border-[3px] border-[#44775B] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#ebf2ec] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
-                        {/* Background Deco */}
-                        <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-15 text-white pointer-events-none group-hover:scale-110 transition-transform">
-                            <ChefHat className="w-32 h-32" />
-                        </div>
-                        <div className="relative z-10 flex justify-between items-center">
-                            <div className="space-y-1 text-left">
-                                <h3 className="text-base font-bold tracking-tight">📖 여행 & 캠핑 레시피 탐색기</h3>
-                                <p className="text-xs text-white/80">터치 2번으로 고르는 맞춤 요리 정보와 꿀팁 영상</p>
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-[#44775B] text-white rounded-xl">
+                                <ChefHat className="w-6 h-6" />
                             </div>
-                            <div className="bg-white/10 p-2 rounded-2xl group-hover:bg-white/20 transition-all">
-                                <ChevronRight className="w-5 h-5 text-white" />
+                            <div>
+                                <h3 className="text-lg font-black text-[#44775B] dark:text-stone-200 tracking-tight leading-tight">소소한 챙김</h3>
+                                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 font-medium">주간 미션, 캠핑 요리 레시피, 놀이 탐색기</p>
                             </div>
                         </div>
-                    </div>
-                </section>
-
-                {/* 4. 여행 놀이 탐색기 배너 */}
-                <section className="px-4 mb-8">
-                    <div 
-                        onClick={() => handleProtectedAction(() => router.push('/play'))}
-                        className="group relative w-full bg-gradient-to-r from-amber-700 to-orange-600 hover:from-amber-600 hover:to-orange-500 text-white rounded-3xl p-5 border border-amber-800/50 shadow-md hover:shadow-lg active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
-                    >
-                        {/* Background Deco */}
-                        <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-15 text-white pointer-events-none group-hover:scale-110 transition-transform">
-                            <Tent className="w-32 h-32" />
+                        <div className="text-[#44775B] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full">
+                            <ChevronRight className="w-5 h-5" />
                         </div>
-                        <div className="relative z-10 flex justify-between items-center">
-                            <div className="space-y-1 text-left">
-                                <h3 className="text-base font-bold tracking-tight">🎲 여행 & 캠핑 놀이 탐색기</h3>
-                                <p className="text-xs text-white/80">어디서든 심심할 틈 없는 맞춤 놀이 추천</p>
-                            </div>
-                            <div className="bg-white/10 p-2 rounded-2xl group-hover:bg-white/20 transition-all">
-                                <ChevronRight className="w-5 h-5 text-white" />
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                    </button>
+                </div>
             </main>
 
 
@@ -719,6 +699,76 @@ export default function BeginnerHome() {
                 isOpen={isMapOpen}
                 onClose={() => setIsMapOpen(false)}
             />
+
+            {/* 소소한 챙김 바텀 시트 */}
+            <Sheet open={sosoCareSheetOpen} onOpenChange={setSosoCareSheetOpen}>
+                <SheetContent side="bottom" className="rounded-t-3xl pb-8 max-h-[90vh] overflow-y-auto bg-[#F7F5EF] dark:bg-zinc-950">
+                    <SheetHeader className="mb-4">
+                        <SheetTitle className="text-base font-black text-stone-900 dark:text-stone-100">🌿 소소한 챙김</SheetTitle>
+                        <SheetDescription className="text-xs text-stone-500 dark:text-stone-400">
+                            캠핑을 더욱 풍성하고 기분 좋게 해줄 작은 즐거움들을 만나보세요
+                        </SheetDescription>
+                    </SheetHeader>
+                    
+                    <div className="flex flex-col gap-4 mt-2">
+                        {/* 1. 주간 미션 위젯 */}
+                        <div className="w-full">
+                            <p className="text-xs font-bold text-stone-400 dark:text-stone-500 mb-1.5 pl-1">🎯 주간 미션 챌린지</p>
+                            <MissionHomeWidget />
+                        </div>
+
+                        {/* 2. 레시피 탐색기 배너 */}
+                        <div className="w-full">
+                            <p className="text-xs font-bold text-stone-400 dark:text-stone-500 mb-1.5 pl-1">📖 맛있는 식사 준비</p>
+                            <div 
+                                onClick={() => {
+                                    setSosoCareSheetOpen(false);
+                                    handleProtectedAction(() => router.push('/recipe'));
+                                }}
+                                className="group relative w-full bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#0f2117] text-white rounded-2xl p-4 border border-[#224732]/30 shadow-md active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
+                            >
+                                <div className="absolute right-0 bottom-0 translate-x-2 translate-y-2 opacity-10 text-white pointer-events-none">
+                                    <ChefHat className="w-24 h-24" />
+                                </div>
+                                <div className="relative z-10 flex justify-between items-center">
+                                    <div className="space-y-0.5 text-left">
+                                        <h3 className="text-sm font-bold tracking-tight">여행 & 캠핑 레시피 탐색기</h3>
+                                        <p className="text-[10px] text-white/80">터치 2번으로 고르는 맞춤 요리 정보와 꿀팁 영상</p>
+                                    </div>
+                                    <div className="bg-white/10 p-1.5 rounded-xl group-hover:bg-white/20 transition-all">
+                                        <ChevronRight className="w-4 h-4 text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. 놀이 탐색기 배너 */}
+                        <div className="w-full">
+                            <p className="text-xs font-bold text-stone-400 dark:text-stone-500 mb-1.5 pl-1">🎲 신나는 가족 활동</p>
+                            <div 
+                                onClick={() => {
+                                    setSosoCareSheetOpen(false);
+                                    handleProtectedAction(() => router.push('/play'));
+                                }}
+                                className="group relative w-full bg-gradient-to-r from-amber-700 to-orange-600 hover:from-amber-600 hover:to-orange-500 text-white rounded-2xl p-4 border border-amber-800/50 shadow-md active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
+                            >
+                                <div className="absolute right-0 bottom-0 translate-x-2 translate-y-2 opacity-10 text-white pointer-events-none">
+                                    <Tent className="w-24 h-24" />
+                                </div>
+                                <div className="relative z-10 flex justify-between items-center">
+                                    <div className="space-y-0.5 text-left">
+                                        <h3 className="text-sm font-bold tracking-tight">여행 & 캠핑 놀이 탐색기</h3>
+                                        <p className="text-[10px] text-white/80">어디서든 심심할 틈 없는 맞춤 놀이 추천</p>
+                                    </div>
+                                    <div className="bg-white/10 p-1.5 rounded-xl group-hover:bg-white/20 transition-all">
+                                        <ChevronRight className="w-4 h-4 text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div >
     );
 }
