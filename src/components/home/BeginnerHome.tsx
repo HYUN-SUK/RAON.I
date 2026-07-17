@@ -434,11 +434,11 @@ export default function BeginnerHome() {
                     </div>
 
                     <div className="relative z-20 text-white space-y-2 mb-16 w-full text-center">
-                        <p className="text-white/90 text-lg mb-1 leading-relaxed font-medium">
+                        <p className="text-white/90 text-lg mb-4 leading-relaxed font-medium">
                             {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
                         </p>
                         
-                        <span className="tracking-[0.2em] font-black text-white/90 text-[18px] block mb-3 pl-[0.2em]">
+                        <span className="tracking-[0.2em] font-black text-white/90 text-[18px] block mb-5 pl-[0.2em]">
                             나만의 스마트 여행수첩
                         </span>
 
