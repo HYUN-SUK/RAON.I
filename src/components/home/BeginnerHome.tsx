@@ -345,13 +345,13 @@ export default function BeginnerHome() {
             if (item.category === 'cooking') {
                 // Map RecommendationItem to RecipeData
                 setRecipeData({
-                    id: (item as any).id || 'unknown',
+                    id: (item as unknown as { id?: string }).id || 'unknown',
                     title: item.title,
                     description: item.description || undefined,
                     category: 'cooking',
                     image_url: item.image_url || undefined,
-                    ingredients: item.ingredients as any,
-                    steps: item.process_steps as any || item.steps as any,
+                    ingredients: item.ingredients as unknown as string[],
+                    steps: (item.process_steps as unknown as string[]) || (item.steps as unknown as string[]),
                     tips: item.tips || undefined,
                     time_required: item.time_required || undefined,
                     difficulty: item.difficulty || undefined,
