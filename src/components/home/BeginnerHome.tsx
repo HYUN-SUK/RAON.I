@@ -571,7 +571,7 @@ export default function BeginnerHome() {
                                 <Calendar className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-[#2D5C41] dark:text-stone-200 tracking-tight font-sans leading-tight">
+                                <h3 className="text-lg font-black text-[#2D5C41] dark:text-stone-200 tracking-tight leading-tight">
                                     여행계획 자동생성<br />· 여행일정 관리
                                 </h3>
                             </div>
