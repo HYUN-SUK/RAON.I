@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const next = requestUrl.searchParams.get("next") ?? "/";
 
     // 쿠키 임시 수집을 위한 배열 선언 (Vercel 빌드 제약 우회)
-    const cookiesToSet: { name: string; value: string; options: CookieOptions }[] = [];
+    const cookiesToSet: { name: string; value: string; options?: CookieOptions }[] = [];
 
     if (code) {
         const supabase = createServerClient(
@@ -18,11 +18,11 @@ export async function GET(request: NextRequest) {
                     get(name: string) {
                         return request.cookies.get(name)?.value;
                     },
-                    set(name: string, value: string, options: CookieOptions) {
+                    set(name: string, value: string, options?: CookieOptions) {
                         request.cookies.set({ name, value, ...options });
                         cookiesToSet.push({ name, value, options });
                     },
-                    remove(name: string, options: CookieOptions) {
+                    remove(name: string, options?: CookieOptions) {
                         request.cookies.set({ name, value: '', ...options });
                         cookiesToSet.push({ name, value: '', options });
                     },
@@ -52,18 +52,13 @@ export async function GET(request: NextRequest) {
                             loginUrl.searchParams.set("error", "withdrawn");
                             const logoutResponse = NextResponse.redirect(loginUrl);
                             
-                            // 임시 쿠키 동기화 후 반환
+                            // 임시 쿠키 동기화 후 반환 (Null Guard 적용)
                             cookiesToSet.forEach(({ name, value, options }) => {
                                 logoutResponse.cookies.set({
                                     name,
                                     value,
-                                    path: options.path,
-                                    domain: options.domain,
-                                    maxAge: options.maxAge,
-                                    secure: options.secure,
-                                    httpOnly: options.httpOnly,
-                                    sameSite: options.sameSite,
-                                });
+                                    ...(options || {}),
+                                } as any);
                             });
                             return logoutResponse;
                         }
@@ -88,18 +83,13 @@ export async function GET(request: NextRequest) {
     // 2. 최종 리다이렉트 응답 생성
     const redirectResponse = NextResponse.redirect(new URL(next, request.url));
 
-    // 3. 임시 배열에 수집된 세션 쿠키들을 최종 리다이렉트 응답 객체에 복사 (유실 차단)
+    // 3. 임시 배열에 수집된 세션 쿠키들을 최종 리다이렉트 응답 객체에 복사 (유실 차단 및 Null Guard 적용)
     cookiesToSet.forEach(({ name, value, options }) => {
         redirectResponse.cookies.set({
             name,
             value,
-            path: options.path,
-            domain: options.domain,
-            maxAge: options.maxAge,
-            secure: options.secure,
-            httpOnly: options.httpOnly,
-            sameSite: options.sameSite,
-        });
+            ...(options || {}),
+        } as any);
     });
 
     return redirectResponse;
