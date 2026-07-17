@@ -6,11 +6,11 @@ export async function GET(request: NextRequest) {
     const code = requestUrl.searchParams.get("code");
     const next = requestUrl.searchParams.get("next") ?? "/";
 
-    // 리다이렉트 응답 객체를 미리 생성
-    const response = NextResponse.redirect(new URL(next, request.url));
+    // 1. 쿠키 임시 수집을 위한 NextResponse.next() 생성
+    const tempResponse = NextResponse.next();
 
     if (code) {
-        // Route Handler 전용 Supabase 클라이언트 생성 (요청/응답 쿠키 바인딩)
+        // 임시 Response에 쿠키 바인딩
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
                     },
                     set(name: string, value: string, options: CookieOptions) {
                         request.cookies.set({ name, value, ...options });
-                        response.cookies.set({ name, value, ...options });
+                        tempResponse.cookies.set({ name, value, ...options });
                     },
                     remove(name: string, options: CookieOptions) {
                         request.cookies.set({ name, value: '', ...options });
-                        response.cookies.set({ name, value: '', ...options });
+                        tempResponse.cookies.set({ name, value: '', ...options });
                     },
                 },
             }
@@ -45,29 +45,23 @@ export async function GET(request: NextRequest) {
 
                 if (!existingProfile) {
                     const email = user.email || null;
-                    
                     if (email) {
                         const { data: isEligible, error: checkError } = await supabase.rpc('check_signup_eligibility', { p_email: email });
                         if (!checkError && isEligible === false) {
-                            // 탈퇴한 지 30일 이내의 회원이면 로그아웃 후 에러 리다이렉션
                             await supabase.auth.signOut();
                             const loginUrl = new URL("/login", request.url);
                             loginUrl.searchParams.set("error", "withdrawn");
                             const logoutResponse = NextResponse.redirect(loginUrl);
-                            response.cookies.getAll().forEach((cookie) => {
+                            
+                            // 임시 쿠키 동기화 후 반환
+                            tempResponse.cookies.getAll().forEach((cookie) => {
                                 logoutResponse.cookies.set(cookie);
                             });
                             return logoutResponse;
                         }
                     }
 
-                    // 새 프로필 생성
-                    const nickname =
-                        user.user_metadata.full_name ||
-                        user.user_metadata.name ||
-                        user.user_metadata.nickname ||
-                        (email ? email.split('@')[0] : 'Camper');
-
+                    const nickname = user.user_metadata.full_name || user.user_metadata.name || user.user_metadata.nickname || (email ? email.split('@')[0] : 'Camper');
                     const avatarUrl = user.user_metadata.avatar_url || user.user_metadata.picture;
 
                     await supabase.from('profiles').insert({
@@ -83,5 +77,22 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    return response;
+    // 2. 최종 리다이렉트 응답 생성
+    const redirectResponse = NextResponse.redirect(new URL(next, request.url));
+
+    // 3. 임시 Response에 수집된 세션 쿠키들을 최종 리다이렉트 응답 객체에 복사 (유실 차단)
+    tempResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set({
+            name: cookie.name,
+            value: cookie.value,
+            path: cookie.path,
+            domain: cookie.domain,
+            maxAge: cookie.maxAge,
+            secure: cookie.secure,
+            httpOnly: cookie.httpOnly,
+            sameSite: cookie.sameSite,
+        });
+    });
+
+    return redirectResponse;
 }

@@ -19,41 +19,13 @@ importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js')
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// 3. 백그라운드 메시지 수신 핸들러 (명시적 알림 띄우기)
-// Foreground(토스트)는 이미 성공했으므로, Background(시스템 알림)를 더 확실하게 띄우도록 보강합니다.
+// 3. 백그라운드 메시지 수신 핸들러
+// [CRITICAL FIX] FCM SDK가 webpush.notification 객체를 수신해 백그라운드에서 자동으로 시스템 알림을 표시하므로,
+// onBackgroundMessage 내부에서 showNotification을 명시적으로 실행하면 2중 팝업이 뜹니다.
+// 이 리스너는 수신 로그 출력 및 디버깅용으로만 제한하고 수동으로 알림은 띄우지 않습니다.
 messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] Background Message:', payload);
-
-  const title = payload.data?.title || payload.notification?.title || 'RAON.I 알림';
-  const body = payload.data?.body || payload.notification?.body || '';
-
-  const isReservation = String(payload.data?.event_type).startsWith('reservation');
-  const heroImage = payload.data?.hero_image || (
-    (String(payload.data?.event_type).startsWith('upcoming_stay') || isReservation)
-    ? '/images/reminder_hero.png'
-    : undefined
-  );
-
-  const notificationOptions = {
-    body: body,
-    icon: '/icons/icon-192.png',   // 공식 캐릭터 로고
-    badge: '/badge.png',           // 투명 단색 아이콘
-    image: heroImage,               // 큰 전경 이미지
-    tag: payload.data?.event_type || 'raoni-notification',
-    renotify: true,
-    requireInteraction: isReservation,
-    data: {
-      link: payload.data?.link || '/notifications',
-      ...payload.data
-    }
-  };
-
-  // Vibration for Samsung/Galaxy
-  if (navigator.vibrate) {
-    navigator.vibrate([200, 100, 200]);
-  }
-
-  return self.registration.showNotification(title, notificationOptions);
+  console.log('[SW] Background Message Received:', payload);
+  // (수동 showNotification 제거 완료 - FCM SDK 자동 팝업에 전적으로 위임)
 });
 
 // 서비스 워커 설치 이벤트
