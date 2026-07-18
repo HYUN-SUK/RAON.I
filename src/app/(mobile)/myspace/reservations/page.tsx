@@ -69,26 +69,36 @@ export default function MyReservationsPage() {
         loadAll();
     }, [loadAll]);
 
-    // 통합 리스트: 예약 + 일정 시간순 정렬
+    // 통합 리스트: 예약 + 일정 시간순 정렬 (날짜 유효성 검증 적용)
     const unifiedList = useMemo(() => {
         const items: UnifiedItem[] = [];
 
         // 예약 추가
         reservations.forEach(r => {
-            items.push({
-                type: 'reservation',
-                data: r,
-                checkIn: new Date(r.checkInDate)
-            });
+            if (r.checkInDate) {
+                const parsed = new Date(r.checkInDate);
+                if (!isNaN(parsed.getTime())) {
+                    items.push({
+                        type: 'reservation',
+                        data: r,
+                        checkIn: parsed
+                    });
+                }
+            }
         });
 
         // 일정 추가
         schedules.forEach(s => {
-            items.push({
-                type: 'schedule',
-                data: s,
-                checkIn: parseISO(s.check_in)
-            });
+            if (s.check_in) {
+                const parsed = parseISO(s.check_in);
+                if (!isNaN(parsed.getTime())) {
+                    items.push({
+                        type: 'schedule',
+                        data: s,
+                        checkIn: parsed
+                    });
+                }
+            }
         });
 
         // 체크인 날짜 기준 정렬 (최신순 = 가장 가까운 날짜가 위로)

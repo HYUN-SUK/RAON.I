@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -124,8 +124,19 @@ export default function ScheduleDetailPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const checkIn = schedule ? parseISO(schedule.check_in) : new Date();
-    const checkOut = schedule ? parseISO(schedule.check_out) : new Date();
+    // [v11.9.88] 날짜 유효성 검증 적용하여 Invalid Date로 인한 RangeError 크래시 원천 차단
+    const checkIn = useMemo(() => {
+        if (!schedule?.check_in) return new Date();
+        const parsed = parseISO(schedule.check_in);
+        return isNaN(parsed.getTime()) ? new Date() : parsed;
+    }, [schedule]);
+
+    const checkOut = useMemo(() => {
+        if (!schedule?.check_out) return new Date();
+        const parsed = parseISO(schedule.check_out);
+        return isNaN(parsed.getTime()) ? new Date() : parsed;
+    }, [schedule]);
+
     const daysUntil = schedule ? differenceInDays(checkIn, today) : 999;
     const nights = schedule ? differenceInDays(checkOut, checkIn) : 0;
     const isWeatherEnabled = schedule ? (daysUntil <= 10) : false;
