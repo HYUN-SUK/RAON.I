@@ -90,13 +90,26 @@ export default function ScheduleDetailPage() {
     const [travelType, setTravelType] = useState<'camping' | 'general'>('general');
     const isPro = userId === DEV_PRO_USER_ID;
 
+    const [isUserLoading, setIsUserLoading] = useState(true);
+
+    useEffect(() => {
+        // 최초 상세페이지 진입 시 Next.js Client-side Router Cache 강제 무효화
+        router.refresh();
+    }, [router]);
+
     useEffect(() => {
         const fetchUser = async () => {
-            const supabase = createClient();
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user?.id) {
-                setUserId(session.user.id);
-                setUserEmail(session.user.email);
+            try {
+                const supabase = createClient();
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.id) {
+                    setUserId(session.user.id);
+                    setUserEmail(session.user.email);
+                }
+            } catch (e) {
+                console.error('Fetch user session error:', e);
+            } finally {
+                setIsUserLoading(false);
             }
         };
         fetchUser();
@@ -317,8 +330,10 @@ export default function ScheduleDetailPage() {
     }, [scheduleId]);
 
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        if (!isUserLoading) {
+            loadData();
+        }
+    }, [loadData, isUserLoading]);
 
     // [v11.9.32] 저장된 스마트 플랜 데이터가 있다면 자동으로 표시 (복구)
     useEffect(() => {
@@ -387,7 +402,7 @@ export default function ScheduleDetailPage() {
     };
 
     // 로딩 상태
-    if (!isMounted || isLoading) {
+    if (!isMounted || isLoading || isUserLoading) {
         return (
             <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />

@@ -44,17 +44,29 @@ function parseCamfitMessage(message: string): ParsedCamfitMessage {
     const externalId = externalIdMatch[1];
 
     if (type === 'CANCEL') {
-        // 취소 시에는 최소한의 정보만 추출하여 반환 (매칭/취소 갱신 목적)
+        // 취소 시에는 최소한의 정보만 추출하되, 날짜와 사이트명 정보가 있으면 획득 시도
         const guestInfoMatch = message.match(/고객정보\s*:\s*([^\s\/]+)\s*\/\s*([\d-]+)/);
         const guestName = guestInfoMatch ? guestInfoMatch[1].trim() : '';
         const guestPhone = guestInfoMatch ? guestInfoMatch[2].trim() : '';
         
+        const campingZoneMatch = message.match(/캠핑존\s*:\s*(.+)/);
+        let siteName = '';
+        if (campingZoneMatch) {
+            const campingZoneRaw = campingZoneMatch[1];
+            const parts = campingZoneRaw.split('/');
+            siteName = (parts[1] || parts[0]).trim();
+        }
+
+        const dateMatches = message.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/g);
+        const checkIn = dateMatches && dateMatches[0] ? new Date(dateMatches[0].replace(/\//g, '-')) : new Date();
+        const checkOut = dateMatches && dateMatches[1] ? new Date(dateMatches[1].replace(/\//g, '-')) : new Date();
+
         return {
             type,
             externalId,
-            siteName: '',
-            checkIn: new Date(),
-            checkOut: new Date(),
+            siteName,
+            checkIn,
+            checkOut,
             nights: 0,
             guestName,
             guestPhone,
@@ -198,7 +210,7 @@ export async function POST(req: NextRequest) {
             console.warn('[CamfitWebhook] profiles query fallback:', err);
         }
 
-        if (type !== 'CANCEL') {
+        if (type !== 'CANCEL' || siteName) {
             // DB 내 전체 sites를 불러와 상호명을 공백 없이 3단계 비교
             const { data: dbSites } = await supabase.from('sites').select('id, name');
             if (dbSites) {
@@ -225,7 +237,7 @@ export async function POST(req: NextRequest) {
                 }
             }
 
-            if (!mappedSiteId) {
+            if (!mappedSiteId && type !== 'CANCEL') {
                 throw new Error(`사이트 매핑 실패: DB에서 '${siteName}'에 해당하는 구역명을 매칭하지 못했습니다.`);
             }
         }
@@ -343,14 +355,18 @@ export async function POST(req: NextRequest) {
         } else if (type === 'CANCEL') {
             const { data: existing, error: selectErr } = await supabase
                 .from('reservations')
-                .select('id')
+                .select('id, site_id, check_in_date')
                 .filter('guest_details->>external_reservation_id', 'eq', externalId)
                 .limit(1);
-
+ 
             if (selectErr) {
                 throw new Error(`취소 대상 예약 조회 실패: ${selectErr.message}`);
             }
-
+ 
+            let isReservationCancelled = false;
+            let targetSiteId = mappedSiteId;
+            let targetCheckInStr = checkIn ? formatLocalDate(checkIn) : '';
+ 
             if (existing && existing.length > 0) {
                 const { error: updateErr } = await supabase
                     .from('reservations')
@@ -360,12 +376,41 @@ export async function POST(req: NextRequest) {
                         cancelled_at: new Date()
                     })
                     .eq('id', existing[0].id);
-
+ 
                 if (updateErr) {
                     throw new Error(`예약 취소 변경 실패: ${updateErr.message}`);
                 }
-            } else {
-                throw new Error(`취소 결함: 캠핏 예약번호 ${externalId}에 해당하는 기존 예약을 찾을 수 없습니다.`);
+                isReservationCancelled = true;
+                targetSiteId = existing[0].site_id;
+                targetCheckInStr = existing[0].check_in_date;
+            }
+ 
+            // 2. 자체 차단일(blocked_dates) 해제 연동 시도
+            let isBlockReleased = false;
+            if (targetSiteId && targetCheckInStr) {
+                const { data: blocks } = await supabase
+                    .from('blocked_dates')
+                    .select('id')
+                    .eq('site_id', targetSiteId)
+                    .eq('start_date', targetCheckInStr);
+ 
+                if (blocks && blocks.length > 0) {
+                    const { error: deleteBlockErr } = await supabase
+                        .from('blocked_dates')
+                        .delete()
+                        .eq('id', blocks[0].id);
+ 
+                    if (deleteBlockErr) {
+                        console.error('[CamfitWebhook] Failed to delete blocked date:', deleteBlockErr);
+                    } else {
+                        console.log(`[CamfitWebhook] Successfully released blocked date (Site: ${targetSiteId}, Date: ${targetCheckInStr})`);
+                        isBlockReleased = true;
+                    }
+                }
+            }
+ 
+            if (!isReservationCancelled && !isBlockReleased) {
+                throw new Error(`취소 결함: 캠핏 예약번호 ${externalId}에 해당하는 기존 예약이나 차단 정보를 식별하여 처리할 수 없습니다.`);
             }
         }
 
