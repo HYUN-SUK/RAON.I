@@ -309,29 +309,46 @@ export default function ScheduleDetailPage() {
         }
     };
 
-    // 데이터 로드
-    const loadData = useCallback(async () => {
-        setIsLoading(true);
+    // 데이터 로드 (세션 레이싱 방지를 위한 1회 자동 재시도 패턴)
+    const loadData = useCallback(async (retryCount = 0) => {
+        if (retryCount === 0) {
+            setIsLoading(true);
+        }
         try {
             const [scheduleData, checklistData] = await Promise.all([
                 getScheduleById(scheduleId),
                 getChecklist(scheduleId),
             ]);
+
+            // 일시적인 백그라운드 세션 갱신 충돌로 데이터를 가져오지 못한 경우, 800ms 후 1회 재시도
+            if (!scheduleData && retryCount === 0) {
+                console.warn(`[ScheduleDetail] Schedule data is null. Retrying in 800ms... (Attempt 1)`);
+                setTimeout(() => {
+                    loadData(1);
+                }, 800);
+                return;
+            }
+
             setSchedule(scheduleData);
             setChecklist(checklistData);
-
-
+            setIsLoading(false);
         } catch (error) {
             console.error('Load schedule detail error:', error);
-            toast.error('일정을 불러오는데 실패했어요');
-        } finally {
-            setIsLoading(false);
+            if (retryCount === 0) {
+                console.warn(`[ScheduleDetail] Load failed with error. Retrying in 800ms...`);
+                setTimeout(() => {
+                    loadData(1);
+                }, 800);
+            } else {
+                toast.error('일정을 불러오는데 실패했어요');
+                setIsLoading(false);
+            }
         }
     }, [scheduleId]);
 
     useEffect(() => {
         if (!isUserLoading) {
-            loadData();
+            loadData(0);
         }
     }, [loadData, isUserLoading]);
 
