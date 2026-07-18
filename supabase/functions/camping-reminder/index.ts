@@ -157,13 +157,15 @@ async function getScoredGearRecommendations(
 // ==========================================
 // TOURISM API / EVENT DISCOVERY
 // ==========================================
-async function getNearbyEvents(lat: number, lng: number, radiusKm: number = 30): Promise<any[]> {
+async function getNearbyEvents(lat: number, lng: number, radiusKm: number = 30, tripStart?: string, tripEnd?: string): Promise<any[]> {
     if (!TOUR_KEY) return [];
 
     try {
         const today = new Date();
         const kstDate = new Date(today.getTime() + 9 * 3600000);
         const todayStr = kstDate.toISOString().split('T')[0].replace(/-/g, '');
+        const startStr = tripStart ? tripStart.replace(/-/g, '') : '';
+        const endStr = tripEnd ? tripEnd.replace(/-/g, '') : '';
 
         const { data: cacheHit } = await supabase
             .from('nearby_cache')
@@ -186,7 +188,9 @@ async function getNearbyEvents(lat: number, lng: number, radiusKm: number = 30):
                 title: item.title,
                 addr: item.addr1,
                 lat: parseFloat(item.mapy),
-                lng: parseFloat(item.mapx)
+                lng: parseFloat(item.mapx),
+                startDate: item.eventstartdate,
+                endDate: item.eventenddate
             }));
 
             supabase.from('nearby_cache').upsert({ region_code: 'ALL', base_date: todayStr, data: allEvents }).then();
@@ -195,8 +199,15 @@ async function getNearbyEvents(lat: number, lng: number, radiusKm: number = 30):
         return allEvents.map(e => {
             const dist = calculateDistance(lat, lng, e.lat, e.lng);
             return { ...e, dist };
-        }).filter(e => e.dist <= radiusKm)
-            .sort((a, b) => a.dist - b.dist);
+        }).filter(e => {
+            const isWithinRadius = e.dist <= radiusKm;
+            if (!isWithinRadius) return false;
+
+            if (startStr && endStr && e.startDate && e.endDate) {
+                return !(e.endDate < startStr || e.startDate > endStr);
+            }
+            return true;
+        }).sort((a, b) => a.dist - b.dist);
 
     } catch (err) {
         console.error("[Events] Error:", err);
@@ -510,8 +521,8 @@ async function getMultiDayForecast(lat: number, lng: number, options: { forceCac
 
             // Dynamic mid-term regions based on user's exact coordinates!
             const { landRegId, taRegId } = getMidTermRegionCodes(lat, lng);
-            const urlLand = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=${landRegId}&tmFc=${midTmFc}`;
-            const urlTa = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa?serviceKey=${encodeURIComponent(KMA_KEY)}&pageNo=1&numOfRows=10&dataType=JSON&regId=${taRegId}&tmFc=${midTmFc}`;
+            const urlLand = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=${KMA_KEY}&pageNo=1&numOfRows=10&dataType=JSON&regId=${landRegId}&tmFc=${midTmFc}`;
+            const urlTa = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa?serviceKey=${KMA_KEY}&pageNo=1&numOfRows=10&dataType=JSON&regId=${taRegId}&tmFc=${midTmFc}`;
 
             const midController = new AbortController();
             const midTimeoutId = setTimeout(() => midController.abort(), 4000);
@@ -863,7 +874,7 @@ serve(async (req: any) => {
             }
             // D-0: Today is the day!
             else if (s.check_in === today && !s.notification_d0_sent) {
-                const events = await getNearbyEvents(lat, lng, 30);
+                const events = await getNearbyEvents(lat, lng, 30, s.check_in, s.check_out);
                 let eventText = "주변에 예정된 행사가 없어요~ 조용한 캠핑을 즐겨보세요!";
                 if (events.length > 0) {
                     eventText = `근처에서 행사가 열리고 있어요!\n` +
