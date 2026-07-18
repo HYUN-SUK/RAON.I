@@ -367,12 +367,17 @@ export async function POST(req: NextRequest) {
             let targetSiteId = mappedSiteId;
             let targetCheckInStr = checkIn ? formatLocalDate(checkIn) : '';
  
+            // 문자열 본문에 '미입금' 포함 여부에 따라 취소 사유 세분화
+            const cancelReasonText = messageRaw.includes('미입금') 
+                ? '미입금 자동 취소' 
+                : '캠핏 예약 취소 알림 수신';
+ 
             if (existing && existing.length > 0) {
                 const { error: updateErr } = await supabase
                     .from('reservations')
                     .update({
                         status: 'CANCELLED',
-                        cancel_reason: '캠핏 예약 취소 알림 수신',
+                        cancel_reason: cancelReasonText,
                         cancelled_at: new Date()
                     })
                     .eq('id', existing[0].id);
