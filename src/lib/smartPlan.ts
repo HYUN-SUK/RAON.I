@@ -1100,6 +1100,10 @@ export async function generatePersonalizedSmartPlan(
                                 currentMaxWind = wsdVal;
                             }
                         }
+                        if (t.reh !== undefined && t.reh !== null) {
+                            totalHumidity += Number(t.reh);
+                            humidityCount++;
+                        }
                         const ptyVal = typeof t.pty === 'string' ? parseInt(t.pty) : t.pty;
                         if (ptyVal === 1 || ptyVal === 2) hasRain = true;
                         if (ptyVal === 3) hasSnow = true;
@@ -1269,37 +1273,7 @@ export async function generatePersonalizedSmartPlan(
                     flowComment = `특히 일정 중에 ${rawComment}`;
                 }
 
-                // 4) 지능형 습도 코멘트 분기
-                let humidComment = "";
-                if (avgHumidity >= 75) {
-                    humidComment = tempState === 'HOT'
-                        ? `다만 습도가 ${avgHumidity}%로 높은 편이라 다소 후텁지근할 수 있으니 땀을 식혀줄 쾌적한 실내 코스를 동선에 가미해 보세요.`
-                        : `습도가 ${avgHumidity}%로 눅눅한 대기이지만 피톤치드가 한층 진하게 번져 숲내음은 더 깊게 와닿습니다.`;
-                } else if (avgHumidity <= 35) {
-                    humidComment = `습도가 ${avgHumidity}%로 조금 바스락거리는 건조함이 있어 야외 모닥불의 작은 불씨를 소중히 돌봐주세요.`;
-                } else {
-                    humidComment = `공기가 가볍고 투명한 습도 ${avgHumidity}% 상태라 텐트 문을 열어두고 뒹굴뒹굴 쉬어가기에 더없이 쾌적합니다.`;
-                }
-
-                // 5) 지능형 풍속 코멘트 분기 (온도 융합)
-                let windComment = "";
-                if (maxWindSpeed >= 8) {
-                    windComment = tempState === 'COLD'
-                        ? `바람마저 초속 ${maxWindSpeed}m/s 강풍으로 세차게 불어 체감온도가 급격히 낮아지니 견고한 실내에서 머무르시길 강력히 권해요.`
-                        : `바람이 초속 ${maxWindSpeed}m/s로 세차게 부니 텐트 팩을 단단히 고정하고 야외 화기 사용에 유의해 주세요.`;
-                } else if (maxWindSpeed >= 4) {
-                    windComment = tempState === 'HOT'
-                        ? `초속 ${maxWindSpeed}m/s의 선선한 바람이 불어와 뜨거운 한낮의 더위를 기분 좋게 흩뜨려 줍니다.`
-                        : `바람이 초속 ${maxWindSpeed}m/s로 제법 서늘하게 스치니 가벼운 아우터를 챙겨서 야외 활동을 시작해 보세요.`;
-                } else {
-                    windComment = tempState === 'HOT'
-                        ? `바람은 초속 ${maxWindSpeed}m/s 잔잔한 미풍으로 불어 더위를 식히기엔 조금 아쉬우니 시원한 그늘 숲길 위주로 걸어보세요.`
-                        : tempState === 'COLD'
-                        ? `다행히 바람은 초속 ${maxWindSpeed}m/s 미풍으로 잔잔하여 차가운 겨울 공기 속에서도 온기를 지키기 좋습니다.`
-                        : `바람은 초속 ${maxWindSpeed}m/s 잔잔한 미풍으로 불어와 야외에서 조용히 사색을 즐기며 머무르기 참 곱습니다.`;
-                }
-
-                // 6) 변수 수혈 보정 헬퍼 적용
+                // 4) 변수 수혈 보정 헬퍼 적용
                 const bindVariables = (str: string): string => {
                     return str
                         .replace(/\${pop}/g, String(maxPop))
@@ -1312,24 +1286,19 @@ export async function generatePersonalizedSmartPlan(
 
                 mainNarrative = bindVariables(mainNarrative);
                 flowComment = bindVariables(flowComment);
-                humidComment = bindVariables(humidComment);
-                windComment = bindVariables(windComment);
 
-                // KST 기준 D-Day 계산
-                const dNowKST = new Date();
-                const dToday = new Date(dNowKST.getFullYear(), dNowKST.getMonth(), dNowKST.getDate());
-                const dStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-                const dDiff = Math.round((dStart.getTime() - dToday.getTime()) / (24 * 60 * 60 * 1000));
-                const isShortTerm = dDiff <= 3;
+                // 블록 간 감성 접속사 선택
+                const bridges = [
+                    "반가운 소식이라면 여행지에는",
+                    "이때 여행지의 하늘을 살펴보니",
+                    "게다가 기분 좋게도 여행지에는",
+                    "한편 이번 여정 동안 여행지에는",
+                    "마침 소중한 발걸음이 향할 여행지에는"
+                ];
+                const bridge = bridges[Math.floor(Math.random() * bridges.length)];
 
-                // 최종 3단계 조립 (단기 예보일 때만 습도와 풍속 결합하여 신뢰도 극대화, 마침 접속 조사 삽입)
-                weatherNarrative = `마침 여행지에는 ${mainNarrative}` +
-                    (flowComment ? ` ${flowComment}` : '') +
-                    (isShortTerm ? ` ${humidComment} ${windComment}` : '');
-
-                if (isShortTerm) {
-                    weatherNarrative += ` (실시간 평균 풍속 초속 ${avgWindSpeed}m/s, 최고 풍속 초속 ${maxWindSpeed}m/s 예보)`;
-                }
+                // 최종 2세대 융합 조립 (습도/풍속은 mainNarrative에 이미 녹아 있음. 괄호 표기 제거.)
+                weatherNarrative = `${bridge} ${mainNarrative}` + (flowComment ? ` ${flowComment}` : '');
             }
 
             // F. 조립 블록 4: 사용자 선호 행동 취향 태그 코멘트 결합

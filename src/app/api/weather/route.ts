@@ -47,6 +47,7 @@ interface TimelineWeather {
     pop: number;
     wsd?: number;
     vec?: number;
+    reh?: number;
     weatherCode: string;
 }
 
@@ -287,6 +288,7 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
         pop: number;
         wsd?: number;
         vec?: number;
+        reh?: number;
         isDaytime: boolean;
     }
 
@@ -330,6 +332,7 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
         if (item.category === 'POP') t.pop = parseInt(item.fcstValue || '0');
         if (item.category === 'WSD') t.wsd = parseFloat(item.fcstValue || '0');
         if (item.category === 'VEC') t.vec = parseFloat(item.fcstValue || '0');
+        if (item.category === 'REH') t.reh = parseFloat(item.fcstValue || '0');
 
         // Is Daytime? (0600 ~ 1800 roughly) - simple logic based on time
         if (parseInt(time) >= 600 && parseInt(time) <= 1900) t.isDaytime = true;
@@ -366,6 +369,7 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
             pop: t.pop,
             wsd: t.wsd,
             vec: t.vec,
+            reh: t.reh,
             weatherCode: t.pty > 0
                 ? (t.pty === 3 ? 'snowy' : 'rainy')
                 : (t.sky >= 4 ? 'cloudy' : (t.sky >= 3 ? 'partly_cloudy' : 'sunny'))
