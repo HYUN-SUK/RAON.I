@@ -868,3 +868,11 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 * [x] **바텀 시트 타이틀 텍스트 통일**: 새로운 일정 등록 시트의 명칭을 기존의 제한적인 `'새 캠핑 일정'`에서 범용적인 `'새로운 여행 등록'`으로 일괄 교체 완료.
 * [x] **구글 플레이스토어 검증용 도메인 소유권 승인 완료**: `layout.tsx` 내 metadata에 구글 서치 콘솔 인증용 검증 키를 추가 주입하고 빌드를 완료하여 플레이스토어 심사 통과를 보장함.
 
+### [2026-07-18 Update]
+* [x] **Vercel 빌드 무결성 복구 및 홈 화면 X안 적용**: `route.ts` Supabase 쿠키 옵션 널 가드 스프레드 적용으로 빌드 차단 해결. 초보자 홈 화면 뒷배경 백색화(`bg-white`) 및 카드 3종 최종 X안("Fresh Sage & Sweet Warmth" - 세이지 그린, 선샤인 앰버, 살구 코랄) 비주얼 완성.
+* [x] **홈 화면 히어로 여백 반감 및 적정 수준 복원**: 인삿말 윗부분 여백(배너 세로 높이)을 최상단 공지/알림 바 공간을 확보하기 위해 42vh / 380px 수준으로 보완 및 복원 완료. 라온아이 텍스트 하단 마진을 `mb-8`로 절반 축소하여 시각적 가독성 개선.
+* [x] **ESLint explicit-any 타입 린트 에러 해결**: `BeginnerHome.tsx` 내 명시적 `as any` 구문 4개를 `as unknown` 캐스팅 기법으로 대체 수정하여 빌드를 중단시키는 크리티컬 린트 에러를 완전히 0개로 소멸시켰습니다.
+* [x] **FCM 푸시알림 기상청 중기 날씨 버그 해결**: Supabase Edge Function `camping-reminder` 내의 중기 날씨 API 호출 시 서비스키 인코딩(`encodeURIComponent`) 문제를 제거하여 디코딩 키 원본 전달로 교체, 기상청 `NO_DATA` 갱신 오류 완벽 해결.
+* [x] **축제 일정 오버랩 날짜 필터링 도입**: 반경 30km 내 거리 필터 외에, 실제 여행 기간과 축제 개최 기간이 겹치는지 판단하는 일정 오버랩 필터 식 `!(e.endDate < startStr || e.startDate > endStr)` 구현 및 적용 완료.
+* [x] **Supabase 배포 및 Secrets 적용**: 수정한 Edge Function `camping-reminder`를 Supabase에 Deployed 완료 및 Secrets 환경변수(`KMA_SERVICE_KEY`, `TOUR_API_KEY`) 주입 완료.
+

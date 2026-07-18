@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Phone, Map, Mountain, Tag, Tent, Clock, Wifi, ShoppingBag, Siren, ChefHat, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
+import { Navigation, Phone, Map, Mountain, Tag, Tent, Clock, ChefHat, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import SlimNotice from '@/components/home/SlimNotice';
@@ -39,7 +38,6 @@ import { useMySpaceStore } from '@/store/useMySpaceStore';
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
-type RecommendationPoolItem = Database['public']['Tables']['recommendation_pool']['Row'];
 
 // Simplified types for component usage
 interface BeginnerChip {
@@ -52,16 +50,6 @@ interface BeginnerChip {
     actionLabel?: string;
     actionLink?: string;
     isPriceGuide?: boolean;
-}
-
-interface Facility {
-    title?: string;
-    description?: string;
-    category?: string;
-    name: string;
-    phone?: string;
-    lat?: number;
-    lng?: number;
 }
 
 // Flexible recommendation item for UI
@@ -97,7 +85,7 @@ export default function BeginnerHome() {
     const [isMounted, setIsMounted] = useState(false);
 
     // Contextual Data
-    const { reservations, fetchMyReservations, openDayRule, fetchOpenDayRule } = useReservationStore();
+    const { fetchMyReservations, openDayRule, fetchOpenDayRule } = useReservationStore();
 
     // Accordion States
     const [isIntroExpanded, setIsIntroExpanded] = useState(false);
@@ -105,21 +93,10 @@ export default function BeginnerHome() {
     const [sosoCareSheetOpen, setSosoCareSheetOpen] = useState(false);
 
     const [isRecordOpen, setIsRecordOpen] = useState(false);
-    const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
+    const { unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
     const { isMapOpen, setIsMapOpen } = useMySpaceStore();
 
-    // 다가오는 예약 판단 (체크아웃이 오늘 이후이면서 승인/대기 중인 예약)
-    const hasUpcoming = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return reservations.some(r => {
-            const checkOut = new Date(r.checkOutDate);
-            checkOut.setHours(0, 0, 0, 0);
-            return checkOut > today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
-        });
-    }, [reservations]);
-
-    const { data: recData, loading: recLoading, weather, shuffle } = usePersonalizedRecommendation(false);
+    const { data: recData, weather, shuffle } = usePersonalizedRecommendation(false);
     const { requestPermission } = usePushNotification();
 
     React.useEffect(() => {
@@ -307,6 +284,7 @@ export default function BeginnerHome() {
         setDetailSheetOpen(true);
     }, [config]);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleRecommendationClick = useCallback((item: RecommendationItem, reason?: string) => {
         withAuth(async () => {
             const supabase = createClient();
