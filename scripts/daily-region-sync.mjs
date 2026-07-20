@@ -352,30 +352,36 @@ async function dailyRegionSync() {
   const shortSido = SIDO_SHORT_MAP[targetSido] || targetSido;
   const aliases = SIDO_ALIASES[shortSido] || [targetSido];
 
+  // 페이지네이션 기반 정확 카운트 함수 (count:'exact' HTTP 500 타임아웃 방지)
+  // queryFn은 .select('id')까지 체이닝된 쿼리빌더를 반환해야 함
+  async function paginatedCount(queryFn) {
+    let total = 0;
+    let page = 0;
+    const PAGE_SIZE = 1000;
+    while (true) {
+      const { data, error } = await queryFn().range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      if (error) { console.error(`  ⚠️  [PaginatedCount Error]:`, error.message); break; }
+      if (!data || data.length === 0) break;
+      total += data.length;
+      if (data.length < PAGE_SIZE) break;
+      page++;
+    }
+    return total;
+  }
+
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count: actCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
-    const { count: inactCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', false);
-    stats.categories[key].existing.active += (actCount || 0);
-    stats.categories[key].existing.inactive += (inactCount || 0);
+    const actCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', true));
+    const inactCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', false));
+    stats.categories[key].existing.active += actCount;
+    stats.categories[key].existing.inactive += inactCount;
   }
 
   // ENRICHMENT 사전 카운트
-  const { count: enrichActCount } = await supabase
-    .from('master_places')
-    .select('*', { count: 'exact', head: true })
-    .in('sido', aliases)
-    .eq('is_active', true)
-    .not('raw_data->>operating_hours', 'is', null);
+  const enrichActCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', true).not('raw_data->>operating_hours', 'is', null));
+  const enrichInactCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', false).not('raw_data->>operating_hours', 'is', null));
 
-  const { count: enrichInactCount } = await supabase
-    .from('master_places')
-    .select('*', { count: 'exact', head: true })
-    .in('sido', aliases)
-    .eq('is_active', false)
-    .not('raw_data->>operating_hours', 'is', null);
-
-  stats.categories.ENRICHMENT.existing.active = enrichActCount || 0;
-  stats.categories.ENRICHMENT.existing.inactive = enrichInactCount || 0;
+  stats.categories.ENRICHMENT.existing.active = enrichActCount;
+  stats.categories.ENRICHMENT.existing.inactive = enrichInactCount;
 
   const seenIds = new Set();
 
@@ -560,36 +566,35 @@ async function dailyRegionSync() {
     }
     if (toDeactivate.length > 0) {
       console.log(`  🚫 [${key}] 3회 미노출로 인한 비활성화: ${toDeactivate.length}건`);
-      await supabase.from('master_places').update({ is_active: false, miss_count: 0 }).in('id', toDeactivate);
+      // [CRITICAL FIX] Supabase URL length limit 방어 (100개씩 청킹하여 업데이트)
+      for (let i = 0; i < toDeactivate.length; i += 100) {
+        const chunkIds = toDeactivate.slice(i, i + 100);
+        const { error: updateErr } = await supabase.from('master_places').update({ is_active: false, miss_count: 0 }).in('id', chunkIds);
+        if (updateErr) {
+          throw new Error(`[CRITICAL] Deactivation Failed for chunk: ${updateErr.message}`);
+        }
+      }
       stats.categories[key].updated.inactive += toDeactivate.length; // 비활성화도 상태 변경이므로 업데이트에 합산
     }
   }
 
   // 5. 최종 데이터 건수 리프레시 및 로그 기록
+  console.log(`⏳ DB 동기화 완료 대기 중 (2초)...`);
+  await delay(2000);
+  
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count: actCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
-    const { count: inactCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', false);
-    stats.categories[key].total.active = (actCount || 0);
-    stats.categories[key].total.inactive = (inactCount || 0);
+    const actCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', true));
+    const inactCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', false));
+    stats.categories[key].total.active = actCount;
+    stats.categories[key].total.inactive = inactCount;
   }
 
   // ENRICHMENT 사후 최종 카운트
-  const { count: enrichActTotal } = await supabase
-    .from('master_places')
-    .select('*', { count: 'exact', head: true })
-    .in('sido', aliases)
-    .eq('is_active', true)
-    .not('raw_data->>operating_hours', 'is', null);
+  const enrichActTotal = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', true).not('raw_data->>operating_hours', 'is', null));
+  const enrichInactTotal = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', false).not('raw_data->>operating_hours', 'is', null));
 
-  const { count: enrichInactTotal } = await supabase
-    .from('master_places')
-    .select('*', { count: 'exact', head: true })
-    .in('sido', aliases)
-    .eq('is_active', false)
-    .not('raw_data->>operating_hours', 'is', null);
-
-  stats.categories.ENRICHMENT.total.active = enrichActTotal || 0;
-  stats.categories.ENRICHMENT.total.inactive = enrichInactTotal || 0;
+  stats.categories.ENRICHMENT.total.active = enrichActTotal;
+  stats.categories.ENRICHMENT.total.inactive = enrichInactTotal;
   
   // 6. [SOP v11.4] 전국 명소 인기도 순환 갱신 (TMAP/KT 기반 고도화)
   await updateSpotPopularity(targetSido, stats);
