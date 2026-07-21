@@ -39,25 +39,12 @@ export function getKakaoMapUrl({ destination, waypoints }: FullRouteParams) {
  * 카카오내비 딥링크 생성 (kakaonavi://navigate)
  */
 export function getKakaoNaviUrl({ destination }: FullRouteParams) {
-    const appKey = '0de009e54e7ffaf137832064c797f650';
+    const name = encodeURIComponent(destination.name);
+    const lat = destination.lat.toFixed(6);
+    const lng = destination.lng.toFixed(6);
     
-    // [v11.9.103] param 내부에서 coord_type을 제거하고, 순수 목적지 정보만 JSON으로 묶음
-    const paramObj = {
-        destination: {
-            name: destination.name,
-            x: Number(destination.lng.toFixed(6)),
-            y: Number(destination.lat.toFixed(6))
-        }
-    };
-    const paramStr = encodeURIComponent(JSON.stringify(paramObj));
-    
-    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
-    if (isAndroid) {
-        // coord_type=wgs84를 URL 바깥 쿼리 파라미터로 명확하게 교정하여 전송
-        return `intent://navigate?apiver=1.0&appkey=${appKey}&param=${paramStr}&coord_type=wgs84#Intent;scheme=kakaonavi;package=com.locnall.KimGiSa;end`;
-    }
-    
-    return `kakaonavi://navigate?apiver=1.0&appkey=${appKey}&param=${paramStr}&coord_type=wgs84`;
+    // [v11.9.104] 차단된 원시 kakaonavi:// 스키마 대신 카카오 모빌리티 공식 길안내 딥링크 적용
+    return `https://map.kakao.com/link/to/${name},${lat},${lng}`;
 }
 
 /**
