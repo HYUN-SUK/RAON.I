@@ -39,7 +39,7 @@ export function getKakaoMapUrl({ destination, waypoints }: FullRouteParams) {
  * 카카오내비 딥링크 생성 (kakaonavi://navigate)
  */
 export function getKakaoNaviUrl({ destination }: FullRouteParams) {
-    const appKey = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY || '';
+    const appKey = '0de009e54e7ffaf137832064c797f650';
     
     // [v11.9.102] 목적지 정보를 JSON으로 규격화하여 param 단일 인자로 묶어 전송 (공식 표준 가이드)
     const paramObj = {
