@@ -260,4 +260,14 @@
     - [x] `camping-reminder` Edge Function 내 기상청 중기예보 API 호출부(`urlLand`, `urlTa`)의 서비스키 인코딩(`encodeURIComponent`) 감싸기를 해제하여 디코딩 키 원본을 그대로 전송하도록 패치 (기상청 `NO_DATA` 인증 실패 오류 최종 해결)
     - [x] 축제 추천 시 사용자의 실제 캠핑 일정(체크인~체크아웃)과 각 축제의 개최 일정(시작일~종료일)이 실제로 겹치는지 판단하는 오버랩 필터 식 `!(e.endDate < startStr || e.startDate > endStr)` 도입 완료
     - [x] D-0 알림 발송 시 해당 일정의 체크인/체크아웃 날짜를 `getNearbyEvents`에 주입 연동 완료
-    - [x] 로컬 API 응답 테스트 통과 및 수파베이스 Edge Function 배포(`supabase functions deploy`) 및 Secrets 환경변수 주입 완료
+    - [x] 로컬 API 응답 테스트 통과 및 수파베이스 Edge Function 배포(`supabase functions deploy`) 및 Secrets 환경변수 주입 완료
+- [x] **일일 지역 동기화(경기도) 안심식당 기존/최종 데이터 0건 노출 오류 긴급 패치 (이번 세션 완료)**
+    - [x] 사전/사후 카운트 및 ENRICHMENT 카운트 시 복수 별칭 매칭(`.in('sido', aliases)`) 대신 표준화된 단일 시도명 매칭(`.eq('sido', targetSido)`)으로 인덱스 탐색 안전화 완료
+    - [x] 테이블이 수만 건 규모로 성장함에 따라 `count: 'exact'` 쿼리가 Supabase PostgREST 서버 측 타임아웃(HTTP 500)을 뱉는 버그 해결
+    - [x] 1,000건 단위의 페이지네이션(`.select('id').range()`)으로 전체 ID를 스캔하는 `paginatedCount()` 카운팅 아키텍처 도입 및 사전/사후 통계 완벽 집계 성공
+- [x] **TWA (Trusted Web Activity) 플레이스토어 정식 출시 심사 신청 완료 (이번 세션 완료)**
+    - [x] 구글 플레이 콘솔 내 조직/법인(Company) 계정을 통한 프로덕션(Production) 출시 트랙 진입 완료
+    - [x] 20명 테스터 모집 및 14일 대기 제약 면제 확인 및 프로덕션(정식 출시) 트랙 직행 세팅
+    - [x] 스토어 배너 규격 불일치(1024x1024px)였던 `feature_graphic.png` 파일을 정확히 `1024x500px` 한가운데(중앙부) 크롭 리사이징 패치하여 구글 정책 통과 성공
+    - [x] 광고 ID "사용하지 않음" 선언 완료 및 네임서버 미전파 상태인 도메인 우회를 위해 개인정보처리방침 URL에 실시간 접속 가능한 Vercel 원천 도메인(`https://raon-i.vercel.app/privacy-policy`) 임시 우회 연동
+    - [x] 구글 플레이 콘솔 정적 무결성 분석 완료 및 최종 **[검토 중인 변경사항]** 심사 전송 성공 완료
