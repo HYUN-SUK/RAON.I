@@ -367,16 +367,14 @@ export default function SmartPlanProposal({
         }
 
         const { name, lat, lng } = navTargetCard;
-        // [v11.9.49] 개별 장소 내비게이션도 통합 유틸 사용하도록 점진적 교체 고려 (현재는 기존 로직 유지하되 로그 추가)
         console.log(`[SmartPlan] Opening single card nav: ${app} to ${name}`);
         
-        if (app === 'kakao') {
-            window.open(`https://map.kakao.com/link/to/${name},${lat},${lng}`, '_blank');
-        } else if (app === 'tmap') {
-            window.open(`tmap://route?goalname=${encodeURIComponent(name)}&goallat=${lat}&goallng=${lng}`, '_blank');
-        } else if (app === 'kakaonavi') {
-            window.open(`kakaonavi://navigate?name=${encodeURIComponent(name)}&x=${lng}&y=${lat}&coord_type=wgs84`, '_blank');
-        }
+        // [v11.9.100] 개별 장소 카드 내비게이션도 통합 유틸 openNavApp 호출로 전격 전환
+        openNavApp(app, {
+            origin: { name: '현재 위치', lat: 0, lng: 0 },
+            destination: { name, lat, lng }
+        });
+
         setNavTargetCard(null);
     };
 

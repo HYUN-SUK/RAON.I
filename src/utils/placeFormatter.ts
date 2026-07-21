@@ -120,6 +120,35 @@ export function cleanOperatingHours(hoursStr: string): string {
 }
 
 /**
+ * 휴무일에서 구체적 일자(과거 날짜 등)를 제거하고 요일/주기만 정제
+ */
+export function cleanClosedDays(closedStr: string): string {
+  if (!closedStr) return '';
+
+  // 1. 날짜 패턴 제거
+  // - "YYYY-MM-DD" or "YYYY.MM.DD"
+  // - "M/D" or "M.D"
+  // - "M월 D일" or "D일"
+  let cleaned = closedStr
+    .replace(/\d{4}[-./]\d{1,2}[-./]\d{1,2}/g, '')
+    .replace(/\b\d{1,2}\/\d{1,2}\b/g, '')
+    .replace(/\b\d{1,2}\.\d{1,2}\b/g, '')
+    .replace(/\d{1,2}월\s*\d{1,2}일/g, '')
+    .replace(/\d{1,2}일/g, '')
+    .trim();
+
+  // 2. 빈 괄호 청소
+  cleaned = cleaned
+    .replace(/\(\s*\)/g, '')
+    .replace(/\[\s*\]/g, '')
+    .replace(/\{\s*\}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return cleaned;
+}
+
+/**
  * 전화번호 획득 헬퍼
  */
 export function getPlacePhoneNumber(place: PlaceFormatterInput): string {
@@ -180,7 +209,12 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
       const cleanHours = cleanOperatingHours(hours);
       parts.push(`⏰ ${cleanHours}`);
     }
-    if (hasRealClosed) parts.push(`🗓️ ${closed}`);
+    if (hasRealClosed) {
+      const cleanClosed = cleanClosedDays(closed);
+      if (cleanClosed) {
+        parts.push(`🗓️ ${cleanClosed}`);
+      }
+    }
     if (hasRealParking) parts.push(`🚗 주차 ${parking}`);
 
     // 식당/카페의 대표 메뉴 1개 추가 결합

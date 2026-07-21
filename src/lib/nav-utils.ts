@@ -42,7 +42,14 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
     const name = encodeURIComponent(destination.name);
     const x = destination.lng.toFixed(6);
     const y = destination.lat.toFixed(6);
-    return `kakaonavi://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84`;
+    const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY || '';
+    
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+        return `intent://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84&appkey=${appKey}#Intent;scheme=kakaonavi;package=com.locn.kakaonavi;end`;
+    }
+    
+    return `kakaonavi://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84&appkey=${appKey}`;
 }
 
 /**
@@ -51,6 +58,7 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
  */
 export function getTMapUrl({ destination, waypoints }: FullRouteParams) {
     const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     
     const gLat = destination.lat.toFixed(6);
     const gLon = destination.lng.toFixed(6);
@@ -74,6 +82,11 @@ export function getTMapUrl({ destination, waypoints }: FullRouteParams) {
             // 안드로이드 경유지 규격 (v1x, v1y)
             url += `&v1name=${encodeURIComponent('경유지')}&v1x=${vLon}&v1y=${vLat}`;
         }
+    }
+
+    // 안드로이드 크롬/TWA 환경일 경우 Intent URI 로 안전하게 래핑
+    if (isAndroid) {
+        return url.replace('tmap://', 'intent://') + '#Intent;scheme=tmap;package=com.skt.tmap.ku;end';
     }
 
     return url;
