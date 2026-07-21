@@ -41,23 +41,23 @@ export function getKakaoMapUrl({ destination, waypoints }: FullRouteParams) {
 export function getKakaoNaviUrl({ destination }: FullRouteParams) {
     const appKey = '0de009e54e7ffaf137832064c797f650';
     
-    // [v11.9.102] 목적지 정보를 JSON으로 규격화하여 param 단일 인자로 묶어 전송 (공식 표준 가이드)
+    // [v11.9.103] param 내부에서 coord_type을 제거하고, 순수 목적지 정보만 JSON으로 묶음
     const paramObj = {
         destination: {
             name: destination.name,
             x: Number(destination.lng.toFixed(6)),
             y: Number(destination.lat.toFixed(6))
-        },
-        coord_type: 'wgs84'
+        }
     };
     const paramStr = encodeURIComponent(JSON.stringify(paramObj));
     
     const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     if (isAndroid) {
-        return `intent://navigate?apiver=1.0&appkey=${appKey}&param=${paramStr}#Intent;scheme=kakaonavi;package=com.locnall.KimGiSa;end`;
+        // coord_type=wgs84를 URL 바깥 쿼리 파라미터로 명확하게 교정하여 전송
+        return `intent://navigate?apiver=1.0&appkey=${appKey}&param=${paramStr}&coord_type=wgs84#Intent;scheme=kakaonavi;package=com.locnall.KimGiSa;end`;
     }
     
-    return `kakaonavi://navigate?apiver=1.0&appkey=${appKey}&param=${paramStr}`;
+    return `kakaonavi://navigate?apiver=1.0&appkey=${appKey}&param=${paramStr}&coord_type=wgs84`;
 }
 
 /**
