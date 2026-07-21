@@ -46,7 +46,7 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
     
     const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     if (isAndroid) {
-        return `intent://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84&appkey=${appKey}#Intent;scheme=kakaonavi;package=com.locn.kakaonavi;end`;
+        return `intent://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84&appkey=${appKey}#Intent;scheme=kakaonavi;package=com.locnall.KimGiSa;end`;
     }
     
     return `kakaonavi://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84&appkey=${appKey}`;
