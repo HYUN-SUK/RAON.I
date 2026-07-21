@@ -42,14 +42,14 @@ export function getKakaoNaviUrl({ destination }: FullRouteParams) {
     const name = encodeURIComponent(destination.name);
     const x = destination.lng.toFixed(6);
     const y = destination.lat.toFixed(6);
-    const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY || '';
+    const appKey = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY || '';
     
     const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     if (isAndroid) {
-        return `intent://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84&appkey=${appKey}#Intent;scheme=kakaonavi;package=com.locnall.KimGiSa;end`;
+        return `intent://navigate?apiver=1.0&appkey=${appKey}&name=${name}&x=${x}&y=${y}&coord_type=wgs84#Intent;scheme=kakaonavi;package=com.locnall.KimGiSa;end`;
     }
     
-    return `kakaonavi://navigate?name=${name}&x=${x}&y=${y}&coord_type=wgs84&appkey=${appKey}`;
+    return `kakaonavi://navigate?apiver=1.0&appkey=${appKey}&name=${name}&x=${x}&y=${y}&coord_type=wgs84`;
 }
 
 /**
