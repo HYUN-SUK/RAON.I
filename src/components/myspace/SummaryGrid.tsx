@@ -63,10 +63,7 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
             color: "text-emerald-600",
             bg: "bg-emerald-50",
             value: null,
-            onClick: () => {
-                useMySpaceStore.getState().setIsMapOpen(false);
-                router.push('/myspace/history');
-            }
+            onClick: () => setIsMapOpen(true)
         },
     ];
 

@@ -11,6 +11,7 @@ import PlaceDetailSheet from './PlaceDetailSheet';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useModalBackHandler } from '@/hooks/useModalBackHandler';
 import { toast } from 'sonner';
 
 
@@ -42,7 +43,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     const { reservations } = useReservationStore();
     const { mapItems, addMapItem, updateMapItem, targetLocation, setTargetLocation } = useMySpaceStore();
     const { config } = useSiteConfig();
-
+    // [v11.9.108] 나만의 캠핑지도 모달 뒤로가기 닫힘 처리
+    useModalBackHandler(isOpen, onClose, 'myMapModal');
 
     // UI States
     const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);

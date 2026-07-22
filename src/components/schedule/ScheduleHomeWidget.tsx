@@ -45,7 +45,6 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const schedulesRef = useRef(schedules);
     useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
-    const [upcomingItem, setUpcomingItem] = useState<UnifiedSchedule | null>(null);
     // [v11.9.107] 기존 예약이 스토어에 있으면 0.01초 만에 인스턴트 즉시 노출
     const [isLoading, setIsLoading] = useState(() => {
         const storeReservations = useReservationStore.getState().reservations;
@@ -55,6 +54,55 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const [isSyncing, setIsSyncing] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [dontShowToday, setDontShowToday] = useState(false);
+
+    // [v11.9.108] useMemo로 마운트 0.001초 프레임부터 즉시 통합 일정 계산 (Empty State 깜빡임 완전 소멸)
+    const upcomingItem = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const unifiedList: UnifiedSchedule[] = [];
+
+        // 라온아이 예약 필터링 (진행 중인 예약만 - 퇴실일 당일까지 노출)
+        reservations
+            .filter(r => {
+                const checkOut = new Date(r.checkOutDate);
+                checkOut.setHours(0, 0, 0, 0);
+                return checkOut >= today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
+            })
+            .forEach(r => {
+                const site = SITES.find(s => s.id === r.siteId);
+                unifiedList.push({
+                    type: 'reservation',
+                    id: r.id,
+                    name: site?.name || r.siteId,
+                    checkIn: new Date(r.checkInDate),
+                    checkOut: new Date(r.checkOutDate),
+                    siteId: r.siteId,
+                    status: r.status as 'PENDING' | 'CONFIRMED'
+                });
+            });
+
+        // 타캠핑장 일정 필터링 (퇴실일 당일까지 노출)
+        schedules
+            .filter(s => {
+                const checkOut = parseISO(s.check_out);
+                return checkOut >= today && s.status === 'scheduled';
+            })
+            .forEach(s => {
+                unifiedList.push({
+                    type: 'schedule',
+                    id: s.id,
+                    name: s.campground_name,
+                    checkIn: parseISO(s.check_in),
+                    checkOut: parseISO(s.check_out),
+                    source: s.source
+                });
+            });
+
+        // 체크인 날짜 기준 정렬 후 가장 가까운 것 선택
+        unifiedList.sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime());
+        return unifiedList[0] || null;
+    }, [reservations, schedules]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -126,55 +174,6 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         syncAll();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [reservations, isLoading]);
-
-    // 예약 + 일정을 통합하여 가장 가까운 것 찾기
-    useEffect(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const unifiedList: UnifiedSchedule[] = [];
-
-        // 라온아이 예약 필터링 (진행 중인 예약만 - 퇴실일 당일까지 노출)
-        reservations
-            .filter(r => {
-                const checkOut = new Date(r.checkOutDate);
-                checkOut.setHours(0, 0, 0, 0);
-                return checkOut >= today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
-            })
-            .forEach(r => {
-                const site = SITES.find(s => s.id === r.siteId);
-                unifiedList.push({
-                    type: 'reservation',
-                    id: r.id,
-                    name: site?.name || r.siteId,
-                    checkIn: new Date(r.checkInDate),
-                    checkOut: new Date(r.checkOutDate),
-                    siteId: r.siteId,
-                    status: r.status as 'PENDING' | 'CONFIRMED'
-                });
-            });
-
-        // 타캠핑장 일정 필터링 (퇴실일 당일까지 노출)
-        schedules
-            .filter(s => {
-                const checkOut = parseISO(s.check_out);
-                return checkOut >= today && s.status === 'scheduled';
-            })
-            .forEach(s => {
-                unifiedList.push({
-                    type: 'schedule',
-                    id: s.id,
-                    name: s.campground_name,
-                    checkIn: parseISO(s.check_in),
-                    checkOut: parseISO(s.check_out),
-                    source: s.source
-                });
-            });
-
-        // 체크인 날짜 기준 정렬 후 가장 가까운 것 선택
-        unifiedList.sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime());
-        setUpcomingItem(unifiedList[0] || null);
-    }, [reservations, schedules]);
 
     // 스마트플랜 사용 가능 여부 판별 (예약 생성 새벽 5시 이전 당일 9시, 이후 다음날 오전 9시 활성화)
     const isSmartPlanAvailable = useMemo(() => {
