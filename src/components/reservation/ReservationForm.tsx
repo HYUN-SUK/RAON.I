@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase-client';
 import { getCampingProfile, saveCampingProfile } from '@/actions/camping-profile';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useReservationGuard } from '@/hooks/useReservationGuard';
 
 interface ReservationFormProps {
     site: Site;
@@ -18,6 +19,7 @@ interface ReservationFormProps {
 
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
+    const { isLoading: isGuardLoading, isAllowed: isGuardAllowed } = useReservationGuard();
     // Use calculatePrice instead of calculateTotalPrice
     const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations, blockedDates, fetchBlockedDates, fetchSites } = useReservationStore();
     const [name, setName] = useState('');
@@ -330,7 +332,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         }
     };
 
-    if (!isMounted) return null;
+    if (!isMounted || isGuardLoading || !isGuardAllowed) return null;
 
     return (
         <>

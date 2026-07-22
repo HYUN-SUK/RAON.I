@@ -7,9 +7,11 @@ import { format, addHours } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CheckCircle2, Clock, AlertCircle, Copy, Home } from 'lucide-react';
 import Image from 'next/image';
+import { useReservationGuard } from '@/hooks/useReservationGuard';
 
 export default function ReservationCompletePage() {
     const router = useRouter();
+    const { isLoading: isGuardLoading, isAllowed: isGuardAllowed } = useReservationGuard();
     const { reservations, sites, siteConfig, fetchSites, fetchSiteConfig, deadlineHours } = useReservationStore();
     const [latestReservation, setLatestReservation] = useState<any>(null);
     const [copied, setCopied] = useState(false);
@@ -33,7 +35,7 @@ export default function ReservationCompletePage() {
         }
     }, [reservations, router, sites, siteConfig, deadlineHours]);
 
-    if (!latestReservation) return null;
+    if (isGuardLoading || !isGuardAllowed || !latestReservation) return null;
 
     const { status, totalPrice, checkInDate, checkOutDate, siteId, createdAt } = latestReservation;
     const checkIn = new Date(checkInDate);

@@ -13,9 +13,11 @@ import { format as formatDate } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { differenceInDays, startOfDay, format } from 'date-fns';
 import { createClient } from '@/lib/supabase-client';
+import { useReservationGuard } from '@/hooks/useReservationGuard';
 
 export default function ReservationPage() {
     const router = useRouter();
+    const { isLoading, isAllowed } = useReservationGuard();
     const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchPublicReservations } = useReservationStore();
 
     useEffect(() => {
@@ -204,6 +206,14 @@ export default function ReservationPage() {
             });
         });
     }, [selectedDateRange.from, selectedDateRange.to, sites, reservations]);
+
+    if (isLoading || !isAllowed) {
+        return (
+            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1C4526]"></div>
+            </div>
+        );
+    }
 
     return (
         <main className="min-h-screen bg-[#F7F5EF] pb-32">
