@@ -110,6 +110,13 @@ export default function ScheduleDetailPage() {
             }
         };
         fetchUser();
+
+        // [v11.9.109] 물리 뒤로가기 시 홈 화면 아코디언 펼침 의도 기록
+        const handlePopState = () => {
+            sessionStorage.setItem('raonai_back_from_detail', 'true');
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
     const [schedule, setSchedule] = useState<Schedule | null>(null);
@@ -456,7 +463,10 @@ export default function ScheduleDetailPage() {
             <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex items-center justify-between px-4 h-14">
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => {
+                            sessionStorage.setItem('raonai_back_from_detail', 'true');
+                            router.back();
+                        }}
                         className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                         <ChevronLeft className="w-6 h-6 text-gray-700" />

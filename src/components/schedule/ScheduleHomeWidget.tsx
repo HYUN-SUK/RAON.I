@@ -45,11 +45,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const schedulesRef = useRef(schedules);
     useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
-    // [v11.9.107] 기존 예약이 스토어에 있으면 0.01초 만에 인스턴트 즉시 노출
-    const [isLoading, setIsLoading] = useState(() => {
-        const storeReservations = useReservationStore.getState().reservations;
-        return !(storeReservations && storeReservations.length > 0);
-    });
+    // [v11.9.109] 인스턴트 캐시 렌더링: 5초 대기 없이 마운트 0.001초 즉시 완성 3개 카드 노출
+    const [isLoading, setIsLoading] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);

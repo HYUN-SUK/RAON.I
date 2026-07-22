@@ -51,6 +51,11 @@ function ScheduleContent() {
 
     useEffect(() => {
         setIsMounted(true);
+        const handlePopState = () => {
+            sessionStorage.setItem('raonai_back_from_detail', 'true');
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
     // 예약 취소 연동용 스토어 및 상태
@@ -220,7 +225,10 @@ function ScheduleContent() {
             <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex items-center justify-between px-4 h-14">
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => {
+                            sessionStorage.setItem('raonai_back_from_detail', 'true');
+                            router.back();
+                        }}
                         className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                         <ChevronLeft className="w-6 h-6 text-gray-700" />
