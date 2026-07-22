@@ -26,7 +26,8 @@ const NotificationBadge = memo(function NotificationBadge({ className = '', vari
             if (!session) return;
 
             if (typeof window !== 'undefined') {
-                const stored = sessionStorage.getItem('last_read_notifications_at');
+                let stored: string | null = null;
+                try { stored = window.sessionStorage?.getItem('last_read_notifications_at'); } catch {}
                 setLastReadAt(stored);
             }
 

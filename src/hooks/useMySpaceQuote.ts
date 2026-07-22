@@ -276,10 +276,10 @@ export function useMySpaceQuote(props?: UseMySpaceQuoteProps) {
     const weather = useMemo(() => {
         if (typeof window === 'undefined') return { type: 'unknown' as WeatherType, temp: null };
         try {
-            for (let i = 0; i < sessionStorage.length; i++) {
-                const key = sessionStorage.key(i);
+            for (let i = 0; i < (window.sessionStorage?.length ?? 0); i++) {
+                const key = window.sessionStorage?.key(i);
                 if (key && key.startsWith('weather_kma_')) {
-                    const item = sessionStorage.getItem(key);
+                    const item = window.sessionStorage?.getItem(key);
                     if (item) {
                         const parsed = JSON.parse(item);
                         // 4시간 이내인 캐시만 인정

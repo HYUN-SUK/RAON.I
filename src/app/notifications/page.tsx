@@ -47,9 +47,9 @@ export default function NotificationsPage() {
 
                 // Save the latest notification timestamp to sessionStorage to clear badge instantly
                 if (data && data.length > 0) {
-                    sessionStorage.setItem('last_read_notifications_at', data[0].created_at);
+                    try { window.sessionStorage?.setItem('last_read_notifications_at', data[0].created_at); } catch {}
                 } else {
-                    sessionStorage.setItem('last_read_notifications_at', new Date().toISOString());
+                    try { window.sessionStorage?.setItem('last_read_notifications_at', new Date().toISOString()); } catch {}
                 }
 
                 // Mark ALL notifications as read (Await to ensure DB consistency before render finish)

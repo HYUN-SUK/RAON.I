@@ -617,7 +617,7 @@ export default function BeginnerHome() {
                     <button
                         onClick={() => {
                             setSosoCareSheetOpen(true);
-                            sessionStorage.setItem('raonai_soso_sheet_open', 'true');
+                            try { window.sessionStorage?.setItem('raonai_soso_sheet_open', 'true'); } catch {}
                         }}
                         className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#C07865] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#FCF3F1] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >

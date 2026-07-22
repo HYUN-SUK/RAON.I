@@ -84,7 +84,8 @@ export const useWeather = (userLat?: number, userLng?: number, enabled = true) =
             const lng = userLng || DEFAULT_CAMPING_LOCATION.longitude;
 
             const cacheKey = `weather_kma_${lat.toFixed(2)}_${lng.toFixed(2)}`;
-            const cached = sessionStorage.getItem(cacheKey);
+            let cached: string | null = null;
+            try { cached = window.sessionStorage?.getItem(cacheKey); } catch {}
 
             // Simple Session Cache: 4 hour expiry
             if (cached) {
@@ -207,10 +208,12 @@ export const useWeather = (userLat?: number, userLng?: number, enabled = true) =
                 };
 
                 setWeather(weatherData);
-                sessionStorage.setItem(cacheKey, JSON.stringify({
-                    timestamp: new Date().getTime(),
-                    data: weatherData
-                }));
+                try {
+                    window.sessionStorage?.setItem(cacheKey, JSON.stringify({
+                        timestamp: new Date().getTime(),
+                        data: weatherData
+                    }));
+                } catch {}
 
             } catch (err) {
                 console.warn("Weather fetch failed", err);
