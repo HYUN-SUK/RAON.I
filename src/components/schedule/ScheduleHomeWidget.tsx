@@ -152,9 +152,22 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const daysUntil = upcomingItem ? differenceInDays(upcomingItem.checkIn, today) : 999;
-    const isCampingNow = upcomingItem && (today >= upcomingItem.checkIn && today <= upcomingItem.checkOut);
-    const isWeatherEnabled = upcomingItem ? (daysUntil <= 10 && isExpanded) : false;
+    // [v11.9.114] 렌더링용 Date 안전 보장 (date-fns format 런타임 크래시 완전 방어)
+    const safeCheckIn = useMemo(() => {
+        if (!upcomingItem?.checkIn) return null;
+        const d = new Date(upcomingItem.checkIn);
+        return isNaN(d.getTime()) ? null : d;
+    }, [upcomingItem]);
+
+    const safeCheckOut = useMemo(() => {
+        if (!upcomingItem?.checkOut) return null;
+        const d = new Date(upcomingItem.checkOut);
+        return isNaN(d.getTime()) ? null : d;
+    }, [upcomingItem]);
+
+    const daysUntil = safeCheckIn ? differenceInDays(safeCheckIn, today) : 999;
+    const isCampingNow = !!(safeCheckIn && safeCheckOut && (today >= safeCheckIn && today <= safeCheckOut));
+    const isWeatherEnabled = safeCheckIn ? (daysUntil <= 10 && isExpanded) : false;
 
     const itemLat = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lat || undefined);
     const itemLng = upcomingItem?.type === 'reservation' ? undefined : (schedules.find(s => s.id === upcomingItem?.id)?.campground_lng || undefined);
@@ -244,14 +257,18 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             hasSmartPlan = !!schedule.smart_plan_data;
         }
         
-        if (isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
+        if (!createdAtDate || isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
         
-        const unlockTimeByCreation = new Date(createdAtDate);
-        if (createdAtDate.getHours() < 5) {
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
-        } else {
-            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        const unlockTimeByCreation = new Date(createdAtDate.getTime());
+        try {
+            if (createdAtDate.getHours() < 5) {
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            } else {
+                unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            }
+        } catch {
+            return false;
         }
 
         return new Date() >= unlockTimeByCreation;
@@ -281,14 +298,18 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             hasSmartPlan = !!schedule.smart_plan_data;
         }
         
-        if (isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
+        if (!createdAtDate || isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
         
-        const unlockTimeByCreation = new Date(createdAtDate);
-        if (createdAtDate.getHours() < 5) {
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
-        } else {
-            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        const unlockTimeByCreation = new Date(createdAtDate.getTime());
+        try {
+            if (createdAtDate.getHours() < 5) {
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            } else {
+                unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            }
+        } catch {
+            return false;
         }
 
         return new Date() < unlockTimeByCreation;
@@ -309,14 +330,18 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             createdAtDate = new Date(schedule.created_at);
         }
         
-        if (isNaN(createdAtDate.getTime())) return '';
+        if (!createdAtDate || isNaN(createdAtDate.getTime())) return '';
         
-        const unlockTimeByCreation = new Date(createdAtDate);
-        if (createdAtDate.getHours() < 5) {
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
-        } else {
-            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
+        const unlockTimeByCreation = new Date(createdAtDate.getTime());
+        try {
+            if (createdAtDate.getHours() < 5) {
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            } else {
+                unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
+                unlockTimeByCreation.setHours(9, 0, 0, 0);
+            }
+        } catch {
+            return '';
         }
 
         const now = new Date();
@@ -458,7 +483,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     }
 
 
-    const nights = differenceInDays(upcomingItem.checkOut, upcomingItem.checkIn);
+    const nights = (safeCheckIn && safeCheckOut) ? differenceInDays(safeCheckOut, safeCheckIn) : 0;
 
     // 라온아이 예약 여부
     const isRaonai = upcomingItem.type === 'reservation';
@@ -491,7 +516,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         return dates;
     };
 
-    const datesInRange = upcomingItem ? getDatesInRange(upcomingItem.checkIn, upcomingItem.checkOut) : [];
+    const datesInRange = (safeCheckIn && safeCheckOut) ? getDatesInRange(safeCheckIn, safeCheckOut) : [];
 
     const getWeatherIcon = (type: string) => {
         switch (type) {
@@ -630,7 +655,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                     <div className="flex items-center gap-3 text-sm opacity-90">
                         <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            {format(upcomingItem.checkIn, 'M.d(EEE)', { locale: ko })}
+                            {safeCheckIn ? format(safeCheckIn, 'M.d(EEE)', { locale: ko }) : ''}
                         </span>
                         <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
