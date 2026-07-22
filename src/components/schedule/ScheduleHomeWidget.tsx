@@ -302,6 +302,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const handleCardClick = () => {
         withAuth(async () => {
             if (!upcomingItem || isNavigating) return;
+            sessionStorage.setItem('raonai_back_from_detail', 'true');
 
             // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
             if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
@@ -337,6 +338,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
 
     const handleExternalScheduleClick = () => {
         withAuth(() => {
+            sessionStorage.setItem('raonai_back_from_detail', 'true');
             const hideTime = localStorage.getItem('raonai_hide_add_alert_today');
             const now = new Date().getTime();
             
@@ -350,6 +352,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     };
 
     const handleConfirmExternalAlert = () => {
+        sessionStorage.setItem('raonai_back_from_detail', 'true');
         if (dontShowToday) {
             const expireTime = new Date().getTime() + 24 * 60 * 60 * 1000;
             localStorage.setItem('raonai_hide_add_alert_today', expireTime.toString());
@@ -358,18 +361,23 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         router.push('/myspace/schedule?add=external');
     };
 
-    // 로딩
-    if (isLoading) {
+    // [v11.9.109] 준비 단계/데이터 로딩 시 고급 스켈레톤 UI 노출 (유저 오해 원천 소멸)
+    const isDataLoading = isLoading || (!upcomingItem && (reservations.length > 0 || schedules.length > 0));
+
+    if (isDataLoading) {
         return (
-            <div className="bg-white rounded-2xl p-4 animate-pulse">
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full" />
-                    <div className="flex-1">
-                        <div className="h-4 w-24 bg-gray-200 rounded mb-1" />
-                        <div className="h-3 w-16 bg-gray-200 rounded" />
+            <div className="bg-white dark:bg-zinc-900 border-[2px] border-amber-500/20 rounded-2xl p-5 animate-pulse space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-100 dark:bg-zinc-800 rounded-xl" />
+                        <div className="space-y-1.5">
+                            <div className="h-4 w-32 bg-stone-200 dark:bg-zinc-800 rounded-md" />
+                            <div className="h-3 w-20 bg-stone-200 dark:bg-zinc-800 rounded-md" />
+                        </div>
                     </div>
+                    <div className="w-12 h-6 bg-amber-200/60 dark:bg-zinc-800 rounded-full" />
                 </div>
-                <div className="h-4 w-full bg-gray-200 rounded" />
+                <div className="h-10 w-full bg-stone-100 dark:bg-zinc-800/60 rounded-xl" />
             </div>
         );
     }
@@ -591,7 +599,10 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                     <span className="text-sm font-semibold">다른 여행 일정추가</span>
                 </button>
                 <button
-                    onClick={() => withAuth(() => router.push('/myspace/schedule'))}
+                    onClick={() => withAuth(() => {
+                        sessionStorage.setItem('raonai_back_from_detail', 'true');
+                        router.push('/myspace/schedule');
+                    })}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
                 >
                     <Calendar className="w-4 h-4 text-[#C3A675]" />
