@@ -12,4 +12,4 @@ export const ALLOWED_RESERVATION_EMAILS = [
 ];
 
 // 차단 팝업 안내 메시지
-export const RESERVATION_LOCK_MESSAGE = "8월 초에 입장이 가능합니다.";
+export const RESERVATION_LOCK_MESSAGE = "8월초까지는 문자, 캠핏으로 예약을 받습니다. 캠장에게 문의해주세요!";
