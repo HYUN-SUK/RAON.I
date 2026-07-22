@@ -7,7 +7,9 @@ export const IS_RESERVATION_LOCKED = true;
 
 // 허용 이메일 목록
 export const ALLOWED_RESERVATION_EMAILS = [
-    'tootg@naver.com'
+    'tootg@naver.com',
+    'admin@raon.ai',
+    'google-test@raon.i.co.kr'
 ];
 
 // 차단 팝업 안내 메시지
