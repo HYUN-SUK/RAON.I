@@ -46,20 +46,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const schedulesRef = useRef(schedules);
     useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
-    // [v11.9.111] 컴포넌트 마운트 0.0001초 프레임부터 로컬스토리지 동기 파싱 (하이드레이션 지연 원천 소멸)
+    // [v11.9.113] 컴포넌트 마운트 0.0001초 프레임부터 로컬스토리지 안전 동기 파싱 (Application error 원천 방지)
     const cachedReservations = useMemo<Reservation[]>(() => {
         if (reservations && reservations.length > 0) return reservations;
         if (typeof window === 'undefined') return [];
         try {
             const raw = localStorage.getItem('reservation-storage-v2');
             if (!raw) return [];
-            const parsed = JSON.parse(raw, (key, value) => {
-                if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-                    return new Date(value);
-                }
-                return value;
-            });
-            return (parsed?.state?.reservations || []) as Reservation[];
+            const parsed = JSON.parse(raw);
+            const list = parsed?.state?.reservations;
+            if (!Array.isArray(list)) return [];
+            return list as Reservation[];
         } catch {
             return [];
         }
@@ -67,17 +64,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
 
     // 캐시가 전혀 없는 최초 새로고침 시에만 isLoading = true (스켈레톤 렌더링)
     const [isLoading, setIsLoading] = useState(() => {
-        const storeRes = useReservationStore.getState().reservations;
-        if (storeRes && storeRes.length > 0) return false;
-        if (typeof window !== 'undefined') {
-            const raw = localStorage.getItem('reservation-storage-v2');
-            if (raw) {
-                try {
+        try {
+            const storeRes = useReservationStore.getState().reservations;
+            if (storeRes && storeRes.length > 0) return false;
+            if (typeof window !== 'undefined') {
+                const raw = localStorage.getItem('reservation-storage-v2');
+                if (raw) {
                     const parsed = JSON.parse(raw);
                     if (parsed?.state?.reservations?.length > 0) return false;
-                } catch { }
+                }
             }
-        }
+        } catch { }
         return true;
     });
 
@@ -86,49 +83,66 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [dontShowToday, setDontShowToday] = useState(false);
 
-    // [v11.9.111] 마운트 첫 프레임(0.0001초)부터 즉시 동기 통합 일정 계산
+    // [v11.9.113] 안전 통합 일정 계산 (크래시 0% 방어막)
     const upcomingItem = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const unifiedList: UnifiedSchedule[] = [];
 
-        // 라온아이 예약 필터링 (진행 중인 예약만 - 퇴실일 당일까지 노출)
-        cachedReservations
-            .filter(r => {
-                const checkOut = new Date(r.checkOutDate);
-                checkOut.setHours(0, 0, 0, 0);
-                return checkOut >= today && (r.status === 'PENDING' || r.status === 'CONFIRMED');
-            })
-            .forEach(r => {
-                const site = SITES.find(s => s.id === r.siteId);
-                unifiedList.push({
-                    type: 'reservation',
-                    id: r.id,
-                    name: site?.name || r.siteId,
-                    checkIn: new Date(r.checkInDate),
-                    checkOut: new Date(r.checkOutDate),
-                    siteId: r.siteId,
-                    status: r.status as 'PENDING' | 'CONFIRMED'
-                });
-            });
+        // 라온아이 예약 필터링
+        if (Array.isArray(cachedReservations)) {
+            cachedReservations.forEach(r => {
+                try {
+                    if (!r || !r.checkInDate || !r.checkOutDate) return;
+                    const checkIn = new Date(r.checkInDate);
+                    const checkOut = new Date(r.checkOutDate);
+                    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return;
 
-        // 타캠핑장 일정 필터링 (퇴실일 당일까지 노출)
-        schedules
-            .filter(s => {
-                const checkOut = parseISO(s.check_out);
-                return checkOut >= today && s.status === 'scheduled';
-            })
-            .forEach(s => {
-                unifiedList.push({
-                    type: 'schedule',
-                    id: s.id,
-                    name: s.campground_name,
-                    checkIn: parseISO(s.check_in),
-                    checkOut: parseISO(s.check_out),
-                    source: s.source
-                });
+                    const checkOutZero = new Date(checkOut);
+                    checkOutZero.setHours(0, 0, 0, 0);
+
+                    if (checkOutZero >= today && (r.status === 'PENDING' || r.status === 'CONFIRMED')) {
+                        const site = SITES.find(s => s.id === r.siteId);
+                        unifiedList.push({
+                            type: 'reservation',
+                            id: r.id,
+                            name: site?.name || r.siteId,
+                            checkIn,
+                            checkOut,
+                            siteId: r.siteId,
+                            status: r.status as 'PENDING' | 'CONFIRMED'
+                        });
+                    }
+                } catch { }
             });
+        }
+
+        // 타캠핑장 일정 필터링
+        if (Array.isArray(schedules)) {
+            schedules.forEach(s => {
+                try {
+                    if (!s || !s.check_in || !s.check_out) return;
+                    const checkIn = parseISO(s.check_in);
+                    const checkOut = parseISO(s.check_out);
+                    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return;
+
+                    const checkOutZero = new Date(checkOut);
+                    checkOutZero.setHours(0, 0, 0, 0);
+
+                    if (checkOutZero >= today && s.status === 'scheduled') {
+                        unifiedList.push({
+                            type: 'schedule',
+                            id: s.id,
+                            name: s.campground_name,
+                            checkIn,
+                            checkOut,
+                            source: s.source
+                        });
+                    }
+                } catch { }
+            });
+        }
 
         // 체크인 날짜 기준 정렬 후 가장 가까운 것 선택
         unifiedList.sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime());
