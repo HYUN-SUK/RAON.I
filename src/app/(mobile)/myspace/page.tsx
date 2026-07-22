@@ -33,13 +33,18 @@ export default function MySpacePage() {
     const [isRecordOpen, setIsRecordOpen] = useState(false);
     const { shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
 
-    // Global loading & state
-    const [pageLoading, setPageLoading] = useState(true);
+    // Global loading & state (캐시가 있으면 0.01초 즉시 렌더링)
+    const [pageLoading, setPageLoading] = useState(() => {
+        const storeReservations = useReservationStore.getState().reservations;
+        return !(storeReservations && storeReservations.length > 0);
+    });
     const [familyType, setFamilyType] = useState<string | undefined>(undefined);
     const [emberStats, setEmberStats] = useState<EmberStats | null>(null);
 
     const loadAllData = useCallback(async () => {
-        setPageLoading(true);
+        // [v11.9.107] 내수첩 진입 시 남아있던 isMapOpen 팝업 잔재를 강제 초기화하여 뒤로가기 엉킴 완벽 해제
+        useMySpaceStore.getState().setIsMapOpen(false);
+
         const supabase = createClient();
         
         try {

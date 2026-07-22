@@ -46,7 +46,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const schedulesRef = useRef(schedules);
     useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
     const [upcomingItem, setUpcomingItem] = useState<UnifiedSchedule | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // [v11.9.107] 기존 예약이 스토어에 있으면 0.01초 만에 인스턴트 즉시 노출
+    const [isLoading, setIsLoading] = useState(() => {
+        const storeReservations = useReservationStore.getState().reservations;
+        return !(storeReservations && storeReservations.length > 0);
+    });
     const [isNavigating, setIsNavigating] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
