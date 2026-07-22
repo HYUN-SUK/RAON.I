@@ -361,10 +361,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         router.push('/myspace/schedule?add=external');
     };
 
-    // [v11.9.109] 준비 단계/데이터 로딩 시 고급 스켈레톤 UI 노출 (유저 오해 원천 소멸)
-    const isDataLoading = isLoading || (!upcomingItem && (reservations.length > 0 || schedules.length > 0));
-
-    if (isDataLoading) {
+    // [v11.9.110] 스켈레톤 5초 지연 원천 차단: 캐시 데이터가 있으면 스켈레톤 0.0001초도 노출 차단
+    if (isLoading) {
         return (
             <div className="bg-white dark:bg-zinc-900 border-[2px] border-amber-500/20 rounded-2xl p-5 animate-pulse space-y-3">
                 <div className="flex items-center justify-between">
