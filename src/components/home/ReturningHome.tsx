@@ -20,6 +20,7 @@ import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommenda
 import { Database } from '@/types/supabase';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import { usePushNotification } from '@/hooks/usePushNotification';
+import { useModalBackHandler } from '@/hooks/useModalBackHandler';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
@@ -106,6 +107,12 @@ export default function ReturningHome() {
         fetchMyReservations();
         // Auto-request permission on Home Load
         requestPermission();
+
+        // [v11.9.106] 복귀 시 여행계획 아코디언 탭 펼쳐진 상태 자동 복원
+        const savedExpanded = sessionStorage.getItem('raonai_schedule_expanded');
+        if (savedExpanded === 'true') {
+            setIsScheduleExpanded(true);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -317,7 +324,11 @@ export default function ReturningHome() {
                 {/* Accordion 2: 여행 일정 및 계획하기 */}
                 <div className="px-4 mb-4">
                     <button
-                        onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
+                        onClick={() => {
+                            const nextState = !isScheduleExpanded;
+                            setIsScheduleExpanded(nextState);
+                            sessionStorage.setItem('raonai_schedule_expanded', String(nextState));
+                        }}
                         className="w-full flex items-center justify-between px-5 py-4 bg-[#FAF9F6] dark:bg-zinc-900 border-[3px] border-amber-700 dark:border-amber-600 rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#F5F2EA]/40 dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-3">

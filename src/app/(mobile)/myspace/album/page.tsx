@@ -40,7 +40,7 @@ export default function MySpaceAlbumPage() {
         <div className="min-h-screen bg-[#F7F5EF] dark:bg-black pb-24">
             {/* Top Bar */}
             <header className="sticky top-0 z-50 bg-[#F7F5EF]/80 dark:bg-black/80 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 h-14 flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2">
+                <Button variant="ghost" size="icon" onClick={() => router.push('/myspace')} className="-ml-2">
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <h1 className="font-bold text-lg">내 앨범</h1>

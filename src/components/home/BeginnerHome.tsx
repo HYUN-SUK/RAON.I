@@ -27,6 +27,7 @@ import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommenda
 import { useReservationStore } from '@/store/useReservationStore';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePushNotification } from '@/hooks/usePushNotification';
+import { useModalBackHandler } from '@/hooks/useModalBackHandler';
 import { Database } from '@/types/supabase';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
@@ -105,8 +106,26 @@ export default function BeginnerHome() {
         fetchMyReservations();
         requestPermission();
         refresh();
+
+        // [v11.9.106] 복귀 시 여행계획 아코디언 탭 펼쳐진 상태 자동 복원
+        const savedExpanded = sessionStorage.getItem('raonai_schedule_expanded');
+        if (savedExpanded === 'true') {
+            setIsScheduleExpanded(true);
+        }
+
+        // [v11.9.106] 소소한 챙김 3개 카드 상세 후 복귀 시 시트 열린 상태 복원
+        const savedSosoSheet = sessionStorage.getItem('raonai_soso_sheet_open');
+        if (savedSosoSheet === 'true') {
+            setSosoCareSheetOpen(true);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // [v11.9.106] 소소한 챙김 시트 뒤로가기 닫힘 핸들러
+    useModalBackHandler(sosoCareSheetOpen, React.useCallback(() => {
+        setSosoCareSheetOpen(false);
+        sessionStorage.removeItem('raonai_soso_sheet_open');
+    }, []), 'sosoCareSheet');
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -541,7 +560,11 @@ export default function BeginnerHome() {
                 {/* Card 2: 여행계획 자동생성 · 여행일정 관리 */}
                 <div className="px-4 mb-4">
                     <button
-                        onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
+                        onClick={() => {
+                            const nextState = !isScheduleExpanded;
+                            setIsScheduleExpanded(nextState);
+                            sessionStorage.setItem('raonai_schedule_expanded', String(nextState));
+                        }}
                         className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#D48A37] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#FDF6EE] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
@@ -578,7 +601,10 @@ export default function BeginnerHome() {
                 {/* Card 3: 소소한 챙김 */}
                 <div className="px-4 mb-8">
                     <button
-                        onClick={() => setSosoCareSheetOpen(true)}
+                        onClick={() => {
+                            setSosoCareSheetOpen(true);
+                            sessionStorage.setItem('raonai_soso_sheet_open', 'true');
+                        }}
                         className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#C07865] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#FCF3F1] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">

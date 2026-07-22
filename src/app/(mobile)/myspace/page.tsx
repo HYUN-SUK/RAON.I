@@ -49,38 +49,37 @@ export default function MySpacePage() {
                 return;
             }
 
-            // 병렬 호출 (Promise.all)
-            const [
-                _profile,
-                _timeline,
-                _reservations,
-                _mission,
-                _sparkle,
-                profileRes,
-                emberRes
-            ] = await Promise.all([
+            // [v11.9.106 - 1단계: 즉시 로드 0.2초] 프로필, 예약, 미션 먼저 렌더링
+            const [_prof, _res, _mis, _sp, profileRes] = await Promise.all([
                 useMySpaceStore.getState().fetchProfile(user.id),
-                useMySpaceStore.getState().fetchTimeline(user.id),
                 useReservationStore.getState().fetchMyReservations(),
                 useMissionStore.getState().fetchCurrentMission(),
                 refresh(),
-                supabase.from('profiles').select('family_type').eq('id', user.id).single(),
-                supabase.rpc('get_my_ember_stats')
+                supabase.from('profiles').select('family_type').eq('id', user.id).maybeSingle()
             ]);
 
-            // 로컬 상태 매핑
-            if (profileRes.data) {
+            if (profileRes?.data?.family_type) {
                 setFamilyType(profileRes.data.family_type);
             }
-            if (emberRes.data && emberRes.data.success) {
-                setEmberStats({
-                    received_count: emberRes.data.received_count,
-                    sent_count: emberRes.data.sent_count
-                });
-            }
+
+            // 0.2초 만에 사용자 화면 1차 완성
+            setPageLoading(false);
+
+            // [v11.9.106 - 2단계: 지연 백그라운드 로드] 중량 데이터(타임라인, 엠버 통계) 비동기 연결
+            Promise.all([
+                useMySpaceStore.getState().fetchTimeline(user.id),
+                supabase.rpc('get_my_ember_stats')
+            ]).then(([_tl, emberRes]) => {
+                if (emberRes?.data && emberRes.data.success) {
+                    setEmberStats({
+                        received_count: emberRes.data.received_count,
+                        sent_count: emberRes.data.sent_count
+                    });
+                }
+            }).catch(e => console.warn('[MySpace] Background data fetch warning:', e));
+
         } catch (error) {
-            console.error("Failed to parallel fetch MySpace data:", error);
-        } finally {
+            console.error("Failed to fetch MySpace data:", error);
             setPageLoading(false);
         }
     }, [router, refresh]);
