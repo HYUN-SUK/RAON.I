@@ -271,8 +271,12 @@
     - [x] 스토어 배너 규격 불일치(1024x1024px)였던 `feature_graphic.png` 파일을 정확히 `1024x500px` 한가운데(중앙부) 크롭 리사이징 패치하여 구글 정책 통과 성공
     - [x] 광고 ID "사용하지 않음" 선언 완료 및 네임서버 미전파 상태인 도메인 우회를 위해 개인정보처리방침 URL에 실시간 접속 가능한 Vercel 원천 도메인(`https://raon-i.vercel.app/privacy-policy`) 임시 우회 연동
     - [x] 구글 플레이 콘솔 정적 무결성 분석 완료 및 최종 **[검토 중인 변경사항]** 심사 전송 성공 완료
-- [x] **스마트플랜 내비게이션 딥링크 안정화 및 장소 상세 휴무일 날짜 오염 버그 해결 (이번 세션 진행)**
-    - [x] [1단계] `src/lib/nav-utils.ts` 카카오내비 appkey 주입 및 안드로이드 Intent URI 대응 적용
+- [x] **스마트플랜 내비게이션 딥링크 안정화 및 장소 상세 휴무일 날짜 오염 버그 해결 (이번 세션 완료)**
+    - [x] [1단계] `src/lib/nav-utils.ts` 차단된 원시 `kakaonavi://` 스키마 대신 카카오 모빌리티 공식 길안내 딥링크(`https://map.kakao.com/link/to/`)로 전환하여 인증 실패 / 필수 파라미터 누락 버그 영구 해결
     - [x] [2단계] `src/components/plan/SmartPlanProposal.tsx` 개별 장소카드 내비게이션 연결 로직 openNavApp으로 통합
-    - [x] [3단계] `src/utils/placeFormatter.ts` 내 cleanClosedDays 헬퍼 함수 신설 및 formatPlaceDetailText 연동
-    - [x] [4단계] Next.js 로컬 빌드 및 무결성 검증 (npm run build 통과)
+    - [x] [3단계] `src/utils/placeFormatter.ts` 내 cleanClosedDays 헬퍼 함수 신설 및 formatPlaceDetailText 연동으로 과거 날짜 표기 오염 정제
+    - [x] [4단계] 구글 플레이스토어 진짜 앱 서명 키(`0E:9C:65:ED...`) 기반 카카오 키 해시(`Dpxl7f/dS0PcNG3w/Nw55ToGY10=`) 파싱 및 카카오 디벨로퍼스 Android 플랫폼 다중 등록 완료
+    - [x] [5단계] Next.js 로컬 빌드 무결성 검증 (npm run build 통과) 및 git commit/push 반영 완료
+- [ ] **다음 세션 예정 과제**
+    - [ ] 한 단계만 뒤로가기 제어 시나리오 수립 (유저 상세 요구사항 전달 후 진행)
+    - [ ] TWA 클라이언트 더블 클릭 종료 팝업 (구글 플레이 심사 승인 완료 후 AAB 패키지 빌드 시 반영)
