@@ -241,8 +241,7 @@ export default function TravelRecipePage() {
     // 4-Hour Location-Aware Weather Cache Lookup
     const getWeatherFromCacheOrAPI = async (lat: number, lng: number): Promise<WeatherData> => {
         const cacheKey = `weather_recipe_cache`;
-        let cachedStr: string | null = null;
-        try { cachedStr = window.sessionStorage?.getItem(cacheKey); } catch {}
+        const cachedStr = sessionStorage.getItem(cacheKey);
         if (cachedStr) {
             try {
                 const cached = JSON.parse(cachedStr);
@@ -277,12 +276,10 @@ export default function TravelRecipePage() {
             temp: data.current?.temp ?? null
         };
  
-        try {
-            window.sessionStorage?.setItem(cacheKey, JSON.stringify({
-                timestamp: new Date().getTime(),
-                weather: weatherResult
-            }));
-        } catch {}
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+            timestamp: new Date().getTime(),
+            weather: weatherResult
+        }));
  
         return weatherResult;
     };
