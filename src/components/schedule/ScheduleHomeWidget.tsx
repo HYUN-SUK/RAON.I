@@ -375,7 +375,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const handleCardClick = () => {
         withAuth(async () => {
             if (!upcomingItem || isNavigating) return;
-            sessionStorage.setItem('raonai_back_from_detail', 'true');
+            try {
+                window.sessionStorage?.setItem('raonai_back_from_detail', 'true');
+            } catch {}
 
             // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
             if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
@@ -411,7 +413,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
 
     const handleExternalScheduleClick = () => {
         withAuth(() => {
-            sessionStorage.setItem('raonai_back_from_detail', 'true');
+            try {
+                window.sessionStorage?.setItem('raonai_back_from_detail', 'true');
+            } catch {}
             const hideTime = localStorage.getItem('raonai_hide_add_alert_today');
             const now = new Date().getTime();
             
@@ -425,7 +429,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     };
 
     const handleConfirmExternalAlert = () => {
-        sessionStorage.setItem('raonai_back_from_detail', 'true');
+        try {
+            window.sessionStorage?.setItem('raonai_back_from_detail', 'true');
+        } catch {}
         if (dontShowToday) {
             const expireTime = new Date().getTime() + 24 * 60 * 60 * 1000;
             localStorage.setItem('raonai_hide_add_alert_today', expireTime.toString());
@@ -461,7 +467,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         return (
             <div 
                 onClick={() => withAuth(() => {
-                    sessionStorage.setItem('raonai_back_from_detail', 'true');
+                    try {
+                        window.sessionStorage?.setItem('raonai_back_from_detail', 'true');
+                    } catch {}
                     router.push('/myspace/schedule');
                 })}
                 className="cursor-pointer"
@@ -677,7 +685,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                 </button>
                 <button
                     onClick={() => withAuth(() => {
-                        sessionStorage.setItem('raonai_back_from_detail', 'true');
+                        try {
+                            window.sessionStorage?.setItem('raonai_back_from_detail', 'true');
+                        } catch {}
                         router.push('/myspace/schedule');
                     })}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"

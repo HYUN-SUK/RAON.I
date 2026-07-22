@@ -52,7 +52,9 @@ function ScheduleContent() {
     useEffect(() => {
         setIsMounted(true);
         const handlePopState = () => {
-            sessionStorage.setItem('raonai_back_from_detail', 'true');
+            try {
+                window.sessionStorage?.setItem('raonai_back_from_detail', 'true');
+            } catch {}
         };
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
@@ -226,7 +228,9 @@ function ScheduleContent() {
                 <div className="flex items-center justify-between px-4 h-14">
                     <button
                         onClick={() => {
-                            sessionStorage.setItem('raonai_back_from_detail', 'true');
+                            try {
+                                window.sessionStorage?.setItem('raonai_back_from_detail', 'true');
+                            } catch {}
                             router.back();
                         }}
                         className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"

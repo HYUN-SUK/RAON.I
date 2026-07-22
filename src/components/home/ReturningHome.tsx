@@ -108,12 +108,16 @@ export default function ReturningHome() {
         // Auto-request permission on Home Load
         requestPermission();
 
-        // [v11.9.114] 모바일 브라우저 BFCache(뒤로가기 캐시) 복원 시 아코디언 상태 강제 펼침
+        // [v11.9.115] 모바일 브라우저 BFCache(뒤로가기 캐시) 복원 시 아코디언 상태 강제 펼침
         const checkBackIntent = () => {
-            const isBack = sessionStorage.getItem('raonai_back_from_detail');
-            if (isBack === 'true') {
-                setIsScheduleExpanded(true);
-                sessionStorage.removeItem('raonai_back_from_detail');
+            try {
+                const isBack = window.sessionStorage?.getItem('raonai_back_from_detail');
+                if (isBack === 'true') {
+                    setIsScheduleExpanded(true);
+                    window.sessionStorage?.removeItem('raonai_back_from_detail');
+                }
+            } catch (e) {
+                console.warn('sessionStorage is blocked:', e);
             }
         };
         checkBackIntent();

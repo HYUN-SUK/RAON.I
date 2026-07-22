@@ -107,19 +107,26 @@ export default function BeginnerHome() {
         requestPermission();
         refresh();
 
-        // [v11.9.114] 모바일 브라우저 BFCache(뒤로가기 캐시) 복원 시 아코디언 상태 강제 펼침
+        // [v11.9.115] 모바일 브라우저 BFCache(뒤로가기 캐시) 복원 시 아코디언 상태 강제 펼침
         const checkBackIntent = () => {
-            const isBack = sessionStorage.getItem('raonai_back_from_detail');
-            if (isBack === 'true') {
-                setIsScheduleExpanded(true);
-                sessionStorage.removeItem('raonai_back_from_detail');
+            try {
+                const isBack = window.sessionStorage?.getItem('raonai_back_from_detail');
+                if (isBack === 'true') {
+                    setIsScheduleExpanded(true);
+                    window.sessionStorage?.removeItem('raonai_back_from_detail');
+                }
+            } catch (e) {
+                console.warn('sessionStorage is blocked:', e);
             }
         };
         checkBackIntent();
         window.addEventListener('pageshow', checkBackIntent);
 
         // [v11.9.106] 소소한 챙김 3개 카드 상세 후 복귀 시 시트 열린 상태 복원
-        const savedSosoSheet = sessionStorage.getItem('raonai_soso_sheet_open');
+        let savedSosoSheet = null;
+        try {
+            savedSosoSheet = window.sessionStorage?.getItem('raonai_soso_sheet_open');
+        } catch {}
         if (savedSosoSheet === 'true') {
             setSosoCareSheetOpen(true);
         }
@@ -133,7 +140,9 @@ export default function BeginnerHome() {
     // [v11.9.106] 소소한 챙김 시트 뒤로가기 닫힘 핸들러
     useModalBackHandler(sosoCareSheetOpen, React.useCallback(() => {
         setSosoCareSheetOpen(false);
-        sessionStorage.removeItem('raonai_soso_sheet_open');
+        try {
+            window.sessionStorage?.removeItem('raonai_soso_sheet_open');
+        } catch {}
     }, []), 'sosoCareSheet');
 
     // Bottom Sheet State
