@@ -305,7 +305,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
 
             // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
             if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
-                router.push('/reservation/complete');
+                router.push('/myspace/reservations');
                 return;
             }
 
@@ -320,14 +320,16 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         router.push(`/myspace/schedule/${result.scheduleId}`);
                     } else {
                         console.error('Failed to ensure schedule:', result.error);
-                        router.push('/reservation/complete');
+                        router.push('/myspace/schedule');
                     }
                 } catch (e) {
                     console.error('Navigation error:', e);
-                    router.push('/reservation/complete');
+                    router.push('/myspace/schedule');
+                } finally {
+                    setIsNavigating(false);
                 }
             } else {
-                // 이미 스케줄임 (Eager Sync로 인해 99.9% 이 케이스로 즉시 순간이동함)
+                // 이미 스케줄임
                 router.push(`/myspace/schedule/${upcomingItem.id}`);
             }
         });

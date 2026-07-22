@@ -92,10 +92,7 @@ export default function ScheduleDetailPage() {
 
     const [isUserLoading, setIsUserLoading] = useState(true);
 
-    useEffect(() => {
-        // 최초 상세페이지 진입 시 Next.js Client-side Router Cache 강제 무효화
-        router.refresh();
-    }, [router]);
+    // [v11.9.105] 진입 시 라우터 캐시 무효화로 인한 홈 화면 튕김 부작용 제거
 
     useEffect(() => {
         const fetchUser = async () => {
