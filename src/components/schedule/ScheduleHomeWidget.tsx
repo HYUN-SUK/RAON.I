@@ -414,21 +414,27 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         );
     }
 
-    // 일정 없음
-    if (!upcomingItem) {
+    // [v11.9.112] 정밀 가드: 유저에게 이미 예약/일정 캐시가 존재하면 "일정 등록하기" 카드로의 추락을 100% 원천 차단!
+    const hasAnyExistingData = (cachedReservations && cachedReservations.length > 0) || (schedules && schedules.length > 0);
+
+    // 진짜 0개 유저일 때만 '캠핑 일정 등록하기' 노출
+    if (!upcomingItem && !hasAnyExistingData && !isLoading) {
         return (
             <div 
-                onClick={() => withAuth(() => router.push('/myspace/schedule'))}
+                onClick={() => withAuth(() => {
+                    sessionStorage.setItem('raonai_back_from_detail', 'true');
+                    router.push('/myspace/schedule');
+                })}
                 className="cursor-pointer"
             >
-                <div className="bg-white rounded-2xl p-4 border border-dashed border-gray-200 hover:border-[#224732]/30 hover:bg-gray-50 transition-all">
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-[#224732]/30 transition-all">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#224732]/10 flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-[#224732]" />
+                        <div className="w-10 h-10 rounded-full bg-[#224732]/10 dark:bg-[#224732]/30 flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-[#224732] dark:text-emerald-400" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">캠핑 일정 등록하기</p>
-                            <p className="text-xs text-gray-500">다가올 캠핑을 미리 준비해보세요</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-stone-200">캠핑 일정 등록하기</p>
+                            <p className="text-xs text-gray-500 dark:text-stone-400">다가올 캠핑을 미리 준비해보세요</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-400" />
                     </div>
