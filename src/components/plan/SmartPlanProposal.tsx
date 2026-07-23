@@ -32,6 +32,8 @@ interface SmartPlanProposalProps {
     mode?: 'BASIC' | 'PRO';
     /** 여행 타입 (PRO 전용) */
     travelType?: 'camping' | 'general';
+    /** 퍼블릭 공유 뷰 모드 여부 (재생성 배너 숨김) */
+    isPublicView?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -72,7 +74,8 @@ export default function SmartPlanProposal({
     onReset,
     onGenerated,
     mode = 'BASIC',
-    travelType = 'general'
+    travelType = 'general',
+    isPublicView = false
 }: SmartPlanProposalProps) {
     // [v11.9.52] DB 영구 저장 데이터 복구 로직 (Wrapped Structure 대응)
     const isWrapped = initialPlan?.wrapped === true;
@@ -395,7 +398,8 @@ export default function SmartPlanProposal({
 
         const planTitle = `🏕️ ${placeName} 캠핑 스마트플랜`;
         const shareText = `${targetPlan?.narration || '행복한 여정을 담은 스마트플랜입니다.'}`;
-        const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const shareUrl = scheduleId ? `${origin}/share/plan/${scheduleId}` : (typeof window !== 'undefined' ? window.location.href : '');
 
         if (navigator.share) {
             navigator.share({
@@ -698,10 +702,10 @@ export default function SmartPlanProposal({
         </Card>
     );
 
-    const showNoWeatherBanner = diffDaysForRegen >= 8;
-    const showMidTermActionBanner = diffDaysForRegen >= 1 && diffDaysForRegen <= 7 && currentWeatherWindow !== 'MID' && currentWeatherWindow !== 'SHORT' && onReset;
+    const showNoWeatherBanner = !isPublicView && diffDaysForRegen >= 8;
+    const showMidTermActionBanner = !isPublicView && diffDaysForRegen >= 1 && diffDaysForRegen <= 7 && currentWeatherWindow !== 'MID' && currentWeatherWindow !== 'SHORT' && onReset;
     const showMidTermStaticBanner = false; // 8일 전 이상은 showNoWeatherBanner가 통합 처리
-    const showShortTermActionBanner = diffDaysForRegen <= 0 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset && !hasTriggeredRegen;
+    const showShortTermActionBanner = !isPublicView && diffDaysForRegen <= 0 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset && !hasTriggeredRegen;
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">

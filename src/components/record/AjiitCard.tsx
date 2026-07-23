@@ -26,17 +26,20 @@ export default function AjiitCard({ record, onShare, onDownload }: AjiitCardProp
             return;
         }
 
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const shareUrl = record.id ? `${origin}/share/record/${record.id}` : (typeof window !== 'undefined' ? window.location.href : '');
+
         try {
             if (navigator.share) {
                 await navigator.share({
                     title: '나의 캠핑 기록',
                     text: `${record.campground_name || '캠핑장'} - ${record.tags.map(t => `#${t}`).join(' ')}`,
-                    url: window.location.href,
+                    url: shareUrl,
                 });
             } else {
                 // 클립보드에 복사
                 await navigator.clipboard.writeText(
-                    `🏕️ ${record.campground_name || '캠핑 기록'}\n${record.content}\n${record.tags.map(t => `#${t}`).join(' ')}`
+                    `🏕️ ${record.campground_name || '캠핑 기록'}\n${record.content}\n${record.tags.map(t => `#${t}`).join(' ')}\n\n확인하기: ${shareUrl}`
                 );
                 toast.success('클립보드에 복사되었어요!');
             }
