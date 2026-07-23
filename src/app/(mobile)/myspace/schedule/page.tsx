@@ -51,6 +51,9 @@ function ScheduleContent() {
 
     useEffect(() => {
         setIsMounted(true);
+        // 나의 여행일정 페이지에 진입한 이상 언제 복귀하더라도 홈 아코디언이 펼쳐지도록 세션 플래그 보장
+        try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
+
         const handlePopState = () => {
             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
         };

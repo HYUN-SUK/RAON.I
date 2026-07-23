@@ -111,7 +111,9 @@ export default function ScheduleDetailPage() {
         };
         fetchUser();
 
-        // [v11.9.109] 물리 뒤로가기 시 홈 화면 아코디언 펼침 의도 기록
+        // [v11.9.109] 일정 상세 진입 시 홈 복귀 시 아코디언 펼침 세션 플래그 보장
+        try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
+
         const handlePopState = () => {
             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
         };

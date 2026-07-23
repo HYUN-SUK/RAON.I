@@ -88,24 +88,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         }
     }, [schedules]);
 
-    // 로딩 상태: 캐시(store 또는 localStorage)가 존재하면 0.0001초 즉시 카드 노출(false), 캐시 0개일 때만 스켈레톤 노출(true)
+    // 로딩 상태: 뒤로가기 복귀 시에는 스켈레톤 없이 즉시 노출(false), 첫진입/새로고침 시에는 스켈레톤 정상 노출(true)
     const [isLoading, setIsLoading] = useState(() => {
-        try {
-            const storeRes = useReservationStore.getState().reservations;
-            if (storeRes && storeRes.length > 0) return false;
-            if (typeof window !== 'undefined') {
-                const rawRes = localStorage.getItem('reservation-storage-v2');
-                if (rawRes) {
-                    const parsed = JSON.parse(rawRes);
-                    if (parsed?.state?.reservations?.length > 0) return false;
-                }
-                const rawSch = localStorage.getItem('user_schedules_cache');
-                if (rawSch) {
-                    const parsed = JSON.parse(rawSch);
-                    if (Array.isArray(parsed) && parsed.length > 0) return false;
-                }
-            }
-        } catch {}
+        if (isBackFromDetail) return false;
         return true;
     });
 
