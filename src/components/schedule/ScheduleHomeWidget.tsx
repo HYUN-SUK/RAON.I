@@ -57,7 +57,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         }
     }, []);
 
-    // 로컬스토리지 동기 캐시 파싱 (라온아이 예약)
+    // 로컬스토리지 동기 캐시 파싱 (뒤로가기 시 캐시 즉시 복원용)
     const cachedReservations = useMemo<Reservation[]>(() => {
         if (reservations && reservations.length > 0) return reservations;
         if (typeof window === 'undefined') return [];
@@ -73,36 +73,16 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         }
     }, [reservations]);
 
-    // 로컬스토리지 동기 캐시 파싱 (타캠핑장 일정)
-    const cachedSchedules = useMemo<Schedule[]>(() => {
-        if (schedules && schedules.length > 0) return schedules;
-        if (typeof window === 'undefined') return [];
-        try {
-            const raw = localStorage.getItem('user_schedules_cache');
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            if (!Array.isArray(parsed)) return [];
-            return parsed as Schedule[];
-        } catch {
-            return [];
-        }
-    }, [schedules]);
-
     // 로딩 상태: 캐시(store 또는 localStorage)가 존재하면 0.0001초 즉시 카드 노출(false), 캐시 0개일 때만 스켈레톤 노출(true)
     const [isLoading, setIsLoading] = useState(() => {
         try {
             const storeRes = useReservationStore.getState().reservations;
             if (storeRes && storeRes.length > 0) return false;
             if (typeof window !== 'undefined') {
-                const rawRes = localStorage.getItem('reservation-storage-v2');
-                if (rawRes) {
-                    const parsed = JSON.parse(rawRes);
+                const raw = localStorage.getItem('reservation-storage-v2');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
                     if (parsed?.state?.reservations?.length > 0) return false;
-                }
-                const rawSch = localStorage.getItem('user_schedules_cache');
-                if (rawSch) {
-                    const parsed = JSON.parse(rawSch);
-                    if (Array.isArray(parsed) && parsed.length > 0) return false;
                 }
             }
         } catch {}
@@ -122,7 +102,6 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         const unifiedList: UnifiedSchedule[] = [];
 
         const activeReservations = (cachedReservations && cachedReservations.length > 0) ? cachedReservations : reservations;
-        const activeSchedules = (cachedSchedules && cachedSchedules.length > 0) ? cachedSchedules : schedules;
 
         // 라온아이 예약 필터링
         if (Array.isArray(activeReservations)) {
@@ -153,8 +132,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         }
 
         // 타캠핑장 일정 필터링
-        if (Array.isArray(activeSchedules)) {
-            activeSchedules.forEach(s => {
+        if (Array.isArray(schedules)) {
+            schedules.forEach(s => {
                 try {
                     if (!s || !s.check_in || !s.check_out) return;
                     const checkIn = parseISO(s.check_in);
@@ -181,7 +160,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         // 체크인 날짜 기준 정렬 후 가장 가까운 것 선택
         unifiedList.sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime());
         return unifiedList[0] || null;
-    }, [cachedReservations, reservations, cachedSchedules, schedules]);
+    }, [cachedReservations, reservations, schedules]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -215,9 +194,6 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                 await fetchMyReservations();
                 const schedulesData = await getMySchedules('scheduled');
                 setSchedules(schedulesData);
-                try {
-                    localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
-                } catch {}
             } catch (error) {
                 console.error('Fetch error:', error);
             } finally {
@@ -481,15 +457,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         );
     }
 
-    // 기존에 예약/일정 데이터가 있었는지 여부
-    const hasAnyExistingData = (cachedReservations && cachedReservations.length > 0) ||
-                               (reservations && reservations.length > 0) ||
-                               (cachedSchedules && cachedSchedules.length > 0) ||
-                               (schedules && schedules.length > 0);
-
-    // 일정 없음 (진짜 등록된 일정이 0개인 신규/기존 유저)
-    // 기존 데이터가 존재하는 유저인 경우 비동기 조회가 완료될 때까지 '일정등록 카드'로 섣불리 추락하지 않도록 차단
-    if (!upcomingItem && !hasAnyExistingData && !isLoading) {
+    // 일정 없음 (등록된 일정이 없는 신규/기존 유저)
+    if (!upcomingItem) {
         return (
             <>
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-dashed border-[#224732]/30 shadow-sm space-y-3">
@@ -499,6 +468,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         </div>
                         <div>
                             <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
+                            <p className="text-xs text-gray-500 dark:text-stone-400 mt-0.5">라온아이 캠핑장 또는 다른 캠핑장 일정을 추가해 보세요.</p>
                         </div>
                     </div>
                     <button
