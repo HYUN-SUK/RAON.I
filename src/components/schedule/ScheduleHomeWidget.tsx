@@ -73,9 +73,19 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         }
     }, [reservations]);
 
-    // 로딩 상태: 뒤로가기 복귀 시에는 스켈레톤 없이 즉시 표시(false), 그 외(첫진입/새로고침)는 스켈레톤 노출(true)
+    // 로딩 상태: 캐시(store 또는 localStorage)가 존재하면 0.0001초 즉시 카드 노출(false), 캐시 0개일 때만 스켈레톤 노출(true)
     const [isLoading, setIsLoading] = useState(() => {
-        if (isBackFromDetail) return false;
+        try {
+            const storeRes = useReservationStore.getState().reservations;
+            if (storeRes && storeRes.length > 0) return false;
+            if (typeof window !== 'undefined') {
+                const raw = localStorage.getItem('reservation-storage-v2');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed?.state?.reservations?.length > 0) return false;
+                }
+            }
+        } catch {}
         return true;
     });
 
@@ -450,24 +460,63 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     // 일정 없음 (등록된 일정이 없는 신규/기존 유저)
     if (!upcomingItem) {
         return (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-dashed border-[#224732]/30 shadow-sm space-y-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675]">
-                        <Calendar className="w-5 h-5" />
+            <>
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-dashed border-[#224732]/30 shadow-sm space-y-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675]">
+                            <Calendar className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
+                            <p className="text-xs text-gray-500 dark:text-stone-400 mt-0.5">라온아이 캠핑장 또는 다른 캠핑장 일정을 추가해 보세요.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
-                        <p className="text-xs text-gray-500 dark:text-stone-400 mt-0.5">라온아이 캠핑장 또는 다른 캠핑장 일정을 추가해 보세요.</p>
-                    </div>
+                    <button
+                        onClick={handleExternalScheduleClick}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.98] transition-all duration-200"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>다른 여행 일정추가</span>
+                    </button>
                 </div>
-                <button
-                    onClick={handleExternalScheduleClick}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.98] transition-all duration-200"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>다른 여행 일정추가</span>
-                </button>
-            </div>
+
+                {/* 다른 여행 자동계획 안내 커스텀 모달 팝업 */}
+                <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                    <AlertDialogContent className="w-[90%] max-w-[340px] rounded-3xl p-6">
+                        <AlertDialogHeader className="space-y-2">
+                            <AlertDialogTitle className="text-center text-lg font-bold text-[#224732] dark:text-[#C3A675]">
+                                📢 안내
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-center text-sm text-stone-600 dark:text-stone-300 font-medium break-keep leading-relaxed pt-1">
+                                다른 곳으로 가시는 여행 일정도 등록해 보세요. 라온아이가 똑똑한 여행 계획을 자동으로 완성해 드립니다.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        {/* 오늘 하루 보지 않기 선택지 추가 */}
+                        <div className="flex items-center gap-2 mt-4 justify-center">
+                            <input
+                                type="checkbox"
+                                id="dontShowToday"
+                                checked={dontShowToday}
+                                onChange={(e) => setDontShowToday(e.target.checked)}
+                                className="w-4 h-4 rounded border-stone-300 text-[#224732] focus:ring-[#224732] cursor-pointer"
+                            />
+                            <label htmlFor="dontShowToday" className="text-xs text-stone-500 dark:text-stone-400 font-semibold cursor-pointer select-none">
+                                오늘 하루 보지 않기
+                            </label>
+                        </div>
+
+                        <AlertDialogFooter className="mt-5 flex flex-row justify-center gap-2 sm:justify-center">
+                            <AlertDialogAction
+                                onClick={handleConfirmExternalAlert}
+                                className="bg-[#224732] hover:bg-[#1a3626] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
+                            >
+                                확인
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </>
         );
     }
 
