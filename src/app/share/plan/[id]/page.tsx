@@ -88,48 +88,62 @@ export default function PublicSmartPlanPage() {
 
     // 3. Content State (3-State Rule)
     return (
-        <div className="min-h-screen bg-[#112318] text-white pb-28">
+        <div className="min-h-screen bg-[#0e1c13] text-white pb-36 font-sans">
             {/* Top Bar Header */}
-            <header className="sticky top-0 z-40 bg-[#112318]/90 backdrop-blur-md border-b border-white/10 px-4 h-14 flex items-center justify-between">
+            <header className="sticky top-0 z-40 bg-[#112318]/90 backdrop-blur-md border-b border-white/10 px-4 h-14 flex items-center justify-between shadow-md">
                 <Link href="/" className="flex items-center gap-2 text-white/80 hover:text-white transition-colors">
-                    <ChevronLeft className="w-5 h-5" />
-                    <span className="text-sm font-bold tracking-tight">라온아이 스마트플랜</span>
+                    <ChevronLeft className="w-5 h-5 text-emerald-400" />
+                    <span className="text-sm font-bold tracking-tight text-white">라온아이 스마트플랜</span>
                 </Link>
-                <div className="flex items-center gap-1.5 bg-[#224732] px-2.5 py-1 rounded-full text-[11px] font-semibold text-emerald-200 border border-emerald-500/30">
-                    <Sparkles className="w-3 h-3 text-amber-300" />
-                    공유된 플랜
+                <div className="flex items-center gap-1.5 bg-[#224732] px-3 py-1 rounded-full text-[11px] font-bold text-emerald-200 border border-emerald-500/30 shadow-inner">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                    공유된 여정
                 </div>
             </header>
 
-            {/* Main Content Area */}
-            <main className="max-w-md mx-auto p-4 pt-6">
-                <div className="mb-6 bg-gradient-to-r from-[#224732]/60 to-[#193525]/60 border border-emerald-500/20 rounded-2xl p-4 shadow-sm">
-                    <p className="text-xs font-bold text-emerald-300 mb-1">🏕️ {planData.campground_name}</p>
-                    <p className="text-[11px] text-white/70">
-                        {planData.check_in} ~ {planData.check_out} 여행을 담은 스마트플랜입니다.
-                    </p>
+            {/* Main Content Area (Matches App Original Layout 100%) */}
+            <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
+                {/* Premium CampWarm Hero Banner */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-[#1C4526] via-[#224732] to-[#0f2117] border border-emerald-500/30 rounded-3xl p-6 shadow-2xl">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
+                    <div className="relative z-10 flex flex-col items-center text-center space-y-3">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold text-emerald-200 backdrop-blur-sm border border-white/10">
+                            <span>🏕️ {planData.campground_name}</span>
+                        </div>
+                        <h1 className="text-xl font-black text-white tracking-tight leading-snug">
+                            행복하고 편안한<br />스마트플랜 여정입니다
+                        </h1>
+                        <div className="flex items-center justify-center gap-2 text-xs font-medium text-emerald-200/90 pt-1">
+                            <span className="bg-black/30 px-3 py-1 rounded-xl border border-white/10">
+                                📅 {planData.check_in} ~ {planData.check_out}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <SmartPlanProposal
-                    scheduleId={planData.id}
-                    initialPlan={planData.smart_plan_data}
-                    location={location}
-                    startDate={startDate}
-                    endDate={endDate}
-                    isPublicView={true}
-                />
+                {/* SmartPlan Proposal Cards with exact mobile margin */}
+                <div className="w-full">
+                    <SmartPlanProposal
+                        scheduleId={planData.id}
+                        initialPlan={planData.smart_plan_data}
+                        location={location}
+                        startDate={startDate}
+                        endDate={endDate}
+                        isPublicView={true}
+                    />
+                </div>
             </main>
 
             {/* Bottom CTA Fixed Bar for Viral Sign-up */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-[#0a160f] via-[#112318]/95 to-transparent backdrop-blur-md border-t border-white/10">
-                <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+            <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-[#0a160f] via-[#112318]/95 to-transparent backdrop-blur-md border-t border-white/10 shadow-2xl">
+                <div className="max-w-md mx-auto flex items-center justify-between gap-3 px-1">
                     <div className="flex flex-col min-w-0">
-                        <p className="text-xs font-bold text-white truncate">나만의 맞춤 스마트플랜이 필요하신가요?</p>
-                        <p className="text-[10px] text-emerald-300/80 truncate">라온아이에서 1초 만에 여행 일정을 받아보세요</p>
+                        <p className="text-xs font-black text-white truncate">나만의 맞춤 스마트플랜이 필요하신가요?</p>
+                        <p className="text-[10px] text-emerald-300/80 truncate">라온아이에서 1초 만에 나만의 여행 일정을 받아보세요</p>
                     </div>
                     <Button
                         onClick={() => router.push('/')}
-                        className="bg-[#224732] hover:bg-[#2e5d42] text-white font-extrabold text-xs px-4 h-11 rounded-xl shadow-lg shrink-0 border border-emerald-400/30 active:scale-95 transition-transform"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 h-11 rounded-xl shadow-lg shrink-0 border border-emerald-400/40 active:scale-95 transition-transform"
                     >
                         시작하기
                     </Button>
