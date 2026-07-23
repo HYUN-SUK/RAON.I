@@ -108,12 +108,24 @@ export default function ReturningHome() {
         // Auto-request permission on Home Load
         requestPermission();
 
-        // [v11.9.109] 상세페이지에서 '뒤로가기'로 복귀한 경우에만 일회성으로 아코디언 펼침 (다른 탭 진입 시 닫힌 기본 홈)
-        const isBackFromDetail = sessionStorage.getItem('raonai_back_from_detail');
-        if (isBackFromDetail === 'true') {
-            setIsScheduleExpanded(true);
-            sessionStorage.removeItem('raonai_back_from_detail');
-        }
+        // [v11.9.115] 상세페이지에서 '뒤로가기'로 복귀한 경우 아코디언 펼침 복원
+        const checkBackIntent = () => {
+            try {
+                const isBackFromDetail = window.sessionStorage?.getItem('raonai_back_from_detail');
+                if (isBackFromDetail === 'true') {
+                    setIsScheduleExpanded(true);
+                    window.sessionStorage?.removeItem('raonai_back_from_detail');
+                }
+            } catch (e) {
+                console.warn('sessionStorage is blocked:', e);
+            }
+        };
+        checkBackIntent();
+        window.addEventListener('pageshow', checkBackIntent);
+
+        return () => {
+            window.removeEventListener('pageshow', checkBackIntent);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

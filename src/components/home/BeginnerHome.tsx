@@ -107,25 +107,39 @@ export default function BeginnerHome() {
         requestPermission();
         refresh();
 
-        // [v11.9.109] 상세페이지에서 '뒤로가기'로 복귀한 경우에만 일회성으로 아코디언 펼침 (다른 탭 진입 시 닫힌 기본 홈)
-        const isBackFromDetail = sessionStorage.getItem('raonai_back_from_detail');
-        if (isBackFromDetail === 'true') {
-            setIsScheduleExpanded(true);
-            sessionStorage.removeItem('raonai_back_from_detail');
-        }
+        // [v11.9.115] 상세페이지에서 '뒤로가기'로 복귀한 경우 아코디언 펼침 복원
+        const checkBackIntent = () => {
+            try {
+                const isBackFromDetail = window.sessionStorage?.getItem('raonai_back_from_detail');
+                if (isBackFromDetail === 'true') {
+                    setIsScheduleExpanded(true);
+                    window.sessionStorage?.removeItem('raonai_back_from_detail');
+                }
+            } catch (e) {
+                console.warn('sessionStorage is blocked:', e);
+            }
+        };
+        checkBackIntent();
+        window.addEventListener('pageshow', checkBackIntent);
 
         // [v11.9.106] 소소한 챙김 3개 카드 상세 후 복귀 시 시트 열린 상태 복원
-        const savedSosoSheet = sessionStorage.getItem('raonai_soso_sheet_open');
-        if (savedSosoSheet === 'true') {
-            setSosoCareSheetOpen(true);
-        }
+        try {
+            const savedSosoSheet = window.sessionStorage?.getItem('raonai_soso_sheet_open');
+            if (savedSosoSheet === 'true') {
+                setSosoCareSheetOpen(true);
+            }
+        } catch {}
+
+        return () => {
+            window.removeEventListener('pageshow', checkBackIntent);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // [v11.9.106] 소소한 챙김 시트 뒤로가기 닫힘 핸들러
     useModalBackHandler(sosoCareSheetOpen, React.useCallback(() => {
         setSosoCareSheetOpen(false);
-        sessionStorage.removeItem('raonai_soso_sheet_open');
+        try { window.sessionStorage?.removeItem('raonai_soso_sheet_open'); } catch {}
     }, []), 'sosoCareSheet');
 
     // Bottom Sheet State
@@ -600,7 +614,7 @@ export default function BeginnerHome() {
                     <button
                         onClick={() => {
                             setSosoCareSheetOpen(true);
-                            sessionStorage.setItem('raonai_soso_sheet_open', 'true');
+                            try { window.sessionStorage?.setItem('raonai_soso_sheet_open', 'true'); } catch {}
                         }}
                         className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#C07865] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#FCF3F1] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >

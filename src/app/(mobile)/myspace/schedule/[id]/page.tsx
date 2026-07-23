@@ -113,7 +113,7 @@ export default function ScheduleDetailPage() {
 
         // [v11.9.109] 물리 뒤로가기 시 홈 화면 아코디언 펼침 의도 기록
         const handlePopState = () => {
-            sessionStorage.setItem('raonai_back_from_detail', 'true');
+            try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
         };
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
@@ -464,7 +464,7 @@ export default function ScheduleDetailPage() {
                 <div className="flex items-center justify-between px-4 h-14">
                     <button
                         onClick={() => {
-                            sessionStorage.setItem('raonai_back_from_detail', 'true');
+                            try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
                             router.back();
                         }}
                         className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
