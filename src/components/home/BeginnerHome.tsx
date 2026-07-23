@@ -122,11 +122,12 @@ export default function BeginnerHome() {
         checkBackIntent();
         window.addEventListener('pageshow', checkBackIntent);
 
-        // [v11.9.106] 소소한 챙김 3개 카드 상세 후 복귀 시 시트 열린 상태 복원
+        // [v11.9.106] 소소한 챙김 3개 카드 상세 후 복귀 시 시트 열린 상태 복원 (1회성 소모 후 즉시 삭제)
         try {
             const savedSosoSheet = window.sessionStorage?.getItem('raonai_soso_sheet_open');
             if (savedSosoSheet === 'true') {
                 setSosoCareSheetOpen(true);
+                window.sessionStorage?.removeItem('raonai_soso_sheet_open');
             }
         } catch {}
 
@@ -716,7 +717,12 @@ export default function BeginnerHome() {
             />
 
             {/* 소소한 챙김 바텀 시트 */}
-            <Sheet open={sosoCareSheetOpen} onOpenChange={setSosoCareSheetOpen}>
+            <Sheet open={sosoCareSheetOpen} onOpenChange={(open) => {
+                setSosoCareSheetOpen(open);
+                if (!open) {
+                    try { window.sessionStorage?.removeItem('raonai_soso_sheet_open'); } catch {}
+                }
+            }}>
                 <SheetContent side="bottom" className="rounded-t-3xl pb-8 max-h-[90vh] overflow-y-auto bg-[#F7F5EF] dark:bg-zinc-950">
                     <SheetHeader className="mb-4">
                         <SheetTitle className="text-base font-black text-stone-900 dark:text-stone-100">🌿 소소한 챙김</SheetTitle>
