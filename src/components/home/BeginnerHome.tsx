@@ -446,7 +446,7 @@ export default function BeginnerHome() {
                     </div>
 
                     <div className="relative z-20 text-white space-y-2 mb-8 w-full text-center">
-                        <p className="text-white/90 text-lg mb-4 leading-relaxed font-medium">
+                        <p className="text-[#C8E6C9] font-bold text-lg mb-4 leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
                             {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
                         </p>
                         

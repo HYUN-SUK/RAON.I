@@ -246,7 +246,7 @@ export default function ReturningHome() {
                     <div className="relative z-10 mt-4 text-center flex flex-col items-center w-full">
                         {recData ? (
                             <>
-                                <p className="text-white/90 text-lg leading-relaxed max-w-sm mx-auto">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
+                                <p className="text-[#C8E6C9] font-bold text-lg leading-relaxed max-w-sm mx-auto drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">{recData.context ? recData.context.greeting : '반가워요, 김캠퍼님'}</p>
                                 <div className="py-1 w-full">
                                     <div className="w-36 h-[2px] bg-white/30 mx-auto my-2.5" />
                                     <span className="tracking-[0.4em] font-bold text-white/95 text-[30px] text-center block pl-[0.4em]">라 온 아 이</span>
