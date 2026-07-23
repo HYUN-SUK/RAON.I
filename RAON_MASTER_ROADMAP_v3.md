@@ -33,11 +33,17 @@
   - [x] **LocalStorage Cache Fix**: `fetchPublicReservations` now replaces (not merges) cached data with server data.
   - [x] **Verification**: Live test confirmed - vacancy notification received, reservation sync accurate.
 
-## ?�� ?�체 진행�??�약 (Progress Summary)
+- [x] **9.4 Public Shared Viewer & UI Optimization (2026-07-23)** 🟢
+  - [x] **Public Shared Viewers**: Implemented `/share/plan/[id]` and `/share/record/[id]` to bypass RLS and auth guards safely for shared links.
+  - [x] **Zero-Cost Features**: Provided place swap, nav deep links, and place details without additional Gemini AI API costs.
+  - [x] **Regeneration Guard**: Hidden all regeneration/update banners in public views to prevent unauthorized API costs and plan mutation.
+  - [x] **Layout Synchronization**: Applied `max-w-[430px] mx-auto overflow-x-hidden` fixed frame, warm beige background (`#F7F5EF`), and TopBar title to match app original view 100%.
+  - [x] **Home UI & Bug Fixes**: Applied Light Mint Green (`#C8E6C9`) font and drop-shadow to hero greeting, fixed infinite popup bug on Soso Care sheet by properly managing SessionStorage flags.
 
-| ?�계 | 구분 | ?�태 | 진행�?| 비고 |
+## ? ?체 진행??약 (Progress Summary)
+
+| ?계 | 구분 | ?태 | 진행?| 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Phase 0** | **코어 ?�랫??기반 (Foundation)** | ??**?�료** | 100% | ?�코?��? 감성 ?? UI ?�레?? ?�이???�이??|
 | **Phase 1** | **?�용????(User Home)** | ??**?�료** | 100% | Beginner/Returning UI, Smart Re-book, L0 Logic ?�료 |
 | **Phase 2** | **?�공�?(My Space)** | ??**?�료** | 100% | ?�?�보??지???�?�라???�료. ?�카?�브(기록) 리뉴??�?XP/Token ?�료. |
 | **Phase 3** | **?�약 ?�스??(Reservation)** | ??**?�료** | 100% | Logic/Validation/Admin Core/Holidays ?�료. PG/?�픈???�음. |

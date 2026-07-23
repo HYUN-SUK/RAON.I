@@ -57,6 +57,16 @@
 - [x] **Step 5: 주간 축제 자동화 및 어드민 연동 개발**
     - [x] 매주 월요일 새벽 자동화 스케줄러 `/api/cron/sync-festivals` 구현 (중복 방지 ID 로직 포함)
     - [x] 어드민 자동화 현황 페이지(`src/app/admin/automation/logs/page.tsx`)에 주간 축제 갱신 리포트 UI 추가 완료)
+- [x] **스마트플랜 및 내 기록 퍼블릭 공유 뷰어 시스템 구축 (2026-07-23 완료)**
+    - [x] 퍼블릭 전용 Server Actions (`getPublicSmartPlan`, `getPublicRecord`) 개발 (개인정보 보호 및 RLS 우회 안전 처리)
+    - [x] 스마트플랜 퍼블릭 공유 라우트 (`/share/plan/[id]`) 및 내 기록 공유 라우트 (`/share/record/[id]`) 신설
+    - [x] 0원 운영비용 기능(대안 장소 스왑, Tmap/카카오/네이버 내비 연결, 장소 보기) 전면 개방
+    - [x] API 과금 방지 및 재생성 가드: 퍼블릭 뷰어에서 모든 시기별 업데이트/재생성 배너 및 리셋 버튼 100% 숨김 처리
+    - [x] 모바일 430px 고정 프레임(`max-w-[430px] mx-auto overflow-x-hidden`) 적용으로 터치 시 좌우 흔들림(Shake) 원천 차단
+    - [x] 레이아웃 원안 100% 동기화: 베이지 배경(`bg-[#F7F5EF]`), TopBar 캠핑장 명칭 렌더링 및 `px-4` 양옆 여백 패딩 적용
+- [x] **홈화면 UI/UX 및 버그 정밀 수정 (2026-07-23 완료)**
+    - [x] 히어로 인사말 폰트 색상 연민트(`text-[#C8E6C9]`) 및 가독성 텍스트 그림자(`drop-shadow`) 적용 완료 (`BeginnerHome.tsx` & `ReturningHome.tsx`)
+    - [x] '소소한 챙김' 바텀시트 세션스토리지 닫힘 이벤트 연동 및 마운트 시 1회성 소모 후 즉시 삭제 처리로 무한 팝업 버그 해결
 - [ ] **Phase 1: Smart Plan LIVE Timeline UI**: Develop the chronological stepper UI and [Start] action buttons.
 - [ ] **Phase 1: PRO AI Prompting**: Create a separate generative AI prompt to output strict time-block JSON arrays.
 - [ ] **Phase 2: Time Rebalancing**: Implement time recalculation logic and the "Call before closing" UX flow.
