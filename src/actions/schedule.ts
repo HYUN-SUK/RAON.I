@@ -183,13 +183,39 @@ export async function getMySchedules(status?: 'scheduled' | 'completed' | 'cance
 export async function getScheduleById(scheduleId: string): Promise<Schedule | null> {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
         .from('user_schedules')
         .select('*')
         .eq('id', scheduleId)
         .single();
 
-    if (error) {
+    // [v11.9.120] 세션 갱신 지연으로 인한 RLS 차단 방어 가드
+    if (error || !data) {
+        try {
+            const { createAdminClient } = await import('@/lib/supabase-admin');
+            const adminSupabase = createAdminClient();
+
+            // 현재 로그인 유저 ID 교차 검증
+            const { data: userData } = await supabase.auth.getUser();
+            if (userData?.user?.id) {
+                const { data: adminData } = await adminSupabase
+                    .from('user_schedules')
+                    .select('*')
+                    .eq('id', scheduleId)
+                    .eq('user_id', userData.user.id)
+                    .maybeSingle();
+
+                if (adminData) {
+                    data = adminData as any;
+                    error = null;
+                }
+            }
+        } catch (adminErr) {
+            console.warn('[getScheduleById] Admin fallback check error:', adminErr);
+        }
+    }
+
+    if (error || !data) {
         console.error('Fetch schedule error:', error);
         return null;
     }
@@ -540,15 +566,16 @@ export async function ensureScheduleFromReservation(reservationId: string): Prom
     }
 
     // 2. 예약 정보 조회
-    const { data: reservation, error: resError } = await supabase
+    let { data: reservation, error: resError } = await supabase
         .from('reservations')
         .select('*')
         .eq('id', reservationId)
         .eq('user_id', userData.user.id) // 보안확인
         .single();
 
+    // [v11.9.120] 세션 오차로 인한 RLS 차단 시 adminFallback 호출
     if (resError || !reservation) {
-        return { success: false, error: '예약 정보를 찾을 수 없습니다' };
+        return ensureScheduleFromReservationAdmin(reservationId, userData.user.id);
     }
 
     // 3. 일정 생성

@@ -326,16 +326,34 @@ export default function ScheduleDetailPage() {
         }
     };
 
-    // 데이터 로드 (세션 레이싱 방지를 위한 1회 자동 재시도 패턴)
+    // 데이터 로드 (세션 레이싱 방지를 위한 듀얼 폴백 & 1회 자동 재시도 패턴)
     const loadData = useCallback(async (retryCount = 0) => {
         if (retryCount === 0) {
             setIsLoading(true);
         }
         try {
-            const [scheduleData, checklistData] = await Promise.all([
+            let [scheduleData, checklistData] = await Promise.all([
                 getScheduleById(scheduleId),
                 getChecklist(scheduleId),
             ]);
+
+            // [v11.9.120] 1차 Server Action 조회 실패 시 클라이언트 SDK 2차 백업 조회 (Dual-Fallback)
+            if (!scheduleData) {
+                try {
+                    const supabase = createClient();
+                    const { data: clientSchedule } = await supabase
+                        .from('user_schedules')
+                        .select('*')
+                        .eq('id', scheduleId)
+                        .maybeSingle();
+
+                    if (clientSchedule) {
+                        scheduleData = clientSchedule as Schedule;
+                    }
+                } catch (clientErr) {
+                    console.warn('[ScheduleDetail] Client fallback fetch error:', clientErr);
+                }
+            }
 
             // 일시적인 백그라운드 세션 갱신 충돌로 데이터를 가져오지 못한 경우, 800ms 후 1회 재시도
             if (!scheduleData && retryCount === 0) {

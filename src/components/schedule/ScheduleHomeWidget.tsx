@@ -13,6 +13,7 @@ import { SITES } from '@/constants/sites';
 import { useWeather } from '@/hooks/useWeather';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { toast } from 'sonner';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -404,11 +405,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         router.push(`/myspace/schedule/${result.scheduleId}`);
                     } else {
                         console.error('Failed to ensure schedule:', result.error);
-                        router.push('/myspace/schedule');
+                        toast.error('일정을 준비 중입니다. 잠시 후 다시 클릭해 주세요.');
                     }
                 } catch (e) {
                     console.error('Navigation error:', e);
-                    router.push('/myspace/schedule');
+                    toast.error('일정을 불러오는 중 오류가 발생했습니다.');
                 } finally {
                     setIsNavigating(false);
                 }
