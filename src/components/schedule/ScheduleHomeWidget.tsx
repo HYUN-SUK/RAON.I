@@ -406,15 +406,16 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                     } else {
                         console.error('Failed to ensure schedule:', result.error);
                         toast.error('일정을 준비 중입니다. 잠시 후 다시 클릭해 주세요.');
+                        setIsNavigating(false);
                     }
                 } catch (e) {
                     console.error('Navigation error:', e);
                     toast.error('일정을 불러오는 중 오류가 발생했습니다.');
-                } finally {
                     setIsNavigating(false);
                 }
             } else {
                 // 이미 스케줄임
+                setIsNavigating(true);
                 router.push(`/myspace/schedule/${upcomingItem.id}`);
             }
         });

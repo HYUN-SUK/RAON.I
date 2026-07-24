@@ -95,18 +95,19 @@ export default function ScheduleDetailPage() {
     // [v11.9.105] 진입 시 라우터 캐시 무효화로 인한 홈 화면 튕김 부작용 제거
 
     useEffect(() => {
+        let isComponentMounted = true;
         const fetchUser = async () => {
             try {
                 const supabase = createClient();
                 const { data: { session } } = await supabase.auth.getSession();
-                if (session?.user?.id) {
+                if (isComponentMounted && session?.user?.id) {
                     setUserId(session.user.id);
                     setUserEmail(session.user.email);
                 }
             } catch (e) {
                 console.error('Fetch user session error:', e);
             } finally {
-                setIsUserLoading(false);
+                if (isComponentMounted) setIsUserLoading(false);
             }
         };
         fetchUser();
@@ -118,7 +119,10 @@ export default function ScheduleDetailPage() {
             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
         };
         window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
+        return () => {
+            isComponentMounted = false;
+            window.removeEventListener('popstate', handlePopState);
+        };
     }, []);
 
     const [schedule, setSchedule] = useState<Schedule | null>(null);

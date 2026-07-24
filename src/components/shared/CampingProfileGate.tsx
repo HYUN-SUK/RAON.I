@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase-client';
 import { CampingProfile, getCampingProfile, saveCampingProfile, searchAddressAction } from '@/actions/camping-profile';
 
 interface CampingProfileGateProps {
@@ -60,24 +61,61 @@ export default function CampingProfileGate({
     const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
-    // 프로필 로딩
+    // 프로필 로딩 (듀얼 폴백 패치)
     useEffect(() => {
         const loadProfile = async () => {
             setLoading(true);
-            const profile = await getCampingProfile();
-            if (profile) {
-                setExistingProfile(profile);
-                setOriginLabel(profile.originLabel || '');
-                setOriginLat(profile.originLat);
-                setOriginLng(profile.originLng);
-                setAdults(profile.adults);
-                setSeniors(profile.seniors || 0);
-                setKidsPreschool(profile.kidsPreschool);
-                setKidsElementary(profile.kidsElementary);
-                setKidsTeen(profile.kidsTeen);
-                setHasPet(profile.hasPet);
+            try {
+                let profile = await getCampingProfile();
+
+                // [v11.9.125] 1차 Server Action 실패 시 Client SDK 2차 직접 조회 (Dual-Fallback)
+                if (!profile) {
+                    try {
+                        const supabase = createClient();
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                            const { data: clientProfile } = await supabase
+                                .from('user_camping_profiles')
+                                .select('*')
+                                .eq('user_id', user.id)
+                                .maybeSingle();
+
+                            if (clientProfile) {
+                                profile = {
+                                    originLabel: clientProfile.origin_label,
+                                    originLat: clientProfile.origin_lat,
+                                    originLng: clientProfile.origin_lng,
+                                    adults: clientProfile.adults ?? 2,
+                                    seniors: clientProfile.seniors ?? 0,
+                                    kidsPreschool: clientProfile.kids_preschool ?? 0,
+                                    kidsElementary: clientProfile.kids_elementary ?? 0,
+                                    kidsTeen: clientProfile.kids_teen ?? 0,
+                                    hasPet: clientProfile.has_pet ?? false,
+                                };
+                            }
+                        }
+                    } catch (clientErr) {
+                        console.warn('[CampingProfileGate] Client fallback fetch error:', clientErr);
+                    }
+                }
+
+                if (profile) {
+                    setExistingProfile(profile);
+                    setOriginLabel(profile.originLabel || '');
+                    setOriginLat(profile.originLat);
+                    setOriginLng(profile.originLng);
+                    setAdults(profile.adults);
+                    setSeniors(profile.seniors || 0);
+                    setKidsPreschool(profile.kidsPreschool);
+                    setKidsElementary(profile.kidsElementary);
+                    setKidsTeen(profile.kidsTeen);
+                    setHasPet(profile.hasPet);
+                }
+            } catch (err) {
+                console.error('[CampingProfileGate] Load profile error:', err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         loadProfile();
     }, []);

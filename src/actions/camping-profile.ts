@@ -27,13 +27,38 @@ export async function getCampingProfile(): Promise<CampingProfile | null> {
     const supabase = await createClient();
 
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return null;
 
-    const { data, error } = await supabase
-        .from('user_camping_profiles')
-        .select('*')
-        .eq('user_id', userData.user.id)
-        .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+
+    if (userData?.user) {
+        const res = await supabase
+            .from('user_camping_profiles')
+            .select('*')
+            .eq('user_id', userData.user.id)
+            .maybeSingle();
+        data = res.data;
+        error = res.error;
+    }
+
+    // [v11.9.125] 세션 갱신 지연 시 adminSupabase 백업 검증
+    if (!data && userData?.user) {
+        try {
+            const { createAdminClient } = await import('@/lib/supabase-admin');
+            const adminSupabase = createAdminClient();
+            const adminRes = await adminSupabase
+                .from('user_camping_profiles')
+                .select('*')
+                .eq('user_id', userData.user.id)
+                .maybeSingle();
+            if (adminRes.data) {
+                data = adminRes.data;
+                error = null;
+            }
+        } catch (adminErr) {
+            console.warn('[CampingProfile] Admin fallback fetch error:', adminErr);
+        }
+    }
 
     if (error) {
         console.error('[CampingProfile] Fetch error:', error);

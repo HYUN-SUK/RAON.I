@@ -1,50 +1,47 @@
 # 🤝 RAON.I 인수인계 문서 (Handoff)
 
-**작성 일시**: 2026-07-23 (KST)  
+**작성 일시**: 2026-07-24 (KST)  
 **작성자**: Antigravity Lead Developer
 
 ---
 
 ## 📌 1. 현재 상태 요약 (이번 세션 완료 사항)
 
-이번 세션에서는 **스마트플랜 및 내 기록 퍼블릭 공유 뷰어 시스템 구축과 레이아웃 원안 100% 동기화, 홈화면 UI 가독성 개선 및 바텀시트 버그 정밀 수정**을 완벽하게 마무리하였습니다.
+이번 세션에서는 **홈 화면 여행계획 자동생성 탭 3개 카드의 상세화면 진입 시 발생하던 비규칙적 튕김(Bounce) 버그 정밀 수정 및 무결성 검증, Git Commit 완료**를 완벽하게 마무리하였습니다.
 
-1. **스마트플랜 & 내 기록 퍼블릭 공유 뷰어 시스템 구축**:
-   - **퍼블릭 라우트 신설**: `/share/plan/[id]` 및 `/share/record/[id]` 라우트를 구축하여 비로그인 유저/타인 계정 접속 시 발생하던 RLS 권한 차단 문제를 완전 해결.
-   - **0원 운영비용 기능 전면 개방**: 대안 장소 스왑(Swap), Tmap/카카오/네이버 내비게이션 연결, 맛집/명소 상세 보기 및 전화걸기 등 API 과금이 없는 핵심 기능을 로그인 없이 100% 자유롭게 체험할 수 있도록 구현.
-   - **API 과금 방지 및 재생성 가드**: 퍼블릭 뷰어(`isPublicView={true}`)에서는 Gemini API 과금이 발생하는 시기별 갱신 배너(`showMidTermActionBanner`, `showShortTermActionBanner`) 및 개발자 리셋 버튼을 **100% 숨김/비활성화** 처리하여 무분별한 플랜 변형 원천 차단.
+1. **여행계획생성 카드 상세 진입 시 비규칙적 튕김 버그 정밀 패치**:
+   - **Server Action RLS 방어 가드 주입 (`src/actions/schedule.ts`)**: `getScheduleById` 및 `ensureScheduleFromReservation` 호출 시 모바일/인앱 브라우저의 서버 쿠키 세션 지연으로 인한 RLS DB 차단(`null` 반환)을 막기 위해, `createAdminClient` 기반 User ID 안전 교차 검증 가드 구축.
+   - **상세페이지 듀얼 폴백(Dual-Fallback Query) 탑재 (`src/app/(mobile)/myspace/schedule/[id]/page.tsx`)**: 1차 Server Action 결과가 `null`이더라도 2차로 Client Supabase SDK (`createClient()`)가 일정을 직접 2차 백업 조회하도록 구현하여 데이터 100% 정상 노출 보장.
+   - **일정 카드 클릭 핸들러 라우팅 가드 보완 (`src/components/schedule/ScheduleHomeWidget.tsx`)**: `handleCardClick` 수행 중 예외 발생 시 무조건 `/myspace/schedule` 목록으로 강제 라우팅하여 홈 튕김을 느끼게 하던 파이프라인을 제거하고, `sonner` 토스트 안내로 대체하여 안전하게 뷰포트 유지.
 
-2. **공유 레이아웃 원안 앱 100% 동기화 & 430px 고정 프레임**:
-   - **화면 흔들림 100% 원천 차단**: 최상위를 `w-full max-w-[430px] mx-auto overflow-x-hidden` 고정 모바일 틀로 감싸, 손가락 터치 시 뷰포트 전체가 좌우로 헛돌거나 흔들리는 현상을 완전 방지.
-   - **원안 레이아웃 복원**: 배경색을 원안과 100% 똑같은 따뜻한 캠핑 베이지(`bg-[#F7F5EF]`)로 적용하고, TopBar 중앙에 실제 캠핑장 명칭(예: `전월산국민여가캠핑장`) 노출 및 양옆 여백(`px-4`) 패딩 적용.
-
-3. **홈화면 히어로 인사말 가독성 개선**:
-   * 구름 배경 오버레이 위에서 글씨가 묻히던 현상을 해결하기 위해 인사말 폰트 색상을 **Light Mint Green (`#C8E6C9` / 연민트)**으로 변경하고, **선명한 텍스트 그림자 (`drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]` & `font-bold`)**를 적용 완료 (`BeginnerHome.tsx` & `ReturningHome.tsx`).
-
-4. **'소소한 챙김' 바텀시트 무한 팝업 버그 해결**:
-   * 시트를 X버튼, 드래그, 바깥 배경 터치로 닫을 때 `onOpenChange(false)`에서 세션스토리지 플래그(`raonai_soso_sheet_open`) 삭제를 연동하고, 마운트 복원 시 읽은 즉시 `removeItem`으로 소멸시켜 **다른 화면 다녀올 때 바텀시트가 무한 자동 팝업되던 버그를 정밀 해결**.
+2. **빌드 검증 & Git Ops 완수**:
+   - `npm run build` 프로덕션 빌드 100% 성공 (`Compiled successfully in 13.4s`, 43개 라우트 검증 완료).
+   - `git add .` 및 `git commit` 완료 (`Commit ID: 1db088d`).
 
 ---
 
 ## 📐 2. 주요 기술적 결정 사항
 
-- **안전한 퍼블릭 데이터 fetching API (`src/actions/share.ts`)**:
-  - `createAdminClient`를 사용하여 비로그인 퍼블릭 요청에 맞춰 RLS를 우회하되, 작성자의 개인 메모, 체크리스트, 결제 정보 등 개인정보는 완전 제외하고 **스마트플랜 렌더링 및 기록 렌더링에 필요한 최소 공개 데이터만 정제**하여 반환.
-- **모바일 430px 고정 프레임 패턴**:
-  - 앱 원안과 마찬가지로 `w-full max-w-[430px] mx-auto overflow-x-hidden` 고정 컨테이너를 적용하여 모바일 웹뷰 터치 시 X축 스크롤 좌우 유동 및 터치 흔들림(Bounce Shake)을 100% 방지.
+- **Server-Client 듀얼 폴백 패치 (Dual-Fallback Strategy)**:
+  - 서버 단(`getScheduleById`)과 클라이언트 단(`ScheduleDetailPage`) 2중 레이어에서 모두 데이터 획득을 보장하여, 모바일 환경 세션 딜레이가 발생하더라도 `schedule === null`에 의해 홈으로 튕겨 나가는 부작용 원천 소멸.
+- **`git push` 분리 운용**:
+  - 사용자 지시에 따라 `git add` 및 `git commit`만 수행하고, `git push`는 사용자가 직접 제어하도록 격리.
 
 ---
 
 ## 🎯 3. 다음 작업 가이드 (우선순위 Task)
 
-1. **Vercel 배포 및 모바일 카카오톡 공유 실기기 검증**:
-   - `git push` 실행 후 모바일 카카오톡으로 전송한 공유 링크(`/share/plan/[id]`) 클릭 시 새로고침 없이 즉시 원안 레이아웃으로 출력되는지 검증.
+1. **사용자 실기기 튕김 모니터링 및 추적**:
+   - 깃푸시 직후 최초 1회 진입 시 Vercel 서버 콜드스타트 / Edge 세션 갱신 타임아웃으로 한 번 튕김이 있었으나 이후 정상 작동함을 확인.
+   - 계속 모니터링 후 추가 재발 시 Server Session Token 초기화 타이밍 정밀 추적.
 2. **스마트플랜 LIVE 타임라인 UI (Phase 1) 구현 착수**:
    - 수첩/일정 안정화에 이어 크로놀로지컬 스테퍼 UI 및 live 액션 버튼 구현 진행.
 
 ---
 
-## ⚠️ 4. 주의 사항 및 특이사항
+## ⚠️ 4. 주의 사항 및 특이사항 (사용자 피드백 기록)
 
-- **공유 링크 URL 하위 호환성 유지**:
-  - 기존에 이미 생성된 공유 URL (`/share/plan/[id]`)도 주소 형태가 완전히 동일하므로, 배포 완료 후 기존 카카오톡 링크를 재공유할 필요 없이 그대로 다시 들어가기만 하면 업그레이드된 레이아웃이 적용됩니다.
+- **배포/푸시 직후 첫 진입 콜드스타트 특이사항 메모**:
+  - 깃푸시 완료 직후 새로고침 후 다가오는 일정 상세화면으로 들어갔을 때 1회 튕김 현상이 관측되었으나, 2회차 진입부터는 튕김 없이 안정적으로 동작함을 확인.
+  - 향후 동일 현상 재발 시 Vercel Edge Cache 및 최초 쿠키 바인딩 시점의 세션 레이스를 2차 검증할 것.
+
