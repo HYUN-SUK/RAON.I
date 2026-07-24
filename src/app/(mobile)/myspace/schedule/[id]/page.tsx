@@ -55,6 +55,7 @@ import { DEV_PRO_USER_ID } from '@/lib/timelineBuilder';
 import { createClient } from '@/lib/supabase-client';
 import CampingProfileGate from '@/components/shared/CampingProfileGate';
 import { CampingProfile, getCampingProfile } from '@/actions/camping-profile';
+import { recordBounceLog } from '@/lib/diagnosticSensor';
 
 
 const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
@@ -468,10 +469,29 @@ export default function ScheduleDetailPage() {
 
     // 일정 없음
     if (!schedule) {
+        recordBounceLog({
+            source: 'ScheduleDetailPage.tsx:L470',
+            reason: `Schedule null (scheduleId: ${scheduleId})`,
+            fromUrl: `/myspace/schedule/${scheduleId}`,
+            toUrl: '/',
+            sessionExists: !!userId,
+            userEmail: userEmail
+        });
+
         return (
             <div className="min-h-screen bg-[#F7F5EF] flex flex-col items-center justify-center p-4">
                 <p className="text-gray-500 mb-4">일정을 찾을 수 없어요</p>
-                <Button onClick={() => router.back()} variant="outline">
+                <Button onClick={() => {
+                    recordBounceLog({
+                        source: 'ScheduleDetailPage.tsx:BackButton',
+                        reason: 'User clicked 돌아가기 button',
+                        fromUrl: `/myspace/schedule/${scheduleId}`,
+                        toUrl: 'back',
+                        sessionExists: !!userId,
+                        userEmail: userEmail
+                    });
+                    router.back();
+                }} variant="outline">
                     돌아가기
                 </Button>
             </div>

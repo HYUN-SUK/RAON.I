@@ -25,6 +25,7 @@ import PWAInstallGuideModal from "@/components/pwa/PWAInstallGuideModal";
 import LocationPermissionPrompt from "@/components/permission/LocationPermissionPrompt";
 import PushPermissionPrompt from "@/components/permission/PushPermissionPrompt";
 import IOSPWAGuidePrompt from "@/components/permission/IOSPWAGuidePrompt";
+import { recordBounceLog } from "@/lib/diagnosticSensor";
 
 interface UserInfo {
     nickname: string;
@@ -106,11 +107,18 @@ export default function TopBar() {
         // 실시간 세션 변경 감지 리스너 구독
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setIsLoggedIn(!!session);
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-                checkUser();
-            } else if (event === 'SIGNED_OUT') {
+            if (event === 'SIGNED_OUT') {
+                recordBounceLog({
+                    source: 'TopBar.tsx:onAuthStateChange',
+                    reason: `Auth Event: ${event} (Session lost)`,
+                    fromUrl: typeof window !== 'undefined' ? window.location.pathname : '',
+                    toUrl: '/',
+                    sessionExists: false,
+                });
                 setUserInfo(null);
                 reset();
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                checkUser();
             }
         });
 
