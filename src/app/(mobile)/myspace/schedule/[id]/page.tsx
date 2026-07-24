@@ -901,28 +901,7 @@ export default function ScheduleDetailPage() {
                     )}
                 </div>
 
-                {/* 지도 바로가기 */}
-                {schedule.campground_lat && schedule.campground_lng && (
-                    <a
-                        href={`https://map.kakao.com/link/to/${encodeURIComponent(schedule.campground_name)},${schedule.campground_lat},${schedule.campground_lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block bg-white rounded-2xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-[#224732]/10 flex items-center justify-center">
-                                    <MapPin className="w-5 h-5 text-[#224732]" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-gray-900">길찾기</p>
-                                    <p className="text-sm text-gray-500">카카오맵으로 열기</p>
-                                </div>
-                            </div>
-                            <ExternalLink className="w-5 h-5 text-gray-400" />
-                        </div>
-                    </a>
-                )}
+
 
                 {/* 추천 요리 위젯 */}
                 <MealRecommendationWidget
