@@ -6,9 +6,8 @@ import { AlertTriangle, Copy, Trash2, ChevronDown, ChevronUp } from 'lucide-reac
 import { toast } from 'sonner';
 
 /**
- * 🚨 [임시 진단 센서 UI] 튕김 디버그 리포트 배너
- * 홈 화면 최상단에 튕김 발생 시 원인을 시각적으로 표시합니다.
- * 진단 완료 후 100% 완전 삭제될 임시 컴포넌트입니다.
+ * 🚨 [임시 진단 센서 UI v2] 튕김 디버그 리포트 배너
+ * localStorage 및 스토리지 변경 이벤트를 실시간 포획하여 하드 새로고침 후에도 100% 팝업 노출.
  */
 export default function BounceDebugBanner() {
     const [logs, setLogs] = useState<BounceLog[]>([]);
@@ -21,8 +20,14 @@ export default function BounceDebugBanner() {
 
     useEffect(() => {
         refreshLogs();
+        const timer = setInterval(refreshLogs, 1000); // 1초 간격 런타임 갱신
         window.addEventListener('pageshow', refreshLogs);
-        return () => window.removeEventListener('pageshow', refreshLogs);
+        window.addEventListener('storage', refreshLogs);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener('pageshow', refreshLogs);
+            window.removeEventListener('storage', refreshLogs);
+        };
     }, []);
 
     if (logs.length === 0) return null;
@@ -52,7 +57,7 @@ export default function BounceDebugBanner() {
     };
 
     return (
-        <div className="w-full bg-red-600 text-white p-4 shadow-xl border-b-4 border-red-900 z-50 text-xs font-mono space-y-2 animate-pulse">
+        <div className="w-full bg-red-600 text-white p-4 shadow-2xl border-b-4 border-red-900 z-50 text-xs font-mono space-y-2 animate-pulse">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold text-sm">
                     <AlertTriangle className="w-5 h-5 text-amber-300 animate-bounce" />
@@ -95,7 +100,7 @@ export default function BounceDebugBanner() {
                         <div>🔑 <strong className="text-yellow-300">세션 상태:</strong> {latest.sessionExists ? '✅ 유효함' : '❌ NULL (세션 끊김)'}</div>
                     </div>
                     {latest.stackTrace && (
-                        <div className="mt-2 text-[10px] opacity-70 whitespace-pre-wrap border-t border-red-500/30 pt-1">
+                        <div className="mt-2 text-[10px] opacity-70 whitespace-pre-wrap border-t border-red-500/30 pt-1 max-h-32 overflow-y-auto">
                             {latest.stackTrace}
                         </div>
                     )}

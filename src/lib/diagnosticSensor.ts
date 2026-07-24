@@ -1,27 +1,23 @@
 'use client';
 
 /**
- * 🚨 [임시 진단 센서] 튕김 원인 추적 라이브러리
- * - 화면 이동/리다이렉트 발생 시 소스 파일, 줄 번호, 원인을 sessionStorage에 기록합니다.
- * - 진단 완료 후 100% 원상 복구 및 삭제되는 임시 코드입니다.
+ * 🚨 [임시 진단 센서 v2] 튕김 원인 추적 라이브러리 (하드 새로고침 내성 강화)
+ * - localStorage 및 window.onerror / onunhandledrejection 전역 포획 센서 적용.
  */
 
 export interface BounceLog {
     timestamp: string;
-    source: string; // 예: "ScheduleDetailPage.tsx:L360"
-    reason: string; // 예: "getScheduleById returned null"
-    fromUrl: string; // 예: "/myspace/schedule/sched_123"
-    toUrl: string; // 예: "/"
+    source: string;
+    reason: string;
+    fromUrl: string;
+    toUrl: string;
     sessionExists: boolean;
     userEmail?: string | null;
     stackTrace?: string;
 }
 
-const STORAGE_KEY = 'raonai_bounce_debug_log';
+const STORAGE_KEY = 'raonai_bounce_debug_log_v2';
 
-/**
- * 튕김/리다이렉트 원인을 저장합니다.
- */
 export function recordBounceLog(log: Omit<BounceLog, 'timestamp'>) {
     if (typeof window === 'undefined') return;
 
@@ -29,15 +25,15 @@ export function recordBounceLog(log: Omit<BounceLog, 'timestamp'>) {
         const fullLog: BounceLog = {
             ...log,
             timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false }) + '.' + new Date().getMilliseconds(),
-            stackTrace: new Error().stack?.split('\n').slice(2, 6).join('\n') || ''
+            stackTrace: log.stackTrace || (new Error().stack?.split('\n').slice(2, 6).join('\n') || '')
         };
 
-        const existingRaw = window.sessionStorage.getItem(STORAGE_KEY);
+        // localStorage 사용으로 하드 새로고침 보존
+        const existingRaw = window.localStorage.getItem(STORAGE_KEY);
         const existingList: BounceLog[] = existingRaw ? JSON.parse(existingRaw) : [];
         
-        // 최근 10개만 보존
-        const updatedList = [fullLog, ...existingList].slice(0, 10);
-        window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+        const updatedList = [fullLog, ...existingList].slice(0, 15);
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
 
         console.warn('🚨 [Bounce Diagnostic Sensor Logged]', fullLog);
     } catch (e) {
@@ -45,25 +41,46 @@ export function recordBounceLog(log: Omit<BounceLog, 'timestamp'>) {
     }
 }
 
-/**
- * 저장된 튕김 로그 목록을 반환합니다.
- */
 export function getBounceLogs(): BounceLog[] {
     if (typeof window === 'undefined') return [];
     try {
-        const raw = window.sessionStorage.getItem(STORAGE_KEY);
+        const raw = window.localStorage.getItem(STORAGE_KEY);
         return raw ? JSON.parse(raw) : [];
     } catch {
         return [];
     }
 }
 
-/**
- * 튕김 로그를 삭제합니다.
- */
 export function clearBounceLogs() {
     if (typeof window === 'undefined') return;
     try {
-        window.sessionStorage.removeItem(STORAGE_KEY);
+        window.localStorage.removeItem(STORAGE_KEY);
     } catch {}
+}
+
+/**
+ * 전역 런타임 자바스크립트 크래시 자동 포획 센서 등록
+ */
+if (typeof window !== 'undefined') {
+    window.addEventListener('error', (event) => {
+        recordBounceLog({
+            source: `${event.filename || 'Unknown'}:L${event.lineno}:${event.colno}`,
+            reason: `[Fatal JS Error] ${event.message}`,
+            fromUrl: window.location.pathname,
+            toUrl: 'CRASH',
+            sessionExists: false,
+            stackTrace: event.error?.stack || ''
+        });
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+        recordBounceLog({
+            source: 'PromiseRejection',
+            reason: `[Unhandled Promise Rejection] ${event.reason?.message || String(event.reason)}`,
+            fromUrl: window.location.pathname,
+            toUrl: 'CRASH',
+            sessionExists: false,
+            stackTrace: event.reason?.stack || ''
+        });
+    });
 }
