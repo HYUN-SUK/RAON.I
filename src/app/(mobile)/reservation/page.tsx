@@ -14,10 +14,11 @@ import { useRouter } from 'next/navigation';
 import { differenceInDays, startOfDay, format } from 'date-fns';
 import { createClient } from '@/lib/supabase-client';
 import { useReservationGuard } from '@/hooks/useReservationGuard';
+import ReservationLockModal from '@/components/reservation/ReservationLockModal';
 
 export default function ReservationPage() {
     const router = useRouter();
-    const { isLoading, isAllowed } = useReservationGuard();
+    const { isLoading, isAllowed, showLockModal, closeLockModal } = useReservationGuard();
     const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchPublicReservations } = useReservationStore();
 
     useEffect(() => {
@@ -207,10 +208,18 @@ export default function ReservationPage() {
         });
     }, [selectedDateRange.from, selectedDateRange.to, sites, reservations]);
 
-    if (isLoading || !isAllowed) {
+    if (isLoading) {
         return (
             <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1C4526]"></div>
+            </div>
+        );
+    }
+
+    if (!isAllowed) {
+        return (
+            <div className="min-h-screen bg-[#F7F5EF]">
+                <ReservationLockModal isOpen={showLockModal} onClose={closeLockModal} />
             </div>
         );
     }

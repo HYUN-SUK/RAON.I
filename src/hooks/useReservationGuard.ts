@@ -1,19 +1,16 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import {
     IS_RESERVATION_LOCKED,
     ALLOWED_RESERVATION_EMAILS,
-    RESERVATION_LOCK_MESSAGE
 } from '@/constants/reservationGuard';
 
 export function useReservationGuard() {
-    const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [isAllowed, setIsAllowed] = useState(false);
-    const hasAlertedRef = useRef(false);
+    const [showLockModal, setShowLockModal] = useState(false);
 
     useEffect(() => {
         // 1. 방어 스위치가 꺼져있으면 즉시 모든 사용자 허용
@@ -54,28 +51,24 @@ export function useReservationGuard() {
                     }
                 }
 
-                // 허용 대상이 아닌 경우 차단 처리
-                if (!hasAlertedRef.current) {
-                    hasAlertedRef.current = true;
-                    alert(RESERVATION_LOCK_MESSAGE);
-                    router.replace('/');
-                }
+                // 허용 대상이 아닌 경우 차단 모달 표출
                 setIsAllowed(false);
+                setShowLockModal(true);
             } catch (error) {
                 console.error('Reservation guard check failed:', error);
-                if (!hasAlertedRef.current) {
-                    hasAlertedRef.current = true;
-                    alert(RESERVATION_LOCK_MESSAGE);
-                    router.replace('/');
-                }
                 setIsAllowed(false);
+                setShowLockModal(true);
             } finally {
                 setIsLoading(false);
             }
         };
 
         checkPermission();
-    }, [router]);
+    }, []);
 
-    return { isLoading, isAllowed };
+    const closeLockModal = () => {
+        setShowLockModal(false);
+    };
+
+    return { isLoading, isAllowed, showLockModal, closeLockModal };
 }
