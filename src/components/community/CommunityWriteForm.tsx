@@ -80,7 +80,7 @@ export default function CommunityWriteForm() {
 
     // Auto-set visibility based on Board Type
     React.useEffect(() => {
-        if (type === 'STORY') {
+        if (type === 'STORY' || type === 'QNA') {
             setVisibility('PRIVATE');
         } else {
             setVisibility('PUBLIC');
