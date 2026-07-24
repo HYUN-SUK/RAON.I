@@ -467,33 +467,32 @@ export default function ScheduleDetailPage() {
         );
     }
 
-    // 일정 없음
+    // 일정 없음 (자동 퇴장 트리거 전면 제거 & 뷰포트 고정)
     if (!schedule) {
-        recordBounceLog({
-            source: 'ScheduleDetailPage.tsx:L470',
-            reason: `Schedule null (scheduleId: ${scheduleId})`,
-            fromUrl: `/myspace/schedule/${scheduleId}`,
-            toUrl: '/',
-            sessionExists: !!userId,
-            userEmail: userEmail
-        });
-
         return (
-            <div className="min-h-screen bg-[#F7F5EF] flex flex-col items-center justify-center p-4">
-                <p className="text-gray-500 mb-4">일정을 찾을 수 없어요</p>
-                <Button onClick={() => {
-                    recordBounceLog({
-                        source: 'ScheduleDetailPage.tsx:BackButton',
-                        reason: 'User clicked 돌아가기 button',
-                        fromUrl: `/myspace/schedule/${scheduleId}`,
-                        toUrl: 'back',
-                        sessionExists: !!userId,
-                        userEmail: userEmail
-                    });
-                    router.back();
-                }} variant="outline">
-                    돌아가기
-                </Button>
+            <div className="min-h-screen bg-[#F7F5EF] flex flex-col items-center justify-center p-6 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-[#224732]/10 flex items-center justify-center text-[#224732] mb-2">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+                <h3 className="text-base font-bold text-gray-800">일정 정보를 준비 중입니다</h3>
+                <p className="text-xs text-gray-500 max-w-xs leading-relaxed">
+                    네트워크 연결이나 세션 동기화로 인해 일시적으로 지연되고 있습니다. 아래 버튼을 눌러 다시 불러올 수 있습니다.
+                </p>
+                <div className="flex gap-2 pt-2">
+                    <Button 
+                        onClick={() => loadData(0)} 
+                        className="bg-[#224732] hover:bg-[#1a3626] text-white px-5 py-2 rounded-xl text-xs font-semibold"
+                    >
+                        다시 불러오기
+                    </Button>
+                    <Button 
+                        onClick={() => router.push('/myspace/schedule')} 
+                        variant="outline"
+                        className="border-gray-300 text-gray-700 px-5 py-2 rounded-xl text-xs font-semibold"
+                    >
+                        일정 목록으로
+                    </Button>
+                </div>
             </div>
         );
     }
@@ -509,7 +508,11 @@ export default function ScheduleDetailPage() {
                     <button
                         onClick={() => {
                             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
-                            router.back();
+                            if (typeof window !== 'undefined' && window.history.length > 1) {
+                                router.back();
+                            } else {
+                                router.push('/');
+                            }
                         }}
                         className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
