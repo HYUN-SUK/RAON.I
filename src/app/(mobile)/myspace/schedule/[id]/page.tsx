@@ -55,7 +55,6 @@ import { DEV_PRO_USER_ID } from '@/lib/timelineBuilder';
 import { createClient } from '@/lib/supabase-client';
 import CampingProfileGate from '@/components/shared/CampingProfileGate';
 import { CampingProfile, getCampingProfile } from '@/actions/camping-profile';
-import { recordBounceLog } from '@/lib/diagnosticSensor';
 
 
 const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
@@ -331,11 +330,9 @@ export default function ScheduleDetailPage() {
         }
     };
 
-    // 데이터 로드 (세션 레이싱 방지를 위한 듀얼 폴백 & 1회 자동 재시도 패턴)
-    const loadData = useCallback(async (retryCount = 0) => {
-        if (retryCount === 0) {
-            setIsLoading(true);
-        }
+    // 데이터 로드 (서버 Action 1차 + 클라이언트 SDK 2차 백업 듀얼 폴백)
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
         try {
             let [scheduleData, checklistData] = await Promise.all([
                 getScheduleById(scheduleId),
@@ -360,35 +357,19 @@ export default function ScheduleDetailPage() {
                 }
             }
 
-            // 일시적인 백그라운드 세션 갱신 충돌로 데이터를 가져오지 못한 경우, 800ms 후 1회 재시도
-            if (!scheduleData && retryCount === 0) {
-                console.warn(`[ScheduleDetail] Schedule data is null. Retrying in 800ms... (Attempt 1)`);
-                setTimeout(() => {
-                    loadData(1);
-                }, 800);
-                return;
-            }
-
             setSchedule(scheduleData);
             setChecklist(checklistData);
-            setIsLoading(false);
         } catch (error) {
             console.error('Load schedule detail error:', error);
-            if (retryCount === 0) {
-                console.warn(`[ScheduleDetail] Load failed with error. Retrying in 800ms...`);
-                setTimeout(() => {
-                    loadData(1);
-                }, 800);
-            } else {
-                toast.error('일정을 불러오는데 실패했어요');
-                setIsLoading(false);
-            }
+            toast.error('일정을 불러오는데 실패했어요');
+        } finally {
+            setIsLoading(false);
         }
     }, [scheduleId]);
 
     useEffect(() => {
         if (!isUserLoading) {
-            loadData(0);
+            loadData();
         }
     }, [loadData, isUserLoading]);
 
@@ -480,7 +461,7 @@ export default function ScheduleDetailPage() {
                 </p>
                 <div className="flex gap-2 pt-2">
                     <Button 
-                        onClick={() => loadData(0)} 
+                        onClick={() => loadData()} 
                         className="bg-[#224732] hover:bg-[#1a3626] text-white px-5 py-2 rounded-xl text-xs font-semibold"
                     >
                         다시 불러오기

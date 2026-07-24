@@ -36,7 +36,6 @@ import ReminderBanner from '@/components/myspace/ReminderBanner';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
-import BounceDebugBanner from '@/components/common/BounceDebugBanner';
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
@@ -411,9 +410,6 @@ export default function BeginnerHome() {
 
     return (
         <div className="flex flex-col w-full min-h-screen bg-white dark:bg-black relative">
-            {/* 🚨 [임시 진단 센서 UI] 튕김 발생 시 원인 팝업 배너 */}
-            <BounceDebugBanner />
-
             <TopBar />
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
