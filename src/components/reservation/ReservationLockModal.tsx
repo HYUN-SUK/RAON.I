@@ -12,6 +12,8 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 
+import { CAMP_OWNER_PHONE } from '@/constants/reservationGuard';
+
 interface ReservationLockModalProps {
     isOpen: boolean;
     onClose?: () => void;
@@ -25,7 +27,7 @@ interface ReservationLockModalProps {
 export default function ReservationLockModal({
     isOpen,
     onClose,
-    contactPhone = '010-0000-0000', // 캠장님 기본 연락처
+    contactPhone = CAMP_OWNER_PHONE, // 캠장님 실기기 전화번호
 }: ReservationLockModalProps) {
     const router = useRouter();
 

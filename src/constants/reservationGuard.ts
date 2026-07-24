@@ -11,5 +11,6 @@ export const ALLOWED_RESERVATION_EMAILS = [
     'admin@raon.ai'
 ];
 
-// 차단 팝업 안내 메시지
+// 차단 팝업 안내 메시지 및 캠장님 연락처
 export const RESERVATION_LOCK_MESSAGE = "우리 앱의 예약기능은 8월 초에 오픈됩니다. 캠장에게 문의하세요~!";
+export const CAMP_OWNER_PHONE = "010-7404-0108";
