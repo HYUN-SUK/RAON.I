@@ -32,6 +32,7 @@ export default function UnifiedReservationCalendar() {
 
     // Modal State
     const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | 'CAMFIT_MONITOR' | 'ACTION_CONFIRM' | null>(null);
+    const [isActionSubmitting, setIsActionSubmitting] = useState(false);
     const [confirmModalConfig, setConfirmModalConfig] = useState<{
         title: string;
         description: string;
@@ -190,13 +191,13 @@ export default function UnifiedReservationCalendar() {
         return { total, occupied, details };
     };
 
-    // 모달 이중 중첩 시 모바일 pointer-events 터치 차단 방지를 위한 안전 모달 스위처
+    // 모달 이중 중첩 시 모바일 pointer-events 터치 차단 방지를 위한 안전 모달 스위처 (백드롭 300ms 보장)
     const safeSetViewMode = (newMode: typeof viewMode) => {
         if (viewMode !== null && viewMode !== newMode) {
             setViewMode(null);
             setTimeout(() => {
                 setViewMode(newMode);
-            }, 120);
+            }, 300);
         } else {
             setViewMode(newMode);
         }
@@ -261,7 +262,6 @@ export default function UnifiedReservationCalendar() {
                 const newBlock = { id: '', siteId: selectedSiteId, startDate: start, endDate: end, memo: blockMemo, isPaid, guestName, contact };
                 await addBlockDate(newBlock);
                 toast.success('차단(예약)이 설정되었습니다.');
-                setViewMode(null);
             }
         });
         safeSetViewMode('ACTION_CONFIRM');
@@ -282,7 +282,6 @@ export default function UnifiedReservationCalendar() {
             onConfirm: async () => {
                 await removeBlockDate(selectedBlock.id);
                 toast.success('삭제되었습니다.');
-                setViewMode(null);
             }
         });
         safeSetViewMode('ACTION_CONFIRM');
@@ -322,13 +321,8 @@ export default function UnifiedReservationCalendar() {
             confirmText: '모두 해제하기',
             variant: 'destructive',
             onConfirm: async () => {
-                try {
-                    await Promise.all(targets.map(t => removeBlockDate(t.id)));
-                    toast.success('선택일의 모든 사이트 차단이 해제되었습니다.');
-                    setViewMode(null);
-                } catch (e) {
-                    toast.error('일괄 해제 처리 중 오류가 발생했습니다.');
-                }
+                await Promise.all(targets.map(t => removeBlockDate(t.id)));
+                toast.success('선택일의 모든 사이트 차단이 해제되었습니다.');
             }
         });
         safeSetViewMode('ACTION_CONFIRM');
@@ -1016,20 +1010,29 @@ export default function UnifiedReservationCalendar() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="gap-2 sm:gap-0 mt-4">
-                        <Button variant="outline" onClick={() => setViewMode(null)}>취소</Button>
+                        <Button variant="outline" disabled={isActionSubmitting} onClick={() => setViewMode(null)}>취소</Button>
                         <Button
+                            disabled={isActionSubmitting}
                             className={
                                 confirmModalConfig?.variant === 'blue'
                                     ? 'bg-blue-600 hover:bg-blue-700 text-white font-bold'
                                     : 'bg-red-600 hover:bg-red-700 text-white font-bold'
                             }
                             onClick={async () => {
-                                if (confirmModalConfig?.onConfirm) {
+                                if (!confirmModalConfig?.onConfirm || isActionSubmitting) return;
+                                try {
+                                    setIsActionSubmitting(true);
                                     await confirmModalConfig.onConfirm();
+                                } catch (error) {
+                                    console.error('[UnifiedReservationCalendar] Action confirm failed:', error);
+                                    toast.error('처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                                } finally {
+                                    setIsActionSubmitting(false);
+                                    setViewMode(null);
                                 }
                             }}
                         >
-                            {confirmModalConfig?.confirmText || '확인'}
+                            {isActionSubmitting ? '처리 중...' : (confirmModalConfig?.confirmText || '확인')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
