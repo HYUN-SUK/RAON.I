@@ -38,9 +38,14 @@
   - [x] **Zero-Cost Features**: Provided place swap, nav deep links, and place details without additional Gemini AI API costs.
   - [x] **Regeneration Guard**: Hidden all regeneration/update banners in public views to prevent unauthorized API costs and plan mutation.
   - [x] **Layout Synchronization**: Applied `max-w-[430px] mx-auto overflow-x-hidden` fixed frame, warm beige background (`#F7F5EF`), and TopBar title to match app original view 100%.
-  - [x] **Home UI & Bug Fixes**: Applied Light Mint Green (`#C8E6C9`) font and drop-shadow to hero greeting, fixed infinite popup bug on Soso Care sheet by properly managing SessionStorage flags.
+- [x] **9.5 Bounce Bug Elimination & Clean Refactoring (2026-07-24~26)** 🟢
+  - [x] **Bounce Bug Root-Cause Eradication**: Removed toxic auto-exit `router.back()` triggers from `ScheduleDetailPage.tsx`, freezing the viewport safely with skeleton & retry UI.
+  - [x] **Codebase Clean-Up**: Removed temporary diagnostic sensors (`diagnosticSensor.ts`, `BounceDebugBanner.tsx`) and 600ms timeout suppression guards, restoring clean original architecture.
+  - [x] **CampWarm ReservationLockModal**: Built aesthetic custom reservation lock modal with `tel:` direct dial to camp owner's real phone number (`010-7404-0108`).
+  - [x] **Community QNA Auto-Private**: Enforced automatic `PRIVATE` visibility setting for error report category in `CommunityWriteForm.tsx` with admin/author view permissions.
+  - [x] **UI Streamlining**: Removed redundant Kakao Map route card from schedule detail page.
 
-## ? ?체 진행??약 (Progress Summary)
+## 📊 전체 진행 현황 요약 (Progress Summary)
 
 | ?계 | 구분 | ?태 | 진행?| 비고 |
 | :--- | :--- | :--- | :--- | :--- |
