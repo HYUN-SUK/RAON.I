@@ -293,64 +293,38 @@ export const useReservationStore = create<ReservationState>()(
             },
 
             addBlockDate: async (block) => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
-
-                const { data, error } = await supabase.from('blocked_dates').insert({
-                    site_id: block.siteId,
-                    start_date: formatLocalDate(block.startDate),
-                    end_date: formatLocalDate(block.endDate),
+                const { addBlockDateServerAction } = await import('@/actions/admin-calendar');
+                const result = await addBlockDateServerAction({
+                    siteId: block.siteId,
+                    startDate: block.startDate,
+                    endDate: block.endDate,
                     memo: block.memo,
-                    is_paid: block.isPaid,
-                    guest_name: block.guestName,
+                    isPaid: block.isPaid,
+                    guestName: block.guestName,
                     contact: block.contact
-                }).select().single();
+                });
 
-                if (error) {
-                    console.error('[Store] addBlockDate error:', error);
-                    throw new Error(error.message || '차단 등록 중 DB 오류가 발생했습니다.');
+                if (!result.success || !result.data) {
+                    throw new Error(result.error || '차단 등록에 실패했습니다.');
                 }
 
-                if (data) {
-                    const newBlock: BlockedDate = {
-                        id: data.id,
-                        siteId: data.site_id,
-                        startDate: parseSafeDate(data.start_date),
-                        endDate: parseSafeDate(data.end_date),
-                        memo: data.memo || undefined,
-                        isPaid: data.is_paid,
-                        guestName: data.guest_name || undefined,
-                        contact: data.contact || undefined
-                    };
-                    
-                    set((state) => ({ 
-                        blockedDates: [...state.blockedDates, newBlock]
-                    }));
-                }
+                const newBlock = result.data;
+                set((state) => ({ 
+                    blockedDates: [...state.blockedDates, newBlock]
+                }));
             },
 
             removeBlockDate: async (id: string) => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
+                const { removeBlockDateServerAction } = await import('@/actions/admin-calendar');
+                const result = await removeBlockDateServerAction(id);
 
-                // 삭제 전에 날짜/사이트 정보 저장 (빈자리 알림용)
-                const { blockedDates } = get();
-                const targetBlock = blockedDates.find(b => b.id === id);
+                if (!result.success) {
+                    throw new Error(result.error || '차단 해제 삭제에 실패했습니다.');
+                }
 
-                await supabase.from('blocked_dates').delete().eq('id', id);
-                
                 set((state) => ({
                     blockedDates: state.blockedDates.filter(b => b.id !== id)
                 }));
-
-                // 빈자리 알림 발송 (차단 해제 시)
-                if (targetBlock) {
-                    const startDateStr = formatLocalDate(targetBlock.startDate);
-                    import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
-                        notifyWaitlistUsers(startDateStr, targetBlock.siteId)
-                            .catch(err => console.error('[Store] Waitlist Notify on Block Remove Failed:', err));
-                    });
-                }
             },
 
             toggleBlockPaid: async (id: string) => {

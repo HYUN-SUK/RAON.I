@@ -321,7 +321,13 @@ export default function UnifiedReservationCalendar() {
             confirmText: '모두 해제하기',
             variant: 'destructive',
             onConfirm: async () => {
-                await Promise.all(targets.map(t => removeBlockDate(t.id)));
+                const { unblockAllServerAction } = await import('@/actions/admin-calendar');
+                const targetIds = targets.map(t => t.id);
+                const res = await unblockAllServerAction(targetIds);
+                if (!res.success) {
+                    throw new Error(res.error || '일괄 차단 해제에 실패했습니다.');
+                }
+                await fetchBlockedDates();
                 toast.success('선택일의 모든 사이트 차단이 해제되었습니다.');
             }
         });
