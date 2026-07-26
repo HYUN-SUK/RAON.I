@@ -31,7 +31,14 @@ export default function UnifiedReservationCalendar() {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // Modal State
-    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | 'CAMFIT_MONITOR' | null>(null);
+    const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | 'CAMFIT_MONITOR' | 'ACTION_CONFIRM' | null>(null);
+    const [confirmModalConfig, setConfirmModalConfig] = useState<{
+        title: string;
+        description: string;
+        confirmText: string;
+        variant?: 'default' | 'destructive' | 'blue';
+        onConfirm: () => Promise<void> | void;
+    } | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
@@ -183,9 +190,21 @@ export default function UnifiedReservationCalendar() {
         return { total, occupied, details };
     };
 
+    // 모달 이중 중첩 시 모바일 pointer-events 터치 차단 방지를 위한 안전 모달 스위처
+    const safeSetViewMode = (newMode: typeof viewMode) => {
+        if (viewMode !== null && viewMode !== newMode) {
+            setViewMode(null);
+            setTimeout(() => {
+                setViewMode(newMode);
+            }, 120);
+        } else {
+            setViewMode(newMode);
+        }
+    };
+
     const handleAirconCellClick = (date: Date) => {
         setSelectedDate(date);
-        setViewMode('AIRCON_DAILY');
+        safeSetViewMode('AIRCON_DAILY');
     };
 
     const handleCellClick = (date: Date, siteId: string, status: any) => {
@@ -196,12 +215,12 @@ export default function UnifiedReservationCalendar() {
             setSelectedReservation(status.data);
             setSelectedBlock(null);
             setShowHistory(false);
-            setViewMode('DETAIL');
+            safeSetViewMode('DETAIL');
         } else if (status?.type === 'BLOCKED') {
             setSelectedBlock(status.data);
             setSelectedReservation(null);
             setShowHistory(false);
-            setViewMode('DETAIL');
+            safeSetViewMode('DETAIL');
         } else {
             // New Block
             setBlockMemo('');
@@ -214,32 +233,59 @@ export default function UnifiedReservationCalendar() {
             setMaxDuration(Math.max(1, max)); // Ensure at least 1
             setBlockDuration('1');
 
-            setViewMode('BLOCK');
             setSelectedBlock(null);
             setSelectedReservation(null);
+            safeSetViewMode('BLOCK');
         }
     };
 
-    const confirmBlock = async () => {
+    // 차단 설정 최종 확인 팝업 요청
+    const onRequestBlockConfirm = () => {
         if (!selectedDate || !selectedSiteId) return;
+        const siteObj = sites.find(s => s.id === selectedSiteId);
+        const siteName = siteObj ? siteObj.name : (selectedSiteId === 'ALL' ? '전체 사이트' : selectedSiteId);
         const start = selectedDate;
-        const end = addDays(start, parseInt(blockDuration));
-        const newBlock = { id: '', siteId: selectedSiteId, startDate: start, endDate: end, memo: blockMemo, isPaid, guestName, contact };
-        await addBlockDate(newBlock);
-        toast.success('차단(예약)이 설정되었습니다.');
-        setViewMode(null);
+        const nights = parseInt(blockDuration);
+        const end = addDays(start, nights);
+        const startStr = format(start, 'yyyy.MM.dd');
+        const endStr = format(end, 'MM.dd');
+        const durationText = `${nights}박 (${nights + 1}일)`;
+        const payText = isPaid ? '입금 확인 (예약 확정)' : '미입금 (차단)';
+
+        setConfirmModalConfig({
+            title: '차단 / 예약 설정 최종 확인',
+            description: `[${siteName}] 사이트를 ${startStr} ~ ${endStr} (${durationText}) 동안 '${payText}' 상태로 설정하시겠습니까?`,
+            confirmText: isPaid ? '확정 등록하기' : '차단 등록하기',
+            variant: isPaid ? 'blue' : 'destructive',
+            onConfirm: async () => {
+                const newBlock = { id: '', siteId: selectedSiteId, startDate: start, endDate: end, memo: blockMemo, isPaid, guestName, contact };
+                await addBlockDate(newBlock);
+                toast.success('차단(예약)이 설정되었습니다.');
+                setViewMode(null);
+            }
+        });
+        safeSetViewMode('ACTION_CONFIRM');
     };
 
+    // 단일 차단 삭제/해제 최종 확인 팝업 요청
     const handleDeleteClick = () => {
-        setViewMode('DELETE_CONFIRM');
-    };
+        if (!selectedBlock) return;
+        const siteObj = sites.find(s => s.id === selectedBlock.siteId);
+        const siteName = siteObj ? siteObj.name : selectedBlock.siteId;
+        const guestInfo = selectedBlock.guestName ? ` [${selectedBlock.guestName}] 고객의` : '';
 
-    const confirmDelete = async () => {
-        if (selectedBlock) {
-            await removeBlockDate(selectedBlock.id);
-            toast.success('삭제되었습니다.');
-            setViewMode(null);
-        }
+        setConfirmModalConfig({
+            title: '차단 해제 및 삭제 최종 확인',
+            description: `${siteName} 사이트${guestInfo} 차단 내역을 삭제 및 해제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+            confirmText: '삭제 및 해제하기',
+            variant: 'destructive',
+            onConfirm: async () => {
+                await removeBlockDate(selectedBlock.id);
+                toast.success('삭제되었습니다.');
+                setViewMode(null);
+            }
+        });
+        safeSetViewMode('ACTION_CONFIRM');
     };
 
     const handleBlockAllClick = () => {
@@ -251,9 +297,10 @@ export default function UnifiedReservationCalendar() {
         setIsPaid(false);
         setMaxDuration(30); 
         setBlockDuration('1');
-        setViewMode('BLOCK');
+        safeSetViewMode('BLOCK');
     };
 
+    // 일괄 해제 최종 확인 팝업 요청
     const handleUnblockAll = async () => {
         if (!selectedDate) return;
         const checkTime = startOfDay(selectedDate).getTime();
@@ -267,13 +314,24 @@ export default function UnifiedReservationCalendar() {
             return;
         }
 
-        try {
-            await Promise.all(targets.map(t => removeBlockDate(t.id)));
-            toast.success('선택일의 모든 사이트 차단이 해제되었습니다.');
-            setViewMode(null);
-        } catch (e) {
-            toast.error('일괄 해제 처리 중 오류가 발생했습니다.');
-        }
+        const dateStr = format(selectedDate, 'yyyy년 M월 d일 (eee)', { locale: ko });
+
+        setConfirmModalConfig({
+            title: '일괄 차단 해제 최종 확인',
+            description: `${dateStr}에 설정된 총 ${targets.length}건의 사이트 차단 내역을 모두 해제하시겠습니까?`,
+            confirmText: '모두 해제하기',
+            variant: 'destructive',
+            onConfirm: async () => {
+                try {
+                    await Promise.all(targets.map(t => removeBlockDate(t.id)));
+                    toast.success('선택일의 모든 사이트 차단이 해제되었습니다.');
+                    setViewMode(null);
+                } catch (e) {
+                    toast.error('일괄 해제 처리 중 오류가 발생했습니다.');
+                }
+            }
+        });
+        safeSetViewMode('ACTION_CONFIRM');
     };
 
     // Customer History
@@ -369,7 +427,7 @@ export default function UnifiedReservationCalendar() {
                                             return (
                                                 <div key={site.id} onClick={(e) => { e.stopPropagation(); handleAirconCellClick(day); }}
                                                     className={`
-                                                        text-[10px] px-1.5 py-0.5 rounded cursor-pointer border flex justify-between items-center font-bold
+                                                        text-[11px] px-2 py-1 min-h-[26px] my-0.5 rounded cursor-pointer border flex justify-between items-center font-bold active:scale-95 transition-transform
                                                         ${bgClass}
                                                     `}
                                                 >
@@ -382,7 +440,7 @@ export default function UnifiedReservationCalendar() {
                                         return (
                                             <div key={site.id} onClick={(e) => { e.stopPropagation(); handleCellClick(day, site.id, status); }}
                                                 className={`
-                                                    text-[10px] px-1.5 py-0.5 rounded cursor-pointer border flex justify-between items-center group
+                                                    text-[11px] px-2 py-1 min-h-[26px] my-0.5 rounded cursor-pointer border flex justify-between items-center group active:scale-95 transition-transform
                                                     ${status?.type === 'RESERVED'
                                                         ? ((status.data as Reservation).status === 'CONFIRMED' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200')
                                                         : status?.type === 'BLOCKED'
@@ -391,7 +449,7 @@ export default function UnifiedReservationCalendar() {
                                                     }
                                                 `}
                                             >
-                                                <span className={`${!status ? 'text-gray-600 font-bold' : 'font-bold'} truncate max-w-[40px]`}>{site.name}</span>
+                                                <span className={`${!status ? 'text-gray-600 font-bold' : 'font-bold'} truncate max-w-[45px]`}>{site.name}</span>
                                                 {status?.type === 'BLOCKED' && (status.data as BlockedDate).guestName && (
                                                     <span className="truncate max-w-[50px] font-bold">{(status.data as BlockedDate).guestName}</span>
                                                 )}
@@ -447,7 +505,9 @@ export default function UnifiedReservationCalendar() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setViewMode(null)}>취소</Button>
-                        <Button className={isPaid ? 'bg-blue-600' : 'bg-red-600'} onClick={confirmBlock}>{isPaid ? '등록' : '차단'}</Button>
+                        <Button className={isPaid ? 'bg-blue-600 hover:bg-blue-700 font-bold' : 'bg-red-600 hover:bg-red-700 font-bold'} onClick={onRequestBlockConfirm}>
+                            {isPaid ? '등록' : '차단'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -874,22 +934,6 @@ export default function UnifiedReservationCalendar() {
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={viewMode === 'DELETE_CONFIRM'} onOpenChange={(o) => !o && setViewMode('DETAIL')}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>차단 해제 및 삭제</DialogTitle>
-                        <DialogDescription>
-                            정말로 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setViewMode('DETAIL')}>취소</Button>
-                        <Button variant="destructive" onClick={confirmDelete}>삭제하기</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
             {/* 캠핏 연동 모니터 모달 */}
             <Dialog open={viewMode === 'CAMFIT_MONITOR'} onOpenChange={(o) => !o && setViewMode(null)}>
                 <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
@@ -955,6 +999,38 @@ export default function UnifiedReservationCalendar() {
                             🔄 새로고침
                         </Button>
                         <Button size="sm" onClick={() => setViewMode(null)} className="bg-[#2F5233] hover:bg-[#223d26] text-white">닫기</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Action Final Confirm Dialog */}
+            <Dialog open={viewMode === 'ACTION_CONFIRM'} onOpenChange={(o) => !o && setViewMode(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-gray-900 font-bold">
+                            <Info className="w-5 h-5 text-amber-500" />
+                            {confirmModalConfig?.title || '최종 확인'}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-gray-600 pt-2 whitespace-pre-wrap leading-relaxed">
+                            {confirmModalConfig?.description}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                        <Button variant="outline" onClick={() => setViewMode(null)}>취소</Button>
+                        <Button
+                            className={
+                                confirmModalConfig?.variant === 'blue'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white font-bold'
+                                    : 'bg-red-600 hover:bg-red-700 text-white font-bold'
+                            }
+                            onClick={async () => {
+                                if (confirmModalConfig?.onConfirm) {
+                                    await confirmModalConfig.onConfirm();
+                                }
+                            }}
+                        >
+                            {confirmModalConfig?.confirmText || '확인'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
