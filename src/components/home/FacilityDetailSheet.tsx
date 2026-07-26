@@ -86,16 +86,8 @@ export default function FacilityDetailSheet({
                             </TabsTrigger>
                         </TabsList>
 
-                        {/* Info Tab: Description + Layout Image */}
+                        {/* Info Tab: Layout Image + Description */}
                         <TabsContent value="info" className="mt-6 space-y-6 pb-32 overflow-y-auto h-[calc(100%-120px)] scrollbar-hide">
-                            {/* Description Block */}
-                            <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 shadow-sm border border-stone-100 dark:border-zinc-700">
-                                <h3 className="font-bold text-stone-900 dark:text-stone-100 mb-4 text-lg">라온아이 시설 안내</h3>
-                                <p className="text-stone-600 dark:text-stone-400 whitespace-pre-wrap leading-relaxed">
-                                    {description || "시설 설명이 등록되지 않았습니다."}
-                                </p>
-                            </div>
-
                             {/* Layout Image */}
                             <div className="space-y-3">
                                 <h4 className="font-bold text-stone-900 dark:text-stone-100 px-1">전체 배치도</h4>
@@ -116,6 +108,14 @@ export default function FacilityDetailSheet({
                                         배치도 이미지가 없습니다.
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Description Block */}
+                            <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 shadow-sm border border-stone-100 dark:border-zinc-700">
+                                <h3 className="font-bold text-stone-900 dark:text-stone-100 mb-4 text-lg">라온아이 시설 안내</h3>
+                                <p className="text-stone-600 dark:text-stone-400 whitespace-pre-wrap leading-relaxed">
+                                    {description || "시설 설명이 등록되지 않았습니다."}
+                                </p>
                             </div>
                         </TabsContent>
 
