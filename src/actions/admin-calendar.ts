@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase-client';
+import { createAdminClient } from '@/lib/supabase-admin';
 import { formatLocalDate, parseSafeDate } from '@/utils/date';
 import { BlockedDate } from '@/types/reservation';
 
@@ -16,11 +16,12 @@ export interface CreateBlockParams {
 
 /**
  * 관리자 차단일 설정 Server Action
- * 모바일 브라우저 서드파티 쿠키 및 RLS 펜딩을 우회하고 백엔드 서버에서 0.05초 만에 다이렉트 처리합니다.
+ * 모바일 브라우저 세션 격리 및 RLS(Row-Level Security) 차단을 최고 관리자 키(createAdminClient)로 우회하여 백엔드 서버에서 0.05초 만에 다이렉트 처리합니다.
  */
 export async function addBlockDateServerAction(params: CreateBlockParams): Promise<{ success: boolean; data?: BlockedDate; error?: string }> {
     try {
-        const supabase = createClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
 
         const startDateStr = formatLocalDate(params.startDate);
         const endDateStr = formatLocalDate(params.endDate);
@@ -71,7 +72,8 @@ export async function addBlockDateServerAction(params: CreateBlockParams): Promi
  */
 export async function removeBlockDateServerAction(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-        const supabase = createClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
 
         // 1. 기존 차단 내역 조회 (빈자리 알림용)
         const { data: targetBlock } = await supabase
@@ -114,7 +116,8 @@ export async function removeBlockDateServerAction(id: string): Promise<{ success
 export async function unblockAllServerAction(ids: string[]): Promise<{ success: boolean; error?: string }> {
     try {
         if (!ids || ids.length === 0) return { success: true };
-        const supabase = createClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
 
         const { error } = await supabase
             .from('blocked_dates')
