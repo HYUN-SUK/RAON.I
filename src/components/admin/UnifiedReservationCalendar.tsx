@@ -1022,10 +1022,20 @@ export default function UnifiedReservationCalendar() {
                                 if (!confirmModalConfig?.onConfirm || isActionSubmitting) return;
                                 try {
                                     setIsActionSubmitting(true);
-                                    await confirmModalConfig.onConfirm();
-                                } catch (error) {
+                                    
+                                    // 5초 타임아웃 가드 (모바일 세션/네트워크 무한 펜딩 방지)
+                                    const timeoutPromise = new Promise((_, reject) => 
+                                        setTimeout(() => reject(new Error('응답 시간이 초과되었습니다. 네트워크 및 관리자 세션을 확인해 주세요.')), 5000)
+                                    );
+
+                                    await Promise.race([
+                                        Promise.resolve(confirmModalConfig.onConfirm()),
+                                        timeoutPromise
+                                    ]);
+                                } catch (error: any) {
                                     console.error('[UnifiedReservationCalendar] Action confirm failed:', error);
-                                    toast.error('처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                                    const errMsg = error?.message || '처리 중 오류가 발생했습니다. 다시 시도해 주세요.';
+                                    toast.error(errMsg);
                                 } finally {
                                     setIsActionSubmitting(false);
                                     setViewMode(null);

@@ -296,7 +296,7 @@ export const useReservationStore = create<ReservationState>()(
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
 
-                const { data } = await supabase.from('blocked_dates').insert({
+                const { data, error } = await supabase.from('blocked_dates').insert({
                     site_id: block.siteId,
                     start_date: formatLocalDate(block.startDate),
                     end_date: formatLocalDate(block.endDate),
@@ -305,6 +305,11 @@ export const useReservationStore = create<ReservationState>()(
                     guest_name: block.guestName,
                     contact: block.contact
                 }).select().single();
+
+                if (error) {
+                    console.error('[Store] addBlockDate error:', error);
+                    throw new Error(error.message || '차단 등록 중 DB 오류가 발생했습니다.');
+                }
 
                 if (data) {
                     const newBlock: BlockedDate = {
