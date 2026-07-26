@@ -1,13 +1,13 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase-admin';
-import { formatLocalDate, parseSafeDate } from '@/utils/date';
+import { parseSafeDate } from '@/utils/date';
 import { BlockedDate } from '@/types/reservation';
 
 export interface CreateBlockParams {
     siteId: string;
-    startDate: Date;
-    endDate: Date;
+    startDateStr: string; // YYYY-MM-DD
+    endDateStr: string;   // YYYY-MM-DD
     memo?: string;
     isPaid: boolean;
     guestName?: string;
@@ -16,22 +16,19 @@ export interface CreateBlockParams {
 
 /**
  * 관리자 차단일 설정 Server Action
- * 모바일 브라우저 세션 격리 및 RLS(Row-Level Security) 차단을 최고 관리자 키(createAdminClient)로 우회하여 백엔드 서버에서 0.05초 만에 다이렉트 처리합니다.
+ * YYYY-MM-DD 순수 문자열 기반 적재로 UTC-KST 타임존 날짜 밀림 현상을 원천 방지합니다.
  */
 export async function addBlockDateServerAction(params: CreateBlockParams): Promise<{ success: boolean; data?: BlockedDate; error?: string }> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const supabase = createAdminClient() as any;
 
-        const startDateStr = formatLocalDate(params.startDate);
-        const endDateStr = formatLocalDate(params.endDate);
-
         const { data, error } = await supabase
             .from('blocked_dates')
             .insert({
                 site_id: params.siteId,
-                start_date: startDateStr,
-                end_date: endDateStr,
+                start_date: params.startDateStr,
+                end_date: params.endDateStr,
                 memo: params.memo || null,
                 is_paid: params.isPaid,
                 guest_name: params.guestName || null,

@@ -294,10 +294,13 @@ export const useReservationStore = create<ReservationState>()(
 
             addBlockDate: async (block) => {
                 const { addBlockDateServerAction } = await import('@/actions/admin-calendar');
+                const startDateStr = formatLocalDate(block.startDate);
+                const endDateStr = formatLocalDate(block.endDate);
+
                 const result = await addBlockDateServerAction({
                     siteId: block.siteId,
-                    startDate: block.startDate,
-                    endDate: block.endDate,
+                    startDateStr,
+                    endDateStr,
                     memo: block.memo,
                     isPaid: block.isPaid,
                     guestName: block.guestName,
