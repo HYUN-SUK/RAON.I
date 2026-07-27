@@ -860,7 +860,7 @@ export default function SmartPlanProposal({
 
                     {/* [v12.6.0] 날씨 브리핑 카드 UI */}
                     {plan.weatherBriefing && (
-                        <div className="mt-4 p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-white">
+                        <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-white">
                             <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
                                 <div className="flex items-center gap-2 font-bold text-sm text-emerald-300">
                                     <span>🌤️</span>
@@ -894,15 +894,17 @@ export default function SmartPlanProposal({
                                                         hasHourly ? 'cursor-pointer hover:bg-black/25 active:scale-[0.99]' : ''
                                                     } ${isExpanded ? 'bg-black/30 border-white/20' : 'bg-black/15 border-white/5'}`}
                                                 >
-                                                    <div className="flex items-center justify-between w-full">
+                                                    <div className="flex items-center justify-between w-full pr-1">
                                                         <span className="font-semibold text-white/90 shrink-0">
                                                             📅 {df.date}{df.dayOfWeek ? `(${df.dayOfWeek})` : ''}
                                                         </span>
-                                                        <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
-                                                            <span>{df.skyIcon}</span>
-                                                            <span className="text-emerald-200 font-bold">{df.minTemp}~{df.maxTemp}°C</span>
+                                                        <div className="flex items-center gap-2 whitespace-nowrap shrink-0 pl-2">
+                                                            <span className="text-sm">{df.skyIcon}</span>
+                                                            <span className="text-emerald-200 font-bold text-xs">{df.minTemp}~{df.maxTemp}°C</span>
                                                             {df.pop > 0 && (
-                                                                <span className="text-cyan-200 text-[11px] font-semibold">🌧️ {df.pop}%</span>
+                                                                <span className="text-cyan-200 text-[11px] font-semibold bg-cyan-950/40 px-1.5 py-0.5 rounded-md border border-cyan-400/20">
+                                                                    🌧️ {df.pop}%
+                                                                </span>
                                                             )}
                                                         </div>
                                                     </div>
