@@ -733,7 +733,8 @@ export async function generatePersonalizedSmartPlan(
     predefinedMidpoint?: { lat: number; lng: number },
     mode?: 'BASIC' | 'PRO',
     travelType?: 'camping' | 'general',
-    routeData?: any
+    routeData?: any,
+    prefetchedWeather?: any
 ): Promise<StandardizedPlanJSON | ProTimelinePlan> {
     try {
         // [v11.9.60] 정석적인 서버 사이드 인증 연동 (쿠키 기반)
@@ -852,7 +853,11 @@ export async function generatePersonalizedSmartPlan(
 
         try {
             if (shouldFetchWeather) {
-                w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
+                if (prefetchedWeather && prefetchedWeather.daily && Array.isArray(prefetchedWeather.daily)) {
+                    w = prefetchedWeather;
+                } else {
+                    w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
+                }
                 if (w && w.daily && Array.isArray(w.daily)) {
                     // [v11.9.60] 날짜 매칭 불일치 해결: 하이픈(-) 제거 후 비교
                     const startStr = startDate.toISOString().split('T')[0].replace(/-/g, '');

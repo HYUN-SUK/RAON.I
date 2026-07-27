@@ -4,7 +4,7 @@ import { generatePersonalizedSmartPlan } from '@/lib/smartPlan';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { userId, location, startDate, endDate, origin, predefinedMidpoint, mode, travelType, routeData } = body;
+        const { userId, location, startDate, endDate, origin, predefinedMidpoint, mode, travelType, routeData, prefetchedWeather } = body;
 
         const plan = await generatePersonalizedSmartPlan(
             userId,
@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
             predefinedMidpoint,
             mode,
             travelType,
-            routeData
+            routeData,
+            prefetchedWeather
         );
 
         return NextResponse.json(plan);

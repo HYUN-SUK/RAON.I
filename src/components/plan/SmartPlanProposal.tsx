@@ -205,7 +205,8 @@ export default function SmartPlanProposal({
                         predefinedMidpoint: selectedMidpoint,
                         mode: restoredMode,
                         travelType: restoredTravelType,
-                        routeData: selectedRouteData
+                        routeData: selectedRouteData,
+                        prefetchedWeather: liveWeather
                     })
                 });
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
