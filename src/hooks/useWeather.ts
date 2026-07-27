@@ -83,19 +83,22 @@ export const useWeather = (userLat?: number, userLng?: number, enabled = true) =
             const lat = userLat || DEFAULT_CAMPING_LOCATION.latitude;
             const lng = userLng || DEFAULT_CAMPING_LOCATION.longitude;
 
-            const cacheKey = `weather_kma_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+            const cacheKey = `weather_kma_v3_${lat.toFixed(2)}_${lng.toFixed(2)}`;
             let cached: string | null = null;
             try { cached = window.sessionStorage?.getItem(cacheKey); } catch {}
 
-            // Simple Session Cache: 4 hour expiry
+            // Simple Session Cache: 15 minute expiry for freshness & instant bug fix
             if (cached) {
                 const parsed = JSON.parse(cached);
                 const now = new Date().getTime();
                 const cacheAge = now - parsed.timestamp;
-                if (cacheAge < 4 * 3600 * 1000) {
+                const cachedDaily = parsed.data?.daily || [];
+                const hasIncompleteMinMax = cachedDaily.some((d: any) => d.min === null || d.min === undefined || d.max === null || d.max === undefined);
+                
+                if (cacheAge < 15 * 60 * 1000 && !hasIncompleteMinMax) {
                     // 캐시에서 가져올 때 갱신 시간 정보 추가
                     const lastUpdated = new Date(parsed.timestamp);
-                    const nextUpdate = new Date(parsed.timestamp + 4 * 3600 * 1000);
+                    const nextUpdate = new Date(parsed.timestamp + 15 * 60 * 1000);
                     setWeather({
                         ...parsed.data,
                         lastUpdated,

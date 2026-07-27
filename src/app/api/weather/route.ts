@@ -101,12 +101,13 @@ export async function GET(req: NextRequest) {
         .single();
 
     if (cacheData && !cacheError) {
-        // Cache Hit - but verify it has mid-term data (at least 4 days)
+        // Cache Hit - but verify it has mid-term data (at least 4 days) AND no null min/max temperatures
         const cachedDaily = cacheData.data?.daily || [];
-        if (cachedDaily.length >= 4) {
+        const hasIncompleteMinMax = cachedDaily.some((d: any) => d.min === null || d.min === undefined || d.max === null || d.max === undefined);
+        if (cachedDaily.length >= 3 && !hasIncompleteMinMax) {
             return NextResponse.json(cacheData.data);
         }
-        // Cache is stale (only has short-term), continue to fetch fresh data
+        // Cache is incomplete/stale (missing min/max or short-term only), continue to fetch fresh data
     }
 
     // 3. Cache Miss - Fetch from KMA
