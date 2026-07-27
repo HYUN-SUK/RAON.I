@@ -790,6 +790,7 @@ export default function ScheduleDetailPage() {
                             initialPlan={isReconstructing ? null : schedule.smart_plan_data}
                             userId={userId}
                             userEmail={userEmail}
+                            liveWeather={weather}
                             location={{
                                 lat: schedule.campground_lat || 36.67,
                                 lng: schedule.campground_lng || 126.84

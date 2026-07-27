@@ -34,6 +34,8 @@ interface SmartPlanProposalProps {
     travelType?: 'camping' | 'general';
     /** 퍼블릭 공유 뷰 모드 여부 (재생성 배너 숨김) */
     isPublicView?: boolean;
+    /** 상단 날씨 카드 실시간 수신 데이터 (Silent Sync 연동용) */
+    liveWeather?: any;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -75,7 +77,8 @@ export default function SmartPlanProposal({
     onGenerated,
     mode = 'BASIC',
     travelType = 'general',
-    isPublicView = false
+    isPublicView = false,
+    liveWeather
 }: SmartPlanProposalProps) {
     // [v11.9.52] DB 영구 저장 데이터 복구 로직 (Wrapped Structure 대응)
     const isWrapped = initialPlan?.wrapped === true;
@@ -242,6 +245,53 @@ export default function SmartPlanProposal({
 
         fetchPlan();
     }, [userId, locLat, locLng, startStr, endStr, originLat, originLng, mockData, selectedMidpoint, plan, proPlan, scheduleId, selectedRouteData, onGenerated, restoredMode, restoredTravelType]);
+
+    // [v12.7.0] 상단-스마트플랜 묵묵히 실시간 기상 동기화 (Silent Sync)
+    useEffect(() => {
+        if (!plan || !liveWeather || !liveWeather.daily || !Array.isArray(liveWeather.daily)) return;
+        
+        if (plan.weatherBriefing && Array.isArray(plan.weatherBriefing.dailyForecasts)) {
+            let hasChange = false;
+            const updatedDaily = plan.weatherBriefing.dailyForecasts.map((df: any) => {
+                const cleanDfDate = df.date?.replace(/-/g, '').replace(/\//g, '');
+                const liveMatch = liveWeather.daily.find((d: any) => {
+                    const cleanDDate = d.date?.replace(/-/g, '').replace(/\//g, '');
+                    return cleanDDate === cleanDfDate || d.date === df.date;
+                });
+                if (liveMatch) {
+                    const newMin = liveMatch.min !== null && liveMatch.min !== undefined ? Math.round(liveMatch.min) : df.minTemp;
+                    const newMax = liveMatch.max !== null && liveMatch.max !== undefined ? Math.round(liveMatch.max) : df.maxTemp;
+                    const newPop = liveMatch.pop !== undefined ? liveMatch.pop : df.pop;
+                    if (newMin !== df.minTemp || newMax !== df.maxTemp || newPop !== df.pop) {
+                        hasChange = true;
+                    }
+                    return {
+                        ...df,
+                        minTemp: newMin,
+                        maxTemp: newMax,
+                        pop: newPop,
+                        skyIcon: liveMatch.weatherCode === 'rainy' ? '🌧️' : liveMatch.weatherCode === 'snowy' ? '❄️' : liveMatch.weatherCode === 'cloudy' ? '⛅' : '☀️'
+                    };
+                }
+                return df;
+            });
+
+            if (hasChange) {
+                setPlan((prev: any) => {
+                    if (!prev || !prev.weatherBriefing) return prev;
+                    return {
+                        ...prev,
+                        weatherBriefing: {
+                            ...prev.weatherBriefing,
+                            dailyForecasts: updatedDaily,
+                            avgWindSpeed: liveWeather.windSpeed ?? prev.weatherBriefing.avgWindSpeed,
+                            avgHumidity: liveWeather.humidity ?? prev.weatherBriefing.avgHumidity
+                        }
+                    };
+                });
+            }
+        }
+    }, [liveWeather, plan]);
 
     const handleRouteSelect = (midpoint: { lat: number, lng: number }, routeData: any) => {
         setSelectedMidpoint(midpoint);
