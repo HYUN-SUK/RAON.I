@@ -388,9 +388,13 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
         }
 
         if (midDaily && midDaily.length > 0) {
-            const existingDates = new Set(daily.map(d => d.date));
             midDaily.forEach(m => {
-                if (!existingDates.has(m.date)) {
+                const existing = daily.find(d => d.date === m.date);
+                if (existing) {
+                    if (existing.min === null && m.min !== null) existing.min = m.min;
+                    if (existing.max === null && m.max !== null) existing.max = m.max;
+                    if ((!existing.pop || existing.pop === 0) && m.pop) existing.pop = m.pop;
+                } else {
                     daily.push(m);
                 }
             });
