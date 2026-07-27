@@ -884,33 +884,32 @@ export default function SmartPlanProposal({
 
                                         return (
                                             <div key={idx} className="flex flex-col gap-1">
-                                                <div className="relative flex flex-col">
-                                                    <div 
-                                                        onClick={() => {
-                                                            if (hasHourly) {
-                                                                setExpandedWeatherDate(isExpanded ? null : df.date);
-                                                            }
-                                                        }}
-                                                        className={`flex items-center justify-between text-xs font-medium px-3 py-2 rounded-xl border transition-all ${
-                                                            hasHourly ? 'cursor-pointer hover:bg-black/25 active:scale-[0.99]' : ''
-                                                        } ${isExpanded ? 'bg-black/30 border-white/20' : 'bg-black/15 border-white/5'}`}
-                                                    >
-                                                        <span className="font-semibold text-white/90">
+                                                <div 
+                                                    onClick={() => {
+                                                        if (hasHourly) {
+                                                            setExpandedWeatherDate(isExpanded ? null : df.date);
+                                                        }
+                                                    }}
+                                                    className={`flex flex-col text-xs font-medium px-3.5 py-2.5 rounded-xl border transition-all ${
+                                                        hasHourly ? 'cursor-pointer hover:bg-black/25 active:scale-[0.99]' : ''
+                                                    } ${isExpanded ? 'bg-black/30 border-white/20' : 'bg-black/15 border-white/5'}`}
+                                                >
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <span className="font-semibold text-white/90 shrink-0">
                                                             📅 {df.date}{df.dayOfWeek ? `(${df.dayOfWeek})` : ''}
                                                         </span>
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
                                                             <span>{df.skyIcon}</span>
                                                             <span className="text-emerald-200 font-bold">{df.minTemp}~{df.maxTemp}°C</span>
                                                             {df.pop > 0 && (
-                                                                <span className="text-cyan-200 text-[11px]">🌧️ {df.pop}%</span>
+                                                                <span className="text-cyan-200 text-[11px] font-semibold">🌧️ {df.pop}%</span>
                                                             )}
                                                         </div>
                                                     </div>
+
+                                                    {/* 카드 내부 하단 중앙 화살표 (hasHourly일 경우) */}
                                                     {hasHourly && (
-                                                        <div 
-                                                            onClick={() => setExpandedWeatherDate(isExpanded ? null : df.date)}
-                                                            className="flex justify-center -mt-1.5 py-0.5 text-xs font-bold text-amber-300 animate-pulse cursor-pointer select-none"
-                                                        >
+                                                        <div className="flex justify-center pt-1.5 pb-0 text-[11px] font-bold text-amber-300 animate-pulse select-none">
                                                             {isExpanded ? '▲' : '▼'}
                                                         </div>
                                                     )}
