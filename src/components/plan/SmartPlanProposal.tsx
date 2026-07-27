@@ -857,6 +857,77 @@ export default function SmartPlanProposal({
                         </p>
                     )}
 
+                    {/* [v12.6.0] 날씨 브리핑 카드 UI */}
+                    {plan.weatherBriefing && (
+                        <div className="mt-4 p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-white">
+                            <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+                                <div className="flex items-center gap-2 font-bold text-sm text-emerald-300">
+                                    <span>🌤️</span>
+                                    <span>날씨 브리핑</span>
+                                </div>
+                                <span className="text-xs font-semibold text-white/80 bg-white/15 px-2.5 py-0.5 rounded-full">
+                                    {plan.weatherBriefing.dDay > 0 ? `D-${plan.weatherBriefing.dDay}` : plan.weatherBriefing.dDay === 0 ? 'D-Day' : `D+${Math.abs(plan.weatherBriefing.dDay)}`}
+                                </span>
+                            </div>
+
+                            {plan.weatherBriefing.status === 'UNAVAILABLE' ? (
+                                <p className="text-xs text-white/70 italic">
+                                    출발일이 아직 넉넉히 남아 날씨 정보는 예보 도달 시(D-7 이내) 자동으로 업데이트됩니다.
+                                </p>
+                            ) : (
+                                <div className="space-y-2.5">
+                                    {/* 일별 요약 리스트 */}
+                                    {plan.weatherBriefing.dailyForecasts.map((df, idx) => (
+                                        <div key={idx} className="flex flex-col gap-1">
+                                            <div className="flex items-center justify-between text-xs font-medium bg-black/15 px-3 py-1.5 rounded-xl border border-white/5">
+                                                <span className="font-semibold text-white/90">
+                                                    📅 {df.date}{df.dayOfWeek ? `(${df.dayOfWeek})` : ''}
+                                                </span>
+                                                <div className="flex items-center gap-2.5">
+                                                    <span>{df.skyIcon} {df.sky}</span>
+                                                    <span className="text-emerald-200 font-bold">{df.minTemp}~{df.maxTemp}°C</span>
+                                                    {df.pop > 0 && (
+                                                        <span className="text-cyan-200 text-[11px]">🌧️ {df.pop}%</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* D-3 이내일 때 3시간별 상세 타임라인 */}
+                                            {plan.weatherBriefing?.status === 'DETAILED' && plan.weatherBriefing.hourlyDetails && (
+                                                <div className="pl-3 pr-2 py-1.5 text-[11px] text-white/80 flex flex-wrap gap-x-3 gap-y-1 bg-white/5 rounded-xl border border-white/5">
+                                                    {plan.weatherBriefing.hourlyDetails
+                                                        .filter(h => h.date === df.date)
+                                                        .map((h, hIdx) => (
+                                                            <span key={hIdx} className="whitespace-nowrap">
+                                                                <span className="text-white/60">{h.hour}</span> {h.sky} <span className="font-semibold text-white/90">{h.temp}°C</span>
+                                                                {h.windDir && h.windSpeed ? <span className="text-[10px] text-white/50 ml-0.5">({h.windDir} {h.windSpeed}m/s)</span> : ''}
+                                                            </span>
+                                                        ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    {/* 하단 풍속 / 습도 요약 */}
+                                    <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/80">
+                                        <div className="flex items-center gap-3">
+                                            <span>💨 풍속 {plan.weatherBriefing.avgWindSpeed > 0 ? `${plan.weatherBriefing.avgWindSpeed}m/s` : '선선'}</span>
+                                            <span>💧 평균습도 {plan.weatherBriefing.avgHumidity}%</span>
+                                        </div>
+                                    </div>
+
+                                    {/* ⚠️ 날씨 흐름 알림 (있을 경우) */}
+                                    {plan.weatherBriefing.flowAlert && (
+                                        <div className="mt-2 text-xs font-semibold text-amber-300 bg-amber-500/20 border border-amber-400/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                            <span>⚠️</span>
+                                            <span>{plan.weatherBriefing.flowAlert}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="pt-2 flex justify-end">
                         <Button
                             size="sm"

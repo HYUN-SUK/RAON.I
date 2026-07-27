@@ -70,6 +70,37 @@ export function detectWeatherFlow(
 
 // Interfaces
 // ========================================================================================
+export interface DailyForecastItem {
+    date: string;        // "08/15"
+    dayOfWeek?: string;  // "금"
+    sky: string;         // "맑음" | "구름많음" | "흐림" | "비" | "눈"
+    skyIcon: string;     // "☀️" | "⛅" | "☁️" | "🌧️" | "❄️"
+    minTemp: number;
+    maxTemp: number;
+    pop: number;         // 강수확률
+}
+
+export interface HourlyDetailItem {
+    date: string;        // "08/15"
+    hour: string;        // "06시"
+    sky: string;         // "맑음"
+    temp: number;
+    windDir?: string;    // "남서풍"
+    windSpeed?: number;  // 2.1
+}
+
+export interface WeatherBriefing {
+    status: 'UNAVAILABLE' | 'DAILY' | 'DETAILED';
+    dDay: number;
+    dailyForecasts: DailyForecastItem[];
+    hourlyDetails?: HourlyDetailItem[];
+    avgWindSpeed: number;
+    maxWindSpeed: number;
+    windDirection?: string;
+    avgHumidity: number;
+    flowAlert?: string;
+}
+
 export interface StandardizedPlanJSON {
     "@context": "https://schema.org";
     "@type": "ItemList";
@@ -77,6 +108,7 @@ export interface StandardizedPlanJSON {
     stageIntros?: Record<string, string>;  // [v11.9.25] 5단계 모듈형 연결 문구
     stage1_timeline?: string; // [v11.9.32] Stage 1 타임라인 감성 멘트
     target_date?: string;
+    weatherBriefing?: WeatherBriefing;     // [v12.6.0] 날씨 브리핑 카드 데이터
     itemListElement: FactCard[]; // Track A: Destination Core Facts (Day 2, 3)
     routeListElement?: FactCard[]; // Track B: Journey (Route/Midpoint) Facts (Day 1)
     returnListElement?: FactCard[]; // [v11.9.25] Stage 5: 귀갓길 추천 (Track B 2위)
@@ -803,6 +835,15 @@ export async function generatePersonalizedSmartPlan(
         const diffDays = Math.round((startDateOnly.getTime() - todayDateOnly.getTime()) / (24 * 60 * 60 * 1000));
         const shouldFetchWeather = diffDays <= 7; // 7일 이내일 때만 실시간 호출
 
+        const weatherBriefing: WeatherBriefing = {
+            status: shouldFetchWeather ? 'DAILY' : 'UNAVAILABLE',
+            dDay: diffDays,
+            dailyForecasts: [],
+            avgWindSpeed: 0,
+            maxWindSpeed: 0,
+            avgHumidity: 50
+        };
+
         try {
             if (shouldFetchWeather) {
                 w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
@@ -812,6 +853,8 @@ export async function generatePersonalizedSmartPlan(
                     const endStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
                     
                     const weatherList: string[] = [];
+                    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
                     for (const dayForecast of w.daily) {
                         const cleanDate = dayForecast.date.replace(/-/g, '');
                         if (cleanDate >= startStr && cleanDate <= endStr) {
@@ -820,8 +863,32 @@ export async function generatePersonalizedSmartPlan(
                                 : dayForecast.date.substring(5).replace('-', '/');
                             
                             const isPrecipitation = (dayForecast.pop || 0) >= 50 || ['rainy', 'snowy'].includes(dayForecast.weatherCode);
-                            const skyText = isPrecipitation ? (dayForecast.weatherCode === 'snowy' ? '눈' : '비') : '맑음/구름';
+                            const skyText = isPrecipitation 
+                                ? (dayForecast.weatherCode === 'snowy' ? '눈' : '비') 
+                                : (dayForecast.weatherCode === 'cloudy' ? '구름많음' : '맑음');
+                            const skyIcon = isPrecipitation 
+                                ? (dayForecast.weatherCode === 'snowy' ? '❄️' : '🌧️') 
+                                : (dayForecast.weatherCode === 'cloudy' ? '⛅' : '☀️');
                             
+                            let dayOfWeek: string | undefined = undefined;
+                            try {
+                                const rawDateStr = dayForecast.date.length === 8
+                                    ? `${dayForecast.date.substring(0,4)}-${dayForecast.date.substring(4,6)}-${dayForecast.date.substring(6,8)}`
+                                    : dayForecast.date;
+                                const parsedD = new Date(rawDateStr);
+                                if (!isNaN(parsedD.getTime())) dayOfWeek = dayNames[parsedD.getDay()];
+                            } catch (_) {}
+
+                            weatherBriefing.dailyForecasts.push({
+                                date: shortDate,
+                                dayOfWeek,
+                                sky: skyText,
+                                skyIcon,
+                                minTemp: dayForecast.min || 0,
+                                maxTemp: dayForecast.max || 0,
+                                pop: dayForecast.pop || 0
+                            });
+
                             weatherList.push(`${shortDate}(${skyText}, ${dayForecast.min || '-'}~${dayForecast.max || '-'}도)`);
                             
                             if (dayForecast.min && dayForecast.min <= 5) isWinter = true;
@@ -835,8 +902,9 @@ export async function generatePersonalizedSmartPlan(
 
                     // D-3 이내 단기 구간일 때 3시간 단위 상세 정보 추가
                     if (diffDays <= 3 && w.timeline && Array.isArray(w.timeline)) {
-                        const timelineByDate: Record<string, string[]> = {};
-                        
+                        weatherBriefing.status = 'DETAILED';
+                        weatherBriefing.hourlyDetails = [];
+
                         const getWindDirectionText = (deg: number | undefined): string => {
                             if (deg === undefined) return '';
                             const index = Math.floor(((deg + 22.5) % 360) / 45);
@@ -866,26 +934,17 @@ export async function generatePersonalizedSmartPlan(
                                 const skyVal = typeof t.sky === 'string' ? parseInt(t.sky) : t.sky;
                                 const ptyVal = typeof t.pty === 'string' ? parseInt(t.pty) : t.pty;
                                 const stateText = getWeatherStateText(ptyVal || 0, skyVal || 1);
-                                const tempText = `${t.temp}도`;
-                                
                                 const windDir = getWindDirectionText(t.vec);
-                                const windSpd = t.wsd !== undefined ? `${t.wsd}m/s` : '';
-                                const windText = windDir && windSpd ? `, ${windDir} ${windSpd}` : '';
-                                
-                                const detail = `${hourStr}(${stateText}, ${tempText}${windText})`;
-                                if (!timelineByDate[dateLabel]) {
-                                    timelineByDate[dateLabel] = [];
-                                }
-                                timelineByDate[dateLabel].push(detail);
-                            }
-                        }
 
-                        const detailParts: string[] = [];
-                        for (const [dateLabel, list] of Object.entries(timelineByDate)) {
-                            detailParts.push(`\n- ${dateLabel} 3시간별 상세: ${list.join(', ')}`);
-                        }
-                        if (detailParts.length > 0) {
-                            weatherSummary += detailParts.join('');
+                                weatherBriefing.hourlyDetails.push({
+                                    date: dateLabel,
+                                    hour: hourStr,
+                                    sky: stateText,
+                                    temp: t.temp,
+                                    windDir,
+                                    windSpeed: t.wsd
+                                });
+                            }
                         }
                     }
                 }
@@ -1238,14 +1297,26 @@ export async function generatePersonalizedSmartPlan(
                 companionNarrative = companionParts.join(' ');
             }
 
-            // E. 조립 블록 3: 기상 시나리오 및 기온/습도/바람 수치형 브리핑 조립 (5대 지표 조각 결합식)
+            // E. 조립 블록 3: 기상 시나리오 및 추천형 한 줄 멘트 선택
             let weatherNarrative = "";
+
+            weatherBriefing.avgWindSpeed = avgWindSpeed;
+            weatherBriefing.maxWindSpeed = maxWindSpeed;
+            weatherBriefing.avgHumidity = avgHumidity;
+
+            if (w && w.timeline && Array.isArray(w.timeline)) {
+                const startStr = startDate.toISOString().split('T')[0].replace(/-/g, '');
+                const endStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
+                const flowPattern = detectWeatherFlow(w.timeline, startStr, endStr);
+                if (flowPattern !== 'STEADY' && flowComments[flowPattern]) {
+                    const fPool = flowComments[flowPattern];
+                    weatherBriefing.flowAlert = fPool[Math.floor(Math.random() * fPool.length)];
+                }
+            }
 
             if (!isWeatherAvailable || minTemp === null || maxTemp === null) {
                 weatherNarrative = futureWeatherPhrases[Math.floor(Math.random() * futureWeatherPhrases.length)];
             } else {
-                const minTempAbs = Math.abs(minTemp);
-
                 // 1) 하늘/강수 상태 결정
                 let skyKey: 'CLEAR' | 'CLOUDY' | 'RAIN' | 'SNOW' = 'CLEAR';
                 if (hasSnow || (minTemp <= 0 && hasRain)) {
@@ -1256,79 +1327,16 @@ export async function generatePersonalizedSmartPlan(
                     skyKey = 'CLOUDY';
                 }
 
-                // 2) 상황 키 매핑 및 통합 서사 선택
+                // 2) 상황 키 매핑 및 추천형 한 줄 멘트 선택 (50~70자)
                 const situationKey = `${skyKey}_${tempState}`;
                 const pool = (situationKey in weatherNarratives)
                     ? weatherNarratives[situationKey as keyof typeof weatherNarratives]
                     : weatherNarratives['CLEAR_MILD'];
-                let mainNarrative = pool[Math.floor(Math.random() * pool.length)];
-
-                // 3) 시간 흐름에 따른 날씨 변화 감지 및 코멘트 결합
-                const flowPattern = detectWeatherFlow(w.timeline || [], startStr, endStr);
-                let flowComment = "";
-                if (flowPattern !== 'STEADY' && flowComments[flowPattern]) {
-                    const fPool = flowComments[flowPattern];
-                    const rawComment = fPool[Math.floor(Math.random() * fPool.length)];
-                    // 시간적 흐름을 매끄럽게 이어줄 전환 어구 삽입
-                    flowComment = `특히 일정 중에 ${rawComment}`;
-                }
-
-                // 4) 변수 수혈 보정 헬퍼 적용
-                const bindVariables = (str: string): string => {
-                    return str
-                        .replace(/\${pop}/g, String(maxPop))
-                        .replace(/\${minTemp}/g, String(minTemp))
-                        .replace(/\${maxTemp}/g, String(maxTemp))
-                        .replace(/\${minTempAbs}/g, String(minTempAbs))
-                        .replace(/\${humidity}/g, String(avgHumidity))
-                        .replace(/\${windSpeed}/g, String(maxWindSpeed));
-                };
-
-                mainNarrative = bindVariables(mainNarrative);
-                flowComment = bindVariables(flowComment);
-
-                // 블록 간 감성 접속사 선택
-                const bridges = [
-                    "반가운 소식이라면 여행지에는",
-                    "이때 여행지의 하늘을 살펴보니",
-                    "게다가 기분 좋게도 여행지에는",
-                    "한편 이번 여정 동안 여행지에는",
-                    "마침 소중한 발걸음이 향할 여행지에는"
-                ];
-                const bridge = bridges[Math.floor(Math.random() * bridges.length)];
-
-                // 최종 2세대 융합 조립 (습도/풍속은 mainNarrative에 이미 녹아 있음. 괄호 표기 제거.)
-                weatherNarrative = `${bridge} ${mainNarrative}` + (flowComment ? ` ${flowComment}` : '');
+                weatherNarrative = pool[Math.floor(Math.random() * pool.length)];
             }
 
-            // F. 조립 블록 4: 사용자 선호 행동 취향 태그 코멘트 결합
-            const topTags = persona.topTags || [];
-            let tagNarrative = "";
-            const tagMapKey: Record<string, 'food' | 'nature' | 'photo'> = {
-                'FOOD_LOCAL': 'food',
-                'MOOD_QUIET': 'nature',
-                'ACTIVITY_PHOTO': 'photo'
-            };
-            const matchedTags = topTags.filter(t => t.tagId in tagMapKey);
-            if (matchedTags.length > 0) {
-                const legacyTagId = matchedTags[0].tagId;
-                const newTagId = tagMapKey[legacyTagId];
-                const tagPhrases = tagStatusPhrases[newTagId];
-                tagNarrative = tagPhrases[Math.floor(Math.random() * tagPhrases.length)];
-            }
-
-            // 취향태그 매핑 실패 시 기본 감성 제안형 맺음말 제공
-            if (!tagNarrative) {
-                const fallbackEndings = [
-                    "자연 속에서 온전한 쉼을 누릴 수 있는 이번 캠핑을 가장 평온한 여정으로 제안해 드립니다.",
-                    "소중한 사람과 함께 자연의 품에서 조용히 숨 쉬어 갈 이번 코스를 포근한 여행으로 추천합니다.",
-                    "일상의 분주함을 털어내고 오롯이 서로에게 집중할 수 있는 이번 여정을 다정한 여행으로 제안해 드립니다."
-                ];
-                tagNarrative = fallbackEndings[Math.floor(Math.random() * fallbackEndings.length)];
-            }
-
-            // G. 5단계 stageIntros 조립 (계절 인사말 => 동반자 구성 => 날씨 및 시간 흐름 설명 => 취향 태그 제안형 맺음)
-            stageIntros['1'] = `${greeting} ${companionNarrative} ${weatherNarrative} ${tagNarrative}`;
+            // G. 5단계 stageIntros 조립 (계절 인사말 => 동반자 구성 => 날씨 맞춤 추천 멘트)
+            stageIntros['1'] = `${greeting} ${companionNarrative} ${weatherNarrative}`;
             
             stageIntros['2'] = "설레는 출발의 순간! 캠핑장으로 향하며 가볍게 들러갈 수 있는 아늑한 맛집과 쉼표 같은 카페를 지나가 볼까요?";
             stageIntros['3'] = "캠핑의 든든한 기본! 캠핑장에 입실하기 전 신선한 식재료를 채워줄 보급소와 따뜻한 겨울을 준비할 등유 주유소에 들르는 시간이에요.";
@@ -1524,6 +1532,7 @@ export async function generatePersonalizedSmartPlan(
             target_date: startDate.toISOString().split('T')[0],
             stageIntros: Object.keys(stageIntros).length > 0 ? stageIntros : undefined,
             stage1_timeline: stageIntros['stage1_timeline'],
+            weatherBriefing,
             itemListElement: activeFacts,
             routeListElement: routeFacts,
             returnListElement: returnFacts.length > 0 ? returnFacts : undefined,
