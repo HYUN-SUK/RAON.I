@@ -58,7 +58,14 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
 
     // 2. Fetch from internal weather API or use Mock if fetch fails
     try {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000';
+        let baseUrl = 'http://localhost:3000';
+        if (process.env.NEXT_PUBLIC_SITE_URL) {
+            baseUrl = process.env.NEXT_PUBLIC_SITE_URL.startsWith('http')
+                ? process.env.NEXT_PUBLIC_SITE_URL
+                : `https://${process.env.NEXT_PUBLIC_SITE_URL}`;
+        } else if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+            baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+        }
         const targetUrl = `${baseUrl}/api/weather?lat=${lat}&lng=${lng}`;
 
         const res = await fetch(targetUrl, { next: { revalidate: 14400 } });
@@ -72,27 +79,69 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
     } catch (error) {
         console.error("[getForecast] Error fetching weather, falling back to Open-Meteo:", error);
         try {
-            // Open-Meteo Fallback (Manual Sec 4.2)
-            const omRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FSeoul`);
+            // Open-Meteo Fallback (10-Day Full Parse)
+            const omRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,relative_humidity_2m,cloud_cover,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&wind_speed_unit=ms&forecast_days=10`);
             const omData = await omRes.json();
-            if (omData.daily) {
-                const wmoCode = omData.daily.weather_code[0];
-                const tMax = omData.daily.temperature_2m_max[0];
-                const tMin = omData.daily.temperature_2m_min[0];
+            
+            if (omData && omData.daily && omData.daily.time) {
+                const mapWeatherCode = (code: number) => {
+                    if (code <= 1) return 'sunny';
+                    if (code === 2) return 'partly_cloudy';
+                    if (code === 3) return 'cloudy';
+                    if (code >= 51 && code <= 67) return 'rainy';
+                    if (code >= 71 && code <= 86) return 'snowy';
+                    if (code >= 95) return 'rainy';
+                    return 'sunny';
+                };
 
-                // WMO Interpretation mapping
-                let sky = '맑음';
-                let weatherCode = 'sunny';
-                if (wmoCode >= 51 && wmoCode <= 82) { sky = '비'; weatherCode = 'rainy'; }
-                else if (wmoCode >= 1 && wmoCode <= 48) { sky = '구름많음'; weatherCode = 'cloudy'; }
-                else if (wmoCode >= 71 && wmoCode <= 77) { sky = '눈'; weatherCode = 'snowy'; }
+                const dailyList: any[] = [];
+                for (let i = 0; i < omData.daily.time.length; i++) {
+                    const cleanD = omData.daily.time[i].replace(/-/g, '');
+                    dailyList.push({
+                        date: cleanD,
+                        min: Math.round(omData.daily.temperature_2m_min[i]),
+                        max: Math.round(omData.daily.temperature_2m_max[i]),
+                        pop: omData.daily.precipitation_probability_max[i] || 0,
+                        weatherCode: mapWeatherCode(omData.daily.weather_code[i])
+                    });
+                }
+
+                const timelineList: any[] = [];
+                if (omData.hourly && omData.hourly.time) {
+                    for (let i = 0; i < omData.hourly.time.length; i++) {
+                        const timeIso = omData.hourly.time[i];
+                        const datePart = timeIso.substring(0, 10).replace(/-/g, '');
+                        const hourPart = timeIso.substring(11, 13) + '00';
+
+                        let sky = 1;
+                        const cover = omData.hourly.cloud_cover ? omData.hourly.cloud_cover[i] : 0;
+                        if (cover >= 70) sky = 4;
+                        else if (cover >= 30) sky = 3;
+
+                        timelineList.push({
+                            date: datePart,
+                            time: hourPart,
+                            temp: Math.round(omData.hourly.temperature_2m[i]),
+                            sky,
+                            pty: (omData.hourly.precipitation && omData.hourly.precipitation[i] > 0) ? 1 : 0,
+                            pop: omData.hourly.precipitation_probability ? omData.hourly.precipitation_probability[i] : 0,
+                            wsd: omData.hourly.wind_speed_10m ? Math.round(omData.hourly.wind_speed_10m[i] * 10) / 10 : 1.5,
+                            reh: omData.hourly.relative_humidity_2m ? omData.hourly.relative_humidity_2m[i] : 50,
+                            weatherCode: mapWeatherCode(omData.hourly.weather_code[i])
+                        });
+                    }
+                }
+
+                const currTemp = omData.current ? Math.round(omData.current.temperature_2m) : (dailyList[0].min + dailyList[0].max) / 2;
+                const currHumid = omData.current ? omData.current.relative_humidity_2m : 50;
+                const currWind = omData.current ? omData.current.wind_speed_10m : 2;
 
                 return {
-                    current: { temp: (tMax + tMin) / 2, humidity: 50, windSpeed: 2, strPrecipitation: sky === '비' ? '1' : '0' },
-                    daily: [{ date: dateStr, min: tMin, max: tMax, pop: sky === '비' ? 60 : 0, weatherCode }],
-                    timeline: [{ date: dateStr, time: '1200', temp: (tMax + tMin) / 2, sky, pty: sky === '비' ? 1 : 0, pop: sky === '비' ? 60 : 0, weatherCode }],
-                    nx: grid.x, ny: grid.y, 
-                    source: 'open-meteo'
+                    current: { temp: currTemp, humidity: currHumid, windSpeed: currWind, strPrecipitation: '0' },
+                    daily: dailyList,
+                    timeline: timelineList,
+                    nx: grid.x, ny: grid.y,
+                    source: 'open-meteo-full'
                 };
             }
         } catch (omErr) {
@@ -102,10 +151,10 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
         return {
             current: { temp: 15, humidity: 50, windSpeed: 2, strPrecipitation: '0' },
             daily: [
-                { date: dateStr, min: 10, max: 20, pop: 0, weatherCode: 'sunny' }
+                { date: dateStr.replace(/-/g, ''), min: 10, max: 20, pop: 0, weatherCode: 'sunny' }
             ],
             timeline: [
-                { date: dateStr, time: '1500', temp: 15, sky: '맑음', pty: 0, pop: 0, weatherCode: 'sunny' }
+                { date: dateStr.replace(/-/g, ''), time: '1500', temp: 15, sky: '맑음', pty: 0, pop: 0, weatherCode: 'sunny' }
             ],
             nx: grid.x,
             ny: grid.y,

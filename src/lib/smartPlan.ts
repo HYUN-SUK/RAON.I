@@ -94,10 +94,10 @@ export interface WeatherBriefing {
     dDay: number;
     dailyForecasts: DailyForecastItem[];
     hourlyDetails?: HourlyDetailItem[];
-    avgWindSpeed: number;
-    maxWindSpeed: number;
+    avgWindSpeed?: number | null;
+    maxWindSpeed?: number | null;
     windDirection?: string;
-    avgHumidity: number;
+    avgHumidity?: number | null;
     flowAlert?: string;
 }
 
@@ -1300,9 +1300,15 @@ export async function generatePersonalizedSmartPlan(
             // E. 조립 블록 3: 기상 시나리오 및 추천형 한 줄 멘트 선택
             let weatherNarrative = "";
 
-            weatherBriefing.avgWindSpeed = avgWindSpeed;
-            weatherBriefing.maxWindSpeed = maxWindSpeed;
-            weatherBriefing.avgHumidity = avgHumidity;
+            if (diffDays <= 3) {
+                weatherBriefing.avgWindSpeed = avgWindSpeed;
+                weatherBriefing.maxWindSpeed = maxWindSpeed;
+                weatherBriefing.avgHumidity = avgHumidity;
+            } else {
+                weatherBriefing.avgWindSpeed = null;
+                weatherBriefing.maxWindSpeed = null;
+                weatherBriefing.avgHumidity = null;
+            }
 
             if (w && w.timeline && Array.isArray(w.timeline)) {
                 const startStr = startDate.toISOString().split('T')[0].replace(/-/g, '');

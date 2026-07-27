@@ -378,18 +378,22 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
 
     // --- Phase 2: Mid-term Forecast Integration ---
     try {
-        const midDaily = await getMidTermForecast(lat, lng);
+        let midDaily = await getMidTermForecast(lat, lng);
+        if (!midDaily || midDaily.length === 0) {
+            // Fallback: If KMA mid-term fails or returns empty, fetch Open-Meteo mid-term to prevent date gaps
+            const omFallback = await fetchOpenMeteoFallback(lat, lng);
+            if (omFallback && omFallback.daily) {
+                midDaily = omFallback.daily;
+            }
+        }
+
         if (midDaily && midDaily.length > 0) {
-            // Append to daily list
-            // Short-term: Today, +1, +2. (Total 3 items). Mid starts +3.
-            // But verify overlap.
             const existingDates = new Set(daily.map(d => d.date));
             midDaily.forEach(m => {
                 if (!existingDates.has(m.date)) {
                     daily.push(m);
                 }
             });
-            // Sort again
             daily.sort((a, b) => parseInt(a.date) - parseInt(b.date));
         }
     } catch (e) {

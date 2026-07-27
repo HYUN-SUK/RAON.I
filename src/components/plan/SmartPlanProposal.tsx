@@ -908,13 +908,24 @@ export default function SmartPlanProposal({
                                         </div>
                                     ))}
 
-                                    {/* 하단 풍속 / 습도 요약 */}
-                                    <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/80">
-                                        <div className="flex items-center gap-3">
-                                            <span>💨 풍속 {plan.weatherBriefing.avgWindSpeed > 0 ? `${plan.weatherBriefing.avgWindSpeed}m/s` : '선선'}</span>
-                                            <span>💧 평균습도 {plan.weatherBriefing.avgHumidity}%</span>
+                                    {/* 하단 풍속 / 습도 요약 또는 중기예보 전용 안내 뱃지 */}
+                                    {plan.weatherBriefing.status === 'DETAILED' && (plan.weatherBriefing.avgWindSpeed != null || plan.weatherBriefing.avgHumidity != null) ? (
+                                        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/80">
+                                            <div className="flex items-center gap-3">
+                                                {plan.weatherBriefing.avgWindSpeed != null && (
+                                                    <span>💨 풍속 {plan.weatherBriefing.avgWindSpeed > 0 ? `${plan.weatherBriefing.avgWindSpeed}m/s` : '선선'}</span>
+                                                )}
+                                                {plan.weatherBriefing.avgHumidity != null && (
+                                                    <span>💧 평균습도 {plan.weatherBriefing.avgHumidity}%</span>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="pt-2 border-t border-white/10 flex items-center gap-1.5 text-[11px] text-amber-200/90 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-400/20">
+                                            <span>ℹ️</span>
+                                            <span>중기예보는 기온/강수확률 중심으로 제공됩니다</span>
+                                        </div>
+                                    )}
 
                                     {/* ⚠️ 날씨 흐름 알림 (있을 경우) */}
                                     {plan.weatherBriefing.flowAlert && (
