@@ -896,10 +896,10 @@ export default function SmartPlanProposal({
                                                 >
                                                     {/* 데드센터 3컬럼 레이아웃 (좌측: 날짜 / 중앙: 핵심날씨+기온 / 우측: 강수확률) */}
                                                     <div className="grid grid-cols-12 items-center w-full">
-                                                        <span className="col-span-4 font-semibold text-white/90 truncate text-left">
+                                                        <span className="col-span-5 font-semibold text-white/90 whitespace-nowrap text-left text-xs">
                                                             📅 {df.date}{df.dayOfWeek ? `(${df.dayOfWeek})` : ''}
                                                         </span>
-                                                        <div className="col-span-5 flex items-center justify-center gap-1 font-bold text-emerald-200 text-xs whitespace-nowrap">
+                                                        <div className="col-span-4 flex items-center justify-center gap-1 font-bold text-emerald-200 text-xs whitespace-nowrap">
                                                             <span className="text-sm">{df.skyIcon}</span>
                                                             <span>{df.minTemp}~{df.maxTemp}°C</span>
                                                         </div>
@@ -922,7 +922,7 @@ export default function SmartPlanProposal({
                                                     )}
                                                 </div>
 
-                                                {/* 터치 시 펼쳐지는 시간대별 이모지 날씨 (시간, 이모지, 온도, 풍속, 습도) */}
+                                                {/* 터치 시 펼쳐지는 시간대별 이모지 날씨 (시간, 이모지, 온도, 풍향+풍속, 습도) */}
                                                 {isExpanded && hasHourly && plan.weatherBriefing?.hourlyDetails && (
                                                     <div className="p-2.5 text-xs text-white/90 flex flex-wrap gap-2 bg-black/30 rounded-xl border border-white/10 my-1 animate-fadeIn">
                                                         {plan.weatherBriefing.hourlyDetails
@@ -932,7 +932,11 @@ export default function SmartPlanProposal({
                                                                     <span className="text-white/60 font-semibold">{h.hour}</span>
                                                                     <span className="text-xs">{h.skyIcon || (h.sky === '비' ? '🌧️' : h.sky === '구름많음' ? '⛅' : h.sky === '흐림' ? '☁️' : '☀️')}</span>
                                                                     <span className="font-bold text-white ml-0.5">{h.temp}°C</span>
-                                                                    {h.windSpeed != null && <span className="text-[10px] text-white/70 ml-0.5">💨 {h.windSpeed}m/s</span>}
+                                                                    {h.windSpeed != null && (
+                                                                        <span className="text-[10px] text-white/80 ml-0.5">
+                                                                            💨 {h.windDir ? `${h.windDir.replace('풍', '')} ` : ''}{h.windSpeed}m/s
+                                                                        </span>
+                                                                    )}
                                                                     {h.humidity != null && <span className="text-[10px] text-cyan-200 ml-0.5">💧 {h.humidity}%</span>}
                                                                 </div>
                                                             ))}
@@ -942,12 +946,15 @@ export default function SmartPlanProposal({
                                         );
                                     })}
 
-                                    {/* 하단 풍속 / 습도 요약 또는 중기예보 전용 안내 뱃지 */}
+                                    {/* 하단 3대 기상 요약 (평균풍속, 최대풍속(방향), 평균습도) 또는 중기예보 안내 */}
                                     {plan.weatherBriefing.status === 'DETAILED' && (plan.weatherBriefing.avgWindSpeed != null || plan.weatherBriefing.avgHumidity != null) ? (
-                                        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/80">
-                                            <div className="flex items-center gap-3">
+                                        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/80 px-0.5">
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                                                 {plan.weatherBriefing.avgWindSpeed != null && (
-                                                    <span>💨 풍속 {plan.weatherBriefing.avgWindSpeed > 0 ? `${plan.weatherBriefing.avgWindSpeed}m/s` : '선선'}</span>
+                                                    <span>💨 평균 {plan.weatherBriefing.avgWindSpeed > 0 ? `${plan.weatherBriefing.avgWindSpeed}m/s` : '선선'}</span>
+                                                )}
+                                                {plan.weatherBriefing.maxWindSpeed != null && (
+                                                    <span>🌪️ 최대 {plan.weatherBriefing.maxWindSpeed}m/s{plan.weatherBriefing.windDirection ? `(${plan.weatherBriefing.windDirection})` : ''}</span>
                                                 )}
                                                 {plan.weatherBriefing.avgHumidity != null && (
                                                     <span>💧 평균습도 {plan.weatherBriefing.avgHumidity}%</span>

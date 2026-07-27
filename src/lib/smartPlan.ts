@@ -1158,6 +1158,7 @@ export async function generatePersonalizedSmartPlan(
                 }
             }
 
+            let maxWindDirection = '';
             if (w && w.timeline && Array.isArray(w.timeline)) {
                 for (const t of w.timeline) {
                     const cleanTDate = t.date.replace(/-/g, '');
@@ -1168,6 +1169,11 @@ export async function generatePersonalizedSmartPlan(
                             windCount++;
                             if (wsdVal > currentMaxWind) {
                                 currentMaxWind = wsdVal;
+                                if (t.vec !== undefined && t.vec !== null) {
+                                    const index = Math.floor(((Number(t.vec) + 22.5) % 360) / 45);
+                                    const directions = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'];
+                                    maxWindDirection = directions[index];
+                                }
                             }
                         }
                         if (t.reh !== undefined && t.reh !== null) {
@@ -1318,10 +1324,12 @@ export async function generatePersonalizedSmartPlan(
             if (diffDays <= 3) {
                 weatherBriefing.avgWindSpeed = avgWindSpeed;
                 weatherBriefing.maxWindSpeed = maxWindSpeed;
+                weatherBriefing.windDirection = maxWindDirection || undefined;
                 weatherBriefing.avgHumidity = avgHumidity;
             } else {
                 weatherBriefing.avgWindSpeed = null;
                 weatherBriefing.maxWindSpeed = null;
+                weatherBriefing.windDirection = undefined;
                 weatherBriefing.avgHumidity = null;
             }
 
