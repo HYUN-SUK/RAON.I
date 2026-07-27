@@ -912,10 +912,10 @@ export async function generatePersonalizedSmartPlan(
                         weatherBriefing.hourlyDetails = [];
 
                         const getWindDirectionText = (deg: number | undefined): string => {
-                            if (deg === undefined) return '';
-                            const index = Math.floor(((deg + 22.5) % 360) / 45);
+                            const val = (deg !== undefined && deg !== null && !isNaN(Number(deg))) ? Number(deg) : 225;
+                            const index = Math.floor(((val + 22.5) % 360) / 45);
                             const directions = ['북풍', '북동풍', '동풍', '남동풍', '남풍', '남서풍', '서풍', '북서풍'];
-                            return directions[index];
+                            return directions[index] || '남서풍';
                         };
 
                         const getWeatherStateText = (pty: number, sky: number): { text: string; icon: string } => {

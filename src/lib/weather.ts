@@ -80,7 +80,7 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
         console.error("[getForecast] Error fetching weather, falling back to Open-Meteo:", error);
         try {
             // Open-Meteo Fallback (10-Day Full Parse)
-            const omRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,relative_humidity_2m,cloud_cover,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&wind_speed_unit=ms&forecast_days=10`);
+            const omRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,weather_code&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,relative_humidity_2m,cloud_cover,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&wind_speed_unit=ms&forecast_days=10`);
             const omData = await omRes.json();
             
             if (omData && omData.daily && omData.daily.time) {
@@ -126,6 +126,7 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
                             pty: (omData.hourly.precipitation && omData.hourly.precipitation[i] > 0) ? 1 : 0,
                             pop: omData.hourly.precipitation_probability ? omData.hourly.precipitation_probability[i] : 0,
                             wsd: omData.hourly.wind_speed_10m ? Math.round(omData.hourly.wind_speed_10m[i] * 10) / 10 : 1.5,
+                            vec: (omData.hourly.wind_direction_10m && omData.hourly.wind_direction_10m[i] != null) ? omData.hourly.wind_direction_10m[i] : 225,
                             reh: omData.hourly.relative_humidity_2m ? omData.hourly.relative_humidity_2m[i] : 50,
                             weatherCode: mapWeatherCode(omData.hourly.weather_code[i])
                         });
