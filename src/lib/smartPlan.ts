@@ -88,6 +88,7 @@ export interface HourlyDetailItem {
     temp: number;
     windDir?: string;    // "남서풍"
     windSpeed?: number;  // 2.1
+    humidity?: number;   // 75 (% 단위)
 }
 
 export interface WeatherBriefing {
@@ -947,7 +948,8 @@ export async function generatePersonalizedSmartPlan(
                                     skyIcon: stateIcon,
                                     temp: t.temp,
                                     windDir,
-                                    windSpeed: t.wsd
+                                    windSpeed: t.wsd,
+                                    humidity: t.reh != null ? Math.round(t.reh) : undefined
                                 });
                             }
                         }
