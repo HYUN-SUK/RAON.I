@@ -253,16 +253,23 @@ export default function SmartPlanProposal({
         if (plan.weatherBriefing && Array.isArray(plan.weatherBriefing.dailyForecasts)) {
             let hasChange = false;
             const updatedDaily = plan.weatherBriefing.dailyForecasts.map((df: any) => {
-                const cleanDfDate = df.date?.replace(/-/g, '').replace(/\//g, '');
+                if (!df.date) return df;
+                // "07/28(화)" -> "0728"
+                const cleanDfDate = String(df.date).replace(/[-/]/g, '').replace(/\([^)]*\)/g, '').trim();
+                
                 const liveMatch = liveWeather.daily.find((d: any) => {
-                    const cleanDDate = d.date?.replace(/-/g, '').replace(/\//g, '');
-                    return cleanDDate === cleanDfDate || d.date === df.date;
+                    if (!d.date) return false;
+                    const cleanDDate = String(d.date).replace(/[-/]/g, '').trim();
+                    return cleanDDate === cleanDfDate || cleanDDate.endsWith(cleanDfDate) || cleanDfDate.endsWith(cleanDDate);
                 });
+
                 if (liveMatch) {
                     const newMin = liveMatch.min !== null && liveMatch.min !== undefined ? Math.round(liveMatch.min) : df.minTemp;
                     const newMax = liveMatch.max !== null && liveMatch.max !== undefined ? Math.round(liveMatch.max) : df.maxTemp;
                     const newPop = liveMatch.pop !== undefined ? liveMatch.pop : df.pop;
-                    if (newMin !== df.minTemp || newMax !== df.maxTemp || newPop !== df.pop) {
+                    const newIcon = liveMatch.weatherCode === 'rainy' ? '🌧️' : liveMatch.weatherCode === 'snowy' ? '❄️' : liveMatch.weatherCode === 'cloudy' ? '⛅' : '☀️';
+
+                    if (newMin !== df.minTemp || newMax !== df.maxTemp || newPop !== df.pop || newIcon !== df.skyIcon) {
                         hasChange = true;
                     }
                     return {
@@ -270,7 +277,7 @@ export default function SmartPlanProposal({
                         minTemp: newMin,
                         maxTemp: newMax,
                         pop: newPop,
-                        skyIcon: liveMatch.weatherCode === 'rainy' ? '🌧️' : liveMatch.weatherCode === 'snowy' ? '❄️' : liveMatch.weatherCode === 'cloudy' ? '⛅' : '☀️'
+                        skyIcon: newIcon
                     };
                 }
                 return df;
