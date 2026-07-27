@@ -844,7 +844,7 @@ export default function SmartPlanProposal({
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                         </span>
-                        <span>AI 스마트 여정 가이드</span>
+                        <span>라온아이 스마트 여정 가이드</span>
                     </div>
 
                     {/* [v11.9.25] stageIntros 모듈형 연동 (Fallback: narration) */}
