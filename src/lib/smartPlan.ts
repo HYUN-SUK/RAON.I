@@ -84,6 +84,7 @@ export interface HourlyDetailItem {
     date: string;        // "08/15"
     hour: string;        // "06시"
     sky: string;         // "맑음"
+    skyIcon?: string;    // "☀️", "⛅", "☁️", "🌧️", "❄️"
     temp: number;
     windDir?: string;    // "남서풍"
     windSpeed?: number;  // 2.1
@@ -912,20 +913,23 @@ export async function generatePersonalizedSmartPlan(
                             return directions[index];
                         };
 
-                        const getWeatherStateText = (pty: number, sky: number): string => {
-                            if (pty === 1) return '비';
-                            if (pty === 2) return '비/눈';
-                            if (pty === 3) return '눈';
-                            if (pty === 4) return '소나기';
-                            if (sky === 1) return '맑음';
-                            if (sky === 3) return '구름많음';
-                            if (sky === 4) return '흐림';
-                            return '맑음';
+                        const getWeatherStateText = (pty: number, sky: number): { text: string; icon: string } => {
+                            if (pty === 1 || pty === 4) return { text: '비', icon: '🌧️' };
+                            if (pty === 2) return { text: '비/눈', icon: '🌧️' };
+                            if (pty === 3) return { text: '눈', icon: '❄️' };
+                            if (sky === 1) return { text: '맑음', icon: '☀️' };
+                            if (sky === 3) return { text: '구름많음', icon: '⛅' };
+                            if (sky === 4) return { text: '흐림', icon: '☁️' };
+                            return { text: '맑음', icon: '☀️' };
                         };
 
                         for (const t of w.timeline) {
                             const cleanTDate = t.date.replace(/-/g, '');
                             if (cleanTDate >= startStr && cleanTDate <= endStr) {
+                                const hourNum = parseInt(t.time.substring(0, 2), 10);
+                                // 3시간 단위 간소화 필터링 (00, 03, 06, 09, 12, 15, 18, 21시)
+                                if (!isNaN(hourNum) && hourNum % 3 !== 0) continue;
+
                                 const dateLabel = t.date.length === 8 
                                     ? `${t.date.substring(4, 6)}/${t.date.substring(6, 8)}`
                                     : t.date.substring(5).replace('-', '/');
@@ -933,13 +937,14 @@ export async function generatePersonalizedSmartPlan(
                                 const hourStr = t.time.substring(0, 2) + '시';
                                 const skyVal = typeof t.sky === 'string' ? parseInt(t.sky) : t.sky;
                                 const ptyVal = typeof t.pty === 'string' ? parseInt(t.pty) : t.pty;
-                                const stateText = getWeatherStateText(ptyVal || 0, skyVal || 1);
+                                const { text: stateText, icon: stateIcon } = getWeatherStateText(ptyVal || 0, skyVal || 1);
                                 const windDir = getWindDirectionText(t.vec);
 
                                 weatherBriefing.hourlyDetails.push({
                                     date: dateLabel,
                                     hour: hourStr,
                                     sky: stateText,
+                                    skyIcon: stateIcon,
                                     temp: t.temp,
                                     windDir,
                                     windSpeed: t.wsd

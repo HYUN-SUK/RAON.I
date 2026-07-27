@@ -107,6 +107,7 @@ export default function SmartPlanProposal({
     const [isLocating, setIsLocating] = useState(false); // [v11.9.61] 위치 확인 중 상태
     const [showRegenConfirm, setShowRegenConfirm] = useState(false);
     const [hasTriggeredRegen, setHasTriggeredRegen] = useState(false);
+    const [expandedWeatherDate, setExpandedWeatherDate] = useState<string | null>(null);
 
     // 자동 정렬 타겟 Refs
     const routeSelectorRef = useRef<HTMLDivElement>(null);
@@ -877,36 +878,57 @@ export default function SmartPlanProposal({
                             ) : (
                                 <div className="space-y-2.5">
                                     {/* 일별 요약 리스트 */}
-                                    {plan.weatherBriefing.dailyForecasts.map((df, idx) => (
-                                        <div key={idx} className="flex flex-col gap-1">
-                                            <div className="flex items-center justify-between text-xs font-medium bg-black/15 px-3 py-1.5 rounded-xl border border-white/5">
-                                                <span className="font-semibold text-white/90">
-                                                    📅 {df.date}{df.dayOfWeek ? `(${df.dayOfWeek})` : ''}
-                                                </span>
-                                                <div className="flex items-center gap-2.5">
-                                                    <span>{df.skyIcon} {df.sky}</span>
-                                                    <span className="text-emerald-200 font-bold">{df.minTemp}~{df.maxTemp}°C</span>
-                                                    {df.pop > 0 && (
-                                                        <span className="text-cyan-200 text-[11px]">🌧️ {df.pop}%</span>
-                                                    )}
-                                                </div>
-                                            </div>
+                                    {plan.weatherBriefing.dailyForecasts.map((df, idx) => {
+                                        const hasHourly = plan.weatherBriefing?.hourlyDetails && plan.weatherBriefing.hourlyDetails.some(h => h.date === df.date);
+                                        const isExpanded = expandedWeatherDate === df.date;
 
-                                            {/* D-3 이내일 때 3시간별 상세 타임라인 */}
-                                            {plan.weatherBriefing?.status === 'DETAILED' && plan.weatherBriefing.hourlyDetails && (
-                                                <div className="pl-3 pr-2 py-1.5 text-[11px] text-white/80 flex flex-wrap gap-x-3 gap-y-1 bg-white/5 rounded-xl border border-white/5">
-                                                    {plan.weatherBriefing.hourlyDetails
-                                                        .filter(h => h.date === df.date)
-                                                        .map((h, hIdx) => (
-                                                            <span key={hIdx} className="whitespace-nowrap">
-                                                                <span className="text-white/60">{h.hour}</span> {h.sky} <span className="font-semibold text-white/90">{h.temp}°C</span>
-                                                                {h.windDir && h.windSpeed ? <span className="text-[10px] text-white/50 ml-0.5">({h.windDir} {h.windSpeed}m/s)</span> : ''}
+                                        return (
+                                            <div key={idx} className="flex flex-col gap-1">
+                                                <div 
+                                                    onClick={() => {
+                                                        if (hasHourly) {
+                                                            setExpandedWeatherDate(isExpanded ? null : df.date);
+                                                        }
+                                                    }}
+                                                    className={`flex items-center justify-between text-xs font-medium px-3 py-2 rounded-xl border transition-all ${
+                                                        hasHourly ? 'cursor-pointer hover:bg-black/25 active:scale-[0.99]' : ''
+                                                    } ${isExpanded ? 'bg-black/30 border-white/20' : 'bg-black/15 border-white/5'}`}
+                                                >
+                                                    <span className="font-semibold text-white/90 flex items-center gap-1.5">
+                                                        📅 {df.date}{df.dayOfWeek ? `(${df.dayOfWeek})` : ''}
+                                                        {hasHourly && (
+                                                            <span className="text-[10px] text-emerald-300/90 bg-emerald-500/20 px-1.5 py-0.5 rounded ml-1 font-normal border border-emerald-400/30">
+                                                                {isExpanded ? '접기 ▲' : '시간별 예보 ▼'}
                                                             </span>
-                                                        ))}
+                                                        )}
+                                                    </span>
+                                                    <div className="flex items-center gap-2.5">
+                                                        <span>{df.skyIcon} {df.sky}</span>
+                                                        <span className="text-emerald-200 font-bold">{df.minTemp}~{df.maxTemp}°C</span>
+                                                        {df.pop > 0 && (
+                                                            <span className="text-cyan-200 text-[11px]">🌧️ {df.pop}%</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
+
+                                                {/* 터치 시 펼쳐지는 시간대별 이모지 날씨 (아코디언) */}
+                                                {isExpanded && hasHourly && plan.weatherBriefing?.hourlyDetails && (
+                                                    <div className="p-2.5 text-xs text-white/90 flex flex-wrap gap-2 bg-black/30 rounded-xl border border-white/10 my-1 animate-fadeIn">
+                                                        {plan.weatherBriefing.hourlyDetails
+                                                            .filter(h => h.date === df.date)
+                                                            .map((h, hIdx) => (
+                                                                <div key={hIdx} className="flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-white/10 shadow-sm">
+                                                                    <span className="text-white/60 font-semibold">{h.hour}</span>
+                                                                    <span className="text-xs">{h.skyIcon || (h.sky === '비' ? '🌧️' : h.sky === '구름많음' ? '⛅' : h.sky === '흐림' ? '☁️' : '☀️')}</span>
+                                                                    <span className="font-bold text-white ml-0.5">{h.temp}°C</span>
+                                                                    {h.windSpeed ? <span className="text-[10px] text-white/50 ml-1">{h.windSpeed}m/s</span> : null}
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
 
                                     {/* 하단 풍속 / 습도 요약 또는 중기예보 전용 안내 뱃지 */}
                                     {plan.weatherBriefing.status === 'DETAILED' && (plan.weatherBriefing.avgWindSpeed != null || plan.weatherBriefing.avgHumidity != null) ? (
