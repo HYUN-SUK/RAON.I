@@ -83,7 +83,7 @@ export const useWeather = (userLat?: number, userLng?: number, enabled = true) =
             const lat = userLat || DEFAULT_CAMPING_LOCATION.latitude;
             const lng = userLng || DEFAULT_CAMPING_LOCATION.longitude;
 
-            const cacheKey = `weather_kma_v3_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+            const cacheKey = `weather_kma_v4_${lat.toFixed(2)}_${lng.toFixed(2)}`;
             let cached: string | null = null;
             try { cached = window.sessionStorage?.getItem(cacheKey); } catch {}
 

@@ -357,7 +357,7 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
             pop: d.pop,
             weatherCode: weather
         };
-    }).slice(0, 3); // Initial 3 days from Short-term
+    }); // Preserving all short-term daily forecasts (up to D+3)
 
     // Process Timeline (Sort by Date+Time)
     const timeline: TimelineWeather[] = Array.from(timelineMap.values())
