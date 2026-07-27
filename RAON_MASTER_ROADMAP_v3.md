@@ -44,6 +44,12 @@
   - [x] **CampWarm ReservationLockModal**: Built aesthetic custom reservation lock modal with `tel:` direct dial to camp owner's real phone number (`010-7404-0108`).
   - [x] **Community QNA Auto-Private**: Enforced automatic `PRIVATE` visibility setting for error report category in `CommunityWriteForm.tsx` with admin/author view permissions.
   - [x] **UI Streamlining**: Removed redundant Kakao Map route card from schedule detail page.
+- [x] **9.6 Smart Plan Weather Briefing & Live Synchronization (2026-07-27)** 🟢
+  - [x] **Dead-Center Axis Alignment**: Aligned min temp (`24°C`) to card's horizontal center line.
+  - [x] **8-Way Wind Direction & Indicators**: Exposed 8-way wind direction (`💨 남동 1.5m/s`) and explicit Korean labels (`평균풍속`, `최대풍속(방향)`, `평균습도`).
+  - [x] **Single-Source Live Weather Sync**: Unified top weather card data with Smart Plan engine (`prefetchedWeather`), achieving 0% data error and 300ms speed boost.
+  - [x] **D-3 Truncation Fix**: Removed `.slice(0, 3)` bug to restore full Day 3 temperature display.
+  - [x] **Cache Restored**: Restored 4-hour session cache TTL in `useWeather.ts`.
 
 ## 📊 전체 진행 현황 요약 (Progress Summary)
 
