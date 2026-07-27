@@ -860,7 +860,7 @@ export default function SmartPlanProposal({
 
                     {/* [v12.6.0] 날씨 브리핑 카드 UI */}
                     {plan.weatherBriefing && (
-                        <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-white">
+                        <div className="mt-4 -mx-3.5 sm:mx-0 p-3 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-white overflow-hidden">
                             <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
                                 <div className="flex items-center gap-2 font-bold text-sm text-emerald-300">
                                     <span>🌤️</span>
@@ -890,21 +890,26 @@ export default function SmartPlanProposal({
                                                             setExpandedWeatherDate(isExpanded ? null : df.date);
                                                         }
                                                     }}
-                                                    className={`flex flex-col text-xs font-medium px-3.5 py-2.5 rounded-xl border transition-all ${
+                                                    className={`flex flex-col text-xs font-medium px-3 py-2.5 rounded-xl border transition-all ${
                                                         hasHourly ? 'cursor-pointer hover:bg-black/25 active:scale-[0.99]' : ''
                                                     } ${isExpanded ? 'bg-black/30 border-white/20' : 'bg-black/15 border-white/5'}`}
                                                 >
-                                                    <div className="flex items-center justify-between w-full pr-1">
-                                                        <span className="font-semibold text-white/90 shrink-0">
+                                                    {/* 데드센터 3컬럼 레이아웃 (좌측: 날짜 / 중앙: 핵심날씨+기온 / 우측: 강수확률) */}
+                                                    <div className="grid grid-cols-12 items-center w-full">
+                                                        <span className="col-span-4 font-semibold text-white/90 truncate text-left">
                                                             📅 {df.date}{df.dayOfWeek ? `(${df.dayOfWeek})` : ''}
                                                         </span>
-                                                        <div className="flex items-center gap-2 whitespace-nowrap shrink-0 pl-2">
+                                                        <div className="col-span-5 flex items-center justify-center gap-1 font-bold text-emerald-200 text-xs whitespace-nowrap">
                                                             <span className="text-sm">{df.skyIcon}</span>
-                                                            <span className="text-emerald-200 font-bold text-xs">{df.minTemp}~{df.maxTemp}°C</span>
-                                                            {df.pop > 0 && (
-                                                                <span className="text-cyan-200 text-[11px] font-semibold bg-cyan-950/40 px-1.5 py-0.5 rounded-md border border-cyan-400/20">
-                                                                    🌧️ {df.pop}%
+                                                            <span>{df.minTemp}~{df.maxTemp}°C</span>
+                                                        </div>
+                                                        <div className="col-span-3 flex items-center justify-end">
+                                                            {df.pop > 0 ? (
+                                                                <span className="text-cyan-200 text-[11px] font-semibold bg-cyan-950/50 px-1.5 py-0.5 rounded border border-cyan-400/30 whitespace-nowrap">
+                                                                    ☔ {df.pop}%
                                                                 </span>
+                                                            ) : (
+                                                                <span className="text-white/30 text-[10px]">-</span>
                                                             )}
                                                         </div>
                                                     </div>
