@@ -88,7 +88,11 @@ export default function ScheduleDetailPage() {
     const [showModeSelector, setShowModeSelector] = useState(false);
     const [planMode, setPlanMode] = useState<'BASIC' | 'PRO'>('BASIC');
     const [travelType, setTravelType] = useState<'camping' | 'general'>('general');
-    const isPro = userId === DEV_PRO_USER_ID;
+    const isPro = useMemo(() => {
+        if (userId === DEV_PRO_USER_ID) return true;
+        if (userEmail && ['tootg@naver.com', 'admin@raon.ai'].includes(userEmail.toLowerCase())) return true;
+        return false;
+    }, [userId, userEmail]);
 
     const [isUserLoading, setIsUserLoading] = useState(true);
 
