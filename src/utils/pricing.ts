@@ -6,16 +6,22 @@ import { addDays, format } from 'date-fns';
 
 // Helper to check if date is in any peak season
 const isPeakSeason = (date: Date, config: PricingConfig): boolean => {
+    if (!config || !Array.isArray(config.seasons)) return false;
     const month = date.getMonth() + 1; // 1-12
     const day = date.getDate(); // 1-31
 
     return config.seasons.some(season => {
-        if (season.startMonth < season.endMonth) {
-            return (month > season.startMonth || (month === season.startMonth && day >= season.startDay)) &&
-                (month < season.endMonth || (month === season.endMonth && day <= season.endDay));
+        const startMonth = Number(season.startMonth);
+        const startDay = Number(season.startDay);
+        const endMonth = Number(season.endMonth);
+        const endDay = Number(season.endDay);
+
+        if (startMonth < endMonth) {
+            return (month > startMonth || (month === startMonth && day >= startDay)) &&
+                (month < endMonth || (month === endMonth && day <= endDay));
         }
-        return (month > season.startMonth || (month === season.startMonth && day >= season.startDay)) &&
-            (month < season.endMonth || (month === season.endMonth && day <= season.endDay));
+        return (month > startMonth || (month === startMonth && day >= startDay)) &&
+            (month < endMonth || (month === endMonth && day <= endDay));
     });
 };
 

@@ -27,15 +27,17 @@ export async function getPricingConfigAction(): Promise<{ success: boolean; data
 
         if (error) {
             console.error('[getPricingConfigAction] DB Error:', error);
-            // 컬럼이 아직 존재하지 않는 경우 등 실패시 기본값 폴백
             return { success: true, data: DEFAULT_PRICE_CONFIG };
         }
 
+        // If DB pricing_config exists and is not null, return it
         if (data && data.pricing_config) {
             const config = data.pricing_config as unknown as PricingConfig;
             return { success: true, data: config };
         }
 
+        // If null or empty, seed DEFAULT_PRICE_CONFIG into DB
+        await updatePricingConfigAction(DEFAULT_PRICE_CONFIG);
         return { success: true, data: DEFAULT_PRICE_CONFIG };
     } catch (err: any) {
         console.error('[getPricingConfigAction] Exception:', err);
@@ -47,7 +49,25 @@ export async function updatePricingConfigAction(config: PricingConfig): Promise<
     try {
         const supabase = createClient();
         
-        // 1. Check if row 1 exists
+        // Ensure month/day values are proper numbers before saving
+        const sanitizedConfig: PricingConfig = {
+            ...config,
+            weekday: Number(config.weekday),
+            weekend: Number(config.weekend),
+            peakWeekday: Number(config.peakWeekday),
+            peakWeekend: Number(config.peakWeekend),
+            extraFamily: Number(config.extraFamily),
+            visitor: Number(config.visitor),
+            longStayDiscount: Number(config.longStayDiscount),
+            seasons: (config.seasons || []).map(s => ({
+                name: s.name || 'Peak Season',
+                startMonth: Number(s.startMonth),
+                startDay: Number(s.startDay),
+                endMonth: Number(s.endMonth),
+                endDay: Number(s.endDay)
+            }))
+        };
+
         const { data: existing } = await supabase
             .from('site_config')
             .select('id')
@@ -59,7 +79,7 @@ export async function updatePricingConfigAction(config: PricingConfig): Promise<
             const { error: updateErr } = await supabase
                 .from('site_config')
                 .update({ 
-                    pricing_config: config as any,
+                    pricing_config: sanitizedConfig as any,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', 1);
@@ -69,7 +89,7 @@ export async function updatePricingConfigAction(config: PricingConfig): Promise<
                 .from('site_config')
                 .insert({
                     id: 1,
-                    pricing_config: config as any
+                    pricing_config: sanitizedConfig as any
                 });
             error = insertErr;
         }
