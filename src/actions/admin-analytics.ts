@@ -44,187 +44,177 @@ export async function getAdminAnalyticsAction(
         const startISO = start.toISOString();
         const endISO = end.toISOString();
 
-        // 1. Total Users (총 가입 유저 수)
-        const { count: totalUsersCount } = await supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true });
+        // 1. Total Users & Period New Users (profiles)
+        let totalUsers = 0;
+        let periodNewUsers = 0;
+        try {
+            const { count: tCount } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true });
+            totalUsers = tCount || 0;
 
-        const totalUsers = totalUsersCount || 0;
+            const { count: pCount } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true })
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+            periodNewUsers = pCount || 0;
+        } catch (e) {
+            console.error('[Analytics] profiles query failed:', e);
+        }
 
-        // 2. Period New Users (선택 기간 신규 가입)
-        const { count: periodNewCount } = await supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
-        const periodNewUsers = periodNewCount || 0;
-
-        // 3. Permission Consents (동의자 통계)
-        const { data: consentsData } = await supabase
-            .from('user_permission_consents')
-            .select('push_granted, location_granted');
-
+        // 2. Permission Consents (user_permission_consents)
         let pushConsents = 0;
         let locationConsents = 0;
         let bothConsents = 0;
+        try {
+            const { data: consentsData } = await supabase
+                .from('user_permission_consents')
+                .select('push_granted, location_granted');
 
-        (consentsData || []).forEach((c: any) => {
-            if (c.push_granted) pushConsents++;
-            if (c.location_granted) locationConsents++;
-            if (c.push_granted && c.location_granted) bothConsents++;
-        });
+            (consentsData || []).forEach((c: any) => {
+                if (c.push_granted) pushConsents++;
+                if (c.location_granted) locationConsents++;
+                if (c.push_granted && c.location_granted) bothConsents++;
+            });
+        } catch (e) {
+            console.error('[Analytics] consents query failed:', e);
+        }
 
-        // 4. Feature Stats Gathering
+        // 3. Feature Stats (Independent Safe Queries)
 
-        // ① 스마트플랜 (smart_plan_facts + schedules + persona_actions)
-        const { data: factsData } = await supabase
-            .from('smart_plan_facts')
-            .select('user_id')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
-        const { data: schedulesData } = await supabase
-            .from('schedules')
-            .select('user_id, smart_plan')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
-        const { data: planActionsData } = await supabase
-            .from('persona_actions')
-            .select('user_id, action_type')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
+        // ① 스마트플랜 (reservations + camping_records)
         const smartPlanUsersSet = new Set<string>();
-        let smartPlanTotal = (factsData || []).length;
+        let smartPlanTotal = 0;
+        try {
+            const { data: resData } = await supabase
+                .from('reservations')
+                .select('user_id')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
 
-        (factsData || []).forEach((f: any) => {
-            if (f.user_id) smartPlanUsersSet.add(f.user_id);
-        });
+            (resData || []).forEach((r: any) => {
+                if (r.user_id) smartPlanUsersSet.add(r.user_id);
+            });
+            smartPlanTotal += (resData || []).length;
+        } catch (e) {
+            console.error('[Analytics] smartPlan query failed:', e);
+        }
 
-        (schedulesData || []).forEach((s: any) => {
-            if (s.user_id && s.smart_plan) {
-                smartPlanUsersSet.add(s.user_id);
-                smartPlanTotal++;
-            }
-        });
-
-        (planActionsData || []).forEach((act: any) => {
-            const type = (act.action_type || '').toUpperCase();
-            if (type.includes('PLAN') || type.includes('SMART')) {
-                smartPlanUsersSet.add(act.user_id);
-                smartPlanTotal++;
-            }
-        });
-
-        // ② 커뮤니티 소식 탐색 (posts + comments + persona_actions)
-        const { data: postsData } = await supabase
-            .from('posts')
-            .select('author_id, read_count')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
-        const { data: commentsData } = await supabase
-            .from('comments')
-            .select('user_id')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
+        // ② 커뮤니티 소식 탐색 (posts + comments)
         const communityExploreUsersSet = new Set<string>();
         let communityExploreTotal = 0;
+        let postsData: any[] = [];
+        let commentsData: any[] = [];
+        try {
+            const { data: pData } = await supabase
+                .from('posts')
+                .select('author_id, read_count')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+            postsData = pData || [];
 
-        (postsData || []).forEach((p: any) => {
-            if (p.author_id) communityExploreUsersSet.add(p.author_id);
-            communityExploreTotal += (p.read_count || 1);
-        });
+            (postsData || []).forEach((p: any) => {
+                if (p.author_id) communityExploreUsersSet.add(p.author_id);
+                communityExploreTotal += (p.read_count || 1);
+            });
 
-        (commentsData || []).forEach((c: any) => {
-            if (c.user_id) communityExploreUsersSet.add(c.user_id);
-        });
+            const { data: cData } = await supabase
+                .from('comments')
+                .select('user_id')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+            commentsData = cData || [];
 
-        (planActionsData || []).forEach((act: any) => {
-            const type = (act.action_type || '').toUpperCase();
-            if (type.includes('COMMUNITY') || type.includes('READ') || type.includes('POST')) {
-                communityExploreUsersSet.add(act.user_id);
-                communityExploreTotal++;
-            }
-        });
+            (commentsData || []).forEach((c: any) => {
+                if (c.user_id) communityExploreUsersSet.add(c.user_id);
+            });
+        } catch (e) {
+            console.error('[Analytics] communityExplore query failed:', e);
+        }
 
         // ③ 10초 기록 (camping_records)
-        const { data: recordsData } = await supabase
-            .from('camping_records')
-            .select('user_id')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
+        const recordUsersSet = new Set<string>();
+        let quickRecordTotal = 0;
+        try {
+            const { data: recordsData } = await supabase
+                .from('camping_records')
+                .select('user_id')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
 
-        const recordUsersSet = new Set((recordsData || []).map((r: any) => r.user_id).filter(Boolean));
-        const quickRecordUsers = recordUsersSet.size;
-        const quickRecordTotal = (recordsData || []).length;
+            (recordsData || []).forEach((r: any) => {
+                if (r.user_id) {
+                    recordUsersSet.add(r.user_id);
+                    smartPlanUsersSet.add(r.user_id); // Records also view smart plan facts
+                }
+            });
+            quickRecordTotal = (recordsData || []).length;
+        } catch (e) {
+            console.error('[Analytics] camping_records query failed:', e);
+        }
 
         // ④ 글쓰기 & 댓글 소통 (posts + comments)
         const postAuthorsSet = new Set([
-            ...(postsData || []).map((p: any) => p.author_id).filter(Boolean),
-            ...(commentsData || []).map((c: any) => c.user_id).filter(Boolean)
+            ...postsData.map((p: any) => p.author_id).filter(Boolean),
+            ...commentsData.map((c: any) => c.user_id).filter(Boolean)
         ]);
-
         const postAndCommentUsers = postAuthorsSet.size;
-        const postAndCommentTotal = (postsData || []).length + (commentsData || []).length;
+        const postAndCommentTotal = postsData.length + commentsData.length;
 
         // ⑤ 미션 인증 수행 (user_missions)
-        const { data: missionsData } = await supabase
-            .from('user_missions')
-            .select('user_id, status')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
+        const missionUsersSet = new Set<string>();
+        let missionTotal = 0;
+        try {
+            const { data: missionsData } = await supabase
+                .from('user_missions')
+                .select('user_id, status')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
 
-        const missionUsersSet = new Set((missionsData || []).map((m: any) => m.user_id).filter(Boolean));
-        const missionUsers = missionUsersSet.size;
-        const missionTotal = (missionsData || []).filter((m: any) => m.status === 'COMPLETED').length || (missionsData || []).length;
+            (missionsData || []).forEach((m: any) => {
+                if (m.user_id) missionUsersSet.add(m.user_id);
+            });
+            missionTotal = (missionsData || []).filter((m: any) => m.status === 'COMPLETED').length || (missionsData || []).length;
+        } catch (e) {
+            console.error('[Analytics] user_missions query failed:', e);
+        }
 
-        // ⑥ 캠핑 요리 레시피 탐색 (travel_recipes + persona_actions)
-        const { data: recipeTableData } = await supabase
-            .from('travel_recipes')
-            .select('id, author_id')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
+        // ⑥ 캠핑 요리 레시피 탐색 (travel_recipes)
         const recipeUsersSet = new Set<string>();
-        let recipeTotal = (recipeTableData || []).length;
+        let recipeTotal = 0;
+        try {
+            const { data: recipeData } = await supabase
+                .from('travel_recipes')
+                .select('author_id')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
 
-        (recipeTableData || []).forEach((r: any) => {
-            if (r.author_id) recipeUsersSet.add(r.author_id);
-        });
+            (recipeData || []).forEach((r: any) => {
+                if (r.author_id) recipeUsersSet.add(r.author_id);
+            });
+            recipeTotal = (recipeData || []).length;
+        } catch (e) {
+            console.error('[Analytics] travel_recipes query failed:', e);
+        }
 
-        (planActionsData || []).forEach((act: any) => {
-            const type = (act.action_type || '').toUpperCase();
-            if (type.includes('RECIPE') || type.includes('COOK') || type.includes('FOOD')) {
-                recipeUsersSet.add(act.user_id);
-                recipeTotal++;
-            }
-        });
-
-        // ⑦ 아이 놀이 탐색기 이용 (travel_plays + persona_actions)
-        const { data: playTableData } = await supabase
-            .from('travel_plays')
-            .select('id, author_id')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-
+        // ⑦ 아이 놀이 탐색기 이용 (travel_plays)
         const playExplorerUsersSet = new Set<string>();
-        let playExplorerTotal = (playTableData || []).length;
+        let playExplorerTotal = 0;
+        try {
+            const { data: playData } = await supabase
+                .from('travel_plays')
+                .select('author_id')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
 
-        (playTableData || []).forEach((p: any) => {
-            if (p.author_id) playExplorerUsersSet.add(p.author_id);
-        });
-
-        (planActionsData || []).forEach((act: any) => {
-            const type = (act.action_type || '').toUpperCase();
-            if (type.includes('PLAY') || type.includes('GAME') || type.includes('KID')) {
-                playExplorerUsersSet.add(act.user_id);
-                playExplorerTotal++;
-            }
-        });
+            (playData || []).forEach((p: any) => {
+                if (p.author_id) playExplorerUsersSet.add(p.author_id);
+            });
+            playExplorerTotal = (playData || []).length;
+        } catch (e) {
+            console.error('[Analytics] travel_plays query failed:', e);
+        }
 
         // Overall active users in period
         const allActiveUsersSet = new Set([
@@ -237,7 +227,7 @@ export async function getAdminAnalyticsAction(
             ...playExplorerUsersSet
         ]);
 
-        const periodActiveUsers = Math.min(totalUsers, Math.max(allActiveUsersSet.size, (postsData || []).length > 0 ? 1 : 0));
+        const periodActiveUsers = Math.min(totalUsers, Math.max(allActiveUsersSet.size, periodNewUsers > 0 ? Math.min(periodNewUsers, totalUsers) : 0));
         const inactiveUsers = Math.max(0, totalUsers - periodActiveUsers);
 
         const analyticsData: AdminAnalyticsData = {
@@ -253,8 +243,8 @@ export async function getAdminAnalyticsAction(
                     name: '스마트플랜',
                     iconKey: 'Map',
                     usersCount: smartPlanUsersSet.size,
-                    totalCount: smartPlanTotal,
-                    description: '스마트플랜 캐싱, 생성 및 일정 조회'
+                    totalCount: Math.max(smartPlanTotal, smartPlanUsersSet.size),
+                    description: '스마트플랜 자동 캐싱 및 일정 연동'
                 },
                 communityExplore: {
                     name: '커뮤니티 소식 탐색',
@@ -266,7 +256,7 @@ export async function getAdminAnalyticsAction(
                 quickRecord: {
                     name: '10초 기록 (나만의 지도)',
                     iconKey: 'Camera',
-                    usersCount: quickRecordUsers,
+                    usersCount: recordUsersSet.size,
                     totalCount: quickRecordTotal,
                     description: '캠핑 다녀온 소중한 추억 핀 등록'
                 },
@@ -280,7 +270,7 @@ export async function getAdminAnalyticsAction(
                 mission: {
                     name: '미션 인증 수행',
                     iconKey: 'Flag',
-                    usersCount: missionUsers,
+                    usersCount: missionUsersSet.size,
                     totalCount: missionTotal,
                     description: '주간 미션 및 특별 미션 인증 완료'
                 },
