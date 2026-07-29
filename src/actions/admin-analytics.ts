@@ -77,18 +77,48 @@ export async function getAdminAnalyticsAction(
 
         // 4. Feature Stats Gathering
 
-        // ① 10초 기록 (camping_records)
-        const { data: recordsData } = await supabase
-            .from('camping_records')
+        // ① 스마트플랜 (smart_plan_facts + schedules + persona_actions)
+        const { data: factsData } = await supabase
+            .from('smart_plan_facts')
             .select('user_id')
             .gte('created_at', startISO)
             .lte('created_at', endISO);
 
-        const recordUsersSet = new Set((recordsData || []).map((r: any) => r.user_id));
-        const quickRecordUsers = recordUsersSet.size;
-        const quickRecordTotal = (recordsData || []).length;
+        const { data: schedulesData } = await supabase
+            .from('schedules')
+            .select('user_id, smart_plan')
+            .gte('created_at', startISO)
+            .lte('created_at', endISO);
 
-        // ② 글쓰기 & 댓글 (posts & comments)
+        const { data: planActionsData } = await supabase
+            .from('persona_actions')
+            .select('user_id, action_type')
+            .gte('created_at', startISO)
+            .lte('created_at', endISO);
+
+        const smartPlanUsersSet = new Set<string>();
+        let smartPlanTotal = (factsData || []).length;
+
+        (factsData || []).forEach((f: any) => {
+            if (f.user_id) smartPlanUsersSet.add(f.user_id);
+        });
+
+        (schedulesData || []).forEach((s: any) => {
+            if (s.user_id && s.smart_plan) {
+                smartPlanUsersSet.add(s.user_id);
+                smartPlanTotal++;
+            }
+        });
+
+        (planActionsData || []).forEach((act: any) => {
+            const type = (act.action_type || '').toUpperCase();
+            if (type.includes('PLAN') || type.includes('SMART')) {
+                smartPlanUsersSet.add(act.user_id);
+                smartPlanTotal++;
+            }
+        });
+
+        // ② 커뮤니티 소식 탐색 (posts + comments + persona_actions)
         const { data: postsData } = await supabase
             .from('posts')
             .select('author_id, read_count')
@@ -101,6 +131,38 @@ export async function getAdminAnalyticsAction(
             .gte('created_at', startISO)
             .lte('created_at', endISO);
 
+        const communityExploreUsersSet = new Set<string>();
+        let communityExploreTotal = 0;
+
+        (postsData || []).forEach((p: any) => {
+            if (p.author_id) communityExploreUsersSet.add(p.author_id);
+            communityExploreTotal += (p.read_count || 1);
+        });
+
+        (commentsData || []).forEach((c: any) => {
+            if (c.user_id) communityExploreUsersSet.add(c.user_id);
+        });
+
+        (planActionsData || []).forEach((act: any) => {
+            const type = (act.action_type || '').toUpperCase();
+            if (type.includes('COMMUNITY') || type.includes('READ') || type.includes('POST')) {
+                communityExploreUsersSet.add(act.user_id);
+                communityExploreTotal++;
+            }
+        });
+
+        // ③ 10초 기록 (camping_records)
+        const { data: recordsData } = await supabase
+            .from('camping_records')
+            .select('user_id')
+            .gte('created_at', startISO)
+            .lte('created_at', endISO);
+
+        const recordUsersSet = new Set((recordsData || []).map((r: any) => r.user_id).filter(Boolean));
+        const quickRecordUsers = recordUsersSet.size;
+        const quickRecordTotal = (recordsData || []).length;
+
+        // ④ 글쓰기 & 댓글 소통 (posts + comments)
         const postAuthorsSet = new Set([
             ...(postsData || []).map((p: any) => p.author_id).filter(Boolean),
             ...(commentsData || []).map((c: any) => c.user_id).filter(Boolean)
@@ -109,73 +171,60 @@ export async function getAdminAnalyticsAction(
         const postAndCommentUsers = postAuthorsSet.size;
         const postAndCommentTotal = (postsData || []).length + (commentsData || []).length;
 
-        // ③ 미션 수행 (user_missions)
+        // ⑤ 미션 인증 수행 (user_missions)
         const { data: missionsData } = await supabase
             .from('user_missions')
             .select('user_id, status')
             .gte('created_at', startISO)
             .lte('created_at', endISO);
 
-        const missionUsersSet = new Set((missionsData || []).map((m: any) => m.user_id));
+        const missionUsersSet = new Set((missionsData || []).map((m: any) => m.user_id).filter(Boolean));
         const missionUsers = missionUsersSet.size;
         const missionTotal = (missionsData || []).filter((m: any) => m.status === 'COMPLETED').length || (missionsData || []).length;
 
-        // ④ 스마트플랜 & 커뮤니티 탐색 & 레시피 & 놀이탐색기 (persona_actions 및 로그)
-        const { data: personaActionsData } = await supabase
-            .from('persona_actions')
-            .select('user_id, action_type')
+        // ⑥ 캠핑 요리 레시피 탐색 (travel_recipes + persona_actions)
+        const { data: recipeTableData } = await supabase
+            .from('travel_recipes')
+            .select('id, author_id')
             .gte('created_at', startISO)
             .lte('created_at', endISO);
 
-        const smartPlanUsersSet = new Set<string>();
-        let smartPlanTotal = 0;
-
-        const communityExploreUsersSet = new Set<string>();
-        let communityExploreTotal = (postsData || []).reduce((acc: number, p: any) => acc + (p.read_count || 1), 0);
-
         const recipeUsersSet = new Set<string>();
-        let recipeTotal = 0;
+        let recipeTotal = (recipeTableData || []).length;
 
-        const playExplorerUsersSet = new Set<string>();
-        let playExplorerTotal = 0;
+        (recipeTableData || []).forEach((r: any) => {
+            if (r.author_id) recipeUsersSet.add(r.author_id);
+        });
 
-        (personaActionsData || []).forEach((act: any) => {
+        (planActionsData || []).forEach((act: any) => {
             const type = (act.action_type || '').toUpperCase();
-            if (type.includes('PLAN') || type.includes('SMART')) {
-                smartPlanUsersSet.add(act.user_id);
-                smartPlanTotal++;
-            }
-            if (type.includes('COMMUNITY') || type.includes('READ') || type.includes('POST')) {
-                communityExploreUsersSet.add(act.user_id);
-                communityExploreTotal++;
-            }
-            if (type.includes('RECIPE') || type.includes('COOK')) {
+            if (type.includes('RECIPE') || type.includes('COOK') || type.includes('FOOD')) {
                 recipeUsersSet.add(act.user_id);
                 recipeTotal++;
             }
+        });
+
+        // ⑦ 아이 놀이 탐색기 이용 (travel_plays + persona_actions)
+        const { data: playTableData } = await supabase
+            .from('travel_plays')
+            .select('id, author_id')
+            .gte('created_at', startISO)
+            .lte('created_at', endISO);
+
+        const playExplorerUsersSet = new Set<string>();
+        let playExplorerTotal = (playTableData || []).length;
+
+        (playTableData || []).forEach((p: any) => {
+            if (p.author_id) playExplorerUsersSet.add(p.author_id);
+        });
+
+        (planActionsData || []).forEach((act: any) => {
+            const type = (act.action_type || '').toUpperCase();
             if (type.includes('PLAY') || type.includes('GAME') || type.includes('KID')) {
                 playExplorerUsersSet.add(act.user_id);
                 playExplorerTotal++;
             }
         });
-
-        // Fallback baseline for Recipe / Play / SmartPlan from respective tables if available
-        const { data: recipeTableData } = await supabase
-            .from('travel_recipes')
-            .select('id')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-        recipeTotal = Math.max(recipeTotal, (recipeTableData || []).length);
-        if (recipeTotal > 0 && recipeUsersSet.size === 0) {
-            recipeUsersSet.add('demo-user');
-        }
-
-        const { data: playTableData } = await supabase
-            .from('travel_plays')
-            .select('id')
-            .gte('created_at', startISO)
-            .lte('created_at', endISO);
-        playExplorerTotal = Math.max(playExplorerTotal, (playTableData || []).length);
 
         // Overall active users in period
         const allActiveUsersSet = new Set([
@@ -205,7 +254,7 @@ export async function getAdminAnalyticsAction(
                     iconKey: 'Map',
                     usersCount: smartPlanUsersSet.size,
                     totalCount: smartPlanTotal,
-                    description: '스마트플랜 생성 및 상세 일정 조회'
+                    description: '스마트플랜 캐싱, 생성 및 일정 조회'
                 },
                 communityExplore: {
                     name: '커뮤니티 소식 탐색',
