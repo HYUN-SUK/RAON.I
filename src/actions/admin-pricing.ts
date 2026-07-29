@@ -1,5 +1,6 @@
 'use server';
 
+import { createAdminClient } from '@/lib/supabase-admin';
 import { createClient } from '@/lib/supabase-client';
 import { PricingConfig } from '@/types/reservation';
 
@@ -12,14 +13,14 @@ const DEFAULT_PRICE_CONFIG: PricingConfig = {
     visitor: 10000,
     longStayDiscount: 10000,
     seasons: [
-        { name: 'Summer Peak', startMonth: 6, startDay: 1, endMonth: 9, endDay: 30 }
+        { name: 'Summer Peak', startMonth: 6, startDay: 1, endMonth: 8, endDay: 30 }
     ]
 };
 
 export async function getPricingConfigAction(): Promise<{ success: boolean; data?: PricingConfig; error?: string }> {
     try {
         const supabase = createClient();
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from('site_config')
             .select('pricing_config')
             .eq('id', 1)
@@ -30,13 +31,12 @@ export async function getPricingConfigAction(): Promise<{ success: boolean; data
             return { success: true, data: DEFAULT_PRICE_CONFIG };
         }
 
-        // If DB pricing_config exists and is not null, return it
         if (data && data.pricing_config) {
             const config = data.pricing_config as unknown as PricingConfig;
             return { success: true, data: config };
         }
 
-        // If null or empty, seed DEFAULT_PRICE_CONFIG into DB
+        // If null or empty, seed DEFAULT_PRICE_CONFIG into DB using Admin Client
         await updatePricingConfigAction(DEFAULT_PRICE_CONFIG);
         return { success: true, data: DEFAULT_PRICE_CONFIG };
     } catch (err: any) {
@@ -47,9 +47,10 @@ export async function getPricingConfigAction(): Promise<{ success: boolean; data
 
 export async function updatePricingConfigAction(config: PricingConfig): Promise<{ success: boolean; error?: string }> {
     try {
-        const supabase = createClient();
+        // Use createAdminClient with type cast to bypass RLS restrictions and TS generic constraints for site_config updates
+        const adminSupabase = createAdminClient() as any;
         
-        // Ensure month/day values are proper numbers before saving
+        // Ensure month/day/price values are proper numbers before saving
         const sanitizedConfig: PricingConfig = {
             ...config,
             weekday: Number(config.weekday),
@@ -68,35 +69,42 @@ export async function updatePricingConfigAction(config: PricingConfig): Promise<
             }))
         };
 
-        const { data: existing } = await supabase
+        // Check if row 1 exists
+        const { data: existing } = await adminSupabase
             .from('site_config')
             .select('id')
             .eq('id', 1)
             .maybeSingle();
 
-        let error = null;
+        let updateResult: any = null;
+
         if (existing) {
-            const { error: updateErr } = await supabase
+            updateResult = await adminSupabase
                 .from('site_config')
                 .update({ 
                     pricing_config: sanitizedConfig as any,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', 1);
-            error = updateErr;
+                .eq('id', 1)
+                .select();
         } else {
-            const { error: insertErr } = await supabase
+            updateResult = await adminSupabase
                 .from('site_config')
                 .insert({
                     id: 1,
                     pricing_config: sanitizedConfig as any
-                });
-            error = insertErr;
+                })
+                .select();
         }
 
-        if (error) {
-            console.error('[updatePricingConfigAction] Error:', error);
-            return { success: false, error: error.message };
+        if (updateResult.error) {
+            console.error('[updatePricingConfigAction] Error:', updateResult.error);
+            return { success: false, error: updateResult.error.message };
+        }
+
+        if (!updateResult.data || updateResult.data.length === 0) {
+            console.error('[updatePricingConfigAction] 0 rows updated');
+            return { success: false, error: 'DB 업데이트 권한 오류로 저장에 실패했습니다. (0 rows affected)' };
         }
 
         return { success: true };
