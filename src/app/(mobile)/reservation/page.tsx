@@ -19,18 +19,19 @@ import ReservationLockModal from '@/components/reservation/ReservationLockModal'
 export default function ReservationPage() {
     const router = useRouter();
     const { isLoading, isAllowed, showLockModal, closeLockModal } = useReservationGuard();
-    const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchPublicReservations } = useReservationStore();
+    const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchSiteConfig, fetchPublicReservations } = useReservationStore();
 
     useEffect(() => {
         fetchOpenDayRule();
         fetchSites();
+        fetchSiteConfig();
 
         // Fetch public reservations for the next 6 months to ensure availability is up to date
         const start = new Date();
         const end = new Date();
         end.setMonth(end.getMonth() + 6);
         fetchPublicReservations(start, end);
-    }, [fetchOpenDayRule, fetchSites, fetchPublicReservations]);
+    }, [fetchOpenDayRule, fetchSites, fetchSiteConfig, fetchPublicReservations]);
 
     // Realtime Postgres changes subscription to sync database modifications (e.g. block cancel) instantly
     useEffect(() => {
