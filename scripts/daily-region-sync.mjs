@@ -59,6 +59,96 @@ const SIDO_SHORT_MAP = {
   '전남광주시': '전남광주'
 };
 
+const TOUR_API_AREA_MAP = {
+  '서울특별시': '1', '인천광역시': '2', '대전광역시': '3', '대구광역시': '4', '광주광역시': '5', '부산광역시': '6', '울산광역시': '7', '세종특별자치시': '8',
+  '경기도': '31', '강원특별자치도': '32', '충청북도': '33', '충청남도': '34', '전북특별자치도': '35', '전라남도': '36', '경상북도': '37', '경상남도': '38', '제주특별자치도': '39',
+  '전남광주시': '38'
+};
+
+// 전국 16개 순환 지역 전수 대응 TourAPI 시군구 마스터 맵
+const TOUR_API_SIGUNGU_MASTER = {
+  '서울특별시': {
+    areaCode: '1',
+    sigungus: {
+      '강남구':'1','강동구':'2','강북구':'3','강서구':'4','관악구':'5','광진구':'6','구로구':'7','금천구':'8','노원구':'9','도봉구':'10',
+      '동대문구':'11','동작구':'12','마포구':'13','서대문구':'14','서초구':'15','성동구':'16','성북구':'17','송파구':'18','양천구':'19','영등포구':'20',
+      '용산구':'21','은평구':'22','종로구':'23','중구':'24','중랑구':'25'
+    }
+  },
+  '부산광역시': {
+    areaCode: '6',
+    sigungus: {
+      '강서구':'1','금정구':'2','기장군':'3','남구':'4','동구':'5','동래구':'6','부산진구':'7','북구':'8','사상구':'9','사하구':'10',
+      '서구':'11','수영구':'12','연제구':'13','영도구':'14','중구':'15','해운대구':'16'
+    }
+  },
+  '대구광역시': {
+    areaCode: '4',
+    sigungus: { '중구':'1','동구':'2','서구':'3','남구':'4','북구':'5','수성구':'6','달서구':'7','달성군':'8','군위군':'9' }
+  },
+  '인천광역시': {
+    areaCode: '2',
+    sigungus: { '중구':'1','동구':'2','미추홀구':'3','연수구':'4','남동구':'5','부평구':'6','계양구':'7','서구':'8','강화군':'9','옹진군':'10' }
+  },
+  '대전광역시': {
+    areaCode: '3',
+    sigungus: { '동구':'1','중구':'2','서구':'3','유성구':'4','대덕구':'5' }
+  },
+  '울산광역시': {
+    areaCode: '7',
+    sigungus: { '중구':'1','남구':'2','동구':'3','북구':'4','울주군':'5' }
+  },
+  '세종특별자치시': { areaCode: '8', sigungus: {} },
+  '전남광주시': {
+    isCombined: true,
+    gwangju: { areaCode: '5', sigungus: { '동구':'1','서구':'2','남구':'3','북구':'4','광산구':'5' } },
+    jeonnam: { areaCode: '36', sigungus: { '목포시':'1','여수시':'2','순천시':'3','나주시':'4','광양시':'5','담양군':'6','곡성군':'7','구례군':'8','고흥군':'9','보성군':'10','화순군':'11','장흥군':'12','강진군':'13','해남군':'14','영암군':'15','무안군':'16','함평군':'17','영광군':'18','장성군':'19','완도군':'20','진도군':'21','신안군':'22' } }
+  }
+};
+
+const KTO_SUB_DISTRICT_MAP = {
+  '수원시': [{ sc: '1', name: '장안구' }, { sc: '2', name: '권선구' }, { sc: '3', name: '팔달구' }, { sc: '4', name: '영통구' }],
+  '성남시': [{ sc: '2', name: '수정구' }, { sc: '3', name: '중원구' }, { sc: '4', name: '분당구' }],
+  '안양시': [{ sc: '5', name: '만안구' }, { sc: '6', name: '동안구' }],
+  '고양시': [{ sc: '8', name: '덕양구' }, { sc: '9', name: '일산동구' }, { sc: '10', name: '일산서구' }],
+  '부천시': [{ sc: '11', name: '부천시' }],
+  '안산시': [{ sc: '14', name: '상록구' }, { sc: '15', name: '단원구' }],
+  '용인시': [{ sc: '23', name: '처인구' }, { sc: '24', name: '기흥구' }, { sc: '25', name: '수지구' }],
+  '청주시': [{ sc: '11', name: '상당구' }, { sc: '12', name: '서원구' }, { sc: '13', name: '흥덕구' }, { sc: '14', name: '청원구' }],
+  '천안시': [{ sc: '9', name: '동남구' }, { sc: '10', name: '서북구' }],
+  '전주시': [{ sc: '10', name: '완산구' }, { sc: '11', name: '덕진구' }],
+  '포항시': [{ sc: '20', name: '남구' }, { sc: '21', name: '북구' }],
+  '창원시': [{ sc: '16', name: '의창구' }, { sc: '17', name: '성산구' }, { sc: '18', name: '마산합포구' }, { sc: '19', name: '마산회원구' }, { sc: '20', name: '진해구' }]
+};
+
+/**
+ * 전국 16개 시도 전수 대응 TourAPI 파라미터 헬퍼
+ */
+function getTourApiParams(targetSido, sigungu) {
+  const master = TOUR_API_SIGUNGU_MASTER[targetSido];
+  
+  if (master && master.isCombined) {
+    if (master.gwangju.sigungus[sigungu]) {
+      return [{ areaCode: master.gwangju.areaCode, sigunguCode: master.gwangju.sigungus[sigungu] }];
+    }
+    if (master.jeonnam.sigungus[sigungu]) {
+      return [{ areaCode: master.jeonnam.areaCode, sigunguCode: master.jeonnam.sigungus[sigungu] }];
+    }
+  }
+
+  if (master && master.sigungus && master.sigungus[sigungu]) {
+    return [{ areaCode: master.areaCode, sigunguCode: master.sigungus[sigungu] }];
+  }
+
+  const defaultAreaCode = TOUR_API_AREA_MAP[targetSido] || '1';
+  const subDists = KTO_SUB_DISTRICT_MAP[sigungu];
+  if (subDists && subDists.length > 0) {
+    return subDists.map(sub => ({ areaCode: defaultAreaCode, sigunguCode: sub.sc }));
+  }
+
+  return [{ areaCode: defaultAreaCode, sigunguCode: '' }];
+}
+
 const SIDO_ALIASES = {
   '서울': ['서울특별시', '서울'], 
   '부산': ['부산광역시', '부산'], 
@@ -158,6 +248,8 @@ const extractSido = (addr) => {
   ];
   return standardSidos.find(s => normalized.startsWith(s)) || null;
 };
+
+
 
 const generateId = (source, name, addr) => {
   const normalizedAddr = getNormalizedAddr(addr);
@@ -407,56 +499,147 @@ async function dailyRegionSync() {
     // --- [SOP v12.0 Step 9: KTO Municipality Popularity Sync (Robust)] --- 
     console.log(`\n9. [Popularity] Fetching KTO Official Ranking (Original Code Tracking)...`);
     
-    // Find unique KTO area/sigungu codes within the target Sido
-    const { data: regions, error: regError } = await supabase
+    // Use the same proven getAdminCodes() approach as Popularity Engine v2
+    // 1. Fetch active SPOT sigungus for the target Sido
+    const { data: ktoSpots } = await supabase
         .from('master_places')
-        .select('sigungu, areaCode:raw_data->>areaCode, sigunguCode:raw_data->>sigunguCode')
+        .select('sigungu')
+        .eq('api_source', 'TOUR_SPOT')
+        .eq('is_active', true)
         .in('sido', aliases)
-        .not('raw_data->>areaCode', 'is', null)
-        .not('raw_data->>sigunguCode', 'is', null);
+        .limit(5000);
 
-    if (regError || !regions || regions.length === 0) {
-        console.warn(`  ⚠️ No KTO area mapping found for ${targetSido}. Skipping.`);
-    } else {
-        // Unique region map within the Sido
-        const seen = new Set();
-        const regionMap = regions.filter(r => {
-            const key = `${r.areaCode}|${r.sigunguCode}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
+    const ktoSigungus = [...new Set((ktoSpots || []).map(s => s.sigungu))].filter(Boolean);
+    const regionMap = [];
 
-        console.log(`   - Detected ${regionMap.length} KTO-standard sigungus in ${targetSido}.`);
+    for (const sigungu of ktoSigungus) {
+        const paramSets = getTourApiParams(targetSido, sigungu);
+        for (const pSet of paramSets) {
+            regionMap.push({
+                sigungu,
+                areaCode: pSet.areaCode,
+                sigunguCode: pSet.sigunguCode
+            });
+        }
+    }
 
-        for (const reg of regionMap) {
-            try {
-                const baseYm = await findLatestBaseYm();
-                const params = new URLSearchParams({ 
-                    serviceKey: TOUR_API_KEY, 
-                    numOfRows: '100', 
-                    pageNo: '1', 
-                    MobileOS: 'ETC', 
-                    MobileApp: 'RAONAI', 
-                    _type: 'json', 
-                    baseYm: baseYm,
-                    areaCd: reg.areaCode, 
-                    signguCd: reg.sigunguCode 
-                });
-                const url = `https://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1?${params.toString()}`;
-                const res = await fetchWithRetry(url);
-                const data = await res.json();
-                const items = data.response?.body?.items?.item || [];
+    console.log(`   - Detected ${regionMap.length} KTO-standard sigungus in ${targetSido}.`);
+
+    for (const reg of regionMap) {
+        try {
+            const baseYm = await findLatestBaseYm();
+            const params = new URLSearchParams({ 
+                serviceKey: TOUR_API_KEY, 
+                numOfRows: '100', 
+                pageNo: '1', 
+                MobileOS: 'ETC', 
+                MobileApp: 'RAONAI', 
+                _type: 'json', 
+                areaCode: reg.areaCode, 
+                contentTypeId: '12'
+            });
+            if (reg.sigunguCode) params.append('sigunguCode', reg.sigunguCode);
+
+            const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`;
+            const data = await fetchWithRetry(url);
+            const items = data.response?.body?.items?.item || [];
 
                 for (let i = 0; i < items.length; i++) {
                     const item = items[i];
-                    const contentId = String(item.contentId);
+                    const contentId = String(item.contentId || item.contentid || '');
+                    const title = (item.title || item.name || '').trim();
+                    const addr = item.addr1 || item.address || '';
                     const rank = i + 1;
+                    const mapx = parseFloat(item.mapx || item.lng || 0);
+                    const mapy = parseFloat(item.mapy || item.lat || 0);
 
-                    await supabase.rpc('patch_place_raw_data_by_contentid', {
-                        p_contentid: contentId,
-                        p_patch: { kto_official: { rank, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } }
-                    });
+                    const ktoPatch = { kto_official: { rank, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
+
+                    let matchedMpId = null;
+
+                    // 1차 중복 방어: contentId 매핑
+                    if (contentId) {
+                        const { data: mpByCid } = await supabase
+                            .from('master_places')
+                            .select('id, raw_data')
+                            .filter('raw_data->>contentid', 'eq', contentId)
+                            .limit(1);
+                        if (mpByCid && mpByCid.length > 0) matchedMpId = mpByCid[0].id;
+                    }
+
+                    // 2차 중복 방어: cleanName + sido + sigungu 매핑
+                    if (!matchedMpId && title) {
+                        const { data: mpByName } = await supabase
+                            .from('master_places')
+                            .select('id, raw_data')
+                            .in('sido', aliases)
+                            .eq('name', title)
+                            .limit(1);
+                        if (mpByName && mpByName.length > 0) matchedMpId = mpByName[0].id;
+                    }
+
+                    // 3차 중복 방어: deterministic UUID 매핑
+                    const detId = generateId('TOUR_SPOT', title, addr);
+                    if (!matchedMpId) {
+                        const { data: mpByDet } = await supabase
+                            .from('master_places')
+                            .select('id, raw_data')
+                            .eq('id', detId)
+                            .limit(1);
+                        if (mpByDet && mpByDet.length > 0) matchedMpId = mpByDet[0].id;
+                    }
+
+                    if (matchedMpId) {
+                        // 기존 명소 1:1 패치 합체 (UPDATE) - Direct merge (RPC 미사용)
+                        const { data: currentMp } = await supabase.from('master_places').select('raw_data').eq('id', matchedMpId).single();
+                        const mergedRaw = { ...(currentMp?.raw_data || {}), ...ktoPatch };
+                        await supabase.from('master_places').update({ raw_data: mergedRaw }).eq('id', matchedMpId);
+
+                        const { data: spfMatches } = await supabase.from('smart_plan_facts').select('id, raw_data').eq('name', title);
+                        if (spfMatches && spfMatches.length > 0) {
+                            for (const spf of spfMatches) {
+                                const updatedSpfRaw = { ...(spf.raw_data || {}), ...ktoPatch };
+                                await supabase.from('smart_plan_facts').update({ raw_data: updatedSpfRaw }).eq('id', spf.id);
+                            }
+                        }
+                    } else {
+                        // 미존재 신규 명소: 풀 스키마 신규 추가 (INSERT)
+                        const newPlaceData = {
+                            id: detId,
+                            name: title,
+                            category: 'SPOT',
+                            sido: targetSido,
+                            sigungu: reg.sigungu || '',
+                            address: addr,
+                            lat: mapy,
+                            lng: mapx,
+                            api_source: 'KTO_OFFICIAL_NEW',
+                            is_active: true,
+                            trust_score: 85,
+                            raw_data: {
+                                contentid: contentId,
+                                firstimage: item.firstimage || item.firstimage2 || '',
+                                tel: item.tel || '',
+                                cat1: item.cat1 || '', cat2: item.cat2 || '', cat3: item.cat3 || '',
+                                badges: ['KTO 공식 인기 명소'],
+                                ...ktoPatch
+                            }
+                        };
+                        await supabase.from('master_places').upsert([newPlaceData], { onConflict: 'id' });
+
+                        const newFactData = {
+                            name: title,
+                            category: 'SPOT',
+                            sido: targetSido,
+                            sigungu: reg.sigungu || '',
+                            address: addr,
+                            lat: mapy,
+                            lng: mapx,
+                            api_source: 'KTO_OFFICIAL_NEW',
+                            raw_data: newPlaceData.raw_data
+                        };
+                        await supabase.from('smart_plan_facts').upsert([newFactData], { onConflict: 'name,sido,sigungu' });
+                    }
                 }
                 stats.categories.SPOT_KTO_POP.fetched.active += items.length;
                 stats.categories.SPOT_KTO_POP.updated.active += items.length;
@@ -466,7 +649,6 @@ async function dailyRegionSync() {
             }
             await delay(100); // Throttling
         }
-    }
 
   // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화)
   console.log(`\n📊 [Final Audit] ${targetSido} 지역별 최종 정합성 확인 중...`);

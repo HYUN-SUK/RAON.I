@@ -181,7 +181,7 @@ const DEFAULT_PRICE_CONFIG: PricingConfig = {
     visitor: 10000,
     longStayDiscount: 10000,
     seasons: [
-        { name: 'Summer Peak', startMonth: 6, startDay: 1, endMonth: 7, endDay: 31 } // July 1 - Aug 31
+        { name: 'Summer Peak', startMonth: 6, startDay: 1, endMonth: 9, endDay: 30 }
     ]
 };
 
@@ -257,7 +257,7 @@ export const useReservationStore = create<ReservationState>()(
                 const { data } = await supabase.from('site_config').select('*').eq('id', 1).single();
 
                 if (data) {
-                    set({
+                    const updatePayload: any = {
                         siteConfig: {
                             campName: data.camp_name,
                             bankName: data.bank_name,
@@ -267,7 +267,13 @@ export const useReservationStore = create<ReservationState>()(
                             layoutImageUrl: data.layout_image_url
                         },
                         deadlineHours: data.deposit_deadline_hours || 6
-                    });
+                    };
+
+                    if ((data as any).pricing_config) {
+                        updatePayload.priceConfig = (data as any).pricing_config;
+                    }
+
+                    set(updatePayload);
                 }
             },
 

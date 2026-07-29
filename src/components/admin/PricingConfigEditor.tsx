@@ -3,16 +3,31 @@
 import { useReservationStore } from '@/store/useReservationStore';
 import { PricingConfig, Season } from '@/types/reservation';
 import { useState, useEffect } from 'react';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Save, Plus, Trash2, Loader2 } from 'lucide-react';
+import { getPricingConfigAction, updatePricingConfigAction } from '@/actions/admin-pricing';
 
 export default function PricingConfigEditor() {
     const { priceConfig, setPriceConfig } = useReservationStore();
     const [config, setConfig] = useState<PricingConfig>(priceConfig);
     const [isDirty, setIsDirty] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
+    // 1. Fetch live pricing config from DB on mount
     useEffect(() => {
-        setConfig(priceConfig);
-    }, [priceConfig]);
+        let isMounted = true;
+        const loadConfig = async () => {
+            setIsLoading(true);
+            const res = await getPricingConfigAction();
+            if (res.success && res.data && isMounted) {
+                setConfig(res.data);
+                setPriceConfig(res.data);
+            }
+            if (isMounted) setIsLoading(false);
+        };
+        loadConfig();
+        return () => { isMounted = false; };
+    }, [setPriceConfig]);
 
     const handleChange = (field: keyof PricingConfig, value: number) => {
         setConfig(prev => ({ ...prev, [field]: value }));
@@ -27,7 +42,7 @@ export default function PricingConfigEditor() {
     };
 
     const addSeason = () => {
-        const newSeason: Season = { name: 'New Season', startMonth: 1, startDay: 1, endMonth: 1, endDay: 31 };
+        const newSeason: Season = { name: 'New Season', startMonth: 6, startDay: 1, endMonth: 9, endDay: 30 };
         setConfig(prev => ({ ...prev, seasons: [...prev.seasons, newSeason] }));
         setIsDirty(true);
     };
@@ -37,10 +52,18 @@ export default function PricingConfigEditor() {
         setIsDirty(true);
     };
 
-    const handleSave = () => {
-        setPriceConfig(config);
-        setIsDirty(false);
-        alert('가격 정책이 저장되었습니다. 즉시 반영됩니다.');
+    const handleSave = async () => {
+        setIsSaving(true);
+        const result = await updatePricingConfigAction(config);
+        setIsSaving(false);
+
+        if (result.success) {
+            setPriceConfig(config);
+            setIsDirty(false);
+            alert('가격 및 성수기 정책이 DB에 저장되었습니다. 즉시 시스템에 동적으로 반영됩니다.');
+        } else {
+            alert(`저장 중 오류가 발생했습니다: ${result.error}`);
+        }
     };
 
     return (
@@ -116,10 +139,11 @@ export default function PricingConfigEditor() {
                 <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4">
                     <button
                         onClick={handleSave}
-                        className="bg-brand-1 text-white px-6 py-4 rounded-full shadow-xl flex items-center gap-2 font-bold hover:bg-[#1a3b20] transition-transform hover:scale-105 active:scale-95"
+                        disabled={isSaving}
+                        className="bg-brand-1 text-white px-6 py-4 rounded-full shadow-xl flex items-center gap-2 font-bold hover:bg-[#1a3b20] transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
                     >
-                        <Save size={20} />
-                        변경사항 저장
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isSaving ? '저장 중...' : '변경사항 저장'}
                     </button>
                 </div>
             )}
