@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import LoginRequestDialog from "@/components/auth/LoginRequestDialog";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import DeepLinkHandler from "@/components/pwa/DeepLinkHandler";
+import DiagnosticSensorActivator from "@/components/common/DiagnosticSensorActivator";
 
 const inter = Inter({ subsets: ["latin"] });
 const nanumPen = Nanum_Pen_Script({ weight: "400", subsets: ["latin"], variable: "--font-nanum-pen" });
@@ -61,6 +62,7 @@ export default function RootLayout({
           <DeepLinkHandler />
         </Suspense>
         <ServiceWorkerRegister />
+        <DiagnosticSensorActivator />
       </body>
     </html>
   );

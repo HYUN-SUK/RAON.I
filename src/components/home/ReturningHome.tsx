@@ -31,7 +31,6 @@ import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
 import BounceDebugBanner from '@/components/common/BounceDebugBanner';
-import { setupGlobalErrorListener } from '@/lib/diagnosticSensor';
 
 
 
@@ -110,9 +109,6 @@ export default function ReturningHome() {
         // Auto-request permission on Home Load
         requestPermission();
 
-        // [v11.9.140] 전역 튕김 진단 센서 가동
-        const cleanupErrorListener = setupGlobalErrorListener();
-
         // [v11.9.115] 상세페이지에서 '뒤로가기'로 복귀한 경우 아코디언 펼침 복원
         const checkBackIntent = () => {
             try {
@@ -130,7 +126,6 @@ export default function ReturningHome() {
 
         return () => {
             window.removeEventListener('pageshow', checkBackIntent);
-            cleanupErrorListener?.();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
