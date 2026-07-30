@@ -1372,22 +1372,22 @@ export async function generatePersonalizedSmartPlan(
             // G. 5단계 stageIntros 조립 (계절 인사말 => 동반자 구성 => 날씨 맞춤 추천 멘트)
             stageIntros['1'] = `${greeting} ${companionNarrative} ${weatherNarrative}`;
             
-            stageIntros['2'] = "설레는 출발의 순간! 캠핑장으로 향하며 가볍게 들러갈 수 있는 아늑한 맛집과 쉼표 같은 카페를 지나가 볼까요?";
-            stageIntros['3'] = "캠핑의 든든한 기본! 캠핑장에 입실하기 전 신선한 식재료를 채워줄 보급소와 따뜻한 겨울을 준비할 등유 주유소에 들르는 시간이에요.";
-            stageIntros['4'] = "드디어 아늑한 라온아이에 안착했네요. 짐을 풀고 잠시 숨을 고른 뒤, 자연의 품에서 천천히 거닐 수 있는 현지의 보석 같은 명소들을 찾아 떠나요.";
+            stageIntros['2'] = "설레는 출발의 순간! 여행지로 향하며 가볍게 들러갈 수 있는 아늑한 맛집과 쉼표 같은 카페를 지나가 볼까요?";
+            stageIntros['3'] = "여행의 든든한 기본! 여행지에 도착하기 전 신선한 식재료를 채워줄 보급소와 따뜻한 겨울을 준비할 등유 주유소에 들르는 시간이에요.";
+            stageIntros['4'] = "드디어 아늑한 여행지에 안착했네요. 짐을 풀고 잠시 숨을 고른 뒤, 자연의 품에서 천천히 거닐 수 있는 현지의 보석 같은 명소들을 찾아 떠나요.";
             stageIntros['5'] = "아쉬운 이별을 뒤로하고 일상으로 돌아가는 길. 긴 여운을 달래줄 조용하고 예쁜 카페와 든든한 식사 한 끼로 여행을 포근하게 마감해 보아요.";
 
             // H. stage1_timeline 타임라인 출발 인사말 정의
             if (isWeatherAvailable && minTemp !== null && maxTemp !== null) {
                 if (hasSnow) {
-                    stageIntros['stage1_timeline'] = "하얀 눈송이가 낭만을 그리는 캠핑 날, 눈길 조심해서 포근한 설국으로 출발해요!";
+                    stageIntros['stage1_timeline'] = "하얀 눈송이가 낭만을 그리는 여행 날, 눈길 조심해서 포근한 설국으로 출발해요!";
                 } else if (hasRain || hasShower) {
-                    stageIntros['stage1_timeline'] = "토닥토닥 빗소리가 감성을 더하는 캠핑 날, 안전운전하여 낭만적인 하루를 시작해 봐요.";
+                    stageIntros['stage1_timeline'] = "토닥토닥 빗소리가 감성을 더하는 여행 날, 안전운전하여 낭만적인 하루를 시작해 봐요.";
                 } else {
-                    stageIntros['stage1_timeline'] = "드디어 오랫동안 기다렸던 캠핑 날! 안전하고 신나는 발걸음으로 출발해 볼까요?";
+                    stageIntros['stage1_timeline'] = "드디어 오랫동안 기다렸던 여행 날! 안전하고 신나는 발걸음으로 출발해 볼까요?";
                 }
             } else {
-                stageIntros['stage1_timeline'] = "설레는 마음으로 기분 좋게 짐을 싸서, 라온아이 캠핑장으로 활기차게 출발해 보아요!";
+                stageIntros['stage1_timeline'] = "설레는 마음으로 기분 좋게 짐을 싸서, 아름다운 여행지로 활기차게 출발해 보아요!";
             }
 
             // [v12.5.2] 런타임 공간 중복 제거 안전망 (Spatial Deduplication Safety Net) 고도화
