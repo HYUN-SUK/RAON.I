@@ -168,21 +168,8 @@ export default function TopBar() {
                 RAON.I
             </h1>
 
-            {/* Right Side: Install + Auth */}
-            <div className="flex items-center gap-2 -mr-2">
-
-                {/* 미설치 웹 유저 전용: 시선 강탈 주황색 반짝임 플레이스토어 다운로드 버튼 (앱 설치자는 감춤) */}
-                {isMounted && !isAppUser && (
-                    <button
-                        onClick={handleDownloadClick}
-                        className="flex items-center gap-1 py-1.5 px-3 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-xs shadow-[0_2px_12px_rgba(249,115,22,0.45)] animate-pulse hover:scale-105 active:scale-95 transition-all cursor-pointer border border-orange-300/40"
-                        title="구글 플레이 스토어에서 앱 다운로드"
-                    >
-                        <Download size={14} strokeWidth={2.5} className="animate-bounce shrink-0" />
-                        <span className="font-extrabold tracking-tight">앱 다운로드</span>
-                    </button>
-                )}
-
+            {/* Right Side: Auth & Download Badge */}
+            <div className="relative flex items-center gap-2 -mr-2">
                 {/* Auth Action Icon */}
                 {isLoggedIn ? (
                     <DropdownMenu>
@@ -249,6 +236,20 @@ export default function TopBar() {
                         <LogIn size={18} strokeWidth={1.5} />
                         <span className="text-sm font-semibold text-stone-600">로그인</span>
                     </button>
+                )}
+
+                {/* 미설치 웹 유저 전용: 로그인 바로 아래에 달린 주황색 반짝임 다운로드 버튼 (앱 설치자는 감춤) */}
+                {isMounted && !isAppUser && (
+                    <div className="absolute top-[42px] right-1 z-[110] animate-fade-in pointer-events-auto">
+                        <button
+                            onClick={handleDownloadClick}
+                            className="flex items-center gap-1 py-1 px-2.5 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-[0_4px_14px_rgba(249,115,22,0.5)] animate-pulse hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/50 whitespace-nowrap"
+                            title="구글 플레이 스토어에서 라온아이 앱 다운로드"
+                        >
+                            <Download size={13} strokeWidth={2.5} className="animate-bounce shrink-0 text-white" />
+                            <span className="font-extrabold tracking-tight">앱 다운로드</span>
+                        </button>
+                    </div>
                 )}
             </div>
 
