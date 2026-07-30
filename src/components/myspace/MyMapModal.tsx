@@ -373,12 +373,6 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 lng: pendingPin.lng
             });
             setPendingPin(null);
-            
-            // [v11.9.130] 가상 히스토리 스택 찌꺼기 정화 (pop modal state)
-            if (typeof window !== 'undefined') {
-                window.history.back();
-            }
-            
             onClose();
             return;
         }
