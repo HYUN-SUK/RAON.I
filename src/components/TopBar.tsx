@@ -31,7 +31,7 @@ interface UserInfo {
 }
 
 // 플레이스토어 공식 다운로드 URL
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=kr.co.raon_i";
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=kr.co.raoni.app";
 
 export default function TopBar() {
     const { level, xp, raonToken, setWallet, reset } = useMySpaceStore();
