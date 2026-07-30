@@ -12,30 +12,7 @@ export function useModalBackHandler(
     modalKey: string = 'modal'
 ) {
     useEffect(() => {
-        if (!isOpen) return;
-
-        // 히스토리에 모달 식별 상태 추가 (PWA 뒤로가기 제어 및 찌꺼기 추적용)
-        const stateKey = `raon_modal_${modalKey}_${Date.now()}`;
-        window.history.pushState({ modalKey, stateKey, isRaonModal: true }, '');
-
-        const handlePopState = (event: PopStateEvent) => {
-            // 사용자가 브라우저 백버튼 등으로 뒤로가기 시 모달 닫기
-            onClose();
-        };
-
-        window.addEventListener('popstate', handlePopState);
-
-        return () => {
-            window.removeEventListener('popstate', handlePopState);
-            
-            // 프로그램적으로 모달이 닫혀서(X 버튼 등) 가상 히스토리 찌꺼기가 스택 최상단에 남은 경우 강제 정화
-            try {
-                if (typeof window !== 'undefined' && window.history.state?.isRaonModal && window.history.state?.stateKey === stateKey) {
-                    window.history.back();
-                }
-            } catch (e) {
-                console.warn('[useModalBackHandler] Failed to cleanup modal history state:', e);
-            }
-        };
+        // [v11.9.150] Next.js 라우터 충돌 및 Full Refresh 튕김 버그 원천 방지를 위해 히스토리 조작 로직 비활성화
+        // 모달 닫기 시 back()과 router.push()가 겹칠 때 발생하는 Race Condition 차단 목적
     }, [isOpen, onClose, modalKey]);
 }

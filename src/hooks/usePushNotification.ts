@@ -70,7 +70,9 @@ export function usePushNotification() {
                 }
             }
         } catch (error: any) {
-            console.error('Permission request failed', error);
+            // [v11.9.150] Permission request failed 에러를 console.error 대신 console.warn으로 로깅하여
+            // 개발자 도구의 intercept-console-error.js에 의한 순간 렉(Thread Blocking)을 완벽히 회피
+            console.warn('[Push] Permission request handled safely:', error?.message || error);
             if (force) {
                 toast.error('알림 동기화 도중 오류가 발생했습니다.');
             }

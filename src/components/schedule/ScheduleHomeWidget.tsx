@@ -48,6 +48,14 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     const schedulesRef = useRef(schedules);
     useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
 
+    const isComponentMounted = useRef(true);
+    useEffect(() => {
+        isComponentMounted.current = true;
+        return () => {
+            isComponentMounted.current = false;
+        };
+    }, []);
+
     // 마운트 시 뒤로가기 복귀 여부 확인
     const isBackFromDetail = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -401,6 +409,12 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                     // 백그라운드 동기화와 겹치거나 지연 생성 시 직접 호출
                     const result = await ensureScheduleFromReservation(upcomingItem.id);
 
+                    // [v11.9.150] 비동기 처리 도중 이미 컴포넌트가 언마운트(이탈/튕김) 되었다면 라우팅 방지
+                    if (!isComponentMounted.current) {
+                        console.warn('[ScheduleHomeWidget] Component unmounted during schedule ensuring. Skipping push.');
+                        return;
+                    }
+
                     if (result.success && result.scheduleId) {
                         router.push(`/myspace/schedule/${result.scheduleId}`);
                     } else {
@@ -409,9 +423,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         setIsNavigating(false);
                     }
                 } catch (e) {
-                    console.error('Navigation error:', e);
-                    toast.error('일정을 불러오는 중 오류가 발생했습니다.');
-                    setIsNavigating(false);
+                    if (isComponentMounted.current) {
+                        console.error('Navigation error:', e);
+                        toast.error('일정을 불러오는 중 오류가 발생했습니다.');
+                        setIsNavigating(false);
+                    }
                 }
             } else {
                 // 이미 스케줄임
