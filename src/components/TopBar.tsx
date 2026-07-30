@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase-client";
-import { LogOut, LogIn, Settings, User, Bell, FileText, Download } from "lucide-react";
+import { LogOut, LogIn, Settings, User, Bell, FileText, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { pointService } from "@/services/pointService";
 import { getLevelInfo } from "@/config/pointPolicy";
@@ -19,9 +19,8 @@ import {
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { usePushNotification } from "@/hooks/usePushNotification";
-import { usePWAInstallPrompt } from "@/hooks/usePWAInstallPrompt";
 import { usePermissionFlow } from "@/hooks/usePermissionFlow";
-import PWAInstallGuideModal from "@/components/pwa/PWAInstallGuideModal";
+import { useAppStandaloneDetector } from "@/hooks/useAppStandaloneDetector";
 import LocationPermissionPrompt from "@/components/permission/LocationPermissionPrompt";
 import PushPermissionPrompt from "@/components/permission/PushPermissionPrompt";
 import IOSPWAGuidePrompt from "@/components/permission/IOSPWAGuidePrompt";
@@ -31,6 +30,9 @@ interface UserInfo {
     avatarUrl?: string;
 }
 
+// 플레이스토어 공식 다운로드 URL
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=kr.co.raon_i";
+
 export default function TopBar() {
     const { level, xp, raonToken, setWallet, reset } = useMySpaceStore();
     const router = useRouter();
@@ -39,9 +41,8 @@ export default function TopBar() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
-    // PWA
-    const { isInstallable, promptInstall, platform } = usePWAInstallPrompt();
-    const [isIOSModalOpen, setIsIOSModalOpen] = useState(false);
+    // 앱 설치 여부 감지 (앱 사용자 감춤, 웹 사용자 전용 주황색 버튼 노출)
+    const { isAppUser, isMounted } = useAppStandaloneDetector();
 
     // Permission Flow
     const {
@@ -96,7 +97,6 @@ export default function TopBar() {
             }
         } else {
             setUserInfo(null);
-            // reset(); // Optional: Reset on initial load if no session? Maybe risky if persisting layout prefs.
         }
     };
 
@@ -137,12 +137,13 @@ export default function TopBar() {
         }
     };
 
-    const handleInstallClick = async () => {
-        const result = await promptInstall();
-        // If result is NOT 'accepted' or 'dismissed', it means native prompt wasn't available
-        // So we show the manual guide modal (which uses the 'platform' return value)
-        if (result !== 'accepted' && result !== 'dismissed') {
-            setIsIOSModalOpen(true); // Reusing this state name for generic modal open functionality
+    // 플레이스토어 1초 직통 연결 이동
+    const handleDownloadClick = () => {
+        try {
+            // 모바일 안드로이드 intent 마켓 주소 시도 후 플레이 스토어 웹 마켓 주소 이동
+            window.location.href = PLAY_STORE_URL;
+        } catch (e) {
+            window.open(PLAY_STORE_URL, '_blank');
         }
     };
 
@@ -170,15 +171,15 @@ export default function TopBar() {
             {/* Right Side: Install + Auth */}
             <div className="flex items-center gap-2 -mr-2">
 
-                {/* PWA Install Button (Visible only if installable) */}
-                {isInstallable && (
+                {/* 미설치 웹 유저 전용: 시선 강탈 주황색 반짝임 플레이스토어 다운로드 버튼 (앱 설치자는 감춤) */}
+                {isMounted && !isAppUser && (
                     <button
-                        onClick={handleInstallClick}
-                        className="flex items-center gap-1 py-1.5 px-2.5 rounded-full bg-stone-100/80 hover:bg-stone-200 transition-colors text-stone-600"
-                        title="홈 화면에 추가"
+                        onClick={handleDownloadClick}
+                        className="flex items-center gap-1 py-1.5 px-3 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-xs shadow-[0_2px_12px_rgba(249,115,22,0.45)] animate-pulse hover:scale-105 active:scale-95 transition-all cursor-pointer border border-orange-300/40"
+                        title="구글 플레이 스토어에서 앱 다운로드"
                     >
-                        <Download size={16} strokeWidth={2} />
-                        <span className="text-xs font-bold hidden sm:inline">앱 설치</span>
+                        <Download size={14} strokeWidth={2.5} className="animate-bounce shrink-0" />
+                        <span className="font-extrabold tracking-tight">앱 다운로드</span>
                     </button>
                 )}
 
@@ -250,12 +251,6 @@ export default function TopBar() {
                     </button>
                 )}
             </div>
-
-            <PWAInstallGuideModal
-                isOpen={isIOSModalOpen}
-                onClose={() => setIsIOSModalOpen(false)}
-                platform={platform} // Pass detected platform
-            />
 
             {/* Permission Flow Prompts */}
             <LocationPermissionPrompt
