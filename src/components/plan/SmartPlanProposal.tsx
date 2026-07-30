@@ -505,6 +505,7 @@ export default function SmartPlanProposal({
                 <RouteSelector 
                     origin={userOrigin} 
                     destination={location} 
+                    destinationName={initialPlan?.title || initialPlan?.campground_name}
                     onSelect={handleRouteSelect} 
                 />
             </div>

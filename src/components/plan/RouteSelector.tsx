@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Navigation, Check, ChevronRight, ChevronLeft, Info, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, Navigation, Check, ChevronRight, ChevronLeft, Info, AlertCircle, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Map, MapMarker, Polyline, useKakaoLoader } from 'react-kakao-maps-sdk';
@@ -11,6 +11,7 @@ import { Map, MapMarker, Polyline, useKakaoLoader } from 'react-kakao-maps-sdk';
 interface RouteSelectorProps {
     origin: { lat: number; lng: number };
     destination: { lat: number; lng: number };
+    destinationName?: string;
     onSelect: (midpoint: { lat: number; lng: number }, routeData: any) => void;
 }
 
@@ -20,13 +21,14 @@ const ROUTE_LABELS = [
     { label: '추천 경로 3', keyword: '여유 경로', color: '#10B981', bg: 'bg-emerald-50' }
 ];
 
-export default function RouteSelector({ origin, destination, onSelect }: RouteSelectorProps) {
+export default function RouteSelector({ origin, destination, destinationName, onSelect }: RouteSelectorProps) {
     const [loading, error] = useKakaoLoader({
         appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!,
         libraries: ['services', 'clusterer'],
     });
 
     const [routes, setRoutes] = useState<any[]>([]);
+    const [refinedDestination, setRefinedDestination] = useState<any>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [isFetchingRoutes, setIsFetchingRoutes] = useState(true);
     const [map, setMap] = useState<any>(null);
@@ -39,11 +41,12 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
                 const res = await fetch('/api/routes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ origin, destination })
+                    body: JSON.stringify({ origin, destination, destinationName })
                 });
                 const data = await res.json();
                 if (data.routes && data.routes.length > 0) {
                     setRoutes(data.routes);
+                    setRefinedDestination(data.refinedDestination || null);
                     setSelectedIndex(0);
                 } else {
                     toast.error('이용 가능한 경로 정보가 없습니다.');
@@ -55,16 +58,26 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
             }
         }
         fetchRoutes();
-    }, [origin, destination]);
+    }, [origin, destination, destinationName]);
+
+    // Target Destination Coords for Rendering (Refined or Original)
+    const targetDestCoords = useMemo(() => {
+        if (refinedDestination && refinedDestination.isRefined) {
+            return { lat: refinedDestination.lat, lng: refinedDestination.lng };
+        }
+        return destination;
+    }, [destination, refinedDestination]);
 
     // 2. Format Polyline Paths
     const routePaths = useMemo(() => {
         return routes.map(route => {
             const path: { lat: number, lng: number }[] = [];
-            if (route && route.sections && route.sections[0]) {
+            if (route && route.sections && route.sections[0] && Array.isArray(route.sections[0].roads)) {
                 route.sections[0].roads.forEach((road: any) => {
-                    for (let i = 0; i < road.vertexes.length; i += 2) {
-                        path.push({ lat: road.vertexes[i + 1], lng: road.vertexes[i] });
+                    if (road && Array.isArray(road.vertexes)) {
+                        for (let i = 0; i < road.vertexes.length; i += 2) {
+                            path.push({ lat: road.vertexes[i + 1], lng: road.vertexes[i] });
+                        }
                     }
                 });
             }
@@ -77,13 +90,13 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
         if (typeof window === 'undefined' || !window.kakao || routes.length === 0) return null;
         const b = new window.kakao.maps.LatLngBounds();
         b.extend(new window.kakao.maps.LatLng(origin.lat, origin.lng));
-        b.extend(new window.kakao.maps.LatLng(destination.lat, destination.lng));
+        b.extend(new window.kakao.maps.LatLng(targetDestCoords.lat, targetDestCoords.lng));
         
         if (routePaths[selectedIndex]) {
             routePaths[selectedIndex].forEach(p => b.extend(new window.kakao.maps.LatLng(p.lat, p.lng)));
         }
         return b;
-    }, [origin, destination, routePaths, selectedIndex]);
+    }, [origin, targetDestCoords, routePaths, selectedIndex]);
 
     // 4. Update Map Bounds Automatically
     useEffect(() => {
@@ -95,16 +108,19 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
     const handleConfirm = () => {
         if (!routes[selectedIndex]) return;
         
-        const section = routes[selectedIndex].sections[0];
-        const targetDuration = section.duration / 2;
-        let accumulated = 0;
+        const section = routes[selectedIndex]?.sections?.[0];
         let midpoint = { lat: origin.lat, lng: origin.lng };
 
-        for (const road of section.roads) {
-            accumulated += road.duration;
-            if (accumulated >= targetDuration) {
-                midpoint = { lat: road.vertexes[1], lng: road.vertexes[0] };
-                break;
+        if (section && Array.isArray(section.roads)) {
+            const targetDuration = (section.duration || 0) / 2;
+            let accumulated = 0;
+
+            for (const road of section.roads) {
+                accumulated += (road.duration || 0);
+                if (accumulated >= targetDuration && Array.isArray(road.vertexes) && road.vertexes.length >= 2) {
+                    midpoint = { lat: road.vertexes[1], lng: road.vertexes[0] };
+                    break;
+                }
             }
         }
         onSelect(midpoint, routes[selectedIndex]);
@@ -135,28 +151,45 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
         );
     }
 
-    const currentRoute = routes[selectedIndex];
+    const currentRoute = routes[selectedIndex] || {};
+    const currentSummary = currentRoute.summary || {};
+    const currentFare = currentSummary.fare || {};
     const currentLabel = ROUTE_LABELS[selectedIndex] || ROUTE_LABELS[0];
+
+    const tollPrice = typeof currentFare.toll === 'number' ? currentFare.toll : 0;
+    const taxiPrice = typeof currentFare.taxi === 'number' ? currentFare.taxi : 0;
+    const durationMinutes = Math.floor((currentSummary.duration || 0) / 60);
+    const distanceKm = ((currentSummary.distance || 0) / 1000).toFixed(1);
 
     return (
         <div className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="p-4 bg-white/95 backdrop-blur-md border-b border-gray-50">
+            <div className="p-4 bg-white/95 backdrop-blur-md border-b border-gray-50 flex flex-col gap-1">
                 <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
                     <Navigation className="w-5 h-5 text-[#224732]" />
                     캠핑 여정 선택
                 </h3>
+
+                {/* 산악/등산로 목적지 인근 주차장 보정 안내 뱃지 */}
+                {refinedDestination?.isRefined && (
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800 text-xs mt-1 animate-fade-in">
+                        <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <p className="leading-tight font-medium">
+                            💡 산악 구역 인근 차도 <strong className="font-bold text-emerald-950">[{refinedDestination.name}]</strong> 기준 최적 통행료/경로입니다.
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Map Area */}
             <div className="relative w-full overflow-hidden bg-gray-100">
                 <Map
-                    center={{ lat: (origin.lat + destination.lat) / 2, lng: (origin.lng + destination.lng) / 2 }}
+                    center={{ lat: (origin.lat + targetDestCoords.lat) / 2, lng: (origin.lng + targetDestCoords.lng) / 2 }}
                     style={{ width: '100%', height: '350px' }}
                     onCreate={(m) => setMap(m)}
                 >
                     <MapMarker position={origin} />
-                    <MapMarker position={destination} />
+                    <MapMarker position={targetDestCoords} />
                     {routePaths[selectedIndex] && (
                         <Polyline
                             path={routePaths[selectedIndex]}
@@ -186,11 +219,11 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
                         </span>
                         <div className="flex items-center gap-2 mt-1 justify-center">
                             <span className="text-2xl font-black text-gray-900">
-                                {Math.floor(currentRoute.summary.duration / 60)}<span className="text-sm ml-0.5">분</span>
+                                {durationMinutes}<span className="text-sm ml-0.5">분</span>
                             </span>
                             <span className="text-gray-300">|</span>
                             <span className="text-sm font-bold text-gray-500">
-                                {(currentRoute.summary.distance / 1000).toFixed(1)}km
+                                {distanceKm}km
                             </span>
                         </div>
                     </div>
@@ -204,16 +237,16 @@ export default function RouteSelector({ origin, destination, onSelect }: RouteSe
                     </button>
                 </div>
 
-                {/* Fare Info */}
+                {/* Fare Info (Safe Optional Chaining Wrapped) */}
                 <div className="bg-gray-50 rounded-2xl p-3 flex justify-around items-center border border-gray-100 mb-4">
                     <div className="flex flex-col items-center">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">통행료</span>
-                        <span className="text-xs font-black text-gray-700">{currentRoute.summary.fare.toll.toLocaleString()}원</span>
+                        <span className="text-xs font-black text-gray-700">{tollPrice.toLocaleString()}원</span>
                     </div>
                     <div className="w-[1px] h-6 bg-gray-200" />
                     <div className="flex flex-col items-center">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">택시비</span>
-                        <span className="text-xs font-black text-gray-700">{currentRoute.summary.fare.taxi.toLocaleString()}원</span>
+                        <span className="text-xs font-black text-gray-700">{taxiPrice.toLocaleString()}원</span>
                     </div>
                 </div>
 
