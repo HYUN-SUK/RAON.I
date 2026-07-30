@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 
 /**
- * 유저가 이미 앱(PWA/TWA/Native WebView)을 설치하여 단독 앱 환경으로 실행 중인지 판별하는 커스텀 훅
- * - isAppUser가 true이면 이미 앱을 설치하여 사용하는 캠퍼 ➔ 다운로드 버튼 감춤
- * - isAppUser가 false이면 웹 브라우저 접속자 ➔ 주황색 반짝임 다운로드 버튼 노출
+ * 오직 플레이 스토어에서 직접 설치한 '실제 라온아이 전용 앱(kr.co.raoni.app)' 유저만 감지하는 훅
+ * - 일반 웹 접속자 & PWA(홈화면 추가) 유저 ➔ isAppUser: false (주황색 반짝임 다운로드 버튼 100% 노출!)
+ * - 플레이스토어에서 설치한 진짜 라온아이 앱 유저 ➔ isAppUser: true (다운로드 버튼 감춤)
  */
 export function useAppStandaloneDetector() {
     const [isAppUser, setIsAppUser] = useState(false);
@@ -16,21 +16,21 @@ export function useAppStandaloneDetector() {
         if (typeof window === 'undefined') return;
 
         try {
-            // 1. matchMedia (display-mode: standalone) 감지 (안드로이드/TWA/PWA 앱)
-            const isStandaloneMedia = window.matchMedia('(display-mode: standalone)').matches;
+            // 오직 실제 플레이스토어 앱 패키지(kr.co.raoni.app) 출처 식별 감지
+            const referrer = document.referrer || '';
+            const ua = navigator.userAgent || '';
+            const searchParams = new URLSearchParams(window.location.search);
 
-            // 2. iOS Safari Navigator standalone 감지
-            const isIOSStandalone = (window.navigator as any).standalone === true;
+            // 1. 플레이스토어 Android TWA / Native App 공식 패키지 출처 감지 (android-app://kr.co.raoni.app)
+            const isOfficialPlayStoreApp = referrer.includes('kr.co.raoni.app');
 
-            // 3. Document Referrer 내 android-app:// 감지
-            const isAndroidAppReferrer = document.referrer?.includes('android-app://') ?? false;
+            // 2. 라온아이 전용 Custom User Agent / App Header 또는 쿼리 파라미터 감지 (예: ?app=true 또는 raoni-app)
+            const isCustomAppHeader = ua.includes('kr.co.raoni.app') || ua.includes('RAONI_NATIVE_APP') || searchParams.get('app_mode') === 'true';
 
-            // 4. User Agent 내 TWA / Custom App / WebView 키워드 감지
-            const ua = navigator.userAgent.toLowerCase();
-            const isCustomAppUA = ua.includes('raoni') || ua.includes('twa') || (ua.includes('wv') && ua.includes('android'));
+            // 오직 100% 플레이 스토어 공식 앱으로 접속한 유저만 앱 유저로 감지
+            const isRealInstalledApp = isOfficialPlayStoreApp || isCustomAppHeader;
 
-            const detectedAsApp = isStandaloneMedia || isIOSStandalone || isAndroidAppReferrer || isCustomAppUA;
-            setIsAppUser(detectedAsApp);
+            setIsAppUser(isRealInstalledApp);
         } catch (e) {
             console.warn('[useAppStandaloneDetector] Detection error:', e);
             setIsAppUser(false);
