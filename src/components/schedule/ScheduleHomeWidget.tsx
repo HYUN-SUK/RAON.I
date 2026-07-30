@@ -585,9 +585,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                     {daysUntil > 10 ? (
                         <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-xl p-3 border border-stone-200/50 dark:border-zinc-700/50 text-xs text-stone-600 dark:text-stone-300 flex items-center justify-between shadow-sm">
                             <span className="flex items-center gap-1.5 font-medium">
-                                📅 캠핑 날씨 안내
+                                📅 여행 날씨 안내
                             </span>
-                            <span className="text-[11px] opacity-80">출발 10일 전부터 캠핑장의 날씨가 안내됩니다. 🌤️</span>
+                            <span className="text-[11px] opacity-80">출발 10일 전부터 여행지의 날씨가 안내됩니다. 🌤️</span>
                         </div>
                     ) : weather.loading ? (
                         <div className="bg-white rounded-2xl p-4 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm animate-pulse space-y-3">
@@ -602,7 +602,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm rounded-2xl p-4 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm space-y-2.5">
                             <div className="flex items-center justify-between text-xs border-b border-stone-100 dark:border-zinc-700/50 pb-2">
                                 <span className="font-bold text-stone-800 dark:text-stone-200">
-                                    🏕️ 캠핑 일정 날씨 예보 ({upcomingItem.name})
+                                    🏕️ 여행 일정 날씨 예보 ({upcomingItem.name})
                                 </span>
                                 {weather.lastUpdated && (
                                     <span className="text-[10px] text-stone-400">
@@ -662,7 +662,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                             </div>
                             <div>
                                 <span className="text-sm font-medium opacity-90">
-                                    {isPending ? '입금대기' : isCampingNow ? '현재 캠핑 진행 중' : '다가오는 캠핑'}
+                                    {isPending ? '입금대기' : isCampingNow ? '현재 여행 진행 중' : '다가오는 여행'}
                                 </span>
                                 <span className="ml-2 text-xs bg-white/20 px-1.5 py-0.5 rounded">
                                     {isRaonai ? '라온아이' : '타캠핑장'}
@@ -671,14 +671,14 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         </div>
                         <div className="text-right">
                             <span className={cn(
-                                "inline-block px-2 py-0.5 rounded-full text-xs font-bold",
+                                "inline-block px-2.5 py-1 rounded-full text-xs font-black",
                                 isCampingNow
-                                    ? "bg-green-500 text-white animate-pulse"
+                                    ? "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse border border-orange-200/40"
                                     : daysUntil === 0
                                         ? "bg-amber-400 text-amber-900"
                                         : "bg-white/20 text-white"
                             )}>
-                                {isCampingNow ? '🔥 힐링 중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
+                                {isCampingNow ? '✨ 힐링 중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
                             </span>
                         </div>
                     </div>
