@@ -66,7 +66,7 @@ export default function ScheduleForm({
             campgroundLat: place.lat,
             campgroundLng: place.lng,
         });
-        toast.success('캠핑장이 선택되었어요!');
+        toast.success('여행지가 선택되었어요!');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -74,7 +74,7 @@ export default function ScheduleForm({
 
         // Validation
         if (!formData.campgroundName?.trim()) {
-            toast.error('캠핑장 이름을 입력해주세요');
+            toast.error('여행지 이름을 입력해주세요');
             return;
         }
         if (!formData.checkIn || !formData.checkOut) {
@@ -106,25 +106,25 @@ export default function ScheduleForm({
 
     return (
         <>
-            {/* Step 1: 캠핑 프로필 확인/입력 */}
+            {/* Step 1: 여행 프로필 확인/입력 */}
             {!profileComplete && (
                 <div className="mb-4">
                     <CampingProfileGate
                         onComplete={handleProfileComplete}
                         requireOrigin={true}
-                        title="캠핑 기본 정보"
+                        title="여행 기본 정보"
                     />
                 </div>
             )}
 
-            {/* Step 2: 캠핑장/일정 입력 (프로필 완료 후 표시) */}
+            {/* Step 2: 여행지/일정 입력 (프로필 완료 후 표시) */}
             {profileComplete && (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* 캠핑장 이름 - 클릭하면 바로 지도 검색 열림 */}
+                    {/* 여행지 이름 - 클릭하면 바로 지도 검색 열림 */}
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                             <Tent className="w-4 h-4 text-[#224732]" />
-                            캠핑장 이름
+                            여행지 이름
                         </label>
                         <button
                             type="button"
@@ -132,7 +132,7 @@ export default function ScheduleForm({
                             className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:border-[#224732] hover:bg-gray-50 transition-colors text-left"
                         >
                             <span className={formData.campgroundName ? 'text-gray-900' : 'text-gray-400'}>
-                                {formData.campgroundName || '지도에서 캠핑장 검색하기'}
+                                {formData.campgroundName || '지도에서 여행지 검색하기'}
                             </span>
                             <Search className="w-5 h-5 text-[#224732]" />
                         </button>
@@ -152,7 +152,7 @@ export default function ScheduleForm({
                         </label>
                         <Input
                             type="text"
-                            placeholder="캠핑장 주소를 입력해주세요"
+                            placeholder="여행지 주소를 입력해주세요"
                             value={formData.campgroundAddress || ''}
                             onChange={(e) => setFormData({ ...formData, campgroundAddress: e.target.value })}
                         />
