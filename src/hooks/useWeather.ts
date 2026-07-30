@@ -74,9 +74,13 @@ export const useWeather = (userLat?: number, userLng?: number, enabled = true) =
     });
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchWeather = async () => {
             if (!enabled) {
-                setWeather(prev => ({ ...prev, loading: false }));
+                if (isMounted) {
+                    setWeather(prev => ({ ...prev, loading: false }));
+                }
                 return;
             }
             // Use user location if available, else default
@@ -99,11 +103,13 @@ export const useWeather = (userLat?: number, userLng?: number, enabled = true) =
                     // 캐시에서 가져올 때 갱신 시간 정보 추가
                     const lastUpdated = new Date(parsed.timestamp);
                     const nextUpdate = new Date(parsed.timestamp + 4 * 3600 * 1000);
-                    setWeather({
-                        ...parsed.data,
-                        lastUpdated,
-                        nextUpdate,
-                    });
+                    if (isMounted) {
+                        setWeather({
+                            ...parsed.data,
+                            lastUpdated,
+                            nextUpdate,
+                        });
+                    }
                     return;
                 }
             }
@@ -210,21 +216,29 @@ export const useWeather = (userLat?: number, userLng?: number, enabled = true) =
                     nextUpdate: new Date(Date.now() + 4 * 3600 * 1000),
                 };
 
-                setWeather(weatherData);
-                try {
-                    window.sessionStorage?.setItem(cacheKey, JSON.stringify({
-                        timestamp: new Date().getTime(),
-                        data: weatherData
-                    }));
-                } catch {}
+                if (isMounted) {
+                    setWeather(weatherData);
+                    try {
+                        window.sessionStorage?.setItem(cacheKey, JSON.stringify({
+                            timestamp: new Date().getTime(),
+                            data: weatherData
+                        }));
+                    } catch {}
+                }
 
             } catch (err) {
                 console.warn("Weather fetch failed", err);
-                setWeather(prev => ({ ...prev, loading: false, error: "Failed to fetch weather" }));
+                if (isMounted) {
+                    setWeather(prev => ({ ...prev, loading: false, error: "Failed to fetch weather" }));
+                }
             }
         };
 
         fetchWeather();
+
+        return () => {
+            isMounted = false;
+        };
     }, [userLat, userLng, enabled]);
 
     return weather;

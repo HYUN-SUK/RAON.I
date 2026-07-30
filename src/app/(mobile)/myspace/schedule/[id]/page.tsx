@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -73,10 +73,15 @@ export default function ScheduleDetailPage() {
     const initialRecipeId = searchParams.get('recipeId');
 
     const [isMounted, setIsMounted] = useState(false);
+    const isMountedRef = useRef(true);
     const [userId, setUserId] = useState<string>();
 
     useEffect(() => {
         setIsMounted(true);
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
     }, []);
     const [userEmail, setUserEmail] = useState<string>();
     const [showSmartPlan, setShowSmartPlan] = useState(false);
@@ -237,6 +242,7 @@ export default function ScheduleDetailPage() {
             memberCount: schedule.member_count
         });
 
+        if (!isMountedRef.current) return;
         setRecommendationRationale(rationale);
 
         // 2. If Notification Deep Link exists, ensure it's in the list (prepend)
@@ -250,6 +256,8 @@ export default function ScheduleDetailPage() {
                 // Fetch specific recipe
                 const { getRecipeById } = await import('@/actions/recommendation');
                 const targetRecipe = await getRecipeById(targetInitialId);
+
+                if (!isMountedRef.current) return;
 
                 if (targetRecipe) {
                     // Map loosely to RecipeSearchResult
@@ -279,7 +287,10 @@ export default function ScheduleDetailPage() {
             difficulty: r.difficulty || 1,
             season: []
         }));
-        setMealRecommendations(mappedRecs as any);
+
+        if (isMountedRef.current) {
+            setMealRecommendations(mappedRecs as any);
+        }
     }, [schedule, initialRecipeId]);
 
     useEffect(() => {
@@ -361,13 +372,18 @@ export default function ScheduleDetailPage() {
                 }
             }
 
+            if (!isMountedRef.current) return;
             setSchedule(scheduleData);
             setChecklist(checklistData);
         } catch (error) {
             console.error('Load schedule detail error:', error);
-            toast.error('일정을 불러오는데 실패했어요');
+            if (isMountedRef.current) {
+                toast.error('일정을 불러오는데 실패했어요');
+            }
         } finally {
-            setIsLoading(false);
+            if (isMountedRef.current) {
+                setIsLoading(false);
+            }
         }
     }, [scheduleId]);
 
