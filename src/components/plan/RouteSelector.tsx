@@ -87,15 +87,20 @@ export default function RouteSelector({ origin, destination, destinationName, on
 
     // 3. Map Bounds Calculation
     const bounds = useMemo(() => {
-        if (typeof window === 'undefined' || !window.kakao || routes.length === 0) return null;
-        const b = new window.kakao.maps.LatLngBounds();
-        b.extend(new window.kakao.maps.LatLng(origin.lat, origin.lng));
-        b.extend(new window.kakao.maps.LatLng(targetDestCoords.lat, targetDestCoords.lng));
-        
-        if (routePaths[selectedIndex]) {
-            routePaths[selectedIndex].forEach(p => b.extend(new window.kakao.maps.LatLng(p.lat, p.lng)));
+        if (typeof window === 'undefined' || !window.kakao || !window.kakao.maps || !window.kakao.maps.LatLngBounds || !window.kakao.maps.LatLng || routes.length === 0) return null;
+        try {
+            const b = new window.kakao.maps.LatLngBounds();
+            b.extend(new window.kakao.maps.LatLng(origin.lat, origin.lng));
+            b.extend(new window.kakao.maps.LatLng(targetDestCoords.lat, targetDestCoords.lng));
+            
+            if (routePaths[selectedIndex]) {
+                routePaths[selectedIndex].forEach(p => b.extend(new window.kakao.maps.LatLng(p.lat, p.lng)));
+            }
+            return b;
+        } catch (e) {
+            console.warn('[RouteSelector] Failed to calculate map bounds:', e);
+            return null;
         }
-        return b;
     }, [origin, targetDestCoords, routePaths, selectedIndex]);
 
     // 4. Update Map Bounds Automatically

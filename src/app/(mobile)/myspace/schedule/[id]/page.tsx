@@ -799,8 +799,8 @@ export default function ScheduleDetailPage() {
                                 lat: schedule.campground_lat || 36.67,
                                 lng: schedule.campground_lng || 126.84
                             }}
-                            startDate={new Date(schedule.check_in)}
-                            endDate={new Date(schedule.check_out)}
+                            startDate={checkIn}
+                            endDate={checkOut}
                             origin={smartPlanOrigin}
                             mode={planMode}
                             travelType={travelType}

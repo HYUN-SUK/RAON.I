@@ -143,7 +143,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
             // 지도 센터 설정 및 줌 레벨 조정
             if (match.lat && match.lng) {
-                if (mapRef.current) {
+                if (mapRef.current && window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
                     mapRef.current.setCenter(new window.kakao.maps.LatLng(match.lat, match.lng));
                     mapRef.current.setLevel(4);
                 } else {
@@ -155,7 +155,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             setTargetLocation(null);
         } else if (allMarkers.length > 0) {
             // 매칭을 못 찾았더라도 타겟 위치가 있으면 해당 위치로 지도 포커싱
-            if (mapRef.current) {
+            if (mapRef.current && window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
                 mapRef.current.setCenter(new window.kakao.maps.LatLng(targetLocation.lat, targetLocation.lng));
                 mapRef.current.setLevel(4);
             } else {
@@ -373,6 +373,12 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 lng: pendingPin.lng
             });
             setPendingPin(null);
+            
+            // [v11.9.130] 가상 히스토리 스택 찌꺼기 정화 (pop modal state)
+            if (typeof window !== 'undefined') {
+                window.history.back();
+            }
+            
             onClose();
             return;
         }
@@ -651,7 +657,9 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                 (pos) => {
                                     const lat = pos.coords.latitude;
                                     const lng = pos.coords.longitude;
-                                    mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
+                                    if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+                                        mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
+                                    }
                                     mapRef.current.setLevel(5);
                                     setCenter({ lat, lng });
                                     toast.success("현재 위치로 이동했습니다.");
@@ -728,7 +736,9 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                     setSelectedItem(item);
                                     setIsAddingMode(false);
                                     if (mapRef.current && item.lat && item.lng) {
-                                        mapRef.current.setCenter(new window.kakao.maps.LatLng(item.lat, item.lng));
+                                        if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+                                            mapRef.current.setCenter(new window.kakao.maps.LatLng(item.lat, item.lng));
+                                        }
                                         mapRef.current.setLevel(4);
                                     }
                                     setIsDetailOpen(true);
