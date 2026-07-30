@@ -608,7 +608,7 @@ export default function ScheduleDetailPage() {
                     <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
                         <div className="flex items-center justify-between text-xs border-b border-gray-100 pb-2">
                             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                                <span className="text-base">🏕️</span> 캠핑 전체일정 날씨 예보
+                                <span className="text-base">🏕️</span> 여행 전체일정 날씨 예보
                             </h3>
                             {weather.lastUpdated && (
                                 <span className="text-[10px] text-gray-400">
@@ -763,7 +763,7 @@ export default function ScheduleDetailPage() {
                                     disabled={isLocked}
                                     className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
                                 >
-                                    <span className="mr-2 text-xl">✨</span> {isPro ? 'Basic 캠핑계획 자동 완성' : '이번 캠핑계획 자동 완성하기'}
+                                    <span className="mr-2 text-xl">✨</span> {isPro ? 'Basic 여행계획 자동 완성' : '이번 여행계획 자동 완성하기'}
                                 </Button>
                                 {isLocked && (
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[90vw] bg-gray-800 text-white text-xs px-3 py-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center pointer-events-none">

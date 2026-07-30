@@ -134,7 +134,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
                     <div className="absolute top-0 left-0 w-12 h-12 border-4 border-[#224732] border-t-transparent rounded-full animate-spin" />
                 </div>
                 <div className="text-center px-6">
-                    <p className="text-sm font-bold text-[#224732]">최적의 캠핑 경로를 탐색 중입니다</p>
+                    <p className="text-sm font-bold text-[#224732]">최적의 여행 경로를 탐색 중입니다</p>
                     <p className="text-[11px] text-gray-400 mt-1">카카오 추천 경로와 대안을 분석하고 있어요.</p>
                 </div>
             </div>
@@ -167,7 +167,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
             <div className="p-4 bg-white/95 backdrop-blur-md border-b border-gray-50 flex flex-col gap-1">
                 <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
                     <Navigation className="w-5 h-5 text-[#224732]" />
-                    캠핑 여정 선택
+                    여행 여정 선택
                 </h3>
 
                 {/* 산악/등산로 목적지 인근 주차장 보정 안내 뱃지 */}

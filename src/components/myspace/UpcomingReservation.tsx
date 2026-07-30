@@ -374,7 +374,15 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         </div>
                                         <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
                                             {status === 'PENDING' && <><Clock size={12} /> 입금 대기</>}
-                                            {status === 'CONFIRMED' && <><CheckCircle2 size={12} /> 예약 확정</>}
+                                            {status === 'CONFIRMED' && (
+                                                diffDays <= 0 ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse border border-orange-200/40">
+                                                        ✨ 힐링중 | 현재 여행 진행중
+                                                    </span>
+                                                ) : (
+                                                    <><CheckCircle2 size={12} /> 예약 확정</>
+                                                )
+                                            )}
                                             {status === 'CANCELLED' && <><AlertCircle size={12} /> 취소됨</>}
                                         </span>
                                     </div>
@@ -486,8 +494,16 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                                 타캠핑장
                                             </span>
                                         </div>
-                                        <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
-                                            <Tent size={12} /> 예정된 일정
+                                        <span className="flex items-center gap-1 text-xs font-medium tracking-wide">
+                                            {diffDays <= 0 ? (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse border border-orange-200/40">
+                                                    ✨ 힐링중 | 현재 여행 진행중
+                                                </span>
+                                            ) : (
+                                                <span className="text-white/90 font-medium flex items-center gap-1">
+                                                    <Tent size={12} /> 예정된 일정
+                                                </span>
+                                            )}
                                         </span>
                                     </div>
 

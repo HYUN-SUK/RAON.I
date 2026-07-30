@@ -37,7 +37,7 @@ interface CampingProfileGateProps {
 export default function CampingProfileGate({
     onComplete,
     requireOrigin = false,
-    title = '캠핑 기본 정보',
+    title = '여행 기본 정보',
     compact = false,
 }: CampingProfileGateProps) {
     const [loading, setLoading] = useState(true);
@@ -175,7 +175,7 @@ export default function CampingProfileGate({
         if (result.success) {
             setExistingProfile(profile);
             setIsEditing(false);
-            toast.success('캠핑 프로필이 저장되었어요!');
+            toast.success('여행 프로필이 저장되었어요!');
             // onComplete를 바로 호출하지 않고, 요약 카드에서 "이대로 진행"을 누르도록 유도
         } else {
             toast.error(result.error || '저장에 실패했습니다');
