@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 
 /**
- * 오직 플레이 스토어에서 직접 설치한 '실제 라온아이 전용 앱(kr.co.raoni.app)' 유저만 감지하는 훅
- * - 일반 웹 접속자 & PWA(홈화면 추가) 유저 ➔ isAppUser: false (주황색 반짝임 다운로드 버튼 100% 노출!)
- * - 플레이스토어에서 설치한 진짜 라온아이 앱 유저 ➔ isAppUser: true (다운로드 버튼 감춤)
+ * 오직 실시간 OS/브라우저 디스플레이 모드를 기반으로 실제 설치된 앱 실행 상태를 판별하는 훅
+ * - 실제 플레이 스토어 앱 설치 후 앱으로 구동 시 ➔ display-mode: standalone/fullscreen 감지 ➔ isAppUser: true (버튼 감춤)
+ * - 앱 삭제 후 웹 접속 or 카카오톡/크롬 모바일 웹 접속 시 ➔ isAppUser: false (주황색 반짝임 다운로드 버튼 100% 노출)
  */
 export function useAppStandaloneDetector() {
     const [isAppUser, setIsAppUser] = useState(false);
@@ -16,23 +16,24 @@ export function useAppStandaloneDetector() {
         if (typeof window === 'undefined') return;
 
         try {
-            // 오직 실제 플레이스토어 앱 패키지(kr.co.raoni.app) 출처 식별 감지
-            const referrer = document.referrer || '';
-            const ua = navigator.userAgent || '';
-            const searchParams = new URLSearchParams(window.location.search);
+            // 1. 안드로이드 TWA / 플레이스토어 앱 실행 시 OS가 부여하는 display-mode: standalone 감지
+            const isStandaloneMedia = window.matchMedia('(display-mode: standalone)').matches;
 
-            // 1. 플레이스토어 Android TWA / Native App 공식 패키지 출처 감지 (android-app://kr.co.raoni.app)
-            const isOfficialPlayStoreApp = referrer.includes('kr.co.raoni.app');
+            // 2. 풀스크린 앱 디스플레이 모드 감지
+            const isFullscreenMedia = window.matchMedia('(display-mode: fullscreen)').matches;
 
-            // 2. 라온아이 전용 Custom User Agent / App Header 또는 쿼리 파라미터 감지 (예: ?app=true 또는 raoni-app)
-            const isCustomAppHeader = ua.includes('kr.co.raoni.app') || ua.includes('RAONI_NATIVE_APP') || searchParams.get('app_mode') === 'true';
+            // 3. iOS Safari / Native App standalone 감지
+            const isIOSStandalone = (window.navigator as any).standalone === true;
 
-            // 오직 100% 플레이 스토어 공식 앱으로 접속한 유저만 앱 유저로 감지
-            const isRealInstalledApp = isOfficialPlayStoreApp || isCustomAppHeader;
+            // 4. 안드로이드 OS 전용 앱 세션 출처 감지 (android-app://)
+            const isAndroidAppReferrer = document.referrer?.includes('android-app://') ?? false;
 
-            setIsAppUser(isRealInstalledApp);
+            // 실시간 OS 디스플레이 모드 4중 하드웨어 감지
+            const isRealAppEnvironment = isStandaloneMedia || isFullscreenMedia || isIOSStandalone || isAndroidAppReferrer;
+
+            setIsAppUser(isRealAppEnvironment);
         } catch (e) {
-            console.warn('[useAppStandaloneDetector] Detection error:', e);
+            console.warn('[useAppStandaloneDetector] Live OS detection error:', e);
             setIsAppUser(false);
         }
     }, []);
