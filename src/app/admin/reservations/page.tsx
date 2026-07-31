@@ -2,12 +2,11 @@
 
 import { useReservationStore } from '@/store/useReservationStore';
 import ReservationCard from '@/components/admin/ReservationCard';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { ReservationStatus } from '@/types/reservation';
-
 import { useSearchParams } from 'next/navigation';
 
-export default function AdminReservationsPage() {
+function AdminReservationsContent() {
     const { reservations, fetchAllReservations } = useReservationStore();
     const searchParams = useSearchParams();
     const initialStatus = searchParams.get('status') as ReservationStatus | 'ALL' | null;
@@ -80,5 +79,13 @@ function FilterButton({ label, active, onClick, count }: { label: string, active
                 </span>
             )}
         </button>
+    );
+}
+
+export default function AdminReservationsPage() {
+    return (
+        <Suspense fallback={<div className="p-4">Loading...</div>}>
+            <AdminReservationsContent />
+        </Suspense>
     );
 }

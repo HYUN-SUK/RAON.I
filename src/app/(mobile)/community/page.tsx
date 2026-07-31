@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useCommunityStore, BoardType } from '@/store/useCommunityStore';
 import BottomNav from '@/components/BottomNav';
 import CommunityHeader from '@/components/community/CommunityHeader';
@@ -11,7 +11,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
 
-export default function CommunityPage() {
+function CommunityContent() {
     const { activeTab, setActiveTab, loadPosts } = useCommunityStore();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -78,5 +78,13 @@ export default function CommunityPage() {
 
             <BottomNav />
         </div>
+    );
+}
+
+export default function CommunityPage() {
+    return (
+        <Suspense fallback={null}>
+            <CommunityContent />
+        </Suspense>
     );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Edit, Search, PlusCircle, Sparkles, Loader2, Grid, Calendar, List, PenLine } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 type TabType = 'posts' | 'records';
 
-export default function MyRecordsPage() {
+function MyRecordsContent() {
     const router = useRouter();
 
     // Tab State - URL Param Support
@@ -30,7 +30,6 @@ export default function MyRecordsPage() {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     // Camping Records State
     const [campingRecords, setCampingRecords] = useState<CampingRecord[]>([]);
@@ -58,212 +57,153 @@ export default function MyRecordsPage() {
             }
 
             setHasMore(data.length === 10);
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error('Fetch my posts error:', error);
         } finally {
             setIsLoading(false);
             setIsLoadingMore(false);
         }
     }, []);
 
-    // Fetch Camping Records
     const fetchCampingRecords = useCallback(async () => {
         setIsLoadingRecords(true);
         try {
-            const data = await getMyRecords(50, 0);
+            const data = await getMyRecords();
             setCampingRecords(data);
-        } catch (err) {
-            console.error('Failed to load camping records:', err);
+        } catch (error) {
+            console.error('Fetch camping records error:', error);
         } finally {
             setIsLoadingRecords(false);
         }
     }, []);
 
-    // Initial Load based on tab
     useEffect(() => {
         if (activeTab === 'posts') {
-            fetchPosts(0, '');
-        } else {
+            fetchPosts(0, searchKeyword);
+        } else if (activeTab === 'records') {
             fetchCampingRecords();
         }
-    }, [fetchPosts, fetchCampingRecords, activeTab]);
+    }, [activeTab, fetchPosts, fetchCampingRecords, searchKeyword]);
 
-    // Handle Search
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setSearchKeyword(val);
         setPage(0);
 
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
         searchTimeoutRef.current = setTimeout(() => {
             fetchPosts(0, val);
-        }, 500);
+        }, 400);
     };
 
-    // Handle Load More
     const handleLoadMore = () => {
-        const nextPage = page + 1;
-        setPage(nextPage);
-        fetchPosts(nextPage, searchKeyword, true);
+        if (!isLoadingMore && hasMore) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            fetchPosts(nextPage, searchKeyword, true);
+        }
     };
 
     return (
-        <div className="min-h-screen bg-[#F0EBE0] dark:bg-[#1a1a1a] pb-20 font-serif relative">
-            {/* Paper Texture Overlay */}
-            <div className="fixed inset-0 pointer-events-none opacity-30 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')]"></div>
-
+        <div className="min-h-screen bg-[#F7F5EF] pb-24">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#F0EBE0]/90 dark:bg-[#1a1a1a]/90 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-stone-300 dark:border-stone-800">
-                <div className="flex items-center gap-3 flex-1">
-                    <button
-                        onClick={() => router.back()}
-                        className="p-2 -ml-2 text-stone-700 hover:bg-stone-200/50 dark:text-stone-300 dark:hover:bg-white/10 rounded-full transition-colors"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-
-                    {isSearchOpen ? (
-                        <div className="flex-1 max-w-[200px] animate-in fade-in slide-in-from-right-4 duration-300">
-                            <Input
-                                autoFocus
-                                value={searchKeyword}
-                                onChange={handleSearchChange}
-                                placeholder="기록 검색..."
-                                className="h-8 text-sm bg-transparent border-none focus-visible:ring-0 placeholder:text-stone-400"
-                            />
-                        </div>
-                    ) : (
-                        <h1 className="font-bold text-lg text-[#2C2C2C] dark:text-stone-200 font-serif tracking-tight">나만의 아카이브</h1>
-                    )}
-                </div>
-
-                <div className="flex items-center gap-1">
-                    {/* View Switcher (Only visible in Records Tab) */}
-                    {activeTab === 'records' && (
-                        <div className="flex bg-stone-200/50 rounded-lg p-0.5 mr-2">
-                            <button className="p-1.5 bg-white text-[#1C4526] shadow-sm rounded-md" aria-label="List View">
-                                <List className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => router.push('/myspace/records/seasonal')} className="p-1.5 text-stone-400 hover:text-stone-600 transition-colors" aria-label="Seasonal View">
-                                <Grid className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => router.push('/myspace/records/timeline')} className="p-1.5 text-stone-400 hover:text-stone-600 transition-colors" aria-label="Timeline View">
-                                <Calendar className="w-4 h-4" />
-                            </button>
-                        </div>
-                    )}
-
-                    <button
-                        onClick={() => setIsSearchOpen(!isSearchOpen)}
-                        className={`p-2 rounded-full transition-colors ${isSearchOpen ? 'text-[#1C4526] bg-stone-200/50' : 'text-stone-600'}`}
-                    >
-                        <Search className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={() => router.push('/community/write?type=STORY')}
-                        className="p-2 text-[#1C4526] hover:bg-green-50 rounded-full"
-                    >
-                        <Edit className="w-5 h-5" />
-                    </button>
-                </div>
+            <header className="sticky top-0 z-40 bg-[#F7F5EF]/90 backdrop-blur-md border-b border-stone-200/50 px-4 h-14 flex items-center justify-between">
+                <button
+                    onClick={() => router.back()}
+                    className="p-2 -ml-2 rounded-full hover:bg-stone-200/50 transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5 text-stone-700" />
+                </button>
+                <h1 className="text-base font-bold text-stone-800 font-serif">나의 수첩 & 파편</h1>
+                <div className="w-9" />
             </header>
 
-            <main className="px-5 pt-6 space-y-6 relative z-10">
-                {/* Intro Section */}
-                <div className="space-y-4">
-                    <div className="bg-white p-6 shadow-sm border border-stone-200 rotate-[0.5deg]">
-                        <h2 className="text-xl font-bold text-[#1C4526] mb-2 font-serif">나의 기록 보관소</h2>
-                        <p className="text-stone-600 text-sm leading-relaxed font-serif">
-                            &quot;이곳은 내가 작성한 모든 기록을 볼 수 있는 나만의 소중한 공간입니다.<br />
-                            지난 추억을 되돌아보고, 새로운 이야기를 채워보세요.&quot;
-                        </p>
-                    </div>
-
-                    {/* Collapsible Tools */}
-                    {/* <RecordTools /> */}
-
-                    {/* Tab Selector */}
-                    <div className="flex bg-stone-200/50 rounded-lg p-1">
-                        <button
-                            onClick={() => setActiveTab('posts')}
-                            className={cn(
-                                'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1.5',
-                                activeTab === 'posts'
-                                    ? 'bg-white text-[#1C4526] shadow-sm'
-                                    : 'text-stone-500 hover:text-stone-700'
-                            )}
-                        >
-                            <Edit className="w-4 h-4" />
-                            글 기록
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('records')}
-                            className={cn(
-                                'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1.5',
-                                activeTab === 'records'
-                                    ? 'bg-white text-[#1C4526] shadow-sm'
-                                    : 'text-stone-500 hover:text-stone-700'
-                            )}
-                        >
-                            <PenLine className="w-4 h-4" />
-                            10초 기록
-                        </button>
-                    </div>
+            <main className="max-w-md mx-auto p-4 space-y-4">
+                {/* 탭 버튼 */}
+                <div className="flex bg-stone-200/60 p-1 rounded-xl gap-1">
+                    <button
+                        onClick={() => setActiveTab('posts')}
+                        className={cn(
+                            "flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5",
+                            activeTab === 'posts'
+                                ? "bg-white text-stone-800 shadow-sm"
+                                : "text-stone-500 hover:text-stone-700"
+                        )}
+                    >
+                        <PenLine className="w-3.5 h-3.5" />
+                        피드 파편 ({posts.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('records')}
+                        className={cn(
+                            "flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5",
+                            activeTab === 'records'
+                                ? "bg-white text-stone-800 shadow-sm"
+                                : "text-stone-500 hover:text-stone-700"
+                        )}
+                    >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        10초 아지트 ({campingRecords.length})
+                    </button>
                 </div>
 
-                {/* Posts List (글 기록 탭) */}
+                {/* 검색 바 (피드 탭에서만) */}
                 {activeTab === 'posts' && (
-                    <div className="space-y-4 pt-2">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                        <Input
+                            type="text"
+                            placeholder="글 제목, 내용으로 검색..."
+                            value={searchKeyword}
+                            onChange={handleSearchChange}
+                            className="pl-9 bg-white border-stone-200 text-xs rounded-xl h-10 shadow-none focus-visible:ring-1 focus-visible:ring-stone-400"
+                        />
+                    </div>
+                )}
+
+                {/* 탭 1: 피드 파편 목록 */}
+                {activeTab === 'posts' && (
+                    <div className="space-y-3">
                         {isLoading ? (
-                            <div className="flex justify-center py-20">
-                                <Loader2 className="w-8 h-8 animate-spin text-stone-400" />
+                            <div className="flex flex-col items-center justify-center py-20 text-stone-400 space-y-2">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#224732]" />
+                                <span className="text-xs">내 글을 불러오는 중...</span>
                             </div>
                         ) : posts.length > 0 ? (
                             <>
                                 {posts.map(post => (
-                                    <div key={post.id}>
-                                        <PostCard post={post} />
-                                    </div>
+                                    <PostCard key={post.id} post={post} />
                                 ))}
-
                                 {hasMore && (
-                                    <div className="pt-4 pb-8 flex justify-center">
-                                        <button
-                                            onClick={handleLoadMore}
-                                            disabled={isLoadingMore}
-                                            className="flex items-center gap-2 px-6 py-3 bg-[#F7F5EF] border border-[#C3A675] text-[#8C7B58] rounded-full hover:bg-[#F0EBE0] active:scale-95 transition-all text-sm font-bold shadow-sm"
-                                        >
-                                            {isLoadingMore ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <PlusCircle className="w-4 h-4" />
-                                            )}
-                                            더 보기
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={handleLoadMore}
+                                        disabled={isLoadingMore}
+                                        className="w-full py-3 text-xs text-stone-500 font-medium hover:text-stone-800 flex items-center justify-center gap-1"
+                                    >
+                                        {isLoadingMore ? (
+                                            <Loader2 className="w-4 h-4 animate-spin text-stone-400" />
+                                        ) : (
+                                            '더 보기'
+                                        )}
+                                    </button>
                                 )}
                             </>
                         ) : (
                             <div className="py-20 text-center text-stone-400 border-2 border-dashed border-stone-200 rounded-xl m-2">
-                                <p className="mb-2 font-serif">아직 보관된 기록이 없습니다.</p>
-                                <button
-                                    onClick={() => router.push('/community/write?type=STORY')}
-                                    className="text-sm font-bold text-[#1C4526] underline hover:text-green-700"
-                                >
-                                    첫 기록 남기기
-                                </button>
+                                <p className="mb-2 font-serif">작성한 글이 없습니다.</p>
+                                <p className="text-sm">커뮤니티에서 첫 이야기를 남겨보세요!</p>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Camping Records List (10초 기록 탭) */}
+                {/* 탭 2: 10초 아지트 기록 목록 */}
                 {activeTab === 'records' && (
-                    <div className="space-y-6 pt-2">
+                    <div className="space-y-3">
                         {isLoadingRecords ? (
-                            <div className="flex justify-center py-20">
-                                <Loader2 className="w-8 h-8 animate-spin text-stone-400" />
+                            <div className="flex flex-col items-center justify-center py-20 text-stone-400 space-y-2">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#224732]" />
+                                <span className="text-xs">10초 기록을 불러오는 중...</span>
                             </div>
                         ) : campingRecords.length > 0 ? (
                             <>
@@ -288,5 +228,17 @@ export default function MyRecordsPage() {
                 )}
             </main>
         </div>
+    );
+}
+
+export default function MyRecordsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />
+            </div>
+        }>
+            <MyRecordsContent />
+        </Suspense>
     );
 }
