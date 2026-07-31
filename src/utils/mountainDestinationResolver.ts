@@ -45,13 +45,26 @@ const MOUNTAIN_PRESETS: Record<string, { lat: number; lng: number; parkingName: 
 export async function resolveDestinationCoords(
     destination: { lat: number; lng: number },
     destName?: string,
-    apiKey?: string
+    apiKey?: string,
+    forceDynamicSearch?: boolean
 ): Promise<RefinedDestination> {
     const cleanName = (destName || '').trim();
 
-    // 1. 유명 랜드마크 프리셋 검사 (0.001초 고속 통과)
+    // 1. 이름이 비어있거나 너무 짧은 경우 보정 없이 본래 좌표 고속 통과 (지리산 매핑 버그 근본 차단)
+    if (!cleanName || cleanName.length < 2) {
+        return {
+            lat: destination.lat,
+            lng: destination.lng,
+            name: destName || '목적지',
+            isRefined: false,
+            originalName: destName
+        };
+    }
+
+    // 2. 유명 랜드마크 프리셋 검사 (0.001초 고속 통과)
     for (const [key, preset] of Object.entries(MOUNTAIN_PRESETS)) {
-        if (cleanName.includes(key) || key.includes(cleanName)) {
+        // cleanName이 key를 포함하거나, 2글자 이상인 경우에만 key가 cleanName을 포함하는지 매칭
+        if (cleanName.includes(key) || (cleanName.length >= 2 && key.includes(cleanName))) {
             return {
                 lat: preset.lat,
                 lng: preset.lng,
@@ -62,8 +75,11 @@ export async function resolveDestinationCoords(
         }
     }
 
-    // 2. 카카오 장소 API (PK6 주차장 카테고리) 실시간 동적 검색 (전국의 모든 산/오지 대응)
-    if (apiKey && destination.lat && destination.lng) {
+    // 3. 산악/오지 관련 명확한 키워드가 있을 경우 또는 강제 동적 검색(1차 길찾기 실패 시) 모드일 때만 카카오 PK6 주차장 실시간 동적 검색 시도
+    const mountainKeywords = ['산', '봉', '계곡', '대', '령', '정상', '등산', '대피소', '휴양림', '숲길', '탐방'];
+    const isMountain = mountainKeywords.some(keyword => cleanName.includes(keyword));
+
+    if ((isMountain || forceDynamicSearch) && apiKey && destination.lat && destination.lng) {
         try {
             // 카카오 카테고리 검색 API (PK6: 주차장) - 반경 5000m 내 최단거리 정렬
             const url = `https://dapi.kakao.com/2/local/search/category.json?category_group_code=PK6&x=${destination.lng}&y=${destination.lat}&radius=5000&sort=distance`;
@@ -94,7 +110,7 @@ export async function resolveDestinationCoords(
         }
     }
 
-    // 3. 보정 없이 원래 좌표 반환 (일반 도심/캠핑장/차도)
+    // 4. 보정 없이 원래 좌표 반환 (일반 도심/캠핑장/차도)
     return {
         lat: destination.lat,
         lng: destination.lng,

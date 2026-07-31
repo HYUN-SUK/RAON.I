@@ -14,18 +14,31 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid origin or destination coordinates' }, { status: 400 });
         }
 
-        // 1. 산악/비차도 구역 1차 프리셋 & 2차 카카오 동적 인근 주차장 탐색 자동 보정
-        const refinedDest = await resolveDestinationCoords(destination, destinationName, apiKey);
+        // 1. 산악/비차도 구역 1차 프리셋 & 카카오 동적 보정 (1차 시도)
+        let refinedDest = await resolveDestinationCoords(destination, destinationName, apiKey);
 
-        // 2. alternatives=true를 통해 1번의 호출로 대안 경로까지 확보 (비용 최적화)
-        const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${refinedDest.lng},${refinedDest.lat}&priority=RECOMMEND&alternatives=true`;
+        // 2. alternatives=true를 통해 대안 경로까지 확보 (비용 최적화)
+        let url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${refinedDest.lng},${refinedDest.lat}&priority=RECOMMEND&alternatives=true`;
         
-        const res = await fetch(url, {
+        let res = await fetch(url, {
             headers: { 'Authorization': `KakaoAK ${apiKey}` }
         });
 
-        if (!res.ok) {
-            throw new Error(`Kakao API responded with ${res.status}`);
+        // 3. 만약 1차 경로 탐색이 실패한 경우 (예: 비차도/오지로 인한 400 에러 발생)
+        // 2차 Fallback: 강제 동적 주차장 검색 모드(forceDynamicSearch = true)로 좌표 재보정 후 재시도
+        if (!res.ok || res.status === 400) {
+            console.warn(`[Route API] Primary pathfinding failed with status ${res.status}. Retrying with force PK6 fallback...`);
+            
+            refinedDest = await resolveDestinationCoords(destination, destinationName, apiKey, true);
+            url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${refinedDest.lng},${refinedDest.lat}&priority=RECOMMEND&alternatives=true`;
+            
+            res = await fetch(url, {
+                headers: { 'Authorization': `KakaoAK ${apiKey}` }
+            });
+            
+            if (!res.ok) {
+                throw new Error(`Kakao API responded with ${res.status} even after PK6 fallback`);
+            }
         }
 
         const data = await res.json();
