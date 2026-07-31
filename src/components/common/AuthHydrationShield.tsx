@@ -13,32 +13,19 @@ export default function AuthHydrationShield() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        // 브라우저에 Supabase auth-token이 들어있는지 빠른 검사
-        const hasAuthToken = () => {
-            try {
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && key.includes('auth-token')) {
-                        return true;
-                    }
-                }
-            } catch {}
-            return false;
-        };
-
         const originalPushState = history.pushState;
 
         history.pushState = function (data: any, unused: string, url?: string | URL | null) {
             const targetUrl = url ? String(url) : '';
             const currentPath = window.location.pathname;
 
-            // 유저가 스케줄/마이스페이스 관련 상세 페이지에 진입해 있는 동안
+            // 유저가 스케줄/마이스페이스/예약 관련 보호 구역 페이지에 진입해 있는 동안
             const isInsideProtectedArea = currentPath.startsWith('/myspace/schedule') || currentPath.startsWith('/reservation');
 
-            // 회원이 보호 구역 페이지(일정 목록/상세 등)에 체류하고 있는 동안, 백그라운드 세션 엇박자로 라우터가 순수 홈('/')으로 pushState 리셋 명령을 발동한 경우
-            if (isInsideProtectedArea && (targetUrl === '/' || targetUrl === window.location.origin + '/' || targetUrl === window.location.origin) && hasAuthToken()) {
-                console.warn('[AuthHydrationShield] Intercepted silent router bounce to "/" in protected area.');
-                return; // 무소음 튕김 리다이렉트 철통 무효화 스킵!
+            // [Hard Lock] 보호 구역 체류 중 라우터가 자발적으로 순수 홈('/')으로 무소음 pushState 리셋 명령을 때리는 경우 100% 철통 무효화 차단!
+            if (isInsideProtectedArea && (targetUrl === '/' || targetUrl === window.location.origin + '/' || targetUrl === window.location.origin)) {
+                console.warn('[AuthHydrationShield HardLock] Intercepted silent router bounce to "/" in protected area.');
+                return; // 유령 튕김 리다이렉트 스킵!
             }
 
             return originalPushState.apply(this, arguments as any);
