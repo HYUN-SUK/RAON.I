@@ -150,7 +150,6 @@ export default function ScheduleDetailPage() {
                     const found = list.find(s => s.id === scheduleId);
                     if (found) {
                         setSchedule(found);
-                        setIsLoading(false);
                     }
                 }
             } catch {}
