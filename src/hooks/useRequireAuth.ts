@@ -12,6 +12,26 @@ export function useRequireAuth() {
     const withAuth = async (action: () => void | Promise<void>) => {
         const startTime = Date.now();
         const supabase = createClient();
+
+        // [Fix] Fast check if auth storage token exists to avoid async race condition with Next.js router
+        let hasAuthToken = false;
+        try {
+            if (typeof window !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.includes('auth-token')) {
+                        hasAuthToken = true;
+                        break;
+                    }
+                }
+            }
+        } catch {}
+
+        if (hasAuthToken) {
+            await action();
+            return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
 
         // [v11.9.145] 세션 조회가 3000ms 이상 지연된 경우 묵은 라우팅 실행 방지를 위해 무효화 스킵
