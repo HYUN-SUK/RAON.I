@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -65,7 +65,7 @@ const CHECKLIST_CATEGORY_LABELS: Record<ChecklistItem['category'], string> = {
     etc: '기타',
 };
 
-export default function ScheduleDetailPage() {
+function ScheduleDetailContent() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -1055,5 +1055,18 @@ export default function ScheduleDetailPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+    );
+}
+
+export default function ScheduleDetailPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#F7F5EF] flex flex-col items-center justify-center space-y-3 font-sans">
+                <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />
+                <span className="text-xs text-stone-500 font-medium">일정을 상세히 불러오는 중...</span>
+            </div>
+        }>
+            <ScheduleDetailContent />
+        </Suspense>
     );
 }
