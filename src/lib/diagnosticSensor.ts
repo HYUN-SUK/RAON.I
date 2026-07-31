@@ -73,7 +73,7 @@ export function clearBounceLogs() {
 }
 
 /**
- * 전역 자바스크립트 에러 및 Promise Rejection 감지기 활성화
+ * 전역 자바스크립트 에러, Promise Rejection 및 무음 라우팅 리다이렉트(Navigation Interceptor) 감지기 활성화
  */
 export function setupGlobalErrorListener() {
     if (typeof window === 'undefined') return;
@@ -121,11 +121,76 @@ export function setupGlobalErrorListener() {
         }
     };
 
+    // 3. 무음 라우팅 이동 가로채기 (Navigation Interceptor)
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    const originalBack = history.back;
+
+    history.pushState = function (data: any, unused: string, url?: string | URL | null) {
+        try {
+            const targetUrl = url ? String(url) : '';
+            if (targetUrl === '/' || targetUrl.endsWith('/')) {
+                const stack = new Error().stack || '';
+                recordBounceLog({
+                    source: 'Navigation Interceptor (pushState)',
+                    reason: `pushState Silent Redirect to '/'`,
+                    fromUrl: window.location.pathname + window.location.search,
+                    toUrl: targetUrl,
+                    sessionExists: true,
+                    stackTrace: stack
+                });
+            }
+        } catch (e) {
+            console.error('Error in pushState interceptor:', e);
+        }
+        return originalPushState.apply(this, arguments as any);
+    };
+
+    history.replaceState = function (data: any, unused: string, url?: string | URL | null) {
+        try {
+            const targetUrl = url ? String(url) : '';
+            if (targetUrl === '/' || targetUrl.endsWith('/')) {
+                const stack = new Error().stack || '';
+                recordBounceLog({
+                    source: 'Navigation Interceptor (replaceState)',
+                    reason: `replaceState Silent Redirect to '/'`,
+                    fromUrl: window.location.pathname + window.location.search,
+                    toUrl: targetUrl,
+                    sessionExists: true,
+                    stackTrace: stack
+                });
+            }
+        } catch (e) {
+            console.error('Error in replaceState interceptor:', e);
+        }
+        return originalReplaceState.apply(this, arguments as any);
+    };
+
+    history.back = function () {
+        try {
+            const stack = new Error().stack || '';
+            recordBounceLog({
+                source: 'Navigation Interceptor (history.back)',
+                reason: `history.back() triggered`,
+                fromUrl: window.location.pathname + window.location.search,
+                toUrl: 'Previous History State',
+                sessionExists: true,
+                stackTrace: stack
+            });
+        } catch (e) {
+            console.error('Error in back interceptor:', e);
+        }
+        return originalBack.apply(this, arguments as any);
+    };
+
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     return () => {
         window.removeEventListener('error', handleError);
         window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+        history.pushState = originalPushState;
+        history.replaceState = originalReplaceState;
+        history.back = originalBack;
     };
 }
