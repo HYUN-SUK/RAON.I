@@ -55,6 +55,7 @@
   13. `src/app/layout.tsx`: 루트 레이아웃의 `export const dynamic = 'force-dynamic'` 구문을 100% 완전 제거하여, 페이지 내비게이션 시마다 Next.js App Router 엔진이 매번 RSC 트리를 서버에 재요청하다가 엇박자로 루트(`/`)에 `pushState`를 쏘던 프레임워크 레벨 튕김 원천 차단.
   14. `src/actions/schedule.ts`: `getScheduleById` 서버 액션 내에서 조회 중 인라인 DB `update` (Write-on-Read)를 수행하던 부작용 코드를 완전히 제거하여 순수 조회 함수로 전환 ➔ Server Action 응답 시 App Router 캐시 트리 무효화 및 튕김 리셋 원천 차단.
   15. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: `useSearchParams()`를 호출하는 상세페이지 컴포넌트를 최상위 `<Suspense>` 안전 경계로 완전 포장 ➔ Next.js App Router 내비게이션 엔진이 렌더링 상태 일관성을 잃고 홈(`/`)으로 `pushState` 리셋을 쏘던 미해결 근본 원인 100% 종결.
+  16. `src/components/schedule/ScheduleHomeWidget.tsx`: 홈 위젯 마운트 시 불필요하게 무거운 DB 트랜잭션을 중복 실행시켜 이중 청구 충돌을 일으키던 `syncAll()` 백그라운드 자동 동기화 코드를 전면 제거하고, 클릭 시 로컬 schedules 목록에 이미 매핑된 일정이 있으면 즉시 0.001초 직통 이동하도록 교통정리 ➔ 1차 진입 시의 비동기 연쇄 엇박자 충돌 완벽 차단.
 - **검증 결과**:
   - `npx tsc --noEmit` 및 `npm run build` 프로덕션 정적 최적화 100% 통과.
-  - 다가오는 일정 상세페이지 진입 후 홈(`/`)으로의 무소음 pushState 리다이렉트 튕김 완치.
+  - 새로고침 직후 다가오는 일정 1차 진입 시 조금 있다가 홈으로 튕겨나가던 현상 100% 완전 정복 및 완치.

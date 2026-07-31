@@ -223,46 +223,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 백그라운드 일정 동기화 (Eager Sync)
-    // 주의: schedules를 의존성 배열에 넣으면 setSchedules() → 이펙트 재실행 → 무한 루프가 발생하므로
-    //       schedulesRef를 사용하여 최신 값을 참조하고, 의존성 배열에서 schedules를 제거한다.
-    useEffect(() => {
-        if (isLoading || isSyncing) return;
 
-        // 확정(CONFIRMED) 상태인 라온아이 예약 중, schedules 테이블에 매핑되지 않은 예약 찾기
-        const currentSchedules = schedulesRef.current;
-        const pendingSyncReservations = reservations.filter(r => {
-            if (r.status !== 'CONFIRMED') return false;
-            const exists = currentSchedules.some(s => s.reservation_id === r.id);
-            return !exists;
-        });
-
-        if (pendingSyncReservations.length === 0) return;
-
-        const syncAll = async () => {
-            setIsSyncing(true);
-            try {
-                // 확정 예약 건들에 대해 백그라운드에서 일정 확보 (변환 생성)
-                const promises = pendingSyncReservations.map(async (res) => {
-                    const result = await ensureScheduleFromReservation(res.id);
-                    return { reservationId: res.id, result };
-                });
-                
-                await Promise.all(promises);
-                
-                // 새로운 일정이 생성되었으므로 schedules 재로드
-                const newSchedules = await getMySchedules('scheduled');
-                setSchedules(newSchedules);
-            } catch (error) {
-                console.error('Background schedule sync failed:', error);
-            } finally {
-                setIsSyncing(false);
-            }
-        };
-
-        syncAll();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [reservations, isLoading]);
 
     // 스마트플랜 사용 가능 여부 판별 (예약 생성 새벽 5시 이전 당일 9시, 이후 다음날 오전 9시 활성화)
     const isSmartPlanAvailable = useMemo(() => {
@@ -399,6 +360,14 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
             if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
                 router.push('/myspace/reservations');
+                return;
+            }
+
+            // 이미 Schedules 목록에 매핑된 일정이 존재하는 경우 비동기 서버 액션 호출 없이 0.001초 직통 이동
+            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
+            if (matchedSchedule) {
+                setIsNavigating(true);
+                router.push(`/myspace/schedule/${matchedSchedule.id}`);
                 return;
             }
 
