@@ -51,6 +51,12 @@
   - [x] **D-3 Truncation Fix**: Removed `.slice(0, 3)` bug to restore full Day 3 temperature display.
   - [x] **Cache Restored**: Restored 4-hour session cache TTL in `useWeather.ts`.
 
+- [x] **9.7 TWA Bounce Prevention & Asynchronous Racing Safetynet (2026-07-30~31)** 🟢
+  - [x] **History Stack Cleanup Bypass**: Removed redundant pushState/back() handlers from `useModalBackHandler.ts` to prevent client router crashes on mobile devices.
+  - [x] **Place Picker Back-Routing Deletion**: Deleted hardcoded `window.history.back()` from `MyMapModal.tsx` to stop page-exiting bounces when selecting search results.
+  - [x] **Mount-State Routing Protection**: Implemented `isComponentMounted` tracking ref in `ScheduleHomeWidget.tsx` to avoid late-running server action navigation loops.
+  - [x] **Freeze Warning Suppression**: Downgraded handled push exception triggers to warn logs, and added `aria-describedby` bypass to sheet components to optimize rendering performance.
+
 ## 📊 전체 진행 현황 요약 (Progress Summary)
 
 | ?계 | 구분 | ?태 | 진행?| 비고 |
