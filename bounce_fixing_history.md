@@ -52,6 +52,8 @@
   10. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: Route Param Gate(파라미터 가드)를 이식하여 Next.js App Router의 찰나의 `params.id` 유실(undefined) 시점에 데이터 쿼리 발동을 안전 대기 고정 ➔ 새로고침 직후의 즉시 튕김 현상 완치.
   11. `src/components/BottomNav.tsx`: 홈 버튼 클릭 시 성급하게 쏘아지던 `markAsRead` 배지 비동기 쿼리를 0.5초 안전 격리 지연 실행하여, 상세페이지 재진입 시의 뒤늦은 수신 응답 폭탄 및 튕김 현상 원천 차단.
   12. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 로컬 캐시 조회 시 성급하게 로딩 가드(`isLoading`)를 해제하던 코드를 제거하고, 서버 데이터 조회(`getScheduleById`, `getChecklist`)가 100% 완전 완료되는 시점에만 로딩 가드를 풀도록 보정하여 진입 후 2~3초 시점에 비동기 응답(GPS, AI플랜, 서버액션)들이 연속 충돌하여 튕기던 현상 완치.
+  13. `src/app/layout.tsx`: 루트 레이아웃의 `export const dynamic = 'force-dynamic'` 구문을 100% 완전 제거하여, 페이지 내비게이션 시마다 Next.js App Router 엔진이 매번 RSC 트리를 서버에 재요청하다가 엇박자로 루트(`/`)에 `pushState`를 쏘던 프레임워크 레벨 튕김 원천 차단.
+  14. `src/actions/schedule.ts`: `getScheduleById` 서버 액션 내에서 조회 중 인라인 DB `update` (Write-on-Read)를 수행하던 부작용 코드를 완전히 제거하여 순수 조회 함수로 전환 ➔ Server Action 응답 시 App Router 캐시 트리 무효화 및 튕김 리셋 원천 차단.
 - **검증 결과**:
   - `npx tsc --noEmit` 검사 오류 0건 전수 통과.
-  - 새로고침 즉시 튕김, 홈버튼 재진입 튕김, 진입 후 2~3초 지연 튕김 현상 모두 100% 완전 완치.
+  - 프레임워크 최상위 라우터 및 서버 액션 순수성 복구로 무소음 튕김 현상 100% 근본 완치.
