@@ -311,8 +311,11 @@ export default function ScheduleDetailPage() {
     }, [schedule, initialRecipeId]);
 
     useEffect(() => {
-        fetchRecs();
-    }, [fetchRecs]);
+        if (schedule?.id) {
+            fetchRecs();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [schedule?.id]);
 
     const handleRefreshRecommendations = () => {
         fetchRecs(true);

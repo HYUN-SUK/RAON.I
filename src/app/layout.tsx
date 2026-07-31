@@ -64,7 +64,6 @@ export default function RootLayout({
         </Suspense>
         <ServiceWorkerRegister />
         <DiagnosticSensorActivator />
-        <AuthHydrationShield />
       </body>
     </html>
   );

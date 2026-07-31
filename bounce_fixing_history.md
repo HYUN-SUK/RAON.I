@@ -39,7 +39,8 @@
 - **중심 원인 진단 (Root Cause Diagnosis)**:
   - **Next.js App Router Auth Hydration Race Condition**: 개별 비동기 조회가 지연될 때마다 백그라운드 `onAuthStateChange` 이벤트가발동하여 상위 라우터가 세션을 미인증으로 오판, `router.push('/')` (정상 홈 리셋 명령)을 발동시킨 단 하나의 거대한 중심 뿌리 원인 확인.
 - **조치 내용**:
-  1. `src/components/common/AuthHydrationShield.tsx`: 쿠키 세션 환경에서 쉴드를 우회시키던 `localStorage` 루프 검사를 100% 완전 제거하고, 일정 보호 구역 체류 중 발생하는 라우터의 모든 비상 무소음 홈 리셋(`pushState Silent Redirect to '/'`) 명령을 100% 조건 없이 철통 무효화(Hard Lock)하여 유령 튕김 원천 완치.
+  1. `src/components/common/AuthHydrationShield.tsx` / `layout.tsx`: 주소창과 화면 렌더링 불일치(새로고침 무한 상세 진입 버그)를 유발하던 오작동 라우터 쉴드 구문을 100% 완전 제거하여 순정 라우트 구조로 원상 복구.
+  2. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 마운트 시 `fetchRecs()` 레시피 추천 비동기 조회가 `schedule` 객체 갱신마다 이중 발동하여 렌더링 딜레이를 유발하던 의존성을 `schedule?.id`로 고정하여 비동기 딜레이 원천 차단.
   2. `src/components/TopBar.tsx`: 백그라운드 토큰 재갱신(`TOKEN_REFRESHED`) 이벤트 발생 시 무분별하게 `checkUser()`가 재실행되어 라우터 세션을 흔들던 이중 트리거 차단.
   3. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 상세 진입 마운트 시 발생하던 비동기 4개 동시 딜레이로 인한 라우터 엇박자를 막기 위해 0.001초 인메모리 스토리지 캐시 쾌속 공급 가드 이식.
   4. `src/components/shared/CampingProfileGate.tsx`: `ScheduleForm` 폼 마운트 시 발생하던 듀얼 비동기 `getUser()` 세션 딜레이를 쾌속 동기 스토리지 캐시 가드로 무효화하여 `?add=external` 진입 시 마운트 튕김 완치.
