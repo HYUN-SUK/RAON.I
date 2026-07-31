@@ -439,13 +439,16 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
 
     const handleExternalScheduleClick = () => {
         withAuth(() => {
+            if (!isComponentMounted.current) return;
             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
             let hideTime: string | null = null;
             try { hideTime = localStorage.getItem('raonai_hide_add_alert_today'); } catch {}
             const now = new Date().getTime();
             
             if (hideTime && now < parseInt(hideTime, 10)) {
-                router.push('/myspace/schedule?add=external');
+                if (isComponentMounted.current) {
+                    router.push('/myspace/schedule?add=external');
+                }
             } else {
                 setDontShowToday(false);
                 setIsAlertOpen(true);
@@ -460,7 +463,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             try { localStorage.setItem('raonai_hide_add_alert_today', expireTime.toString()); } catch {}
         }
         setIsAlertOpen(false);
-        router.push('/myspace/schedule?add=external');
+        if (isComponentMounted.current) {
+            router.push('/myspace/schedule?add=external');
+        }
     };
 
     // 로딩 (새로고침 / 첫 진입 데이터 조회 중)

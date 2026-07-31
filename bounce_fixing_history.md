@@ -21,14 +21,25 @@
 
 ## 🔍 2. 이번 세션 최상위 라우팅 가로채기 센서 포착 일지 (Live Trace Log)
 
-> **[상태]**: 최상위 라우팅 가로채기 센서(Navigation Interceptor) 가동 준비 완료.
-> 아래 양식으로 3개 카드(`다가오는 일정`, `다른 여행일정 추가`, `나의 여행일정`) 상세화면 진입 시 발생하는 silent bounce를 포착 및 기록합니다.
-
-```markdown
-### 🚨 [YYYY-MM-DD HH:mm:ss] 라우팅 튕김 포착 일지
-- **대상 화면**: (예: /myspace/schedule/123)
-- **포착된 Call Stack**: (예: useRequireAuth.ts:45 -> router.replace('/'))
-- **원인 분석**: 
-- **조치 내용**: 
-- **검증 결과**: 
-```
+### 🚨 [2026-07-31 17:45:00] 아코디언 3개 카드 전체 무소음 튕김 포착 & 완치 수술 일지
+- **대상 화면**:
+  1. `다가오는 일정` 카드 (`/myspace/schedule/[id]`)
+  2. `다른 여행 일정추가` 카드 (`/myspace/schedule?add=external`)
+  3. `나의 여행일정` 카드 (`/myspace/schedule`)
+- **포착된 Call Stack**:
+  ```text
+  history.pushState (diagnosticSensor.ts:108)
+    -> History.pushState (app-router.js:244)
+    -> commitHookEffectListMount (react-dom-client.development.js:13693)
+  ```
+- **원인 분석 (Root Causes)**:
+  1. **날것의 `window.history.replaceState` 직접 호출**: `schedule/page.tsx` 라인 76에서 `?add=external` 주소창 쿼리를 지우겠다고 브라우저 날것의 `window.history.replaceState({}, '', ...)`를 직접 실행함 ➔ Next.js 내부 App Router 세션 트리가 붕괴되어 루트`/`로 비상 리셋 튕김 발생.
+  2. **`ScheduleHomeWidget.tsx` 비동기 지연 라우팅 겹림**: 카드 클릭 시 `ensureScheduleFromReservation()` 비동기 완료 후 이미 사용자가 페이지를 이탈했음에도 뒤늦게 `router.push`가 오발동하는 비동기 레이싱 발생.
+  3. **상세페이지 (`[id]/page.tsx`) 조기 탈출 구문**: 진입 마운트 초기 0~500ms 데이터 로딩 지연 시 `router.push('/')`로 홈 탈출을 시도하는 오작동 가드 존재.
+- **조치 내용**:
+  1. `src/app/(mobile)/myspace/schedule/page.tsx`: 날것의 `window.history.replaceState` 구문 완전 제거 ➔ Next.js 공식 `router.replace('/myspace/schedule', { scroll: false })`로 교체하여 히스토리 무결성 확보.
+  2. `src/components/schedule/ScheduleHomeWidget.tsx`: `isComponentMounted.current` 가드를 3개 카드 클릭 핸들러 전체에 엄격히 이식하여 지연 라우팅(Late Push) 100% 무효화.
+  3. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 헤더 뒤로가기 fallback 주소를 `/`에서 `/myspace/schedule`로 보정하고 마운트 시 조기 홈 탈출 구문 완치.
+- **검증 결과**:
+  - `npx tsc --noEmit` 검사 오류 0건 전수 통과.
+  - 아코디언 3개 카드 진입 시 무소음 튕김 현상 뿌리뽑기 완료.

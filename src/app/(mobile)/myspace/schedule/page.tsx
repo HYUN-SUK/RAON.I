@@ -72,10 +72,11 @@ function ScheduleContent() {
     useEffect(() => {
         if (searchParams.get('add') === 'external') {
             setIsFormOpen(true);
-            // URL 파라미터 제거 (UX)
-            window.history.replaceState({}, '', window.location.pathname);
+            // [Fix] Raw window.history.replaceState corrupts Next.js internal router state -> pushState bounce
+            // Safe replacement via Next.js router.replace
+            router.replace('/myspace/schedule', { scroll: false });
         }
-    }, [searchParams]);
+    }, [searchParams, router]);
 
     // 일정 조회
     const fetchSchedules = async () => {

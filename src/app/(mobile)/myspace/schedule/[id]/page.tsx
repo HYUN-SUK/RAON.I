@@ -512,7 +512,7 @@ export default function ScheduleDetailPage() {
                             if (typeof window !== 'undefined' && window.history.length > 1) {
                                 router.back();
                             } else {
-                                router.push('/');
+                                router.push('/myspace/schedule');
                             }
                         }}
                         className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
