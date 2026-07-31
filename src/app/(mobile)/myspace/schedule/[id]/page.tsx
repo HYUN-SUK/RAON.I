@@ -404,10 +404,10 @@ export default function ScheduleDetailPage() {
     }, [scheduleId]);
 
     useEffect(() => {
-        if (!isUserLoading) {
+        if (scheduleId && scheduleId !== 'undefined' && !isUserLoading) {
             loadData();
         }
-    }, [loadData, isUserLoading]);
+    }, [loadData, isUserLoading, scheduleId]);
 
     // [v11.9.32] 저장된 스마트 플랜 데이터가 있다면 자동으로 표시 (복구)
     useEffect(() => {
@@ -475,8 +475,8 @@ export default function ScheduleDetailPage() {
         }
     };
 
-    // 로딩 상태
-    if (!isMounted || isLoading || isUserLoading) {
+    // 로딩 상태 (Route Param Gate: params.id가 준비 완료될 때까지 안전 대기 고정)
+    if (!isMounted || isLoading || isUserLoading || !scheduleId || scheduleId === 'undefined') {
         return (
             <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />

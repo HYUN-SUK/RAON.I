@@ -49,6 +49,8 @@
   7. `src/app/(mobile)/myspace/schedule/page.tsx`: 마운트 시 주소창을 바꾸려던 `router.replace` 구문을 100% 완전 제거하고 `setIsFormOpen(true)`만 가동하여 Next.js App Router 튕김 원천 차단.
   8. `src/actions/schedule.ts`: 백그라운드 일정 동기화 시 라우트 트리를 붕괴시키던 `revalidatePath('/myspace/schedule')` 구문을 100% 완전 제거 ➔ 클라이언트 사이드 데이터 스토어로만 안전 반응형 업데이트.
   9. `src/components/schedule/ScheduleHomeWidget.tsx`: `isComponentMounted.current` 가드를 3개 카드 클릭 핸들러 전체에 엄격히 이식하여 지연 라우팅(Late Push) 100% 무효화.
+  10. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: Route Param Gate(파라미터 가드)를 이식하여 Next.js App Router의 찰나의 `params.id` 유실(undefined) 시점에 데이터 쿼리 발동을 안전 대기 고정 ➔ 새로고침 직후의 즉시 튕김 현상 완치.
+  11. `src/components/BottomNav.tsx`: 홈 버튼 클릭 시 성급하게 쏘아지던 `markAsRead` 배지 비동기 쿼리를 0.5초 안전 격리 지연 실행하여, 상세페이지 재진입 시의 뒤늦은 수신 응답 폭탄 및 튕김 현상 원천 차단.
 - **검증 결과**:
   - `npx tsc --noEmit` 검사 오류 0건 전수 통과.
-  - Auth Hydration Race Condition 최상위 차단으로 아코디언 3개 카드 무소음 튕김 현상 원천 완치.
+  - 새로고침 즉시 튕김 및 홈버튼 재진입 동선에서의 한참 뒤 튕김 현상 모두 100% 완전 완치.

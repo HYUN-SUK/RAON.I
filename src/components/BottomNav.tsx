@@ -30,9 +30,12 @@ export default function BottomNav() {
     ];
 
     const handleNavigation = (tab: TabConfig) => {
-        // 배지가 있으면 읽음 처리
+        // 배지가 있으면 페이지 이동 완료 후 안전하게 0.5초 뒤 백그라운드 격리 비동기 실행 (이동 교란 방지)
         if (tab.badgeTarget && badges[tab.badgeTarget] > 0) {
-            markAsRead(tab.badgeTarget);
+            const target = tab.badgeTarget;
+            setTimeout(() => {
+                markAsRead(target);
+            }, 500);
         }
 
         if (tab.href === '/') {
