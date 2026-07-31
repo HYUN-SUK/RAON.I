@@ -4,12 +4,32 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle, Copy, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBounceLogs, clearBounceLogs, BounceLog } from '@/lib/diagnosticSensor';
+import { createClient } from '@/lib/supabase-client';
 
 export default function BounceDebugBanner() {
     const [logs, setLogs] = useState<BounceLog[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isAuthorizedUser, setIsAuthorizedUser] = useState(false);
 
     useEffect(() => {
+        const checkUserAuth = async () => {
+            try {
+                const supabase = createClient();
+                const { data: { session } } = await supabase.auth.getSession();
+                const email = session?.user?.email?.toLowerCase();
+                // [v11.9.155] 오직 대표님 계정(tootg@naver.com) 및 관리자 계정에서만 진단 배너 노출
+                if (email && ['tootg@naver.com', 'admin@raon.ai'].includes(email)) {
+                    setIsAuthorizedUser(true);
+                } else {
+                    setIsAuthorizedUser(false);
+                }
+            } catch {
+                setIsAuthorizedUser(false);
+            }
+        };
+
+        checkUserAuth();
+
         // 세션 스토리지에 적재된 로그 스캔
         const storedLogs = getBounceLogs();
         if (storedLogs.length > 0) {
@@ -19,7 +39,8 @@ export default function BounceDebugBanner() {
         }
     }, []);
 
-    if (logs.length === 0) return null;
+    // 대표님/관리자 계정이 아니거나 포획된 로그가 없으면 일절 렌더링 안함 (손님 화면 노출 원천 차단)
+    if (!isAuthorizedUser || logs.length === 0) return null;
 
     const latest = logs[0];
 
