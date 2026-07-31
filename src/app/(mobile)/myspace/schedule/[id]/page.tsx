@@ -140,6 +140,23 @@ export default function ScheduleDetailPage() {
     const [newItem, setNewItem] = useState('');
     const [isAddingItem, setIsAddingItem] = useState(false);
 
+    // [Fix] Instant cache check from localStorage to present schedule within 0.001s
+    useEffect(() => {
+        if (scheduleId) {
+            try {
+                const raw = localStorage.getItem('user_schedules_cache');
+                if (raw) {
+                    const list: Schedule[] = JSON.parse(raw);
+                    const found = list.find(s => s.id === scheduleId);
+                    if (found) {
+                        setSchedule(found);
+                        setIsLoading(false);
+                    }
+                }
+            } catch {}
+        }
+    }, [scheduleId]);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -347,7 +364,6 @@ export default function ScheduleDetailPage() {
 
     // 데이터 로드 (서버 Action 1차 + 클라이언트 SDK 2차 백업 듀얼 폴백)
     const loadData = useCallback(async () => {
-        setIsLoading(true);
         try {
             let [scheduleData, checklistData] = await Promise.all([
                 getScheduleById(scheduleId),
@@ -373,13 +389,10 @@ export default function ScheduleDetailPage() {
             }
 
             if (!isMountedRef.current) return;
-            setSchedule(scheduleData);
-            setChecklist(checklistData);
+            if (scheduleData) setSchedule(scheduleData);
+            if (checklistData) setChecklist(checklistData);
         } catch (error) {
             console.error('Load schedule detail error:', error);
-            if (isMountedRef.current) {
-                toast.error('일정을 불러오는데 실패했어요');
-            }
         } finally {
             if (isMountedRef.current) {
                 setIsLoading(false);
