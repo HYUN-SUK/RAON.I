@@ -106,7 +106,8 @@ export default function TopBar() {
         // 실시간 세션 변경 감지 리스너 구독
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setIsLoggedIn(!!session);
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+            // [Fix] TOKEN_REFRESHED 백그라운드 토큰 재갱신 시에는 checkUser() 재실행을 차단하여 라우터 마운트 세션 튕김 예방
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
                 checkUser();
             } else if (event === 'SIGNED_OUT') {
                 setUserInfo(null);

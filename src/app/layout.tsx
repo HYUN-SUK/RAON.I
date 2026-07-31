@@ -7,6 +7,7 @@ import LoginRequestDialog from "@/components/auth/LoginRequestDialog";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import DeepLinkHandler from "@/components/pwa/DeepLinkHandler";
 import DiagnosticSensorActivator from "@/components/common/DiagnosticSensorActivator";
+import AuthHydrationShield from "@/components/common/AuthHydrationShield";
 
 const inter = Inter({ subsets: ["latin"] });
 const nanumPen = Nanum_Pen_Script({ weight: "400", subsets: ["latin"], variable: "--font-nanum-pen" });
@@ -63,6 +64,7 @@ export default function RootLayout({
         </Suspense>
         <ServiceWorkerRegister />
         <DiagnosticSensorActivator />
+        <AuthHydrationShield />
       </body>
     </html>
   );

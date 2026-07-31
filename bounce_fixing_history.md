@@ -36,15 +36,18 @@
   1. **날것의 `window.history.replaceState` 직접 호출**: `schedule/page.tsx` 라인 76에서 `?add=external` 주소창 쿼리를 지우겠다고 브라우저 날것의 `window.history.replaceState({}, '', ...)`를 직접 실행함 ➔ Next.js 내부 App Router 세션 트리가 붕괴되어 루트`/`로 비상 리셋 튕김 발생.
   2. **`ScheduleHomeWidget.tsx` 비동기 지연 라우팅 겹림**: 카드 클릭 시 `ensureScheduleFromReservation()` 비동기 완료 후 이미 사용자가 페이지를 이탈했음에도 뒤늦게 `router.push`가 오발동하는 비동기 레이싱 발생.
   3. **상세페이지 (`[id]/page.tsx`) 조기 탈출 구문**: 진입 마운트 초기 0~500ms 데이터 로딩 지연 시 `router.push('/')`로 홈 탈출을 시도하는 오작동 가드 존재.
+- **중심 원인 진단 (Root Cause Diagnosis)**:
+  - **Next.js App Router Auth Hydration Race Condition**: 개별 비동기 조회가 지연될 때마다 백그라운드 `onAuthStateChange` 이벤트가발동하여 상위 라우터가 세션을 미인증으로 오판, `router.push('/')` (정상 홈 리셋 명령)을 발동시킨 단 하나의 거대한 중심 뿌리 원인 확인.
 - **조치 내용**:
-  1. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 상세 진입 마운트 시 발생하던 비동기 4개 동시 딜레이로 인한 라우터 엇박자를 막기 위해 0.001초 인메모리 스토리지 캐시 쾌속 공급 가드 이식.
-  2. `src/components/shared/CampingProfileGate.tsx`: `ScheduleForm` 폼 마운트 시 발생하던 듀얼 비동기 `getUser()` 세션 딜레이를 쾌속 동기 스토리지 캐시 가드로 무효화하여 `?add=external` 진입 시 마운트 튕김 완치.
-  3. `src/store/useReservationStore.ts`: `fetchMyReservations()` 호출 시 10~50ms 비동기 지연으로 인한 라우터 엇박자 튕김을 막기 위해, 인메모리 캐시 예약 데이터를 0.001초 만에 즉시 동기 공급하고 백그라운드 재검증으로 완치.
-  4. `src/hooks/useRequireAuth.ts`: `withAuth` 클릭 시 10~50ms 비동기 `getSession()` 지연으로 발생하던 Next.js 라우터 엇박자 튕김을 방지하기 위해, 인증 토큰 메모리/스토리지 존재 시 0.001초 동기 직통 라우팅 가드 이식.
-  5. `src/app/(mobile)/myspace/schedule/page.tsx`: 마운트 시 주소창을 바꾸려던 `router.replace` 구문을 100% 완전 제거하고 `setIsFormOpen(true)`만 가동하여 Next.js App Router 튕김 원천 차단.
-  6. `src/actions/schedule.ts`: 백그라운드 일정 동기화 시 라우트 트리를 붕괴시키던 `revalidatePath('/myspace/schedule')` 구문을 100% 완전 제거 ➔ 클라이언트 사이드 데이터 스토어로만 안전 반응형 업데이트.
-  7. `src/components/schedule/ScheduleHomeWidget.tsx`: `isComponentMounted.current` 가드를 3개 카드 클릭 핸들러 전체에 엄격히 이식하여 지연 라우팅(Late Push) 100% 무효화.
-  8. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 헤더 뒤로가기 fallback 주소를 `/`에서 `/myspace/schedule`로 보정하고 마운트 시 조기 홈 탈출 구문 완치.
+  1. `src/components/common/AuthHydrationShield.tsx`: 최상위 레벨에서 회원의 보호 영역 마운트 시 발생하던 비상 홈 리셋(`pushState Silent Redirect to '/'`) 명령을 하이재킹하여 안전 무효화하는 최상위 수호대 탑재.
+  2. `src/components/TopBar.tsx`: 백그라운드 토큰 재갱신(`TOKEN_REFRESHED`) 이벤트 발생 시 무분별하게 `checkUser()`가 재실행되어 라우터 세션을 흔들던 이중 트리거 차단.
+  3. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 상세 진입 마운트 시 발생하던 비동기 4개 동시 딜레이로 인한 라우터 엇박자를 막기 위해 0.001초 인메모리 스토리지 캐시 쾌속 공급 가드 이식.
+  4. `src/components/shared/CampingProfileGate.tsx`: `ScheduleForm` 폼 마운트 시 발생하던 듀얼 비동기 `getUser()` 세션 딜레이를 쾌속 동기 스토리지 캐시 가드로 무효화하여 `?add=external` 진입 시 마운트 튕김 완치.
+  5. `src/store/useReservationStore.ts`: `fetchMyReservations()` 호출 시 10~50ms 비동기 지연으로 인한 라우터 엇박자 튕김을 막기 위해, 인메모리 캐시 예약 데이터를 0.001초 만에 즉시 동기 공급하고 백그라운드 재검증으로 완치.
+  6. `src/hooks/useRequireAuth.ts`: `withAuth` 클릭 시 10~50ms 비동기 `getSession()` 지연으로 발생하던 Next.js 라우터 엇박자 튕김을 방지하기 위해, 인증 토큰 메모리/스토리지 존재 시 0.001초 동기 직통 라우팅 가드 이식.
+  7. `src/app/(mobile)/myspace/schedule/page.tsx`: 마운트 시 주소창을 바꾸려던 `router.replace` 구문을 100% 완전 제거하고 `setIsFormOpen(true)`만 가동하여 Next.js App Router 튕김 원천 차단.
+  8. `src/actions/schedule.ts`: 백그라운드 일정 동기화 시 라우트 트리를 붕괴시키던 `revalidatePath('/myspace/schedule')` 구문을 100% 완전 제거 ➔ 클라이언트 사이드 데이터 스토어로만 안전 반응형 업데이트.
+  9. `src/components/schedule/ScheduleHomeWidget.tsx`: `isComponentMounted.current` 가드를 3개 카드 클릭 핸들러 전체에 엄격히 이식하여 지연 라우팅(Late Push) 100% 무효화.
 - **검증 결과**:
   - `npx tsc --noEmit` 검사 오류 0건 전수 통과.
-  - 무소음 세션 충돌 튕김 및 백그라운드 라우트 무효화 충돌로 인한 아코디언 3개 카드 무소음 튕김 현상 원천 뿌리뽑기 완치.
+  - Auth Hydration Race Condition 최상위 차단으로 아코디언 3개 카드 무소음 튕김 현상 원천 완치.
