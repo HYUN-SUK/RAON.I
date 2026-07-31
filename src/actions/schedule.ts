@@ -607,7 +607,8 @@ export async function ensureScheduleFromReservation(reservationId: string): Prom
         return { success: false, error: createError.message };
     }
 
-    revalidatePath('/myspace/schedule');
+    // [Fix] revalidatePath during background sync invalidates App Router cache on mount -> triggers silent bounce to '/'
+    // Client-side state (Zustand / fetchSchedules) handles reactive list updates safely without router corruptions.
     return { success: true, scheduleId: newScheduleId };
 }
 
@@ -675,7 +676,6 @@ export async function ensureScheduleFromReservationAdmin(reservationId: string, 
         return { success: false, error: createError.message };
     }
 
-    revalidatePath('/myspace/schedule');
     return { success: true, scheduleId: newScheduleId };
 }
 
