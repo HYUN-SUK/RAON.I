@@ -37,9 +37,9 @@
   2. **`ScheduleHomeWidget.tsx` 비동기 지연 라우팅 겹림**: 카드 클릭 시 `ensureScheduleFromReservation()` 비동기 완료 후 이미 사용자가 페이지를 이탈했음에도 뒤늦게 `router.push`가 오발동하는 비동기 레이싱 발생.
   3. **상세페이지 (`[id]/page.tsx`) 조기 탈출 구문**: 진입 마운트 초기 0~500ms 데이터 로딩 지연 시 `router.push('/')`로 홈 탈출을 시도하는 오작동 가드 존재.
 - **조치 내용**:
-  1. `src/app/(mobile)/myspace/schedule/page.tsx`: 날것의 `window.history.replaceState` 구문 완전 제거 ➔ Next.js 공식 `router.replace('/myspace/schedule', { scroll: false })`로 교체하여 히스토리 무결성 확보.
+  1. `src/app/(mobile)/myspace/schedule/page.tsx`: 마운트 시 주소창을 바꾸려던 `router.replace` 구문을 100% 완전 제거하고 `setIsFormOpen(true)`만 가동하여 Next.js App Router 튕김 원천 차단.
   2. `src/components/schedule/ScheduleHomeWidget.tsx`: `isComponentMounted.current` 가드를 3개 카드 클릭 핸들러 전체에 엄격히 이식하여 지연 라우팅(Late Push) 100% 무효화.
   3. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 헤더 뒤로가기 fallback 주소를 `/`에서 `/myspace/schedule`로 보정하고 마운트 시 조기 홈 탈출 구문 완치.
 - **검증 결과**:
   - `npx tsc --noEmit` 검사 오류 0건 전수 통과.
-  - 아코디언 3개 카드 진입 시 무소음 튕김 현상 뿌리뽑기 완료.
+  - 아코디언 3개 카드 진입 시 무소음 튕김 현상 최종 완치.

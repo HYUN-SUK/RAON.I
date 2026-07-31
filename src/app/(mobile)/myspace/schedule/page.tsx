@@ -72,11 +72,8 @@ function ScheduleContent() {
     useEffect(() => {
         if (searchParams.get('add') === 'external') {
             setIsFormOpen(true);
-            // [Fix] Raw window.history.replaceState corrupts Next.js internal router state -> pushState bounce
-            // Safe replacement via Next.js router.replace
-            router.replace('/myspace/schedule', { scroll: false });
         }
-    }, [searchParams, router]);
+    }, [searchParams]);
 
     // 일정 조회
     const fetchSchedules = async () => {
