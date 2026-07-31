@@ -37,12 +37,13 @@
   2. **`ScheduleHomeWidget.tsx` 비동기 지연 라우팅 겹림**: 카드 클릭 시 `ensureScheduleFromReservation()` 비동기 완료 후 이미 사용자가 페이지를 이탈했음에도 뒤늦게 `router.push`가 오발동하는 비동기 레이싱 발생.
   3. **상세페이지 (`[id]/page.tsx`) 조기 탈출 구문**: 진입 마운트 초기 0~500ms 데이터 로딩 지연 시 `router.push('/')`로 홈 탈출을 시도하는 오작동 가드 존재.
 - **조치 내용**:
-  1. `src/store/useReservationStore.ts`: `fetchMyReservations()` 호출 시 10~50ms 비동기 지연으로 인한 라우터 엇박자 튕김을 막기 위해, 인메모리 캐시 예약 데이터를 0.001초 만에 즉시 동기 공급하고 백그라운드 재검증으로 완치.
-  2. `src/hooks/useRequireAuth.ts`: `withAuth` 클릭 시 10~50ms 비동기 `getSession()` 지연으로 발생하던 Next.js 라우터 엇박자 튕김을 방지하기 위해, 인증 토큰 메모리/스토리지 존재 시 0.001초 동기 직통 라우팅 가드 이식.
-  3. `src/app/(mobile)/myspace/schedule/page.tsx`: 마운트 시 주소창을 바꾸려던 `router.replace` 구문을 100% 완전 제거하고 `setIsFormOpen(true)`만 가동하여 Next.js App Router 튕김 원천 차단.
-  4. `src/actions/schedule.ts`: 백그라운드 일정 동기화 시 라우트 트리를 붕괴시키던 `revalidatePath('/myspace/schedule')` 구문을 100% 완전 제거 ➔ 클라이언트 사이드 데이터 스토어로만 안전 반응형 업데이트.
-  5. `src/components/schedule/ScheduleHomeWidget.tsx`: `isComponentMounted.current` 가드를 3개 카드 클릭 핸들러 전체에 엄격히 이식하여 지연 라우팅(Late Push) 100% 무효화.
-  6. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 헤더 뒤로가기 fallback 주소를 `/`에서 `/myspace/schedule`로 보정하고 마운트 시 조기 홈 탈출 구문 완치.
+  1. `src/components/shared/CampingProfileGate.tsx`: `ScheduleForm` 폼 마운트 시 발생하던 듀얼 비동기 `getUser()` 세션 딜레이를 쾌속 동기 스토리지 캐시 가드로 무효화하여 `?add=external` 진입 시 마운트 튕김 완치.
+  2. `src/store/useReservationStore.ts`: `fetchMyReservations()` 호출 시 10~50ms 비동기 지연으로 인한 라우터 엇박자 튕김을 막기 위해, 인메모리 캐시 예약 데이터를 0.001초 만에 즉시 동기 공급하고 백그라운드 재검증으로 완치.
+  3. `src/hooks/useRequireAuth.ts`: `withAuth` 클릭 시 10~50ms 비동기 `getSession()` 지연으로 발생하던 Next.js 라우터 엇박자 튕김을 방지하기 위해, 인증 토큰 메모리/스토리지 존재 시 0.001초 동기 직통 라우팅 가드 이식.
+  4. `src/app/(mobile)/myspace/schedule/page.tsx`: 마운트 시 주소창을 바꾸려던 `router.replace` 구문을 100% 완전 제거하고 `setIsFormOpen(true)`만 가동하여 Next.js App Router 튕김 원천 차단.
+  5. `src/actions/schedule.ts`: 백그라운드 일정 동기화 시 라우트 트리를 붕괴시키던 `revalidatePath('/myspace/schedule')` 구문을 100% 완전 제거 ➔ 클라이언트 사이드 데이터 스토어로만 안전 반응형 업데이트.
+  6. `src/components/schedule/ScheduleHomeWidget.tsx`: `isComponentMounted.current` 가드를 3개 카드 클릭 핸들러 전체에 엄격히 이식하여 지연 라우팅(Late Push) 100% 무효화.
+  7. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 헤더 뒤로가기 fallback 주소를 `/`에서 `/myspace/schedule`로 보정하고 마운트 시 조기 홈 탈출 구문 완치.
 - **검증 결과**:
   - `npx tsc --noEmit` 검사 오류 0건 전수 통과.
   - 무소음 세션 충돌 튕김 및 백그라운드 라우트 무효화 충돌로 인한 아코디언 3개 카드 무소음 튕김 현상 원천 뿌리뽑기 완치.

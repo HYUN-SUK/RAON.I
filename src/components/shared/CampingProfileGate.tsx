@@ -61,10 +61,31 @@ export default function CampingProfileGate({
     const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
-    // 프로필 로딩 (듀얼 폴백 패치)
+    // 프로필 로딩 (듀얼 폴백 패치 + 쾌속 동기 스토리지 캐시 검사)
     useEffect(() => {
+        let isMounted = true;
         const loadProfile = async () => {
-            setLoading(true);
+            // [Fix] Fast check localStorage first to eliminate 10~100ms async race condition with Next.js router
+            try {
+                const cached = localStorage.getItem('user_camping_profile_cache');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (parsed && isMounted) {
+                        setExistingProfile(parsed);
+                        setOriginLabel(parsed.originLabel || '');
+                        setOriginLat(parsed.originLat);
+                        setOriginLng(parsed.originLng);
+                        setAdults(parsed.adults || 2);
+                        setSeniors(parsed.seniors || 0);
+                        setKidsPreschool(parsed.kidsPreschool || 0);
+                        setKidsElementary(parsed.kidsElementary || 0);
+                        setKidsTeen(parsed.kidsTeen || 0);
+                        setHasPet(parsed.hasPet || false);
+                        setLoading(false);
+                    }
+                }
+            } catch {}
+
             try {
                 let profile = await getCampingProfile();
 
@@ -72,12 +93,12 @@ export default function CampingProfileGate({
                 if (!profile) {
                     try {
                         const supabase = createClient();
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (user) {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session?.user) {
                             const { data: clientProfile } = await supabase
                                 .from('user_camping_profiles')
                                 .select('*')
-                                .eq('user_id', user.id)
+                                .eq('user_id', session.user.id)
                                 .maybeSingle();
 
                             if (clientProfile) {
@@ -99,7 +120,7 @@ export default function CampingProfileGate({
                     }
                 }
 
-                if (profile) {
+                if (profile && isMounted) {
                     setExistingProfile(profile);
                     setOriginLabel(profile.originLabel || '');
                     setOriginLat(profile.originLat);
@@ -110,14 +131,16 @@ export default function CampingProfileGate({
                     setKidsElementary(profile.kidsElementary);
                     setKidsTeen(profile.kidsTeen);
                     setHasPet(profile.hasPet);
+                    try { localStorage.setItem('user_camping_profile_cache', JSON.stringify(profile)); } catch {}
                 }
             } catch (err) {
                 console.error('[CampingProfileGate] Load profile error:', err);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
         loadProfile();
+        return () => { isMounted = false; };
     }, []);
 
     // 카카오 맵 로드 체크 (이미 프로젝트에서 사용 중이므로 window.kakao 활용)
