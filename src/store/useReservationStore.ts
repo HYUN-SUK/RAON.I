@@ -532,13 +532,54 @@ export const useReservationStore = create<ReservationState>()(
 
             // 내 예약 목록 조회 (DB에서)
             fetchMyReservations: async () => {
+                const current = get().reservations;
+                // [Fix] Return cached in-memory reservations instantly if present to eliminate 10~50ms async race condition with router
+                if (current && current.length > 0) {
+                    // Trigger silent background revalidation without blocking router mount
+                    (async () => {
+                        try {
+                            const { createClient } = await import('@/lib/supabase-client');
+                            const supabase = createClient();
+                            const { data } = await supabase.rpc('get_my_reservations');
+                            if (data) {
+                                const mapped: Reservation[] = data.map((r: any) => ({
+                                    id: r.id,
+                                    userId: r.user_id,
+                                    siteId: r.site_id,
+                                    checkInDate: parseSafeDate(r.check_in_date),
+                                    checkOutDate: parseSafeDate(r.check_out_date),
+                                    familyCount: r.family_count || 1,
+                                    visitorCount: r.visitor_count || 0,
+                                    vehicleCount: r.vehicle_count || 1,
+                                    guests: r.guests || (r.family_count + r.visitor_count),
+                                    totalPrice: r.total_price || 0,
+                                    status: r.status,
+                                    requests: r.requests || '',
+                                    guestDetails: r.guest_details,
+                                    createdAt: new Date(r.created_at),
+                                    refundBank: r.refund_bank,
+                                    refundAccount: r.refund_account,
+                                    refundHolder: r.refund_holder,
+                                    cancelReason: r.cancel_reason,
+                                    cancelledAt: r.cancelled_at ? new Date(r.cancelled_at) : undefined,
+                                    refundedAt: r.refunded_at ? new Date(r.refunded_at) : undefined,
+                                    refundAmount: r.refund_amount,
+                                    refundRate: r.refund_rate
+                                }));
+                                set({ reservations: mapped });
+                            }
+                        } catch {}
+                    })();
+                    return current;
+                }
+
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
 
                 const { data, error } = await supabase.rpc('get_my_reservations');
 
                 if (error || !data) {
-                    return [];
+                    return current || [];
                 }
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
