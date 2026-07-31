@@ -35,14 +35,10 @@ export default function AuthHydrationShield() {
             // 유저가 스케줄/마이스페이스 관련 상세 페이지에 진입해 있는 동안
             const isInsideProtectedArea = currentPath.startsWith('/myspace/schedule') || currentPath.startsWith('/reservation');
 
-            // 회원이 보호 구역 페이지 진입 마운트 중인데, 0.5초 이내에 홈('/')으로 pushState 리셋 명령이 떨어진 경우
-            if (isInsideProtectedArea && (targetUrl === '/' || targetUrl === window.location.origin + '/') && hasAuthToken()) {
-                const stack = new Error().stack || '';
-                // React Mount 이펙트 시점(commitHookEffectListMount)에서 발생한 유령 튕김 리다이렉트인지 확인
-                if (stack.includes('commitHookEffectListMount') || stack.includes('app-router.js')) {
-                    console.warn('[AuthHydrationShield] Intercepted silent router bounce to "/" during async mount hydration.');
-                    return; // 튕김 리다이렉트 무효화 스킵!
-                }
+            // 회원이 보호 구역 페이지(일정 목록/상세 등)에 체류하고 있는 동안, 백그라운드 세션 엇박자로 라우터가 순수 홈('/')으로 pushState 리셋 명령을 발동한 경우
+            if (isInsideProtectedArea && (targetUrl === '/' || targetUrl === window.location.origin + '/' || targetUrl === window.location.origin) && hasAuthToken()) {
+                console.warn('[AuthHydrationShield] Intercepted silent router bounce to "/" in protected area.');
+                return; // 무소음 튕김 리다이렉트 철통 무효화 스킵!
             }
 
             return originalPushState.apply(this, arguments as any);

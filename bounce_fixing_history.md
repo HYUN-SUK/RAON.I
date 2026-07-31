@@ -39,7 +39,7 @@
 - **중심 원인 진단 (Root Cause Diagnosis)**:
   - **Next.js App Router Auth Hydration Race Condition**: 개별 비동기 조회가 지연될 때마다 백그라운드 `onAuthStateChange` 이벤트가발동하여 상위 라우터가 세션을 미인증으로 오판, `router.push('/')` (정상 홈 리셋 명령)을 발동시킨 단 하나의 거대한 중심 뿌리 원인 확인.
 - **조치 내용**:
-  1. `src/components/common/AuthHydrationShield.tsx`: 최상위 레벨에서 회원의 보호 영역 마운트 시 발생하던 비상 홈 리셋(`pushState Silent Redirect to '/'`) 명령을 하이재킹하여 안전 무효화하는 최상위 수호대 탑재.
+  1. `src/components/common/AuthHydrationShield.tsx`: 릴리즈 압축 해시 파일명 조건 오작동을 수정하고, 보호 구역 체류 중 발생하는 모든 비상 무소음 홈 리셋(`pushState Silent Redirect to '/'`) 명령을 마운트 및 한참 뒤 백그라운드 재검증 시점 전체에서 철통 차단.
   2. `src/components/TopBar.tsx`: 백그라운드 토큰 재갱신(`TOKEN_REFRESHED`) 이벤트 발생 시 무분별하게 `checkUser()`가 재실행되어 라우터 세션을 흔들던 이중 트리거 차단.
   3. `src/app/(mobile)/myspace/schedule/[id]/page.tsx`: 상세 진입 마운트 시 발생하던 비동기 4개 동시 딜레이로 인한 라우터 엇박자를 막기 위해 0.001초 인메모리 스토리지 캐시 쾌속 공급 가드 이식.
   4. `src/components/shared/CampingProfileGate.tsx`: `ScheduleForm` 폼 마운트 시 발생하던 듀얼 비동기 `getUser()` 세션 딜레이를 쾌속 동기 스토리지 캐시 가드로 무효화하여 `?add=external` 진입 시 마운트 튕김 완치.
