@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Loader2, Camera, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, X, Pencil, Sparkles } from 'lucide-react';
 import { communityService } from '@/services/communityService';
 import { z } from 'zod';
 import { dispatchPersonaAction } from '@/lib/persona';
@@ -450,28 +450,35 @@ export default function CommunityWriteForm() {
                 {previewUrls.length > 0 && (
                     <div className="flex gap-3 overflow-x-auto pb-2">
                         {previewUrls.map((url, index) => (
-                            <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-border">
+                            <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-stone-200 shadow-sm group min-w-[100px] w-[100px] h-[100px]">
                                 <img
                                     src={url}
                                     alt={`Preview ${index}`}
                                     className="w-full h-full object-cover cursor-pointer"
                                     onClick={() => handleEditClick(index)}
                                 />
+                                {/* Delete Button (Enlarged X button with 2x touch area) */}
                                 <button
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         removeImage(index);
                                     }}
-                                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70 transition-colors"
+                                    className="absolute top-1.5 right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow-md ring-2 ring-white/90 transition-all active:scale-95 z-20"
+                                    title="사진 삭제"
                                 >
-                                    <X size={14} />
+                                    <X size={18} className="w-4 h-4 stroke-[2.5]" />
                                 </button>
-                                {/* Edit Hint Overlay */}
+                                {/* Edit Hint Overlay (Enlarged Glowing Pulse Badge with Pencil & Sparkles) */}
                                 <div
-                                    className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none"
+                                    onClick={() => handleEditClick(index)}
+                                    className="absolute inset-0 bg-black/25 flex items-center justify-center cursor-pointer transition-colors hover:bg-black/35 z-10"
                                 >
-                                    <span className="text-white text-xs font-medium bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">편집</span>
+                                    <div className="flex items-center gap-1 bg-[#1C4526] text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg ring-2 ring-emerald-300/80 animate-pulse backdrop-blur-sm">
+                                        <Pencil size={13} className="w-3.5 h-3.5 text-emerald-200" />
+                                        <span>편집</span>
+                                        <Sparkles size={12} className="w-3 h-3 text-yellow-300" />
+                                    </div>
                                 </div>
                             </div>
                         ))}
