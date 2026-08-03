@@ -450,7 +450,7 @@ export default function CommunityWriteForm() {
                 {previewUrls.length > 0 && (
                     <div className="flex gap-3 overflow-x-auto pb-2">
                         {previewUrls.map((url, index) => (
-                            <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-stone-200 shadow-sm group min-w-[160px] w-[160px] h-[160px]">
+                            <div key={index} className="relative rounded-xl overflow-hidden border border-stone-200 shadow-sm group min-w-[180px] w-[180px] h-[240px]">
                                 <img
                                     src={url}
                                     alt={`Preview ${index}`}
