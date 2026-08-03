@@ -450,7 +450,7 @@ export default function CommunityWriteForm() {
                 {previewUrls.length > 0 && (
                     <div className="flex gap-3 overflow-x-auto pb-2">
                         {previewUrls.map((url, index) => (
-                            <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-stone-200 shadow-sm group min-w-[100px] w-[100px] h-[100px]">
+                            <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-stone-200 shadow-sm group min-w-[160px] w-[160px] h-[160px]">
                                 <img
                                     src={url}
                                     alt={`Preview ${index}`}
@@ -464,20 +464,20 @@ export default function CommunityWriteForm() {
                                         e.stopPropagation();
                                         removeImage(index);
                                     }}
-                                    className="absolute top-1.5 right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow-md ring-2 ring-white/90 transition-all active:scale-95 z-20"
+                                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-md ring-2 ring-white/90 transition-all active:scale-95 z-20"
                                     title="사진 삭제"
                                 >
-                                    <X size={18} className="w-4 h-4 stroke-[2.5]" />
+                                    <X size={20} className="w-5 h-5 stroke-[2.5]" />
                                 </button>
                                 {/* Edit Hint Overlay (Enlarged Glowing Pulse Badge with Pencil & Sparkles) */}
                                 <div
                                     onClick={() => handleEditClick(index)}
                                     className="absolute inset-0 bg-black/25 flex items-center justify-center cursor-pointer transition-colors hover:bg-black/35 z-10"
                                 >
-                                    <div className="flex items-center gap-1 bg-[#1C4526] text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg ring-2 ring-emerald-300/80 animate-pulse backdrop-blur-sm">
-                                        <Pencil size={13} className="w-3.5 h-3.5 text-emerald-200" />
+                                    <div className="flex items-center gap-1.5 bg-[#1C4526] text-white text-sm font-bold px-3.5 py-1.5 rounded-full shadow-lg ring-2 ring-emerald-300/80 animate-pulse backdrop-blur-sm">
+                                        <Pencil size={15} className="w-4 h-4 text-emerald-200" />
                                         <span>편집</span>
-                                        <Sparkles size={12} className="w-3 h-3 text-yellow-300" />
+                                        <Sparkles size={13} className="w-3.5 h-3.5 text-yellow-300" />
                                     </div>
                                 </div>
                             </div>
