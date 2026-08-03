@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { communityService } from '@/services/communityService';
 import { Post } from '@/store/useCommunityStore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Share2, MoreVertical, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Loader2, Trash2, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import LikeButton from './LikeButton';
 import { EmberButton } from '@/components/mission/EmberButton';
@@ -136,9 +136,8 @@ export default function PostDetailView() {
         );
     }
 
-    // Check ownership & deletion rights (Author or Admin)
+    // 작성자 본인만 수정/삭제 권한 부여
     const isOwner = post.authorId === currentUserId;
-    const canDelete = isOwner || isAdmin;
 
     return (
         <div className="min-h-screen bg-white pb-20">
@@ -153,32 +152,39 @@ export default function PostDetailView() {
                 }}>
                     <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
                 </button>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3">
                     <button><Share2 className="w-5 h-5 text-[#1A1A1A]" /></button>
-                    {canDelete && (
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <button className="p-1 hover:bg-gray-100 rounded-full">
-                                    <Trash2 className="w-5 h-5 text-[#1A1A1A] hover:text-red-600 transition-colors" />
-                                </button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="w-[90%] max-w-[320px] rounded-2xl p-6">
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>게시물 삭제</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        {isOwner 
-                                            ? '정말 이 게시물을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.' 
-                                            : '관리자 권한으로 이 게시물을 삭제하시겠습니까? 삭제 시 복구할 수 없습니다.'}
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter className="flex-row gap-2 mt-4">
-                                    <AlertDialogCancel className="flex-1 mt-0">취소</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDelete} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
-                                        삭제
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                    {isOwner && (
+                        <>
+                            <button
+                                onClick={() => router.push(`/community/write?editId=${id}`)}
+                                className="p-1 hover:bg-gray-100 rounded-full text-stone-600 hover:text-stone-900 transition-colors"
+                                title="수정하기"
+                            >
+                                <Pencil className="w-5 h-5 text-[#1A1A1A]" />
+                            </button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <button className="p-1 hover:bg-gray-100 rounded-full" title="삭제하기">
+                                        <Trash2 className="w-5 h-5 text-[#1A1A1A] hover:text-red-600 transition-colors" />
+                                    </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="w-[90%] max-w-[320px] rounded-2xl p-6">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>게시물 삭제</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            정말 이 게시물을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter className="flex-row gap-2 mt-4">
+                                        <AlertDialogCancel className="flex-1 mt-0">취소</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDelete} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+                                            삭제
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </>
                     )}
                 </div>
             </header>

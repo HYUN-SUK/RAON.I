@@ -126,9 +126,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     createPost: async (post) => {
         set({ isLoading: true, error: null });
         try {
-            // Inject current user author
+            // Inject current user author if not provided
             const { currentUser } = get();
-            const postWithAuthor = { ...post, author: currentUser.name }; // TODO: Use ID in real backend
+            const postWithAuthor = { author: currentUser.name, ...post };
 
             await communityService.createPost(postWithAuthor);
 

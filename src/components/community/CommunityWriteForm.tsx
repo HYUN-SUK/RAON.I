@@ -46,6 +46,7 @@ export default function CommunityWriteForm() {
 
     const { createPost, isLoading: storeLoading, currentUser } = useCommunityStore();
     const [localLoading, setLocalLoading] = useState(false);
+    const editId = searchParams.get('editId');
 
     const [type, setType] = useState<BoardType>(initialType);
     const [title, setTitle] = useState('');
@@ -53,39 +54,81 @@ export default function CommunityWriteForm() {
     const [visibility, setVisibility] = useState('PUBLIC');
     const [isAdmin, setIsAdmin] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [authorName, setAuthorName] = useState<string>('캠퍼');
+    const [existingImages, setExistingImages] = useState<string[]>([]);
+    const [isEditLoading, setIsEditLoading] = useState<boolean>(!!editId);
 
-    // [v11.9.95] 관리자 및 일반 유저 권한 확인하여 공지사항 우회 작성 방지
+    // [v11.9.95] 권한 확인 및 수정 모드 데이터 로드
     React.useEffect(() => {
-        const checkUser = async () => {
+        const checkUserAndLoad = async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
+            let loggedInUserId: string | null = null;
+            let adminCheck = false;
+
             if (user) {
+                loggedInUserId = user.id;
                 setCurrentUserId(user.id);
-                const adminCheck = user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin' || user.app_metadata?.role === 'admin';
+                const resolvedName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '캠퍼';
+                setAuthorName(resolvedName);
+
+                adminCheck = user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin' || user.app_metadata?.role === 'admin';
                 setIsAdmin(adminCheck);
-                
-                // 일반 사용자인데 초기 타입이 NOTICE인 경우 강제로 STORY로 스위칭
-                if (!adminCheck && initialType === 'NOTICE') {
+
+                if (!adminCheck && initialType === 'NOTICE' && !editId) {
                     setType('STORY');
                 }
             } else {
-                // 비로그인 상태인데 NOTICE로 접근 시 강제 스위칭
-                if (initialType === 'NOTICE') {
+                if (initialType === 'NOTICE' && !editId) {
                     setType('STORY');
                 }
             }
+
+            // 수정 모드일 때 기존 게시글 정보 로드
+            if (editId) {
+                try {
+                    const post = await communityService.getPostById(editId);
+                    if (post) {
+                        // 작성자 본인이 아니면 수정 진입 불가
+                        if (post.authorId && post.authorId !== loggedInUserId) {
+                            alert('본인이 작성한 글만 수정할 수 있습니다.');
+                            router.back();
+                            return;
+                        }
+                        setTitle(post.title);
+                        setContent(post.content);
+                        setType(post.type);
+                        if (post.visibility) setVisibility(post.visibility);
+                        if (post.groupName) setGroupName(post.groupName);
+                        if (post.videoUrl) setVideoUrl(post.videoUrl);
+                        if (post.images && post.images.length > 0) {
+                            setExistingImages(post.images);
+                            setPreviewUrls(post.images);
+                        }
+                    } else {
+                        alert('게시글을 찾을 수 없습니다.');
+                        router.back();
+                    }
+                } catch (err) {
+                    console.error('Failed to load post for edit:', err);
+                } finally {
+                    setIsEditLoading(false);
+                }
+            }
         };
-        checkUser();
-    }, [initialType]);
+        checkUserAndLoad();
+    }, [initialType, editId, router]);
 
     // Auto-set visibility based on Board Type
     React.useEffect(() => {
-        if (type === 'STORY' || type === 'QNA') {
-            setVisibility('PRIVATE');
-        } else {
-            setVisibility('PUBLIC');
+        if (!editId) {
+            if (type === 'STORY' || type === 'QNA') {
+                setVisibility('PRIVATE');
+            } else {
+                setVisibility('PUBLIC');
+            }
         }
-    }, [type]);
+    }, [type, editId]);
 
     // Extra fields
     const [groupName, setGroupName] = useState('');
@@ -100,14 +143,14 @@ export default function CommunityWriteForm() {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [tempImage, setTempImage] = useState<string | null>(null);
 
-    const isLoading = storeLoading || localLoading;
+    const isLoading = storeLoading || localLoading || isEditLoading;
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const newFiles = Array.from(e.target.files);
 
-            // Validation: Max 5 images total
-            if (selectedFiles.length + newFiles.length > 5) {
+            // Validation: Max 5 images total (existing + selected)
+            if (existingImages.length + selectedFiles.length + newFiles.length > 5) {
                 alert('사진은 최대 5장까지 추가할 수 있습니다.');
                 return;
             }
@@ -127,8 +170,14 @@ export default function CommunityWriteForm() {
     };
 
     const removeImage = (index: number) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+        if (index < existingImages.length) {
+            setExistingImages(prev => prev.filter((_, i) => i !== index));
+            setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+        } else {
+            const fileIndex = index - existingImages.length;
+            setSelectedFiles(prev => prev.filter((_, i) => i !== fileIndex));
+            setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+        }
     };
 
     const handleEditClick = (index: number) => {
@@ -140,20 +189,43 @@ export default function CommunityWriteForm() {
     const handleEditorSave = async (dataUrl: string) => {
         if (editingIndex === null) return;
 
-        // Convert Data URL to File
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        const originalFile = selectedFiles[editingIndex];
-        const file = new File([blob], originalFile.name, { type: "image/png" });
+        // If editing an existing remote image URL
+        if (editingIndex < existingImages.length) {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const file = new File([blob], `edited_${editingIndex}.png`, { type: "image/png" });
 
-        // Update State
-        const newFiles = [...selectedFiles];
-        newFiles[editingIndex] = file;
-        setSelectedFiles(newFiles);
+            // Upload directly to get updated URL
+            try {
+                const uploadedUrl = await communityService.uploadImage(file);
+                setExistingImages(prev => {
+                    const next = [...prev];
+                    next[editingIndex] = uploadedUrl;
+                    return next;
+                });
+                setPreviewUrls(prev => {
+                    const next = [...prev];
+                    next[editingIndex] = uploadedUrl;
+                    return next;
+                });
+            } catch (err) {
+                console.error("Editor Save Upload Error:", err);
+            }
+        } else {
+            const fileIndex = editingIndex - existingImages.length;
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const originalFile = selectedFiles[fileIndex];
+            const file = new File([blob], originalFile?.name || `edited_${fileIndex}.png`, { type: "image/png" });
 
-        const newUrls = [...previewUrls];
-        newUrls[editingIndex] = dataUrl;
-        setPreviewUrls(newUrls);
+            const newFiles = [...selectedFiles];
+            newFiles[fileIndex] = file;
+            setSelectedFiles(newFiles);
+
+            const newUrls = [...previewUrls];
+            newUrls[editingIndex] = dataUrl;
+            setPreviewUrls(newUrls);
+        }
 
         setIsEditorOpen(false);
         setEditingIndex(null);
@@ -163,78 +235,104 @@ export default function CommunityWriteForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); // Crucial
 
-        // Validation: Content Length
         if (content.length > 3000) {
             alert('내용은 3,000자 이내로 작성해주세요.');
             return;
         }
 
-        // Zod Validation
-        const validation = postSchema.safeParse({ type, title, content, images: selectedFiles });
-        if (!validation.success) {
-            alert(validation.error.issues[0].message);
+        if (!title.trim()) {
+            alert('제목을 입력해주세요.');
+            return;
+        }
+
+        if (!content.trim()) {
+            alert('내용을 입력해주세요.');
             return;
         }
 
         try {
             setLocalLoading(true);
 
-            // 1. Upload Images
-            const uploadedImageUrls: string[] = [];
-            if (selectedFiles.length > 0) {
-                const uploadPromises = selectedFiles.map(file => communityService.uploadImage(file));
-                const results = await Promise.all(uploadPromises);
-                uploadedImageUrls.push(...results);
-            }
-
-            // 2. Create Post
-            await createPost({
-                type,
-                title,
-                content,
-                author: currentUser.name, // Use name from store
-                images: uploadedImageUrls,
-                groupName: type === 'GROUP' ? groupName : undefined,
-                videoUrl: type === 'CONTENT' ? videoUrl : undefined,
-                visibility: visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
-            });
-
-            // --- [Phase 3.5] Progressive Trigger Injection: Community Posting ---
-            if (currentUser?.id) {
-                const combinedText = `${title} ${content}`.toLowerCase();
-
-                // Keyword analysis for Persona Tags
-                if (combinedText.includes('불멍') || combinedText.includes('장작') || combinedText.includes('화로')) {
-                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_FIRE');
-                }
-                if (combinedText.includes('요리') || combinedText.includes('바베큐') || combinedText.includes('밀키트') || combinedText.includes('먹방')) {
-                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_FOOD');
-                }
-                if (combinedText.includes('별') || combinedText.includes('밤하늘') || combinedText.includes('은하수')) {
-                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_STAR');
-                }
-                if (combinedText.includes('우중') || combinedText.includes('비오는')) {
-                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_RAIN');
-                }
-                if (combinedText.includes('설중') || combinedText.includes('눈오는') || combinedText.includes('눈싸움')) {
-                    await dispatchPersonaAction(currentUser.id, 'FEED_POST_SNOW');
+            if (editId) {
+                // 1. Upload newly selected files
+                const newUploadedUrls: string[] = [];
+                if (selectedFiles.length > 0) {
+                    const uploadPromises = selectedFiles.map(file => communityService.uploadImage(file));
+                    const results = await Promise.all(uploadPromises);
+                    newUploadedUrls.push(...results);
                 }
 
-                // Group / Market related intent from Community feed
-                if (type === 'GROUP' || combinedText.includes('나눔')) {
-                    if (combinedText.includes('장비') || combinedText.includes('텐트') || combinedText.includes('랜턴')) {
-                        await dispatchPersonaAction(currentUser.id, 'FEED_DONATE_GEAR');
-                    } else if (combinedText.includes('나눔') || combinedText.includes('음식')) {
-                        await dispatchPersonaAction(currentUser.id, 'FEED_DONATE_FOOD');
+                const finalImages = [...existingImages, ...newUploadedUrls];
+
+                // 2. Update existing post
+                await communityService.updatePost(editId, {
+                    type,
+                    title,
+                    content,
+                    images: finalImages,
+                    groupName: type === 'GROUP' ? groupName : undefined,
+                    videoUrl: type === 'CONTENT' ? videoUrl : undefined,
+                    visibility: visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
+                });
+
+                alert('게시글이 수정되었습니다.');
+                router.push(`/community/${editId}`);
+            } else {
+                // 1. Upload Images for new post
+                const uploadedImageUrls: string[] = [];
+                if (selectedFiles.length > 0) {
+                    const uploadPromises = selectedFiles.map(file => communityService.uploadImage(file));
+                    const results = await Promise.all(uploadPromises);
+                    uploadedImageUrls.push(...results);
+                }
+
+                // 2. Create Post with real author name and ID
+                await createPost({
+                    type,
+                    title,
+                    content,
+                    author: authorName,
+                    authorId: currentUserId || undefined,
+                    images: uploadedImageUrls,
+                    groupName: type === 'GROUP' ? groupName : undefined,
+                    videoUrl: type === 'CONTENT' ? videoUrl : undefined,
+                    visibility: visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
+                });
+
+                // Persona Actions Trigger
+                if (currentUserId) {
+                    const combinedText = `${title} ${content}`.toLowerCase();
+
+                    if (combinedText.includes('불멍') || combinedText.includes('장작') || combinedText.includes('화로')) {
+                        await dispatchPersonaAction(currentUserId, 'FEED_POST_FIRE');
+                    }
+                    if (combinedText.includes('요리') || combinedText.includes('바베큐') || combinedText.includes('밀키트') || combinedText.includes('먹방')) {
+                        await dispatchPersonaAction(currentUserId, 'FEED_POST_FOOD');
+                    }
+                    if (combinedText.includes('별') || combinedText.includes('밤하늘') || combinedText.includes('은하수')) {
+                        await dispatchPersonaAction(currentUserId, 'FEED_POST_STAR');
+                    }
+                    if (combinedText.includes('우중') || combinedText.includes('비오는')) {
+                        await dispatchPersonaAction(currentUserId, 'FEED_POST_RAIN');
+                    }
+                    if (combinedText.includes('설중') || combinedText.includes('눈오는') || combinedText.includes('눈싸움')) {
+                        await dispatchPersonaAction(currentUserId, 'FEED_POST_SNOW');
+                    }
+
+                    if (type === 'GROUP' || combinedText.includes('나눔')) {
+                        if (combinedText.includes('장비') || combinedText.includes('텐트') || combinedText.includes('랜턴')) {
+                            await dispatchPersonaAction(currentUserId, 'FEED_DONATE_GEAR');
+                        } else if (combinedText.includes('나눔') || combinedText.includes('음식')) {
+                            await dispatchPersonaAction(currentUserId, 'FEED_DONATE_FOOD');
+                        }
                     }
                 }
-            }
 
-            // Go back to list
-            router.back();
+                router.back();
+            }
         } catch (error) {
             console.error('Submit Error:', error);
-            alert(`글 작성 중 오류가 발생했습니다.\n${error instanceof Error ? error.message : 'Unknown error'}`);
+            alert(`처리 중 오류가 발생했습니다.\n${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setLocalLoading(false);
         }
@@ -247,7 +345,7 @@ export default function CommunityWriteForm() {
                 <button onClick={() => router.back()} className="mr-4">
                     <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
                 </button>
-                <h1 className="text-lg font-bold text-[#1A1A1A]">글쓰기</h1>
+                <h1 className="text-lg font-bold text-[#1A1A1A]">{editId ? '글수정' : '글쓰기'}</h1>
             </div>
 
             {/* Form */}
