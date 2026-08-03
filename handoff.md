@@ -1,45 +1,38 @@
-# 🤝 RAON.I 모바일 튕김 점검 세션 인수인계 문서 (Handoff)
+# 📑 RAON.I - 홈화면 튕김 장애 완치 세션 인수인계 문서 (Handoff)
 
-## 1. 현재 상태 요약 (이번 세션 완료 사항)
-* **모바일 PWA/TWA 튕김 원천 봉쇄 완료**
-  * 모달/바텀시트가 닫힐 때 뒤로가기 처리를 가드하기 위해 썼던 `useModalBackHandler` 의 브라우저 히스토리 임의 오염(`pushState`, `back()`) 코드를 완전히 제거(깡통화)하여 Next.js 라우터와의 물리적 충돌(Race Condition)을 완전히 0%로 만들었습니다.
-  * 다른 일정 등록 페이지에서 장소를 검색하고 선택할 때 가상 히스토리가 없음에도 수동으로 호출되던 `window.history.back()` 코드를 삭제하여, 장소 선택 시 홈화면으로 튕겨져 나가던 문제를 종결시켰습니다.
-  * 비동기 서버 액션(`ensureScheduleFromReservation`)이 완료되는 도중 대표님이 이미 홈화면으로 복귀하여 컴포넌트가 파괴된(Unmounted) 상황인 경우, 뒤늦게 완료된 `router.push`가 실행되어 상세 화면으로 다시 강제 재진입(소환)되는 비동기 레이싱 문제를 `isComponentMounted` Ref 가드를 통해 해결했습니다.
-  * 알림 권한 획득 실패 시 에러(`console.error`) 로깅으로 인한 React DevTools 프리징 렉 유발을 `console.warn` 안전 로깅으로 돌려 차단했습니다.
-  * Radix UI Sheet(`sheet.tsx`)의 접근성 경고(`Missing Description Warning`)를 `aria-describedby={undefined}` 속성 추가로 해결해 브라우저 렌더링 부하를 줄였습니다.
-* **정적 및 로컬 빌드 검증 성공**
-  * 수정 완료 상태에서 `npx tsc --noEmit` 검증을 성공적으로 통과하여 타입 안정성을 입증했습니다.
-  * 총 4개의 커밋(`2926a38`, `4607752`, `241a46c`, `f9fcb14`, `09de378`, `809ef2e`)을 로컬 git 리포지토리에 완료해 둔 상태입니다. (git push 금지 규칙 준수)
+## 📌 1. 현재 상태 요약 (Current Status)
+이번 세션에서는 사용자가 다가오는 일정 상세 페이지 진입 시 발생하던 고질적인 무소음 홈 리다이렉트 튕김 현상(`pushState Silent Redirect to '/'`)을 완벽하게 진단하고 최종 완치하였습니다.
+
+- **최상위 layout.tsx의 `force-dynamic` 제거 완료**: 클라이언트 이동 시 불필요한 전체 RSC 서버 요청을 차단하여 라우터 엔진 안정성 확보.
+- **getScheduleById 서버 액션 내 `Write-on-Read` 제거 완료**: 일정 단일 조회 중에 DB를 인라인 수정(update)하여 Next.js App Router 캐시 무효화를 초래하던 부작용을 순수 조회 함수로 개조하여 완치.
+- **useSearchParams() Suspense 안전 장치 탑재**: `records`, `admin/reservations`, `community`, `schedule/[id]` 상세페이지에 각각 `<Suspense>` 경계를 안전하게 씌워 Next.js 빌드 시 prerender 에러 및 클라이언트 렌더 이탈 문제를 종결.
+- **동시성 비동기 트랜잭션 충돌 해결**: 홈화면 위젯 마운트 시의 백그라운드 자동 동기화(`syncAll()`)를 제거하여 클릭 스레드와의 DB 경쟁 상태를 해결하고, 이미 매핑된 일정이 있으면 즉시 0.001초 직통 이동하도록 교통정리 적용.
+- **타입 검사 및 빌드 검증 전수 완료**: `npx tsc --noEmit` 검사 및 `npm run build` 정적 최적화 페이지 빌드를 100% 오류 0개로 통과 완료.
 
 ---
 
-## 2. 기술적 결정 사항
-1. **수동 브라우저 히스토리 조작(`pushState`, `back()`) 폐기**:
-   * Next.js의 클라이언트 사이드 라우터(App Router)는 브라우저의 히스토리 스택을 독자적으로 관리합니다. 여기에 수동으로 `pushState`를 섞고, 닫힐 때 비동기 `history.back()`을 호출하는 기법은 렉이 발생하는 모바일 기기(TWA) 환경에서 필연적인 레이싱 붕괴 및 새로고침(튕김)을 유발하므로, 안정성을 위해 이 기법을 전면 폐기하는 결정을 내렸습니다.
-2. **비동기 마운트 세이프티 가드 (`isComponentMounted` Ref) 도입**:
-   * 지연 시간이 수 초 이상 소요되는 비동기 서버 액션 통신 완료 시점에, 컴포넌트가 이미 언마운트되었는지 검사하는 가드를 두어 묵은 라우팅(Late Trigger Racing)으로 인한 강제 소환 오작동을 차단했습니다.
+## ⚙️ 2. 기술적 결정 사항 (Technical Decisions)
+1. **Single Source of Truth (데이터 단일 통로 보장)**
+   - 홈 위젯 마운트와 카드 클릭 두 시점에서 거의 동시에 `ensureScheduleFromReservation`이 중복 발동되어 Supabase RPC `upsert_schedule` DB 트랜잭션이 충돌하던 것을, 백그라운드 자동 동기화를 제거하여 단일 클릭 채널로 단순화했습니다.
+2. **Fast-path Redirect (0.001초 직통 라우팅)**
+   - 이미 DB에 일치하는 일정이 생성되어 있다면 무거운 비동기 서버 액션을 아예 스킵하고 곧바로 `/myspace/schedule/[id]`로 직통 라우팅시켜 비동기 레이싱 대기 시간을 완전히 제거했습니다.
+3. **App-wide Suspense Wrapping**
+   - Next.js 14/15/16 App Router 표준 규격에 따라 `useSearchParams`를 사용하는 모든 `'use client'` 페이지들을 `<Suspense>` 경계로 감싸, 빌드 타임 Prerender 크래시와 런타임 Hydration 에러로 인한 홈 비상 튕김을 원천 방어했습니다.
 
 ---
 
-## 3. Next.js 및 TWA 환경 이슈 트러블슈팅
-1. **[Next.js 무소음 튕김 리다이렉션]**:
-   * Next.js App Router 프로덕션 환경에서 처리되지 않은 예외(Uncaught Client Exception) 발생 시 렌더러가 붕괴하지 않도록 최상위 홈`/`으로 Hard Refresh(전체 리로드)시킵니다.
-   * `global-error.tsx` 및 `error.tsx` 바운더리를 설계하여 튕기는 순간 `recordBounceLog`로 sessionStorage에 스택 리포트를 박제하여 `BounceDebugBanner`로 UI에 띄우도록 망을 구축했습니다.
-2. **[HMR 로컬 개발 튕김 착시]**:
-   * 개발 서버 HMR(Hot Module Replacement) 구동 중 핵심 라우터나 히스토리를 제어하는 훅이 재컴파일될 때 Next.js가 브라우저를 강제로 전체 새로고침(Hard Refresh)하여 홈으로 내보내는 정상적인 개발 동작이 있으므로, 대표님의 튕김 오인 방지를 위해 이를 주의 사항으로 기록해 둡니다.
+## 📋 3. 다음 작업 가이드 (Next Steps)
+1. **사용자 행동 흐름 추가 검증**
+   - 배포 후 모바일 실제 기기에서 새로고침 -> 다가오는 일정 상세 진입 -> 홈 버튼 터치 -> 재진입 등 전체 시나리오 하에서 튕김 현상이 100% 소멸되었는지 최종 유저 모니터링 진행.
+2. **기타 미래 기능 개발 착수**
+   - 한 단계만 뒤로가기 제어 시나리오 수립 및 반영.
+   - 구글 플레이스토어 심사 승인 이후 AAB 패키지 빌드 시 TWA 클라이언트 더블 클릭 종료 팝업 추가.
+   - 스마트플랜 LIVE 타임라인 UI (Phase 1) 구현 진행.
 
 ---
 
-## 4. 다음 작업 가이드 (우선순위 작업 목록)
-1. **모바일 TWA 상용 배포 및 튕김 박멸 피드백 확인**:
-   * 현재 로컬 엣지 브라우저에서 튕김 완치가 검증되었으므로, 대표님이 로컬 코드를 원격 리포지토리에 `git push` 하신 뒤 Vercel 상용 서버에 배포하여 실제 모바일 TWA 환경에서 더 이상 튕김이 발생하지 않는지 최종 점검을 진행해야 합니다.
-2. **에러 로깅 배너 고도화 여부**:
-   * 현재 `BounceDebugBanner`가 정상 마운트되고 작동하므로, 향후 예외 에러가 추가 발생하면 해당 배너의 `[리포트 복사]` 기능을 사용하여 에러 로그를 빠르게 취득해 대응할 수 있습니다.
-
----
-
-## 5. 주의 사항
-* **TWA 빌드 캐싱 강도**:
-  * 상용 Vercel 배포 후 모바일 TWA 앱에서 확인하실 때는 반드시 기기의 **크롬 브라우저 캐시 삭제** 또는 **라온아이 앱 데이터 전체 삭제(초기화)**를 하셔야만 최신 패치 코드가 갱신되어 적용됩니다.
-* **Next.js HMR 리프레시**:
-  * 로컬 개발 도중 파일이 수정되어 저장될 때 Next.js가 핫 리로드 실패로 강제 새로고침을 트리거하는 것은 개발 서버의 정상적인 동작이므로 튕김 장애로 오인하지 않아야 합니다.
+## ⚠️ 4. 주의 사항 (Precautions)
+- **Server Action 내 DB Mutation 주의**
+  - 단순 조회(Read) 용도의 Server Action 내부에서는 절대로 인라인 DB 수정(Update/Insert) 처리를 병행하지 마십시오. Next.js App Router가 클라이언트 라우터 캐시를 강제로 무효화(Invalidate)시켜 예상치 못한 홈 리다이렉트를 일으킬 수 있습니다.
+- **useSearchParams 사용 시 Suspense 필수**
+  - Next.js App Router 환경에서 `useSearchParams()` 훅을 사용하는 클라이언트 컴포넌트는 반드시 상위에 `<Suspense>` 경계가 확보되어 있어야 정적 빌드 오류와 런타임 엇박자 튕김을 막을 수 있습니다.

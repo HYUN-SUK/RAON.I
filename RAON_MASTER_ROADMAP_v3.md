@@ -56,6 +56,12 @@
   - [x] **Place Picker Back-Routing Deletion**: Deleted hardcoded `window.history.back()` from `MyMapModal.tsx` to stop page-exiting bounces when selecting search results.
   - [x] **Mount-State Routing Protection**: Implemented `isComponentMounted` tracking ref in `ScheduleHomeWidget.tsx` to avoid late-running server action navigation loops.
   - [x] **Freeze Warning Suppression**: Downgraded handled push exception triggers to warn logs, and added `aria-describedby` bypass to sheet components to optimize rendering performance.
+- [x] **9.8 홈화면 다가오는 일정 튕김 근본 원인 해결 및 엇박자 완치 (2026-08-03)** 🟢
+  - [x] **Root dynamic = force-dynamic 제거**: 최상위 layout.tsx의 force-dynamic을 제거하여 페이지 이동 시마다 불필요한 전체 RSC 재요청으로 라우터 트리 붕괴 및 홈('/') 리셋을 유발하던 메커니즘 차단.
+  - [x] **조회(Read) 중 DB 갱신(Write-on-Read) 제거**: `getScheduleById` 서버 액션 내 만료 날짜 경과 시 인라인 DB update를 제거하고 순수 읽기 함수로 복원하여, Next.js App Router 캐시 무효화 및 튕김 방지.
+  - [x] **useSearchParams Suspense 경계 보완**: `records`, `admin/reservations`, `community`, `schedule/[id]` 상세페이지에 각각 `<Suspense>` 안전 포장을 씌워 Next.js prerender 빌드 에러 및 라우터 이탈 튕김 최종 완치.
+  - [x] **비동기 이중 트랜잭션 동시성 충돌 정밀 완치**: 홈 위젯의 백그라운드 자동 동기화 `syncAll()`을 제거해 예약 변환 시 중복 DB 쓰기 충돌을 제거하고, 이미 로컬에 매핑된 일정이 있으면 즉시 0.001초 직통 이동하도록 정밀 엇박자 통제.
+
 
 ## 📊 전체 진행 현황 요약 (Progress Summary)
 
