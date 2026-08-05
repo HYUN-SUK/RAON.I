@@ -1580,7 +1580,8 @@ async function syncHospitals(sido, seenIds, stat) {
     }
   } catch (e) {
     console.error('  ❌ NMC Hospital Sync Error:', e.message);
-    stat.note = '💥 ERROR (조회/통신 실패)';
+    stat.note = `⚠️ 임시 통신장애 (${e.message.slice(0, 25)})`;
+    console.warn(`  [Failsafe Alert] NMC 병원 API 장애로 인해 기존 ${sido} 데이터를 보존한 채 스킵합니다.`);
   }
 }
 
