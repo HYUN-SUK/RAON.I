@@ -266,6 +266,7 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
   while (attempt <= maxRetries) {
     try {
       const mergedOptions = {
+        timeout: 15000, // API 무한 대기(TCP Hang) 방지를 위해 15초 타임아웃 기본 적용
         ...options,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -525,6 +526,40 @@ async function dailyRegionSync() {
 
     console.log(`   - Detected ${regionMap.length} KTO-standard sigungus in ${targetSido}.`);
 
+    // --- [In-Memory Lookup Map Optimization] ---
+    console.log(`🔍 [Popularity] Pre-fetching master_places and smart_plan_facts for in-memory matching...`);
+    const { data: dbSpots } = await supabase
+        .from('master_places')
+        .select('id, name, raw_data')
+        .eq('api_source', 'TOUR_SPOT')
+        .in('sido', aliases);
+
+    const { data: dbSpfs } = await supabase
+        .from('smart_plan_facts')
+        .select('id, name, raw_data')
+        .eq('category', 'SPOT');
+
+    const contentIdMap = new Map();
+    const nameMap = new Map();
+    const idMap = new Map();
+
+    for (const spot of (dbSpots || [])) {
+        const cid = spot.raw_data?.contentid || spot.raw_data?.contentId;
+        if (cid) contentIdMap.set(String(cid), spot);
+        if (spot.name) nameMap.set(spot.name.trim(), spot);
+        idMap.set(spot.id, spot);
+    }
+
+    const spfMap = new Map();
+    for (const spf of (dbSpfs || [])) {
+        if (spf.name) {
+            const cleanN = spf.name.trim();
+            if (!spfMap.has(cleanN)) spfMap.set(cleanN, []);
+            spfMap.get(cleanN).push(spf);
+        }
+    }
+    console.log(`   - Loaded ${dbSpots?.length || 0} spots and ${dbSpfs?.length || 0} facts to memory.`);
+
     for (const reg of regionMap) {
         try {
             const baseYm = await findLatestBaseYm();
@@ -544,65 +579,71 @@ async function dailyRegionSync() {
             const data = await fetchWithRetry(url);
             const items = data.response?.body?.items?.item || [];
 
-                for (let i = 0; i < items.length; i++) {
-                    const item = items[i];
-                    const contentId = String(item.contentId || item.contentid || '');
-                    const title = (item.title || item.name || '').trim();
-                    const addr = item.addr1 || item.address || '';
-                    const rank = i + 1;
-                    const mapx = parseFloat(item.mapx || item.lng || 0);
-                    const mapy = parseFloat(item.mapy || item.lat || 0);
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const contentId = String(item.contentId || item.contentid || '');
+                const title = (item.title || item.name || '').trim();
+                const addr = item.addr1 || item.address || '';
+                const rank = i + 1;
+                const mapx = parseFloat(item.mapx || item.lng || 0);
+                const mapy = parseFloat(item.mapy || item.lat || 0);
 
-                    const ktoPatch = { kto_official: { rank, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
+                const ktoPatch = { kto_official: { rank, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
 
-                    let matchedMpId = null;
+                let matchedMp = null;
 
-                    // 1차 중복 방어: contentId 매핑
-                    if (contentId) {
-                        const { data: mpByCid } = await supabase
-                            .from('master_places')
-                            .select('id, raw_data')
-                            .filter('raw_data->>contentid', 'eq', contentId)
-                            .limit(1);
-                        if (mpByCid && mpByCid.length > 0) matchedMpId = mpByCid[0].id;
-                    }
+                // 1차 중복 방어: contentId 매핑 (메모리 조회)
+                if (contentId && contentIdMap.has(contentId)) {
+                    matchedMp = contentIdMap.get(contentId);
+                }
 
-                    // 2차 중복 방어: cleanName + sido + sigungu 매핑
-                    if (!matchedMpId && title) {
-                        const { data: mpByName } = await supabase
-                            .from('master_places')
-                            .select('id, raw_data')
-                            .in('sido', aliases)
-                            .eq('name', title)
-                            .limit(1);
-                        if (mpByName && mpByName.length > 0) matchedMpId = mpByName[0].id;
-                    }
+                // 2차 중복 방어: cleanName + sido + sigungu 매핑 (메모리 조회)
+                if (!matchedMp && title && nameMap.has(title)) {
+                    matchedMp = nameMap.get(title);
+                }
 
-                    // 3차 중복 방어: deterministic UUID 매핑
-                    const detId = generateId('TOUR_SPOT', title, addr);
-                    if (!matchedMpId) {
-                        const { data: mpByDet } = await supabase
-                            .from('master_places')
-                            .select('id, raw_data')
-                            .eq('id', detId)
-                            .limit(1);
-                        if (mpByDet && mpByDet.length > 0) matchedMpId = mpByDet[0].id;
-                    }
+                // 3차 중복 방어: deterministic UUID 매핑 (메모리 조회)
+                const detId = generateId('TOUR_SPOT', title, addr);
+                if (!matchedMp && idMap.has(detId)) {
+                    matchedMp = idMap.get(detId);
+                }
 
-                    if (matchedMpId) {
-                        // 기존 명소 1:1 패치 합체 (UPDATE) - Direct merge (RPC 미사용)
-                        const { data: currentMp } = await supabase.from('master_places').select('raw_data').eq('id', matchedMpId).single();
-                        const mergedRaw = { ...(currentMp?.raw_data || {}), ...ktoPatch };
+                let matchedMpId = matchedMp ? matchedMp.id : null;
+
+                if (matchedMp) {
+                    // 데이터 갱신 생략 여부 검증 (동일 랭킹 & 동일 일자인 경우 DB UPDATE 차단)
+                    const currentKto = matchedMp.raw_data?.kto_official;
+                    const isSame = currentKto && 
+                                   currentKto.rank === rank && 
+                                   currentKto.baseYm === baseYm;
+
+                    if (!isSame) {
+                        const mergedRaw = { ...(matchedMp.raw_data || {}), ...ktoPatch };
                         await supabase.from('master_places').update({ raw_data: mergedRaw }).eq('id', matchedMpId);
+                        
+                        // 메모리 캐시 상태 즉시 동기화
+                        matchedMp.raw_data = mergedRaw;
+                    }
 
-                        const { data: spfMatches } = await supabase.from('smart_plan_facts').select('id, raw_data').eq('name', title);
-                        if (spfMatches && spfMatches.length > 0) {
-                            for (const spf of spfMatches) {
+                    // Smart Plan Facts 업데이트 검사 및 수행
+                    const spfMatches = spfMap.get(title) || [];
+                    if (spfMatches.length > 0) {
+                        for (const spf of spfMatches) {
+                            const currentSpfKto = spf.raw_data?.kto_official;
+                            const isSpfSame = currentSpfKto && 
+                                              currentSpfKto.rank === rank && 
+                                              currentSpfKto.baseYm === baseYm;
+                            
+                            if (!isSpfSame) {
                                 const updatedSpfRaw = { ...(spf.raw_data || {}), ...ktoPatch };
                                 await supabase.from('smart_plan_facts').update({ raw_data: updatedSpfRaw }).eq('id', spf.id);
+                                
+                                // 메모리 캐시 상태 즉시 동기화
+                                spf.raw_data = updatedSpfRaw;
                             }
                         }
-                    } else {
+                    }
+                } else {
                         // 미존재 신규 명소: 풀 스키마 신규 추가 (INSERT)
                         const newPlaceData = {
                             id: detId,
