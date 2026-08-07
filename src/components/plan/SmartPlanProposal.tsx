@@ -221,7 +221,7 @@ export default function SmartPlanProposal({
                 
                 // [v11.9.52] AI 플랜과 선택된 경로 데이터를 통합하여 영구 저장
                 if (scheduleId) {
-                    const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : 'MID';
+                    const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'UNAVAILABLE');
                     const wrappedData = {
                         wrapped: true,
                         mode: restoredMode,
@@ -374,7 +374,7 @@ export default function SmartPlanProposal({
 
             setPlan(updatedPlan);
             if (scheduleId) {
-                const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : 'MID';
+                const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'UNAVAILABLE');
                 // [v11.9.53] 카드 교체 시에도 선택된 경로 정보가 누락되지 않도록 래핑하여 저장
                 const wrappedData = {
                     wrapped: true,
@@ -383,7 +383,7 @@ export default function SmartPlanProposal({
                     ai_plan: updatedPlan,
                     selected_route: selectedRouteData,
                     selected_midpoint: selectedMidpoint,
-                    weather_window: initialPlan?.weather_window || weatherWindow,
+                    weather_window: weatherWindow,
                     updated_at: new Date().toISOString()
                 };
                 updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
