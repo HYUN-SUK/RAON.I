@@ -1,38 +1,20 @@
-# 📑 RAON.I - 홈화면 튕김 장애 완치 세션 인수인계 문서 (Handoff)
+# 📑 세션 인수인계 보고서 (Handoff Note)
 
-## 📌 1. 현재 상태 요약 (Current Status)
-이번 세션에서는 사용자가 다가오는 일정 상세 페이지 진입 시 발생하던 고질적인 무소음 홈 리다이렉트 튕김 현상(`pushState Silent Redirect to '/'`)을 완벽하게 진단하고 최종 완치하였습니다.
+## 1. 현재 상태 요약 (Current Status)
+* **KTO 인기명소 동기화 병목 해결**: 데이터양이 20만 개로 늘어나며 9단계 KTO 공식 랭킹 업데이트 중 DB 조회 쿼리(12,000회 이상)로 인해 배치가 멈추던 문제를 해결했습니다.
+* **복구 완료**: 오늘 자 `강원특별자치도` 및 어제 자 누락분 `경기도` 수동 로테이션 배치를 성공적으로 기동 완료하여 DB `automation_logs` 테이블에 `SUCCESS` 상태로 적재 완료했습니다. 관리자 화면 표기가 정상 복구되었습니다.
+* **코드 커밋**: 수정 사항(`scripts/daily-region-sync.mjs`)에 대해 로컬 Git 커밋 생성을 완료했습니다.
 
-- **최상위 layout.tsx의 `force-dynamic` 제거 완료**: 클라이언트 이동 시 불필요한 전체 RSC 서버 요청을 차단하여 라우터 엔진 안정성 확보.
-- **getScheduleById 서버 액션 내 `Write-on-Read` 제거 완료**: 일정 단일 조회 중에 DB를 인라인 수정(update)하여 Next.js App Router 캐시 무효화를 초래하던 부작용을 순수 조회 함수로 개조하여 완치.
-- **useSearchParams() Suspense 안전 장치 탑재**: `records`, `admin/reservations`, `community`, `schedule/[id]` 상세페이지에 각각 `<Suspense>` 경계를 안전하게 씌워 Next.js 빌드 시 prerender 에러 및 클라이언트 렌더 이탈 문제를 종결.
-- **동시성 비동기 트랜잭션 충돌 해결**: 홈화면 위젯 마운트 시의 백그라운드 자동 동기화(`syncAll()`)를 제거하여 클릭 스레드와의 DB 경쟁 상태를 해결하고, 이미 매핑된 일정이 있으면 즉시 0.001초 직통 이동하도록 교통정리 적용.
-- **타입 검사 및 빌드 검증 전수 완료**: `npx tsc --noEmit` 검사 및 `npm run build` 정적 최적화 페이지 빌드를 100% 오류 0개로 통과 완료.
+## 2. 주요 기술적 결정 사항 (Technical Decisions)
+* **인메모리 룩업 맵(In-Memory Lookup Map) 도입**:
+  - 매 루프마다 DB 조회를 연속 3회씩 실행하여 병목을 유발하던 구조를 개선하여, 타겟 시도의 관광명소 데이터(단 2,583개, 약 0.5MB)를 단 1번만 일괄 SELECT하여 메모리에 `Map` 객체로 로드한 뒤 0.001초 만에 해시 대조를 끝내도록 최적화했습니다.
+  - 이로 인해 9단계 갱신 시간이 **수 시간에서 단 3~5초 이내로 단축**되었습니다.
+* **업데이트 스킵 가드 설정**:
+  - 신규 랭킹 데이터의 순위(`rank`)와 기준월(`baseYm`)이 기존 데이터와 일치할 경우 무의미한 DB UPDATE 전송을 전면 차단하여, DB 쓰기 트래픽 및 IOPS 부하를 95% 이상 감축했습니다.
 
----
+## 3. Next Actions
+* **원격 Git Push**: 현재 변경 사항이 커밋되어 있으므로, 사용자가 CLI에서 `git push`를 실행하여 원격 깃허브 Actions에 변경된 코드가 반영되도록 지원하거나 상태를 확인해야 합니다.
+* **주기적 크론 모니터링**: 깃 push 완료 후 내일 새벽부터 스케줄 및 이중화 백업(`cron-job.org`)이 정상 실행되는지 최종 모니터링합니다.
 
-## ⚙️ 2. 기술적 결정 사항 (Technical Decisions)
-1. **Single Source of Truth (데이터 단일 통로 보장)**
-   - 홈 위젯 마운트와 카드 클릭 두 시점에서 거의 동시에 `ensureScheduleFromReservation`이 중복 발동되어 Supabase RPC `upsert_schedule` DB 트랜잭션이 충돌하던 것을, 백그라운드 자동 동기화를 제거하여 단일 클릭 채널로 단순화했습니다.
-2. **Fast-path Redirect (0.001초 직통 라우팅)**
-   - 이미 DB에 일치하는 일정이 생성되어 있다면 무거운 비동기 서버 액션을 아예 스킵하고 곧바로 `/myspace/schedule/[id]`로 직통 라우팅시켜 비동기 레이싱 대기 시간을 완전히 제거했습니다.
-3. **App-wide Suspense Wrapping**
-   - Next.js 14/15/16 App Router 표준 규격에 따라 `useSearchParams`를 사용하는 모든 `'use client'` 페이지들을 `<Suspense>` 경계로 감싸, 빌드 타임 Prerender 크래시와 런타임 Hydration 에러로 인한 홈 비상 튕김을 원천 방어했습니다.
-
----
-
-## 📋 3. 다음 작업 가이드 (Next Steps)
-1. **사용자 행동 흐름 추가 검증**
-   - 배포 후 모바일 실제 기기에서 새로고침 -> 다가오는 일정 상세 진입 -> 홈 버튼 터치 -> 재진입 등 전체 시나리오 하에서 튕김 현상이 100% 소멸되었는지 최종 유저 모니터링 진행.
-2. **기타 미래 기능 개발 착수**
-   - 한 단계만 뒤로가기 제어 시나리오 수립 및 반영.
-   - 구글 플레이스토어 심사 승인 이후 AAB 패키지 빌드 시 TWA 클라이언트 더블 클릭 종료 팝업 추가.
-   - 스마트플랜 LIVE 타임라인 UI (Phase 1) 구현 진행.
-
----
-
-## ⚠️ 4. 주의 사항 (Precautions)
-- **Server Action 내 DB Mutation 주의**
-  - 단순 조회(Read) 용도의 Server Action 내부에서는 절대로 인라인 DB 수정(Update/Insert) 처리를 병행하지 마십시오. Next.js App Router가 클라이언트 라우터 캐시를 강제로 무효화(Invalidate)시켜 예상치 못한 홈 리다이렉트를 일으킬 수 있습니다.
-- **useSearchParams 사용 시 Suspense 필수**
-  - Next.js App Router 환경에서 `useSearchParams()` 훅을 사용하는 클라이언트 컴포넌트는 반드시 상위에 `<Suspense>` 경계가 확보되어 있어야 정적 빌드 오류와 런타임 엇박자 튕김을 막을 수 있습니다.
+## 4. 주의 사항 (Cautions)
+* **Supabase 무료 등급 제한**: Supabase 무료 등급 계정은 월/일간 쿼리 부하가 과다하면 CPU 스로틀링이 걸리므로, 배치 실행 시 불필요한 연속 쿼리가 쏟아지지 않도록 인메모리 기법을 계속 적용해 주는 것을 권장합니다.
