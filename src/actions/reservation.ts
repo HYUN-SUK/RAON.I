@@ -90,6 +90,17 @@ export async function updateReservationStatusAction(
                 id
             );
             console.log(`[Action] Notification result:`, pushResult);
+
+            // [v11.9.75] 예약 취소(CANCELLED) 처리 성공 시, 빈자리 대기자들에게 자동으로 알림 즉시 발송
+            if (status === 'CANCELLED') {
+                try {
+                    const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
+                    // DB에서 읽어온 reservation.check_in_date는 'YYYY-MM-DD' 문자열이므로 타임존 밀림 없이 100% 안전
+                    await notifyWaitlistUsers(reservation.check_in_date, reservation.site_id);
+                } catch (waitlistErr) {
+                    console.error('[Action] Waitlist notify trigger failed:', waitlistErr);
+                }
+            }
         }
     } catch (notifErr) {
         console.error('[Action] Notification dispatch internal error:', notifErr);
