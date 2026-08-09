@@ -3,7 +3,7 @@
  * - true: 예약 방어 가동 (tootg@naver.com 및 admin만 허용, 그 외 8월 초 안내 팝업 후 홈 이동)
  * - false: 예약 방어 즉시 해제 (모든 사용자 정상 예약 가능)
  */
-export const IS_RESERVATION_LOCKED = true;
+export const IS_RESERVATION_LOCKED = false;
 
 // 허용 이메일 목록
 export const ALLOWED_RESERVATION_EMAILS = [
