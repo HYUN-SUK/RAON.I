@@ -25,7 +25,10 @@ export default function ReservationCompletePage() {
 
     useEffect(() => {
         if (reservations.length > 0) {
-            const latest = reservations[reservations.length - 1];
+            // [v11.9.108] 과거 취소된 예약 등 인덱스 꼬임을 원천 방지하기 위해 생성시간 순으로 확실하게 정렬
+            const latest = [...reservations].sort((a, b) => 
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )[reservations.length - 1];
             setLatestReservation(latest);
             if (latest.status === 'CONFIRMED' || latest.status === 'PENDING') {
                 setShowGuideModal(true);
@@ -170,7 +173,7 @@ export default function ReservationCompletePage() {
                         onClick={() => router.push('/myspace')}
                         className="flex-1 bg-[#2F5233] hover:bg-[#233e26] text-white py-4 rounded-xl font-bold transition-colors"
                     >
-                        내 공간으로 이동
+                        내 수첩으로 가기
                     </button>
                 </div>
             </div>

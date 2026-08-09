@@ -100,6 +100,14 @@ export async function updateReservationStatusAction(
                 } catch (waitlistErr) {
                     console.error('[Action] Waitlist notify trigger failed:', waitlistErr);
                 }
+
+                // [v11.9.108] 예약 취소 시 연동된 일정 상태도 함께 취소('cancelled') 상태로 업데이트
+                try {
+                    const { cancelScheduleByReservation } = await import('./schedule');
+                    await cancelScheduleByReservation(id);
+                } catch (schedErr) {
+                    console.error('[Action] Cancel schedule trigger failed:', schedErr);
+                }
             }
         }
     } catch (notifErr) {

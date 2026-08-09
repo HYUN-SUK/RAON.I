@@ -262,9 +262,17 @@ export default function ReservationPage() {
                                 ? activeConfig.closedMessage
                                 : (isOpen
                                     ? `${format(activeConfig.closeAt, 'MM월 dd일')}까지 예약 가능합니다.\n${
-                                    // Next Season Logic for Monthly
+                                    // Next Season Logic for Monthly (오픈일 지나면 다음 달로 자동 롤오버)
                                     openDayRule?.repeat_rule === 'MONTHLY'
-                                        ? `(다음시즌 오픈일 ${format(startOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 1, openDayRule?.automation_config?.triggerDay || 1)), 'MM월 dd일')})`
+                                        ? (() => {
+                                            const triggerDay = openDayRule?.automation_config?.triggerDay || 1;
+                                            const today = new Date();
+                                            const year = today.getFullYear();
+                                            const month = today.getMonth();
+                                            const targetMonth = today.getDate() <= triggerDay ? month : month + 1;
+                                            const openDate = startOfDay(new Date(year, targetMonth, triggerDay));
+                                            return `(다음시즌 오픈일 ${format(openDate, 'MM월 dd일')})`;
+                                        })()
                                         : activeConfig.nextSeasonOpenAt
                                             ? `(다음시즌 오픈일 ${format(activeConfig.nextSeasonOpenAt, 'MM월 dd일')})`
                                             : ''

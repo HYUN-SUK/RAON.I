@@ -820,6 +820,14 @@ export const useReservationStore = create<ReservationState>()(
                                 : res
                         )
                     }));
+
+                    // [v11.9.108] 환불 완료 성공 시 연동된 일정 상태도 함께 취소('cancelled') 상태로 업데이트
+                    try {
+                        const { cancelScheduleByReservation } = await import('@/actions/schedule');
+                        await cancelScheduleByReservation(reservationId);
+                    } catch (schedErr) {
+                        console.error('[completeRefund] Cancel schedule trigger failed:', schedErr);
+                    }
                 }
 
                 return result;

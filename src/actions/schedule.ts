@@ -697,3 +697,23 @@ export async function updateSmartPlanData(scheduleId: string, planData: any): Pr
 
     return { success: true };
 }
+
+/**
+ * 예약 취소 시 연동된 일정 상태를 'cancelled'로 변경 [v11.9.108]
+ */
+export async function cancelScheduleByReservation(reservationId: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('user_schedules')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('reservation_id', reservationId);
+
+    if (error) {
+        console.error('[cancelScheduleByReservation] Failed to cancel schedule by reservation:', error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/myspace/schedule');
+    return { success: true };
+}

@@ -76,7 +76,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
             const checkOut = new Date(r.checkOutDate);
             checkOut.setHours(0, 0, 0, 0);
             if (checkOut <= today) return false;
-            return r.status === 'PENDING' || r.status === 'CONFIRMED';
+            return r.status === 'PENDING' || r.status === 'CONFIRMED' || r.status === 'REFUND_PENDING';
         });
     }, [reservations, today]);
 
@@ -352,14 +352,16 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                             <div className={`absolute -inset-0.5 bg-gradient-to-r rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-500
                                 ${status === 'PENDING' ? 'from-yellow-500 to-orange-500' :
                                     status === 'CONFIRMED' ? 'from-brand-1 to-brand-2' :
-                                        'from-red-500 to-pink-500'}`}
+                                        status === 'REFUND_PENDING' ? 'from-amber-600 to-orange-600' :
+                                            'from-red-500 to-pink-500'}`}
                             ></div>
 
                             <div className="relative bg-white rounded-3xl overflow-hidden shadow-medium border border-surface-2">
                                 <div className={`p-5 relative overflow-hidden transition-colors
                                     ${status === 'PENDING' ? 'bg-yellow-500' :
                                         status === 'CONFIRMED' ? 'bg-[#2F5233]' :
-                                            'bg-gray-600'}`}
+                                            status === 'REFUND_PENDING' ? 'bg-amber-600' :
+                                                'bg-gray-600'}`}
                                 >
                                     <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:16px_16px]"></div>
 
@@ -374,6 +376,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         </div>
                                         <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
                                             {status === 'PENDING' && <><Clock size={12} /> 입금 대기</>}
+                                            {status === 'REFUND_PENDING' && <><Clock size={12} /> 취소/환불 대기</>}
                                             {status === 'CONFIRMED' && (
                                                 diffDays <= 0 ? (
                                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse border border-orange-200/40">
@@ -442,10 +445,11 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                     <div className="flex gap-3">
                                         <button className={`flex-1 py-3 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-1 group/btn
                                             ${status === 'PENDING' ? 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20' :
-                                                status === 'CONFIRMED' ? 'bg-brand-1 hover:bg-brand-2 shadow-brand-1/20' :
-                                                    'bg-gray-500 hover:bg-gray-600'}`}
+                                                status === 'REFUND_PENDING' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' :
+                                                    status === 'CONFIRMED' ? 'bg-brand-1 hover:bg-brand-2 shadow-brand-1/20' :
+                                                        'bg-gray-500 hover:bg-gray-600'}`}
                                         >
-                                            {status === 'PENDING' ? '예약 확인하기' : '상세보기'}
+                                            상세보기
                                             <ChevronRight size={16} className="opacity-70 group-hover/btn:translate-x-1 transition-transform" />
                                         </button>
 
