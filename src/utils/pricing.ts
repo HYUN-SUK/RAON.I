@@ -99,10 +99,28 @@ export const calculatePrice = (
         const isPeak = isPeakSeason(currentDate, config);
         const isHigh = isHighDemandDay(currentDate, holidays);
 
-        // 일요일이면서 입실일이 일요일인 경우 → 평일 취급
-        const isSundayAsWeekday = currentDate.getDay() === 0 && checkInDay === 0;
+        // [v11.9.72] 연휴 마지막 날 평일가 할인 규칙:
+        // 일요일 또는 공휴일인데 다음 날이 평일(출근날)이고, 요일이 일(0)~수(3) 사이이며,
+        // 현재 요일이 예약 입실 요일과 같을 때 한해 평일가 적용. (목요일 공휴일 등은 주말가 보존)
+        const isCurrentSunday = currentDate.getDay() === 0;
+        const isCurrentHoliday = checkIsHoliday(currentDate, holidays);
+        const isSundayOrHoliday = isCurrentSunday || isCurrentHoliday;
 
-        if (isHigh && !isSundayAsWeekday) {
+        const nextDate = addDays(currentDate, 1);
+        const isNextDayHoliday = checkIsHoliday(nextDate, holidays);
+        const isNextDayWeekend = nextDate.getDay() === 6 || nextDate.getDay() === 0;
+        const isNextDayWorkday = !isNextDayHoliday && !isNextDayWeekend;
+
+        const currentDayOfWeek = currentDate.getDay();
+        const isTargetDayOfWeek = currentDayOfWeek >= 0 && currentDayOfWeek <= 3;
+
+        const isSpeciallyWeekday = 
+            isSundayOrHoliday && 
+            isNextDayWorkday && 
+            isTargetDayOfWeek && 
+            checkInDay === currentDayOfWeek;
+
+        if (isHigh && !isSpeciallyWeekday) {
             basePrice += isPeak ? peakWeekend : weekend;
         } else {
             basePrice += isPeak ? peakWeekday : weekday;
