@@ -779,8 +779,8 @@ export const useReservationStore = create<ReservationState>()(
                             params.reservationId
                         ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
 
-                        // 빈자리 알림 발송 (Server Action 호출)
-                        const checkInDateStr = targetReservation.checkInDate.toISOString().split('T')[0];
+                        // 빈자리 알림 발송 (Server Action 호출 - 로컬 KST 날짜 기준 보존)
+                        const checkInDateStr = formatLocalDate(targetReservation.checkInDate);
                         import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
                             notifyWaitlistUsers(checkInDateStr, targetReservation.siteId)
                                 .catch(err => console.error('[Store] Waitlist Notify Failed:', err));

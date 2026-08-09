@@ -123,6 +123,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
         base_price: 0,
         max_occupancy: 4,
         image_url: '',
+        image_urls: [] as string[],
         features: '', 
         is_active: true,
         // 신규 추가된 4대 요금 커스텀 필드
@@ -152,6 +153,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                         base_price: rawSite.base_price,
                         max_occupancy: rawSite.max_occupancy ?? rawSite.capacity ?? 4,
                         image_url: rawSite.image_url || '',
+                        image_urls: rawSite.image_urls || [],
                         features: rawSite.features ? rawSite.features.join(', ') : '',
                         is_active: rawSite.is_active,
                         weekday: rawSite.weekday !== null && rawSite.weekday !== undefined ? String(rawSite.weekday) : '',
@@ -175,21 +177,50 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
         }
     }, [id, supabase, router]);
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUploadAtIndex = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         try {
             setSaving(true);
             const url = await communityService.uploadImage(file);
-            setFormData(prev => ({ ...prev, image_url: url }));
-            toast.success('이미지가 업로드되었습니다.');
+            setFormData(prev => {
+                const newUrls = [...(prev.image_urls || [])];
+                while (newUrls.length <= index) {
+                    newUrls.push('');
+                }
+                newUrls[index] = url;
+                const mainUrl = newUrls[0] || url;
+                return { 
+                    ...prev, 
+                    image_urls: newUrls, 
+                    image_url: mainUrl 
+                };
+            });
+            toast.success(`${index + 1}번 이미지가 업로드되었습니다.`);
         } catch (error) {
             console.error(error);
             toast.error('이미지 업로드 실패');
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleImageDeleteAtIndex = (index: number) => {
+        setFormData(prev => {
+            const newUrls = [...(prev.image_urls || [])];
+            newUrls[index] = '';
+            while (newUrls.length > 0 && newUrls[newUrls.length - 1] === '') {
+                newUrls.pop();
+            }
+            const mainUrl = newUrls[0] || '';
+            return {
+                ...prev,
+                image_urls: newUrls,
+                image_url: mainUrl
+            };
+        });
+        toast.info(`${index + 1}번 이미지가 제거되었습니다.`);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -209,6 +240,7 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
                 base_price: formData.base_price,
                 max_occupancy: formData.max_occupancy,
                 image_url: formData.image_url,
+                image_urls: formData.image_urls,
                 features: featuresArray,
                 is_active: formData.is_active,
                 weekday: formData.weekday ? Number(formData.weekday) : undefined,
@@ -249,27 +281,59 @@ export default function AdminSiteEditPage({ params }: { params: Promise<{ id: st
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Left Column: Image & Status */}
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-                        <Label>사이트 이미지</Label>
-                        <div className="aspect-video relative bg-gray-100 rounded-lg overflow-hidden border">
-                            {formData.image_url ? (
-                                <Image
-                                    src={formData.image_url}
-                                    alt="Preview"
-                                    fill
-                                    className="object-cover"
-                                    unoptimized
-                                />
-                            ) : (
-                                <div className="flex items-center justify-center h-full text-gray-400">
-                                    <ImageIcon className="w-8 h-8 opacity-50" />
-                                </div>
-                            )}
+                    <div className="bg-white p-6 rounded-xl border shadow-sm space-y-6">
+                        <div>
+                            <Label className="font-bold text-base">사이트 이미지 (최대 3장)</Label>
+                            <p className="text-xs text-gray-500 mt-1">
+                                첫 번째 이미지가 대표 이미지로 지정되며, 사용자 상세화면에서 가로 스와이프로 노출됩니다.
+                            </p>
                         </div>
-                        <Input type="file" accept="image/*" onChange={handleImageUpload} />
-                        <p className="text-xs text-gray-500">
-                            예약 페이지 및 상세 보기에 표시될 메인 이미지입니다.
-                        </p>
+                        
+                        <div className="grid grid-cols-3 gap-3">
+                            {[0, 1, 2].map((idx) => {
+                                const url = formData.image_urls?.[idx] || (idx === 0 ? formData.image_url : '');
+                                return (
+                                    <div key={idx} className="space-y-2">
+                                        <div className="aspect-square relative bg-gray-50 rounded-lg overflow-hidden border flex flex-col items-center justify-center group">
+                                            {url ? (
+                                                <>
+                                                    <Image
+                                                        src={url}
+                                                        alt={`Slot ${idx + 1}`}
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleImageDeleteAtIndex(idx)}
+                                                        className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-600 text-white rounded-full p-1 shadow transition-colors"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                    {idx === 0 && (
+                                                        <span className="absolute bottom-1 left-1 bg-green-600/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+                                                            대표
+                                                        </span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div className="text-center p-2 text-gray-400">
+                                                    <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-40" />
+                                                    <span className="text-[10px] block font-medium">슬롯 {idx + 1}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleImageUploadAtIndex(idx, e)}
+                                            className="text-xs file:text-xs px-1 py-0.5 h-auto cursor-pointer"
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">

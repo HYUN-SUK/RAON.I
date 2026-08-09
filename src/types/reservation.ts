@@ -10,6 +10,7 @@ export interface Site {
     maxOccupancy: number;
     imageUrl: string;
     features: string[];
+    imageUrls?: string[];
     isActive?: boolean;
     weekday?: number;
     weekend?: number;

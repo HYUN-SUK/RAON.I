@@ -1,11 +1,9 @@
 import { createClient } from '@/lib/supabase-server';
 import ReservationForm from '@/components/reservation/ReservationForm';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 import SitePriceDisplay from '@/components/reservation/SitePriceDisplay';
 import { Site } from '@/types/reservation';
+import SiteImageSlider from '@/components/reservation/SiteImageSlider';
 
 export const revalidate = 3600; // Cache and revalidate every hour
 
@@ -46,6 +44,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             basePrice: siteData.base_price,
             maxOccupancy: raw.max_occupancy ?? raw.capacity ?? 4,
             imageUrl: siteData.image_url || '/images/tent_view_hero.png',
+            imageUrls: siteData.image_urls || [],
             features: siteData.features || [],
             isActive: raw.is_active !== false,
             weekday: raw.weekday || undefined,
@@ -56,18 +55,11 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] text-white pb-24">
-            <div className="relative h-[40vh] w-full">
-                <Image
-                    src={site.imageUrl}
-                    alt={site.name}
-                    fill
-                    className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#1a1a1a]" />
-                <Link href="/reservation" className="absolute top-6 left-4 p-2 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-white/10 transition-colors">
-                    <ArrowLeft className="w-6 h-6" />
-                </Link>
-            </div>
+            <SiteImageSlider
+                imageUrls={site.imageUrls || []}
+                siteName={site.name}
+                fallbackUrl={site.imageUrl}
+            />
 
             <div className="px-5 -mt-10 relative z-10">
                 <div className="bg-[#1a1a1a]/80 backdrop-blur-xl border border-white/10 rounded-t-3xl p-6 shadow-2xl">
