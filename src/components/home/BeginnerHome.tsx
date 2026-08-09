@@ -566,7 +566,7 @@ export default function BeginnerHome() {
                                         className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
                                         onClick={() => handleProtectedAction(() => router.push('/reservation'))}
                                     >
-                                        예약 가능 날짜 보기
+                                        예약 하러 가기!
                                     </Button>
                                     <p className="text-center text-xs text-stone-400 mt-2">
                                         {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
