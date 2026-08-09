@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -14,6 +14,11 @@ interface SiteImageSliderProps {
 export default function SiteImageSlider({ imageUrls, siteName, fallbackUrl }: SiteImageSliderProps) {
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // 상세화면 최초 마운트 시, 브라우저 스크롤을 무조건 최상단으로 강제 초기화 (Next.js 스크롤 복원 버그 가드)
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }, []);
 
     // 유효한 이미지 주소만 필터링 (빈 문자열 제거)
     const validImages = imageUrls.filter((url) => url && url.trim().length > 0);
