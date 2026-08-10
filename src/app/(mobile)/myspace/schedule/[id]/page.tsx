@@ -838,14 +838,28 @@ function ScheduleDetailContent() {
                                 })()}
                             </div>
                         );
-                    })() : (
-                        <SmartPlanProposal
-                            key={planKey}
-                            scheduleId={schedule.id}
-                            initialPlan={isReconstructing ? null : schedule.smart_plan_data}
-                            userId={userId}
-                            userEmail={userEmail}
-                            liveWeather={weather}
+                    })() : (() => {
+                        const createdAtDateForPreview = new Date(schedule.created_at);
+                        const unlockTimeByCreationForPreview = new Date(createdAtDateForPreview);
+                        if (createdAtDateForPreview.getHours() < 5) {
+                            unlockTimeByCreationForPreview.setHours(9, 0, 0, 0);
+                        } else {
+                            unlockTimeByCreationForPreview.setDate(unlockTimeByCreationForPreview.getDate() + 1);
+                            unlockTimeByCreationForPreview.setHours(9, 0, 0, 0);
+                        }
+
+                        const isPreviewMode = (new Date() < unlockTimeByCreationForPreview && !schedule.smart_plan_data) || 
+                                              ((schedule.smart_plan_data as any)?.is_preview === true && !isReconstructing);
+
+                        return (
+                            <SmartPlanProposal
+                                key={planKey}
+                                scheduleId={schedule.id}
+                                initialPlan={isReconstructing ? null : schedule.smart_plan_data}
+                                isPreviewMode={isPreviewMode}
+                                userId={userId}
+                                userEmail={userEmail}
+                                liveWeather={weather}
                             location={{
                                 lat: schedule.campground_lat || 36.67,
                                 lng: schedule.campground_lng || 126.84
@@ -868,7 +882,8 @@ function ScheduleDetailContent() {
                                 setIsReconstructing(false);
                             }}
                         />
-                    )}
+                        );
+                    })()}
                 </div>
 
                 {/* 메모 */}

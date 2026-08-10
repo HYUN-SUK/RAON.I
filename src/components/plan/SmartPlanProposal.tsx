@@ -17,6 +17,7 @@ import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatt
 interface SmartPlanProposalProps {
     scheduleId?: string;
     initialPlan?: any;
+    isPreviewMode?: boolean;
     userId?: string;
     userEmail?: string;
     location: { lat: number; lng: number };
@@ -65,6 +66,7 @@ const CATEGORY_NAMES: Record<string, string> = {
 export default function SmartPlanProposal({
     scheduleId,
     initialPlan,
+    isPreviewMode = false,
     userId,
     userEmail,
     location,
@@ -498,8 +500,8 @@ export default function SmartPlanProposal({
         );
     }
 
-    // 3. Step 1: Route Selection (맛보기 모드 시 카카오내비 API 자동 호출 100% 차단)
-    if (!plan && !proPlan && userOrigin && !selectedMidpoint && !(initialPlan as any)?.is_preview) {
+    // 3. Step 1: Route Selection (맛보기 모드 시 카카오내비 API 자동 호출 100% 차단, 정밀 모드는 정상 마운트)
+    if (!plan && !proPlan && userOrigin && !selectedMidpoint && !isPreviewMode) {
         return (
             <div ref={routeSelectorRef} className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <RouteSelector 
