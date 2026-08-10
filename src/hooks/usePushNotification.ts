@@ -11,9 +11,53 @@ export function usePushNotification() {
     const [fcmToken, setFcmToken] = useState<string | null>(null);
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            setPermission(Notification.permission);
+        if (typeof window !== 'undefined') {
+            if ('Notification' in window) {
+                setPermission(Notification.permission);
+            }
+
+            // [v12.0.1] 안드로이드 앱 기기에서 전송할 전역 브릿지 함수 바인딩
+            (window as any).onReceiveAndroidToken = async (token: string) => {
+                console.log('[Android Bridge] Received Device Token:', token);
+                if (!token) return;
+
+                try {
+                    const supabase = createClient();
+                    const { data: { user } } = await supabase.auth.getUser();
+
+                    if (user) {
+                        // 중복 업서트 방지를 위해 로컬스토리지 대조
+                        const lastToken = localStorage.getItem('last_synced_fcm_token');
+                        if (lastToken !== token) {
+                            const { error: upsertErr } = await supabase.from('push_tokens').upsert({
+                                token,
+                                user_id: user.id,
+                                device_type: 'android',
+                                is_active: true,
+                                last_updated_at: new Date().toISOString()
+                            });
+
+                            if (upsertErr) {
+                                console.warn('[Android Bridge] Token sync failed:', upsertErr.message);
+                            } else {
+                                localStorage.setItem('last_synced_fcm_token', token);
+                                console.log('[Android Bridge] Device Token successfully synced to Supabase.');
+                            }
+                        } else {
+                            console.log('[Android Bridge] Token already synced. Skipping...');
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[Android Bridge] Error in token handler:', err);
+                }
+            };
         }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                delete (window as any).onReceiveAndroidToken;
+            }
+        };
     }, []);
 
     const requestPermission = useCallback(async (force?: boolean) => {
