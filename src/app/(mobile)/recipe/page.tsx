@@ -21,6 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import LocationPermissionPrompt from "@/components/permission/LocationPermissionPrompt";
 
 // Define TS Interfaces for safety
 interface CategoryNode {
@@ -58,6 +59,7 @@ export default function TravelRecipePage() {
     const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [localQuery, setLocalQuery] = useState<string>('');
+    const [showLocationPrompt, setShowLocationPrompt] = useState<boolean>(false);
 
     useEffect(() => {
         setIsMounted(true);
@@ -287,14 +289,9 @@ export default function TravelRecipePage() {
         return weatherResult;
     };
  
-    const handleRecommendRecipe = () => {
-        if (filteredRecipes.length === 0) {
-            toast.error("현재 조건에 맞는 레시피 정보가 없습니다.");
-            return;
-        }
- 
+    // 1. 실제 레시피 추천 실행 로직
+    const executeRecommendRecipe = async () => {
         setRecommending(true);
- 
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
@@ -308,6 +305,28 @@ export default function TravelRecipePage() {
             },
             { timeout: 7000 }
         );
+    };
+
+    // Client-side Recipe scoring and recommendation handler (분기 핸들러)
+    const handleRecommendRecipe = async () => {
+        if (filteredRecipes.length === 0) {
+            toast.error("현재 조건에 맞는 레시피 정보가 없습니다.");
+            return;
+        }
+
+        if (typeof navigator !== 'undefined' && navigator.permissions) {
+            try {
+                const status = await navigator.permissions.query({ name: 'geolocation' });
+                if (status.state === 'denied' || status.state === 'prompt') {
+                    setShowLocationPrompt(true);
+                    return;
+                }
+            } catch (e) {
+                // Pass through if permissions.query is unsupported (Safari, etc.)
+            }
+        }
+
+        await executeRecommendRecipe();
     };
  
     const processRecommendation = async (lat: number, lng: number) => {
@@ -909,6 +928,22 @@ export default function TravelRecipePage() {
                     selectedParentId={selectedParentId}
                 />
             )}
+
+            <LocationPermissionPrompt
+                isOpen={showLocationPrompt}
+                onAccept={async () => {
+                    setShowLocationPrompt(false);
+                    await executeRecommendRecipe();
+                }}
+                onDismiss={async () => {
+                    setShowLocationPrompt(false);
+                    // 위치 거절 시 기본 좌표로 추천 강제 기동
+                    setRecommending(true);
+                    const DEFAULT_LAT = 36.7821;
+                    const DEFAULT_LNG = 126.8324;
+                    await processRecommendation(DEFAULT_LAT, DEFAULT_LNG);
+                }}
+            />
         </div>
     );
 }

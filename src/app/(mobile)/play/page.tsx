@@ -18,6 +18,7 @@ import {
     List
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import LocationPermissionPrompt from "@/components/permission/LocationPermissionPrompt";
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import PlayTimer from '@/components/play/PlayTimer';
@@ -61,6 +62,7 @@ export default function PlayExplorerPage() {
     const [plays, setPlays] = useState<PlayItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [recommending, setRecommending] = useState<boolean>(false);
+    const [showLocationPrompt, setShowLocationPrompt] = useState<boolean>(false);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [localQuery, setLocalQuery] = useState<string>('');
 
@@ -334,16 +336,9 @@ export default function PlayExplorerPage() {
         return weatherResult;
     };
 
-    // Client-side Play scoring and recommendation handler
-    const handleRecommendPlay = () => {
-        if (filteredPlays.length === 0) {
-            toast.error("현재 조건에 맞는 놀이 정보가 없습니다.");
-            return;
-        }
-
+    // 1. 실제 추천 실행 처리 로직
+    const executeRecommendPlay = async () => {
         setRecommending(true);
-
-        // Geolocation call
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
@@ -357,6 +352,28 @@ export default function PlayExplorerPage() {
             },
             { timeout: 7000 }
         );
+    };
+
+    // Client-side Play scoring and recommendation handler (분기 핸들러)
+    const handleRecommendPlay = async () => {
+        if (filteredPlays.length === 0) {
+            toast.error("현재 조건에 맞는 놀이 정보가 없습니다.");
+            return;
+        }
+
+        if (typeof navigator !== 'undefined' && navigator.permissions) {
+            try {
+                const status = await navigator.permissions.query({ name: 'geolocation' });
+                if (status.state === 'denied' || status.state === 'prompt') {
+                    setShowLocationPrompt(true);
+                    return;
+                }
+            } catch (e) {
+                // Pass through if permissions.query is unsupported (Safari, etc.)
+            }
+        }
+
+        await executeRecommendPlay();
     };
 
     const processRecommendation = async (lat: number, lng: number) => {
@@ -975,6 +992,22 @@ export default function PlayExplorerPage() {
                     </div>
                 </div>
             )}
+
+            <LocationPermissionPrompt
+                isOpen={showLocationPrompt}
+                onAccept={async () => {
+                    setShowLocationPrompt(false);
+                    await executeRecommendPlay();
+                }}
+                onDismiss={async () => {
+                    setShowLocationPrompt(false);
+                    // 위치 거절 시 기본 좌표로 추천 강제 기동
+                    setRecommending(true);
+                    const DEFAULT_LAT = 36.7821;
+                    const DEFAULT_LNG = 126.8324;
+                    await processRecommendation(DEFAULT_LAT, DEFAULT_LNG);
+                }}
+            />
         </div>
     );
 }

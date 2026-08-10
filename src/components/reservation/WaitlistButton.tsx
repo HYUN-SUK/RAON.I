@@ -10,6 +10,8 @@ import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
+import { usePushNotification } from '@/hooks/usePushNotification';
+import PushPermissionPrompt from '@/components/permission/PushPermissionPrompt';
 
 interface WaitlistButtonProps {
     targetDate: string; // YYYY-MM-DD
@@ -20,6 +22,8 @@ interface WaitlistButtonProps {
 export default function WaitlistButton({ targetDate, siteId, siteName }: WaitlistButtonProps) {
     const [loading, setLoading] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
+    const [showPushPrompt, setShowPushPrompt] = useState(false);
+    const { requestPermission } = usePushNotification();
     const supabase = createClient();
 
     // 초기 상태 확인
@@ -50,8 +54,8 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [targetDate, siteId]);
 
-    // 대기 신청
-    const handleRegister = async () => {
+    // 대기 신청 실제 처리 로직
+    const executeRegister = async () => {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -86,6 +90,17 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
         } finally {
             setLoading(false);
         }
+    };
+
+    // 대기 신청 분기 핸들러
+    const handleRegister = async () => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission !== 'granted') {
+                setShowPushPrompt(true);
+                return;
+            }
+        }
+        await executeRegister();
     };
 
     // 대기 취소
@@ -136,18 +151,34 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
     }
 
     return (
-        <Button
-            size="sm"
-            onClick={handleRegister}
-            disabled={loading}
-            className="gap-1.5 bg-[#1C4526] text-white shadow-md hover:bg-[#153d1f] hover:shadow-lg transition-all duration-300 animate-pulse hover:animate-none text-xs px-3 py-1.5"
-        >
-            {loading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-                <Bell className="w-3.5 h-3.5" />
-            )}
-            빈자리 알림
-        </Button>
+        <>
+            <Button
+                size="sm"
+                onClick={handleRegister}
+                disabled={loading}
+                className="gap-1.5 bg-[#1C4526] text-white shadow-md hover:bg-[#153d1f] hover:shadow-lg transition-all duration-300 animate-pulse hover:animate-none text-xs px-3 py-1.5"
+            >
+                {loading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                    <Bell className="w-3.5 h-3.5" />
+                )}
+                빈자리 알림
+            </Button>
+
+            <PushPermissionPrompt
+                isOpen={showPushPrompt}
+                onAccept={async () => {
+                    setShowPushPrompt(false);
+                    await requestPermission();
+                    await executeRegister();
+                }}
+                onDismiss={async () => {
+                    setShowPushPrompt(false);
+                    toast.info('알림이 거부되어 빈자리가 발생해도 알림 메시지를 수신하지 못할 수 있습니다.');
+                    await executeRegister();
+                }}
+            />
+        </>
     );
 }

@@ -8,6 +8,8 @@ import { ko } from 'date-fns/locale';
 import { CheckCircle2, Clock, AlertCircle, Copy, Home } from 'lucide-react';
 import Image from 'next/image';
 import { useReservationGuard } from '@/hooks/useReservationGuard';
+import { usePushNotification } from '@/hooks/usePushNotification';
+import PushPermissionPrompt from '@/components/permission/PushPermissionPrompt';
 
 export default function ReservationCompletePage() {
     const router = useRouter();
@@ -16,7 +18,21 @@ export default function ReservationCompletePage() {
     const [latestReservation, setLatestReservation] = useState<any>(null);
     const [copied, setCopied] = useState(false);
     const [showGuideModal, setShowGuideModal] = useState(false);
+    const [showPushPrompt, setShowPushPrompt] = useState(false);
+    const { requestPermission } = usePushNotification();
     const notificationSentRef = useRef(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission !== 'granted') {
+                // 예약 완료 최초 로드 시 1.5초 딜레이 후 실시간 알림 동의 권장 팝업 노출
+                const timer = setTimeout(() => {
+                    setShowPushPrompt(true);
+                }, 1500);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         fetchSites();
@@ -201,6 +217,15 @@ export default function ReservationCompletePage() {
                     </div>
                 </div>
             )}
+
+            <PushPermissionPrompt
+                isOpen={showPushPrompt}
+                onAccept={async () => {
+                    await requestPermission();
+                    setShowPushPrompt(false);
+                }}
+                onDismiss={() => setShowPushPrompt(false)}
+            />
         </div>
     );
 }
