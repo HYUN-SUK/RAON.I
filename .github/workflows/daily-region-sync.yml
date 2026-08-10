@@ -1,9 +1,10 @@
 name: RAONAI Daily Region Sync (17-Day Rotation)
 
 on:
-  schedule:
-    # 04:37 KST 실행 (UTC 19:37) - 트래픽이 덜 몰리는 분 단위로 우회
-    - cron: '37 19 * * *'
+  # [v12.0.1] 깃허브 자체 스케줄러는 대기열 지연이 심해 외부 정시 크론잡(workflow_dispatch)만 단독 사용하도록 중복 제거
+  # schedule:
+  #   # 04:37 KST 실행 (UTC 19:37) - 트래픽이 덜 몰리는 분 단위로 우회
+  #   - cron: '37 19 * * *'
   workflow_dispatch: # 수동 트리거 허용
 
 jobs:

@@ -1482,7 +1482,7 @@ async function syncTourSpots(sido, seenIds, stat) {
       else pageNo++;
     } catch (e) { 
         console.error('  ❌ Tour API Final Error:', e.message); 
-        stat.note = '💥 ERROR (조회/통신 실패)';
+        stat.note = `💥 ERROR (${e.message.slice(0, 30)})`;
         break; 
     }
   }
