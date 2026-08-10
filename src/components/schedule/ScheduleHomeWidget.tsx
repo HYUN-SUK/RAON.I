@@ -299,56 +299,31 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         return new Date() < unlockTimeByCreation;
     }, [upcomingItem, reservations, schedules]);
 
-    // 스마트플랜 오픈 대기 안내 문구 결정 (오늘/내일 오전 9시 이후 활성화 명시)
-    const unlockMessage = useMemo(() => {
+    // 뱃지 텍스트 결정 (3단계 생체주기 뱃지 수식)
+    const badgeText = useMemo(() => {
         if (!upcomingItem) return '';
         
-        let createdAtDate: Date;
-        if (upcomingItem.type === 'reservation') {
-            const reservation = reservations.find(r => r.id === upcomingItem.id);
-            if (!reservation) return '';
-            createdAtDate = new Date(reservation.createdAt);
-        } else {
+        let smartPlanData: any = null;
+        if (upcomingItem.type === 'schedule') {
             const schedule = schedules.find(s => s.id === upcomingItem.id);
-            if (!schedule) return '';
-            createdAtDate = new Date(schedule.created_at);
-        }
-        
-        if (isNaN(createdAtDate.getTime())) return '';
-        
-        const unlockTimeByCreation = new Date(createdAtDate);
-        if (createdAtDate.getHours() < 5) {
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
-        } else {
-            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
+            smartPlanData = schedule?.smart_plan_data;
         }
 
-        const now = new Date();
-        const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
-                            now.getMonth() === unlockTimeByCreation.getMonth() &&
-                            now.getDate() === unlockTimeByCreation.getDate();
+        const isPreviewPlan = smartPlanData?.is_preview === true;
 
+        // 3단계: 정밀 스마트플랜(BASIC/PRO) 생성이 완전히 완료된 경우
+        if (smartPlanData && !isPreviewPlan) {
+            return '✨ 스마트플랜 생성 완료';
+        }
+
+        // 2단계: 다음날 오전 9시 이후 (맛보기 유지 또는 신규)
+        if (isSmartPlanAvailable) {
+            return '✨ 정밀 스마트플랜 생성가능';
+        }
+
+        // 1단계: 등록 당일 ~ 다음날 오전 9시 전 (맛보기 유도)
         return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
-    }, [upcomingItem, reservations, schedules]);
-
-    // 뱃지 텍스트 결정 (예약 다음 날 ~ D-8: 여행계획 세우기 가능 / D-7 ~ D-0: 최종 날씨 반영 계획 완성)
-    const badgeText = useMemo(() => {
-        if (!upcomingItem || !isSmartPlanAvailable) return '';
-        
-        const checkIn = new Date(upcomingItem.checkIn);
-        checkIn.setHours(0, 0, 0, 0);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const daysDiff = Math.round((checkIn.getTime() - today.getTime()) / 86400000);
-        
-        if (daysDiff <= 7) {
-            return '✨ 최종 날씨 반영 계획 완성 가능';
-        } else {
-            return '✨ 여행계획 세우기 가능';
-        }
-    }, [upcomingItem, isSmartPlanAvailable]);
+    }, [upcomingItem, isSmartPlanAvailable, schedules]);
 
     const handleCardClick = () => {
         withAuth(async () => {
@@ -675,16 +650,18 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         <h3 className="text-lg font-bold truncate">
                             {upcomingItem.name}
                         </h3>
-                        {isSmartPlanAvailable && (
-                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[15px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
-                                {badgeText}
-                            </span>
-                        )}
                     </div>
 
-                    {isSmartPlanUnlockingSoon && (
-                        <div className="text-[11px] font-black bg-gradient-to-r from-orange-400/90 to-amber-500/90 text-white shadow-[0_0_10px_rgba(251,146,60,0.4)] border border-orange-300/20 px-2.5 py-1.5 rounded-lg w-fit mb-2.5 flex items-center gap-1.5 animate-pulse">
-                            <span>⏰</span> {unlockMessage}
+                    {badgeText && (
+                        <div className={cn(
+                            "text-[11px] font-black px-2.5 py-1.5 rounded-lg w-fit mb-2.5 flex items-center gap-1.5 shadow-sm",
+                            badgeText.includes('완료')
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : badgeText.includes('정밀')
+                                    ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
+                                    : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        )}>
+                            <span>✨</span> {badgeText}
                         </div>
                     )}
 

@@ -51,7 +51,6 @@ export default function ScheduleCard({
 
     // 스마트플랜 사용 가능 여부 판별 (예약 생성 새벽 5시 이전 당일 9시, 이후 다음날 오전 9시 활성화)
     const isSmartPlanAvailable = useMemo(() => {
-        if (schedule.smart_plan_data) return false;
         if (schedule.status !== 'scheduled') return false;
 
         const createdAtDate = new Date(schedule.created_at);
@@ -68,63 +67,27 @@ export default function ScheduleCard({
         return new Date() >= unlockTimeByCreation;
     }, [schedule]);
 
-    // 스마트플랜 오픈 대기 여부 판별 (예약 생성 다음날 오전 9시 이전 대기 상태)
-    const isSmartPlanUnlockingSoon = useMemo(() => {
-        if (schedule.smart_plan_data) return false;
-        if (schedule.status !== 'scheduled') return false;
-
-        const createdAtDate = new Date(schedule.created_at);
-        if (isNaN(createdAtDate.getTime())) return false;
-
-        const unlockTimeByCreation = new Date(createdAtDate);
-        if (createdAtDate.getHours() < 5) {
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
-        } else {
-            unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-            unlockTimeByCreation.setHours(9, 0, 0, 0);
-        }
-
-        return new Date() < unlockTimeByCreation;
-    }, [schedule]);
-
-    // 스마트플랜 안내 문구/뱃지 결정 (홈화면 위젯과 100% 동일)
+    // 스마트플랜 안내 문구/뱃지 결정 (홈화면 위젯과 100% 동일 3단계 생체주기 수식)
     const smartPlanMessage = useMemo(() => {
         if ((schedule as any).is_pending_reservation) {
             return null;
         }
 
-        if (schedule.smart_plan_data) {
+        const isPreviewPlan = (schedule.smart_plan_data as any)?.is_preview === true;
+
+        // 3단계: 정밀 스마트플랜(BASIC/PRO) 생성이 완전히 완료된 경우
+        if (schedule.smart_plan_data && !isPreviewPlan) {
             return '✨ 스마트플랜 생성 완료';
         }
 
-        if (isSmartPlanUnlockingSoon) {
-            const createdAtDate = new Date(schedule.created_at);
-            const unlockTimeByCreation = new Date(createdAtDate);
-            if (createdAtDate.getHours() < 5) {
-                unlockTimeByCreation.setHours(9, 0, 0, 0);
-            } else {
-                unlockTimeByCreation.setDate(unlockTimeByCreation.getDate() + 1);
-                unlockTimeByCreation.setHours(9, 0, 0, 0);
-            }
-
-            const now = new Date();
-            const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
-                                now.getMonth() === unlockTimeByCreation.getMonth() &&
-                                now.getDate() === unlockTimeByCreation.getDate();
-
-            return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
-        }
-
+        // 2단계: 다음날 오전 9시 이후 (맛보기 유지 또는 신규)
         if (isSmartPlanAvailable) {
-            if (daysUntil <= 7 && daysUntil >= 0) {
-                return '✨ 최종 날씨반영계획 생성가능';
-            } else if (daysUntil > 7) {
-                return '✨ 여행계획 세우기 가능';
-            }
+            return '✨ 정밀 스마트플랜 생성가능';
         }
 
-        return null;
-    }, [schedule, isSmartPlanAvailable, isSmartPlanUnlockingSoon, daysUntil]);
+        // 1단계: 등록 당일 ~ 다음날 오전 9시 전 (맛보기 유도)
+        return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
+    }, [schedule, isSmartPlanAvailable]);
 
     // D-Day 텍스트
     const getDDayText = () => {
@@ -235,12 +198,12 @@ export default function ScheduleCard({
             {/* 스마트플랜 안내 배지 */}
             {smartPlanMessage && (
                 <div className={cn(
-                    "mb-3 text-[11px] font-bold px-2.5 py-1.5 rounded-xl w-fit flex items-center gap-1.5",
-                    schedule.smart_plan_data 
+                    "mb-3 text-[11px] font-bold px-2.5 py-1.5 rounded-xl w-fit flex items-center gap-1.5 shadow-sm",
+                    smartPlanMessage.includes('완료')
                         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50"
-                        : isSmartPlanUnlockingSoon
-                            ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50"
-                            : "bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400 border border-orange-100 dark:border-orange-900/50 animate-pulse"
+                        : smartPlanMessage.includes('정밀')
+                            ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 animate-pulse"
+                            : "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                 )}>
                     {smartPlanMessage}
                 </div>
