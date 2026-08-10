@@ -927,5 +927,14 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
 * [x] **'나의 여행일정' 카드의 세션스토리지 플래그 안전 보장**: `/myspace/schedule` 및 하위 상세 경로 진입/복귀 시 세션 플래그가 유실되지 않고 3개 카드 아코디언이 펼쳐진 상태로 안전 복귀함.
 * [x] **인앱 브라우저 Storage 차단 & Null 참조 크래시 100% 원천 방어**: 전역 `sessionStorage` try-catch 안전 래핑 및 `upcomingItem` null-safe 가드를 연동하여 클라이언트 예외(Application Error)를 소멸함.
 
+### [2026-08-10 Update & Final Native Phase]
+* [x] **웹-네이티브 하이브리드 푸시 브릿지 구축**: `window.onReceiveAndroidToken` 전역 브릿지 연동으로 향후 네이티브 패키징 시 소스 변경 없이 기기 토큰 즉시 적재 지원.
+* [x] **골든 타임 기반 위치 및 알림 권한 동의 유도 팝업 연동**: 예약 완료, 빈자리 알림 신청, 내 주변 탐색 시점에 맞춤형 위치/알림 동의 모달을 연동하고 이미 허용한 유저 대상 중복 팝업 차단 가드 이식완료 (스마트플랜 기존 소스 100% 보존).
+* [ ] **Phase 13.0 (최후반 최종 로드맵): Capacitor.js 기반 하이브리드 네이티브 앱 전환 및 정식 스토어 등록**:
+  * Capacitor.js 네이티브 컨테이너 패키징 (기존 Next.js 웹 및 Supabase DB 100% 그대로 활용)
+  * 구글 FCM 및 애플 APNs 네이티브 알림 엔진(`@capacitor/push-notifications`) 연동으로 100% 도달 백그라운드 푸시 구축
+  * 구글 플레이스토어(Android) 및 애플 앱스토어(iOS) 최초 1회 정식 네이티브 심사 승인 (승인 후 일상 기능 updates는 기존과 동일하게 `git push`로 0.1초 실시간 인앱 반영)
+
+
 
 
