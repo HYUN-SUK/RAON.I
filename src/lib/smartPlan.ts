@@ -120,6 +120,7 @@ export interface StandardizedPlanJSON {
     returnListElement?: FactCard[]; // [v11.9.25] Stage 5: 귀갓길 추천 (Track B 2위)
     featuredFestival?: FactCard[]; 
     alternatives: Record<string, FactCard[]>;
+    is_preview?: boolean;
 }
 
 export interface FactCard {
@@ -737,17 +738,10 @@ export async function generatePersonalizedSmartPlan(
     prefetchedWeather?: any
 ): Promise<StandardizedPlanJSON | ProTimelinePlan> {
     try {
-        // [v11.9.60] 정석적인 서버 사이드 인증 연동 (쿠키 기반)
-        let supabase;
-        try {
-            const { createClient: createServerSupabase } = await import('@/lib/supabase-server');
-            supabase = await createServerSupabase();
-        } catch (cookieErr) {
-            // [v11.9.62] CLI 테스트 등 cookies() 사용 불가 환경을 위한 fallback
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-            supabase = createClient(supabaseUrl, supabaseKey);
-        }
+        // [v11.9.60] 수파베이스 클라이언트 생성 (클라이언트/서버 공용 안전 로직)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const persona = await extractUserPersona(userId, 7, supabase); // 인증된 클라이언트 전달
 
@@ -1585,3 +1579,202 @@ export async function generatePersonalizedSmartPlan(
         };
     }
 }
+
+// ========================================================================================
+// [v12.7.0] 비용 0원 맛보기 스마트플랜 (Instant Preview Engine - 기존 RPC + calcContextFitDeep 100% 동일 이식)
+// ========================================================================================
+export async function generatePreviewSmartPlan(
+    location: { lat: number; lng: number },
+    startDate: Date,
+    endDate: Date,
+    userId?: string
+): Promise<StandardizedPlanJSON> {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const lat = location.lat;
+    const lng = location.lng;
+
+    try {
+        // [v12.7.2] 1. 유저 페르소나 0원 수집
+        const persona: UserPersona = userId ? await extractUserPersona(userId, 7, supabase) : { description: '일반 캠퍼', topTags: [] };
+
+        // [v12.7.4] 2. 반경 20km 전체 쿼리 (세종시/목적지 전역 검증 장소 통합 수집)
+        const radiusMeters = 20000; // 20km
+        
+        const [restRes, spotRes, hospRes] = await Promise.all([
+            supabase.rpc('get_master_places_in_radius_v2', {
+                target_lat: lat,
+                target_lng: lng,
+                radius_meters: radiusMeters,
+                limit_count: 100,
+                p_category: 'RESTAURANT'
+            }),
+            supabase.rpc('get_master_places_in_radius_v2', {
+                target_lat: lat,
+                target_lng: lng,
+                radius_meters: radiusMeters,
+                limit_count: 100,
+                p_category: 'SPOT'
+            }),
+            supabase.rpc('get_master_places_in_radius_v2', {
+                target_lat: lat,
+                target_lng: lng,
+                radius_meters: radiusMeters,
+                limit_count: 50,
+                p_category: 'HOSPITAL'
+            })
+        ]);
+
+        const rawRestaurants = restRes.data || [];
+        const rawSpots = spotRes.data || [];
+        const rawHospitals = hospRes.data || [];
+
+        // Haversine 거리 계산 함수 (km)
+        const calcDist = (pLat: number, pLng: number) => {
+            const R = 6371;
+            const dLat = (pLat - lat) * (Math.PI / 180);
+            const dLng = (pLng - lng) * (Math.PI / 180);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat * (Math.PI / 180)) * Math.cos(pLat * (Math.PI / 180)) *
+                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return parseFloat((R * c).toFixed(1));
+        };
+
+        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|디지털|분재|연구소|양복|안경|서점|서적/;
+        const hospitalExcludeList = /여성|산부인과|한의원|치과|성형|피부과|의원|요양|안과|정신/;
+
+        // [v12.7.2] 3. 기존 스마트플랜과 100% 동일한 calcContextFitDeep 스코어링 적용
+        const parseAndScore = (places: any[]) => {
+            const seenIds = new Set<string>();
+            const uniquePlaces = places.filter(r => {
+                if (seenIds.has(r.id)) return false;
+                seenIds.add(r.id);
+                return true;
+            });
+
+            return uniquePlaces
+                .filter(r => {
+                    const name = r.name || '';
+                    if (r.category !== 'HOSPITAL' && globalBlacklist.test(name)) return false;
+                    return true;
+                })
+                .map(r => {
+                    const card = parseFactCard(r);
+                    card.distanceKm = calcDist(card.lat, card.lng);
+                    
+                    // 기존 정밀 스마트플랜 calcContextFitDeep 100% 수식 적용 (weather='맑음')
+                    const cFit = calcContextFitDeep(card, '맑음', false, persona);
+                    card.scoreBreakdown!.contextFit = cFit;
+
+                    // 인증 가점 (백년/LX +80, 모범 +30, 안심 +15)
+                    let certBonus = 0;
+                    const badges = card.evidence?.badges || [];
+                    const certs = card.evidence?.certifications || [];
+                    if (badges.includes('백년가게') || certs.some(c => c.includes('백년가게'))) certBonus += 80;
+                    if (badges.includes('LX인증') || certs.some(c => c.includes('LX'))) certBonus += 80;
+                    if (badges.includes('모범식당') || certs.some(c => c.includes('모범'))) certBonus += 30;
+                    if (badges.includes('안심식당') || certs.some(c => c.includes('안심'))) certBonus += 15;
+
+                    // 병원 가점 (NMC 응급센터 +150, 종합/응급 +100)
+                    if (card.category === 'HOSPITAL') {
+                        const isNmc = r.api_source === 'NMC' || r.raw_data?.hpid;
+                        const isEmerg = r.raw_data?.hvec || r.raw_data?.hvs01 || (r.description && r.description.includes('응급실'));
+                        if (isNmc) certBonus += 150;
+                        else if (isEmerg) certBonus += 100;
+                        else certBonus += 40;
+                    }
+
+                    // [v12.7.3] 5대 필수 요소: 카테고리별 정밀 감점 배수계수 적용 (-(distKm * 계수))
+                    let distPenalty = 0;
+                    const dKm = card.distanceKm || 0;
+                    if (r.category === 'RESTAURANT' || r.category === 'ROUTE_RESTAURANT') {
+                        distPenalty = dKm * 4; // 맛집: -distKm * 4
+                    } else if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
+                        distPenalty = dKm * 3; // 명소: -distKm * 3
+                    } else if (r.category === 'HOSPITAL') {
+                        distPenalty = dKm * 2; // 병원: -distKm * 2
+                    } else {
+                        distPenalty = dKm * 3;
+                    }
+
+                    card.trustScore = (r.quality_score || 50) + cFit + certBonus - distPenalty;
+                    card.scoreBreakdown!.distanceBonus = -distPenalty;
+                    return card;
+                });
+        };
+
+        // 1. 맛집 Top 3 (RESTAURANT)
+        const restaurants = parseAndScore(rawRestaurants)
+            .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0))
+            .slice(0, 3)
+            .map(c => ({ ...c, category: 'RESTAURANT' as const }));
+
+        // 2. 순수 명소 Top 3 (SPOT만! FESTIVAL 축제 100% 전면 제외!)
+        const spots = parseAndScore(rawSpots)
+            .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0))
+            .slice(0, 3)
+            .map(c => ({ ...c, category: 'SPOT' as const }));
+
+        // 3. 안심 병원 Top 1 (HOSPITAL - 여성병원 제외, 응급/종합병원 우선)
+        const hospitals = parseAndScore(rawHospitals)
+            .filter(c => !hospitalExcludeList.test(c.name))
+            .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0))
+            .slice(0, 1)
+            .map(c => ({ ...c, category: 'HOSPITAL' as const }));
+
+        const mainRestaurant = restaurants[0] || null;
+        const mainSpot = spots[0] || null;
+        const mainHospital = hospitals[0] || null;
+
+        const itemListElement: FactCard[] = [];
+        if (mainRestaurant) itemListElement.push(mainRestaurant);
+        if (mainSpot) itemListElement.push(mainSpot);
+        if (mainHospital) itemListElement.push(mainHospital);
+
+        const alternatives: Record<string, FactCard[]> = {};
+        if (mainRestaurant && restaurants.length > 1) {
+            alternatives['RESTAURANT'] = restaurants.slice(1);
+            alternatives[mainRestaurant.id] = restaurants.slice(1);
+        }
+        if (mainSpot && spots.length > 1) {
+            alternatives['SPOT'] = spots.slice(1);
+            alternatives[mainSpot.id] = spots.slice(1);
+        }
+
+        return {
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            narration: "여행지 주변의 핵심 맛집, 명소, 안심 병원을 0원 맛보기로 안내해 드립니다.",
+            target_date: startDate.toISOString().split('T')[0],
+            stageIntros: {
+                '1': '여행지 근처의 검증된 맛집을 먼저 만나보세요.',
+                '2': '현지의 보석 같은 명소들을 찾아 떠나요.',
+                '3': '만약의 상황을 대비한 가장 가까운 병원입니다.'
+            },
+            itemListElement,
+            alternatives,
+            is_preview: true
+        };
+
+    } catch (e) {
+        console.error('[generatePreviewSmartPlan] Error:', e);
+        return buildFallbackPreviewPlan(startDate);
+    }
+}
+
+function buildFallbackPreviewPlan(startDate: Date): StandardizedPlanJSON {
+    return {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        narration: "여행지 주변 장소 정보를 준비하고 있습니다.",
+        target_date: startDate.toISOString().split('T')[0],
+        itemListElement: [],
+        alternatives: {},
+        is_preview: true
+    };
+}
+
+

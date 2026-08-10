@@ -498,8 +498,8 @@ export default function SmartPlanProposal({
         );
     }
 
-    // 3. Step 1: Route Selection
-    if (!plan && !proPlan && userOrigin && !selectedMidpoint) {
+    // 3. Step 1: Route Selection (맛보기 모드 시 카카오내비 API 자동 호출 100% 차단)
+    if (!plan && !proPlan && userOrigin && !selectedMidpoint && !(initialPlan as any)?.is_preview) {
         return (
             <div ref={routeSelectorRef} className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <RouteSelector 
@@ -769,6 +769,51 @@ export default function SmartPlanProposal({
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">
+            {/* [v12.7.0] 비용 0원 맛보기 스마트플랜 (Instant Preview) 2-Step 배너 및 업데이트 버튼 */}
+            {((plan as any)?.is_preview || (initialPlan as any)?.is_preview || (initialPlan as any)?.ai_plan?.is_preview) && (
+                <div className="bg-gradient-to-r from-emerald-900/95 via-[#224732] to-emerald-950 text-white rounded-2xl p-4 shadow-md border border-emerald-500/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 text-amber-300 flex items-center justify-center shrink-0 text-xl font-black border border-white/10 shadow-inner">
+                            ⚡
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                                <span className="text-[11px] font-bold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-md border border-amber-300/30">
+                                    맛보기 여행가이드 가동 중
+                                </span>
+                            </div>
+                            {!(diffDaysForRegen <= 0 || (diffDaysForRegen <= 1 && new Date().getHours() >= 9)) ? (
+                                <p className="text-xs text-emerald-100 font-medium leading-relaxed">
+                                    내일 오전 9시 이후에 더 풍부한 여행계획 생성이 가능합니다.
+                                </p>
+                            ) : (
+                                <div className="space-y-2 mt-1">
+                                    <p className="text-xs text-amber-200 font-bold leading-relaxed">
+                                        ✨ 더 풍부한 여행계획을 생성할 수 있습니다!
+                                    </p>
+                                    {onReset && (
+                                        <Button
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPlan(null);
+                                                setSelectedMidpoint(null);
+                                                setSelectedRouteData(null);
+                                                onReset();
+                                            }}
+                                            className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-[#1a3626] font-extrabold text-xs h-9 rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-98 border border-amber-300/50"
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" />
+                                            ⚡ 나만의 맞춤 여행계획 생성하기
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showNoWeatherBanner && (
                 <div className="bg-blue-50/95 border border-blue-200/70 rounded-2xl p-4 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
                     <span className="text-xl shrink-0">📅</span>
@@ -1085,17 +1130,29 @@ export default function SmartPlanProposal({
 
                 <div className="grid grid-cols-1 gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0 w-full min-w-0">
 
-                    {/* Stage 1: 출발 (Intro) */}
+                    {/* Stage 1: 출발 / 맛보기 현지 맛집 */}
                     <div className="space-y-3 relative z-10 w-full">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">Stage 1. 설레는 출발</span>
+                                <span className="text-xs font-bold text-[#224732]">
+                                    {plan.is_preview ? 'Stage 1. 현지 식도락 (대표 맛집)' : 'Stage 1. 설레는 출발'}
+                                </span>
                             </div>
-                            {plan.stage1_timeline && (
+                            {plan.stage1_timeline && !plan.is_preview && (
                                 <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stage1_timeline}"</p>
                             )}
+                            {plan.stageIntros?.['1'] && plan.is_preview && (
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['1']}"</p>
+                            )}
                         </div>
+                        {plan.is_preview && (
+                            <div className="px-2 space-y-3 w-full min-w-0">
+                                {plan.itemListElement
+                                    .filter(c => c.category === 'RESTAURANT')
+                                    .map((card) => renderFactCard(card, '1'))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Stage 2: 가는 길 (Route Facts) */}
@@ -1116,39 +1173,46 @@ export default function SmartPlanProposal({
                         </div>
                     )}
 
-                    {/* Stage 3: 캠프 준비 (Mart / Restaurant) */}
-                    <div className="space-y-3 relative z-10 w-full min-w-0">
-                        <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">Stage 3. 든든한 준비 (식사/장보기)</span>
+                    {/* Stage 3: 캠프 준비 (Mart / Restaurant) - 맛보기 모드 시 중복 방지 */}
+                    {!plan.is_preview && (
+                        <div className="space-y-3 relative z-10 w-full min-w-0">
+                            <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
+                                    <span className="text-xs font-bold text-[#224732]">Stage 3. 든든한 준비 (식사/장보기)</span>
+                                </div>
+                                {plan.stageIntros?.['3'] && (
+                                    <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['3']}"</p>
+                                )}
                             </div>
-                            {plan.stageIntros?.['3'] && (
-                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['3']}"</p>
-                            )}
+                            <div className="px-2 space-y-3 w-full min-w-0">
+                                {plan.itemListElement
+                                    .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
+                                    .map((card) => renderFactCard(card, '3'))}
+                            </div>
                         </div>
-                        <div className="px-2 space-y-3 w-full min-w-0">
-                            {plan.itemListElement
-                                .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
-                                .map((card) => renderFactCard(card, '3'))}
-                        </div>
-                    </div>
+                    )}
 
                     {/* Stage 4: 캠핑장 주변 (Spot / Hospital / Gas) */}
                     <div className="space-y-3 relative z-10 w-full">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">Stage 4. 온전한 힐링 (현지 체류)</span>
+                                <span className="text-xs font-bold text-[#224732]">
+                                    {plan.is_preview ? 'Stage 2. 온전한 힐링 (현지 명소)' : 'Stage 4. 온전한 힐링 (현지 체류)'}
+                                </span>
                             </div>
-                            {plan.stageIntros?.['4'] && (
+                            {plan.stageIntros?.['2'] && plan.is_preview && (
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['2']}"</p>
+                            )}
+                            {plan.stageIntros?.['4'] && !plan.is_preview && (
                                 <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['4']}"</p>
                             )}
                         </div>
-                        {/* 힐링 장소 (Spot, Festival) 우선 노출 */}
+                        {/* 힐링 장소 (Spot) 우선 노출 (맛보기 시 FESTIVAL 축제 완전 전면 제외!) */}
                         <div className="px-4 space-y-3">
                             {plan.itemListElement
-                                .filter(c => ['SPOT', 'FESTIVAL'].includes(c.category))
+                                .filter(c => plan.is_preview ? c.category === 'SPOT' : ['SPOT', 'FESTIVAL'].includes(c.category))
                                 .map((card) => renderFactCard(card, '4'))}
                         </div>
 
@@ -1156,7 +1220,7 @@ export default function SmartPlanProposal({
                         {(plan.itemListElement.some(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))) && (
                             <div className="mt-4 pt-4 border-t-2 border-blue-200 bg-blue-50/30 rounded-xl py-3 px-0 mx-0 min-w-0">
                                 <p className="text-[11px] font-bold text-blue-600 mb-3 ml-4 flex items-center gap-1.5">
-                                    🛡️ 안전을 위한 편의시설
+                                    🛡️ {plan.is_preview ? 'Stage 3. 안전을 위한 편의시설' : '안전을 위한 편의시설'}
                                 </p>
                                 {plan.itemListElement
                                     .filter(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))

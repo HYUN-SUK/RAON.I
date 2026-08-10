@@ -112,9 +112,7 @@ export default function ScheduleCard({
                                 now.getMonth() === unlockTimeByCreation.getMonth() &&
                                 now.getDate() === unlockTimeByCreation.getDate();
 
-            return isUnlockDay 
-                ? "⏰ 오늘 오전 9시부터 계획 생성 가능"
-                : "⏰ 내일 오전 9시부터 계획 생성 가능";
+            return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
         }
 
         if (isSmartPlanAvailable) {

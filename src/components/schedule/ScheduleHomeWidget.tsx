@@ -329,9 +329,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                             now.getMonth() === unlockTimeByCreation.getMonth() &&
                             now.getDate() === unlockTimeByCreation.getDate();
 
-        return isUnlockDay 
-            ? "오늘 오전 9시 이후에 자동계획생성이 가능합니다."
-            : "내일 오전 9시 이후에 자동계획생성이 가능합니다.";
+        return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
     }, [upcomingItem, reservations, schedules]);
 
     // 뱃지 텍스트 결정 (예약 다음 날 ~ D-8: 여행계획 세우기 가능 / D-7 ~ D-0: 최종 날씨 반영 계획 완성)

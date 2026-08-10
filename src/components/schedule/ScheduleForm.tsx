@@ -250,7 +250,7 @@ export default function ScheduleForm({
                         <span className="text-3xl">✨</span>
                         <h3 className="text-base font-bold text-gray-900 mt-3">일정이 등록되었어요!</h3>
                         <p className="text-xs text-gray-600 mt-2 leading-relaxed whitespace-pre-line">
-                            여행계획 수립을 위한 준비를 시작합니다.{"\n"}내일 오전 9시 이후에 자동계획생성을 진행할수있습니다.
+                            ⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!
                         </p>
                         <Button
                             onClick={() => {

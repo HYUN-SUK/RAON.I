@@ -408,13 +408,33 @@ function ScheduleDetailContent() {
         }
     }, [loadData, isUserLoading, scheduleId]);
 
-    // [v11.9.32] 저장된 스마트 플랜 데이터가 있다면 자동으로 표시 (복구)
+    // [v12.7.0] 저장된 스마트 플랜이 없는 신규 일정인 경우 비용 0원 맛보기 스마트플랜 0.001초 즉시 바인딩
     useEffect(() => {
-        if (schedule?.smart_plan_data && !showSmartPlan && !showProfileGate && !isReconstructing) {
-            const savedData = schedule.smart_plan_data;
-            const savedMode = savedData.wrapped && savedData.mode === 'PRO' ? 'PRO' : 'BASIC';
-            setPlanMode(savedMode);
-            setShowSmartPlan(true);
+        if (schedule && !showProfileGate && !isReconstructing) {
+            if (schedule.smart_plan_data && !showSmartPlan) {
+                const savedData = schedule.smart_plan_data;
+                const savedMode = savedData.wrapped && savedData.mode === 'PRO' ? 'PRO' : 'BASIC';
+                setPlanMode(savedMode);
+                setShowSmartPlan(true);
+            } else if (!schedule.smart_plan_data && !showSmartPlan) {
+                async function initPreview() {
+                    try {
+                        const { generatePreviewSmartPlan } = await import('@/lib/smartPlan');
+                        const loc = { 
+                            lat: schedule!.campground_lat || 36.68, 
+                            lng: schedule!.campground_lng || 126.84 
+                        };
+                        const start = schedule!.check_in ? new Date(schedule!.check_in) : new Date();
+                        const end = schedule!.check_out ? new Date(schedule!.check_out) : new Date();
+                        const previewPlan = await generatePreviewSmartPlan(loc, start, end, userId || schedule?.user_id);
+                        setSchedule(prev => prev ? { ...prev, smart_plan_data: previewPlan } : null);
+                        setShowSmartPlan(true);
+                    } catch (err) {
+                        console.error('[ScheduleDetail] Preview plan init error:', err);
+                    }
+                }
+                initPreview();
+            }
         }
     }, [schedule, showSmartPlan, showProfileGate, isReconstructing]);
 
