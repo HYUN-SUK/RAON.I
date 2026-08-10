@@ -1687,6 +1687,15 @@ export async function generatePreviewSmartPlan(
                         else certBonus += 40;
                     }
 
+                    // 명소 티어 보너스 및 6:2:2 인기도 결합 가점 수식 (1티어=100 / 2티어=80 / 일반=6:2:2 합산점수)
+                    let tierBonus = 0;
+                    if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
+                        const ts = r.trust_score || 0;
+                        if (ts >= 90) tierBonus = 100;
+                        else if (ts >= 70) tierBonus = 80;
+                        else tierBonus = ts;
+                    }
+
                     // [v12.7.3] 5대 필수 요소: 카테고리별 정밀 감점 배수계수 적용 (-(distKm * 계수))
                     let distPenalty = 0;
                     const dKm = card.distanceKm || 0;
@@ -1700,8 +1709,9 @@ export async function generatePreviewSmartPlan(
                         distPenalty = dKm * 3;
                     }
 
-                    card.trustScore = (r.quality_score || 50) + cFit + certBonus - distPenalty;
+                    card.trustScore = (r.quality_score || 50) + cFit + certBonus + tierBonus - distPenalty;
                     card.scoreBreakdown!.distanceBonus = -distPenalty;
+                    card.scoreBreakdown!.tierBonus = tierBonus;
                     return card;
                 });
         };
