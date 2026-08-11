@@ -1597,10 +1597,10 @@ export async function generatePreviewSmartPlan(
     const lng = location.lng;
 
     try {
-        // [v12.7.2] 1. 유저 페르소나 0원 수집
+        // [v12.8.0] 1. 유저 페르소나 0원 수집
         const persona: UserPersona = userId ? await extractUserPersona(userId, 7, supabase) : { description: '일반 캠퍼', topTags: [] };
 
-        // [v12.7.4] 2. 반경 20km 전체 쿼리 (세종시/목적지 전역 검증 장소 통합 수집)
+        // [v12.8.0] 2. 반경 20km 전체 쿼리 (limit 300으로 상향하여 1등 명소/맛집 누락 방지)
         const radiusMeters = 20000; // 20km
         
         const [restRes, spotRes, hospRes] = await Promise.all([
@@ -1608,21 +1608,21 @@ export async function generatePreviewSmartPlan(
                 target_lat: lat,
                 target_lng: lng,
                 radius_meters: radiusMeters,
-                limit_count: 100,
+                limit_count: 300,
                 p_category: 'RESTAURANT'
             }),
             supabase.rpc('get_master_places_in_radius_v2', {
                 target_lat: lat,
                 target_lng: lng,
                 radius_meters: radiusMeters,
-                limit_count: 100,
+                limit_count: 300,
                 p_category: 'SPOT'
             }),
             supabase.rpc('get_master_places_in_radius_v2', {
                 target_lat: lat,
                 target_lng: lng,
                 radius_meters: radiusMeters,
-                limit_count: 50,
+                limit_count: 100,
                 p_category: 'HOSPITAL'
             })
         ]);
@@ -1645,8 +1645,9 @@ export async function generatePreviewSmartPlan(
 
         const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|디지털|분재|연구소|양복|안경|서점|서적/;
         const hospitalExcludeList = /여성|산부인과|한의원|치과|성형|피부과|의원|요양|안과|정신/;
+        const spotWhitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대|수목원|둘레길/i;
 
-        // [v12.7.2] 3. 기존 스마트플랜과 100% 동일한 calcContextFitDeep 스코어링 적용
+        // [v12.8.0] 3. 정밀 스마트플랜 100% 동일 스코어링 엔진 (누적 인증 합산 + 화이트리스트 + 정밀 거리감점)
         const parseAndScore = (places: any[]) => {
             const seenIds = new Set<string>();
             const uniquePlaces = places.filter(r => {
@@ -1664,54 +1665,83 @@ export async function generatePreviewSmartPlan(
                 .map(r => {
                     const card = parseFactCard(r);
                     card.distanceKm = calcDist(card.lat, card.lng);
-                    
-                    // 기존 정밀 스마트플랜 calcContextFitDeep 100% 수식 적용 (weather='맑음')
+                    const dKm = card.distanceKm || 0;
+                    const name = r.name || '';
+                    const desc = r.description || r.raw_data?.description || '';
+                    const fullText = `${name} ${desc}`;
+                    const source = r.api_source || r.raw_data?.api_source || '';
+                    const rawBadges: string[] = r.badges || r.raw_data?.badges || card.evidence?.badges || [];
+
+                    // ContextFit 계산 (기본 weather='맑음')
                     const cFit = calcContextFitDeep(card, '맑음', false, persona);
                     card.scoreBreakdown!.contextFit = cFit;
 
-                    // 인증 가점 (백년/LX +80, 모범 +30, 안심 +15)
                     let certBonus = 0;
-                    const badges = card.evidence?.badges || [];
-                    const certs = card.evidence?.certifications || [];
-                    if (badges.includes('백년가게') || certs.some(c => c.includes('백년가게'))) certBonus += 80;
-                    if (badges.includes('LX인증') || certs.some(c => c.includes('LX'))) certBonus += 80;
-                    if (badges.includes('모범식당') || certs.some(c => c.includes('모범'))) certBonus += 30;
-                    if (badges.includes('안심식당') || certs.some(c => c.includes('안심'))) certBonus += 15;
+                    let whitelistBonus = 0;
+                    let distPenalty = 0;
+                    let baseScore = r.quality_score || 50;
 
-                    // 병원 가점 (NMC 응급센터 +150, 종합/응급 +100)
-                    if (card.category === 'HOSPITAL') {
-                        const isNmc = r.api_source === 'NMC' || r.raw_data?.hpid;
-                        const isEmerg = r.raw_data?.hvec || r.raw_data?.hvs01 || (r.description && r.description.includes('응급실'));
+                    if (r.category === 'RESTAURANT' || r.category === 'ROUTE_RESTAURANT') {
+                        // [v12.8.0] 식당 중복 인증 누적 합산 (Cumulative Cert Scoring)
+                        if (source === 'SMBA_BAEK' || rawBadges.includes('백년가게') || card.evidence?.certifications?.some(c => c.includes('백년가게'))) {
+                            certBonus += 80;
+                        }
+                        if (source === 'LX_RESTAURANT' || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증') || card.evidence?.certifications?.some(c => c.includes('LX'))) {
+                            certBonus += 80;
+                        }
+                        if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || rawBadges.includes('모범음식점') || rawBadges.includes('모범식당')) {
+                            certBonus += 30;
+                        }
+                        if (source === 'SAFE_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_SAFE' || rawBadges.includes('안심식당')) {
+                            certBonus += 20;
+                        }
+
+                        // 미쉐린/블루리본/식신 브랜드 가점 (최소 110점 보장)
+                        if (/미쉐린|미슐랭|블루리본|식신/.test(name)) {
+                            if (baseScore + certBonus < 110) {
+                                certBonus = Math.max(certBonus, 110 - baseScore);
+                            }
+                        }
+
+                        // 원본 동일 거리 페널티 (-3.0점/km)
+                        distPenalty = dKm * 3.0;
+                        card.trustScore = baseScore + cFit + certBonus - distPenalty;
+
+                    } else if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
+                        // [v12.8.0] 명소: DB에 사전 융합 적재된 trust_score(명성 50% + 인기도 50% * 신뢰도계수) 사용
+                        baseScore = r.trust_score || r.quality_score || 50;
+
+                        // 화이트리스트 우대 가점 (+40점 단독 적용)
+                        if (spotWhitelistRegex.test(fullText)) {
+                            whitelistBonus = 40;
+                        }
+
+                        // 원본 동일 거리 페널티 (-2.0점/km)
+                        distPenalty = dKm * 2.0;
+                        card.trustScore = baseScore + cFit + whitelistBonus - distPenalty;
+
+                    } else if (r.category === 'HOSPITAL') {
+                        // [v12.8.0] 병원: NMC 응급센터(+150) / 종합병원/응급(+100) / 일반(+40)
+                        const isNmc = source === 'NMC_HOSPITAL' || source === 'NMC' || r.raw_data?.hpid;
+                        const isEmerg = r.raw_data?.hvec || r.raw_data?.hvs01 || fullText.includes('응급실') || /종합병원|의료원|대학병원/.test(name);
+                        
                         if (isNmc) certBonus += 150;
                         else if (isEmerg) certBonus += 100;
                         else certBonus += 40;
-                    }
 
-                    // 명소 티어 보너스 및 6:2:2 인기도 결합 가점 수식 (1티어=100 / 2티어=80 / 일반=6:2:2 합산점수)
-                    let tierBonus = 0;
-                    if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
-                        const ts = r.trust_score || 0;
-                        if (ts >= 90) tierBonus = 100;
-                        else if (ts >= 70) tierBonus = 80;
-                        else tierBonus = ts;
-                    }
-
-                    // [v12.7.3] 5대 필수 요소: 카테고리별 정밀 감점 배수계수 적용 (-(distKm * 계수))
-                    let distPenalty = 0;
-                    const dKm = card.distanceKm || 0;
-                    if (r.category === 'RESTAURANT' || r.category === 'ROUTE_RESTAURANT') {
-                        distPenalty = dKm * 4; // 맛집: -distKm * 4
-                    } else if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
-                        distPenalty = dKm * 3; // 명소: -distKm * 3
-                    } else if (r.category === 'HOSPITAL') {
-                        distPenalty = dKm * 2; // 병원: -distKm * 2
+                        // 원본 동일 거리 페널티 (-3.0점/km)
+                        distPenalty = dKm * 3.0;
+                        card.trustScore = baseScore + cFit + certBonus - distPenalty;
                     } else {
-                        distPenalty = dKm * 3;
+                        distPenalty = dKm * 3.0;
+                        card.trustScore = baseScore + cFit - distPenalty;
                     }
 
-                    card.trustScore = (r.quality_score || 50) + cFit + certBonus + tierBonus - distPenalty;
                     card.scoreBreakdown!.distanceBonus = -distPenalty;
-                    card.scoreBreakdown!.tierBonus = tierBonus;
+                    card.scoreBreakdown!.certBonus = certBonus;
+                    card.scoreBreakdown!.tierBonus = whitelistBonus;
+                    card.scoreBreakdown!.finalScore = card.trustScore;
+
                     return card;
                 });
         };
@@ -1728,7 +1758,7 @@ export async function generatePreviewSmartPlan(
             .slice(0, 3)
             .map(c => ({ ...c, category: 'SPOT' as const }));
 
-        // 3. 안심 병원 Top 1 (HOSPITAL - 여성병원 제외, 응급/종합병원 우선)
+        // 3. 안심 병원 Top 1 (HOSPITAL - 여성/치과/한의원 제외, 응급/종합병원 우선)
         const hospitals = parseAndScore(rawHospitals)
             .filter(c => !hospitalExcludeList.test(c.name))
             .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0))

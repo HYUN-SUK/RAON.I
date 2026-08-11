@@ -29,7 +29,8 @@ import {
     deleteChecklistItem,
     completeSchedule,
     updateSchedule,
-    deleteSchedule
+    deleteSchedule,
+    checkCandidateCacheAction
 } from '@/actions/schedule';
 import { Button } from '@/components/ui/button';
 import { useWeather } from '@/hooks/useWeather';
@@ -100,6 +101,7 @@ function ScheduleDetailContent() {
     }, [userId, userEmail]);
 
     const [isUserLoading, setIsUserLoading] = useState(true);
+    const [isCached, setIsCached] = useState(false);
 
     // [v11.9.105] 진입 시 라우터 캐시 무효화로 인한 홈 화면 튕김 부작용 제거
 
@@ -408,15 +410,34 @@ function ScheduleDetailContent() {
         }
     }, [loadData, isUserLoading, scheduleId]);
 
-    // [v12.7.0] 저장된 스마트 플랜이 없는 신규 일정인 경우 비용 0원 맛보기 스마트플랜 0.001초 즉시 바인딩
+    // [v12.8.0] 예약건 단위 순수 새벽 캐싱 완료 여부 실시간 쿼리 (Server Action 안전 감지)
+    useEffect(() => {
+        if (scheduleId && scheduleId !== 'undefined') {
+            async function checkCandidateCache() {
+                try {
+                    const isCachedResult = await checkCandidateCacheAction(scheduleId);
+                    if (isMountedRef.current) {
+                        setIsCached(isCachedResult);
+                    }
+                } catch (e) {
+                    console.error('[ScheduleDetail] Check candidate cache error:', e);
+                }
+            }
+            checkCandidateCache();
+        }
+    }, [scheduleId]);
+
+    // [v12.8.0] 저장된 정밀 플랜이 있는 경우만 결과 펼침. 맛보기 플랜은 무단 렌더링 방지 및 백그라운드 0원 수집
     useEffect(() => {
         if (schedule && !showProfileGate && !isReconstructing) {
-            if (schedule.smart_plan_data && !showSmartPlan) {
-                const savedData = schedule.smart_plan_data;
+            const savedData = schedule.smart_plan_data;
+            const isPreview = (savedData as any)?.is_preview === true;
+            
+            if (savedData && !isPreview && !showSmartPlan) {
                 const savedMode = savedData.wrapped && savedData.mode === 'PRO' ? 'PRO' : 'BASIC';
                 setPlanMode(savedMode);
                 setShowSmartPlan(true);
-            } else if (!schedule.smart_plan_data && !showSmartPlan) {
+            } else if (!savedData) {
                 async function initPreview() {
                     try {
                         const { generatePreviewSmartPlan } = await import('@/lib/smartPlan');
@@ -428,7 +449,6 @@ function ScheduleDetailContent() {
                         const end = schedule!.check_out ? new Date(schedule!.check_out) : new Date();
                         const previewPlan = await generatePreviewSmartPlan(loc, start, end, userId || schedule?.user_id);
                         setSchedule(prev => prev ? { ...prev, smart_plan_data: previewPlan } : null);
-                        setShowSmartPlan(true);
                     } catch (err) {
                         console.error('[ScheduleDetail] Preview plan init error:', err);
                     }
@@ -711,8 +731,11 @@ function ScheduleDetailContent() {
                             unlockTimeByCreation.setHours(9, 0, 0, 0);
                         }
 
-                        // 1차 활성화 기준: 잠금 해제 시간 이후 잠금 해제
-                        const isLocked = new Date() < unlockTimeByCreation && !schedule.smart_plan_data;
+                        const isPreviewMode = (schedule.smart_plan_data as any)?.is_preview === true;
+                        const isFullPlan = schedule.smart_plan_data && !isPreviewMode;
+
+                        // [v12.8.0] 정밀 플랜이 이미 완성된 경우가 아니면서, DB 캐싱(isCached)이 안 된 신규 등록 건이면 잠김(isLocked)!
+                        const isLocked = !isFullPlan && !isCached;
 
                         const now = new Date();
                         const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
@@ -788,100 +811,136 @@ function ScheduleDetailContent() {
                         }
 
                         return (
-                            <div className="relative group space-y-2">
-                                {/* PRO 버튼 (tootg 계정만) */}
-                                {isPro && (
+                            <div className="space-y-4">
+                                {/* DB 캐싱이 완료된 정밀 생성 가능 상태이고 맛보기 데이터가 존재하는 경우 배너 노출 */}
+                                {!isLocked && isPreviewMode && (
+                                    <div className="bg-[#224732]/10 border border-[#224732]/20 rounded-2xl p-4 text-center animate-fade-in shadow-sm">
+                                        <p className="text-xs font-semibold text-[#224732] leading-relaxed">
+                                            💡 오전 9시가 지나 정밀 스마트플랜 생성이 가능합니다! 더욱더 풍부한 정밀 플랜을 만나보세요.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* 정밀 플랜 생성 버튼 (케이스 A 및 케이스 B 공통 정위치 노출) */}
+                                <div className="relative group space-y-2">
+                                    {/* PRO 버튼 (tootg 계정만) */}
+                                    {isPro && (
+                                        <Button
+                                            onClick={async () => {
+                                                if (isLocked) return;
+                                                setPlanMode('PRO');
+                                                setShowProfileGate(true);
+                                            }}
+                                            disabled={isLocked}
+                                            className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-700 hover:to-yellow-600 text-white shadow-[0_4px_14px_0_rgba(217,119,6,0.35)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
+                                        >
+                                            <span className="mr-2 text-xl">⚡</span> LIVE 여정 플래너
+                                            <span className="ml-2 text-[10px] opacity-80 bg-white/20 px-1.5 py-0.5 rounded-full">PRO</span>
+                                        </Button>
+                                    )}
+                                    {/* Basic 버튼 */}
                                     <Button
                                         onClick={async () => {
                                             if (isLocked) return;
-                                            setPlanMode('PRO');
+                                            setPlanMode('BASIC');
                                             setShowProfileGate(true);
                                         }}
                                         disabled={isLocked}
-                                        className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-700 hover:to-yellow-600 text-white shadow-[0_4px_14px_0_rgba(217,119,6,0.35)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
+                                        className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
                                     >
-                                        <span className="mr-2 text-xl">⚡</span> LIVE 여정 플래너
-                                        <span className="ml-2 text-[10px] opacity-80 bg-white/20 px-1.5 py-0.5 rounded-full">PRO</span>
+                                        <span className="mr-2 text-xl">✨</span> {isPreviewMode ? '정밀 스마트플랜 생성하기' : (isPro ? 'Basic 여행계획 자동 완성' : '이번 여행계획 자동 완성하기')}
                                     </Button>
-                                )}
-                                {/* Basic 버튼 */}
-                                <Button
-                                    onClick={async () => {
-                                        if (isLocked) return;
-                                        setPlanMode('BASIC');
-                                        setShowProfileGate(true);
-                                    }}
-                                    disabled={isLocked}
-                                    className={`w-full h-14 ${isLocked ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none hover:scale-100' : 'bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#1a3626] text-white shadow-[0_4px_14px_0_rgba(34,71,50,0.39)] transition-all hover:scale-[1.02]'} rounded-2xl text-base font-semibold`}
-                                >
-                                    <span className="mr-2 text-xl">✨</span> {isPro ? 'Basic 여행계획 자동 완성' : '이번 여행계획 자동 완성하기'}
-                                </Button>
-                                {isLocked && (
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[90vw] bg-gray-800 text-white text-xs px-3 py-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center pointer-events-none">
-                                        {lockedMessage}
-                                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-b-4 border-b-gray-800" />
+                                    {isLocked && (
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[90vw] bg-gray-800 text-white text-xs px-3 py-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center pointer-events-none">
+                                            {lockedMessage}
+                                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-b-4 border-b-gray-800" />
+                                        </div>
+                                    )}
+                                    {!isLocked && !isPreviewMode && (() => {
+                                        const checkInDate = new Date(schedule.check_in);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        const daysDiff = Math.round((checkInDate.getTime() - today.getTime()) / 86400000);
+                                        if (daysDiff <= 7 && daysDiff >= 0) {
+                                            return (
+                                                <p className="mt-3 text-center text-xs text-[#224732] dark:text-stone-300 font-medium bg-[#224732]/5 rounded-xl py-2.5 px-3 leading-relaxed border border-[#224732]/10 animate-fade-in">
+                                                    💡 출발 당일에 스마트플랜을 가동하시면, 가장 정확한 실시간 날씨 정보가 반영된 여행계획을 생성하실 수 있습니다.
+                                                </p>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
+
+                                {/* 맛보기 카드가 존재하는 경우 버튼 하단에 미리보기 공존 렌더링 */}
+                                {isPreviewMode && schedule.smart_plan_data && (
+                                    <div className="pt-2">
+                                        <SmartPlanProposal
+                                            key={planKey}
+                                            scheduleId={schedule.id}
+                                            initialPlan={schedule.smart_plan_data}
+                                            isPreviewMode={true}
+                                            userId={userId}
+                                            userEmail={userEmail}
+                                            liveWeather={weather}
+                                            location={{
+                                                lat: schedule.campground_lat || 36.67,
+                                                lng: schedule.campground_lng || 126.84
+                                            }}
+                                            startDate={checkIn}
+                                            endDate={checkOut}
+                                            origin={smartPlanOrigin}
+                                            mode={planMode}
+                                            travelType={travelType}
+                                            onReset={() => {
+                                                setIsReconstructing(true);
+                                                setShowSmartPlan(false);
+                                                setShowProfileGate(false);
+                                                setShowModeSelector(false);
+                                                setPlanMode('BASIC');
+                                                setPlanKey(prev => prev + 1);
+                                            }}
+                                            onGenerated={async () => {
+                                                await loadData();
+                                                setIsReconstructing(false);
+                                            }}
+                                        />
                                     </div>
                                 )}
-                                {!isLocked && (() => {
-                                    const checkInDate = new Date(schedule.check_in);
-                                    const today = new Date();
-                                    today.setHours(0, 0, 0, 0);
-                                    const daysDiff = Math.round((checkInDate.getTime() - today.getTime()) / 86400000);
-                                    if (daysDiff <= 7 && daysDiff >= 0) {
-                                        return (
-                                            <p className="mt-3 text-center text-xs text-[#224732] dark:text-stone-300 font-medium bg-[#224732]/5 rounded-xl py-2.5 px-3 leading-relaxed border border-[#224732]/10 animate-fade-in">
-                                                💡 출발 당일에 스마트플랜을 가동하시면, 가장 정확한 실시간 날씨 정보가 반영된 여행계획을 생성하실 수 있습니다.
-                                            </p>
-                                        );
-                                    }
-                                    return null;
-                                })()}
                             </div>
                         );
                     })() : (() => {
-                        const createdAtDateForPreview = new Date(schedule.created_at);
-                        const unlockTimeByCreationForPreview = new Date(createdAtDateForPreview);
-                        if (createdAtDateForPreview.getHours() < 5) {
-                            unlockTimeByCreationForPreview.setHours(9, 0, 0, 0);
-                        } else {
-                            unlockTimeByCreationForPreview.setDate(unlockTimeByCreationForPreview.getDate() + 1);
-                            unlockTimeByCreationForPreview.setHours(9, 0, 0, 0);
-                        }
-
-                        const isPreviewMode = (new Date() < unlockTimeByCreationForPreview && !schedule.smart_plan_data) || 
-                                              ((schedule.smart_plan_data as any)?.is_preview === true && !isReconstructing);
-
                         return (
                             <SmartPlanProposal
                                 key={planKey}
                                 scheduleId={schedule.id}
                                 initialPlan={isReconstructing ? null : schedule.smart_plan_data}
-                                isPreviewMode={isPreviewMode}
+                                isPreviewMode={false}
                                 userId={userId}
                                 userEmail={userEmail}
                                 liveWeather={weather}
-                            location={{
-                                lat: schedule.campground_lat || 36.67,
-                                lng: schedule.campground_lng || 126.84
-                            }}
-                            startDate={checkIn}
-                            endDate={checkOut}
-                            origin={smartPlanOrigin}
-                            mode={planMode}
-                            travelType={travelType}
-                            onReset={() => {
-                                setIsReconstructing(true);
-                                setShowSmartPlan(false);
-                                setShowProfileGate(false);
-                                setShowModeSelector(false);
-                                setPlanMode('BASIC');
-                                setPlanKey(prev => prev + 1);
-                            }}
-                            onGenerated={async () => {
-                                await loadData();
-                                setIsReconstructing(false);
-                            }}
-                        />
+                                location={{
+                                    lat: schedule.campground_lat || 36.67,
+                                    lng: schedule.campground_lng || 126.84
+                                }}
+                                startDate={checkIn}
+                                endDate={checkOut}
+                                origin={smartPlanOrigin}
+                                mode={planMode}
+                                travelType={travelType}
+                                onReset={() => {
+                                    setIsReconstructing(true);
+                                    setShowSmartPlan(false);
+                                    setShowProfileGate(false);
+                                    setShowModeSelector(false);
+                                    setPlanMode('BASIC');
+                                    setPlanKey(prev => prev + 1);
+                                }}
+                                onGenerated={async () => {
+                                    await loadData();
+                                    setIsReconstructing(false);
+                                }}
+                            />
                         );
                     })()}
                 </div>

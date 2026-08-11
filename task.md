@@ -1,5 +1,12 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **스마트플랜 맛보기 및 생체주기 뱃지 최적화 완결 (v12 완결 - 2026-08-11)**
+    - [x] 일정 카드(`ScheduleCard`) 및 홈 위젯(`ScheduleHomeWidget`) 3단계 생체주기 뱃지 자동 전환 수식 적용
+    - [x] 맛보기 명소 스코어링에 6:2:2 인기도(`KTO 60% + Tmap 20% + KT 20%`) 및 티어 보너스(1티어 100점, 2티어 80점) 가점 수식 100% 동일 이식
+    - [x] 맛보기 계획 로딩/재생성 시 카카오내비 API 호출 100% 원천 격리 차단 (`isPreviewMode` 주입)
+    - [x] 정밀 스마트플랜(BASIC/PRO) 가동 시에는 카카오내비 경로 탐색 프로세스 100% 정상 작동 유지
+    - [x] Next.js 16 Production Build 98개 페이지 컴파일 에러 0건 무결 성공 검증 완료
+
 - [x] **AI Persona Pipeline Stabilization**
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.
     - [x] Prioritize `User Camping Profile` over historical reservations for accurate persona extraction.

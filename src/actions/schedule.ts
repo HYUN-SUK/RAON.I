@@ -717,3 +717,32 @@ export async function cancelScheduleByReservation(reservationId: string): Promis
     revalidatePath('/myspace/schedule');
     return { success: true };
 }
+
+/**
+ * 일정 ID 기준 정밀 캐싱 완료 여부 감지 Server Action [v12.8.0]
+ * smart_plan_candidates 테이블의 reservation_id 존재 여부를 RLS 제약 없이 안전하게 검사합니다.
+ */
+export async function checkCandidateCacheAction(scheduleId: string): Promise<boolean> {
+    if (!scheduleId) return false;
+    try {
+        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        const supabase = createSupabaseClient(supabaseUrl, serviceKey);
+
+        const { count, error } = await supabase
+            .from('smart_plan_candidates')
+            .select('id', { count: 'exact', head: true })
+            .eq('reservation_id', scheduleId);
+
+        if (error) {
+            console.error('[checkCandidateCacheAction] Error:', error.message);
+            return false;
+        }
+
+        return (count ?? 0) > 0;
+    } catch (e) {
+        console.error('[checkCandidateCacheAction] Exception:', e);
+        return false;
+    }
+}
