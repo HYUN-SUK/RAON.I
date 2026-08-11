@@ -127,12 +127,22 @@ export default function TopBar() {
 
     const handleLogout = async () => {
         try {
-            await supabase.auth.signOut();
+            await supabase.auth.signOut({ scope: 'local' });
+            if (typeof window !== 'undefined') {
+                localStorage.clear();
+                sessionStorage.clear();
+                document.cookie.split(";").forEach((c) => {
+                    document.cookie = c
+                        .replace(/^ +/, "")
+                        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+            }
             toast.success('로그아웃 되었습니다.');
             setIsLoggedIn(false);
             setUserInfo(null);
             reset(); // Reset global store state
             router.push('/'); // Redirect to home
+            router.refresh();
         } catch (error) {
             console.error('Logout error:', error);
         }

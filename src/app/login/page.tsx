@@ -67,7 +67,17 @@ export default function LoginPage() {
                 setIsSignUp(false); // Switch to login mode
             } else {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
+                if (error) {
+                    if (error.message.includes("Invalid login credentials")) {
+                        toast.error("로그인 실패", {
+                            description: "이메일 또는 비밀번호가 올바르지 않습니다. (카카오/네이버 소셜로 가입한 계정인지 확인해 보세요!)",
+                            duration: 6000
+                        });
+                        setLoading(false);
+                        return;
+                    }
+                    throw error;
+                }
                 toast.success("로그인 성공", { description: "라온아이에 오신 것을 환영합니다." });
                 router.push("/");
                 router.refresh();
