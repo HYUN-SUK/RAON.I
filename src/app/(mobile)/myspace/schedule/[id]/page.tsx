@@ -758,6 +758,7 @@ function ScheduleDetailContent() {
                                                     : undefined
                                             );
                                             setShowProfileGate(false);
+                                            setIsReconstructing(true);
                                             // [v11.9.75] 실제 클릭한 모드가 PRO일 때만 모드 선택기 작동
                                             if (planMode === 'PRO') {
                                                 setShowModeSelector(true);
@@ -914,7 +915,7 @@ function ScheduleDetailContent() {
                             <SmartPlanProposal
                                 key={planKey}
                                 scheduleId={schedule.id}
-                                initialPlan={isReconstructing ? null : schedule.smart_plan_data}
+                                initialPlan={isReconstructing || (schedule.smart_plan_data as any)?.is_preview ? null : schedule.smart_plan_data}
                                 isPreviewMode={false}
                                 userId={userId}
                                 userEmail={userEmail}
