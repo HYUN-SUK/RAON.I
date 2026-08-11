@@ -1647,16 +1647,42 @@ export async function generatePreviewSmartPlan(
         const hospitalExcludeList = /여성|산부인과|한의원|치과|성형|피부과|의원|요양|안과|정신/;
         const spotWhitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대|수목원|둘레길/i;
 
-        // [v12.8.0] 3. 정밀 스마트플랜 100% 동일 스코어링 엔진 (누적 인증 합산 + 화이트리스트 + 정밀 거리감점)
+        // [v12.9.0] 3. 정밀 스마트플랜 방안 C 스코어링 엔진 (하한선 보정 + base_pop 인기도 + 화이트리스트 + 5km 초근접 + 중복 도려내기)
         const parseAndScore = (places: any[]) => {
             const seenIds = new Set<string>();
-            const uniquePlaces = places.filter(r => {
+            const uniqueById = places.filter(r => {
                 if (seenIds.has(r.id)) return false;
                 seenIds.add(r.id);
                 return true;
             });
 
-            return uniquePlaces
+            // [v12.9.0] 동일 명칭 및 극히 인접한 중복 명소 도려내기 (이응노생가 싹쓸이 차단)
+            const cleanName = (s: string) => (s || '').replace(/\[.*?\]|\(.*?\)/g, '').replace(/\s+/g, '').toLowerCase();
+            const deduplicated: any[] = [];
+
+            for (const item of uniqueById) {
+                const n1 = cleanName(item.name);
+                if (!n1) continue;
+
+                let isDup = false;
+                for (const existing of deduplicated) {
+                    const n2 = cleanName(existing.name);
+                    if (!n2) continue;
+
+                    const sameName = n1 === n2 || (n1.length >= 4 && n2.length >= 4 && (n1.includes(n2) || n2.includes(n1)));
+                    const distDiff = Math.abs(calcDist(item.lat, item.lng) - calcDist(existing.lat, existing.lng));
+                    
+                    if (sameName && distDiff < 1.0) {
+                        isDup = true;
+                        break;
+                    }
+                }
+                if (!isDup) {
+                    deduplicated.push(item);
+                }
+            }
+
+            return deduplicated
                 .filter(r => {
                     const name = r.name || '';
                     if (r.category !== 'HOSPITAL' && globalBlacklist.test(name)) return false;
@@ -1672,17 +1698,16 @@ export async function generatePreviewSmartPlan(
                     const source = r.api_source || r.raw_data?.api_source || '';
                     const rawBadges: string[] = r.badges || r.raw_data?.badges || card.evidence?.badges || [];
 
-                    // ContextFit 계산 (기본 weather='맑음')
-                    const cFit = calcContextFitDeep(card, '맑음', false, persona);
-                    card.scoreBreakdown!.contextFit = cFit;
-
                     let certBonus = 0;
                     let whitelistBonus = 0;
                     let distPenalty = 0;
                     let baseScore = r.quality_score || 50;
 
                     if (r.category === 'RESTAURANT' || r.category === 'ROUTE_RESTAURANT') {
-                        // [v12.8.0] 식당 중복 인증 누적 합산 (Cumulative Cert Scoring)
+                        // [v12.9.0] 식당: 날씨 요소 개입 100% 원천 차단 (cFit 날씨 가점 Skip)
+                        card.scoreBreakdown!.contextFit = 0;
+
+                        // 식당 중복 인증 누적 합산 (Cumulative Cert Scoring)
                         if (source === 'SMBA_BAEK' || rawBadges.includes('백년가게') || card.evidence?.certifications?.some(c => c.includes('백년가게'))) {
                             certBonus += 80;
                         }
@@ -1705,20 +1730,33 @@ export async function generatePreviewSmartPlan(
 
                         // 원본 동일 거리 페널티 (-3.0점/km)
                         distPenalty = dKm * 3.0;
-                        card.trustScore = baseScore + cFit + certBonus - distPenalty;
+                        card.trustScore = baseScore + certBonus - distPenalty;
 
                     } else if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
-                        // [v12.8.0] 명소: DB에 사전 융합 적재된 trust_score(명성 50% + 인기도 50% * 신뢰도계수) 사용
-                        baseScore = r.trust_score || r.quality_score || 50;
+                        // [v12.9.0] 방안 C 헌법 수식 적용:
+                        const isWhitelistMatch = spotWhitelistRegex.test(fullText);
+                        let rawBase = r.trust_score || r.quality_score || 50;
 
-                        // 화이트리스트 우대 가점 (+40점 단독 적용)
-                        if (spotWhitelistRegex.test(fullText)) {
+                        // ① 랜드마크 하한선 보정 (화이트리스트 매칭 시 최소 80점 보장)
+                        if (isWhitelistMatch) {
+                            rawBase = Math.max(rawBase, 80);
                             whitelistBonus = 40;
                         }
+                        baseScore = rawBase;
 
-                        // 원본 동일 거리 페널티 (-2.0점/km)
+                        // ② 인기도 실측 가점 (base_pop * 0.5, 최대 40점 Cap)
+                        const rawPop = r.raw_data?.popularity_v2?.base_pop || r.raw_data?.popularity || 0;
+                        const popBonus = Math.min((typeof rawPop === 'number' ? rawPop : 0) * 0.5, 40);
+
+                        // ③ 초근접 가점 (5km 이내 +20점)
+                        const nearbyBonus = dKm <= 5.0 ? 20 : 0;
+
+                        // ④ 거리 페널티 (-2.0점/km)
                         distPenalty = dKm * 2.0;
-                        card.trustScore = baseScore + cFit + whitelistBonus - distPenalty;
+
+                        // ⑤ 최종 점수 계산
+                        card.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty;
+                        card.scoreBreakdown!.contextFit = popBonus + nearbyBonus;
 
                     } else if (r.category === 'HOSPITAL') {
                         // [v12.8.0] 병원: NMC 응급센터(+150) / 종합병원/응급(+100) / 일반(+40)
@@ -1731,10 +1769,12 @@ export async function generatePreviewSmartPlan(
 
                         // 원본 동일 거리 페널티 (-3.0점/km)
                         distPenalty = dKm * 3.0;
-                        card.trustScore = baseScore + cFit + certBonus - distPenalty;
+                        card.trustScore = baseScore + certBonus - distPenalty;
+                        card.scoreBreakdown!.contextFit = 0;
                     } else {
                         distPenalty = dKm * 3.0;
-                        card.trustScore = baseScore + cFit - distPenalty;
+                        card.trustScore = baseScore - distPenalty;
+                        card.scoreBreakdown!.contextFit = 0;
                     }
 
                     card.scoreBreakdown!.distanceBonus = -distPenalty;
