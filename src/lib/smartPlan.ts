@@ -491,6 +491,7 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
     }
 
     const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|의원|병원|디지털|분재|연구소|양복|안경|서점|서적/;
+    const spotWhitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대|수목원|둘레길/i;
 
     const facts = data.filter(row => {
         const name = row.name || '';
@@ -501,12 +502,49 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
         return true;
     }).map(row => {
         const f = parseFactCard(row);
-        // Deep ContextFit 적용 (기존 캐싱 점수에 ContextFit 추가 병합)
+        const cat = row.category;
+        const name = row.name || '';
+        const desc = row.description || row.raw_data?.description || '';
+        const fullText = `${name} ${desc}`;
+        const dKm = f.distanceKm || (row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0);
+
+        // Deep ContextFit 적용 (기존 날씨 및 동반자 페르소나 딥매칭 점수 Layer 2)
         const cFit = calcContextFitDeep(f, weather, isWinter, persona);
-        f.scoreBreakdown!.contextFit = cFit;
-        // 최종 점수 = 캐싱된 (Quality - Penalty) + ContextFit
-        f.trustScore = (row.quality_score || 50) + cFit - (row.penalty_score || 0);
-        f.scoreBreakdown!.finalScore = f.trustScore;
+
+        if (cat === 'SPOT' || cat === 'ROUTE_SPOT') {
+            // [v13.0.0] Option C 계층형 명소 고도화 수식 이식 (Layer 1 베이스 + Layer 2 맥락)
+            const isWhitelistMatch = spotWhitelistRegex.test(fullText);
+            let baseScore = row.trust_score || row.quality_score || 50;
+            let whitelistBonus = 0;
+
+            // ① 랜드마크 하한선 보정 (화이트리스트 매칭 시 최소 80점 보장)
+            if (isWhitelistMatch) {
+                baseScore = Math.max(baseScore, 80);
+                whitelistBonus = 40;
+            }
+
+            // ② 인기도 실측 가점 (base_pop * 0.5, 최대 40점 Cap)
+            const rawPop = row.raw_data?.popularity_v2?.base_pop || row.raw_data?.popularity || 0;
+            const popBonus = Math.min((typeof rawPop === 'number' ? rawPop : 0) * 0.5, 40);
+
+            // ③ 초근접 가점 (5km 이내 +20점)
+            const nearbyBonus = dKm <= 5.0 ? 20 : 0;
+
+            // ④ 거리 페널티 (-2.0점/km)
+            const distPenalty = dKm * 2.0;
+
+            // ⑤ 최종 점수 = Layer 1 (하한보정 + 인기도 + 화이트 + 초근접 - 거리) + Layer 2 (우천/페르소나 cFit)
+            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty + cFit;
+            f.scoreBreakdown!.contextFit = cFit;
+            f.scoreBreakdown!.distanceBonus = -distPenalty;
+            f.scoreBreakdown!.tierBonus = whitelistBonus;
+            f.scoreBreakdown!.finalScore = f.trustScore;
+        } else {
+            f.scoreBreakdown!.contextFit = cFit;
+            f.trustScore = (row.quality_score || 50) + cFit - (row.penalty_score || 0);
+            f.scoreBreakdown!.finalScore = f.trustScore;
+        }
+
         return f;
     });
 
@@ -620,53 +658,66 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
 
         const f = parseFactCard({ ...row, id: row.id, fact_id: row.id, quality_score: 50, penalty_score: 0 }, cat);
         const nameDesc = (f.name + ' ' + (f.description || '')).toLowerCase();
-
-        // [Deep Filtering]: 간단 명소 로직
-        let simpleSpotBonus = 0;
-        if (cat === 'ROUTE_SPOT') {
-            const spotBlacklist = /산$|봉$|산맥|국립공원|도립공원|군립공원|자연휴양림|해수욕장|계곡|섬$|둘레길|트래킹|오름|테마파크|워터파크|리조트|민속촌|수목원|산성|읍성|대교|터널|IC|휴게소/;
-            const whitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|베이커리|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대/;
-            
-            const isBlacklisted = spotBlacklist.test(f.name.toLowerCase()) || spotBlacklist.test(nameDesc);
-            if (isBlacklisted) simpleSpotBonus -= 100; // 사실상 제거
-            if (whitelistRegex.test(nameDesc)) simpleSpotBonus += 40; 
-        }
-
-        // 5km 거리 페널티 (5000m = 0점, 0m = +30점)
-        const dist = row.distance_meters || 5000;
-        const distScore = Math.max(0, 30 * (1 - dist / 5000));
-
         const cFit = calcContextFitDeep(f, weather, isWinter, persona);
-        
-        // [v11.9.23] 중복 인증 가점 합산
-        let certBonus = 0;
-        const sources = row.allSources || [];
-        const badges = row.badges || [];
-        
-        if (sources.includes('SMBA_BAEK') || badges.includes('백년가게')) certBonus += 80;
-        if (sources.includes('LX_RESTAURANT')) certBonus += 80;
-        if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || badges.includes('모범음식점')) certBonus += 30;
-        if (sources.includes('SAFE_RESTAURANT') || badges.includes('안심식당')) certBonus += 20;
-        
-        // [v11.9.23] 명소 티어 반영 (1티어 100점, 2티어 80점)
-        let tierBonus = 0;
-        if (row.category === 'SPOT') {
-            const ts = row.trust_score || 0;
-            if (ts >= 90) tierBonus = 100;
-            else if (ts >= 70) tierBonus = 80;
-            else tierBonus = ts; // 그 외는 원래 점수 유지
-        }
+        const spotWhitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대|수목원|둘레길/i;
 
-        f.trustScore = 50 + cFit + distScore + simpleSpotBonus + certBonus + tierBonus;
-        f.scoreBreakdown = {
-            baseScore: 50,
-            contextFit: cFit,
-            distanceBonus: distScore,
-            certBonus: certBonus,
-            tierBonus: tierBonus,
-            riskPenalty: simpleSpotBonus < 0 ? Math.abs(simpleSpotBonus) : 0,
-            finalScore: f.trustScore
-        };
+        // [Deep Filtering]: Option C 계층형 명소 고도화 수식 이식 (Layer 1 베이스 + Layer 2 맥락)
+        if (cat === 'ROUTE_SPOT') {
+            const isWhitelistMatch = spotWhitelistRegex.test(nameDesc);
+            let baseScore = row.trust_score || row.quality_score || 50;
+            let whitelistBonus = 0;
+
+            // ① 랜드마크 하한선 보정 (화이트리스트 매칭 시 최소 80점 보장)
+            if (isWhitelistMatch) {
+                baseScore = Math.max(baseScore, 80);
+                whitelistBonus = 40;
+            }
+
+            // ② 인기도 실측 가점 (base_pop * 0.5, 최대 40점 Cap)
+            const rawPop = row.raw_data?.popularity_v2?.base_pop || row.raw_data?.popularity || 0;
+            const popBonus = Math.min((typeof rawPop === 'number' ? rawPop : 0) * 0.5, 40);
+
+            // ③ 초근접 가점 (5km 이내 +20점)
+            const dKm = row.distance_meters ? parseFloat((row.distance_meters / 1000).toFixed(1)) : 0;
+            const nearbyBonus = dKm <= 5.0 ? 20 : 0;
+
+            // ④ 거리 페널티 (-2.0점/km)
+            const distPenalty = dKm * 2.0;
+
+            // ⑤ Layer 1 + Layer 2 병합
+            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty + cFit;
+            f.scoreBreakdown = {
+                baseScore,
+                contextFit: cFit,
+                riskPenalty: distPenalty,
+                finalScore: f.trustScore,
+                distanceBonus: -distPenalty,
+                certBonus: 0,
+                tierBonus: whitelistBonus
+            };
+        } else {
+            // 5km 거리 페널티 (5000m = 0점, 0m = +30점)
+            const dist = row.distance_meters || 5000;
+            const distScore = Math.max(0, 30 * (1 - dist / 5000));
+            
+            // 중복 인증 가점 합산
+            let certBonus = 0;
+            const sources = row.allSources || [];
+            const badges = row.badges || [];
+            
+            if (sources.includes('SMBA_BAEK') || badges.includes('백년가게')) certBonus += 80;
+            if (sources.includes('LX_RESTAURANT')) certBonus += 80;
+            if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || badges.includes('모범음식점')) certBonus += 30;
+            if (sources.includes('SAFE_RESTAURANT') || badges.includes('안심식당')) certBonus += 20;
+
+            f.trustScore = 50 + cFit + distScore + certBonus;
+            f.scoreBreakdown = {
+                baseScore: 50,
+                contextFit: cFit,
+                riskPenalty: 0,
+                finalScore: f.trustScore
+            };
+        }
 
         if (f.trustScore > 40) { // 기준선 통과한 곳만
             facts.push(f);
