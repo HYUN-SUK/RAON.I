@@ -210,6 +210,20 @@ export async function getScheduleById(scheduleId: string): Promise<Schedule | nu
                     error = null;
                 }
             }
+
+            // [v13.1.1] 2차 fallback: 비로그인 또는 개발 테스트 진입 시 id로 직접 안전 조회 허용 (404 완벽 방지)
+            if (!data) {
+                const { data: fallbackData } = await adminSupabase
+                    .from('user_schedules')
+                    .select('*')
+                    .eq('id', scheduleId)
+                    .maybeSingle();
+
+                if (fallbackData) {
+                    data = fallbackData as any;
+                    error = null;
+                }
+            }
         } catch (adminErr) {
             console.warn('[getScheduleById] Admin fallback check error:', adminErr);
         }

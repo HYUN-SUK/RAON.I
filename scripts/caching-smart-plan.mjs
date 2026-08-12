@@ -399,7 +399,7 @@ async function main() {
 
         if (forceArg) {
             console.log(`  🔥 Force option enabled. Bypassing skip guards for Schedule ${s.id}.`);
-        } else if (s.smart_plan_data) {
+        } else if (s.smart_plan_data && s.smart_plan_data.is_preview !== true) {
             console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has finalized plan. Skipping...`);
             continue;
         } else if (hasCandidates) {

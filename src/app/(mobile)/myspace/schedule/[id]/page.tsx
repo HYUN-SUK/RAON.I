@@ -449,6 +449,12 @@ function ScheduleDetailContent() {
                         const end = schedule!.check_out ? new Date(schedule!.check_out) : new Date();
                         const previewPlan = await generatePreviewSmartPlan(loc, start, end, userId || schedule?.user_id);
                         setSchedule(prev => prev ? { ...prev, smart_plan_data: previewPlan } : null);
+
+                        // [v13.1.0] 맛보기 플랜이 생성되면 is_preview: true 상태로 DB에 즉시 확정 저장!
+                        if (schedule?.id) {
+                            const { updateSmartPlanData } = await import('@/actions/schedule');
+                            await updateSmartPlanData(schedule.id, previewPlan);
+                        }
                     } catch (err) {
                         console.error('[ScheduleDetail] Preview plan init error:', err);
                     }
@@ -734,17 +740,12 @@ function ScheduleDetailContent() {
                         const isPreviewMode = (schedule.smart_plan_data as any)?.is_preview === true;
                         const isFullPlan = schedule.smart_plan_data && !isPreviewMode;
 
-                        // [v12.8.0] 정밀 플랜이 이미 완성된 경우가 아니면서, DB 캐싱(isCached)이 안 된 신규 등록 건이면 잠김(isLocked)!
-                        const isLocked = !isFullPlan && !isCached;
-
+                        // [v13.1.0] 동적 캐싱 완수(isCached) 및 오전 9시 도달 기반 잠금 판단 (새벽 4:50분 등록건도 5시 캐싱 완료시 9시 즉시 오픈!)
                         const now = new Date();
-                        const isUnlockDay = now.getFullYear() === unlockTimeByCreation.getFullYear() &&
-                                            now.getMonth() === unlockTimeByCreation.getMonth() &&
-                                            now.getDate() === unlockTimeByCreation.getDate();
+                        const isAfter9AM = now.getHours() >= 9;
+                        const isLocked = !isFullPlan && (!isCached || !isAfter9AM);
 
-                        const lockedMessage = isUnlockDay
-                            ? "최적의 정보 수집 및 캐싱을 위해, 오늘 오전 9시부터 스마트플랜이 오픈됩니다!"
-                            : "최적의 정보 수집 및 캐싱을 위해, 내일 오전 9시부터 스마트플랜이 오픈됩니다!";
+                        const lockedMessage = "최적의 정보 수집 및 캐싱을 위해, 오전 9시부터 정밀 스마트플랜이 오픈됩니다!";
 
                         // 프로필 게이트 표시 중 (확인 및 수정 단계)
                         if (showProfileGate) {
