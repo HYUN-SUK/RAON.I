@@ -427,14 +427,14 @@ function ScheduleDetailContent() {
         }
     }, [scheduleId]);
 
-    // [v12.8.0] 저장된 정밀 플랜이 있는 경우만 결과 펼침. 맛보기 플랜은 무단 렌더링 방지 및 백그라운드 0원 수집
+    // [v13.3.0] 완전히 작성 완료된 정밀 플랜(wrapped: true & !isPreview)이 있는 경우에만 결과를 펼치고, 맛보기 상태는 정밀 버튼 100% 표출!
     useEffect(() => {
         if (schedule && !showProfileGate && !isReconstructing) {
             const savedData = schedule.smart_plan_data;
             const isPreview = (savedData as any)?.is_preview === true;
             
-            if (savedData && !isPreview && !showSmartPlan) {
-                const savedMode = savedData.wrapped && savedData.mode === 'PRO' ? 'PRO' : 'BASIC';
+            if (savedData && (savedData as any).wrapped === true && !isPreview && !showSmartPlan) {
+                const savedMode = (savedData as any).mode === 'PRO' ? 'PRO' : 'BASIC';
                 setPlanMode(savedMode);
                 setShowSmartPlan(true);
             } else if (!savedData) {
