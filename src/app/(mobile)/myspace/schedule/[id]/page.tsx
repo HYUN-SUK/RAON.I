@@ -427,7 +427,9 @@ function ScheduleDetailContent() {
         }
     }, [scheduleId]);
 
-    // [v13.3.0] 완전히 작성 완료된 정밀 플랜(wrapped: true & !isPreview)이 있는 경우에만 결과를 펼치고, 맛보기 상태는 정밀 버튼 100% 표출!
+    const isInitializingPreviewRef = useRef(false);
+
+    // [v13.4.0] 완전히 작성 완료된 정밀 플랜(wrapped: true & !isPreview)이 있는 경우에만 결과를 펼치고, 맛보기 상태는 정밀 버튼 100% 표출!
     useEffect(() => {
         if (schedule && !showProfileGate && !isReconstructing) {
             const savedData = schedule.smart_plan_data;
@@ -437,7 +439,8 @@ function ScheduleDetailContent() {
                 const savedMode = (savedData as any).mode === 'PRO' ? 'PRO' : 'BASIC';
                 setPlanMode(savedMode);
                 setShowSmartPlan(true);
-            } else if (!savedData) {
+            } else if (!savedData && !isInitializingPreviewRef.current) {
+                isInitializingPreviewRef.current = true;
                 async function initPreview() {
                     try {
                         const { generatePreviewSmartPlan } = await import('@/lib/smartPlan');
@@ -448,7 +451,9 @@ function ScheduleDetailContent() {
                         const start = schedule!.check_in ? new Date(schedule!.check_in) : new Date();
                         const end = schedule!.check_out ? new Date(schedule!.check_out) : new Date();
                         const previewPlan = await generatePreviewSmartPlan(loc, start, end, userId || schedule?.user_id);
+                        
                         setSchedule(prev => prev ? { ...prev, smart_plan_data: previewPlan } : null);
+                        setPlanKey(prev => prev + 1);
 
                         // [v13.1.0] 맛보기 플랜이 생성되면 is_preview: true 상태로 DB에 즉시 확정 저장!
                         if (schedule?.id) {
@@ -457,6 +462,8 @@ function ScheduleDetailContent() {
                         }
                     } catch (err) {
                         console.error('[ScheduleDetail] Preview plan init error:', err);
+                    } finally {
+                        isInitializingPreviewRef.current = false;
                     }
                 }
                 initPreview();

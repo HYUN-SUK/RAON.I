@@ -118,6 +118,21 @@ export default function SmartPlanProposal({
     const [hasTriggeredRegen, setHasTriggeredRegen] = useState(false);
     const [expandedWeatherDate, setExpandedWeatherDate] = useState<string | null>(null);
 
+    // [v13.4.0] 비동기로 뒤늦게 수급된 initialPlan 동적 동기화 (Stale State 락 해제)
+    useEffect(() => {
+        if (initialPlan && !plan && !proPlan) {
+            const isWrapped = initialPlan?.wrapped === true;
+            const aiPlan = isWrapped ? initialPlan.ai_plan : initialPlan;
+            if (aiPlan) {
+                if (initialPlan?.mode === 'PRO') {
+                    setProPlan(aiPlan);
+                } else {
+                    setPlan(aiPlan);
+                }
+            }
+        }
+    }, [initialPlan, plan, proPlan]);
+
     // 자동 정렬 타겟 Refs
     const routeSelectorRef = useRef<HTMLDivElement>(null);
     const generatingLoaderRef = useRef<HTMLDivElement>(null);
