@@ -29,6 +29,10 @@
 ### 5) 맛보기 플랜 재구성 시 경로 선택기(`RouteSelector`) 마운트 블로킹 해결
 - [`src/app/(mobile)/myspace/schedule/[id]/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/schedule/%5Bid%5D/page.tsx)에서 `isReconstructing === true` 시 `isPreviewMode={isReconstructing ? false : isPreviewMode}`로 전달하여, 기존 맛보기 플랜 보유 일정에서도 프로필 확인 후 경로 선택창(`RouteSelector`)이 100% 무결하게 즉시 마운트되도록 완치.
 
+### 6) 비동기 맛보기 생성 완료 시 React Stale State 고정 및 간헐적 10초 멈춤 현상 완치
+- [`src/components/plan/SmartPlanProposal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/plan/SmartPlanProposal.tsx) 내부 `initialPlan` 동적 prop 동기화 `useEffect` 이식 (비동기 뒤늦은 수급 시에도 내부 state 즉각 반영).
+- [`src/app/(mobile)/myspace/schedule/[id]/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/schedule/%5Bid%5D/page.tsx) 내 `setPlanKey(prev => prev + 1)` 마운트 트리거 & `isInitializingPreviewRef` 중복 비동기 호출 방지 가드 작성 완수.
+
 ---
 
 ## 2. 🎯 기술적 결정 사항 (Technical Decisions)
