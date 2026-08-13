@@ -807,7 +807,7 @@ function ScheduleDetailContent() {
                                 key={planKey}
                                 scheduleId={schedule.id}
                                 initialPlan={isReconstructing ? null : schedule.smart_plan_data}
-                                isPreviewMode={isPreviewMode}
+                                isPreviewMode={isReconstructing ? false : isPreviewMode}
                                 isCached={isCached}
                                 userId={userId}
                                 userEmail={userEmail}
