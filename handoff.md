@@ -26,6 +26,9 @@
 - 맛보기 플랜(`isPreviewMode === true`) 노출 시, 다크 그린 AI 여행 개요 헤더 상자를 숨겨 **맛보기 배너 바로 밑에 `Stage 1` 장소 카드가 즉시 연결 노출**.
 - 모든 사용자 노출 안내 문구 및 뱃지 텍스트의 '캠핑' 표현을 **'여행'**으로 일괄 업데이트 (*"✨ 100% 실시간 기상이 반영된 스마트플랜과 함께 안전한 여행 되세요!"*).
 
+### 5) 맛보기 플랜 재구성 시 경로 선택기(`RouteSelector`) 마운트 블로킹 해결
+- [`src/app/(mobile)/myspace/schedule/[id]/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/schedule/%5Bid%5D/page.tsx)에서 `isReconstructing === true` 시 `isPreviewMode={isReconstructing ? false : isPreviewMode}`로 전달하여, 기존 맛보기 플랜 보유 일정에서도 프로필 확인 후 경로 선택창(`RouteSelector`)이 100% 무결하게 즉시 마운트되도록 완치.
+
 ---
 
 ## 2. 🎯 기술적 결정 사항 (Technical Decisions)
