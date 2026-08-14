@@ -299,7 +299,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         return new Date() < unlockTimeByCreation;
     }, [upcomingItem, reservations, schedules]);
 
-    // 뱃지 텍스트 결정 (3단계 생체주기 뱃지 수식)
+    // 뱃지 텍스트 결정 (4단계 동적 생명주기 뱃지 수식 - ScheduleCard와 100% 동일화)
     const badgeText = useMemo(() => {
         if (!upcomingItem) return '';
         
@@ -307,23 +307,35 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         if (upcomingItem.type === 'schedule') {
             const schedule = schedules.find(s => s.id === upcomingItem.id);
             smartPlanData = schedule?.smart_plan_data;
+        } else if (upcomingItem.type === 'reservation') {
+            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
+            smartPlanData = matchedSchedule?.smart_plan_data;
         }
 
+        const hasPlanData = !!smartPlanData;
         const isPreviewPlan = smartPlanData?.is_preview === true;
 
-        // 3단계: 정밀 스마트플랜(BASIC/PRO) 생성이 완전히 완료된 경우
-        if (smartPlanData && !isPreviewPlan) {
+        // 5단계: 사용자가 정밀/업데이트 플랜 작성을 완전히 완료한 경우
+        if (hasPlanData && !isPreviewPlan) {
             return '✨ 스마트플랜 생성 완료';
         }
 
-        // 2단계: 다음날 오전 9시 이후 (맛보기 유지 또는 신규)
+        // 3/4단계: DB 캐싱 완료 & 오전 9시 도달 시 (D-7 ~ D-0 은 업데이트 가이드)
         if (isSmartPlanAvailable) {
+            if (daysUntil <= 7 && daysUntil >= 0) {
+                return '🔄 정밀 스마트플랜 업데이트 가능';
+            }
             return '✨ 정밀 스마트플랜 생성가능';
         }
 
-        // 1단계: 등록 당일 ~ 다음날 오전 9시 전 (맛보기 유도)
+        // 2단계: 맛보기 계획이 생성된 상태 (~ 오전 9시 전)
+        if (hasPlanData && isPreviewPlan) {
+            return '⚡ 맛보기 계획 생성 완료';
+        }
+
+        // 1단계: 신규 등록 직후 (맛보기 생성 전)
         return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
-    }, [upcomingItem, isSmartPlanAvailable, schedules]);
+    }, [upcomingItem, isSmartPlanAvailable, schedules, daysUntil]);
 
     const handleCardClick = () => {
         withAuth(async () => {
