@@ -33,6 +33,9 @@
 - [`src/components/plan/SmartPlanProposal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/plan/SmartPlanProposal.tsx) 내부 `initialPlan` 동적 prop 동기화 `useEffect` 이식 (비동기 뒤늦은 수급 시에도 내부 state 즉각 반영).
 - [`src/app/(mobile)/myspace/schedule/[id]/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/schedule/%5Bid%5D/page.tsx) 내 `setPlanKey(prev => prev + 1)` 마운트 트리거 & `isInitializingPreviewRef` 중복 비동기 호출 방지 가드 작성 완수.
 
+### 7) 홈 화면 위젯과 여행일정 리스트 간 뱃지 문구 불일치 완치
+- [`src/components/schedule/ScheduleHomeWidget.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/schedule/ScheduleHomeWidget.tsx) 내 `badgeText` 수식을 [`ScheduleCard.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/schedule/ScheduleCard.tsx)의 4단계 동적 생명주기 뱃지 수식과 100% 동일하게 일치화 (`daysUntil <= 7` 시 `🔄 정밀 스마트플랜 업데이트 가능` 바르게 반환).
+
 ---
 
 ## 2. 🎯 기술적 결정 사항 (Technical Decisions)
