@@ -17,62 +17,7 @@ const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const OPINET_API_KEY = process.env.OPINET_API_KEY;
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
-// [v11.9.15] Dynamic Prestige Matching System
-let PRESTIGE_MAP = new Map();
-
-function loadPrestigeLists() {
-    try {
-        const t1 = fs.readFileSync('korea_tourism_100_official.md', 'utf8');
-        const t2 = fs.readFileSync('regional_8_sceneries_FULL.md', 'utf8');
-        
-        // Tier 1 Parsing
-        let currentSido = '', currentSigungu = '';
-        t1.split('\n').forEach(line => {
-            const sidoMatch = line.match(/^## \d+\. (.+?) /);
-            if (sidoMatch) currentSido = sidoMatch[1];
-            const sigunguMatch = line.match(/^### (.+?) \(/);
-            if (sigunguMatch) currentSigungu = sigunguMatch[1];
-            if (line.startsWith('- ')) {
-                const names = line.includes('5대 고궁') ? ['경복궁', '창덕궁', '창경궁', '덕수궁', '경희궁'] : [line.replace('- ', '').split('(')[0].trim()];
-                names.forEach(n => {
-                    const key = getCleanString(n) + '|' + (currentSigungu || currentSido).replace(/[시군구]$/, '');
-                    PRESTIGE_MAP.set(key, { tier: 1, name: '한국관광 100선' });
-                });
-            }
-        });
-
-        // Tier 2 Parsing (v11.9.15 Ultimate Fix)
-        let t2Sigungu = '', t2BadgeName = '';
-        t2.split('\n').forEach(line => {
-            const h3Match = line.match(/^### (.+?)(?:\s+\(|$)/);
-            const listMatch = line.match(/^- \*\*(.+?)(?:\(.+?\))?:\*\*\s+(.+)$/);
-            
-            if (h3Match) {
-                t2Sigungu = h3Match[1].trim().replace(/[시군구]$/, '');
-                t2BadgeName = `${t2Sigungu} 8경`;
-            } else if (listMatch) {
-                const sigungu = listMatch[1].trim().replace(/[시군구]$/, '');
-                const badge = `${sigungu} 8경`;
-                const names = listMatch[2].split(',').map(n => n.trim()).filter(n => n);
-                names.forEach(n => {
-                    const key = getCleanString(n) + '|' + sigungu;
-                    PRESTIGE_MAP.set(key, { tier: 2, name: badge });
-                });
-            } else if (line.startsWith('- ') && t2Sigungu) {
-                const names = line.replace('- ', '').split(',').map(n => n.trim()).filter(n => n);
-                names.forEach(n => {
-                    const key = getCleanString(n) + '|' + t2Sigungu;
-                    PRESTIGE_MAP.set(key, { tier: 2, name: t2BadgeName });
-                });
-            }
-        });
-        
-        // Debug: Check if Yesan is loaded
-        console.log(`✅ Prestige List Loaded: ${PRESTIGE_MAP.size} items mapped.`);
-    } catch (e) {
-        console.warn(`⚠️ Failed to load prestige lists: ${e.message}`);
-    }
-}
+// [v13.5.0] DB Direct Prestige Matching System (Redundant MD File Reading Removed)
 
 function getStandardNmcSido(sido) {
     if (!sido) return '';
@@ -331,8 +276,6 @@ async function main() {
     };
 
     console.log(`🚀 v11.6 | Target today: ${todayStr}`);
-    
-    loadPrestigeLists(); // [v11.9.15] Load MD lists once at start
     
     let rawSchedules = [];
     if (dateArg) {
@@ -877,24 +820,20 @@ async function main() {
                             globalSpotScores = new Map();
                             spotData.forEach(spot => {
                                 let prestigeScore = 15;
-                                const cleanName = getCleanString(spot.name);
-                                const normSigungu = (spot.sigungu || extractSigungu(spot.address) || '').replace(/[시군구]$/, '');
-                                const matchKey = `${cleanName}|${normSigungu}`;
-                                const dynamicMatch = PRESTIGE_MAP.get(matchKey);
-                                const dbTier = spot.raw_data?.tier;
-                                const tier = dbTier || dynamicMatch?.tier;
+                                const tier = spot.raw_data?.tier || 0;
                                 
                                 if (!spot.raw_data) spot.raw_data = { badges: [] };
                                 if (!spot.raw_data.badges) spot.raw_data.badges = [];
                                 
-                                if (dynamicMatch) {
-                                    if (!spot.raw_data.badges.includes(dynamicMatch.name)) spot.raw_data.badges.push(dynamicMatch.name);
-                                } else if (dbTier) {
-                                    const badge = dbTier === 1 ? '한국관광 100선' : '지역 8경';
+                                if (tier === 1) {
+                                    prestigeScore = 100;
+                                    if (!spot.raw_data.badges.includes('한국관광 100선')) spot.raw_data.badges.push('한국관광 100선');
+                                } else if (tier === 2) {
+                                    prestigeScore = 80;
+                                    const normSigungu = (spot.sigungu || extractSigungu(spot.address) || '').replace(/[시군구]$/, '');
+                                    const badge = normSigungu ? `${normSigungu} 8경` : '지역 8경';
                                     if (!spot.raw_data.badges.includes(badge)) spot.raw_data.badges.push(badge);
                                 }
-
-                                if (tier === 1) prestigeScore = 100; else if (tier === 2) prestigeScore = 80;
 
                                 let ktoScore = 10;
                                 const ktoRank = spot.raw_data?.kto_official?.rank;

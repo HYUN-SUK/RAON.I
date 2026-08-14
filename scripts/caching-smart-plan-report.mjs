@@ -17,53 +17,7 @@ const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const OPINET_API_KEY = process.env.OPINET_API_KEY;
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
-let PRESTIGE_MAP = new Map();
-
-function loadPrestigeLists() {
-    try {
-        const t1 = fs.readFileSync('korea_tourism_100_official.md', 'utf8');
-        const t2 = fs.readFileSync('regional_8_sceneries_FULL.md', 'utf8');
-        let currentSido = '', currentSigungu = '';
-        t1.split('\n').forEach(line => {
-            const sidoMatch = line.match(/^## \d+\. (.+?) /);
-            if (sidoMatch) currentSido = sidoMatch[1];
-            const sigunguMatch = line.match(/^### (.+?) \(/);
-            if (sigunguMatch) currentSigungu = sigunguMatch[1];
-            if (line.startsWith('- ')) {
-                const names = line.includes('5대 고궁') ? ['경복궁', '창덕궁', '창경궁', '덕수궁', '경희궁'] : [line.replace('- ', '').split('(')[0].trim()];
-                names.forEach(n => {
-                    const key = getCleanString(n) + '|' + (currentSigungu || currentSido).replace(/[시군구]$/, '');
-                    PRESTIGE_MAP.set(key, { tier: 1, name: '한국관광 100선' });
-                });
-            }
-        });
-        let t2Sigungu = '', t2BadgeName = '';
-        t2.split('\n').forEach(line => {
-            const h3Match = line.match(/^### (.+?)(?:\s+\(|$)/);
-            const listMatch = line.match(/^- \*\*(.+?)(?:\(.+?\))?:\*\*\s+(.+)$/);
-            if (h3Match) {
-                t2Sigungu = h3Match[1].trim().replace(/[시군구]$/, '');
-                t2BadgeName = `${t2Sigungu} 8경`;
-            } else if (listMatch) {
-                const sigungu = listMatch[1].trim().replace(/[시군구]$/, '');
-                const badge = `${sigungu} 8경`;
-                const names = listMatch[2].split(',').map(n => n.trim()).filter(n => n);
-                names.forEach(n => {
-                    const key = getCleanString(n) + '|' + sigungu;
-                    PRESTIGE_MAP.set(key, { tier: 2, name: badge });
-                });
-            } else if (line.startsWith('- ') && t2Sigungu) {
-                const names = line.replace('- ', '').split(',').map(n => n.trim()).filter(n => n);
-                names.forEach(n => {
-                    const key = getCleanString(n) + '|' + t2Sigungu;
-                    PRESTIGE_MAP.set(key, { tier: 2, name: t2BadgeName });
-                });
-            }
-        });
-    } catch (e) {
-        console.warn(`⚠️ Failed to load prestige lists: ${e.message}`);
-    }
-}
+// [v13.5.0] DB Direct Prestige Matching System (Redundant MD File Reading Removed)
 
 function getNormalizedAddr(addr) {
     if (!addr) return '';
@@ -252,8 +206,8 @@ async function main() {
                     } else if (cat === 'MART') {
                         s = /이마트|롯데마트|홈플러스|하나로/.test(item.name) ? 80 : 70;
                     } else if (cat === 'SPOT') {
-                        const prestige = PRESTIGE_MAP.get(`${getCleanString(item.name)}|${(item.sigungu || '').replace(/[시군구]$/,'')}`);
-                        s = prestige ? (prestige.tier === 1 ? 100 : 80) : 15;
+                        const tier = item.raw_data?.tier || 0;
+                        s = tier === 1 ? 100 : (tier === 2 ? 80 : 15);
                     } else if (cat === 'HOSPITAL') {
                         s = /종합병원|의료원/.test(item.name) ? 100 : 50;
                     } else s = 50;

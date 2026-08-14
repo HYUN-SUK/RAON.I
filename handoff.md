@@ -36,6 +36,9 @@
 ### 7) 홈 화면 위젯과 여행일정 리스트 간 뱃지 문구 불일치 완치
 - [`src/components/schedule/ScheduleHomeWidget.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/schedule/ScheduleHomeWidget.tsx) 내 `badgeText` 수식을 [`ScheduleCard.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/schedule/ScheduleCard.tsx)의 4단계 동적 생명주기 뱃지 수식과 100% 동일하게 일치화 (`daysUntil <= 7` 시 `🔄 정밀 스마트플랜 업데이트 가능` 바르게 반환).
 
+### 8) 새벽 캐싱 스케줄러 중복 MD 파일 읽기 오버헤드 완치
+- [`scripts/caching-smart-plan.mjs`](file:///c:/Users/user/Desktop/RAON.I/scripts/caching-smart-plan.mjs) 및 [`scripts/caching-smart-plan-report.mjs`](file:///c:/Users/user/Desktop/RAON.I/scripts/caching-smart-plan-report.mjs) 내 불필요한 `loadPrestigeLists()` 파일 I/O 파싱 로직을 제거하고, Supabase DB(`master_places`) 내에 이미 적재되어 있는 `raw_data.tier` 및 뱃지 정보를 직접 참조하도록 백엔드 배치 엔진 경량화 완료.
+
 ---
 
 ## 2. 🎯 기술적 결정 사항 (Technical Decisions)
