@@ -862,6 +862,26 @@ export async function POST(request: Request) {
             target_date: targetStr
         });
 
+        // [v13.1.0] 오래되거나 취소된 일정 후보 데이터 자동 청소(Purge)
+        try {
+            const d = new Date();
+            d.setDate(d.getDate() - 7);
+            const sevenDaysAgoStr = d.toISOString().split('T')[0];
+
+            const { data: expiredSchedules } = await supabase
+                .from('user_schedules')
+                .select('id')
+                .or(`status.eq.cancelled,check_out.lt.${sevenDaysAgoStr}`);
+
+            const expiredIds = (expiredSchedules || []).map(s => s.id);
+            if (expiredIds.length > 0) {
+                await supabase.from('smart_plan_candidates').delete().in('reservation_id', expiredIds);
+                console.log(`[Cron Cleanup] Purged ${expiredIds.length} stale/cancelled candidate schedules.`);
+            }
+        } catch (purgeEx) {
+            console.error("[Cron Cleanup Error]", purgeEx);
+        }
+
         return new Response(JSON.stringify({ success: true, processed_count: processedCount, clusters: clusters.length, duration_ms: duration }), { status: 200 });
     } catch (error: any) {
         console.error("CRITICAL_CRON_ERROR", error);

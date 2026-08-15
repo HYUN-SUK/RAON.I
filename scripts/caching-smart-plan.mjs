@@ -1357,6 +1357,52 @@ async function runPostCachingAuditAndMicroRepair(targetScheduleIds = []) {
             console.log(`  ✅ [자동 보정 완료] 일정 ${resId} (${sched.campground_name}) 후보 ${repairedRows.length}건 좌표/거리 100% 보수 완료.`);
         }
     }
+
+    // 보제 직후 오래되거나 취소된 일정 후보 데이터 자동 청소 가동
+    await runCandidatesCleanup();
+}
+
+// ━━━━ [v13.1.0] 오래되거나 취소된 일정 후보 데이터 자동 청소(Purge) 함수 ━━━━
+async function runCandidatesCleanup() {
+    console.log(`\n🧹 [DB Cleanup] 취소되거나 완료 후 7일 지난 일정 후보 데이터 청소 가동...`);
+    try {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        const sevenDaysAgoStr = d.toISOString().split('T')[0];
+
+        // 취소된 일정 또는 check_out이 7일 전보다 오래된 일정 ID 조회
+        const { data: expiredSchedules, error: schedErr } = await supabase
+            .from('user_schedules')
+            .select('id, campground_name, status, check_out')
+            .or(`status.eq.cancelled,check_out.lt.${sevenDaysAgoStr}`);
+
+        if (schedErr) {
+            console.error("  ❌ [Cleanup Error] 만료 일정 조회 실패:", schedErr);
+            return;
+        }
+
+        const expiredIds = (expiredSchedules || []).map(s => s.id);
+        if (expiredIds.length === 0) {
+            console.log(`  ✅ [Cleanup 완료] 청소할 만료/취소 일정 없음.`);
+            return;
+        }
+
+        console.log(`  🔍 청소 대상 만료/취소 일정 ${expiredIds.length}건 감지. DB 삭제 실행...`);
+
+        // smart_plan_candidates 일괄 삭제
+        const { error: delErr } = await supabase
+            .from('smart_plan_candidates')
+            .delete()
+            .in('reservation_id', expiredIds);
+
+        if (delErr) {
+            console.error("  ❌ [Cleanup Error] 후보 데이터 삭제 실패:", delErr);
+        } else {
+            console.log(`  🧹 [DB Cleanup 완료] 만료/취소 일정 ${expiredIds.length}건의 후보 데이터 청소 완료! DB 슬림화 성공.`);
+        }
+    } catch (ex) {
+        console.error("  ❌ [Cleanup Exception]:", ex);
+    }
 }
 
 async function recordAutomationLog(metrics, targetDate, status) {

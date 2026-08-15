@@ -728,6 +728,17 @@ export async function cancelScheduleByReservation(reservationId: string): Promis
         return { success: false, error: error.message };
     }
 
+    // [v13.1.0] 예약 취소 시 연동된 스마트플랜 후보 데이터(smart_plan_candidates) 즉시 청소(Purge)
+    try {
+        const { data: scheds } = await supabase.from('user_schedules').select('id').eq('reservation_id', reservationId);
+        const schedIds = (scheds || []).map(s => s.id);
+        if (schedIds.length > 0) {
+            await supabase.from('smart_plan_candidates').delete().in('reservation_id', schedIds);
+        }
+    } catch (cleanEx) {
+        console.error('[cancelScheduleByReservation] Failed to purge candidates:', cleanEx);
+    }
+
     revalidatePath('/myspace/schedule');
     return { success: true };
 }
