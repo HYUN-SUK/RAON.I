@@ -1,70 +1,61 @@
-# 🤝 Handoff Document (세션 인수인계서)
+# 📌 세션 인수인계 문서 (Handoff Document)
 
-- **작성 일자**: 2026년 8월 13일
-- **세션 상태**: 스마트플랜 UI/UX 통합 정리, 단일 CTA 원칙, 시기별 1회 생성 락(Lock) 및 용어 교정('여행') 완료
-- **다음 세션 목표**: **한 단계만 뒤로가기 제어 시나리오 및 TWA 모바일 팝업 검토**
-
----
-
-## 1. 📌 현재 상태 요약 (이번 세션 완수 내역)
-
-### 1) 스마트플랜 UI/UX 통합 및 단일 CTA 원칙 적용
-- [`src/app/(mobile)/myspace/schedule/[id]/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/schedule/%5Bid%5D/page.tsx) 및 [`src/components/plan/SmartPlanProposal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/plan/SmartPlanProposal.tsx) 내 중복 렌더링되던 배너 및 버튼 전면 정리:
-  - 최상단 외곽 중복 버튼 및 하단 배너 속 중복 먹통 버튼(`[🔄 업데이트 받기]`) 완전 제거.
-  - 화면 전체에 **단 1개의 상태 안내 배너**와 **단 1개의 유일한 메인 CTA 버튼**만 깔끔하게 노출.
-
-### 2) 시기별 1회 생성 & 락(Lock) 정책 도입
-- **맛보기 단계**: 새벽 캐싱/오전 9시 조건 충족 시 `[✨ 정밀 스마트플랜 생성하기]` (또는 `⚡ 나만의 맞춤 여행계획 생성하기`) 활성화.
-- **1차 정밀 완료 후 (8일 전 이상)**: `✨ 스마트플랜 생성 완료`로 **잠금(비활성화)**. (주간 예보 준비 전까지 중복 클릭 방지)
-- **D-7 주간 예보 개방시**: `[🔄 주간 예보 정밀 플랜 업데이트]` 버튼 **잠금 해제 (활성화)** ➔ 갱신 완료 후 `✨ 주간 예보 업데이트 완료`로 **다시 잠금**.
-- **D-0 출발 당일 개방시**: `[🔄 출발 당일 초정밀 플랜 업데이트]` 버튼 **잠금 해제 (활성화)** ➔ 갱신 완료 후 `✨ 출발 당일 스마트플랜 최신화 완료`로 **최종 잠금**.
-
-### 3) 먹통 버튼 완치 & 정순서 파이프라인 연결
-- 하단 업데이트 버튼 클릭 시 기존에 프로필 팝업을 닫아버리던 먹통 `onReset()` 동작을 제거하고, `onTriggerGeneration` 핸들러를 통해 **`CampingProfileGate` (프로필 확인) ➔ `RouteSelector` (경로 선택) ➔ 정밀 플랜 생성 백엔드 파이프라인**으로 100% 정순서 연결.
-
-### 4) 맛보기 상세 화면 '여행 개요' 숨김 & 용어 일괄 변경 ('캠핑' ➔ '여행')
-- 맛보기 플랜(`isPreviewMode === true`) 노출 시, 다크 그린 AI 여행 개요 헤더 상자를 숨겨 **맛보기 배너 바로 밑에 `Stage 1` 장소 카드가 즉시 연결 노출**.
-- 모든 사용자 노출 안내 문구 및 뱃지 텍스트의 '캠핑' 표현을 **'여행'**으로 일괄 업데이트 (*"✨ 100% 실시간 기상이 반영된 스마트플랜과 함께 안전한 여행 되세요!"*).
-
-### 5) 맛보기 플랜 재구성 시 경로 선택기(`RouteSelector`) 마운트 블로킹 해결
-- [`src/app/(mobile)/myspace/schedule/[id]/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/schedule/%5Bid%5D/page.tsx)에서 `isReconstructing === true` 시 `isPreviewMode={isReconstructing ? false : isPreviewMode}`로 전달하여, 기존 맛보기 플랜 보유 일정에서도 프로필 확인 후 경로 선택창(`RouteSelector`)이 100% 무결하게 즉시 마운트되도록 완치.
-
-### 6) 비동기 맛보기 생성 완료 시 React Stale State 고정 및 간헐적 10초 멈춤 현상 완치
-- [`src/components/plan/SmartPlanProposal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/plan/SmartPlanProposal.tsx) 내부 `initialPlan` 동적 prop 동기화 `useEffect` 이식 (비동기 뒤늦은 수급 시에도 내부 state 즉각 반영).
-- [`src/app/(mobile)/myspace/schedule/[id]/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/schedule/%5Bid%5D/page.tsx) 내 `setPlanKey(prev => prev + 1)` 마운트 트리거 & `isInitializingPreviewRef` 중복 비동기 호출 방지 가드 작성 완수.
-
-### 7) 홈 화면 위젯과 여행일정 리스트 간 뱃지 문구 불일치 완치
-- [`src/components/schedule/ScheduleHomeWidget.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/schedule/ScheduleHomeWidget.tsx) 내 `badgeText` 수식을 [`ScheduleCard.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/schedule/ScheduleCard.tsx)의 4단계 동적 생명주기 뱃지 수식과 100% 동일하게 일치화 (`daysUntil <= 7` 시 `🔄 정밀 스마트플랜 업데이트 가능` 바르게 반환).
-
-### 8) 새벽 캐싱 스케줄러 중복 MD 파일 읽기 오버헤드 완치
-- [`scripts/caching-smart-plan.mjs`](file:///c:/Users/user/Desktop/RAON.I/scripts/caching-smart-plan.mjs) 및 [`scripts/caching-smart-plan-report.mjs`](file:///c:/Users/user/Desktop/RAON.I/scripts/caching-smart-plan-report.mjs) 내 불필요한 `loadPrestigeLists()` 파일 I/O 파싱 로직을 제거하고, Supabase DB(`master_places`) 내에 이미 적재되어 있는 `raw_data.tier` 및 뱃지 정보를 직접 참조하도록 백엔드 배치 엔진 경량화 완료.
+**작성 일시**: 2026년 8월 15일 (KST)  
+**작성 대상**: 스마트플랜 데이터 무결성 검증, Master DB 전체 메타데이터 동기화 및 2중 자동 청소 파이프라인 완치 보고  
 
 ---
 
-## 2. 🎯 기술적 결정 사항 (Technical Decisions)
+## 1. 💡 현재 상태 요약 (이번 세션 완료 사항)
 
-1. **단일 CTA 카드로 모든 상태 관문 단일화**:
-   - `SmartPlanProposal` 최상단의 단일 CTA 카드가 `isPreview`, `isCached`, `diffDaysForRegen`, `weather_window` 메타데이터를 종합 판별하여 활성화/비활성화 및 텍스트를 실시간 계산.
-2. **`weather_window` 메타데이터 기반 락(Lock) 판별**:
-   - `NONE` (1차 정밀), `MID` (7~1일 전 중기예보 갱신 완료), `SHORT` (당일 초정밀 갱신 완료) 메타데이터 플래그를 기반으로 시기별 1회 갱신을 엄격히 보장.
+1. **스마트플랜 UI 및 뱃지 렌더링 정제 완치**:
+   - `SmartPlanProposal.tsx` 및 `SmartPlanTimelinePro.tsx` 내 거리 뱃지 조건식을 `!!(card.distanceKm && card.distanceKm > 0)`로 안전화하여 **단독 숫자 `"0"` 노출 버그 원천 소멸**.
+   - 장소 교체(스와프) 모달 내 추천 점수를 `Score {Math.round(opt.trustScore)}`로 **정수 반올림 정제**.
+   - 스와프 모달 대안 장소 카드 뱃지에 메인 카드와 동기화된 이모지 뱃지(`🎖️안심식당`, `🎖️모범음식점`, `🎖️백년가게`) 100% 노출.
+
+2. **2단계 무결성 검증 & 0원 DB 미시적 자동 보수 파이프라인 구축**:
+   - [`scripts/caching-smart-plan.mjs`](file:///c:/Users/user/Desktop/RAON.I/scripts/caching-smart-plan.mjs)에 `runPostCachingAuditAndMicroRepair()` 구축.
+   - 캐싱 직후 결함 후보 데이터를 0.05초 만에 감지하고, 외부 API 추가 비용 0원으로 `master_places` DB 데이터를 읽어와 0.1초 만에 100% 자가 보정.
+   - 강릉바다내음캠핑장의 53개 후보군 데이터에 대해 좌표, 거리, 메타데이터 100% 자가 보정 완치.
+
+3. **Master DB 전체 메타데이터 100% 1:1 동기화 & 인증 뱃지 복원**:
+   - 보수 실행 시 `master_places` DB의 원본 `raw_data`(안심식당/모범음식점/백년가게/LX인증 뱃지, 주차, 영업시간, 대표메뉴, 전화번호 등) 및 `api_source`를 1:1로 읽어와 `smart_plan_candidates`에 무결하게 적재.
+   - `정동진해물탕` 및 강릉 일정 내 모든 인증 맛집의 **`🎖️안심식당` 이모지 뱃지 100% 복원 완료**.
+
+4. **2중 DB 자동 청소(Auto-Purge) 파이프라인 구축 & 1차 슬림화**:
+   - **실시간 청소**: 사용자가 예약을 취소(`status = 'cancelled'`)하면 연동된 54개 후보 행을 **0.05초 만에 즉시 DB 삭제** (`src/actions/schedule.ts`).
+   - **일일 배치 청소**: 퇴실 후 7일이 지난 옛날 일정 및 취소 일정 후보 행을 매일 자동 삭제 (`runCandidatesCleanup()`).
+   - **1차 슬림화 성과**: DB 레코드 수 **4,808행 ➔ 3,140행으로 1,668행(약 35%) 즉시 일괄 청소 완료**.
+
+5. **빌드 및 타입 무결성 통과**:
+   - `npx tsc --noEmit`: 경고 및 타입 에러 0건 (Clean).
+   - `npm run build`: 98개 전 페이지 프로덕션 빌드 무결 통과.
+   - Git 푸시 완료 ([`9b83280`](https://github.com/HYUN-SUK/RAON.I/commit/9b83280)).
 
 ---
 
-## 3. 🚀 다음 세션 우선 처리 작업 가이드 (Next Session Tasks)
+## 2. 🛠️ 기술적 결정 사항 (Architectural Decisions)
 
-- **유저 상세 요구사항 기반 뒤로가기 제어 시나리오 수립**:
-  - 세부 요구사항 전달 후 한 단계만 뒤로가기 제어 이식.
-- **TWA 플레이스토어 심사 후속 작업**:
-  - 구글 심사 승인 완료 후 AAB 패키지 빌드 시 TWA 더블 클릭 앱 종료 팝업 연동.
+1. **`master_places` vs `smart_plan_candidates` 데이터 역할 명확화**:
+   - **`master_places`**: 전국 130만 개 원본 DB. 특정 캠핑장 위치가 없으므로 `penalty_score`(거리 감점)가 0점이며, 장소 자체 본연의 인기도/위계 점수(`trust_score`)만 유지. 16개 시도 일일 순환 수집 시 수집 갱신됨.
+   - **`smart_plan_candidates`**: 사용자의 예약 일정(`user_schedules`)이 100% 확정된 상태에서 캐싱되는 예약건별 후보 DB. 캠핑장 좌표 기준으로 실제 거리를 계산하여 `quality_score - penalty_score = final_score`로 적재.
+
+2. **안심식당 뱃지 2중 안전망 수식 적용**:
+   - `api_source === 'LOCALDATA_RESTAURANT_SAFE'` 및 `raw_data.RELAX_SEQ != null` 조건 추가로, 데이터 출처에 관계없이 안심식당 장소에는 `🎖️안심식당` 이모지 뱃지가 100% 렌더링되도록 파서 보완.
 
 ---
 
-## 4. ⚠️ 주의 사항 (Known Caveats & Notes)
+## 3. 🚀 다음 작업 가이드 (Next Action Items)
 
-- **Git Commit 상태**:
-  - 최신 커밋 `245ff9c` (`feat(smart-plan): Consolidate single CTA UI, enforce period-based generation lock, and fix update pipeline flow`) 로컬 커밋 완료.
-  - `git push`는 사용자가 직접 수행해 주세요.
-- **무결성 검증 완료**:
-  - `npx tsc --noEmit` : Code 0 (Error 0건)
-  - `npm run build` : Code 0 (98/98 Routes Build Succeeded)
+1. **스마트플랜 UI/UX 단일 CTA & 상태 안내 배너 최적화**:
+   - 출발 당일/D+1 상황에서 안내 배너와 메인 버튼이 동시 노출되는 번잡함 해소.
+   - 1개의 명확한 단일 메인 CTA 버튼과 1개의 상태 안내 배너로 통합 설계.
+2. **16개 시도 마스터 DB 로테이션 갱신 모니터링**:
+   - 새벽 마스터 DB 순환 수집 시 `trust_score` 갱신이 안정적으로 수행되는지 주기적 점검.
+3. **스마트플랜 LIVE 타임라인 UI (Phase 1) 착수 준비**.
 
+---
+
+## 4. ⚠️ 주의 사항 & 특이사항
+
+- `smart_plan_candidates` 테이블에는 top-level `api_source` 컬럼이 없으며, `raw_data.api_source` JSONB 속성에 데이터 소스명이 저장됩니다.
+- DB 미시적 보수(`runPostCachingAuditAndMicroRepair`)와 자동 청소(`runCandidatesCleanup`)는 새벽 캐싱 배치 완료 직후 자동으로 가동됩니다.

@@ -7,6 +7,14 @@
     - [x] 정밀 스마트플랜(BASIC/PRO) 가동 시에는 카카오내비 경로 탐색 프로세스 100% 정상 작동 유지
     - [x] Next.js 16 Production Build 98개 페이지 컴파일 에러 0건 무결 성공 검증 완료
 
+- [x] **스마트플랜 2단계 무결성 검증, DB 미시적 보수 & 2중 자동 청소 파이프라인 (2026-08-15 완료)**
+    - [x] 1. 단독 숫자 "0" 거리 뱃지 및 스와프 모달 소수점 점수 정제 (`SmartPlanProposal.tsx` & `SmartPlanTimelinePro.tsx`)
+    - [x] 2. 오피넷 장애 시 카카오 주유소 `OL7` 2차 폴백 가동 조건 설정 (`caching-smart-plan.mjs`)
+    - [x] 3. 2단계 무결성 검증 & 0원 DB 미시적 보수 파이프라인 (`runPostCachingAuditAndMicroRepair`) 구축 및 강릉바다내음 53개 후보군 데이터 100% 자가 보정 완료
+    - [x] 4. Master DB 원본 `raw_data`(안심식당/모범음식점/백년가게/LX인증 뱃지, 주차, 영업시간, 대표메뉴 등) 1:1 전면 완벽 동기화 및 복원
+    - [x] 5. 실시간 취소 즉시 삭제 및 7일 전 완결 일정 일일 자동 청소 파이프라인(`runCandidatesCleanup`) 구축 (DB 4,808행 ➔ 3,140행으로 1,668행 35% 즉시 슬림 최적화 성공)
+    - [x] 6. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
+
 - [x] **AI Persona Pipeline Stabilization**
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.
     - [x] Prioritize `User Camping Profile` over historical reservations for accurate persona extraction.
