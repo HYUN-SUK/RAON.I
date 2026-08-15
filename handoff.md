@@ -1,46 +1,36 @@
 # 📌 세션 인수인계 문서 (Handoff Document)
 
 **작성 일시**: 2026년 8월 15일 (KST)  
-**작성 대상**: 스마트플랜 데이터 무결성 검증, Master DB 전체 메타데이터 동기화 및 2중 자동 청소 파이프라인 완치 보고  
+**작성 대상**: 4개 핵심 테이블(`master_places`, `system_config`, `operation_logs`, `likes`) RLS 보안 완벽 가동, 연쇄삭제(CASCADE) 보강 및 전수 CRUD 무결성 검증 완료 보고  
 
 ---
 
 ## 1. 💡 현재 상태 요약 (이번 세션 완료 사항)
 
-1. **스마트플랜 UI 및 뱃지 렌더링 정제 완치**:
-   - `SmartPlanProposal.tsx` 및 `SmartPlanTimelinePro.tsx` 내 거리 뱃지 조건식을 `!!(card.distanceKm && card.distanceKm > 0)`로 안전화하여 **단독 숫자 `"0"` 노출 버그 원천 소멸**.
-   - 장소 교체(스와프) 모달 내 추천 점수를 `Score {Math.round(opt.trustScore)}`로 **정수 반올림 정제**.
-   - 스와프 모달 대안 장소 카드 뱃지에 메인 카드와 동기화된 이모지 뱃지(`🎖️안심식당`, `🎖️모범음식점`, `🎖️백년가게`) 100% 노출.
+1. **4개 핵심 테이블 RLS 보안 가동 & 맞춤형 무결성 정책 배포**:
+   - `master_places`: 전원 공개 읽기(`SELECT USING (true)`) 허용으로 스마트플랜 및 반경 검색 RPC 정상 유지, 외부 비인가 쓰기 100% 차단.
+   - `system_config`: 일반 유저 점검모드/예약상태 공개 읽기 허용, 관리자(`admin@raon.ai` 또는 JWT `role='admin'`) 전용 수정 허용.
+   - `operation_logs`: 일반 사용자 열람 완전 격리(0건 노출), 관리자 조치 시 로그 등록 및 조회만 허용하고 수정/삭제는 영구 차단하여 불변 감사 로그(Audit Log) 체계 완성.
+   - `likes`: 외래키 `ON DELETE CASCADE` 보강, 전원 공개 조회 및 사용자/관리자 좋아요 등록 및 취소 정책 배포.
 
-2. **2단계 무결성 검증 & 0원 DB 미시적 자동 보수 파이프라인 구축**:
-   - [`scripts/caching-smart-plan.mjs`](file:///c:/Users/user/Desktop/RAON.I/scripts/caching-smart-plan.mjs)에 `runPostCachingAuditAndMicroRepair()` 구축.
-   - 캐싱 직후 결함 후보 데이터를 0.05초 만에 감지하고, 외부 API 추가 비용 0원으로 `master_places` DB 데이터를 읽어와 0.1초 만에 100% 자가 보정.
-   - 강릉바다내음캠핑장의 53개 후보군 데이터에 대해 좌표, 거리, 메타데이터 100% 자가 보정 완치.
+2. **작성자 / 관리자 CRUD 및 연쇄작용(CASCADE) 전수 검증 통과**:
+   - 일반 사용자 글쓰기(Create) ➔ 글수정(Update) ➔ 타인 좋아요/댓글 등록 ➔ 본인 글삭제(Delete) 시 종속 데이터 0건 잔여물 없이 완벽 연쇄 삭제(CASCADE) 실시간 검증 완료.
+   - 관리자 공지글 작성 및 관리자 삭제 처리 100% 정상 작동 확인.
+   - `user_schedules`(내 일정/예약), `site_config`(캠핑장 요금/사이트 설정), `camping_records`(1분 내 기록) 등 기존 전체 기능 정상 작동 검증.
 
-3. **Master DB 전체 메타데이터 100% 1:1 동기화 & 인증 뱃지 복원**:
-   - 보수 실행 시 `master_places` DB의 원본 `raw_data`(안심식당/모범음식점/백년가게/LX인증 뱃지, 주차, 영업시간, 대표메뉴, 전화번호 등) 및 `api_source`를 1:1로 읽어와 `smart_plan_candidates`에 무결하게 적재.
-   - `정동진해물탕` 및 강릉 일정 내 모든 인증 맛집의 **`🎖️안심식당` 이모지 뱃지 100% 복원 완료**.
-
-4. **2중 DB 자동 청소(Auto-Purge) 파이프라인 구축 & 1차 슬림화**:
-   - **실시간 청소**: 사용자가 예약을 취소(`status = 'cancelled'`)하면 연동된 54개 후보 행을 **0.05초 만에 즉시 DB 삭제** (`src/actions/schedule.ts`).
-   - **일일 배치 청소**: 퇴실 후 7일이 지난 옛날 일정 및 취소 일정 후보 행을 매일 자동 삭제 (`runCandidatesCleanup()`).
-   - **1차 슬림화 성과**: DB 레코드 수 **4,808행 ➔ 3,140행으로 1,668행(약 35%) 즉시 일괄 청소 완료**.
-
-5. **빌드 및 타입 무결성 통과**:
+3. **빌드 및 타입 무결성 통과**:
    - `npx tsc --noEmit`: 경고 및 타입 에러 0건 (Clean).
-   - `npm run build`: 98개 전 페이지 프로덕션 빌드 무결 통과.
-   - Git 푸시 완료 ([`9b83280`](https://github.com/HYUN-SUK/RAON.I/commit/9b83280)).
+   - `npm run build`: 98개 전 페이지 프로덕션 빌드 무결 성공.
+   - 원격 DB 마이그레이션 적용 완료 (`20260815203000_enable_rls_master_places_system_config_operation_logs_likes.sql`).
 
 ---
 
 ## 2. 🛠️ 기술적 결정 사항 (Architectural Decisions)
 
-1. **`master_places` vs `smart_plan_candidates` 데이터 역할 명확화**:
-   - **`master_places`**: 전국 130만 개 원본 DB. 특정 캠핑장 위치가 없으므로 `penalty_score`(거리 감점)가 0점이며, 장소 자체 본연의 인기도/위계 점수(`trust_score`)만 유지. 16개 시도 일일 순환 수집 시 수집 갱신됨.
-   - **`smart_plan_candidates`**: 사용자의 예약 일정(`user_schedules`)이 100% 확정된 상태에서 캐싱되는 예약건별 후보 DB. 캠핑장 좌표 기준으로 실제 거리를 계산하여 `quality_score - penalty_score = final_score`로 적재.
-
-2. **안심식당 뱃지 2중 안전망 수식 적용**:
-   - `api_source === 'LOCALDATA_RESTAURANT_SAFE'` 및 `raw_data.RELAX_SEQ != null` 조건 추가로, 데이터 출처에 관계없이 안심식당 장소에는 `🎖️안심식당` 이모지 뱃지가 100% 렌더링되도록 파서 보완.
+1. **`likes` 테이블 PK 구조 및 외래키 연쇄삭제 표준화**:
+   - `likes` 테이블은 별도 `id` 없이 `(post_id, user_id)` 복합 기본키 구조이며, `post_id`에 `REFERENCES public.posts(id) ON DELETE CASCADE`를 명속화하여 글 삭제 시 23503 외래키 에러를 원천 차단.
+2. **`system_config` & `operation_logs` 3중 관리자 식별**:
+   - `auth.jwt() ->> 'email' = 'admin@raon.ai'`, `app_metadata.role = 'admin'`, `user_metadata.role = 'admin'` 3중 검증으로 관리자 세션 분실 및 권한 충돌 방어.
 
 ---
 
@@ -57,5 +47,5 @@
 
 ## 4. ⚠️ 주의 사항 & 특이사항
 
-- `smart_plan_candidates` 테이블에는 top-level `api_source` 컬럼이 없으며, `raw_data.api_source` JSONB 속성에 데이터 소스명이 저장됩니다.
-- DB 미시적 보수(`runPostCachingAuditAndMicroRepair`)와 자동 청소(`runCandidatesCleanup`)는 새벽 캐싱 배치 완료 직후 자동으로 가동됩니다.
+- `master_places`, `system_config`, `operation_logs`, `likes` 테이블의 RLS가 정상 가동 중이므로, 새로운 클라이언트/서버 쿼리 작성 시 정책 스코프를 준수해야 합니다.
+- 관리자 권한을 요하는 백엔드 서버 액션 및 크론잡은 반드시 `SUPABASE_SERVICE_ROLE_KEY`를 사용하는 클라이언트를 이용해 RLS 영향을 우회하도록 설계되어 있습니다.
