@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase-admin';
 import { parseSafeDate } from '@/utils/date';
 import { BlockedDate } from '@/types/reservation';
+import { assertAdmin } from '@/lib/auth-guard';
 
 export interface CreateBlockParams {
     siteId: string;
@@ -20,6 +21,7 @@ export interface CreateBlockParams {
  */
 export async function addBlockDateServerAction(params: CreateBlockParams): Promise<{ success: boolean; data?: BlockedDate; error?: string }> {
     try {
+        await assertAdmin();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const supabase = createAdminClient() as any;
 
@@ -69,6 +71,7 @@ export async function addBlockDateServerAction(params: CreateBlockParams): Promi
  */
 export async function removeBlockDateServerAction(id: string): Promise<{ success: boolean; error?: string }> {
     try {
+        await assertAdmin();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const supabase = createAdminClient() as any;
 
@@ -112,6 +115,7 @@ export async function removeBlockDateServerAction(id: string): Promise<{ success
  */
 export async function unblockAllServerAction(ids: string[]): Promise<{ success: boolean; error?: string }> {
     try {
+        await assertAdmin();
         if (!ids || ids.length === 0) return { success: true };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const supabase = createAdminClient() as any;

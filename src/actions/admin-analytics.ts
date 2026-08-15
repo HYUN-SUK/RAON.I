@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase-admin';
+import { assertAdmin } from '@/lib/auth-guard';
 
 export interface FeatureStat {
     name: string;
@@ -34,6 +35,7 @@ export async function getAdminAnalyticsAction(
     endDateISO?: string
 ): Promise<{ success: boolean; data?: AdminAnalyticsData; error?: string }> {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
 
         // Default Date Range: If omitted, default to past 30 days

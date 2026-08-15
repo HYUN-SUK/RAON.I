@@ -1,12 +1,14 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase-admin';
+import { assertAdmin } from '@/lib/auth-guard';
 
 /**
  * DB에서 개별 에어컨 기기 목록 조회 (air-group 제외)
  */
 export async function fetchAirconUnits() {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
         const { data, error } = await supabase
             .from('sites')
@@ -33,6 +35,7 @@ export async function fetchAirconUnits() {
  */
 export async function addAirconUnit() {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
         
         // 1. 현재 등록된 에어컨 목록 조회하여 다음 번호 계산
@@ -90,6 +93,7 @@ export async function addAirconUnit() {
  */
 export async function deleteAirconUnit(id: string) {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
         const { data, error } = await supabase
             .from('sites')
@@ -113,6 +117,7 @@ export async function deleteAirconUnit(id: string) {
  */
 export async function updateAirconUnitStatus(id: string, isActive: boolean) {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
         const { data, error } = await supabase
             .from('sites')
@@ -139,6 +144,7 @@ export async function updateAirconUnitStatus(id: string, isActive: boolean) {
  */
 export async function updateAirconUnitDetails(id: string, name: string, price: number) {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
         const { data, error } = await supabase
             .from('sites')

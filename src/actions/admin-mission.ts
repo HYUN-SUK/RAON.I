@@ -2,8 +2,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { assertAdmin } from '@/lib/auth-guard'
 
 export async function deleteMissionAction(id: string) {
+    await assertAdmin()
     // Determine the service role key. 
     // Usually it's SUPABASE_SERVICE_ROLE_KEY.
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -43,6 +45,7 @@ export interface BulkMissionInput {
 }
 
 export async function createBulkMissionsAction(inputs: BulkMissionInput[]) {
+    await assertAdmin()
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!serviceRoleKey) {

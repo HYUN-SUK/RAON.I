@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase-admin';
 import { createClient } from '@/lib/supabase-client';
 import { PricingConfig } from '@/types/reservation';
+import { assertAdmin } from '@/lib/auth-guard';
 
 const DEFAULT_PRICE_CONFIG: PricingConfig = {
     weekday: 40000,
@@ -36,8 +37,6 @@ export async function getPricingConfigAction(): Promise<{ success: boolean; data
             return { success: true, data: config };
         }
 
-        // If null or empty, seed DEFAULT_PRICE_CONFIG into DB using Admin Client
-        await updatePricingConfigAction(DEFAULT_PRICE_CONFIG);
         return { success: true, data: DEFAULT_PRICE_CONFIG };
     } catch (err: any) {
         console.error('[getPricingConfigAction] Exception:', err);
@@ -47,6 +46,7 @@ export async function getPricingConfigAction(): Promise<{ success: boolean; data
 
 export async function updatePricingConfigAction(config: PricingConfig): Promise<{ success: boolean; error?: string }> {
     try {
+        await assertAdmin();
         // Use createAdminClient with type cast to bypass RLS restrictions and TS generic constraints for site_config updates
         const adminSupabase = createAdminClient() as any;
         

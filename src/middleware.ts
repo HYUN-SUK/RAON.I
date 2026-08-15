@@ -32,16 +32,31 @@ export async function middleware(request: NextRequest) {
     // 1. Refresh Session
     const { data: { user } } = await supabase.auth.getUser();
 
-    // 2. Protect /admin routes
+    // 2. Protect /api/admin backend routes (Require Admin Session or CRON_SECRET)
+    if (request.nextUrl.pathname.startsWith('/api/admin')) {
+        const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+        const isCron = !!process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`;
+        const isAdmin = user && (
+            user.email === 'admin@raon.ai' ||
+            user.app_metadata?.role === 'admin' ||
+            user.user_metadata?.role === 'admin'
+        );
+
+        if (!isCron && !isAdmin) {
+            return NextResponse.json(
+                { error: '401 Unauthorized: 관리자 세션 또는 유효한 인증 토큰이 필요합니다.' },
+                { status: 401 }
+            );
+        }
+        return response;
+    }
+
+    // 3. Protect /admin frontend pages
     if (request.nextUrl.pathname.startsWith('/admin')) {
         // Exception: Login page is public
         if (request.nextUrl.pathname === '/admin/login') {
             // If already logged in, redirect to dashboard
-            if (user) {
-                // Optional: Check if admin? For now just redirect to dashboard.
-                // Real admin check requires DB lookup which is expensive in middleware.
-                // Usually we rely on RLS + Layout protection, or use Custom Claims.
-                // For now, let them in, Layout will handle the rigorous check or just let them see empty page.
+            if (user && (user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin')) {
                 return NextResponse.redirect(new URL('/admin', request.url));
             }
             return response;
@@ -52,9 +67,13 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/admin/login', request.url));
         }
 
-        // 3. Strict Admin Check (Middleware Level)
-        // Check email to prevent regular users from seeing Admin UI
-        if (user.email !== 'admin@raon.ai') {
+        // Strict Admin Check (Middleware Level)
+        const isAdmin =
+            user.email === 'admin@raon.ai' ||
+            user.app_metadata?.role === 'admin' ||
+            user.user_metadata?.role === 'admin';
+
+        if (!isAdmin) {
             // Redirect to home if not admin
             return NextResponse.redirect(new URL('/', request.url));
         }

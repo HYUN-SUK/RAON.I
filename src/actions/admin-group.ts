@@ -2,24 +2,10 @@
 
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
-
-// Check Admin Logic (Should match middleware/other admin actions)
-async function checkAdmin() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) return false;
-
-    return (
-        user.user_metadata?.role === 'admin' ||
-        user.email === 'admin@raon.ai'
-    );
-}
+import { assertAdmin } from '@/lib/auth-guard';
 
 export async function fetchGroupsAdminAction() {
-    const isAdmin = await checkAdmin();
-    if (!isAdmin) throw new Error('Unauthorized');
-
+    await assertAdmin();
     const supabase = await createClient();
     const { data, error } = await supabase
         .from('groups')
@@ -35,9 +21,7 @@ export async function fetchGroupsAdminAction() {
 }
 
 export async function deleteGroupAdminAction(groupId: string) {
-    const isAdmin = await checkAdmin();
-    if (!isAdmin) throw new Error('Unauthorized');
-
+    await assertAdmin();
     const supabase = await createClient();
     const { error } = await supabase
         .from('groups')

@@ -741,7 +741,7 @@ async function dailyRegionSync() {
     }
 
     let existingActive = [];
-    const { data: rawActive, error: selectErr } = await supabase.from('master_places').select('id, miss_count, address, sido').in('sido', aliases).eq('api_source', source).eq('is_active', true);
+    const { data: rawActive, error: selectErr } = await supabase.from('master_places').select('id, miss_count, address, sido, is_protected').in('sido', aliases).eq('api_source', source).eq('is_active', true);
     if (!selectErr && rawActive) {
       if (targetSido === '전남광주시_광주권') {
         existingActive = rawActive.filter(r => 
@@ -766,8 +766,8 @@ async function dailyRegionSync() {
       if (seenIds.has(r.id)) {
         seen.push(r.id);
       } else {
-        // [SOP v11.3 Update] 관광명소(SPOT)는 폐업/인증해제 개념이 없으므로 3진 아웃 로직에서 전면 예외 처리
-        if (key === 'SPOT') {
+        // [SSOT v11.3 & v13.1.2 Update] 관광명소(SPOT) 및 국가/지자체 공인 명성 보호 데이터(is_protected: true)는 영구 보호
+        if (key === 'SPOT' || r.is_protected === true) {
           continue;
         }
         

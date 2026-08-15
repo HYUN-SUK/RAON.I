@@ -21,6 +21,8 @@
     - [x] 3. 일반 사용자 글쓰기, 글수정, 타인 좋아요/댓글 등록, 본인 글삭제 및 종속 데이터 0건 잔여물 실시간 검증 완료
     - [x] 4. 관리자 공지글 작성 및 관리자 삭제 처리 100% 정상 작동 검증
     - [x] 5. `user_schedules`, `site_config`, `camping_records` 등 기타 핵심 테이블 정상 접근 및 빌드 100% 성공 검증 완료
+    - [x] 6. [4-1] `is_protected` 862건 명성 데이터 삼진아웃 비활성화 원천 차단 영구 보호막 구축 (`daily-region-sync.mjs`)
+    - [x] 7. [4-2] 지역 8경 배지(예산 8경, 강릉 8경, 단양 8경 등) 파서 포괄 패턴 매칭 개선 및 100% 복원 (`smartPlan.ts`)
 
 - [x] **AI Persona Pipeline Stabilization**
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.

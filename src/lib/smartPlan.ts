@@ -353,8 +353,18 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     }
     const isSpot = category === 'SPOT' || category === 'ROUTE_SPOT';
     if (isSpot) {
-        // [v11.9.26] raw_data.badges에서 명소 인증 정보 추출
-        const spotBadge = rawBadges.find(b => ['한국관광 100선', '지역 8경'].includes(b));
+        // [v13.1.2] raw_data.badges에서 명소 인증 정보 추출 (한국관광 100선, 예산 8경, 강릉 8경, 단양 8경, 9경, 10경 등)
+        const spotBadge = rawBadges.find(b => 
+            b === '한국관광 100선' || 
+            b.includes('8경') || 
+            b.includes('9경') || 
+            b.includes('10경') || 
+            b.includes('12경') || 
+            b.includes('팔경') || 
+            b.includes('구경') || 
+            b.includes('십경') ||
+            b.includes('지역 8경')
+        );
         if (spotBadge) {
             certs.push(spotBadge); badges.push(spotBadge); emojis.push(`👑${spotBadge}`);
         }

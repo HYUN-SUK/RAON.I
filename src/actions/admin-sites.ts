@@ -1,12 +1,14 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase-admin';
+import { assertAdmin } from '@/lib/auth-guard';
 
 /**
  * 관리자 권한(Service Role)으로 사이트 정보 및 운영상태 수정
  */
 export async function updateSiteAdmin(id: string, updates: any) {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
         const { data, error } = await supabase
             .from('sites')
@@ -45,6 +47,7 @@ export async function updateSiteAdmin(id: string, updates: any) {
  */
 export async function insertSiteAdmin(siteData: any) {
     try {
+        await assertAdmin();
         const supabase = createAdminClient() as any;
         const { data, error } = await supabase
             .from('sites')

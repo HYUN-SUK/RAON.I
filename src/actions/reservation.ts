@@ -6,9 +6,13 @@ import { NotificationEventType } from '@/types/notificationEvents';
 import { notificationService } from '@/services/notificationService';
 import { ensureScheduleFromReservationAdmin } from './schedule';
 import { SITES } from '@/constants/sites';
+import { assertAdmin, checkIsAdmin, getCurrentUser } from '@/lib/auth-guard';
 
 /**
  * 예약 상태 변경 및 후속 처리 (확정/취소 등)
+ * - CONFIRMED: 관리자만 실행 가능
+ * - CANCELLED: 관리자, 예약 당사자 본인(user_id), 또는 시스템 크론잡만 실행 가능
+ * - 기타: 관리자만 실행 가능
  */
 export async function updateReservationStatusAction(
     id: string,
@@ -17,16 +21,40 @@ export async function updateReservationStatusAction(
 ) {
     const supabase = createAdminClient();
 
-    // 0. 현재 상태 확인 (중복 처리 방지)
-    const { data: currentRes } = await supabase
-        .from('reservations')
-        .select('status')
+    // 0. 현재 대상 예약 확인
+    const { data: currentRes, error: fetchErr } = await (supabase
+        .from('reservations') as any)
+        .select('id, user_id, status')
         .eq('id', id)
         .single();
 
-    if ((currentRes as any)?.status === status) {
+    if (fetchErr || !currentRes) {
+        return { success: false, error: '해당 예약을 찾을 수 없습니다.' };
+    }
+
+    if (currentRes.status === status) {
         console.log(`[Action] Status for ${id} is already ${status}. Skipping.`);
         return { success: true, message: 'Already in target status' };
+    }
+
+    // 0-1. 호출자 권한 정밀 검증
+    const currentUser = await getCurrentUser();
+    const isAdmin = await checkIsAdmin();
+
+    if (status === 'CONFIRMED') {
+        if (!isAdmin) {
+            throw new Error('403 Forbidden: 관리자만 예약을 확정할 수 있습니다.');
+        }
+    } else if (status === 'CANCELLED') {
+        const isOwner = currentUser && currentRes.user_id === currentUser.id;
+        // 크론잡이나 시스템 호출(currentUser가 null이지만 서버 환경) 또는 관리자 또는 본인
+        if (!isAdmin && !isOwner && currentUser !== null) {
+            throw new Error('403 Forbidden: 본인의 예약만 취소할 수 있습니다.');
+        }
+    } else {
+        if (!isAdmin) {
+            throw new Error('403 Forbidden: 관리자 권한이 필요합니다.');
+        }
     }
 
     // 1. 상태 업데이트
@@ -129,6 +157,7 @@ export async function updateReservationAction(
     id: string,
     updates: { checkInDate: Date; checkOutDate: Date; siteId: string; totalPrice: number }
 ) {
+    await assertAdmin();
     const supabase = createAdminClient();
 
     // 1. reservations 테이블 업데이트
