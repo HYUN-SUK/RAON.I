@@ -756,7 +756,7 @@ export default function SmartPlanProposal({
                                     )}
                                 </>
                             )}
-                            {!['2', '5'].includes(stage || '') && card.distanceKm && (
+                            {!['2', '5'].includes(stage || '') && !!(card.distanceKm && card.distanceKm > 0) && (
                                 <span className="text-[10px] text-gray-400 font-medium">
                                     📍 {card.distanceKm}km 거리
                                 </span>
@@ -1470,8 +1470,10 @@ export default function SmartPlanProposal({
                                                                             {opt.evidence?.stars && (
                                                                                 <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold border border-yellow-100/30">⭐ {opt.evidence.stars.toFixed(1)}</span>
                                                                             )}
-                                                                            {opt.evidence?.certifications.map((c: any, i: number) => (
-                                                                                <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold border border-blue-100/30">{c}</span>
+                                                                            {(opt.evidence?.displayBadges || []).map((badge: any, i: number) => (
+                                                                                <span key={i} className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center justify-center leading-none shadow-sm" title={badge.label}>
+                                                                                    {badge.emoji}
+                                                                                </span>
                                                                             ))}
                                                                             {opt.category === 'GAS_STATION' && (opt.metadata?.kerosenePrice || opt.description?.match(/등유:\s?(\d+)원/)) && (() => {
                                                                                 const price = opt.metadata?.kerosenePrice || opt.description?.match(/등유:\s?(\d+)원/)?.[1];
@@ -1493,7 +1495,7 @@ export default function SmartPlanProposal({
                                                                                     )}
                                                                                 </>
                                                                             )}
-                                                                            <span className="text-[9px] text-gray-400 ml-auto font-medium">Score {opt.trustScore}</span>
+                                                                            <span className="text-[9px] text-gray-400 ml-auto font-medium">Score {Math.round(opt.trustScore)}</span>
                                                                         </div>
                                                                         {opt.category === 'HOSPITAL' && opt.metadata?.dutyTel3 && (
                                                                             <div className="mt-1.5">

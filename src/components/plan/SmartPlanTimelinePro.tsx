@@ -534,7 +534,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                         <div key={card.id} className="flex-shrink-0 w-36 p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm">
                                             <p className="text-xs font-bold text-gray-900 truncate">{card.name}</p>
                                             <p className="text-[10px] text-gray-400 mt-0.5 truncate">{formatPlaceDetailText(card)}</p>
-                                            {card.distanceKm && (
+                                            {!!(card.distanceKm && card.distanceKm > 0) && (
                                                 <p className="text-[10px] text-[#224732] font-bold mt-1">
                                                     <MapPin className="w-2.5 h-2.5 inline mr-0.5" />{card.distanceKm.toFixed(1)}km
                                                 </p>

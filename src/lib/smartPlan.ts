@@ -289,7 +289,7 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     else if (raw.scraping?.rating) stars = raw.scraping.rating;
     else if (raw.raw_data?.scraping?.rating) stars = raw.raw_data.scraping.rating;
 
-    const source = raw.api_source || raw.sourceName || '';
+    const source = raw.api_source || raw.sourceName || raw.raw_data?.api_source || '';
     // [v11.9.26] smart_plan_candidates는 raw_data.badges에 인증 정보 저장
     const rawBadges: string[] = raw.badges || raw.raw_data?.badges || [];
 
@@ -303,7 +303,7 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || rawBadges.includes('모범음식점')) {
         certs.push('행안부 모범음식점'); badges.push('모범음식점'); emojis.push('🎖️모범음식점');
     }
-    if (source === 'SAFE_RESTAURANT' || rawBadges.includes('안심식당')) {
+    if (source === 'SAFE_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_SAFE' || rawBadges.includes('안심식당') || raw.raw_data?.RELAX_SEQ != null || raw.raw_data?.RELAX_USE_YN === 'Y') {
         certs.push('농식품부 안심식당'); badges.push('안심식당'); emojis.push('🎖️안심식당');
     }
     const isHospital = category === 'HOSPITAL' || category === 'ROUTE_HOSPITAL';
@@ -462,7 +462,7 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
         if (factIds.length > 0) {
             const { data: originalPlaces, error: joinErr } = await supabase
                 .from('master_places')
-                .select('id, description, raw_data')
+                .select('id, description, raw_data, lat, lng, api_source')
                 .in('id', factIds);
             
             if (!joinErr && originalPlaces) {
@@ -470,6 +470,9 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
                 data.forEach(row => {
                     const orig = descMap.get(row.fact_id);
                     if (orig) {
+                        if (!row.api_source && orig.api_source) row.api_source = orig.api_source;
+                        if (!row.lat && orig.lat) row.lat = orig.lat;
+                        if (!row.lng && orig.lng) row.lng = orig.lng;
                         if (!row.raw_data) row.raw_data = {};
                         // description 컬럼 값을 raw_data.description 에 주입하여 parseFactCard 가 읽어가도록 함
                         row.raw_data.description = orig.description || '';

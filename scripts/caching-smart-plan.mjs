@@ -303,11 +303,11 @@ async function main() {
         process.exit(0);
     }
 
-    // 대상 스케줄들의 기존 캐싱 이력 일괄 조회
+    // 대상 스케줄들의 기존 캐싱 이력 일괄 조회 (무결성 필드 검증 포함)
     const scheduleIds = rawSchedules.map(s => s.id);
     const { data: existingCandidates, error: candError } = await supabase
         .from('smart_plan_candidates')
-        .select('reservation_id, created_at')
+        .select('reservation_id, created_at, lat, lng, distance_meters')
         .in('reservation_id', scheduleIds);
 
     if (candError) {
@@ -318,7 +318,8 @@ async function main() {
     if (existingCandidates) {
         existingCandidates.forEach(c => {
             const list = candidateMap.get(c.reservation_id) || [];
-            list.push(new Date(c.created_at));
+            const isValid = c.lat != null && c.lng != null && c.distance_meters != null && c.distance_meters > 0;
+            list.push({ date: new Date(c.created_at), isValid });
             candidateMap.set(c.reservation_id, list);
         });
     }
@@ -333,15 +334,18 @@ async function main() {
         const daysDiff = Math.round((checkInDate - todayDate) / 86400000);
 
         const sCandidates = candidateMap.get(s.id) || [];
-        const hasCandidates = sCandidates.length > 0;
+        const hasCorruptedCandidates = sCandidates.length > 0 && sCandidates.some(c => !c.isValid);
+        const hasCandidates = sCandidates.length > 0 && !hasCorruptedCandidates;
         
         let latestCacheDate = null;
-        if (hasCandidates) {
-            latestCacheDate = new Date(Math.max(...sCandidates.map(d => d.getTime())));
+        if (sCandidates.length > 0) {
+            latestCacheDate = new Date(Math.max(...sCandidates.map(c => c.date.getTime())));
         }
 
         if (forceArg) {
             console.log(`  🔥 Force option enabled. Bypassing skip guards for Schedule ${s.id}.`);
+        } else if (hasCorruptedCandidates) {
+            console.log(`  ⚠️ Schedule ${s.id} (${s.check_in}) has corrupted/null candidate coordinates. Bypassing skip guard for self-healing...`);
         } else if (s.smart_plan_data && s.smart_plan_data.is_preview !== true) {
             console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has finalized plan. Skipping...`);
             continue;
@@ -654,6 +658,28 @@ async function main() {
             })());
 
             await Promise.all(fetchTasks);
+
+            // 주유소 카테고리 카카오 로컬(OL7) 조건부 2차 폴백 (Opinet 장애/미수집 시)
+            if (aggregatedMaster.GAS_STATION.size < 1 && KAKAO_KEY) {
+                console.log(`  ⛽ Opinet gas station count (${aggregatedMaster.GAS_STATION.size}) is 0 (< 1). Querying Kakao OL7 fallback...`);
+                try {
+                    const kRes = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=OL7&x=${ptLng}&y=${ptLat}&radius=20000&size=15`, { headers: { 'Authorization': `KakaoAK ${KAKAO_KEY}` } });
+                    const kData = await kRes.json();
+                    if (kData.documents) {
+                        metrics.dynamic_api.GAS_STATION.received += kData.documents.length;
+                        kData.documents.forEach((item) => {
+                            const fact = {
+                                id: generateFactId('KAKAO_OL7', item.place_name, item.road_address_name || item.address_name),
+                                api_source: 'KAKAO_OL7', category: 'GAS_STATION',
+                                name: item.place_name, description: '주변 알뜰/일반 주유소', address: item.road_address_name || item.address_name || '주소정보없음',
+                                lat: parseFloat(item.y), lng: parseFloat(item.x),
+                                trust_score: 55, raw_data: item
+                            };
+                            aggregatedMaster.GAS_STATION.set(fact.id, fact);
+                        });
+                    }
+                } catch (e) { console.error("Kakao OL7 Gas Fallback Error:", e.message); }
+            }
 
             // 병원 카테고리 카카오 로컬 호출 조건부 폴백 전환 (NMC 데이터가 2개 미만일 때만)
             if (nmcHospCount < 2) {
@@ -1209,8 +1235,128 @@ async function main() {
     }
 
     printCachingAuditTable();
+    await runPostCachingAuditAndMicroRepair(scheduleIds);
     await recordAutomationLog(metrics, targetStr, 'SUCCESS');
     process.exit(0);
+}
+
+// ━━━━ [v12.9.5] 2단계 무결성 검증 & 0원 비용 DB 미시적 자동 보정 함수 ━━━━
+async function runPostCachingAuditAndMicroRepair(targetScheduleIds = []) {
+    console.log(`\n🔍 [Post-Caching Audit] 2단계 데이터 무결성 검사 가동 중...`);
+    
+    // 1. 위도/경도/거리 결함 데이터 조회
+    let query = supabase
+        .from('smart_plan_candidates')
+        .select('id, reservation_id, fact_id, category, name, address, lat, lng, distance_meters');
+    
+    if (targetScheduleIds.length > 0) {
+        query = query.in('reservation_id', targetScheduleIds);
+    } else {
+        query = query.or('lat.is.null,lng.is.null,distance_meters.is.null,distance_meters.eq.0');
+    }
+
+    const { data: corruptedCandidates } = await query;
+    const corruptedResIds = Array.from(new Set(
+        (corruptedCandidates || [])
+            .filter(c => c.lat == null || c.lng == null || c.distance_meters == null || c.distance_meters === 0)
+            .map(c => c.reservation_id)
+    ));
+
+    if (corruptedResIds.length === 0) {
+        console.log(`  ✅ [무결성 100%] 좌표/거리 결함 건 없음. 검증 완료.`);
+        return;
+    }
+
+    console.log(`  🚨 좌표/거리 결함 일정 ${corruptedResIds.length}건 감지! 0원 비용 DB 미시적 자동 보정 진행...`);
+
+    // 대상 일정의 캠핑장 좌표 조회
+    const { data: schedules } = await supabase
+        .from('user_schedules')
+        .select('id, campground_lat, campground_lng, campground_address, campground_name')
+        .in('id', corruptedResIds);
+
+    const schedMap = new Map((schedules || []).map(s => [s.id, s]));
+
+    for (const resId of corruptedResIds) {
+        const sched = schedMap.get(resId);
+        if (!sched) continue;
+
+        let campLat = Number(sched.campground_lat);
+        let campLng = Number(sched.campground_lng);
+
+        if (!campLat || !campLng) {
+            const { data: cMaster } = await supabase.from('campgrounds').select('lat, lng').ilike('name', `%${sched.campground_name}%`).limit(1).single();
+            if (cMaster) { campLat = cMaster.lat; campLng = cMaster.lng; }
+        }
+
+        if (!campLat || !campLng) {
+            console.warn(`  ⚠️ [보정 스킵] ${sched.campground_name}: 캠핑장 기준 좌표 없음.`);
+            continue;
+        }
+
+        const { data: resCandidates } = await supabase
+            .from('smart_plan_candidates')
+            .select('*')
+            .eq('reservation_id', resId);
+
+        if (!resCandidates || resCandidates.length === 0) continue;
+
+        // master_places 원본 좌표 및 메타데이터(인증, 주차, 영업시간 등) 조회
+        const factIds = resCandidates.map(c => c.fact_id);
+        const { data: masterPlaces } = await supabase
+            .from('master_places')
+            .select('id, name, address, api_source, lat, lng, description, raw_data')
+            .in('id', factIds);
+
+        const masterMap = new Map((masterPlaces || []).map(m => [m.id, m]));
+
+        const repairedRows = [];
+        for (const cand of resCandidates) {
+            const mPlace = masterMap.get(cand.fact_id);
+            const pLat = cand.lat || mPlace?.lat;
+            const pLng = cand.lng || mPlace?.lng;
+
+            if (pLat && pLng) {
+                const distKm = haversineKm(campLat, campLng, pLat, pLng);
+                const distMeters = Math.round(distKm * 1000);
+
+                const oldBadges = cand?.raw_data?.badges || mPlace?.raw_data?.badges || [];
+                const seeded = [];
+                if (mPlace?.api_source === 'SAFE_RESTAURANT' || mPlace?.raw_data?.RELAX_SEQ != null || mPlace?.raw_data?.RELAX_USE_YN === 'Y' || cand?.raw_data?.RELAX_SEQ != null) {
+                    seeded.push('안심식당');
+                }
+                if (mPlace?.api_source === 'MOIS_GOOD_RESTAURANT') seeded.push('모범음식점');
+                if (mPlace?.api_source === 'SMBA_BAEK') seeded.push('백년가게');
+                if (mPlace?.api_source === 'LX_RESTAURANT') seeded.push('LX인증맛집');
+
+                const mergedBadges = Array.from(new Set([...oldBadges, ...seeded]));
+                const mergedRawData = {
+                    ...(mPlace?.raw_data || {}),
+                    ...(cand?.raw_data || {}),
+                    api_source: mPlace?.api_source || cand?.raw_data?.api_source || '',
+                    badges: mergedBadges,
+                    description: cand?.raw_data?.description || mPlace?.description || cand?.description || ''
+                };
+
+                repairedRows.push({
+                    ...cand,
+                    name: mPlace?.name || cand.name,
+                    address: mPlace?.address || cand.address,
+                    lat: pLat,
+                    lng: pLng,
+                    distance_meters: distMeters,
+                    raw_data: mergedRawData
+                });
+            }
+        }
+
+        if (repairedRows.length > 0) {
+            for (let i = 0; i < repairedRows.length; i += 500) {
+                await supabase.from('smart_plan_candidates').upsert(repairedRows.slice(i, i + 500), { onConflict: 'reservation_id,fact_id' });
+            }
+            console.log(`  ✅ [자동 보정 완료] 일정 ${resId} (${sched.campground_name}) 후보 ${repairedRows.length}건 좌표/거리 100% 보수 완료.`);
+        }
+    }
 }
 
 async function recordAutomationLog(metrics, targetDate, status) {
