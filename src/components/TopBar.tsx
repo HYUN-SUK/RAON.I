@@ -97,6 +97,7 @@ export default function TopBar() {
             }
         } else {
             setUserInfo(null);
+            try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
             reset();
         }
     };
@@ -112,6 +113,7 @@ export default function TopBar() {
                 checkUser();
             } else if (event === 'SIGNED_OUT' || !session) {
                 setUserInfo(null);
+                try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
                 reset();
             }
         });

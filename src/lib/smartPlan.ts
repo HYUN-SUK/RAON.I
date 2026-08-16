@@ -917,9 +917,15 @@ export async function generatePersonalizedSmartPlan(
                     w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
                 }
                 if (w && w.daily && Array.isArray(w.daily)) {
-                    // [v11.9.60] 날짜 매칭 불일치 해결: 하이픈(-) 제거 후 비교
-                    const startStr = startDate.toISOString().split('T')[0].replace(/-/g, '');
-                    const endStr = endDate.toISOString().split('T')[0].replace(/-/g, '');
+                    // [v13.5.1] KST 로컬 날짜 기준 YYYYMMDD 변환 (toISOString 시차 왜곡 원천 차단)
+                    const toLocalYMD = (d: Date) => {
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${y}${m}${day}`;
+                    };
+                    const startStr = toLocalYMD(startDate);
+                    const endStr = toLocalYMD(endDate);
                     
                     const weatherList: string[] = [];
                     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
