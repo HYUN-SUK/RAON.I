@@ -546,15 +546,19 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
             // ④ 거리 페널티 (-2.0점/km)
             const distPenalty = dKm * 2.0;
 
-            // ⑤ 최종 점수 = Layer 1 (하한보정 + 인기도 + 화이트 + 초근접 - 거리) + Layer 2 (우천/페르소나 cFit)
-            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty + cFit;
+            // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
+            const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
+
+            // ⑤ 최종 점수 = Layer 1 (하한보정 + 인기도 + 화이트 + 초근접 - 거리 - 스트라이크감점) + Layer 2 (우천/페르소나 cFit)
+            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty - strikePenalty + cFit;
             f.scoreBreakdown!.contextFit = cFit;
             f.scoreBreakdown!.distanceBonus = -distPenalty;
             f.scoreBreakdown!.tierBonus = whitelistBonus;
             f.scoreBreakdown!.finalScore = f.trustScore;
         } else {
+            const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
             f.scoreBreakdown!.contextFit = cFit;
-            f.trustScore = (row.quality_score || 50) + cFit - (row.penalty_score || 0);
+            f.trustScore = (row.quality_score || 50) + cFit - (row.penalty_score || 0) - strikePenalty;
             f.scoreBreakdown!.finalScore = f.trustScore;
         }
 
@@ -697,8 +701,11 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
             // ④ 거리 페널티 (-2.0점/km)
             const distPenalty = dKm * 2.0;
 
+            // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
+            const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
+
             // ⑤ Layer 1 + Layer 2 병합
-            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty + cFit;
+            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty - strikePenalty + cFit;
             f.scoreBreakdown = {
                 baseScore,
                 contextFit: cFit,
@@ -723,7 +730,10 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
             if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || badges.includes('모범음식점')) certBonus += 30;
             if (sources.includes('SAFE_RESTAURANT') || badges.includes('안심식당')) certBonus += 20;
 
-            f.trustScore = 50 + cFit + distScore + certBonus;
+            // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
+            const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
+
+            f.trustScore = 50 + cFit + distScore + certBonus - strikePenalty;
             f.scoreBreakdown = {
                 baseScore: 50,
                 contextFit: cFit,
@@ -1808,7 +1818,9 @@ export async function generatePreviewSmartPlan(
 
                         // 원본 동일 거리 페널티 (-3.0점/km)
                         distPenalty = dKm * 3.0;
-                        card.trustScore = baseScore + certBonus - distPenalty;
+                        // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
+                        const strikePenalty = (r.miss_count && r.miss_count >= 2) ? 50 : 0;
+                        card.trustScore = baseScore + certBonus - distPenalty - strikePenalty;
 
                     } else if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
                         // [v12.9.0] 방안 C 헌법 수식 적용:
@@ -1832,8 +1844,11 @@ export async function generatePreviewSmartPlan(
                         // ④ 거리 페널티 (-2.0점/km)
                         distPenalty = dKm * 2.0;
 
+                        // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
+                        const strikePenalty = (r.miss_count && r.miss_count >= 2) ? 50 : 0;
+
                         // ⑤ 최종 점수 계산
-                        card.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty;
+                        card.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty - strikePenalty;
                         card.scoreBreakdown!.contextFit = popBonus + nearbyBonus;
 
                     } else if (r.category === 'HOSPITAL') {

@@ -15,15 +15,14 @@
     - [x] 5. 실시간 취소 즉시 삭제 및 7일 전 완결 일정 일일 자동 청소 파이프라인(`runCandidatesCleanup`) 구축 (DB 4,808행 ➔ 3,140행으로 1,668행 35% 즉시 슬림 최적화 성공)
     - [x] 6. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
 
-- [x] **세션 튕김 방어, 화면 동기화, 맛보기 3중 안전망 및 날씨 브리핑 날짜 동기화 완치 (2026-08-16 완료)**
-    - [x] 1. `TopBar.tsx` 세션 손실 시 로컬 캐시(토큰 143개, 레벨 등) 즉시 초기화 동기화
-    - [x] 2. `login/page.tsx` & `AdminLoginForm.tsx` 로그인 전 로컬 세션 클린업(`scope: 'local'`)으로 Supabase Token Rotation 세션 강제 파기 원천 차단
-    - [x] 3. `smartPlan.ts` 식당/명소/병원 3대 카테고리 독립 쿼리 + 실패 시 1회 즉시 재시도 + 반경 점진 확장(20km ➔ 35km ➔ 50km) 3중 안전망 가동
-    - [x] 4. `schedule/[id]/page.tsx` 화면 진입 시 식당/명소/병원 결함 맛보기 자동 자가 치유(Self-Healing) 및 DB 갱신
-    - [x] 5. `해운대센트럴호텔` 일정 DB 맛보기 데이터 완벽 복원 (식당: `가마솥국밥 0.6km`, 명소: `해월전망대 1.5km`, 병원: `해운대부민병원 1.0km`)
-    - [x] 6. `smartPlan.ts` 날씨 브리핑 `toISOString()` UTC 시차 왜곡 수정 및 `toLocalYMD` 도입으로 상단 날씨와 100% 날짜 일치 완치
-    - [x] 7. `닷돈재4색야영장` 일정 DB `weatherBriefing` 날짜 데이터 `08/21(금), 08/22(토), 08/23(일)` 완벽 동기화 완료
-    - [x] 8. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
+- [x] **장소 시계열 이력(place_history) 구축, 축제 정규화 & 폐업 조기경보 감점 적용 (2026-08-16 완료)**
+    - [x] 1. `place_baseline_20260816` 19.8만 건 장소 오늘자 기준점 스냅샷 테이블 백업 완료
+    - [x] 2. `place_history` 시계열 이력 테이블(id, place_id, event, before, after, source, occurred_at) 및 인덱스 2종 DDL 생성
+    - [x] 3. `log_place_change()` 및 `trg_place_history` AFTER UPDATE 트리거 구축 (WHEN 절 최적화로 부하 0.1% 미만)
+    - [x] 4. `test_place_history_trigger.mjs` 트리거 실측 테스트 성공 (STRIKE, DEACTIVATED, REACTIVATED 자동 적재 검증)
+    - [x] 5. `normalize-festivals.mjs` 축제 421건 정규화 (연도 정규식 제거, 대표 384건 years_held 누적, 중복 37건 소프트 비활성화 보존, FESTIVAL_HELD 이력 적재)
+    - [x] 6. `smartPlan.ts` Track A, Track B, fetchCategorySafely 내 2스트라이크(`miss_count >= 2`) 위험 장소 -50점 폐업 조기경보 감점 적용
+    - [x] 7. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
 
 - [x] **AI Persona Pipeline Stabilization**
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.
