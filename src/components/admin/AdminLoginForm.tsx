@@ -48,6 +48,9 @@ export function AdminLoginForm() {
         setError(null)
 
         try {
+            // [Fix] 기존 잔여 토큰 충돌 방지를 위한 로컬 세션 정리
+            await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
                 email: values.email,
                 password: values.password,

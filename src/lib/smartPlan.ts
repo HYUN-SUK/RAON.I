@@ -1664,36 +1664,44 @@ export async function generatePreviewSmartPlan(
         // [v12.8.0] 1. 유저 페르소나 0원 수집
         const persona: UserPersona = userId ? await extractUserPersona(userId, 7, supabase) : { description: '일반 캠퍼', topTags: [] };
 
-        // [v12.8.0] 2. 반경 20km 전체 쿼리 (limit 300으로 상향하여 1등 명소/맛집 누락 방지)
-        const radiusMeters = 20000; // 20km
-        
-        const [restRes, spotRes, hospRes] = await Promise.all([
-            supabase.rpc('get_master_places_in_radius_v2', {
-                target_lat: lat,
-                target_lng: lng,
-                radius_meters: radiusMeters,
-                limit_count: 300,
-                p_category: 'RESTAURANT'
-            }),
-            supabase.rpc('get_master_places_in_radius_v2', {
-                target_lat: lat,
-                target_lng: lng,
-                radius_meters: radiusMeters,
-                limit_count: 300,
-                p_category: 'SPOT'
-            }),
-            supabase.rpc('get_master_places_in_radius_v2', {
-                target_lat: lat,
-                target_lng: lng,
-                radius_meters: radiusMeters,
-                limit_count: 100,
-                p_category: 'HOSPITAL'
-            })
-        ]);
+        // [v13.5.0] 3대 카테고리(식당/명소/병원) 전수 독립 쿼리 + 실패 시 자동 재시도 + 반경 점진 확장(20km -> 35km -> 50km)
+        const fetchCategorySafely = async (cat: string, baseRadius: number, count: number) => {
+            const radii = [baseRadius, 35000, 50000];
+            for (const rMeters of radii) {
+                // 1차 시도
+                let { data, error } = await supabase.rpc('get_master_places_in_radius_v2', {
+                    target_lat: lat,
+                    target_lng: lng,
+                    radius_meters: rMeters,
+                    limit_count: count,
+                    p_category: cat
+                });
 
-        const rawRestaurants = restRes.data || [];
-        const rawSpots = spotRes.data || [];
-        const rawHospitals = hospRes.data || [];
+                // 실패 시 1회 즉시 재시도 (Network Retry Failsafe)
+                if (error || !data || data.length === 0) {
+                    const retryRes = await supabase.rpc('get_master_places_in_radius_v2', {
+                        target_lat: lat,
+                        target_lng: lng,
+                        radius_meters: rMeters,
+                        limit_count: count,
+                        p_category: cat
+                    });
+                    data = retryRes.data;
+                    error = retryRes.error;
+                }
+
+                if (!error && Array.isArray(data) && data.length > 0) {
+                    return data;
+                }
+            }
+            return [];
+        };
+
+        const [rawRestaurants, rawSpots, rawHospitals] = await Promise.all([
+            fetchCategorySafely('RESTAURANT', 20000, 300),
+            fetchCategorySafely('SPOT', 20000, 300),
+            fetchCategorySafely('HOSPITAL', 20000, 100)
+        ]);
 
         // Haversine 거리 계산 함수 (km)
         const calcDist = (pLat: number, pLng: number) => {

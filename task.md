@@ -15,14 +15,13 @@
     - [x] 5. 실시간 취소 즉시 삭제 및 7일 전 완결 일정 일일 자동 청소 파이프라인(`runCandidatesCleanup`) 구축 (DB 4,808행 ➔ 3,140행으로 1,668행 35% 즉시 슬림 최적화 성공)
     - [x] 6. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
 
-- [x] **4개 핵심 테이블 RLS 보안 가동 & 작성자/관리자 CRUD 연쇄작용 전수 검증 (2026-08-15 완료)**
-    - [x] 1. `master_places`, `system_config`, `operation_logs`, `likes` 4개 테이블 RLS 보안 정책 배포 완료 (`20260815203000_enable_rls_master_places_system_config_operation_logs_likes.sql`)
-    - [x] 2. `likes` 외래키 `ON DELETE CASCADE` 보강으로 게시글 삭제 시 연쇄 삭제 100% 무결 통과
-    - [x] 3. 일반 사용자 글쓰기, 글수정, 타인 좋아요/댓글 등록, 본인 글삭제 및 종속 데이터 0건 잔여물 실시간 검증 완료
-    - [x] 4. 관리자 공지글 작성 및 관리자 삭제 처리 100% 정상 작동 검증
-    - [x] 5. `user_schedules`, `site_config`, `camping_records` 등 기타 핵심 테이블 정상 접근 및 빌드 100% 성공 검증 완료
-    - [x] 6. [4-1] `is_protected` 862건 명성 데이터 삼진아웃 비활성화 원천 차단 영구 보호막 구축 (`daily-region-sync.mjs`)
-    - [x] 7. [4-2] 지역 8경 배지(예산 8경, 강릉 8경, 단양 8경 등) 파서 포괄 패턴 매칭 개선 및 100% 복원 (`smartPlan.ts`)
+- [x] **세션 튕김 방어, 화면 동기화 및 맛보기 3대 카테고리(식당/명소/병원) 3중 안전망 구축 (2026-08-16 완료)**
+    - [x] 1. `TopBar.tsx` 세션 손실 시 로컬 캐시(토큰 143개, 레벨 등) 즉시 초기화 동기화
+    - [x] 2. `login/page.tsx` & `AdminLoginForm.tsx` 로그인 전 로컬 세션 클린업(`scope: 'local'`)으로 Supabase Token Rotation 세션 강제 파기 원천 차단
+    - [x] 3. `smartPlan.ts` 식당/명소/병원 3대 카테고리 독립 쿼리 + 실패 시 1회 즉시 재시도 + 반경 점진 확장(20km ➔ 35km ➔ 50km) 3중 안전망 가동
+    - [x] 4. `schedule/[id]/page.tsx` 화면 진입 시 식당/명소/병원 결함 맛보기 자동 자가 치유(Self-Healing) 및 DB 갱신
+    - [x] 5. `해운대센트럴호텔` 일정 DB 맛보기 데이터 완벽 복원 (식당: `가마솥국밥 0.6km`, 명소: `해월전망대 1.5km`, 병원: `해운대부민병원 1.0km`)
+    - [x] 6. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
 
 - [x] **AI Persona Pipeline Stabilization**
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.

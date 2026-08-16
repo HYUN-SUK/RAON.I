@@ -66,6 +66,9 @@ export default function LoginPage() {
                 toast.success("가입 확인 메일을 발송했습니다.", { duration: 4000 });
                 setIsSignUp(false); // Switch to login mode
             } else {
+                // [Fix] 기존 잔여 토큰 충돌 방지를 위한 로컬 세션 정리
+                await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) {
                     if (error.message.includes("Invalid login credentials")) {

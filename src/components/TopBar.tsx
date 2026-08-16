@@ -97,6 +97,7 @@ export default function TopBar() {
             }
         } else {
             setUserInfo(null);
+            reset();
         }
     };
 
@@ -109,7 +110,7 @@ export default function TopBar() {
             // [Fix] TOKEN_REFRESHED 백그라운드 토큰 재갱신 시에는 checkUser() 재실행을 차단하여 라우터 마운트 세션 튕김 예방
             if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
                 checkUser();
-            } else if (event === 'SIGNED_OUT') {
+            } else if (event === 'SIGNED_OUT' || !session) {
                 setUserInfo(null);
                 reset();
             }

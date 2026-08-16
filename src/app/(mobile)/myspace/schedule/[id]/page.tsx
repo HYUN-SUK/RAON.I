@@ -435,11 +435,18 @@ function ScheduleDetailContent() {
             const savedData = schedule.smart_plan_data;
             const isPreview = (savedData as any)?.is_preview === true;
             
+            // [v13.5.0] 맛보기 데이터 3대 카테고리(식당/명소/병원) 완전성 검사 (자가 치유 트리거)
+            const items = (savedData as any)?.itemListElement || [];
+            const hasRest = items.some((c: any) => c.category === 'RESTAURANT');
+            const hasSpot = items.some((c: any) => c.category === 'SPOT');
+            const hasHosp = items.some((c: any) => c.category === 'HOSPITAL');
+            const isDefectivePreview = isPreview && (!hasRest || !hasSpot || !hasHosp);
+            
             if (savedData && (savedData as any).wrapped === true && !isPreview && !showSmartPlan) {
                 const savedMode = (savedData as any).mode === 'PRO' ? 'PRO' : 'BASIC';
                 setPlanMode(savedMode);
                 setShowSmartPlan(true);
-            } else if (!savedData && !isInitializingPreviewRef.current) {
+            } else if ((!savedData || isDefectivePreview) && !isInitializingPreviewRef.current) {
                 isInitializingPreviewRef.current = true;
                 async function initPreview() {
                     try {
