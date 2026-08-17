@@ -15,14 +15,14 @@
     - [x] 5. 실시간 취소 즉시 삭제 및 7일 전 완결 일정 일일 자동 청소 파이프라인(`runCandidatesCleanup`) 구축 (DB 4,808행 ➔ 3,140행으로 1,668행 35% 즉시 슬림 최적화 성공)
     - [x] 6. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
 
-- [x] **장소 시계열 이력(place_history) 구축, 축제 정규화 & 폐업 조기경보 감점 적용 (2026-08-16 완료)**
-    - [x] 1. `place_baseline_20260816` 19.8만 건 장소 오늘자 기준점 스냅샷 테이블 백업 완료
-    - [x] 2. `place_history` 시계열 이력 테이블(id, place_id, event, before, after, source, occurred_at) 및 인덱스 2종 DDL 생성
-    - [x] 3. `log_place_change()` 및 `trg_place_history` AFTER UPDATE 트리거 구축 (WHEN 절 최적화로 부하 0.1% 미만)
-    - [x] 4. `test_place_history_trigger.mjs` 트리거 실측 테스트 성공 (STRIKE, DEACTIVATED, REACTIVATED 자동 적재 검증)
-    - [x] 5. `normalize-festivals.mjs` 축제 421건 정규화 (연도 정규식 제거, 대표 384건 years_held 누적, 중복 37건 소프트 비활성화 보존, FESTIVAL_HELD 이력 적재)
-    - [x] 6. `smartPlan.ts` Track A, Track B, fetchCategorySafely 내 2스트라이크(`miss_count >= 2`) 위험 장소 -50점 폐업 조기경보 감점 적용
-    - [x] 7. TypeScript 검사 (`npx tsc --noEmit`) 0에러 및 Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공 검증 완료
+- [x] **전남광주통합특별시 신규 행정명칭 반영 & 일일 로테이션 수집 엔진 완치 (2026-08-17 완료)**
+    - [x] 1. `SIDO_ALIASES`에 정부 신규 공식 명칭 `'전남광주통합특별시'`, `'전남광주통합시'` 추가 (안심식당 5,558건 정상 수신)
+    - [x] 2. `daily-region-sync.mjs` 사전/사후 카운트 쿼리를 `.in('sido', aliases)`로 일괄 교체하여 기존 14,919건 데이터 정상 집계
+    - [x] 3. `syncLocalDataCSV` 내 광주(`6290000_ALL`) + 전남(`6460000_ALL`) 듀얼 다운로드 지원
+    - [x] 4. `syncTourSpots` 내 광주(`areaCode=5`) + 전남(`areaCode=36`) 듀얼 수집 지원 (명소 1,937건 수신)
+    - [x] 5. `syncHospitals` 내 광주광역시 + 전라남도 듀얼 API 호출 지원
+    - [x] 6. `test_run_jeonnam_gwangju_sync.mjs` 실측 카운트 전수 정상 검증 완료
+    - [x] 7. TypeScript 정적 분석 (`npx tsc --noEmit`) 에러 0건 통과 완료
 
 - [x] **AI Persona Pipeline Stabilization**
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.

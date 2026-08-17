@@ -45,12 +45,12 @@ const SIDO_MAP = {
 
 const SIDO_ORG_MAP = {
   '서울특별시': '6110000_ALL', '부산광역시': '6260000_ALL', '대구광역시': '6270000_ALL',
-  '인천광역시': '6280000_ALL', '광주광역시': '6290000_ALL', '대전광역시': '6300000_ALL',
+  '인천광역시': '6280000_ALL', '광주광역시': '6130000_ALL', '대전광역시': '6300000_ALL',
   '울산광역시': '6310000_ALL', '세종특별자치시': '5690000_ALL', '경기도': '6410000_ALL',
   '강원특별자치도': '6530000_ALL', '충청북도': '6430000_ALL', '충청남도': '6440000_ALL',
-  '전북특별자치도': '6540000_ALL', '전라남도': '6460000_ALL', '경상북도': '6470000_ALL',
+  '전북특별자치도': '6540000_ALL', '전라남도': '6130000_ALL', '경상북도': '6470000_ALL',
   '경상남도': '6480000_ALL', '제주특별자치도': '6500000_ALL',
-  '전남광주시': '6460000_ALL'
+  '전남광주시': '6130000_ALL'
 };
 
 const SIDO_SHORT_MAP = {
@@ -154,7 +154,7 @@ const SIDO_ALIASES = {
   '부산': ['부산광역시', '부산'], 
   '대구': ['대구광역시', '대구'], 
   '인천': ['인천광역시', '인천'],
-  '광주': ['광주광역시', '광주', '전남광주시'], 
+  '광주': ['광주광역시', '광주', '전남광주시', '전남광주통합특별시', '전남광주통합시'], 
   '대전': ['대전광역시', '대전'], 
   '울산': ['울산광역시', '울산'], 
   '세종': ['세종특별자치시', '세종'],
@@ -163,9 +163,9 @@ const SIDO_ALIASES = {
   '충북': ['충청북도', '충북'], 
   '충남': ['충청남도', '충남'],
   '전북': ['전라북도', '전북특별자치도', '전북'], 
-  '전남': ['전라남도', '전남', '전남광주시'],
-  '전남광주': ['전남광주', '전남광주시', '광주전남', '광주광역시', '전라남도', '광주', '전남'],
-  '전남광주시': ['전남광주', '전남광주시', '광주전남', '광주광역시', '전라남도', '광주', '전남'],
+  '전남': ['전라남도', '전남', '전남광주시', '전남광주통합특별시', '전남광주통합시'],
+  '전남광주': ['전남광주통합특별시', '전남광주통합시', '전남광주', '전남광주시', '광주전남', '광주광역시', '전라남도', '광주', '전남'],
+  '전남광주시': ['전남광주통합특별시', '전남광주통합시', '전남광주', '전남광주시', '광주전남', '광주광역시', '전라남도', '광주', '전남'],
   '경북': ['경상북도', '경북'], 
   '경남': ['경상남도', '경남'],
   '제주': ['제주특별자치도', '제주도', '제주']
@@ -463,15 +463,15 @@ async function dailyRegionSync() {
   }
 
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const actCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', true));
-    const inactCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', false));
+    const actCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('api_source', source).eq('is_active', true));
+    const inactCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('api_source', source).eq('is_active', false));
     stats.categories[key].existing.active += actCount;
     stats.categories[key].existing.inactive += inactCount;
   }
 
   // ENRICHMENT 사전 카운트
-  const enrichActCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', true).not('raw_data->>operating_hours', 'is', null));
-  const enrichInactCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', false).not('raw_data->>operating_hours', 'is', null));
+  const enrichActCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('is_active', true).not('raw_data->>operating_hours', 'is', null));
+  const enrichInactCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('is_active', false).not('raw_data->>operating_hours', 'is', null));
 
   stats.categories.ENRICHMENT.existing.active = enrichActCount;
   stats.categories.ENRICHMENT.existing.inactive = enrichInactCount;
@@ -806,15 +806,15 @@ async function dailyRegionSync() {
   await delay(2000);
   
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const actCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', true));
-    const inactCount = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('api_source', source).eq('is_active', false));
+    const actCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('api_source', source).eq('is_active', true));
+    const inactCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('api_source', source).eq('is_active', false));
     stats.categories[key].total.active = actCount;
     stats.categories[key].total.inactive = inactCount;
   }
 
   // ENRICHMENT 사후 최종 카운트
-  const enrichActTotal = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', true).not('raw_data->>operating_hours', 'is', null));
-  const enrichInactTotal = await paginatedCount(() => supabase.from('master_places').select('id').eq('sido', targetSido).eq('is_active', false).not('raw_data->>operating_hours', 'is', null));
+  const enrichActTotal = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('is_active', true).not('raw_data->>operating_hours', 'is', null));
+  const enrichInactTotal = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('is_active', false).not('raw_data->>operating_hours', 'is', null));
 
   stats.categories.ENRICHMENT.total.active = enrichActTotal;
   stats.categories.ENRICHMENT.total.inactive = enrichInactTotal;
@@ -954,8 +954,7 @@ async function updateSpotPopularity(targetSido, stats) {
   for (const sigungu of sigungus) {
     const refSpot = spots.find(s => s.sigungu === sigungu);
     const refSido = refSpot ? refSpot.sido : targetSido;
-    const { areaCd } = getAdminCodes(refSido);
-    const { signguCd } = getAdminCodes(refSido, sigungu);
+    const { areaCd, signguCd } = getAdminCodes(refSido, sigungu);
 
     if (!areaCd || !signguCd) {
       console.warn(`    ⚠️ [Popularity] Standard codes not found for ${sigungu} under ${refSido}. Skipping.`);
@@ -1183,33 +1182,49 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
     : [ { path: 'excellent_restaurant_info', source: 'LOCALDATA_RESTAURANT_GOOD', name: '모범음식점' } ];
 
   for (const ep of endpoints) {
-    console.log(`📥 [LocalData CSV] ${sido} ${ep.name} 다운로드 및 파싱 중...`);
-    // [WAF 방어막 회피] 파일 다중 연속 다운로드로 인한 차단 방어 (10초 대기)
-    await delay(10000);
+    console.log(`📥 [LocalData CSV] ${sido} (${orgCode}) ${ep.name} 다운로드 및 파싱 중...`);
+    // [WAF 방어막 회피] 파일 다중 연속 다운로드로 인한 차단 방어 (5초 대기)
+    await delay(5000);
+    
+    // 1차: 직접 다운로드 시도, 2차: 프록시 다운로드
+    const directUrl = `https://file.localdata.go.kr/file/download/${ep.path}/info?orgCode=${orgCode}`;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://raon-i.co.kr';
-    const url = `${siteUrl}/api/cron/localdata-proxy?path=${ep.path}&orgCode=${orgCode}`;
+    const proxyUrl = `${siteUrl}/api/cron/localdata-proxy?path=${ep.path}&orgCode=${orgCode}`;
     
     try {
       let res = null;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          res = await fetch(url, { 
-            headers: { 
+      try {
+        // 1. 직접 다운로드 시도 (가장 빠르고 정확)
+        res = await fetch(directUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.localdata.go.kr/',
+            'Accept': '*/*'
+          },
+          agent: httpsAgent,
+          timeout: 180000
+        });
+
+        // 2. 만약 직접 다운로드 실패 시 프록시 경유
+        if (!res.ok) {
+          console.warn(`  ⚠️ Direct download failed (${res.status}). Trying proxy...`);
+          res = await fetch(proxyUrl, {
+            headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Referer': 'https://www.localdata.go.kr/',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-              'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-              'Connection': 'keep-alive'
+              'Accept': '*/*'
             },
             agent: httpsAgent,
             timeout: 180000
           });
-          if (res.ok) break;
-          console.warn(`  ⚠️ Attempt ${attempt} failed with HTTP ${res.status}. Retrying in 10s...`);
-        } catch (fetchErr) {
-          console.warn(`  ⚠️ Attempt ${attempt} failed: ${fetchErr.message}. Retrying in 10s...`);
         }
-        await delay(10000);
+      } catch (fetchErr) {
+        console.warn(`  ⚠️ Download attempt failed: ${fetchErr.message}. Trying proxy fallback...`);
+        res = await fetch(proxyUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+          agent: httpsAgent,
+          timeout: 180000
+        });
       }
 
       const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
@@ -1263,8 +1278,6 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
       if (chunk.length > 0) {
         for (let i = 0; i < chunk.length; i += 200) {
           const slice = chunk.slice(i, i + 200);
-          // 실제 stat은 각 레코드의 api_source에 맞춰서 분배해야 하나 편의상 ep 기반으로 먼저 트래킹
-          // 정밀도를 위해 소스별 stat 분산 호출
           const ssmSlice = slice.filter(it => it.api_source === 'LOCALDATA_MART_SSM');
           const largeSlice = slice.filter(it => it.api_source === 'LOCALDATA_MART_LARGE');
           const otherSlice = slice.filter(it => it.api_source === 'LOCALDATA_MART_OTHER');
@@ -1401,26 +1414,28 @@ async function syncBaeknyeon(sido, seenIds, stat) {
  * 관광공사 지역기반 명소 동기화 (SPOT) - KorService2 마이그레이션 완료
  */
 async function syncTourSpots(sido, seenIds, stat) {
-  const areaCode = SIDO_MAP[sido];
-  if (!areaCode) return;
+  const isJeonnamGwangju = sido === '전남광주시' || sido.includes('전남광주');
+  const areaCodes = isJeonnamGwangju ? ['5', '36'] : (SIDO_MAP[sido] ? [String(SIDO_MAP[sido])] : []);
+  if (areaCodes.length === 0) return;
 
-  console.log(`🏞️  [TOUR v2] ${sido} 명소(관광지) 동기화 중 (AreaCode: ${areaCode})...`);
-  let pageNo = 1, hasMore = true;
-  
-  while (hasMore && pageNo <= 200) {
-    const params = new URLSearchParams({
-      serviceKey: TOUR_API_KEY,
-      numOfRows: '100',
-      pageNo: pageNo.toString(),
-      MobileOS: 'ETC',
-      MobileApp: 'RAONAI',
-      _type: 'json',
-      areaCode: areaCode.toString(),
-      contentTypeId: '12' // 관광지
-    });
+  for (const areaCode of areaCodes) {
+    console.log(`🏞️  [TOUR v2] ${sido} 명소(관광지) 동기화 중 (AreaCode: ${areaCode})...`);
+    let pageNo = 1, hasMore = true;
+    
+    while (hasMore && pageNo <= 200) {
+      const params = new URLSearchParams({
+        serviceKey: TOUR_API_KEY,
+        numOfRows: '100',
+        pageNo: pageNo.toString(),
+        MobileOS: 'ETC',
+        MobileApp: 'RAONAI',
+        _type: 'json',
+        areaCode: areaCode.toString(),
+        contentTypeId: '12' // 관광지
+      });
 
-    try {
-      const data = await fetchWithRetry(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`);
+      try {
+        const data = await fetchWithRetry(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`);
       if (data.response?.header?.resultCode && data.response.header.resultCode !== '0000') {
         console.error('  ❌ Tour API Error Response:', data.response.header.resultMsg);
         break;
@@ -1478,12 +1493,13 @@ async function syncTourSpots(sido, seenIds, stat) {
         });
       }
       await upsertAndTrack(chunk, stat);
-      if (itemList.length < 100) hasMore = false;
-      else pageNo++;
-    } catch (e) { 
-        console.error('  ❌ Tour API Final Error:', e.message); 
-        stat.note = `💥 ERROR (${e.message.slice(0, 30)})`;
-        break; 
+        if (itemList.length < 100) hasMore = false;
+        else pageNo++;
+      } catch (e) { 
+          console.error('  ❌ Tour API Final Error:', e.message); 
+          stat.note = `💥 ERROR (${e.message.slice(0, 30)})`;
+          break; 
+      }
     }
   }
 }
@@ -1497,10 +1513,8 @@ async function syncHospitals(sido, seenIds, stat) {
   const aliases = SIDO_ALIASES[shortSido] || [shortSido];
   const chunk = [];
 
-  let apiSido = sido;
-  if (sido === '전남광주시' || sido.startsWith('전남광주시_')) {
-    apiSido = '전라남도';
-  }
+  const isJeonnamGwangju = sido === '전남광주시' || sido.includes('전남광주');
+  const apiSidos = isJeonnamGwangju ? ['광주', '전남', '전남광주통합특별시'] : [shortSido, sido];
 
   try {
     // 1. Supabase에서 기존 병원 좌표 데이터 조회
@@ -1531,12 +1545,13 @@ async function syncHospitals(sido, seenIds, stat) {
     }
 
     // 2. NMC API 호출
-    const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(apiSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
-    const data = await fetchWithRetry(url);
-    const items = data.response?.body?.items?.item;
+    for (const apiSido of apiSidos) {
+      const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(apiSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
+      const data = await fetchWithRetry(url);
+      const items = data.response?.body?.items?.item;
 
-    if (items) {
-      const itemList = Array.isArray(items) ? items : [items];
+      if (items) {
+        const itemList = Array.isArray(items) ? items : [items];
 
       for (const item of itemList) {
         const hAddr = item.dutyAddr || '';
@@ -1615,6 +1630,7 @@ async function syncHospitals(sido, seenIds, stat) {
         }
       }
     }
+  }
 
     if (chunk.length > 0) {
       await upsertAndTrack(chunk, stat);
