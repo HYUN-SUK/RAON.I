@@ -33,9 +33,19 @@
     - [x] 6. 한국관광 데이터랩 TMAP/KT 모빌리티 인기도 `areaCd` 단일 분기 매핑으로 KT 집중률 23,016건 갱신 완료
     - [x] 7. 관리자 자동화 화면(`automation_logs`) 실측 기록 및 TypeScript 정적 분석 0에러 통과 완료
 
+- [x] **8월 20일 09:00 예약 오픈 종합 무결성 점검 및 동시성 3중 철벽 방어 (2026-08-19 완료)**
+    - [x] 1. 오픈 시간 및 타임존(KST 09:00:00) 정합성 실측 검증 완료 (10월 전일 + 11/2 토일월 2박 범위 자동 개방 확인)
+    - [x] 2. 다중박(2박/3박) 겹침 락 누수 취약점 발견 및 PostgreSQL `btree_gist` 물리적 배제 제약조건(`exclude_overlapping_reservations`) 장착
+    - [x] 3. `create_reservation_safe` RPC 사이트 단위 직렬화 락(`site_lock_` + `site_id`) 고도화 및 `exclusion_violation` 예외 처리 완료
+    - [x] 4. 동시성 실측 3대 시뮬레이션(1일 겹침 2박 동시 타격 1명 성공/1명 차단, 퇴실=입실 연박 둘 다 성공, 10인 동시 타격 1명 성공/9명 차단) 100% 무결 통과
+    - [x] 5. 10월 5주 주말 및 한글날 3일 연휴 요금 계산(13만/19만/에어컨 2만) 1원 오차 없이 일치 검증 완료
+    - [x] 6. 10월 13건 관리자 차단일(김은아 넥슨 전체대관 등) 실시간 마감 렌더링 무결성 확인
+    - [x] 7. TypeScript 정적 분석(`tsc --noEmit`) 0에러 및 Next.js 16 Production Build (`npm run build`) 98개 전 페이지 100% 무결 성공
+
 - [ ] **다음 세션 예정 작업 (Next Session Tasks)**
-    - [ ] 1. 스마트플랜 UI/UX 단일 CTA & 상태 안내 배너 최적화 (출발 당일/D+1 상황에서 상단 메인 CTA 카드와 하단 상태 안내 배너 중복 노출을 1개의 통합 CTA 카드로 융합 정리)
-    - [ ] 2. 17일 순환 일일 로테이션 배치 모니터링 및 시도별 데이터 수집 안정성 점검
+    - [ ] 1. 8월 20일 오전 9시 실시간 예약 오픈 모니터링
+    - [ ] 2. 스마트플랜 UI/UX 단일 CTA & 상태 안내 배너 최적화 (출발 당일/D+1 상황에서 상단 메인 CTA 카드와 하단 상태 안내 배너 중복 노출을 1개의 통합 CTA 카드로 융합 정리)
+    - [ ] 3. 17일 순환 일일 로테이션 배치 모니터링 및 시도별 데이터 수집 안정성 점검
 
 - [x] **AI Persona Pipeline Stabilization**
     - [x] Implement authenticated data retrieval in `persona.ts` to bypass RLS.
