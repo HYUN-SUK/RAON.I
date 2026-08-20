@@ -79,8 +79,35 @@ export function usePermissionFlow() {
             return;
         }
 
-        // 위치 권한 확인
-        const locationGranted = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
+        // [v13.7.0] DB user_permission_consents 직접 확인 (계정 전환 및 기기 변경 시 중복 팝업 원천 방어)
+        let dbLocationGranted = false;
+        let dbPushGranted = false;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: consent } = await supabase
+                    .from('user_permission_consents')
+                    .select('location_granted, push_granted')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                if (consent) {
+                    if (consent.location_granted) {
+                        dbLocationGranted = true;
+                        localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
+                    }
+                    if (consent.push_granted) {
+                        dbPushGranted = true;
+                        localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, 'true');
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[PermissionFlow] Failed to fetch DB consents:', e);
+        }
+
+        // 위치 권한 확인 (로컬스토리지 또는 DB 동의 완료 여부)
+        const locationGranted = dbLocationGranted || localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED) === 'true';
         const locationInCooldown = isInCooldown(STORAGE_KEYS.LOCATION_DISMISSED_AT);
 
         // 위치 권한이 필요한 경우
@@ -95,12 +122,12 @@ export function usePermissionFlow() {
         }
 
         // 푸시 권한으로 이동
-        moveToStepPush();
-    }, [isInCooldown]);
+        moveToStepPush(dbPushGranted);
+    }, [isInCooldown, supabase]);
 
     // 푸시 단계로 이동
-    const moveToStepPush = useCallback(() => {
-        const pushGranted = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
+    const moveToStepPush = useCallback((dbPushGranted?: boolean) => {
+        const pushGranted = dbPushGranted || localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED) === 'true';
         const pushInCooldown = isInCooldown(STORAGE_KEYS.PUSH_DISMISSED_AT);
 
         // 푸시 권한이 필요한 경우

@@ -67,7 +67,7 @@ export default function ScheduleCard({
         return new Date() >= unlockTimeByCreation;
     }, [schedule]);
 
-    // [v13.2.0] 스마트플랜 4단계 동적 D-Day 생명주기 뱃지 수식
+    // [v13.7.0] 스마트플랜 5단계 동적 D-Day 생명주기 뱃지 수식
     const smartPlanMessage = useMemo(() => {
         if ((schedule as any).is_pending_reservation) {
             return null;
@@ -75,21 +75,42 @@ export default function ScheduleCard({
 
         const hasPlanData = !!schedule.smart_plan_data;
         const isPreviewPlan = (schedule.smart_plan_data as any)?.is_preview === true;
+        const weatherWindow = (schedule.smart_plan_data as any)?.weather_window || 'NONE';
 
         // 5단계: 사용자가 정밀/업데이트 플랜 작성을 완전히 완료한 경우
         if (hasPlanData && !isPreviewPlan) {
+            if (daysUntil <= 0) {
+                if (weatherWindow !== 'SHORT') {
+                    return '⚡ 당일 정밀날씨 업데이트 가능';
+                }
+                return '✨ 출발 당일 플랜 최신화 완료';
+            }
+            if (daysUntil <= 7 && daysUntil >= 1) {
+                if (weatherWindow === 'NONE') {
+                    return '🌤️ 날씨정보 업데이트 가능';
+                }
+                return '✨ 주간 예보 업데이트 완료';
+            }
             return '✨ 스마트플랜 생성 완료';
         }
 
-        // 3/4단계: DB 캐싱 완료 & 오전 9시 도달 시 (D-7 ~ D-0 은 업데이트 가이드)
+        // 3/4단계: DB 캐싱 완료 & 오전 9시 도달 시 (정밀 스마트플랜 생성 관문)
         if (isSmartPlanAvailable) {
-            if (daysUntil <= 7 && daysUntil >= 0) {
-                return '🔄 정밀 스마트플랜 업데이트 가능';
+            if (daysUntil <= 0) {
+                return '⚡ 당일 정밀날씨 업데이트 가능';
+            }
+            if (daysUntil <= 7 && daysUntil >= 1) {
+                return '🌤️ 날씨정보 업데이트 가능';
             }
             return '✨ 정밀 스마트플랜 생성가능';
         }
 
-        // 1/2단계: 등록 당일 (~ 오전 9시 전) 맛보기 안내
+        // 2단계: 맛보기 계획이 이미 생성된 상태 (~ 오전 9시 전)
+        if (hasPlanData && isPreviewPlan) {
+            return '⚡ 맛보기 계획 생성 완료';
+        }
+
+        // 1단계: 맛보기 생성 전 (신규 등록 직후)
         return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
     }, [schedule, isSmartPlanAvailable, daysUntil]);
 

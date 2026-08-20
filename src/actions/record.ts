@@ -85,6 +85,14 @@ export async function createRecord(input: CreateRecordInput): Promise<{ success:
             return { success: false, error: error.message || '기록 저장에 실패했어요' };
         }
 
+        // [v13.7.0] 10초 기록 작성 완료 시 user_schedules.record_written = true 즉시 확정 업데이트
+        if (input.scheduleId) {
+            await supabase
+                .from('user_schedules')
+                .update({ record_written: true, updated_at: new Date().toISOString() })
+                .eq('id', input.scheduleId);
+        }
+
         // [Phase 2] Dispatch Persona Actions for Community Post
         try {
             if (allTags.includes('장비') || input.content.includes('불멍')) {
@@ -443,12 +451,14 @@ export async function hasUnwrittenScheduleRecord(): Promise<{
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // 1. 이용중 또는 완료된 일정 조회 (오늘 이전 또는 오늘 포함)
+        // 1. 이용중 또는 완료된 유효 일정 조회 (취소된 일정 및 record_written=true 일정 제외)
         const todayKstStr = new Date(today.getTime() + 9 * 3600000).toISOString().split('T')[0];
         const { data: schedules } = await supabase
             .from('user_schedules')
             .select('id, check_in, check_out')
             .eq('user_id', user.id)
+            .neq('status', 'cancelled')
+            .eq('record_written', false)
             .lte('check_in', todayKstStr)
             .order('check_in', { ascending: false });
 
@@ -456,7 +466,7 @@ export async function hasUnwrittenScheduleRecord(): Promise<{
             return { hasUnwritten: false, scheduleIds: [] };
         }
 
-        // 2. 해당 일정들에 대해 작성된 기록 ID 조회
+        // 2. 해당 일정들에 대해 작성된 기록 ID 조회 (2중 안전 필터링)
         const scheduleIds = schedules.map(s => s.id);
         const { data: existingRecords } = await supabase
             .from('camping_records')
@@ -465,7 +475,7 @@ export async function hasUnwrittenScheduleRecord(): Promise<{
             .in('schedule_id', scheduleIds);
 
         const writtenScheduleIds = new Set(
-            (existingRecords || []).map(r => r.schedule_id)
+            (existingRecords || []).map(r => r.schedule_id).filter(Boolean)
         );
 
         // 3. 미작성 일정 필터링
