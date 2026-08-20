@@ -89,13 +89,40 @@ export default function UnifiedReservationCalendar() {
         }
     };
 
-    useEffect(() => {
+    const reloadCalendarData = React.useCallback(() => {
         fetchAllReservations();
         fetchBlockedDates();
-        fetchHolidays(); // Fetch holidays
-        fetchSites(); // Fetch sites from Supabase DB
-        fetchCamfitLogs(); // 캠핏 로그 동기화
-    }, []);
+        fetchHolidays();
+        fetchSites();
+        fetchCamfitLogs();
+    }, [fetchAllReservations, fetchBlockedDates, fetchHolidays, fetchSites]);
+
+    useEffect(() => {
+        reloadCalendarData();
+
+        // [v13.9.5] 모바일 앱 복귀(visibilitychange / focus) 시 실시간 자동 동기화
+        const handleVisibilityOrFocus = () => {
+            if (document.visibilityState === 'visible') {
+                reloadCalendarData();
+            }
+        };
+
+        window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+        window.addEventListener('focus', handleVisibilityOrFocus);
+
+        // 30초 주기적 백그라운드 자동 갱신 (화면을 켜두고 있어도 실시간 동기화)
+        const intervalId = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                reloadCalendarData();
+            }
+        }, 30000);
+
+        return () => {
+            window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+            window.removeEventListener('focus', handleVisibilityOrFocus);
+            clearInterval(intervalId);
+        };
+    }, [reloadCalendarData]);
 
     // Calendar Calculations
     const monthStart = startOfMonth(currentDate);
