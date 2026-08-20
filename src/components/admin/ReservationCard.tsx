@@ -256,10 +256,10 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                         reservationId={reservation.id}
                         trigger={
                             <button
-                                className="flex items-center space-x-1 px-3 py-2 border rounded text-sm font-medium transition-colors bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                className="flex items-center space-x-1 px-3 py-2 border rounded text-sm font-bold transition-colors bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
                             >
                                 <XCircle size={16} />
-                                <span>취소</span>
+                                <span>예약 취소</span>
                             </button>
                         }
                     />

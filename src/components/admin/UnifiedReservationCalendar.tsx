@@ -19,12 +19,13 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { notificationService } from '@/services/notificationService';
 import { NotificationEventType } from '@/types/notificationEvents';
+import CancelReservationDialog from './CancelReservationDialog';
 
 export default function UnifiedReservationCalendar() {
     const {
         reservations, blockedDates, fetchBlockedDates, fetchAllReservations,
         addBlockDate, removeBlockDate, toggleBlockPaid, getUserHistory,
-        fetchHolidays, holidays, updateReservation, sites, calculatePrice,
+        fetchHolidays, holidays, updateReservation, updateReservationStatus, sites, calculatePrice,
         fetchSites
     } = useReservationStore();
 
@@ -543,8 +544,26 @@ export default function UnifiedReservationCalendar() {
                                     </div>
                                     <div><Label className="text-xs text-gray-500">요청사항</Label><p className="text-sm">{selectedReservation.requests || '-'}</p></div>
 
-                                    {/* 예약 변경 버튼 (관리자 전용) */}
-                                    <div className="flex gap-2 mt-4 pt-2 border-t">
+                                    {/* 관리자 액션 버튼 그룹 (입금확인, 예약변경, 예약취소) */}
+                                    <div className="flex flex-wrap gap-2 mt-4 pt-2 border-t">
+                                        {selectedReservation.status === 'PENDING' && (
+                                            <Button
+                                                size="sm"
+                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                                onClick={async () => {
+                                                    try {
+                                                        await updateReservationStatus(selectedReservation.id, 'CONFIRMED');
+                                                        toast.success('예약이 확정되었습니다.');
+                                                        setSelectedReservation({ ...selectedReservation, status: 'CONFIRMED' });
+                                                        fetchAllReservations();
+                                                    } catch (e: any) {
+                                                        toast.error(e?.message || '확정 처리 실패');
+                                                    }
+                                                }}
+                                            >
+                                                <CheckCircle className="w-4 h-4 mr-1" /> 입금 확인
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -560,6 +579,21 @@ export default function UnifiedReservationCalendar() {
                                         >
                                             <Edit2 className="w-4 h-4 mr-1" /> 예약 변경
                                         </Button>
+                                        {selectedReservation.status !== 'CANCELLED' && selectedReservation.status !== 'REFUNDED' && (
+                                            <CancelReservationDialog
+                                                reservationId={selectedReservation.id}
+                                                onSuccess={() => {
+                                                    setSelectedReservation({ ...selectedReservation, status: 'CANCELLED' });
+                                                    setViewMode(null);
+                                                    fetchAllReservations();
+                                                }}
+                                                trigger={
+                                                    <Button variant="destructive" size="sm" className="flex-1 font-bold">
+                                                        <XCircle className="w-4 h-4 mr-1" /> 예약 취소
+                                                    </Button>
+                                                }
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             )}
