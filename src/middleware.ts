@@ -2,6 +2,14 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    // 0. 관리자 경로가 아닌 일반 사용자 요청은 Edge 인증 지연 없이 즉시 초고속 통과
+    const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+    if (!isAdminRoute) {
+        return NextResponse.next();
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,
@@ -14,26 +22,26 @@ export async function middleware(request: NextRequest) {
         {
             cookies: {
                 getAll() {
-                    return request.cookies.getAll()
+                    return request.cookies.getAll();
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
                     response = NextResponse.next({
                         request,
-                    })
+                    });
                     cookiesToSet.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)
-                    )
+                    );
                 },
             },
         }
     );
 
-    // 1. Refresh Session
+    // 1. 관리자 경로 전용 인증 세션 확인
     const { data: { user } } = await supabase.auth.getUser();
 
     // 2. Protect /api/admin backend routes (Require Admin Session or CRON_SECRET)
-    if (request.nextUrl.pathname.startsWith('/api/admin')) {
+    if (pathname.startsWith('/api/admin')) {
         const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
         const isCron = !!process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`;
         const isAdmin = user && (
@@ -52,9 +60,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // 3. Protect /admin frontend pages
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (pathname.startsWith('/admin')) {
         // Exception: Login page is public
-        if (request.nextUrl.pathname === '/admin/login') {
+        if (pathname === '/admin/login') {
             // If already logged in, redirect to dashboard
             if (user && (user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin')) {
                 return NextResponse.redirect(new URL('/admin', request.url));
@@ -84,13 +92,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * Feel free to modify this pattern to include more paths.
-         */
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/admin/:path*',
+        '/api/admin/:path*',
     ],
 };
