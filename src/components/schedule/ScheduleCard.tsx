@@ -89,12 +89,7 @@ export default function ScheduleCard({
             return '✨ 정밀 스마트플랜 생성가능';
         }
 
-        // 2단계: 맛보기 계획이 생성된 상태 (~ 오전 9시 전)
-        if (hasPlanData && isPreviewPlan) {
-            return '⚡ 맛보기 계획 생성 완료';
-        }
-
-        // 1단계: 신규 등록 직후 (맛보기 생성 전)
+        // 1/2단계: 등록 당일 (~ 오전 9시 전) 맛보기 안내
         return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
     }, [schedule, isSmartPlanAvailable, daysUntil]);
 
