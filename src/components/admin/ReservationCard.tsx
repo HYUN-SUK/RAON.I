@@ -1,25 +1,23 @@
 'use client';
 
+import React, { useState } from 'react';
 import { Reservation, ReservationStatus } from '@/types/reservation';
 import { useReservationStore } from '@/store/useReservationStore';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { SITES } from '@/constants/sites';
 import { CheckCircle, XCircle, Banknote, Loader2 } from 'lucide-react';
-import { useState } from 'react';
 import { toast } from 'sonner';
 import CancelReservationDialog from './CancelReservationDialog';
+import { useMySpaceStore } from '@/store/useMySpaceStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface ReservationCardProps {
     reservation: Reservation;
 }
 
-import { useMySpaceStore } from '@/store/useMySpaceStore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { useEffect } from 'react';
-
-export default function ReservationCard({ reservation }: ReservationCardProps) {
+function ReservationCardComponent({ reservation }: ReservationCardProps) {
     const { updateReservationStatus, deadlineHours, getUserHistory } = useReservationStore();
     const { addXp, addToken } = useMySpaceStore();
     const site = SITES.find(s => s.id === reservation.siteId);
@@ -28,12 +26,16 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
     const [visitCount, setVisitCount] = useState<number>(0);
     const [historyList, setHistoryList] = useState<Reservation[]>([]);
     const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+    const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(false);
 
-    useEffect(() => {
-        const loadHistory = async () => {
+    // 과거 이력 On-Demand(클릭 시에만) 로드 -> 초기 렌더링 N+1 네트워크 폭풍 완벽 제거
+    const handleOpenHistory = async () => {
+        setIsHistoryOpen(true);
+        if (historyList.length === 0) {
             const userIdQuery = reservation.userId || reservation.guestName;
             if (userIdQuery) {
                 try {
+                    setIsHistoryLoading(true);
                     const history = await getUserHistory(userIdQuery);
                     const today = new Date();
                     const completed = history.filter(h => {
@@ -43,12 +45,13 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                     setVisitCount(completed.length);
                     setHistoryList(history);
                 } catch (e) {
-                     console.error("Failed to load user history in ReservationCard:", e);
+                    console.error("Failed to load user history in ReservationCard:", e);
+                } finally {
+                    setIsHistoryLoading(false);
                 }
             }
-        };
-        loadHistory();
-    }, [reservation.userId, reservation.guestName, getUserHistory]);
+        }
+    };
 
     // 입금 기한 및 유예 만료 시간 연산
     const createdAt = new Date(reservation.createdAt);
@@ -76,11 +79,8 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
             setIsProcessing(true);
 
             try {
-                // Use store action to update both DB and local state
                 await updateReservationStatus(reservation.id, 'CONFIRMED');
-
                 toast.success('예약이 확정되었습니다');
-                // Award XP and Points (Optional: move to server if needed)
                 addXp(100);
                 addToken(100);
             } catch (e) {
@@ -92,7 +92,7 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
             }
         } else {
             setConfirmStep('CONFIRMING');
-            setTimeout(() => setConfirmStep('IDLE'), 3000); // Reset after 3s
+            setTimeout(() => setConfirmStep('IDLE'), 3000);
         }
     };
 
@@ -200,10 +200,10 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                     <div>
                         <span className="font-bold text-gray-500">이력: </span>
                         <span
-                            onClick={() => historyList.length > 0 && setIsHistoryOpen(true)}
-                            className={`font-bold text-blue-600 dark:text-blue-400 underline decoration-dotted cursor-pointer hover:text-blue-800 ${historyList.length === 0 ? 'pointer-events-none text-gray-400 no-underline' : ''}`}
+                            onClick={handleOpenHistory}
+                            className="font-bold text-blue-600 dark:text-blue-400 underline decoration-dotted cursor-pointer hover:text-blue-800"
                         >
-                            방문 {visitCount}회
+                            📜 과거 내역 조회
                         </span>
                     </div>
                 </div>
@@ -326,7 +326,12 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                         </DialogTitle>
                     </DialogHeader>
                     <div className="my-4 max-h-[300px] overflow-y-auto pr-2 space-y-2.5">
-                        {historyList.length === 0 ? (
+                        {isHistoryLoading ? (
+                            <div className="flex flex-col items-center justify-center py-6 text-gray-500">
+                                <Loader2 className="w-6 h-6 animate-spin mb-2 text-blue-600" />
+                                <p className="text-xs">과거 이용 내역을 불러오는 중입니다...</p>
+                            </div>
+                        ) : historyList.length === 0 ? (
                             <p className="text-sm text-gray-400 text-center py-4">과거 이용 내역이 없습니다.</p>
                         ) : (
                             historyList.map(h => (
@@ -360,3 +365,5 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
         </div>
     );
 }
+
+export default React.memo(ReservationCardComponent);
