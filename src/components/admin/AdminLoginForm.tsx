@@ -48,11 +48,8 @@ export function AdminLoginForm() {
         setError(null)
 
         try {
-            // [Fix] 기존 잔여 토큰 충돌 방지를 위한 로컬 세션 정리
-            await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                email: values.email,
+                email: values.email.trim(),
                 password: values.password,
             })
 
@@ -60,18 +57,14 @@ export function AdminLoginForm() {
                 throw new Error(signInError.message)
             }
 
-            // Check for Admin metadata logic implementation
-            // For now, we allow login if Auth succeeds, Middleware/RLS will handle permissions
-
-            router.push("/admin")
-            router.refresh()
+            // [v13.9.0] 모바일 브라우저 쿠키 100% 동기화 후 관리자 대시보드 진입
+            window.location.href = "/admin"
 
         } catch (err: any) {
             console.error("Login failed:", err)
             setError(err.message === "Invalid login credentials"
                 ? "이메일 또는 비밀번호가 올바르지 않습니다."
                 : "로그인 중 오류가 발생했습니다. 다시 시도해주세요.")
-        } finally {
             setIsLoading(false)
         }
     }
