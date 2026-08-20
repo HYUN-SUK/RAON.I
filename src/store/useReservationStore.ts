@@ -723,75 +723,69 @@ export const useReservationStore = create<ReservationState>()(
                 set({ reservations: publicReservations });
             },
 
-            // 사용자 취소 요청
+            // 사용자 취소 요청 [v13.9.0: Server Action 연동으로 계좌정보 100% 안전 저장]
             requestCancelReservation: async (params) => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
-
-                const { data, error } = await supabase.rpc('request_reservation_cancel', {
-                    p_reservation_id: params.reservationId,
-                    p_refund_bank: params.refundBank,
-                    p_refund_account: params.refundAccount,
-                    p_refund_holder: params.refundHolder,
-                    p_cancel_reason: params.cancelReason || null
+                const { requestReservationCancelAction } = await import('@/actions/reservation');
+                const result = await requestReservationCancelAction({
+                    reservationId: params.reservationId,
+                    refundBank: params.refundBank,
+                    refundAccount: params.refundAccount,
+                    refundHolder: params.refundHolder,
+                    cancelReason: params.cancelReason
                 });
 
-                if (error) {
-                    return { success: false, error: 'RPC_ERROR', message: error.message };
+                if (!result.success) {
+                    return { success: false, error: result.error, message: result.message };
                 }
 
-                const result = data as { success: boolean; refund_rate?: number; refund_amount?: number; error?: string; message?: string };
+                // 로컬 상태 업데이트
+                set((state) => ({
+                    reservations: state.reservations.map((res) =>
+                        res.id === params.reservationId
+                            ? {
+                                ...res,
+                                status: 'REFUND_PENDING' as const,
+                                refundBank: params.refundBank,
+                                refundAccount: params.refundAccount,
+                                refundHolder: params.refundHolder,
+                                cancelReason: params.cancelReason,
+                                refundRate: result.refundRate,
+                                refundAmount: result.refundAmount,
+                                cancelledAt: new Date()
+                            }
+                            : res
+                    )
+                }));
 
-                if (result.success) {
-                    // 로컬 상태 업데이트
-                    set((state) => ({
-                        reservations: state.reservations.map((res) =>
-                            res.id === params.reservationId
-                                ? {
-                                    ...res,
-                                    status: 'REFUND_PENDING' as const,
-                                    refundBank: params.refundBank,
-                                    refundAccount: params.refundAccount,
-                                    refundHolder: params.refundHolder,
-                                    cancelReason: params.cancelReason,
-                                    refundRate: result.refund_rate,
-                                    refundAmount: result.refund_amount,
-                                    cancelledAt: new Date()
-                                }
-                                : res
-                        )
-                    }));
+                // Notification Trigger (사용자 취소 알림)
+                const targetReservation = get().reservations.find(r => r.id === params.reservationId);
+                if (targetReservation && targetReservation.userId) {
+                    const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || targetReservation.siteId;
 
-                    // Notification Trigger (사용자 취소 알림)
-                    const targetReservation = get().reservations.find(r => r.id === params.reservationId);
-                    if (targetReservation && targetReservation.userId) {
-                        const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || targetReservation.siteId;
+                    notificationService.dispatchNotification(
+                        NotificationEventType.RESERVATION_CANCELLED,
+                        targetReservation.userId,
+                        {
+                            siteName,
+                            checkIn: targetReservation.checkInDate.toLocaleDateString(),
+                            checkOut: targetReservation.checkOutDate.toLocaleDateString(),
+                            reservation_id: params.reservationId
+                        },
+                        params.reservationId
+                    ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
 
-                        notificationService.dispatchNotification(
-                            NotificationEventType.RESERVATION_CANCELLED,
-                            targetReservation.userId,
-                            {
-                                siteName,
-                                checkIn: targetReservation.checkInDate.toLocaleDateString(),
-                                checkOut: targetReservation.checkOutDate.toLocaleDateString(),
-                                reservation_id: params.reservationId
-                            },
-                            params.reservationId
-                        ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
-
-                        // 빈자리 알림 발송 (Server Action 호출 - 로컬 KST 날짜 기준 보존)
-                        const checkInDateStr = formatLocalDate(targetReservation.checkInDate);
-                        import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
-                            notifyWaitlistUsers(checkInDateStr, targetReservation.siteId)
-                                .catch(err => console.error('[Store] Waitlist Notify Failed:', err));
-                        });
-                    }
+                    // 빈자리 알림 발송 (Server Action 호출 - 로컬 KST 날짜 기준 보존)
+                    const checkInDateStr = formatLocalDate(targetReservation.checkInDate);
+                    import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
+                        notifyWaitlistUsers(checkInDateStr, targetReservation.siteId)
+                            .catch(err => console.error('[Store] Waitlist Notify Failed:', err));
+                    });
                 }
 
                 return {
                     success: result.success,
-                    refundRate: result.refund_rate,
-                    refundAmount: result.refund_amount,
+                    refundRate: result.refundRate,
+                    refundAmount: result.refundAmount,
                     error: result.error,
                     message: result.message
                 };

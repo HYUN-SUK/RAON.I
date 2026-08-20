@@ -198,3 +198,91 @@ export async function updateReservationAction(
     
     return { success: true };
 }
+
+/**
+ * 사용자 예약 취소 요청 (환불 정보 및 취소 사유 저장) [v13.9.0]
+ */
+export async function requestReservationCancelAction(params: {
+    reservationId: string;
+    refundBank: string;
+    refundAccount: string;
+    refundHolder: string;
+    cancelReason?: string;
+}): Promise<{
+    success: boolean;
+    refundRate?: number;
+    refundAmount?: number;
+    error?: string;
+    message?: string;
+}> {
+    const supabase = createAdminClient();
+    const currentUser = await getCurrentUser();
+
+    // 1. 대상 예약 조회
+    const { data: reservation, error: fetchErr } = await (supabase
+        .from('reservations') as any)
+        .select('id, user_id, status, check_in_date, total_price, site_id')
+        .eq('id', params.reservationId)
+        .single();
+
+    if (fetchErr || !reservation) {
+        return { success: false, error: 'NOT_FOUND', message: '예약을 찾을 수 없습니다.' };
+    }
+
+    // 2. 권한 확인 (본인 또는 관리자)
+    const isAdmin = await checkIsAdmin();
+    if (!isAdmin && (!currentUser || currentUser.id !== reservation.user_id)) {
+        return { success: false, error: 'UNAUTHORIZED', message: '본인의 예약만 취소 요청할 수 있습니다.' };
+    }
+
+    if (!['PENDING', 'CONFIRMED'].includes(reservation.status)) {
+        return { success: false, error: 'INVALID_STATUS', message: '취소할 수 없는 예약 상태입니다.' };
+    }
+
+    // 3. 환불율 및 환불금액 계산
+    const { calculateRefundRate, calculateRefundAmount } = await import('@/constants/refund');
+    const checkInDate = new Date(reservation.check_in_date);
+    const refundRate = calculateRefundRate(checkInDate);
+    const refundAmount = calculateRefundAmount(reservation.total_price || 0, checkInDate);
+
+    // 4. reservations 테이블 업데이트
+    const { error: updateErr } = await (supabase
+        .from('reservations') as any)
+        .update({
+            status: 'REFUND_PENDING',
+            refund_bank: params.refundBank,
+            refund_account: params.refundAccount,
+            refund_holder: params.refundHolder,
+            cancel_reason: params.cancelReason || null,
+            refund_rate: refundRate,
+            refund_amount: refundAmount,
+            cancelled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', params.reservationId);
+
+    if (updateErr) {
+        console.error('[requestReservationCancelAction] Update failed:', updateErr);
+        return { success: false, error: 'DB_ERROR', message: updateErr.message };
+    }
+
+    // 5. 빈자리 대기자 알림 발송
+    try {
+        const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
+        await notifyWaitlistUsers(reservation.check_in_date, reservation.site_id);
+    } catch (e) {
+        console.error('[requestReservationCancelAction] Waitlist notify error:', e);
+    }
+
+    // 6. 캐시 무효화
+    revalidatePath('/admin/reservations');
+    revalidatePath('/admin/payments');
+    revalidatePath('/myspace/reservations');
+
+    return {
+        success: true,
+        refundRate,
+        refundAmount,
+        message: '취소 요청이 완료되었습니다. 환불은 관리자 확인 후 처리됩니다.'
+    };
+}

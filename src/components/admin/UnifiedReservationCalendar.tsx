@@ -110,8 +110,9 @@ export default function UnifiedReservationCalendar() {
 
     // --- Logic: Smart Blocking ---
     const calculateMaxDuration = (start: Date, siteId: string) => {
+        const validReservations = reservations.filter(r => r.status !== 'CANCELLED' && r.status !== 'REFUNDED');
         // Find next occupancy for this site after start date
-        const nextOccupancy = [...reservations, ...blockedDates]
+        const nextOccupancy = [...validReservations, ...blockedDates]
             .filter(item => {
                 const itemStart = (item as Reservation).checkInDate ? new Date((item as Reservation).checkInDate) : new Date((item as BlockedDate).startDate);
                 if ((item as BlockedDate).siteId && (item as BlockedDate).siteId !== 'ALL' && (item as BlockedDate).siteId !== siteId) return false;
@@ -142,10 +143,11 @@ export default function UnifiedReservationCalendar() {
     const getStatusForSite = (date: Date, siteId: string) => {
         const checkTime = startOfDay(date).getTime();
 
-        // Check Web Reservation
+        // Check Web Reservation (CANCELLED 및 REFUNDED 제외)
         const reservation = reservations.find(r =>
             r.siteId === siteId &&
             r.status !== 'CANCELLED' &&
+            r.status !== 'REFUNDED' &&
             startOfDay(new Date(r.checkInDate)).getTime() <= checkTime &&
             startOfDay(new Date(r.checkOutDate)).getTime() > checkTime
         );
@@ -170,10 +172,11 @@ export default function UnifiedReservationCalendar() {
 
         let occupied = 0;
         const details = aircons.map(s => {
-            // 웹 예약 내역 검사
+            // 웹 예약 내역 검사 (CANCELLED 및 REFUNDED 제외)
             const r = reservations.find(res =>
                 res.siteId === s.id &&
                 res.status !== 'CANCELLED' &&
+                res.status !== 'REFUNDED' &&
                 startOfDay(new Date(res.checkInDate)).getTime() <= checkTime &&
                 startOfDay(new Date(res.checkOutDate)).getTime() > checkTime
             );
