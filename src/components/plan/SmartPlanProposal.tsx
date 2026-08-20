@@ -573,7 +573,23 @@ export default function SmartPlanProposal({
         );
     }
 
-    if (!plan) return null;
+    if (!plan) {
+        return (
+            <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
+                <div className="bg-[#F7F5EF] rounded-2xl p-6 border border-[#224732]/20 flex flex-col items-center justify-center space-y-3 text-center shadow-sm">
+                    <RefreshCw className="w-7 h-7 text-[#224732] animate-spin" />
+                    <div className="space-y-1">
+                        <p className="text-sm font-bold text-[#224732]">
+                            ⚡ 최적의 현지 맛집과 명소를 추천 중입니다...
+                        </p>
+                        <p className="text-[11px] text-gray-500 font-medium">
+                            잠시만 기다려주세요!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const swapOptions = swapCategory ? [
         (plan.itemListElement.find(c => c.category === swapCategory) || plan.routeListElement?.find(c => c.category === swapCategory) || plan.returnListElement?.find(c => c.category === swapCategory))!, // Current Active

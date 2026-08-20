@@ -428,14 +428,15 @@ function ScheduleDetailContent() {
     }, [scheduleId]);
 
     const isInitializingPreviewRef = useRef(false);
+    const initPreviewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // [v13.4.0] 완전히 작성 완료된 정밀 플랜(wrapped: true & !isPreview)이 있는 경우에만 결과를 펼치고, 맛보기 상태는 정밀 버튼 100% 표출!
+    // [v13.6.0] 맛보기 데이터 자가 치유(Self-Healing) 및 3초 타임아웃 락 해제 & 모바일 복귀 자동 동기화
     useEffect(() => {
         if (schedule && !showProfileGate && !isReconstructing) {
             const savedData = schedule.smart_plan_data;
             const isPreview = (savedData as any)?.is_preview === true;
             
-            // [v13.5.0] 맛보기 데이터 3대 카테고리(식당/명소/병원) 완전성 검사 (자가 치유 트리거)
+            // 맛보기 데이터 3대 카테고리(식당/명소/병원) 완전성 검사
             const items = (savedData as any)?.itemListElement || [];
             const hasRest = items.some((c: any) => c.category === 'RESTAURANT');
             const hasSpot = items.some((c: any) => c.category === 'SPOT');
@@ -448,6 +449,13 @@ function ScheduleDetailContent() {
                 setShowSmartPlan(true);
             } else if ((!savedData || isDefectivePreview) && !isInitializingPreviewRef.current) {
                 isInitializingPreviewRef.current = true;
+
+                // [v13.6.0] 3초 자동 타임아웃 락 해제 (모바일 백그라운드 전환 멈춤 방어)
+                if (initPreviewTimeoutRef.current) clearTimeout(initPreviewTimeoutRef.current);
+                initPreviewTimeoutRef.current = setTimeout(() => {
+                    isInitializingPreviewRef.current = false;
+                }, 3000);
+
                 async function initPreview() {
                     try {
                         const { generatePreviewSmartPlan } = await import('@/lib/smartPlan');
@@ -471,12 +479,30 @@ function ScheduleDetailContent() {
                         console.error('[ScheduleDetail] Preview plan init error:', err);
                     } finally {
                         isInitializingPreviewRef.current = false;
+                        if (initPreviewTimeoutRef.current) clearTimeout(initPreviewTimeoutRef.current);
                     }
                 }
                 initPreview();
             }
         }
     }, [schedule, showSmartPlan, showProfileGate, isReconstructing]);
+
+    // [v13.6.0] 모바일 앱 복귀 시(visibilitychange / focus) 데이터 미완성 상태면 즉시 재조회 및 치유
+    useEffect(() => {
+        const handleVisibilityOrFocus = () => {
+            if (document.visibilityState === 'visible' && schedule?.id && (!schedule.smart_plan_data || (schedule.smart_plan_data as any)?.is_preview === true)) {
+                isInitializingPreviewRef.current = false; // 락 해제
+                loadData(); // 최신 DB 상태 재조회
+            }
+        };
+
+        window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+        window.addEventListener('focus', handleVisibilityOrFocus);
+        return () => {
+            window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+            window.removeEventListener('focus', handleVisibilityOrFocus);
+        };
+    }, [schedule?.id, loadData]);
 
     // 체크리스트 아이템 추가
     const handleAddItem = async () => {
