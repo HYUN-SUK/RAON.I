@@ -136,3 +136,65 @@ export async function unblockAllServerAction(ids: string[]): Promise<{ success: 
         return { success: false, error: err?.message || '일괄 삭제 중 예외 발생' };
     }
 }
+
+/**
+ * 관리자 캘린더 전용 고속 원본 데이터 조회 Server Action
+ * 모바일/PC 캐시 불일치를 원천 차단하고 최신 DB 원본을 즉시 반환합니다.
+ */
+export async function fetchAdminCalendarDataServerAction(): Promise<{
+    success: boolean;
+    reservations: any[];
+    blockedDates: BlockedDate[];
+    error?: string;
+}> {
+    try {
+        await assertAdmin();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
+
+        // 1. reservations 조회
+        const { data: resData, error: resErr } = await supabase
+            .from('reservations')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (resErr) {
+            console.error('[fetchAdminCalendarDataServerAction] resErr:', resErr);
+        }
+
+        // 2. blocked_dates 조회
+        const { data: blockData, error: blockErr } = await supabase
+            .from('blocked_dates')
+            .select('*');
+
+        if (blockErr) {
+            console.error('[fetchAdminCalendarDataServerAction] blockErr:', blockErr);
+        }
+
+        const mappedBlocks: BlockedDate[] = (blockData || []).map((d: any) => ({
+            id: d.id,
+            siteId: d.site_id,
+            startDate: parseSafeDate(d.start_date),
+            endDate: parseSafeDate(d.end_date),
+            memo: d.memo || undefined,
+            isPaid: d.is_paid,
+            guestName: d.guest_name || undefined,
+            contact: d.contact || undefined
+        }));
+
+        return {
+            success: true,
+            reservations: resData || [],
+            blockedDates: mappedBlocks
+        };
+    } catch (err: any) {
+        console.error('[fetchAdminCalendarDataServerAction] Exception:', err);
+        return {
+            success: false,
+            reservations: [],
+            blockedDates: [],
+            error: err?.message || '캘린더 데이터 로드 실패'
+        };
+    }
+}
+

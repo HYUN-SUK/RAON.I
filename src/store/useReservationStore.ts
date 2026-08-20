@@ -280,6 +280,17 @@ export const useReservationStore = create<ReservationState>()(
 
             // Async Block Actions
             fetchBlockedDates: async () => {
+                try {
+                    const { fetchAdminCalendarDataServerAction } = await import('@/actions/admin-calendar');
+                    const res = await fetchAdminCalendarDataServerAction();
+                    if (res.success && res.blockedDates) {
+                        set({ blockedDates: res.blockedDates });
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('[Store] fetchBlockedDates server action fallback:', e);
+                }
+
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
                 const { data } = await supabase.from('blocked_dates').select('*');
@@ -616,6 +627,44 @@ export const useReservationStore = create<ReservationState>()(
 
             // 관리자용: 모든 예약 조회
             fetchAllReservations: async () => {
+                try {
+                    const { fetchAdminCalendarDataServerAction } = await import('@/actions/admin-calendar');
+                    const res = await fetchAdminCalendarDataServerAction();
+                    if (res.success && res.reservations) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const mapped: Reservation[] = res.reservations.map((r: any) => ({
+                            id: r.id,
+                            userId: r.user_id,
+                            siteId: r.site_id,
+                            checkInDate: parseSafeDate(r.check_in_date),
+                            checkOutDate: parseSafeDate(r.check_out_date),
+                            familyCount: r.family_count || 1,
+                            visitorCount: r.visitor_count || 0,
+                            vehicleCount: r.vehicle_count || 1,
+                            guests: r.guests || (r.family_count + r.visitor_count),
+                            totalPrice: r.total_price || 0,
+                            status: r.status,
+                            guestName: r.guest_name,
+                            guestPhone: r.guest_phone,
+                            requests: r.requests || '',
+                            guestDetails: r.guest_details,
+                            createdAt: new Date(r.created_at),
+                            refundBank: r.refund_bank,
+                            refundAccount: r.refund_account,
+                            refundHolder: r.refund_holder,
+                            cancelReason: r.cancel_reason,
+                            cancelledAt: r.cancelled_at ? new Date(r.cancelled_at) : undefined,
+                            refundedAt: r.refunded_at ? new Date(r.refunded_at) : undefined,
+                            refundAmount: r.refund_amount,
+                            refundRate: r.refund_rate
+                        }));
+                        set({ reservations: mapped });
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('[Store] fetchAllReservations server action fallback:', e);
+                }
+
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
 
@@ -1267,7 +1316,15 @@ export const useReservationStore = create<ReservationState>()(
             },
         }),
         {
-            name: 'reservation-storage-v2',
+            name: 'reservation-storage-v3',
+            // 실시간 DB 데이터(reservations, blockedDates)는 스마트폰에 캐시하지 않고 항상 서버에서 신선하게 로드
+            partialize: (state) => ({
+                siteConfig: state.siteConfig,
+                deadlineHours: state.deadlineHours,
+                lastReservation: state.lastReservation,
+                rebookData: state.rebookData,
+                userContactInfo: state.userContactInfo
+            }),
             storage: {
                 getItem: (name) => {
                     const str = localStorage.getItem(name);
