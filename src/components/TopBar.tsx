@@ -105,16 +105,18 @@ export default function TopBar() {
     useEffect(() => {
         checkUser();
 
-        // 실시간 세션 변경 감지 리스너 구독
+        // 실시간 세션 변경 감지 리스너 구독 (명시적 SIGNED_OUT 일 때만 상태 초기화)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            setIsLoggedIn(!!session);
-            // [Fix] TOKEN_REFRESHED 백그라운드 토큰 재갱신 시에는 checkUser() 재실행을 차단하여 라우터 마운트 세션 튕김 예방
             if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                setIsLoggedIn(true);
                 checkUser();
-            } else if (event === 'SIGNED_OUT' || !session) {
+            } else if (event === 'SIGNED_OUT') {
+                setIsLoggedIn(false);
                 setUserInfo(null);
                 try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
                 reset();
+            } else if (session) {
+                setIsLoggedIn(true);
             }
         });
 
@@ -132,13 +134,7 @@ export default function TopBar() {
         try {
             await supabase.auth.signOut({ scope: 'local' });
             if (typeof window !== 'undefined') {
-                localStorage.clear();
-                sessionStorage.clear();
-                document.cookie.split(";").forEach((c) => {
-                    document.cookie = c
-                        .replace(/^ +/, "")
-                        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-                });
+                try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
             }
             toast.success('로그아웃 되었습니다.');
             setIsLoggedIn(false);
