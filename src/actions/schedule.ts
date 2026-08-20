@@ -713,13 +713,15 @@ export async function updateSmartPlanData(scheduleId: string, planData: any): Pr
 }
 
 /**
- * 예약 취소 시 연동된 일정 상태를 'cancelled'로 변경 [v11.9.108]
+ * 예약 취소 시 연동된 일정 상태를 'cancelled'로 변경 [v13.8.0]
+ * createAdminClient(슈퍼 관리자 권한)를 사용하여 RLS 제약 없이 100% 확실하게 상태를 동기화합니다.
  */
 export async function cancelScheduleByReservation(reservationId: string): Promise<{ success: boolean; error?: string }> {
-    const supabase = await createClient();
+    const { createAdminClient } = await import('@/lib/supabase-admin');
+    const supabase = createAdminClient();
 
-    const { error } = await supabase
-        .from('user_schedules')
+    const { error } = await (supabase
+        .from('user_schedules') as any)
         .update({ status: 'cancelled', updated_at: new Date().toISOString() })
         .eq('reservation_id', reservationId);
 
@@ -730,10 +732,10 @@ export async function cancelScheduleByReservation(reservationId: string): Promis
 
     // [v13.1.0] 예약 취소 시 연동된 스마트플랜 후보 데이터(smart_plan_candidates) 즉시 청소(Purge)
     try {
-        const { data: scheds } = await supabase.from('user_schedules').select('id').eq('reservation_id', reservationId);
-        const schedIds = (scheds || []).map(s => s.id);
+        const { data: scheds } = await (supabase.from('user_schedules') as any).select('id').eq('reservation_id', reservationId);
+        const schedIds = (scheds || []).map((s: any) => s.id);
         if (schedIds.length > 0) {
-            await supabase.from('smart_plan_candidates').delete().in('reservation_id', schedIds);
+            await (supabase.from('smart_plan_candidates') as any).delete().in('reservation_id', schedIds);
         }
     } catch (cleanEx) {
         console.error('[cancelScheduleByReservation] Failed to purge candidates:', cleanEx);
