@@ -299,3 +299,50 @@ export async function getAdminAnalyticsAction(
         return { success: false, error: err.message || '통계 수집 중 오류가 발생했습니다.' };
     }
 }
+
+export interface OpsStatsData {
+    todayCheckIns: number;
+    pendingCount: number;
+    marketOrders: number;
+}
+
+export async function getOpsStatsAction(): Promise<{ success: boolean; data?: OpsStatsData; error?: string }> {
+    try {
+        await assertAdmin();
+        const supabase = createAdminClient() as any;
+
+        // KST 기준 오늘 날짜 (YYYY-MM-DD)
+        const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
+
+        // 1. 오늘 입실 예약 수
+        const { count: todayCheckIns } = await supabase
+            .from('reservations')
+            .select('id', { count: 'exact', head: true })
+            .eq('check_in_date', todayStr)
+            .not('status', 'in', '("CANCELLED","REFUNDED")');
+
+        // 2. 입금 대기 예약 수
+        const { count: pendingCount } = await supabase
+            .from('reservations')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'PENDING');
+
+        // 3. 마켓 주문 대기 수
+        const { count: marketOrders } = await supabase
+            .from('orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'PENDING');
+
+        return {
+            success: true,
+            data: {
+                todayCheckIns: todayCheckIns || 0,
+                pendingCount: pendingCount || 0,
+                marketOrders: marketOrders || 0
+            }
+        };
+    } catch (err: any) {
+        console.error('[admin-analytics] getOpsStatsAction error:', err);
+        return { success: false, error: err?.message || '통계 조회 실패' };
+    }
+}

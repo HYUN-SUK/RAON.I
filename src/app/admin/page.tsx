@@ -10,15 +10,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-client';
 import OverdueReservations from '@/components/admin/OverdueReservations';
-import { getAdminAnalyticsAction, AdminAnalyticsData } from '@/actions/admin-analytics';
+import { getAdminAnalyticsAction, getOpsStatsAction, AdminAnalyticsData } from '@/actions/admin-analytics';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 type PeriodType = 'today' | '7days' | '30days' | 'month' | 'all' | 'custom';
 
 export default function AdminDashboard() {
-    const supabase = createClient();
-    
     // Core Operational Stats
     const [opsStats, setOpsStats] = useState({
         todayCheckIns: 0,
@@ -37,43 +35,41 @@ export default function AdminDashboard() {
     const [analytics, setAnalytics] = useState<AdminAnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Initial Date Setup & Load
-    useEffect(() => {
-        handlePeriodChange('30days');
-        fetchOpsStats();
-    }, []);
-
     const fetchOpsStats = async () => {
         try {
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            // 1. Today Check-ins
-            const { count: todayCheckIns } = await supabase
-                .from('reservations')
-                .select('*', { count: 'exact', head: true })
-                .eq('check_in_date', todayStr);
-
-            // 2. Pending Reservations
-            const { count: pendingCount } = await supabase
-                .from('reservations')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'PENDING');
-
-            // 3. Market Pending Orders
-            const { count: marketOrders } = await supabase
-                .from('orders')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'PENDING');
-
-            setOpsStats({
-                todayCheckIns: todayCheckIns || 0,
-                pendingCount: pendingCount || 0,
-                marketOrders: marketOrders || 0
-            });
+            const res = await getOpsStatsAction();
+            if (res.success && res.data) {
+                setOpsStats({
+                    todayCheckIns: res.data.todayCheckIns,
+                    pendingCount: res.data.pendingCount,
+                    marketOrders: res.data.marketOrders
+                });
+            }
         } catch (err) {
             console.error('Ops stats error:', err);
         }
     };
+
+    // Initial Date Setup & Load + 모바일 화면 복귀(visibilitychange) 실시간 자동 갱신
+    useEffect(() => {
+        handlePeriodChange('30days');
+        fetchOpsStats();
+
+        // 모바일 화면 복귀 시 및 탭 포커스 시 최신 통계 자동 갱신
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchOpsStats();
+            }
+        };
+
+        window.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleVisibilityChange);
+        };
+    }, []);
 
     const loadAnalytics = async (sDate: string, eDate: string) => {
         setLoading(true);
