@@ -158,18 +158,35 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 mb-4">
+            {/* 일정 및 인원/차량 상세 */}
+            <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 mb-3">
                 <div>
-                    <p className="font-semibold">일정</p>
-                    <p>{format(new Date(reservation.checkInDate), 'yyyy.MM.dd (eee)', { locale: ko })} - {format(new Date(reservation.checkOutDate), 'yyyy.MM.dd (eee)', { locale: ko })}</p>
+                    <p className="font-semibold text-xs text-gray-500">일정 ({Math.ceil((new Date(reservation.checkOutDate).getTime() - new Date(reservation.checkInDate).getTime()) / (1000 * 60 * 60 * 24))}박)</p>
+                    <p className="font-bold text-gray-900">{format(new Date(reservation.checkInDate), 'yyyy.MM.dd (eee)', { locale: ko })} - {format(new Date(reservation.checkOutDate), 'MM.dd (eee)', { locale: ko })}</p>
                 </div>
                 <div>
-                    <p className="font-semibold">인원/차량</p>
-                    <p>총 {reservation.guests}명 (가족 {reservation.familyCount}, 방문 {reservation.visitorCount}) / 차량 {reservation.vehicleCount}대</p>
+                    <p className="font-semibold text-xs text-gray-500">가족 / 차량</p>
+                    <p className="font-bold text-gray-900">
+                        {reservation.familyCount}가족 {reservation.familyCount > 1 ? `(추가 ${reservation.familyCount - 1}팀)` : '(기본)'} / 차량 {reservation.vehicleCount}대
+                    </p>
+                </div>
+                <div className="col-span-2 bg-stone-50 p-2.5 rounded-lg border border-stone-200/70 text-xs space-y-1">
+                    <div className="flex justify-between items-center">
+                        <span className="font-bold text-stone-700">👥 인원 상세:</span>
+                        <span className="text-stone-900 font-extrabold">
+                            {reservation.guestDetails ? (
+                                `숙박 ${(reservation.guestDetails.adults || 0) + (reservation.guestDetails.seniors || 0) + (reservation.guestDetails.kids?.preschool || 0) + (reservation.guestDetails.kids?.elementary || 0) + (reservation.guestDetails.kids?.teen || 0)}명 (성인 ${reservation.guestDetails.adults || 0}${reservation.guestDetails.kids?.elementary ? `, 초등 ${reservation.guestDetails.kids.elementary}` : ''}${reservation.guestDetails.kids?.preschool ? `, 미취학 ${reservation.guestDetails.kids.preschool}` : ''}${reservation.guestDetails.kids?.teen ? `, 청소년 ${reservation.guestDetails.kids.teen}` : ''}${reservation.guestDetails.seniors ? `, 시니어 ${reservation.guestDetails.seniors}` : ''})`
+                            ) : `숙박 ${reservation.guests}명`}
+                            {reservation.visitorCount > 0 ? ` + 방문객 ${reservation.visitorCount}명` : ''}
+                        </span>
+                    </div>
+                    {reservation.guestDetails?.hasPet && (
+                        <p className="text-amber-700 font-semibold">🐾 반려동물 동반</p>
+                    )}
                 </div>
                 <div className="col-span-2">
-                    <p className="font-semibold">요청사항</p>
-                    <p className="text-gray-600">{reservation.requests || '-'}</p>
+                    <p className="font-semibold text-xs text-gray-500">요청사항</p>
+                    <p className="text-gray-600 text-xs">{reservation.requests || '-'}</p>
                 </div>
                 <div className="col-span-2 mt-1 p-2 bg-gray-50 dark:bg-stone-900 rounded border border-gray-100 dark:border-stone-800 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     <div>
@@ -191,6 +208,40 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
                     </div>
                 </div>
             </div>
+
+            {/* 요금 산출 내역 영수증 박스 */}
+            {(() => {
+                const nights = Math.max(1, Math.ceil((new Date(reservation.checkOutDate).getTime() - new Date(reservation.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
+                const extraFam = Math.max(0, (reservation.familyCount || 1) - 1);
+                const extraFamCost = extraFam * 35000 * nights;
+                const visitorCost = (reservation.visitorCount || 0) * 10000;
+                const baseStayCost = reservation.totalPrice - extraFamCost - visitorCost;
+
+                return (
+                    <div className="mb-3 p-2.5 bg-blue-50/70 rounded-lg border border-blue-100 text-xs space-y-1">
+                        <div className="flex justify-between items-center font-bold text-blue-900 mb-1 border-b border-blue-200/60 pb-1">
+                            <span>🧾 요금 산출 내역</span>
+                            <span className="text-sm font-extrabold text-blue-950">{reservation.totalPrice.toLocaleString()}원</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600">
+                            <span>• 기본 숙박료 ({nights}박)</span>
+                            <span className="font-medium">{baseStayCost.toLocaleString()}원</span>
+                        </div>
+                        {extraFamCost > 0 && (
+                            <div className="flex justify-between text-gray-600">
+                                <span>• 추가 가족 (+{extraFam}가족 × {nights}박)</span>
+                                <span className="font-medium text-amber-700">+{extraFamCost.toLocaleString()}원</span>
+                            </div>
+                        )}
+                        {visitorCost > 0 && (
+                            <div className="flex justify-between text-gray-600">
+                                <span>• 방문객 (+{reservation.visitorCount}명)</span>
+                                <span className="font-medium text-amber-700">+{visitorCost.toLocaleString()}원</span>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* 환불 정보 (REFUND_PENDING 상태일 때) */}
             {reservation.status === 'REFUND_PENDING' && (

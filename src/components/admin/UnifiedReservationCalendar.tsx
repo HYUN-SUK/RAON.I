@@ -540,8 +540,59 @@ export default function UnifiedReservationCalendar() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div><Label className="text-xs text-gray-500">상태</Label><p className="font-bold">{selectedReservation.status}</p></div>
-                                        <div><Label className="text-xs text-gray-500">인원</Label><p>{selectedReservation.guests}명</p></div>
+                                        <div><Label className="text-xs text-gray-500">가족/차량</Label><p className="font-bold">{selectedReservation.familyCount}가족 / 차량 {selectedReservation.vehicleCount}대</p></div>
                                     </div>
+                                    
+                                    {/* 인원 상세 */}
+                                    <div className="bg-white p-2.5 rounded-md border border-gray-200 text-xs space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-gray-600">👥 인원 상세:</span>
+                                            <span className="font-extrabold text-gray-900">
+                                                {selectedReservation.guestDetails ? (
+                                                    `숙박 ${(selectedReservation.guestDetails.adults || 0) + (selectedReservation.guestDetails.seniors || 0) + (selectedReservation.guestDetails.kids?.preschool || 0) + (selectedReservation.guestDetails.kids?.elementary || 0) + (selectedReservation.guestDetails.kids?.teen || 0)}명 (성인 ${selectedReservation.guestDetails.adults || 0}${selectedReservation.guestDetails.kids?.elementary ? `, 초등 ${selectedReservation.guestDetails.kids.elementary}` : ''}${selectedReservation.guestDetails.kids?.preschool ? `, 미취학 ${selectedReservation.guestDetails.kids.preschool}` : ''}${selectedReservation.guestDetails.kids?.teen ? `, 청소년 ${selectedReservation.guestDetails.kids.teen}` : ''}${selectedReservation.guestDetails.seniors ? `, 시니어 ${selectedReservation.guestDetails.seniors}` : ''})`
+                                                ) : `숙박 ${selectedReservation.guests}명`}
+                                                {selectedReservation.visitorCount > 0 ? ` + 방문객 ${selectedReservation.visitorCount}명` : ''}
+                                            </span>
+                                        </div>
+                                        {selectedReservation.guestDetails?.hasPet && (
+                                            <p className="text-amber-700 font-semibold">🐾 반려동물 동반</p>
+                                        )}
+                                    </div>
+
+                                    {/* 요금 영수증 박스 */}
+                                    {(() => {
+                                        const nights = Math.max(1, Math.ceil((new Date(selectedReservation.checkOutDate).getTime() - new Date(selectedReservation.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
+                                        const extraFam = Math.max(0, (selectedReservation.familyCount || 1) - 1);
+                                        const extraFamCost = extraFam * 35000 * nights;
+                                        const visitorCost = (selectedReservation.visitorCount || 0) * 10000;
+                                        const baseStayCost = selectedReservation.totalPrice - extraFamCost - visitorCost;
+
+                                        return (
+                                            <div className="p-2.5 bg-blue-50/80 rounded-md border border-blue-200 text-xs space-y-1">
+                                                <div className="flex justify-between items-center font-bold text-blue-900 border-b border-blue-200 pb-1">
+                                                    <span>🧾 요금 산출 내역</span>
+                                                    <span className="text-sm font-extrabold text-blue-950">{selectedReservation.totalPrice.toLocaleString()}원</span>
+                                                </div>
+                                                <div className="flex justify-between text-gray-600">
+                                                    <span>• 기본 숙박료 ({nights}박)</span>
+                                                    <span className="font-medium">{baseStayCost.toLocaleString()}원</span>
+                                                </div>
+                                                {extraFamCost > 0 && (
+                                                    <div className="flex justify-between text-gray-600">
+                                                        <span>• 추가 가족 (+{extraFam}가족 × {nights}박)</span>
+                                                        <span className="font-medium text-amber-700">+{extraFamCost.toLocaleString()}원</span>
+                                                    </div>
+                                                )}
+                                                {visitorCost > 0 && (
+                                                    <div className="flex justify-between text-gray-600">
+                                                        <span>• 방문객 (+{selectedReservation.visitorCount}명)</span>
+                                                        <span className="font-medium text-amber-700">+{visitorCost.toLocaleString()}원</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+
                                     <div><Label className="text-xs text-gray-500">요청사항</Label><p className="text-sm">{selectedReservation.requests || '-'}</p></div>
 
                                     {/* 관리자 액션 버튼 그룹 (입금확인, 예약변경, 예약취소) */}
