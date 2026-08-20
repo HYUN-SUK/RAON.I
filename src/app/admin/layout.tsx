@@ -22,8 +22,14 @@ export default function AdminLayout({
     }, []);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        router.push('/admin/login');
+        try {
+            setIsOpen(false);
+            await supabase.auth.signOut();
+        } catch (e) {
+            console.error('[AdminLayout] SignOut error:', e);
+        } finally {
+            window.location.href = '/admin/login';
+        }
     };
 
     const handleLinkClick = () => {
