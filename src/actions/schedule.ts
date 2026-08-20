@@ -684,26 +684,6 @@ export async function ensureScheduleFromReservationAdmin(reservationId: string, 
         return { success: false, error: createError.message };
     }
 
-    // 4. [중요] 라온아이 예약 입금확인 즉시 맛보기 플랜(is_preview: true) 자동 생성 및 영구 저장
-    try {
-        const { generatePreviewSmartPlan } = await import('@/lib/smartPlan');
-        const previewPlan = await generatePreviewSmartPlan(
-            { lat, lng },
-            new Date(checkIn),
-            new Date(checkOut),
-            userId
-        );
-        if (previewPlan && newScheduleId) {
-            await (supabase
-                .from('user_schedules') as any)
-                .update({ smart_plan_data: previewPlan })
-                .eq('id', newScheduleId);
-            console.log(`[Admin] Preview smart plan auto-generated for schedule ${newScheduleId}`);
-        }
-    } catch (previewErr) {
-        console.error('[Admin] Failed to auto-generate preview smart plan:', previewErr);
-    }
-
     return { success: true, scheduleId: newScheduleId };
 }
 
