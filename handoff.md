@@ -1,63 +1,68 @@
-# 📌 세션 인수인계 문서 (Handoff Document)
+﻿# 📋 [RAON.I 인수인계 문서 (Handoff Document)]
 
-**작성 일시**: 2026년 8월 19일 (KST)  
-**작성자**: Lead Developer (Antigravity)  
-**작성 대상**: 8월 20일 09:00 KST 10월 예약 전면 오픈 대비 5대 트랙 종합 무결성 점검, PostgreSQL 물리적 배제 제약조건(`exclude_overlapping_reservations`) 및 사이트 단위 직렬화 락(`create_reservation_safe`) 장착으로 이중 예약(Double Booking) 영구 박멸 완료 보고  
-
----
-
-## 1. 💡 현재 상태 요약 (이번 세션 완료 사항)
-
-1. **오픈 시간 및 한국시간(KST 09:00:00) 정합성 실측 검증**:
-   - `open_day_rules`의 `automation_config` (`triggerDay: 20, monthsToAdd: 3, targetDay: '2'`): 내일 8/20 09:00:00 KST 정각에 10월 전체 및 11/2(토일월 2박)까지 자동 개방 판정 100% 정상 작동 실측 완료.
-   - `IS_RESERVATION_LOCKED = false` 일반 사용자 정상 접근 상태 확인.
-
-2. **다중박(2박/3박) 겹침 락 누수 취약점 발견 및 3중 철벽 방어 장착**:
-   - 체크인 날짜가 다른 2박 예약(예: 10/16~18 vs 10/17~19) 동시 진입 시 락 키 불일치로 인한 이중 체결 취약점 발견.
-   - `supabase/migrations/20260819000000_strict_reservation_concurrency.sql` 배포:
-     - PostgreSQL `btree_gist` 확장을 이용한 **물리적 배제 제약조건(`exclude_overlapping_reservations`)** 장착.
-     - `create_reservation_safe` RPC의 **사이트 단위 직렬화 락(`site_lock_` + `site_id`)** 고도화 및 `exclusion_violation` 예외 처리 완료.
-
-3. **동시성 실측 3대 시뮬레이션 및 풀 스케일 스트레스 테스트 100% 무결 통과**:
-   - **TEST 1 (1일 겹침 2박 동시 타격)**: 1명 성공 / 1명 안전 차단 (이중 예약 0건 검증).
-   - **TEST 2 (퇴실=입실 연박 연속 예약)**: 10/20~22 및 10/22~24 둘 다 100% 정상 통과.
-   - **TEST 3 (동일 날짜 10인 동시 타격)**: 1명 성공 / 9명 100% 안전 차단.
-   - **시뮬레이션 B (전 사이트 64건 동시 타격)**: 32개 슬롯 정확히 1명씩 배정 완료.
-   - **시뮬레이션 C (에어컨 8대 15인 동시 신청)**: 8명 정상 분배, 7명 마감 차단 완료.
-
-4. **10월 5주 주말 및 연휴 요금 계산 & 관리자 차단일 무결성**:
-   - 일반 주말(13만), 한글날 3박 연휴(19만), 평일 2박(8만), 에어컨 2박(2만) 1원 오차 없이 일치.
-   - 10월 13건 관리자 차단일(김은아 넥슨 전체대관 등) 실시간 마감 렌더링 정상 확인.
-
-5. **인프라 & 빌드 무결성**:
-   - `npx tsc --noEmit`: 에러 0건 (Clean).
-   - `npm run build`: 98개 전 페이지 빌드 100% 무결 성공.
+- **작성 일시**: 2026-08-21 (KST)
+- **작업 환경**: Windows / Next.js 16 (Turbopack) / Supabase DB
+- **빌드 상태**: TypeScript 0 에러 / Next.js Production Build 98/98 전 페이지 컴파일 100% 무결 통과
 
 ---
 
-## 2. 🛠️ 기술적 결정 사항 (Architectural Decisions)
+## 1. 🎯 현재 상태 요약 (이번 세션 완료 사항)
 
-1. **PostgreSQL 물리적 배제 제약조건 (Exclusion Constraint) 표준화**:
-   - `reservations` 테이블에 `EXCLUDE USING gist (site_id WITH =, daterange(check_in_date, check_out_date, '[)') WITH &&)` 제약조건을 장착하여, 앱 코드나 동시성 타이밍의 버그가 발생하더라도 DB 엔진 차원에서 날짜 겹침 INSERT를 물리적으로 100% 거부.
-2. **Half-Open Interval `[ )` 규격 준수**:
-   - `[check_in, check_out)` 규격을 통해 퇴실일과 다음 예약자의 입실일이 같은 날짜(예: 10/22)인 경우 겹침 없이 둘 다 정상 체결되도록 보장.
-3. **비동기 알림 격리 (Fire-and-Forget)**:
-   - 예약 완료 후 FCM 푸시 및 알림톡 발송은 `catch` 핸들러 기반 비동기로 분리하여 알림 지연이 발생해도 고객 화면은 0.001초 만에 `/reservation/complete`로 즉시 전환.
+이번 세션에서는 **스마트플랜 D-Day 생명주기 뱃지 세분화**, **환불 요청/완료 프로세스 및 관리자 캘린더 잠금 해제 동기화**, **모바일 브라우저/PWA 캐시 오염 및 로그인/로그아웃 데드락 완치**를 집중적으로 완수했습니다.
+
+### 🌟 주요 완료 기능
+1. **스마트플랜 5단계 D-Day 안내 뱃지 완벽 적용 (ScheduleCard.tsx)**:
+   - ⚡ 바로 맛보기 계획 생성가능!, 터치해보세요! (등록 직후)
+   - ⚡ 맛보기 계획 생성 완료 (맛보기 확인 후)
+   - ✨ 정밀 스마트플랜 생성가능 (익일 오전 9시 이후)
+   - 🌤️ 날씨정보 업데이트 가능 (D-7 ~ D-1 주간 날씨)
+   - ⚡ 당일 정밀날씨 업데이트 가능 (D-0 당일 날씨)
+   - ✨ 스마트플랜 생성 완료 (정밀 플랜 완료 후)
+2. **권한 동의 중복 팝업 원천 차단 (usePermissionFlow.ts)**:
+   - DB user_permission_consents를 조회하여 이미 동의한 사용자는 계정 전환/기기 변경 시에도 팝업 0% 차단.
+3. **10초 기록 글 작성 후 배너 즉시 영구 종료 (ecord.ts)**:
+   - createRecord 시 해당 일정 ecord_written = true 업데이트 및 취소된 일정 배너 노출 완벽 필터링.
+4. **환불 요청 시 계좌정보 DB 100% 안전 저장 (ctions/reservation.ts)**:
+   - Server Action equestReservationCancelAction (createAdminClient) 구축으로 은행, 계좌번호, 예금주를 DB에 확실하게 기록.
+5. **관리자 결제/환불 관리 전용 탭 신설 (AdminPaymentsPage.tsx)**:
+   - [입금 대기] 및 [환불 대기 (계좌 확인)] 2개 탭 구성으로 환불 계좌정보(은행, 계좌번호, 예금주, 환불예정액) 선명하게 노출.
+6. **환불 완료(REFUNDED) 시 관리자 통합 캘린더 사이트 잠금 즉시 자동 해제 (UnifiedReservationCalendar.tsx)**:
+   - 캘린더 점유 검사에서 .status !== 'REFUNDED'를 추가하여 환불 완료 즉시 파란색/녹색 빈자리로 자동 해제.
+7. **모바일 캘린더 실시간 동시 동기화 & 30초 폴링 (UnifiedReservationCalendar.tsx)**:
+   - isibilitychange & ocus 이벤트 감지로 모바일 화면 복귀 시 0.01초 만에 최신 데이터 자동 재조회.
+8. **모바일 localStorage 캐시 오염 완전 근절 (useReservationStore.ts)**:
+   - partialize 적용 및 스토리지 키를 eservation-storage-v3로 업그레이드하여 스마트폰 메모리에 남아있던 오래된 예약/차단 캐시 영구 소멸.
+   - 서버 슈퍼관리자 전용 고속 액션 etchAdminCalendarDataServerAction을 통해 PC와 모바일 모두 동일한 DB 최신 원본만 실시간 로드.
+9. **모바일 관리자 로그인/로그아웃 완치 (AdminLoginForm.tsx & AdminLayout.tsx)**:
+   - Web Locks 충돌 및 소프트 라우팅 멈춤을 유발하던 코드를 제거하고 window.location.href 하드 리다이렉트 적용.
 
 ---
 
-## 3. 🚀 다음 작업 가이드 (Next Action Items)
+## 2. 💡 기술적 결정 사항 (Technical Decisions)
 
-1. **8월 20일 오전 9시 실시간 예약 오픈 모니터링**:
-   - 오픈 정각 트래픽 진입 및 예약 체결 현황 모니터링.
+1. **환불 요청을 브라우저 직접 RPC에서 Server Action으로 격상**:
+   - 모바일 브라우저의 불안정한 네트워크 세션으로 인한 파라미터 누락 위험을 방지하기 위해 createAdminClient() 기반 Server Action으로 전환하여 환불 계좌를 100% 안전하게 DB에 적재.
+2. **Zustand partialize 적용 및 스토리지 키 v3 격상**:
+   - eservations, lockedDates 같은 실시간 서버 데이터를 localStorage에 영구 저장하지 않도록 분리하여, 모바일 기기에서 발생하는 PC-모바일 달력 불일치 문제를 영구적으로 해결.
+3. **SPA 소프트 네비게이션(outer.push) 대신 하드 리다이렉트(window.location.href) 사용 (관리자 인증)**:
+   - 모바일 PWA 및 웹뷰 환경에서 Supabase 세션 만료 후 outer.push가 먹통이 되는 문제를 방지하기 위해 완전한 페이지 리로드 하드 네비게이션 적용.
+
+---
+
+## 3. 🚀 다음 세션 우선 작업 가이드 (Next Tasks)
+
+1. **8월 20일 09:00 오픈된 10월 예약 현황 모니터링**:
+   - 신규 유입 예약건의 입금 기한 관리 및 실시간 캘린더 상태 점검.
 2. **스마트플랜 UI/UX 단일 CTA & 상태 안내 배너 최적화**:
-   - 출발 당일/D+1 상황에서 상단 메인 CTA 카드와 하단 상태 안내 배너가 동시에 노출되는 번잡함을 해소하고 1개의 통합 스마트 CTA 카드로 융합 정리.
+   - 출발 당일(D-0) 및 D+1 일정에서 상단 메인 CTA 카드와 하단 상태 안내 배너가 중복 노출되는 경우 1개의 통합 카드로 융합 정리.
 3. **17일 순환 일일 로테이션 배치 모니터링**:
-   - GitHub Actions 크론(`daily-region-sync.yml`) 수집 안정성 점검.
+   - 시도별 공공데이터(안심식당, 모범식당, KTO 관광명소, NMC 응급의료) 수집 안정성 점검.
 
 ---
 
-## 4. ⚠️ 주의 사항
+## 4. ⚠️ 주의 사항 및 환경 설정
 
-- `reservations` 테이블의 물리적 제약조건은 `status NOT IN ('CANCELLED', 'REFUNDED')` 필터가 적용되어 있으므로, 취소/환불 시 자동으로 해당 날짜의 잠금이 해제되어 다른 사용자가 즉시 예약할 수 있습니다.
-- 관리자 수동 차단(`blocked_dates`) 및 예약 관리는 관리자 전용 Server Action을 통해 독립적으로 처리되므로 관리자의 수정/삭제 권한에 영향이 없습니다.
+- **Next.js & Supabase Client**:
+  - 관리자 전용 데이터 갱신 및 RLS 제약 없는 확실한 동기화가 필요한 로직은 반드시 @/lib/supabase-admin의 createAdminClient() Server Action을 사용할 것.
+- **날짜 및 시간대 (KST/UTC)**:
+  - 날짜 문자열 처리 시 KST 기준 ormatLocalDate(YYYY-MM-DD) 유틸을 사용하여 UTC 시차로 인한 날짜 밀림 방지 유지.

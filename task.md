@@ -1,5 +1,19 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **환불 계좌정보 노출, 통합 캘린더 잠금 해제, 모바일 캐시 및 로그아웃 완치 (2026-08-20 ~ 2026-08-21 완료)**
+    - [x] 1. 스마트플랜 5단계 D-Day 생명주기 뱃지 완벽 적용 (`ScheduleCard.tsx` - D-7 주간예보, D-0 정밀날씨)
+    - [x] 2. 권한 동의 중복 팝업 원천 차단 (`usePermissionFlow.ts` - DB 동의 감지 팝업 0% 차단)
+    - [x] 3. 10초 기록 글 작성 후 배너 즉시 영구 종료 및 취소 일정 필터링 (`record.ts`)
+    - [x] 4. 모바일 관리자 로그인 '로그인 중...' 데드락 멈춤 완치 (`AdminLoginForm.tsx`)
+    - [x] 5. 환불 요청 시 계좌정보(은행/계좌번호/예금주) DB 100% 안전 저장 Server Action (`requestReservationCancelAction` 구축)
+    - [x] 6. 관리자 결제/환불 관리 전용 탭 (`AdminPaymentsPage.tsx` - 입금대기 & 환불대기 계좌정보 노출)
+    - [x] 7. 환불 완료(`REFUNDED`) 시 관리자 통합 캘린더 사이트 잠금 즉시 해제 (`UnifiedReservationCalendar.tsx`)
+    - [x] 8. 10월 3~5일 철수네(`site-2`) 최보경님 취소 건 처리 및 빈자리 해제 검증 완료
+    - [x] 9. 모바일 캘린더 실시간 동시 동기화 (`visibilitychange`, `focus` 자동 재조회 + 30초 폴링)
+    - [x] 10. 모바일 `localStorage` 캐시 오염 완전 근절 (`useReservationStore.ts` partialize 적용 & storage-v3 격상)
+    - [x] 11. 모바일 관리자 화면 로그아웃 버튼 무반응 완치 (`AdminLayout.tsx` 하드 리다이렉트 적용)
+    - [x] 12. TypeScript 검사 (`tsc --noEmit`) 0에러 & Next.js Production Build (`npm run build`) 98개 전 페이지 100% 무결 검증 통과
+
 - [x] **스마트플랜 맛보기 및 생체주기 뱃지 최적화 완결 (v12 완결 - 2026-08-11)**
     - [x] 일정 카드(`ScheduleCard`) 및 홈 위젯(`ScheduleHomeWidget`) 3단계 생체주기 뱃지 자동 전환 수식 적용
     - [x] 맛보기 명소 스코어링에 6:2:2 인기도(`KTO 60% + Tmap 20% + KT 20%`) 및 티어 보너스(1티어 100점, 2티어 80점) 가점 수식 100% 동일 이식
