@@ -3,45 +3,34 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(supabaseUrl, serviceKey);
 
-async function compareBadgeData() {
-    console.log('🔍 FORENSIC BADGE COMPARISON: 해남 vs 강릉 in smart_plan_candidates...\n');
+async function compareSchedules() {
+  console.log('=== [독산해수욕장캠핑장 vs 라온아이(영희네) 일정 데이터 1:1 비교] ===\n');
 
-    // 1. Fetch candidates for 해남
-    const { data: haenamCands } = await supabase
-        .from('smart_plan_candidates')
-        .select('*')
-        .eq('reservation_id', '9c2d19ef-8777-4e18-893e-611230c70fef')
-        .eq('category', 'RESTAURANT');
+  // 1. 독산해수욕장캠핑장 일정 조회
+  const { data: externalScheds } = await supabase
+    .from('user_schedules')
+    .select('*')
+    .ilike('campground_name', '%독산%')
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-    console.log(`=== 해남 Restaurant Candidates (${haenamCands?.length || 0}) ===`);
-    haenamCands?.forEach((c, idx) => {
-        console.log(`[${idx+1}] ${c.name}`);
-        console.log(`     api_source column: "${c.api_source}"`);
-        console.log(`     raw_data.badges:`, c.raw_data?.badges);
-        console.log(`     raw_data.description:`, c.raw_data?.description);
-        console.log(`     raw_data.api_source:`, c.raw_data?.api_source);
-        console.log('----------------------------------------------------');
-    });
+  // 2. 영희네(라온아이 9/1) 일정 조회
+  const { data: raonScheds } = await supabase
+    .from('user_schedules')
+    .select('*')
+    .eq('source', 'raonai')
+    .ilike('campground_name', '%영희%')
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-    // 2. Fetch candidates for 강릉
-    const { data: gangneungCands } = await supabase
-        .from('smart_plan_candidates')
-        .select('*')
-        .eq('reservation_id', '6933ec4b-4646-46b0-a768-04d1d181f0cd')
-        .eq('category', 'RESTAURANT');
+  console.log('--- [1. 독산해수욕장캠핑장 (정상 동작)] ---');
+  console.log(JSON.stringify(externalScheds?.[0], null, 2));
 
-    console.log(`\n=== 강릉 Restaurant Candidates (${gangneungCands?.length || 0}) ===`);
-    gangneungCands?.forEach((c, idx) => {
-        console.log(`[${idx+1}] ${c.name}`);
-        console.log(`     api_source column: "${c.api_source}"`);
-        console.log(`     raw_data.badges:`, c.raw_data?.badges);
-        console.log(`     raw_data.description:`, c.raw_data?.description);
-        console.log(`     raw_data.api_source:`, c.raw_data?.api_source);
-        console.log('----------------------------------------------------');
-    });
+  console.log('\n--- [2. 영희네 라온아이 (화면 미노출)] ---');
+  console.log(JSON.stringify(raonScheds?.[0], null, 2));
 }
 
-compareBadgeData();
+compareSchedules();

@@ -261,12 +261,12 @@ const generateId = (source, name, addr) => {
 // --- [Phase 1: 공통 방어막 (Exponential Backoff + Jitter)] ---
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
-async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+async function fetchWithRetry(url, options = {}, maxRetries = 5) {
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
       const mergedOptions = {
-        timeout: 15000, // API 무한 대기(TCP Hang) 방지를 위해 15초 타임아웃 기본 적용
+        timeout: 30000, // [v14.0 Upgrade] 공공데이터포털 지연 방어를 위해 30초 타임아웃 적용
         ...options,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -307,8 +307,8 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
         console.error(`      ❌ Max retries (${maxRetries}) exhausted or Fatal Error. Last Error: ${e.message}`);
         throw e;
       }
-      // 지수 백오프: 1s -> 2s -> 4s + Jitter
-      const backoffMs = Math.pow(2, attempt-1) * 1000 + (Math.random() * 500);
+      // 지수 백오프: 1s -> 2s -> 4s -> 8s -> 15s + Jitter
+      const backoffMs = Math.min(15000, Math.pow(2, attempt-1) * 1000 + (Math.random() * 500));
       console.warn(`      ⚠️ [Retry ${attempt}/${maxRetries}] Fetch failed: ${e.message}. Waiting ${Math.round(backoffMs)}ms...`);
       await delay(backoffMs);
     }
@@ -691,13 +691,13 @@ async function dailyRegionSync() {
             await delay(100); // Throttling
         }
 
-  // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화)
+  // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화 - paginatedCount 안전 적용)
   console.log(`\n📊 [Final Audit] ${targetSido} 지역별 최종 정합성 확인 중...`);
   for (const [source, key] of Object.entries(sourceToStatKey)) {
-    const { count: actCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', true);
-    const { count: inactCount } = await supabase.from('master_places').select('*', { count: 'exact', head: true }).in('sido', aliases).eq('api_source', source).eq('is_active', false);
-    stats.categories[key].total.active = (actCount || 0);
-    stats.categories[key].total.inactive = (inactCount || 0);
+    const actCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('api_source', source).eq('is_active', true));
+    const inactCount = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('api_source', source).eq('is_active', false));
+    stats.categories[key].total.active = actCount;
+    stats.categories[key].total.inactive = inactCount;
   }
 
   // [SPOT_TMAP_REL, SPOT_KT_CONCTR, SPOT_KTO_POP 지표의 existing 및 total 보정]
@@ -712,23 +712,12 @@ async function dailyRegionSync() {
   stats.categories.SPOT_KT_CONCTR.total = spotTotal;
   stats.categories.SPOT_KTO_POP.total = spotTotal;
 
-  // [ENRICHMENT 최종 재집계]
-  const { count: finalEnrichAct } = await supabase
-    .from('master_places')
-    .select('*', { count: 'exact', head: true })
-    .in('sido', aliases)
-    .eq('is_active', true)
-    .not('raw_data->>operating_hours', 'is', null);
+  // [ENRICHMENT 최종 재집계 - paginatedCount 적용]
+  const finalEnrichAct = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('is_active', true).not('raw_data->>operating_hours', 'is', null));
+  const finalEnrichInact = await paginatedCount(() => supabase.from('master_places').select('id').in('sido', aliases).eq('is_active', false).not('raw_data->>operating_hours', 'is', null));
 
-  const { count: finalEnrichInact } = await supabase
-    .from('master_places')
-    .select('*', { count: 'exact', head: true })
-    .in('sido', aliases)
-    .eq('is_active', false)
-    .not('raw_data->>operating_hours', 'is', null);
-
-  stats.categories.ENRICHMENT.total.active = finalEnrichAct || 0;
-  stats.categories.ENRICHMENT.total.inactive = finalEnrichInact || 0;
+  stats.categories.ENRICHMENT.total.active = finalEnrichAct;
+  stats.categories.ENRICHMENT.total.inactive = finalEnrichInact;
 
   // 4. [Strike-Out] 미수산 데이터 처리 (백년가게 전용 고수 / 마트&식당은 API 기반 즉시 처리)
   console.log(`\n⚖️ [Strike-Out Check] 미확인 데이터 업데이트 중...`);
@@ -1492,13 +1481,19 @@ async function syncTourSpots(sido, seenIds, stat) {
           updated_at: new Date().toISOString()
         });
       }
-      await upsertAndTrack(chunk, stat);
-        if (itemList.length < 100) hasMore = false;
-        else pageNo++;
+      if (chunk.length > 0) await upsertAndTrack(chunk, stat);
+      if (itemList.length < 100) {
+        hasMore = false;
+      } else {
+        pageNo++;
+      }
       } catch (e) { 
-          console.error('  ❌ Tour API Final Error:', e.message); 
-          stat.note = `💥 ERROR (${e.message.slice(0, 30)})`;
-          break; 
+        console.error(`  ❌ Tour API Error for Area ${areaCode} Page ${pageNo}:`, e.message); 
+        stat.note = stat.note ? `${stat.note}, 일부지연(${e.message.slice(0, 15)})` : `일부지연(${e.message.slice(0, 20)})`;
+        // [v14.0] 1개 페이지 실패 시 전체 수집을 중단(break)하지 않고 다음 페이지로 계속 진행
+        pageNo++;
+        if (pageNo > 20) hasMore = false; // 최대 안전 가드
+        await delay(1000);
       }
     }
   }
@@ -1544,93 +1539,97 @@ async function syncHospitals(sido, seenIds, stat) {
       });
     }
 
-    // 2. NMC API 호출
+    // 2. NMC API 호출 (시도별 격리 루프)
     for (const apiSido of apiSidos) {
-      const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(apiSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
-      const data = await fetchWithRetry(url);
-      const items = data.response?.body?.items?.item;
+      try {
+        const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(apiSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
+        const data = await fetchWithRetry(url);
+        const items = data.response?.body?.items?.item;
 
-      if (items) {
-        const itemList = Array.isArray(items) ? items : [items];
+        if (items) {
+          const itemList = Array.isArray(items) ? items : [items];
 
-      for (const item of itemList) {
-        const hAddr = item.dutyAddr || '';
-        const tempFid = generateId('NMC_HOSPITAL', item.dutyName, hAddr);
-        
-        const exist = existingMap.get(tempFid) || 
-                      (item.hpid ? existingMap.get(item.hpid) : null) || 
-                      existingMap.get(item.dutyName);
+          for (const item of itemList) {
+            const hAddr = item.dutyAddr || '';
+            const tempFid = generateId('NMC_HOSPITAL', item.dutyName, hAddr);
+            
+            const exist = existingMap.get(tempFid) || 
+                          (item.hpid ? existingMap.get(item.hpid) : null) || 
+                          existingMap.get(item.dutyName);
 
-        let hLat = parseFloat(item.wgs84Lat);
-        let hLng = parseFloat(item.wgs84Lon);
-        let finalAddr = hAddr;
-        let finalFid = exist ? exist.id : tempFid;
+            let hLat = parseFloat(item.wgs84Lat);
+            let hLng = parseFloat(item.wgs84Lon);
+            let finalAddr = hAddr;
+            let finalFid = exist ? exist.id : tempFid;
 
-        // 기존 좌표 보존
-        if (exist) {
-          hLat = exist.lat;
-          hLng = exist.lng;
-          if (exist.address) finalAddr = exist.address;
-        } 
-        // 기존 좌표가 없거나 위경도가 누락된 경우 지오코딩
-        else if (!hLat || !hLng || hLat <= 33 || hLat >= 39 || hLng <= 124 || hLng >= 132) {
-          const coords = await getKakaoCoordinates(hAddr);
-          if (coords && coords.lat && coords.lng) {
-            hLat = coords.lat;
-            hLng = coords.lng;
-            if (coords.addr) finalAddr = coords.addr;
-            await delay(100);
-          }
-        }
-
-        if (hLat && hLng) {
-          if (seenIds.has(finalFid)) continue;
-          seenIds.add(finalFid);
-          stat.fetched.active++;
-
-          let details = null;
-          try {
-            if (item.hpid) {
-              details = await fetchHospitalDetails(item.hpid, MOIS_API_KEY);
-              await new Promise(r => setTimeout(r, 150)); // 호출 간 딜레이
+            // 기존 좌표 보존
+            if (exist) {
+              hLat = exist.lat;
+              hLng = exist.lng;
+              if (exist.address) finalAddr = exist.address;
+            } 
+            // 기존 좌표가 없거나 위경도가 누락된 경우 지오코딩
+            else if (!hLat || !hLng || hLat <= 33 || hLat >= 39 || hLng <= 124 || hLng >= 132) {
+              const coords = await getKakaoCoordinates(hAddr);
+              if (coords && coords.lat && coords.lng) {
+                hLat = coords.lat;
+                hLng = coords.lng;
+                if (coords.addr) finalAddr = coords.addr;
+                await delay(100);
+              }
             }
-          } catch (de) {
-            console.warn(`[NMC Detail Sync Fail] hospital: ${item.dutyName}, err: ${de.message}`);
+
+            if (hLat && hLng) {
+              if (seenIds.has(finalFid)) continue;
+              seenIds.add(finalFid);
+              stat.fetched.active++;
+
+              let details = null;
+              try {
+                if (item.hpid) {
+                  details = await fetchHospitalDetails(item.hpid, MOIS_API_KEY);
+                  await new Promise(r => setTimeout(r, 150)); // 호출 간 딜레이
+                }
+              } catch (de) {
+                console.warn(`[NMC Detail Sync Fail] hospital: ${item.dutyName}, err: ${de.message}`);
+              }
+
+              const raw_data = {
+                ...item,
+                badges: ['응급의료센터'],
+                ...(details ? {
+                  enriched: true,
+                  operating_hours: details.operating_hours,
+                  closed_days: details.closed_days,
+                  emergency_room: details.emergency_room,
+                  representative_departments: details.representative_departments,
+                  parking_available: details.parking_available,
+                  homepage_url: details.homepage_url || ""
+                } : {})
+              };
+
+              chunk.push({
+                id: finalFid,
+                api_source: 'NMC_HOSPITAL',
+                category: 'HOSPITAL',
+                name: item.dutyName,
+                description: details ? `${item.dutyName} - 응급실 가동 응급의료기관 (${details.emergency_room})` : '응급실 가동 응급의료기관 (NMC)',
+                address: finalAddr,
+                lat: hLat,
+                lng: hLng,
+                trust_score: item.dutyName?.includes('소아') ? 100 : 55,
+                is_active: true,
+                raw_data,
+                sido,
+                sigungu: ''
+              });
+            }
           }
-
-          const raw_data = {
-            ...item,
-            badges: ['응급의료센터'],
-            ...(details ? {
-              enriched: true,
-              operating_hours: details.operating_hours,
-              closed_days: details.closed_days,
-              emergency_room: details.emergency_room,
-              representative_departments: details.representative_departments,
-              parking_available: details.parking_available,
-              homepage_url: details.homepage_url || ""
-            } : {})
-          };
-
-          chunk.push({
-            id: finalFid,
-            api_source: 'NMC_HOSPITAL',
-            category: 'HOSPITAL',
-            name: item.dutyName,
-            description: details ? `${item.dutyName} - 응급실 가동 응급의료기관 (${details.emergency_room})` : '응급실 가동 응급의료기관 (NMC)',
-            address: finalAddr,
-            lat: hLat,
-            lng: hLng,
-            trust_score: item.dutyName?.includes('소아') ? 100 : 55,
-            is_active: true,
-            raw_data,
-            sido,
-            sigungu: ''
-          });
         }
+      } catch (subErr) {
+        console.warn(`  ⚠️ NMC Stage1 (${apiSido}) fetch failed: ${subErr.message}`);
       }
     }
-  }
 
     if (chunk.length > 0) {
       await upsertAndTrack(chunk, stat);

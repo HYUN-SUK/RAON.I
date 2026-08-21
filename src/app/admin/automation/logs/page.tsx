@@ -458,6 +458,11 @@ export default function AutomationLogsPage() {
                                 상세 API 연동
                               </span>
                             )}
+                            {s.name === 'ENRICHMENT' && (
+                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                                ⚡ Playwright 데몬 이관
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">{renderMetric(s.existing_count, 'plain')}</td>
