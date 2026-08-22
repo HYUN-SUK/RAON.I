@@ -69,133 +69,142 @@ CREATE INDEX IF NOT EXISTS idx_nav_intent_place_id ON public.nav_intent_log (pla
 CREATE INDEX IF NOT EXISTS idx_nav_intent_schedule_id ON public.nav_intent_log (schedule_id);
 CREATE INDEX IF NOT EXISTS idx_nav_intent_launched_at ON public.nav_intent_log (launched_at DESC);
 
-COMMENT ON TABLE  public.nav_intent_log             IS '길안내 실행 로그. 추천 장소로 내비를 실행한 기록 — 방문 의도의 최강 신호이며, 검증 신뢰도 판정과 복귀 프롬프트 트리거의 근거';
-COMMENT ON COLUMN public.nav_intent_log.partner_id  IS '소속 제휴 사업장 ID';
-COMMENT ON COLUMN public.nav_intent_log.schedule_id IS '해당 여행 일정 ID (user_schedules.id)';
-COMMENT ON COLUMN public.nav_intent_log.user_id     IS '길안내를 실행한 사용자 ID';
-COMMENT ON COLUMN public.nav_intent_log.place_id    IS '길안내 대상 장소 ID (master_places.id)';
-COMMENT ON COLUMN public.nav_intent_log.category    IS '장소 카테고리 — RESTAURANT / MART / SPOT / HOSPITAL / GAS_STATION / ROUTE_RESTAURANT / ROUTE_CAFE / ROUTE_SPOT';
-COMMENT ON COLUMN public.nav_intent_log.stage       IS '추천 위치 — GOING(가는 경로) / RETURNING(귀갓길) / DESTINATION(목적지 주변)';
-COMMENT ON COLUMN public.nav_intent_log.nav_app     IS '실행한 내비 앱 — kakao(카카오맵) / kakaonavi(카카오내비) / tmap(T맵) / naver(네이버지도)';
-COMMENT ON COLUMN public.nav_intent_log.launched_at IS '길안내 실행 일시';
-COMMENT ON COLUMN public.nav_intent_log.followed_up IS '복귀 후 확인 프롬프트를 이미 노출했는지 여부. 중복 노출 방지용';
+COMMENT ON TABLE  public.nav_intent_log             IS '길안내 실행 로그. 장소 상세에서 내비 앱을 켠 행위 기록 (방문 의도 최강 신호)';
+COMMENT ON COLUMN public.nav_intent_log.id          IS '로그 고유 ID (자동증가)';
+COMMENT ON COLUMN public.nav_intent_log.partner_id  IS '제휴 사업장 ID (기본: 라온아이)';
+COMMENT ON COLUMN public.nav_intent_log.schedule_id IS '연계 일정 ID (NULL이면 일반 탐색 중 실행)';
+COMMENT ON COLUMN public.nav_intent_log.user_id     IS '실행한 사용자 ID';
+COMMENT ON COLUMN public.nav_intent_log.place_id    IS '목적지 master_places.id';
+COMMENT ON COLUMN public.nav_intent_log.category    IS '장소 카테고리 (MART/RESTAURANT/SPOT/GAS_STATION/HOSPITAL 등)';
+COMMENT ON COLUMN public.nav_intent_log.stage       IS '일정 단계 (GOING:가는길 / RETURNING:귀갓길 / DESTINATION:목적지주변)';
+COMMENT ON COLUMN public.nav_intent_log.nav_app     IS '선택한 내비 앱 (kakao / kakaonavi / tmap / naver)';
+COMMENT ON COLUMN public.nav_intent_log.launched_at IS '내비 앱 실행 일시';
+COMMENT ON COLUMN public.nav_intent_log.followed_up IS '귀환 후 팩트 확인 프롬프트 노출/응답 완료 여부';
 
 
--- 3. plan_swap_log: 스마트플랜 장소 교체·열람 행동 로그 (D)
+-- 3. plan_swap_log: 스마트플랜 교체 및 대안 시트 닫힘(유지) 로그
 CREATE TABLE IF NOT EXISTS public.plan_swap_log (
-  id               BIGSERIAL PRIMARY KEY,
-  partner_id       UUID DEFAULT 'a0000000-0000-0000-0000-000000000001' REFERENCES public.partners(id),
-  schedule_id      UUID,
-  user_id          UUID,
-  event            TEXT NOT NULL DEFAULT 'SWAPPED',
-  stage            TEXT,
-  category         TEXT,
-  candidate_count  INT,
-  from_place_id    UUID,
-  to_place_id      UUID,
-  from_trust_score NUMERIC,
-  to_trust_score   NUMERIC,
-  from_distance    NUMERIC,
-  to_distance      NUMERIC,
-  occurred_at      TIMESTAMPTZ DEFAULT now()
+  id                BIGSERIAL PRIMARY KEY,
+  partner_id        UUID DEFAULT 'a0000000-0000-0000-0000-000000000001' REFERENCES public.partners(id),
+  schedule_id       UUID,
+  user_id           UUID,
+  event             TEXT NOT NULL,
+  stage             TEXT,
+  category          TEXT,
+  candidate_count   INTEGER,
+  from_place_id     UUID,
+  to_place_id       UUID,
+  from_trust_score  NUMERIC(5,2),
+  to_trust_score    NUMERIC(5,2),
+  from_distance     NUMERIC(5,2),
+  to_distance       NUMERIC(5,2),
+  occurred_at       TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_plan_swap_schedule_id ON public.plan_swap_log (schedule_id);
-CREATE INDEX IF NOT EXISTS idx_plan_swap_event_cat_stage ON public.plan_swap_log (event, category, stage);
-CREATE INDEX IF NOT EXISTS idx_plan_swap_occurred_at ON public.plan_swap_log (occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_plan_swap_from_place ON public.plan_swap_log (from_place_id);
+CREATE INDEX IF NOT EXISTS idx_plan_swap_to_place ON public.plan_swap_log (to_place_id);
+CREATE INDEX IF NOT EXISTS idx_plan_swap_event ON public.plan_swap_log (event, category);
 
-COMMENT ON TABLE  public.plan_swap_log                  IS '스마트플랜 장소 교체·열람 행동 로그. 사용자가 추천을 유지했는지 교체했는지 기록';
-COMMENT ON COLUMN public.plan_swap_log.partner_id       IS '소속 제휴 사업장 ID';
-COMMENT ON COLUMN public.plan_swap_log.schedule_id      IS '해당 여행 일정 ID (user_schedules.id)';
-COMMENT ON COLUMN public.plan_swap_log.user_id          IS '행동을 수행한 사용자 ID';
-COMMENT ON COLUMN public.plan_swap_log.event            IS '행동 유형 — SWAPPED(대안으로 교체함, 부정 신호) / VIEWED_NO_SWAP(대안 목록을 열어봤으나 기존 추천 유지, 긍정 신호)';
-COMMENT ON COLUMN public.plan_swap_log.stage            IS '행동이 일어난 위치 — GOING(가는 경로) / RETURNING(귀갓길) / DESTINATION(목적지 주변)';
+COMMENT ON TABLE  public.plan_swap_log                  IS '스마트플랜 카드 교체 및 대안 시트 닫힘 로그 (거절·선택 신호 수집)';
+COMMENT ON COLUMN public.plan_swap_log.id               IS '로그 고유 ID (자동증가)';
+COMMENT ON COLUMN public.plan_swap_log.partner_id       IS '제휴 사업장 ID';
+COMMENT ON COLUMN public.plan_swap_log.schedule_id      IS '연계 일정 ID';
+COMMENT ON COLUMN public.plan_swap_log.user_id          IS '행동한 사용자 ID';
+COMMENT ON COLUMN public.plan_swap_log.event            IS '이벤트 유형 — SWAPPED(교체실행) / VIEWED_NO_SWAP(대안열람후기존유지)';
+COMMENT ON COLUMN public.plan_swap_log.stage            IS '일정 단계 (GOING / RETURNING / DESTINATION)';
 COMMENT ON COLUMN public.plan_swap_log.category         IS '장소 카테고리';
-COMMENT ON COLUMN public.plan_swap_log.candidate_count  IS '해당 시점 대안 후보 개수. 교체율 비교 시 정규화 분모로 사용';
-COMMENT ON COLUMN public.plan_swap_log.from_place_id    IS '기존 추천 장소 ID. VIEWED_NO_SWAP인 경우 유지된 장소';
-COMMENT ON COLUMN public.plan_swap_log.to_place_id      IS '교체 후 선택된 장소 ID. VIEWED_NO_SWAP인 경우 NULL';
-COMMENT ON COLUMN public.plan_swap_log.from_trust_score IS '기존 추천 장소의 점수';
-COMMENT ON COLUMN public.plan_swap_log.to_trust_score   IS '선택된 장소의 점수';
-COMMENT ON COLUMN public.plan_swap_log.from_distance    IS '기존 추천 장소까지의 거리(km)';
-COMMENT ON COLUMN public.plan_swap_log.to_distance      IS '선택된 장소까지의 거리(km)';
+COMMENT ON COLUMN public.plan_swap_log.candidate_count  IS '당시 사용자에게 제시된 대안 카드 수';
+COMMENT ON COLUMN public.plan_swap_log.from_place_id    IS '교체 전(원래 추천) 장소 ID (VIEWED_NO_SWAP 시 유지된 장소)';
+COMMENT ON COLUMN public.plan_swap_log.to_place_id      IS '교체 후(사용자가 선택한) 장소 ID (VIEWED_NO_SWAP 시 NULL)';
+COMMENT ON COLUMN public.plan_swap_log.from_trust_score IS '교체 전 장소의 당시 추천 점수 스냅샷';
+COMMENT ON COLUMN public.plan_swap_log.to_trust_score   IS '교체 후 장소의 당시 추천 점수 스냅샷';
+COMMENT ON COLUMN public.plan_swap_log.from_distance    IS '교체 전 장소의 거리 (km)';
+COMMENT ON COLUMN public.plan_swap_log.to_distance      IS '교체 후 장소의 거리 (km)';
 COMMENT ON COLUMN public.plan_swap_log.occurred_at      IS '행동 발생 일시';
 
 
--- 4. place_verifications: 실제 방문자 팩트 검증 (A)
+-- 4. place_verifications: 현장 팩트 검증 마스터 테이블
 CREATE TABLE IF NOT EXISTS public.place_verifications (
-  id              BIGSERIAL PRIMARY KEY,
-  partner_id      UUID DEFAULT 'a0000000-0000-0000-0000-000000000001' REFERENCES public.partners(id),
-  schedule_id     UUID,
-  place_id        UUID NOT NULL,
-  user_id         UUID,
-  stage           TEXT,
-  visited         BOOLEAN,
-  liked           BOOLEAN,
-  skip_reason     TEXT,
-  fact_status     TEXT,
-  fact_note       TEXT,
-  observed_at     DATE,
-  observed_dow    INT,
-  distance_km     NUMERIC,
-  source          TEXT DEFAULT 'OWNER_INTERVIEW',
-  entry_point     TEXT,
-  evidence        TEXT,
-  reporter_weight NUMERIC DEFAULT 0.3,
-  review_state    TEXT DEFAULT 'PENDING',
-  applied_at      TIMESTAMPTZ,
-  notified        BOOLEAN DEFAULT false,
-  verified_at     TIMESTAMPTZ DEFAULT now()
+  id                BIGSERIAL PRIMARY KEY,
+  partner_id        UUID DEFAULT 'a0000000-0000-0000-0000-000000000001' REFERENCES public.partners(id),
+  schedule_id       UUID,
+  place_id          UUID NOT NULL,
+  user_id           UUID,
+  stage             TEXT,
+  visited           BOOLEAN,
+  liked             BOOLEAN,
+  skip_reason       TEXT,
+  fact_status       TEXT,
+  fact_note         TEXT,
+  observed_at       DATE,
+  observed_dow      INTEGER,
+  distance_km       NUMERIC(5,2),
+  source            TEXT NOT NULL,
+  entry_point       TEXT,
+  evidence          TEXT,
+  reporter_weight   NUMERIC(3,2) DEFAULT 0.5,
+  review_state      TEXT DEFAULT 'PENDING',
+  applied_at        TIMESTAMPTZ,
+  verified_at       TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_place_verif_place_status ON public.place_verifications (place_id, fact_status);
-CREATE INDEX IF NOT EXISTS idx_place_verif_pending ON public.place_verifications (review_state) WHERE review_state = 'PENDING';
-CREATE INDEX IF NOT EXISTS idx_place_verif_user_verified ON public.place_verifications (user_id, verified_at DESC);
+CREATE INDEX IF NOT EXISTS idx_place_verif_place_id ON public.place_verifications (place_id);
+CREATE INDEX IF NOT EXISTS idx_place_verif_schedule ON public.place_verifications (schedule_id);
+CREATE INDEX IF NOT EXISTS idx_place_verif_review ON public.place_verifications (review_state);
+CREATE INDEX IF NOT EXISTS idx_place_verif_source ON public.place_verifications (source, reporter_weight);
 
-COMMENT ON TABLE  public.place_verifications                 IS '실제 방문자 팩트 검증 기록. 추천 장소를 실제 방문했는지, 정보가 정확했는지 확인한 결과';
-COMMENT ON COLUMN public.place_verifications.partner_id      IS '소속 제휴 사업장 ID';
-COMMENT ON COLUMN public.place_verifications.schedule_id     IS '해당 여행 일정 ID (user_schedules.id)';
-COMMENT ON COLUMN public.place_verifications.place_id        IS '검증 대상 장소 ID (master_places.id)';
-COMMENT ON COLUMN public.place_verifications.user_id         IS '신고한 사용자 ID. 개인 기여 내역 표시에 사용';
-COMMENT ON COLUMN public.place_verifications.stage           IS '추천 위치 — GOING(가는 경로) / RETURNING(귀갓길) / DESTINATION(목적지 주변)';
-COMMENT ON COLUMN public.place_verifications.visited         IS '실제 방문 여부. NULL은 정보 없음(미선택)이며 미방문으로 해석하지 않음';
-COMMENT ON COLUMN public.place_verifications.liked           IS '좋았던 곳으로 선택했는지 여부. true인 경우 해당 일자에 영업 중이었다는 팩트로도 활용';
-COMMENT ON COLUMN public.place_verifications.skip_reason     IS '미방문 사유 — TOO_FAR(거리가 멀어서) / NOT_INTERESTED(관심 없어서) / ALREADY_KNOWN(이미 아는 곳이라) / WEATHER(날씨 때문에) / NO_TIME(시간이 없어서) / OTHER(기타)';
-COMMENT ON COLUMN public.place_verifications.fact_status     IS '관측된 사실 — OK(정보 정확) / TEMP_CLOSED(방문일에 문이 닫혀 있었음) / GONE(간판이 없거나 다른 업소) / HOURS_WRONG(영업시간 다름) / NOT_FOUND(해당 위치에 없음)';
-COMMENT ON COLUMN public.place_verifications.fact_note       IS '자유 기술 메모';
-COMMENT ON COLUMN public.place_verifications.observed_at     IS '실제 관측 일자';
-COMMENT ON COLUMN public.place_verifications.observed_dow    IS '관측 요일 (0=일요일 ~ 6=토요일)';
-COMMENT ON COLUMN public.place_verifications.distance_km     IS '추천 당시 거리(km) 스냅샷';
-COMMENT ON COLUMN public.place_verifications.source          IS '수집 경로 — OWNER_INTERVIEW(사업주 대면) / APP_USER(앱 사용자)';
-COMMENT ON COLUMN public.place_verifications.entry_point     IS '앱 유입 경로 — nav_return(길안내 복귀 프롬프트) / record(기록 작성 후) / push(알림) / schedule(일정 상세) / card(장소 카드 하단 버튼)';
-COMMENT ON COLUMN public.place_verifications.evidence        IS '증거 유형 — OWNER_INTERVIEW / NAV_LAUNCHED / APP_PHOTO / SCHEDULE_MATCH / SELF_REPORT';
-COMMENT ON COLUMN public.place_verifications.reporter_weight IS '신고자 신뢰 가중치 — OWNER_INTERVIEW 1.0 / NAV_LAUNCHED 0.7 / APP_PHOTO 0.7 / SCHEDULE_MATCH 0.5 / SELF_REPORT 0.3';
-COMMENT ON COLUMN public.place_verifications.review_state    IS '처리 상태 — PENDING(누적 중) / QUEUED(사업주 승인 대기) / APPLIED(반영 완료) / REJECTED(반려)';
-COMMENT ON COLUMN public.place_verifications.applied_at      IS 'master_places 반영 일시';
-COMMENT ON COLUMN public.place_verifications.notified        IS '반영 사실을 신고자에게 알림 발송했는지 여부';
+COMMENT ON TABLE  public.place_verifications                 IS '장소 팩트 검증 마스터 테이블 (실제 방문자/사업주의 영업·상태 확인 기록)';
+COMMENT ON COLUMN public.place_verifications.id              IS '검증 레코드 고유 ID';
+COMMENT ON COLUMN public.place_verifications.partner_id      IS '제휴 사업장 ID';
+COMMENT ON COLUMN public.place_verifications.schedule_id     IS '연계 일정 ID (어떤 캠핑 일정에서 확인했는지)';
+COMMENT ON COLUMN public.place_verifications.place_id        IS '검증 대상 master_places.id';
+COMMENT ON COLUMN public.place_verifications.user_id         IS '검증자 user_id (익명이면 NULL)';
+COMMENT ON COLUMN public.place_verifications.stage           IS '일정 단계 (GOING / RETURNING / DESTINATION)';
+COMMENT ON COLUMN public.place_verifications.visited         IS '실제 방문 여부 (true/false/NULL:미확인)';
+COMMENT ON COLUMN public.place_verifications.liked           IS '만족도 (true:좋았음 / false:아쉬움 / NULL:미평가)';
+COMMENT ON COLUMN public.place_verifications.skip_reason     IS '미방문 사유 (TOO_FAR:거리 / NOT_INTERESTED:관심 / ALREADY_KNOWN:이미앎 / WEATHER:날씨 / NO_TIME:시간 / OTHER:기타)';
+COMMENT ON COLUMN public.place_verifications.fact_status     IS '관측 사실 — OK(정상영업) / TEMP_CLOSED(문닫음·임시휴무) / GONE(간판없음·폐업) / HOURS_WRONG(영업시간다름) / NOT_FOUND(위치없음)';
+COMMENT ON COLUMN public.place_verifications.fact_note       IS '검증 메모 (상세 관측 내용)';
+COMMENT ON COLUMN public.place_verifications.observed_at     IS '실제 관측 일자 (YYYY-MM-DD)';
+COMMENT ON COLUMN public.place_verifications.observed_dow    IS '관측 요일 (0:일 ~ 6:토)';
+COMMENT ON COLUMN public.place_verifications.distance_km     IS '일정 출발지/캠핑장 기준 거리 (km)';
+COMMENT ON COLUMN public.place_verifications.source          IS '데이터 출처 — OWNER_INTERVIEW(사업주대면) / APP_USER(앱사용자참여) / OPERATOR(운영자직접)';
+COMMENT ON COLUMN public.place_verifications.entry_point     IS '유입 경로 — admin_interview(사업주화면) / nav_return(내비복귀) / timeline_prompt(타임라인) / verify_flow(전용화면) / card(카드버튼)';
+COMMENT ON COLUMN public.place_verifications.evidence        IS '증거 수준 — OWNER_INTERVIEW(1.0) / NAV_LAUNCHED(0.7) / SCHEDULE_MATCH(0.5) / SELF_REPORT(0.3)';
+COMMENT ON COLUMN public.place_verifications.reporter_weight IS '제보자 신뢰 가중치 (0.1 ~ 1.0)';
+COMMENT ON COLUMN public.place_verifications.review_state    IS '검토 상태 — PENDING(대기) / APPLIED(반영완료) / REJECTED(기각)';
+COMMENT ON COLUMN public.place_verifications.applied_at      IS '마스터 데이터에 가중치/상태가 반영된 일시';
 COMMENT ON COLUMN public.place_verifications.verified_at     IS '검증 기록 일시';
 
 
--- 5. plan_snapshot: 스마트플랜 추천 기준선 요약
+-- 5. plan_snapshot: 스마트플랜 추천 기준선 스냅샷
 CREATE TABLE IF NOT EXISTS public.plan_snapshot (
-  id           BIGSERIAL PRIMARY KEY,
-  partner_id   UUID DEFAULT 'a0000000-0000-0000-0000-000000000001' REFERENCES public.partners(id),
-  schedule_id  UUID,
-  version      INT,
-  picks        JSONB,
-  generated_at TIMESTAMPTZ DEFAULT now()
+  id                    BIGSERIAL PRIMARY KEY,
+  schedule_id           UUID NOT NULL,
+  partner_id            UUID DEFAULT 'a0000000-0000-0000-0000-000000000001' REFERENCES public.partners(id),
+  generated_at          TIMESTAMPTZ DEFAULT now(),
+  destination_cards     JSONB NOT NULL,
+  route_cards           JSONB,
+  return_cards          JSONB,
+  total_candidates      INTEGER,
+  applied_weights_json  JSONB
 );
 
-CREATE INDEX IF NOT EXISTS idx_plan_snapshot_sched_ver ON public.plan_snapshot (schedule_id, version);
+CREATE INDEX IF NOT EXISTS idx_plan_snapshot_schedule ON public.plan_snapshot (schedule_id);
 
-COMMENT ON TABLE  public.plan_snapshot              IS '스마트플랜 생성 시점별 추천 결과 요약. 추천 품질 개선 여부 측정을 위한 기준선';
-COMMENT ON COLUMN public.plan_snapshot.partner_id   IS '소속 제휴 사업장 ID';
-COMMENT ON COLUMN public.plan_snapshot.schedule_id  IS '해당 여행 일정 ID';
-COMMENT ON COLUMN public.plan_snapshot.version      IS '생성 차수 — 1(최초 정밀 생성) / 2(D-7 주간예보 갱신) / 3(D-0 당일 갱신)';
-COMMENT ON COLUMN public.plan_snapshot.picks        IS '활성 카드 11개 요약 배열';
-COMMENT ON COLUMN public.plan_snapshot.generated_at IS '플랜 생성 일시';
+COMMENT ON TABLE  public.plan_snapshot                      IS '스마트플랜 추천 기준선 요약 스냅샷 (추천 성과 측정용)';
+COMMENT ON COLUMN public.plan_snapshot.id                   IS '스냅샷 고유 ID';
+COMMENT ON COLUMN public.plan_snapshot.schedule_id          IS '대상 일정 ID';
+COMMENT ON COLUMN public.plan_snapshot.partner_id           IS '제휴 사업장 ID';
+COMMENT ON COLUMN public.plan_snapshot.generated_at         IS '스냅샷 생성 일시';
+COMMENT ON COLUMN public.plan_snapshot.destination_cards    IS '목적지 주변 추천 5개 카드 요약 (id, name, category, trust_score, distance)';
+COMMENT ON COLUMN public.plan_snapshot.route_cards          IS '가는 길 추천 3개 카드 요약';
+COMMENT ON COLUMN public.plan_snapshot.return_cards         IS '귀갓길 추천 3개 카드 요약';
+COMMENT ON COLUMN public.plan_snapshot.total_candidates     IS '전체 후보 장소 수';
+COMMENT ON COLUMN public.plan_snapshot.applied_weights_json IS '당시 적용된 가중치 파라미터 스냅샷';
 
 
--- 6. tuning_log: 추천 로직 조정 이력
+-- 6. tuning_log: 스코어링 정책 조정 이력
 CREATE TABLE IF NOT EXISTS public.tuning_log (
   id          BIGSERIAL PRIMARY KEY,
   target      TEXT NOT NULL,
@@ -231,7 +240,7 @@ FROM public.partners p;
 COMMENT ON VIEW public.v_moat_metrics IS '해자 데이터 수집 현황 대시보드용 집계 뷰';
 
 
--- 8. Row Level Security (RLS) 정책
+-- 8. Row Level Security (RLS) 활성화 및 안전한 정책 등록
 ALTER TABLE public.partners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.nav_intent_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.plan_swap_log ENABLE ROW LEVEL SECURITY;
@@ -239,37 +248,32 @@ ALTER TABLE public.place_verifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.plan_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tuning_log ENABLE ROW LEVEL SECURITY;
 
--- 익명/인증 사용자 읽기 권한
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Partners viewable by everyone') THEN
-    CREATE POLICY "Partners viewable by everyone" ON public.partners FOR SELECT USING (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert own nav_intent') THEN
-    CREATE POLICY "Users can insert own nav_intent" ON public.nav_intent_log FOR INSERT WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own nav_intent') THEN
-    CREATE POLICY "Users can view own nav_intent" ON public.nav_intent_log FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert own plan_swap') THEN
-    CREATE POLICY "Users can insert own plan_swap" ON public.plan_swap_log FOR INSERT WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own plan_swap') THEN
-    CREATE POLICY "Users can view own plan_swap" ON public.plan_swap_log FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert own place_verif') THEN
-    CREATE POLICY "Users can insert own place_verif" ON public.place_verifications FOR INSERT WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own place_verif') THEN
-    CREATE POLICY "Users can view own place_verif" ON public.place_verifications FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Snapshots viewable by authenticated users') THEN
-    CREATE POLICY "Snapshots viewable by authenticated users" ON public.plan_snapshot FOR SELECT USING (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Snapshots insertable') THEN
-    CREATE POLICY "Snapshots insertable" ON public.plan_snapshot FOR INSERT WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Tuning log viewable by admins') THEN
-    CREATE POLICY "Tuning log viewable by admins" ON public.tuning_log FOR SELECT USING (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "Partners viewable by everyone" ON public.partners;
+CREATE POLICY "Partners viewable by everyone" ON public.partners FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert own nav_intent" ON public.nav_intent_log;
+CREATE POLICY "Users can insert own nav_intent" ON public.nav_intent_log FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can view own nav_intent" ON public.nav_intent_log;
+CREATE POLICY "Users can view own nav_intent" ON public.nav_intent_log FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Users can insert own plan_swap" ON public.plan_swap_log;
+CREATE POLICY "Users can insert own plan_swap" ON public.plan_swap_log FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can view own plan_swap" ON public.plan_swap_log;
+CREATE POLICY "Users can view own plan_swap" ON public.plan_swap_log FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Users can insert own place_verif" ON public.place_verifications;
+CREATE POLICY "Users can insert own place_verif" ON public.place_verifications FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can view own place_verif" ON public.place_verifications;
+CREATE POLICY "Users can view own place_verif" ON public.place_verifications FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Snapshots viewable by authenticated users" ON public.plan_snapshot;
+CREATE POLICY "Snapshots viewable by authenticated users" ON public.plan_snapshot FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Snapshots insertable" ON public.plan_snapshot;
+CREATE POLICY "Snapshots insertable" ON public.plan_snapshot FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Tuning log viewable by admins" ON public.tuning_log;
+CREATE POLICY "Tuning log viewable by admins" ON public.tuning_log FOR SELECT USING (true);
