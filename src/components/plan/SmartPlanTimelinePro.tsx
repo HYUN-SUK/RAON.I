@@ -261,9 +261,14 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
         openNavApp(app, {
             origin: { name: '현재 위치', lat: 0, lng: 0 }, // 출발지 생략 → 내비가 GPS 사용
             destination: { name: fc.name, lat: fc.lat, lng: fc.lng },
+        }, {
+            placeId: fc.id,
+            category: fc.category,
+            stage: (fc as any).stage || 'DESTINATION',
         });
         setNavTargetBlock(null);
     }, [navTargetBlock]);
+
 
     // ========================================================================================
     // Render

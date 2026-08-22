@@ -69,6 +69,10 @@ export const ACTION_TAG_MAP: Record<string, { tags: TagId[], weight: number }> =
     'LBS_CLICK_OCEAN_VIBE': { tags: ['VIEW_OCEAN', 'VIEW_OPEN'], weight: 2.0 },
     'LBS_CLICK_FOREST_VIBE': { tags: ['VIEW_FOREST', 'MOOD_QUIET'], weight: 2.0 },
     'LBS_CLICK_VALLEY_VIBE': { tags: ['VIEW_LAKE', 'ACTIVITY_WATER'], weight: 2.0 },
+    'LBS_CLICK_MOUNTAIN_VIBE': { tags: ['VIEW_FOREST', 'MOOD_NATURE'], weight: 2.0 },
+    'LBS_CLICK_ATTRACTION': { tags: ['ACTIVITY_PHOTO', 'VIEW_OPEN'], weight: 2.0 },
+    'LBS_CLICK_LEISURE': { tags: ['ACTIVITY_WATER', 'ACTIVITY_HIKE'], weight: 2.0 },
+    'LBS_NEARBY_CLICK': { tags: ['ACTIVITY_BUSY', 'SOCIAL_ACTIVE'], weight: 1.0 },
     'LBS_NEARBY_FESTIVAL': { tags: ['ACTIVITY_FESTIVAL', 'ACTIVITY_BUSY'], weight: 3.0 },
     'LBS_CLICK_CAFE': { tags: ['FOOD_CAFE', 'FOOD_BAKERY'], weight: 2.0 },
     'LBS_CLICK_MART': { tags: ['FOOD_COOKING', 'FOOD_MEALKIT'], weight: 2.0 },
@@ -78,6 +82,7 @@ export const ACTION_TAG_MAP: Record<string, { tags: TagId[], weight: number }> =
     'LBS_WEATHER_CLICK': { tags: ['ACTIVITY_BUSY', 'ACTIVITY_PHOTO'], weight: 1.0 },
 
     // [4.4] 스마트 플랜 상호작용 (Strong/Medium)
+    'PLAN_CARD_DETAIL': { tags: ['ACTIVITY_PHOTO', 'FOOD_CAFE'], weight: 2.0 },
     'PLAN_SWAP_MEALKIT': { tags: ['FOOD_MEALKIT', 'MOOD_LAZY'], weight: 4.0 },
     'PLAN_SWAP_LUXURY': { tags: ['FACILITY_LUXURY', 'FOOD_CAFE'], weight: 4.0 },
     'PLAN_SWAP_VINTAGE': { tags: ['MOOD_VINTAGE', 'FACILITY_OFFROAD'], weight: 3.0 },
@@ -88,6 +93,7 @@ export const ACTION_TAG_MAP: Record<string, { tags: TagId[], weight: number }> =
     'PLAN_LIKE_KIDS_ZONE': { tags: ['FACILITY_KIDS', 'FAMILY_INFANT'], weight: 3.0 },
     'PLAN_FILTER_VIEW': { tags: ['VIEW_OPEN', 'VIEW_OCEAN'], weight: 3.0 },
     'PLAN_FILTER_PRIVATE': { tags: ['FACILITY_PRIVATE_BATH', 'FACILITY_LUXURY'], weight: 5.0 },
+
 
     // [4.5] 마켓 및 미션 (Medium Signals)
     'MARKET_CLICK_LANTERN': { tags: ['MOOD_ACC', 'MOOD_VINTAGE'], weight: 3.0 },

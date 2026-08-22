@@ -1,13 +1,13 @@
-/**
- * 내비게이션 앱 연동을 위한 유틸리티
- * [v11.9.45] 카카오내비, T맵, 네이버 지도 딥링크 생성 및 리다이렉트 로직
- */
+import { logNavIntent, type NavIntentPayload } from './moat-logger';
+
+export type { NavIntentPayload };
 
 interface NavParams {
     name: string;
     lat: number;
     lng: number;
 }
+
 
 interface FullRouteParams {
     origin: NavParams;
@@ -120,8 +120,21 @@ export function getWebFallbackUrl(app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi',
 
 /**
  * 앱 실행 시도 및 폴백 처리
+ * [v14.0.0] A+D 해자 데이터 수집: 길안내 실행 로그(nav_intent_log) 비동기 연동
  */
-export function openNavApp(app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi', route: FullRouteParams) {
+export function openNavApp(
+    app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi', 
+    route: FullRouteParams,
+    metadata?: Omit<NavIntentPayload, 'navApp'>
+) {
+    // 1. [A+D 해자 데이터] 길안내 실행 로그 비동기 기록 (Fire-and-Forget)
+    if (metadata) {
+        logNavIntent({
+            ...metadata,
+            navApp: app,
+        });
+    }
+
     let url = '';
     switch (app) {
         case 'kakao': url = getKakaoMapUrl(route); break;
@@ -144,3 +157,4 @@ export function openNavApp(app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi', route:
 
     return url;
 }
+

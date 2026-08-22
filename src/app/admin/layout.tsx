@@ -1,7 +1,11 @@
 "use client";
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield, LogOut, Star, Wrench, Tent, Send, Activity, Menu, X } from 'lucide-react';
+import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield, LogOut, Star, Wrench, Tent, Send, Activity, Menu, X, CheckCircle2, TrendingUp } from 'lucide-react';
+
+
+
+
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 
@@ -76,7 +80,11 @@ export default function AdminLayout({
                     <NavLink href="/admin/push" icon={<Send size={18} />} label="알림 발송" onClick={handleLinkClick} />
                     <NavLink href="/admin/automation/logs" icon={<Activity size={18} />} label="자동화 현황" onClick={handleLinkClick} />
                     <NavLink href="/admin/recommendations" icon={<Star size={18} />} label="추천/행사" onClick={handleLinkClick} />
+                    <NavLink href="/admin/verifications" icon={<CheckCircle2 size={18} className="text-emerald-400" />} label="팩트 검증 (1단계)" onClick={handleLinkClick} />
+                    <NavLink href="/admin/moat" icon={<TrendingUp size={18} className="text-teal-400" />} label="해자 데이터 자산" onClick={handleLinkClick} />
                     <NavLink href="/admin/settings" icon={<Wrench size={18} />} label="기본정보" onClick={handleLinkClick} />
+
+
                 </nav>
                 <div className="p-4 border-t border-gray-800">
                     <button

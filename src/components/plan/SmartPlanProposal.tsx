@@ -3,16 +3,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle } from 'lucide-react';
+
 import { StandardizedPlanJSON, FactCard, ProTimelinePlan } from '@/lib/smartPlan';
 import SmartPlanTimelinePro from './SmartPlanTimelinePro';
 import { dispatchPersonaAction } from '@/lib/persona';
+
 import { updateSmartPlanData } from '@/actions/schedule';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import FactReportSheet from './FactReportSheet';
+
 import { toast } from 'sonner';
 import RouteSelector from './RouteSelector';
 import { openNavApp } from '@/lib/nav-utils';
+import { logPlanSwap } from '@/lib/moat-logger';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
+
+
+
+
 
 interface SmartPlanProposalProps {
     scheduleId?: string;
@@ -108,6 +117,8 @@ export default function SmartPlanProposal({
     const [userOrigin, setUserOrigin] = useState<{ lat: number; lng: number } | undefined>(origin);
     const [selectedMidpoint, setSelectedMidpoint] = useState<{ lat: number; lng: number } | null>(initialMidpoint);
     const [navTargetCard, setNavTargetCard] = useState<FactCard | null>(null);
+    const [reportTargetCard, setReportTargetCard] = useState<(FactCard & { stage?: string }) | null>(null);
+
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [swapTargetId, setSwapTargetId] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -117,6 +128,7 @@ export default function SmartPlanProposal({
     const [showRegenConfirm, setShowRegenConfirm] = useState(false);
     const [hasTriggeredRegen, setHasTriggeredRegen] = useState(false);
     const [expandedWeatherDate, setExpandedWeatherDate] = useState<string | null>(null);
+    const hasSwappedInCurrentSessionRef = useRef<boolean>(false);
 
     // [v13.4.0] 비동기로 뒤늦게 수급된 initialPlan 동적 동기화 (Stale State 락 해제)
     useEffect(() => {
@@ -346,6 +358,25 @@ export default function SmartPlanProposal({
         const newActiveInfo = alternativeCards.find(c => c.id === newCardId);
 
         if (currentActiveInfo && newActiveInfo) {
+            hasSwappedInCurrentSessionRef.current = true;
+
+            // [A+D 해자 데이터] 장소 교체 로그 (SWAPPED) 기록
+            logPlanSwap({
+                scheduleId,
+                userId,
+                event: 'SWAPPED',
+                stage: isRoute ? 'GOING' : (isReturn ? 'RETURNING' : 'DESTINATION'),
+                category,
+                candidateCount: alternativeCards.length,
+                fromPlaceId: currentActiveInfo.id,
+                toPlaceId: newActiveInfo.id,
+                fromTrustScore: currentActiveInfo.trustScore,
+                toTrustScore: newActiveInfo.trustScore,
+                fromDistance: currentActiveInfo.distanceKm,
+                toDistance: newActiveInfo.distanceKm,
+
+            });
+
             if (userId) {
                 // Trigger Actions (Phase 3 Sync)
                 if (newActiveInfo.category === 'MART' && newActiveInfo.metadata?.hasMilkit) {
@@ -452,14 +483,21 @@ export default function SmartPlanProposal({
         const { name, lat, lng } = navTargetCard;
         console.log(`[SmartPlan] Opening single card nav: ${app} to ${name}`);
         
-        // [v11.9.100] 개별 장소 카드 내비게이션도 통합 유틸 openNavApp 호출로 전격 전환
+        // [v14.0.0] A+D 해자 데이터: 길안내 실행 로그 메타데이터 전달 (Fire-and-Forget)
         openNavApp(app, {
             origin: { name: '현재 위치', lat: 0, lng: 0 },
             destination: { name, lat, lng }
+        }, {
+            placeId: navTargetCard.id,
+            scheduleId,
+            userId,
+            category: navTargetCard.category,
+            stage: (navTargetCard as any).stage || 'DESTINATION',
         });
 
         setNavTargetCard(null);
     };
+
 
     const handleShareClick = () => {
         if (userId) {
@@ -793,10 +831,29 @@ export default function SmartPlanProposal({
                                 </Button>
                             </div>
                         )}
+                        {/* [v14.0.0] 카드 하단 정보 신고 링크 (좌측 길안내/스왑 유지, 중복 제거 및 단정화) */}
+                        <div 
+                            className="mt-2.5 pt-2 border-t border-gray-100/80 flex items-center justify-end"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReportTargetCard({ ...card, stage });
+                                }}
+                                className="text-[11px] text-gray-400 hover:text-amber-700 font-medium flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-amber-50"
+                            >
+                                <AlertTriangle className="w-3 h-3 text-amber-500/80" />
+                                <span>정보가 달라요</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </CardContent>
         </Card>
+
+
     );
 
     const isPreview = isPreviewMode || (plan as any)?.is_preview || (initialPlan as any)?.is_preview || (initialPlan as any)?.ai_plan?.is_preview;
@@ -1320,11 +1377,45 @@ export default function SmartPlanProposal({
 
             {/* 3. Swap / Alternatives Bottom Sheet */}
             <Sheet open={!!swapCategory} onOpenChange={(open) => {
-                if (!open) {
+                if (open) {
+                    hasSwappedInCurrentSessionRef.current = false;
+                } else {
+                    // [A+D 해자 데이터] 대안 시트를 열어봤으나 교체 없이 닫은 경우 (VIEWED_NO_SWAP, 추천 만족 긍정 신호)
+                    if (!hasSwappedInCurrentSessionRef.current && swapCategory && plan) {
+                        const inItemIndex = plan.itemListElement.findIndex(c => c.id === swapTargetId);
+                        const inRouteIndex = plan.routeListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
+                        const inReturnIndex = plan.returnListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
+                        const isRoute = inRouteIndex !== -1;
+                        const isReturn = inReturnIndex !== -1;
+
+                        let currentActiveInfo = null;
+                        if (isRoute && plan.routeListElement) currentActiveInfo = plan.routeListElement[inRouteIndex];
+                        else if (isReturn && plan.returnListElement) currentActiveInfo = plan.returnListElement[inReturnIndex];
+                        else if (inItemIndex !== -1) currentActiveInfo = plan.itemListElement[inItemIndex];
+
+                        const alternativeCards = plan.alternatives?.[swapCategory] || [];
+
+                        if (currentActiveInfo) {
+                            logPlanSwap({
+                                scheduleId,
+                                userId,
+                                event: 'VIEWED_NO_SWAP',
+                                stage: isRoute ? 'GOING' : (isReturn ? 'RETURNING' : 'DESTINATION'),
+                                category: swapCategory,
+                                candidateCount: alternativeCards.length,
+                                fromPlaceId: currentActiveInfo.id,
+                                fromTrustScore: currentActiveInfo.trustScore,
+                                fromDistance: currentActiveInfo.distanceKm,
+
+                            });
+                        }
+                    }
+
                     setSwapCategory(null);
                     setSwapPage(0);
                 }
             }}>
+
                 <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto bg-[#F7F5EF] px-4 pb-8">
                     <SheetHeader className="pb-4 border-b border-gray-200">
                         <SheetTitle className="text-left text-lg font-bold text-[#224732]">
@@ -1707,6 +1798,21 @@ export default function SmartPlanProposal({
                     </p>
                 </SheetContent>
             </Sheet>
+
+            {/* 5. [v14.0.0] Fact Report Sheet (Screen C) */}
+            {reportTargetCard && (
+                <FactReportSheet
+                    isOpen={!!reportTargetCard}
+                    onClose={() => setReportTargetCard(null)}
+                    placeId={reportTargetCard.id}
+                    placeName={reportTargetCard.name}
+                    stage={reportTargetCard.stage}
+                    scheduleId={scheduleId}
+                    userId={userId}
+                    distanceKm={reportTargetCard.distanceKm}
+                />
+            )}
         </div>
     );
 }
+

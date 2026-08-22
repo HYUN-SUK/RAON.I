@@ -512,6 +512,10 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
         // [v11.9.56] 병원 카테고리는 병원/의원 키워드 필터링에서 제외 (데이터 유실 방지)
         if (cat !== 'HOSPITAL' && globalBlacklist.test(name)) return false;
         if (cat === 'HOSPITAL' && /구두/.test(name)) return false;
+
+        // [Phase 4] 2스트라이크(miss_count >= 2) 폐업 의심 매장은 추천 후보군에서 완전 제외
+        if (row.miss_count && row.miss_count >= 2) return false;
+
         return true;
     }).map(row => {
         const f = parseFactCard(row);
@@ -523,6 +527,14 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
 
         // Deep ContextFit 적용 (기존 날씨 및 동반자 페르소나 딥매칭 점수 Layer 2)
         const cFit = calcContextFitDeep(f, weather, isWinter, persona);
+
+        // [Phase 4] 1스트라이크 감점 (-15점)
+        const strikePenalty = (row.miss_count === 1) ? 15 : 0;
+
+        // [Phase 4] 해자 검증 부스트 (현장 확인 긍정 + 길안내 실행 신호)
+        const verifiedLikes = (row.raw_data?.verified_likes || row.verified_likes || 0) as number;
+        const navCount = (row.raw_data?.nav_count || row.nav_count || 0) as number;
+        const moatBoost = Math.min(25, (verifiedLikes * 5) + (navCount * 3));
 
         if (cat === 'SPOT' || cat === 'ROUTE_SPOT') {
             // [v13.0.0] Option C 계층형 명소 고도화 수식 이식 (Layer 1 베이스 + Layer 2 맥락)
@@ -546,24 +558,21 @@ async function fetchCachedTrackA(reservationId: string, weather: string, isWinte
             // ④ 거리 페널티 (-2.0점/km)
             const distPenalty = dKm * 2.0;
 
-            // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
-            const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
-
-            // ⑤ 최종 점수 = Layer 1 (하한보정 + 인기도 + 화이트 + 초근접 - 거리 - 스트라이크감점) + Layer 2 (우천/페르소나 cFit)
-            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty - strikePenalty + cFit;
+            // ⑤ 최종 점수 = Layer 1 (하한보정 + 인기도 + 화이트 + 초근접 + 해자부스트 - 거리 - 1스트라이크감점) + Layer 2 (우천/페르소나 cFit)
+            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus + moatBoost - distPenalty - strikePenalty + cFit;
             f.scoreBreakdown!.contextFit = cFit;
             f.scoreBreakdown!.distanceBonus = -distPenalty;
             f.scoreBreakdown!.tierBonus = whitelistBonus;
             f.scoreBreakdown!.finalScore = f.trustScore;
         } else {
-            const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
             f.scoreBreakdown!.contextFit = cFit;
-            f.trustScore = (row.quality_score || 50) + cFit - (row.penalty_score || 0) - strikePenalty;
+            f.trustScore = (row.quality_score || 50) + cFit + moatBoost - (row.penalty_score || 0) - strikePenalty;
             f.scoreBreakdown!.finalScore = f.trustScore;
         }
 
         return f;
     });
+
 
     return facts;
 }
@@ -673,6 +682,17 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
         if (row.category === 'RESTAURANT') cat = 'ROUTE_RESTAURANT';
         if (cafeRegex.test(name) || row.category === 'CAFE') cat = 'ROUTE_CAFE';
 
+        // [Phase 4] 2스트라이크(miss_count >= 2) 폐업 의심 매장은 추천 후보군에서 완전 제외
+        if (row.miss_count && row.miss_count >= 2) return;
+
+        // [Phase 4] 1스트라이크 감점 (-15점)
+        const strikePenalty = (row.miss_count === 1) ? 15 : 0;
+
+        // [Phase 4] 해자 검증 부스트 (현장 확인 긍정 + 길안내 실행 신호)
+        const verifiedLikes = (row.raw_data?.verified_likes || row.verified_likes || 0) as number;
+        const navCount = (row.raw_data?.nav_count || row.nav_count || 0) as number;
+        const moatBoost = Math.min(25, (verifiedLikes * 5) + (navCount * 3));
+
         const f = parseFactCard({ ...row, id: row.id, fact_id: row.id, quality_score: 50, penalty_score: 0 }, cat);
         const nameDesc = (f.name + ' ' + (f.description || '')).toLowerCase();
         const cFit = calcContextFitDeep(f, weather, isWinter, persona);
@@ -705,7 +725,7 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
             const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
 
             // ⑤ Layer 1 + Layer 2 병합
-            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty - strikePenalty + cFit;
+            f.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus + moatBoost - distPenalty - strikePenalty + cFit;
             f.scoreBreakdown = {
                 baseScore,
                 contextFit: cFit,
@@ -730,17 +750,18 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
             if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || badges.includes('모범음식점')) certBonus += 30;
             if (sources.includes('SAFE_RESTAURANT') || badges.includes('안심식당')) certBonus += 20;
 
-            // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
-            const strikePenalty = (row.miss_count && row.miss_count >= 2) ? 50 : 0;
-
-            f.trustScore = 50 + cFit + distScore + certBonus - strikePenalty;
+            f.trustScore = 50 + cFit + distScore + certBonus + moatBoost - strikePenalty;
             f.scoreBreakdown = {
                 baseScore: 50,
                 contextFit: cFit,
                 riskPenalty: 0,
-                finalScore: f.trustScore
+                finalScore: f.trustScore,
+                distanceBonus: distScore,
+                certBonus: certBonus,
+                tierBonus: 0
             };
         }
+
 
         if (f.trustScore > 40) { // 기준선 통과한 곳만
             facts.push(f);
@@ -1103,10 +1124,38 @@ export async function generatePersonalizedSmartPlan(
                 if (catFacts.length > 0) {
                     catFacts[0].selectionTier = 'PRIMARY';
                     activeFacts.push(catFacts[0]);
-                    // 15개 전체 제공하여 페이징 뷰 가능하게 함
-                    alternatives[cat] = catFacts.slice(1, 15).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
+
+                    // [Phase 4] 60% 검증(Verified) / 40% 탐색(Exploration) 쿼터제 대안 슬롯 구성
+                    const remaining = catFacts.slice(1);
+                    const verifiedList = remaining.filter(f => (f.metadata?.verifiedLikes || 0) > 0 || (f.metadata?.navCount || 0) > 0 || (f.evidence?.certifications?.length || 0) > 0);
+
+                    const exploreList = remaining.filter(f => !verifiedList.includes(f));
+
+                    // 15개 슬롯에 60:40 비율로 교차 배치
+                    const quotaAlts: FactCard[] = [];
+                    let vIdx = 0;
+                    let eIdx = 0;
+                    while (quotaAlts.length < 15 && (vIdx < verifiedList.length || eIdx < exploreList.length)) {
+                        // 3개 중 2개는 검증(60%), 1개는 탐색(40%)
+                        if (vIdx < verifiedList.length) quotaAlts.push(verifiedList[vIdx++]);
+                        if (quotaAlts.length < 15 && vIdx < verifiedList.length) quotaAlts.push(verifiedList[vIdx++]);
+                        if (quotaAlts.length < 15 && eIdx < exploreList.length) quotaAlts.push(exploreList[eIdx++]);
+
+                        // 만약 한쪽이 고갈되면 남은 쪽으로 채움
+                        if (vIdx >= verifiedList.length && eIdx < exploreList.length) {
+                            quotaAlts.push(exploreList[eIdx++]);
+                        } else if (eIdx >= exploreList.length && vIdx < verifiedList.length) {
+                            quotaAlts.push(verifiedList[vIdx++]);
+                        }
+                    }
+
+                    alternatives[cat] = (quotaAlts.length > 0 ? quotaAlts : remaining.slice(0, 15)).map(f => {
+                        f.selectionTier = 'ALTERNATIVE';
+                        return f;
+                    });
                 }
             });
+
 
             // 축제
             const fests = trackAFacts.filter(f => f.category === 'FESTIVAL').sort((a, b) => b.trustScore - a.trustScore);

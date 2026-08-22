@@ -260,13 +260,48 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     };
 
 
-    // 5. List Search State
+    // 5. List Search & Category Filter State
     const [listSearchQuery, setListSearchQuery] = useState('');
+    const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'ALL' | 'RESTAURANT' | 'CAFE' | 'SPOT' | 'FESTIVAL' | 'CAMPGROUND'>('ALL');
 
-    // Filtered Items for List
+    // [v14.0.0] 카테고리 판별 헬퍼
+    const getItemCategoryType = (item: any): string => {
+        if (item.category === 'RESTAURANT' || item.category === 'ROUTE_RESTAURANT' || item.tags?.some((t: string) => t?.includes('맛집') || t?.includes('식당'))) return 'RESTAURANT';
+        if (item.category === 'ROUTE_CAFE' || item.category === 'CAFE' || item.tags?.some((t: string) => t?.includes('카페') || t?.includes('디저트'))) return 'CAFE';
+        if (item.category === 'SPOT' || item.category === 'ROUTE_SPOT' || item.tags?.some((t: string) => t?.includes('명소') || t?.includes('관광'))) return 'SPOT';
+        if (item.category === 'FESTIVAL' || item.tags?.some((t: string) => t?.includes('축제') || t?.includes('행사'))) return 'FESTIVAL';
+        return 'CAMPGROUND';
+    };
+
+    // [v14.0.0] 카테고리별 테마 SVG 마커 핀 생성
+    const getMarkerPinImage = (categoryType: string) => {
+        let fill = '#1C4526';
+        let label = '⛺';
+        switch (categoryType) {
+            case 'RESTAURANT': fill = '#EA580C'; label = '🍽️'; break;
+            case 'CAFE': fill = '#B45309'; label = '☕'; break;
+            case 'SPOT': fill = '#059669'; label = '🏞️'; break;
+            case 'FESTIVAL': fill = '#7C3AED'; label = '🎪'; break;
+            case 'CAMPGROUND': fill = '#1C4526'; label = '⛺'; break;
+        }
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
+            <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 24 14 24s14-13.5 14-24c0-7.732-6.268-14-14-14z" fill="${fill}" stroke="#ffffff" stroke-width="1.5"/>
+            <circle cx="14" cy="13" r="8.5" fill="#ffffff"/>
+            <text x="14" y="17" font-size="10" text-anchor="middle">${label}</text>
+        </svg>`;
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    };
+
+    // Filtered Items for List and Map
     const getFilteredItems = () => {
         let items = [...allMarkers].sort((a, b) => new Date(b.visitedDate).getTime() - new Date(a.visitedDate).getTime());
 
+        // 1) Category Filter
+        if (selectedCategoryFilter !== 'ALL') {
+            items = items.filter(item => getItemCategoryType(item) === selectedCategoryFilter);
+        }
+
+        // 2) Search Query Filter
         if (listSearchQuery) {
             const query = listSearchQuery.toLowerCase();
             items = items.filter(item =>
@@ -281,6 +316,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     const filteredItems = getFilteredItems();
     const displayItems = filteredItems.slice(0, visibleCount);
+
 
 
     // --- Handlers ---
@@ -507,6 +543,34 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 )}
             </div>
 
+            {/* Category Filter Chips Bar [v14.0.0] */}
+            <div className="px-4 py-2 bg-white/90 backdrop-blur-xs border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+                {[
+                    { key: 'ALL', label: '전체', icon: '🗺️' },
+                    { key: 'RESTAURANT', label: '맛집', icon: '🍽️' },
+                    { key: 'CAFE', label: '카페', icon: '☕' },
+                    { key: 'SPOT', label: '명소', icon: '🏞️' },
+                    { key: 'FESTIVAL', label: '축제', icon: '🎪' },
+                    { key: 'CAMPGROUND', label: '캠핑장', icon: '⛺' },
+                ].map(tab => {
+                    const isSelected = selectedCategoryFilter === tab.key;
+                    return (
+                        <button
+                            key={tab.key}
+                            onClick={() => setSelectedCategoryFilter(tab.key as any)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
+                                isSelected 
+                                    ? 'bg-[#1C4526] text-white shadow-xs' 
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <span>{tab.icon}</span>
+                            <span>{tab.label}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Map Area */}
             <div className="w-full h-[65vh] relative shrink-0">
                 {loading ? (
@@ -533,8 +597,9 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             averageCenter={true}
                             minLevel={10} // Cluster at high levels (zoomed out)
                         >
-                            {allMarkers.map((item) => {
+                            {filteredItems.map((item) => {
                                 if (!item.lat || !item.lng) return null;
+                                const catType = getItemCategoryType(item);
                                 return (
                                     <MapMarker
                                         key={item.id}
@@ -548,9 +613,9 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                             el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                         }}
                                         image={{
-                                            src: "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png", // Yellow star flag marker
-                                            size: { width: 24, height: 35 },
-                                            options: { offset: { x: 12, y: 35 } }
+                                            src: getMarkerPinImage(catType),
+                                            size: { width: 28, height: 38 },
+                                            options: { offset: { x: 14, y: 38 } }
                                         }}
                                     >
                                         {/* Simple Label on Hover or Always? Let's use CustomOverlay for labels if needed */}
@@ -558,6 +623,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                 );
                             })}
                         </MarkerClusterer>
+
 
                         {/* Labels (Custom Overlay) - Show names for favorites or selected? */}
                         {allMarkers.map(item => {

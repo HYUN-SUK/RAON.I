@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon, History, Map, Star, Heart } from "lucide-react";
+import { Image as ImageIcon, History, Map, Star, Heart, CheckCircle2 } from "lucide-react";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";
+import { createClient } from '@/lib/supabase-client';
 import MyMapModal from './MyMapModal';
+import MyContributionsModal from './MyContributionsModal';
 
 interface SummaryGridProps {
     isLoading?: boolean;
@@ -16,6 +19,28 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
     const router = useRouter();
     const { timelineItems, isMapOpen, setIsMapOpen } = useMySpaceStore();
     const { reservations } = useReservationStore();
+    const [contributionCount, setContributionCount] = useState<number>(0);
+    const [isContributionOpen, setIsContributionOpen] = useState<boolean>(false);
+
+    useEffect(() => {
+        const fetchContributions = async () => {
+            try {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { count } = await supabase
+                    .from('place_verifications')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
+
+                setContributionCount(count || 0);
+            } catch (e) {
+                console.warn('fetchContributions error:', e);
+            }
+        };
+        fetchContributions();
+    }, []);
 
     if (isLoading) {
         return (
@@ -54,8 +79,14 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
             label: "나의 탐험 지수",
             color: "text-[#1C4526]",
             bg: "bg-[#F5F2EB]",
-            value: "XP & Token",
-            onClick: () => router.push('/myspace/wallet')
+            value: contributionCount > 0 ? `✓ 확인 ${contributionCount}곳` : "XP & Token",
+            onClick: () => {
+                if (contributionCount > 0) {
+                    setIsContributionOpen(true);
+                } else {
+                    router.push('/myspace/wallet');
+                }
+            }
         },
         {
             icon: Map,
@@ -66,6 +97,7 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
             onClick: () => setIsMapOpen(true)
         },
     ];
+
 
     // 카드별 기울기 + 테이프 위치/각도
     const cardStyles = [
@@ -116,7 +148,9 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
 
             {/* Modals */}
             <MyMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
+            <MyContributionsModal isOpen={isContributionOpen} onClose={() => setIsContributionOpen(false)} />
         </>
     );
 }
+
 
