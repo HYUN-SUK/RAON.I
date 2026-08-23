@@ -303,6 +303,9 @@ export async function getAdminAnalyticsAction(
 export interface OpsStatsData {
     todayCheckIns: number;
     pendingCount: number;
+    refundPendingCount: number;
+    todayPaidAmount: number;
+    todayPaidCount: number;
     marketOrders: number;
 }
 
@@ -327,7 +330,23 @@ export async function getOpsStatsAction(): Promise<{ success: boolean; data?: Op
             .select('id', { count: 'exact', head: true })
             .eq('status', 'PENDING');
 
-        // 3. 마켓 주문 대기 수
+        // 3. 환불 대기 예약 수
+        const { count: refundPendingCount } = await supabase
+            .from('reservations')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'REFUND_PENDING');
+
+        // 4. 오늘 결제 완료 건수 및 금액
+        const { data: todayPaidList } = await supabase
+            .from('reservations')
+            .select('total_price')
+            .eq('status', 'CONFIRMED')
+            .gte('created_at', `${todayStr}T00:00:00.000Z`);
+
+        const todayPaidCount = todayPaidList?.length || 0;
+        const todayPaidAmount = (todayPaidList || []).reduce((sum: number, r: any) => sum + (r.total_price || 0), 0);
+
+        // 5. 마켓 주문 대기 수
         const { count: marketOrders } = await supabase
             .from('orders')
             .select('id', { count: 'exact', head: true })
@@ -338,6 +357,9 @@ export async function getOpsStatsAction(): Promise<{ success: boolean; data?: Op
             data: {
                 todayCheckIns: todayCheckIns || 0,
                 pendingCount: pendingCount || 0,
+                refundPendingCount: refundPendingCount || 0,
+                todayPaidAmount: todayPaidAmount || 0,
+                todayPaidCount: todayPaidCount || 0,
                 marketOrders: marketOrders || 0
             }
         };
@@ -346,3 +368,4 @@ export async function getOpsStatsAction(): Promise<{ success: boolean; data?: Op
         return { success: false, error: err?.message || '통계 조회 실패' };
     }
 }
+

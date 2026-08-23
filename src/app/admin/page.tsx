@@ -14,6 +14,9 @@ import { getAdminAnalyticsAction, getOpsStatsAction, AdminAnalyticsData } from '
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
+import TodayCheckInsModal from '@/components/admin/TodayCheckInsModal';
+import { CreditCard as PaymentIcon } from 'lucide-react';
+
 type PeriodType = 'today' | '7days' | '30days' | 'month' | 'all' | 'custom';
 
 export default function AdminDashboard() {
@@ -21,8 +24,13 @@ export default function AdminDashboard() {
     const [opsStats, setOpsStats] = useState({
         todayCheckIns: 0,
         pendingCount: 0,
+        refundPendingCount: 0,
+        todayPaidAmount: 0,
+        todayPaidCount: 0,
         marketOrders: 0
     });
+
+    const [isTodayModalOpen, setIsTodayModalOpen] = useState(false);
 
     // Date Filter State
     const [period, setPeriod] = useState<PeriodType>('30days');
@@ -42,6 +50,9 @@ export default function AdminDashboard() {
                 setOpsStats({
                     todayCheckIns: res.data.todayCheckIns,
                     pendingCount: res.data.pendingCount,
+                    refundPendingCount: res.data.refundPendingCount,
+                    todayPaidAmount: res.data.todayPaidAmount,
+                    todayPaidCount: res.data.todayPaidCount,
                     marketOrders: res.data.marketOrders
                 });
             }
@@ -157,34 +168,97 @@ export default function AdminDashboard() {
 
             {/* Quick Operations Bar */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <DashboardCard
-                    title="오늘 입실"
-                    value={opsStats.todayCheckIns.toString()}
-                    icon={<CalendarCheck className="text-blue-500" />}
-                    description="오늘 체크인 예정"
-                />
-                <Link href="/admin/reservations?status=PENDING" className="block transition-transform hover:scale-105">
-                    <DashboardCard
-                        title="입금 대기"
-                        value={opsStats.pendingCount.toString()}
-                        icon={<AlertCircle className="text-yellow-500" />}
-                        description="확인 필요 건수"
-                        highlight={opsStats.pendingCount > 0}
-                    />
+                {/* 1. 오늘 입실 (원클릭 모달 팝업) */}
+                <div 
+                    onClick={() => setIsTodayModalOpen(true)}
+                    className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    <Card className="hover:border-blue-300 transition-colors shadow-xs h-full">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-bold text-stone-700">
+                                오늘 입실
+                            </CardTitle>
+                            <CalendarCheck className="w-5 h-5 text-blue-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-black text-blue-950 flex items-baseline gap-1">
+                                <span>{opsStats.todayCheckIns}</span>
+                                <span className="text-xs font-semibold text-stone-400">팀</span>
+                            </div>
+                            <p className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-0.5 hover:underline">
+                                🔍 클릭하여 오늘 예약팀 명단 보기 ›
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* 2. 결제 목록 (캠핏 스타일 하단 서브 정보) */}
+                <Link href="/admin/payments" className="block transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                    <Card className={`transition-colors shadow-xs h-full ${
+                        (opsStats.pendingCount > 0 || opsStats.refundPendingCount > 0) ? 'border-amber-300 bg-amber-50/20' : 'hover:border-stone-300'
+                    }`}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5">
+                            <CardTitle className="text-sm font-bold text-stone-700">
+                                결제 목록
+                            </CardTitle>
+                            <PaymentIcon className="w-5 h-5 text-emerald-700" />
+                        </CardHeader>
+                        <CardContent className="space-y-1.5">
+                            <div className="flex items-baseline justify-between">
+                                <span className="text-xs text-stone-500 font-medium">오늘 결제</span>
+                                <span className="text-base font-extrabold text-emerald-800">
+                                    {opsStats.todayPaidAmount.toLocaleString()}원
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between pt-1 border-t border-stone-200/60 text-xs">
+                                <div className="flex items-center gap-1 font-semibold text-amber-800">
+                                    <span>결제대기</span>
+                                    <span className="px-1.5 py-0.2 bg-amber-200/70 rounded-full text-[11px] font-bold">
+                                        {opsStats.pendingCount}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1 font-semibold text-rose-700">
+                                    <span>환불대기</span>
+                                    <span className="px-1.5 py-0.2 bg-rose-100 rounded-full text-[11px] font-bold">
+                                        {opsStats.refundPendingCount}
+                                    </span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </Link>
-                <DashboardCard
-                    title="마켓 주문"
-                    value={opsStats.marketOrders.toString()}
-                    icon={<ShoppingCart className="text-green-500" />}
-                    description="배송 준비 중"
-                />
-                <DashboardCard
-                    title="서버 상태"
-                    value="Normal"
-                    icon={<Server className="text-gray-500" />}
-                    description="DB 연결 정상"
-                />
+
+                {/* 3. 마켓 주문 */}
+                <Card className="shadow-xs">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">마켓 주문</CardTitle>
+                        <ShoppingCart className="text-green-500 w-5 h-5" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{opsStats.marketOrders}</div>
+                        <p className="text-xs text-muted-foreground">배송 준비 중</p>
+                    </CardContent>
+                </Card>
+
+                {/* 4. 서버 상태 */}
+                <Card className="shadow-xs">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">서버 상태</CardTitle>
+                        <Server className="text-gray-500 w-5 h-5" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">Normal</div>
+                        <p className="text-xs text-muted-foreground">DB 연결 정상</p>
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* 오늘 입실팀 상세 모달 */}
+            <TodayCheckInsModal
+                isOpen={isTodayModalOpen}
+                onClose={() => setIsTodayModalOpen(false)}
+            />
+
 
             {/* Date Range Selector Section */}
             <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
