@@ -551,13 +551,28 @@ export default function AdminPaymentsPage() {
                                                 )}
                                             </td>
 
-                                            {/* 7. 계좌 정보 */}
+                                            {/* 7. 계좌 정보 (환불 시 예약취소자 계좌, 결제 시 라온아이 입금계좌) */}
                                             <td className="py-3 px-3.5 text-[11px] text-stone-600">
-                                                <div className="font-semibold text-stone-800">국민은행 (라온아이)</div>
-                                                <div className="text-stone-500 font-mono text-[10px]">
-                                                    458701-04-539380
-                                                </div>
+                                                {isRefund || r.refundAccount ? (
+                                                    <div>
+                                                        <div className="font-bold text-rose-800 flex items-center gap-1">
+                                                            <span>{r.refundBank || '환불계좌'}</span>
+                                                            <span className="text-[10px] font-normal text-rose-600">({r.refundHolder || r.guestName})</span>
+                                                        </div>
+                                                        <div className="text-rose-700 font-mono text-[11px] font-semibold">
+                                                            {r.refundAccount || '계좌번호 미입력'}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="font-semibold text-stone-800">국민은행 (라온아이)</div>
+                                                        <div className="text-stone-500 font-mono text-[10px]">
+                                                            458701-04-539380
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </td>
+
 
                                             {/* 8. 예약 신청일 */}
                                             <td className="py-3 px-3 text-center text-stone-500 font-mono text-[11px]">
