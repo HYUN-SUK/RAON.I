@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "라온아이 ↔ 캠핏 실시간 예약 동기화 마스터",
+  "version": "1.0.0",
+  "description": "라온아이 앱 예약 발생 시 켜져 있는 캠핏 관리자 화면에서 해당 사이트를 1초 만에 자동으로 차단(블록)합니다.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.camfit.co.kr/*",
+    "http://localhost:3000/*",
+    "https://*.vercel.app/*",
+    "https://raon-i.co.kr/*",
+    "https://www.raon-i.co.kr/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.camfit.co.kr/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "라온아이 캠핏 동기화 상태"
+  }
+}

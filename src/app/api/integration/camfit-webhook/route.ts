@@ -177,11 +177,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'EMPTY_MESSAGE', message: '수신된 알림톡 문자 텍스트가 비어 있습니다.' }, { status: 400 });
     }
 
+    // [무한 루프(Echo Loop) 방지] 라온아이가 캠핏에 자동 차단한 건은 중복 처리 스킵
+    if (messageRaw.includes('라온아이') || messageRaw.includes('RAON.I') || messageRaw.includes('라온i')) {
+        await supabase.from('camfit_integration_logs').insert({
+            message_raw: messageRaw,
+            external_id: null,
+            status: 'SUCCESS',
+            error_message: '라온아이 발 자동 차단 메시지 감지 — 무한 루프 방지 스킵 완료'
+        });
+        return NextResponse.json({ 
+            success: true, 
+            status: 'SKIPPED_ECHO', 
+            message: '라온아이 발 자동 차단 알림톡이므로 중복 동기화를 건너뜁니다.' 
+        });
+    }
+
     let parsed: ParsedCamfitMessage;
     
     // 2. 알림톡 파싱 시도
     try {
         parsed = parseCamfitMessage(messageRaw);
+
     } catch (parseErr: any) {
         // 파싱 실패 시 FAILED 로그 적재 후 즉각 리턴
         await supabase.from('camfit_integration_logs').insert({

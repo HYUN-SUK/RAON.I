@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>라온아이 ↔ 캠핏 동기화</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif; }
+    body { width: 340px; background: #f8fafc; color: #1e293b; padding: 14px; }
+    
+    .header { display: flex; align-items: center; justify-between; margin-bottom: 12px; }
+    .title-box { display: flex; align-items: center; gap: 8px; }
+    .badge-icon { width: 28px; height: 28px; background: #224732; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; }
+    .title { font-size: 14px; font-weight: 800; color: #0f172a; }
+    .sub { font-size: 11px; color: #64748b; }
+    
+    .status-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .status-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .status-indicator { display: flex; align-items: center; gap: 6px; font-weight: 700; color: #16a34a; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 2px #bbf7d0; }
+    .last-sync { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    
+    .btn-sync { width: 100%; background: #224732; color: #ffffff; border: none; border-radius: 10px; padding: 10px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s; margin-bottom: 12px; }
+    .btn-sync:hover { background: #1b3827; }
+    .btn-sync:disabled { background: #94a3b8; cursor: not-allowed; }
+    
+    .logs-header { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .logs-box { max-height: 180px; overflow-y: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; font-size: 11px; }
+    .log-item { padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+    .log-item:last-child { border-bottom: none; }
+    .log-time { color: #94a3b8; font-family: monospace; font-size: 10px; }
+    .log-text { font-weight: 600; color: #1e293b; margin-top: 1px; }
+    .log-detail { color: #64748b; font-size: 10px; margin-top: 1px; }
+    .empty-logs { text-align: center; color: #94a3b8; padding: 20px 0; font-size: 11px; }
+    
+    .settings-toggle { font-size: 10px; color: #64748b; cursor: pointer; text-decoration: underline; text-align: right; margin-top: 8px; }
+    .settings-box { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cbd5e1; display: none; }
+    .server-input { width: 100%; font-size: 11px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="title-box">
+      <div class="badge-icon">R</div>
+      <div>
+        <div class="title">라온아이 ↔ 캠핏 싱크</div>
+        <div class="sub">실시간 예약/차단 자동 연동</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="status-row">
+      <span>동기화 엔진 상태</span>
+      <div class="status-indicator">
+        <div class="dot"></div>
+        <span>작동 중</span>
+      </div>
+    </div>
+    <div class="last-sync" id="lastSyncText">최근 검사: 방금 전</div>
+  </div>
+
+  <button class="btn-sync" id="btnSync">
+    ⚡ 지금 즉시 동기화 검사
+  </button>
+
+  <div class="logs-header">
+    <span>최근 동기화 내역</span>
+    <span style="font-size: 10px; font-weight: normal; color: #94a3b8;" id="logCount">0건</span>
+  </div>
+
+  <div class="logs-box" id="logsBox">
+    <div class="empty-logs">아직 동기화 이력이 없습니다.</div>
+  </div>
+
+  <div class="settings-toggle" id="toggleSettings">서버 주소 설정 ⚙️</div>
+  <div class="settings-box" id="settingsBox">
+    <label style="font-size: 10px; color: #64748b;">라온아이 서버 URL</label>
+    <input type="text" id="serverUrlInput" class="server-input" value="http://localhost:3000" />
+    <button id="btnSaveUrl" style="width: 100%; margin-top: 4px; padding: 4px; font-size: 10px; border: 1px solid #94a3b8; border-radius: 4px; background: #fff; cursor: pointer;">
+      저장
+    </button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
