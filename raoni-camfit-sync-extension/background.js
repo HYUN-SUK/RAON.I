@@ -2,7 +2,7 @@
 // [라온아이 ➔ 캠핏 실시간 예약 동기화 마스터] 백그라운드 서비스 워커
 // ==============================================================================
 
-const DEFAULT_SERVER_URL = 'http://localhost:3000';
+const DEFAULT_SERVER_URL = 'https://raon-i.co.kr'; // 기본 프로덕션 서버 (로컬 테스트 시 popup에서 http://localhost:3000 변경 가능)
 const ALARM_NAME = 'RAONI_CAMFIT_SYNC_POLL';
 const POLL_INTERVAL_MINUTES = 0.25; // 약 15초 주기
 
@@ -40,20 +40,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // 4. 메인 동기화 큐 처리 함수
 async function checkAndSyncQueue() {
+    let serverUrl = DEFAULT_SERVER_URL;
     try {
         const config = await getStorageData(['serverUrl']);
-        const serverUrl = config.serverUrl || DEFAULT_SERVER_URL;
+        serverUrl = config.serverUrl || DEFAULT_SERVER_URL;
 
-        // 1) 라온아이 백엔드 큐 조회
-        const res = await fetch(`${serverUrl}/api/admin/camfit-sync/queue`);
+        // 1) 라온아이 백엔드 큐 조회 (타임아웃 5초 설정)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        let res;
+        try {
+            res = await fetch(`${serverUrl}/api/admin/camfit-sync/queue`, {
+                signal: controller.signal,
+                headers: { 'Accept': 'application/json' }
+            });
+        } catch (fetchErr) {
+            clearTimeout(timeoutId);
+            console.warn(`[Raoni Sync] Server unreachable (${serverUrl}):`, fetchErr.message);
+            await logHistory('연결 대기', `서버 응답 대기 중 (${serverUrl}) - 서버 상태 확인 필요`, 'INFO');
+            return { success: false, message: `서버 연결 실패 (${serverUrl})` };
+        }
+        clearTimeout(timeoutId);
+
         if (!res.ok) {
             console.warn('[Raoni Sync] Failed to fetch queue:', res.status);
+            await logHistory('서버 응답 오류', `HTTP 상태 코드: ${res.status}`, 'WARNING');
             return { success: false, message: `서버 응답 오류 (${res.status})` };
         }
 
         const data = await res.json();
         if (!data.success || !data.queue || data.queue.length === 0) {
-            // 대기 건 없음
+            // 대기 건 없음 (정상 상태)
             return { success: true, count: 0, message: '동기화 대기 중인 예약이 없습니다.' };
         }
 
@@ -63,7 +81,7 @@ async function checkAndSyncQueue() {
         const tabs = await chrome.tabs.query({ url: '*://*.camfit.co.kr/*' });
         if (!tabs || tabs.length === 0) {
             console.warn('[Raoni Sync] No active CamFit tabs found.');
-            await logHistory('경고', '캠핏 관리자 탭이 열려있지 않아 자동 차단을 대기합니다.', 'WARNING');
+            await logHistory('캠핏 탭 대기', '캠핏 관리자 창이 열려있지 않아 차단을 대기합니다.', 'WARNING');
             return { success: false, count: data.queue.length, message: '캠핏 관리자 창이 열려있지 않습니다.' };
         }
 

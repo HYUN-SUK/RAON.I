@@ -12,11 +12,14 @@
   ],
   "host_permissions": [
     "https://*.camfit.co.kr/*",
-    "http://localhost:3000/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*",
     "https://*.vercel.app/*",
     "https://raon-i.co.kr/*",
-    "https://www.raon-i.co.kr/*"
+    "https://www.raon-i.co.kr/*",
+    "<all_urls>"
   ],
+
   "background": {
     "service_worker": "background.js"
   },
