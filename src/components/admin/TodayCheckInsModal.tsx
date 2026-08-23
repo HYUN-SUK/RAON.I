@@ -5,10 +5,10 @@ import { Reservation } from '@/types/reservation';
 import { useReservationStore } from '@/store/useReservationStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CalendarCheck, Phone, Car, Users, Tent, Clock, CheckCircle2, AlertCircle, Eye } from 'lucide-react';
+import { CalendarCheck, Phone, Car, Users, Tent } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
+
 import AdminReservationDetailModal from './AdminReservationDetailModal';
 
 interface TodayCheckInsModalProps {

@@ -9,7 +9,19 @@
 
 ---
 
-- [x] **9.1 Push Notification Debugging (Fixed)** ??
+- [x] **9.14 라온아이 ↔ 캠핏 양방향 실시간 예약 자동 연동 시스템 구축 (2026-08-23)** 🟢
+  - [x] **크롬 확장프로그램 패키징 (`raoni-camfit-sync-extension/`)**: 구글 Manifest V3, 15초 백그라운드 큐 감시 서비스 워커, 캠핏 관리자 화면 내 고객명/연락처/메모 자동 기재 및 차단 RPA 스크립트.
+  - [x] **실시간 대기 큐 및 ACK API (`/api/admin/camfit-sync/queue`, `ack`)**: 라온아이 신규 예약 자동 감시 및 캠핏 연동 로그 영구 적재 파이프라인.
+  - [x] **무한 루프(Echo Loop) 100% 원천 차단**: 캠핏 알림톡 수신 시 `[라온아이]` 태그 감지 시 0초 만에 스킵 처리하여 중복 생성 방어.
+
+- [x] **9.13 관리자 대시보드 & 결제 목록 UI 전면 개편 (캠핏 스타일 10개 페이징 & 최신순 정렬) (2026-08-23)** 🟢
+  - [x] **'오늘 입실' 카드 원클릭 모달 (`TodayCheckInsModal.tsx`)**: 오늘 입실팀 및 연박 체류팀 명단 고밀도 표출 및 행 클릭 시 예약 상세 연동.
+  - [x] **메인 대시보드 '결제 목록' 카드 개편**: 오늘 결제 총액 메인 표출 및 `결제대기 N건`, `환불대기 N건` 실시간 서브 정보 뱃지 표기.
+  - [x] **캠핏 스타일 결제/환불 관리 전면 리뉴얼 (`src/app/admin/payments/page.tsx`)**: 상단 3종 요약 카드 + 6대 상태 탭 바 + 10열 고밀도 테이블 + 10개씩 페이징 + 최신 변동 시각(`updatedAt || createdAt`) 우선 정렬.
+  - [x] **환불 계좌정보 선명한 표출**: 환불/취소 내역에는 예약 취소자의 은행명, 계좌번호, 예금주명 자동 분기 렌더링.
+
+- [x] **9.1 Push Notification Debugging (Fixed)** 🟢
+
   - [x] **Infrastructure Check**: Verify `push-notification` Edge Function code & secrets.
   - [x] **Webhook Check**: Confirm Trigger exists on `notifications` table (Bypassed via Client Invoke).
   - [x] **Auth Fix**: Fixed Firebase 401 (Added Service Account), Vercel Env (Added `NEXT_PUBLIC_` vars), JWT Claim (`iat`).

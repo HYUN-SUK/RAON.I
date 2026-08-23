@@ -1,33 +1,27 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+
 import { useReservationStore } from '@/store/useReservationStore';
-import { Reservation, ReservationStatus } from '@/types/reservation';
+import { Reservation } from '@/types/reservation';
 import { 
     CreditCard, 
     Banknote, 
     Clock, 
     Search, 
     RotateCcw, 
-    Printer, 
-    FileSpreadsheet, 
     ChevronLeft, 
     ChevronRight, 
-    Phone, 
-    Tent, 
     CheckCircle2, 
     AlertCircle, 
-    ArrowUpDown,
-    Check,
-    X,
-    Filter
+    X
 } from 'lucide-react';
-import { format, subDays, startOfDay, endOfDay, isWithinInterval, isSameDay } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AdminReservationDetailModal from '@/components/admin/AdminReservationDetailModal';
 
