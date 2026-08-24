@@ -9,7 +9,10 @@
     - [x] 6. FCM `webpush.fcm_options.link` 제거로 안드로이드 OS의 브라우저 강제 탈취 차단 (`supabase/functions/push-notification/index.ts`)
     - [x] 7. 서비스 워커(`firebase-messaging-sw.js`)에서 기기에 설치된 PWA 독립 앱 최우선 포커스 & 딥링크 라우팅 및 웹 미설치자 웹브라우저 정상 분기
     - [x] 8. 외부 캠핑장 좌표 누락 시 실제 주소/장소명 기반 카카오 지오코딩 실시간 복구 및 `user_schedules` DB 즉시 자동 백필(Backfill) 적용 (`record.ts`)
-    - [x] 9. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`6a3aaf5`) 완료
+    - [x] 9. 방금 작성한 일정의 불변 스냅샷(`submittedSnapshot`) 캡처 및 부모의 다음 미작성 일정 변경으로 인한 덮어쓰기 원천 차단 (`QuickRecordForm.tsx`)
+    - [x] 10. 피드백 팝업 모달을 전역 오버레이(`isVerificationPromptOpen`, `GlobalMobileLayout`)로 승격하여 지도 닫힘/언마운트와 무관하게 100% 안정적 표출 완결
+    - [x] 11. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`c022334`) 완료
+
 
 
 - [x] **라온아이 ↔ 캠핏 양방향 실시간 예약 자동 연동 시스템 구축 (2026-08-23 완료)**
