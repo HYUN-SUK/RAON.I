@@ -12,7 +12,10 @@
     - [x] 9. 방금 작성한 일정의 불변 스냅샷(`submittedSnapshot`) 캡처 및 부모의 다음 미작성 일정 변경으로 인한 덮어쓰기 원천 차단 (`QuickRecordForm.tsx`)
     - [x] 10. 피드백 팝업 모달을 전역 오버레이(`isVerificationPromptOpen`, `GlobalMobileLayout`)로 승격하여 지도 닫힘/언마운트와 무관하게 100% 안정적 표출 완결
     - [x] 11. 스마트플랜 데이터 조회 경로 정합성 수정 (`user_schedules.smart_plan_data` 컬럼 직접 조회로 사용자/관리자 팩트체크 추천 장소 100% 정상 표출)
-    - [x] 12. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`e0e8a9a`) 완료
+    - [x] 12. 추천 장소 의견수집 화면 UI 전면 개편: 하단 플로팅 고정 바(`fixed bottom-0`) 신설(담기/선택없이 넘어가기 상시 노출) & 우측 상단 '다음에 하기' 선명한 칩 버튼 강화 (`verify/[scheduleId]/page.tsx`)
+    - [x] 13. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`499fc13`) 완료
+
+
 
 
 
