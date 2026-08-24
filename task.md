@@ -13,7 +13,10 @@
     - [x] 10. 피드백 팝업 모달을 전역 오버레이(`isVerificationPromptOpen`, `GlobalMobileLayout`)로 승격하여 지도 닫힘/언마운트와 무관하게 100% 안정적 표출 완결
     - [x] 11. 스마트플랜 데이터 조회 경로 정합성 수정 (`user_schedules.smart_plan_data` 컬럼 직접 조회로 사용자/관리자 팩트체크 추천 장소 100% 정상 표출)
     - [x] 12. 추천 장소 의견수집 화면 UI 전면 개편: 하단 플로팅 고정 바(`fixed bottom-0`) 신설(담기/선택없이 넘어가기 상시 노출) & 우측 상단 '다음에 하기' 선명한 칩 버튼 강화 (`verify/[scheduleId]/page.tsx`)
-    - [x] 13. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`499fc13`) 완료
+    - [x] 13. 의견수집 화면(`/verify`)에서 하단 탭 메뉴(BottomNav) 자동 숨김 및 하단 액션 바 최상단(`z-50`) 화면 밀착 고정 완결
+    - [x] 14. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`27113c8`) 완료
+
+
 
 
 
