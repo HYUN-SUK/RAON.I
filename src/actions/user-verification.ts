@@ -13,10 +13,13 @@ export interface UserVerifyCardItem {
     categoryIcon: string;
     stage: string;
     address?: string;
+    lat?: number;
+    lng?: number;
     distanceKm?: number;
     hasNavLaunched?: boolean;
     trustScore?: number;
 }
+
 
 const CATEGORY_NAMES: Record<string, string> = {
     'RESTAURANT': '맛집',
@@ -118,12 +121,15 @@ export async function getScheduleVerifyCards(scheduleId: string): Promise<{ succ
                 categoryName: CATEGORY_NAMES[c.category] || '추천 장소',
                 categoryIcon: CATEGORY_ICONS[c.category] || '📍',
                 stage: item.stage,
-                address: c.metadata?.address || c.metadata?.addr || '',
+                address: c.metadata?.address || c.metadata?.addr || c.address || '',
+                lat: c.latitude || c.lat || (c.coordinates ? c.coordinates[1] : undefined),
+                lng: c.longitude || c.lng || (c.coordinates ? c.coordinates[0] : undefined),
                 distanceKm: c.distanceKm || c.distance,
                 hasNavLaunched: navLaunchedSet.has(c.id),
                 trustScore: c.trustScore,
             };
         });
+
 
         return { success: true, data: items };
     } catch (e: any) {

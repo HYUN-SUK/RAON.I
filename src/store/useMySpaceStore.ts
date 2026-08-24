@@ -34,7 +34,9 @@ export interface MapItem {
     rating: number;
     isFavorite: boolean;
     tags: string[];
+    category?: string; // 'CAMPGROUND' | 'RESTAURANT' | 'CAFE' | 'SPOT' | 'FESTIVAL'
 }
+
 
 // 타임라인 아이템 인터페이스 (Timeline Item Interface)
 export interface TimelineItem {

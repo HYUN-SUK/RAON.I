@@ -14,12 +14,14 @@ import MyGroupsWidget from "@/components/myspace/MyGroupsWidget";
 import PaperBackground from "@/components/myspace/PaperBackground";
 import NotificationBadge from "@/components/common/NotificationBadge";
 import QuickRecordForm from "@/components/myspace/QuickRecordForm";
+import MyMapModal from "@/components/myspace/MyMapModal";
 import { PenLine } from "lucide-react";
 import { useFabSparkle } from "@/hooks/useFabSparkle";
 import { cn } from "@/lib/utils";
 import ReminderBanner from "@/components/myspace/ReminderBanner";
 import { createClient } from "@/lib/supabase-client";
 import { useMySpaceStore } from "@/store/useMySpaceStore";
+
 import { useReservationStore } from "@/store/useReservationStore";
 import { useMissionStore } from "@/store/useMissionStore";
 
@@ -160,6 +162,13 @@ export default function MySpacePage() {
                 scheduleId={unwrittenScheduleIds[0]} // 미작성 일정이 있으면 첫 번째 ID 전달
                 onSuccess={handleRecordSuccess}
             />
+
+            {/* 나만의 캠핑 지도 모달 바인딩 */}
+            <MyMapModal
+                isOpen={useMySpaceStore(state => state.isMapOpen)}
+                onClose={() => useMySpaceStore.getState().setIsMapOpen(false)}
+            />
         </PaperBackground>
     );
 }
+

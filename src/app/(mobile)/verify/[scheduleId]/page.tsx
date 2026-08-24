@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useMySpaceStore } from '@/store/useMySpaceStore';
 import { 
     Sparkles, 
     Check, 
@@ -27,6 +28,7 @@ import {
     Clock,
     MapPinOff
 } from 'lucide-react';
+
 
 export default function UserVerifyPage({ params }: { params: Promise<{ scheduleId: string }> }) {
     const resolvedParams = use(params);
@@ -83,12 +85,37 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
         setIsSubmitting(true);
         const res = await submitUserVerifyPicks(scheduleId, selectedPlaceIds, fromQuery);
         if (res.success) {
+            // [v14.1.3] 유저가 선택한 맛집/명소들을 유저의 나만의 지도 스토어(MapItem)에 즉시 영구 등록!
+            const pickedCards = cards.filter(c => selectedPlaceIds.includes(c.id));
+            pickedCards.forEach(c => {
+                if (c.lat && c.lng) {
+                    useMySpaceStore.getState().addMapItem({
+                        id: `pick-${c.id}-${Date.now()}`,
+                        siteName: c.name,
+                        x: 50,
+                        y: 50,
+                        lat: c.lat,
+                        lng: c.lng,
+                        category: c.category, // 'RESTAURANT' | 'CAFE' | 'SPOT' | 'FESTIVAL'
+                        visitedDate: new Date().toISOString(),
+                        isStamped: true,
+                        address: c.address || '',
+                        photos: [],
+                        memo: '추천 장소 검증을 통해 내 지도에 담은 곳 ✨',
+                        rating: 5,
+                        isFavorite: true,
+                        tags: ['추천장소', c.categoryName]
+                    });
+                }
+            });
+
             setStep('SCREEN_B');
         } else {
             toast.error(res.error || '저장에 실패했습니다.');
         }
         setIsSubmitting(false);
     };
+
 
     // 건너뛰기
     const handleSkip = () => {

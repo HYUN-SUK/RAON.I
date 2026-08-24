@@ -297,14 +297,28 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     const [listSearchQuery, setListSearchQuery] = useState('');
     const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'ALL' | 'RESTAURANT' | 'CAFE' | 'SPOT' | 'FESTIVAL' | 'CAMPGROUND'>('ALL');
 
-    // [v14.0.0] 카테고리 판별 헬퍼
+    // [v14.0.0 / v14.1.3] 카테고리 판별 헬퍼 (캠핑장 기록과 맛집/명소 핀 엄격 분리)
     const getItemCategoryType = (item: any): string => {
-        if (item.category === 'RESTAURANT' || item.category === 'ROUTE_RESTAURANT' || item.tags?.some((t: string) => t?.includes('맛집') || t?.includes('식당'))) return 'RESTAURANT';
-        if (item.category === 'ROUTE_CAFE' || item.category === 'CAFE' || item.tags?.some((t: string) => t?.includes('카페') || t?.includes('디저트'))) return 'CAFE';
-        if (item.category === 'SPOT' || item.category === 'ROUTE_SPOT' || item.tags?.some((t: string) => t?.includes('명소') || t?.includes('관광'))) return 'SPOT';
-        if (item.category === 'FESTIVAL' || item.tags?.some((t: string) => t?.includes('축제') || t?.includes('행사'))) return 'FESTIVAL';
+        // 1순위: 캠핑 기록(record- ID) 또는 명시적 캠핑장인 경우 무조건 CAMPGROUND 고정
+        if (item.id?.startsWith('record-') || item.category === 'CAMPGROUND' || item.tags?.includes('라온캠핑장')) {
+            return 'CAMPGROUND';
+        }
+
+        // 2순위: 명시적 카테고리 필드 기준 매핑
+        if (item.category === 'RESTAURANT' || item.category === 'ROUTE_RESTAURANT') return 'RESTAURANT';
+        if (item.category === 'ROUTE_CAFE' || item.category === 'CAFE') return 'CAFE';
+        if (item.category === 'SPOT' || item.category === 'ROUTE_SPOT') return 'SPOT';
+        if (item.category === 'FESTIVAL') return 'FESTIVAL';
+
+        // 3순위: 수동 등록 장소의 태그 기반 보조 판별
+        if (item.tags?.some((t: string) => t === '맛집' || t === '식당')) return 'RESTAURANT';
+        if (item.tags?.some((t: string) => t === '카페' || t === '디저트')) return 'CAFE';
+        if (item.tags?.some((t: string) => t === '명소' || t === '관광')) return 'SPOT';
+        if (item.tags?.some((t: string) => t === '축제' || t === '행사')) return 'FESTIVAL';
+
         return 'CAMPGROUND';
     };
+
 
     // [v14.0.0] 카테고리별 테마 SVG 마커 핀 생성
     const getMarkerPinImage = (categoryType: string) => {
