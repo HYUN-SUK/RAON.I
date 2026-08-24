@@ -17,7 +17,11 @@
     - [x] 14. 내 수첩(`myspace/page.tsx`)에 `MyMapModal` 마운트 바인딩 완료 (내수첩 10초 기록 후 [지도에서 핀 확인하기] 0초 즉시 이동 완결)
     - [x] 15. 팩트체크 추천 맛집/명소 선택 제출 시 유저 나만의 지도 스토어(`addMapItem`)에 🍽️ 맛집, 🏞️ 명소 영구 핀 즉시 등록 (`verify/[scheduleId]/page.tsx`)
     - [x] 16. 지도 카테고리 판별 로직 정밀화: 캠핑 기록(`record-` ID)을 캠핑장(⛺)으로 엄격 고정하여 맛집 탭에 캠핑장이 오분류되는 버그 완치 (`MyMapModal.tsx`)
-    - [x] 17. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`73a2883`) 완료
+    - [x] 17. 내 수첩 지도 초기화 생명주기 완벽 분리: `loadAllData`의 강제 닫기를 제거하고 `useEffect []` 1회성 마운트로 이전 잔재만 격리 초기화 (10초 기록 ➔ 지도 0초 즉시 오픈 완결)
+    - [x] 18. 팩트체크 추천 장소 선택 제출 시 약속된 탐험 보너스 `+100P`(라온 토큰) 실시간 지갑 적립 및 `point_history` 트랜잭션 기록 완결 (`user-verification.ts`)
+    - [x] 19. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`dda5f6b`) 완료
+
+
 
 
 

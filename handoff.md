@@ -48,6 +48,13 @@
 - **카테고리 판별 로직 정밀화 (`MyMapModal.tsx`)**:
   - 캠핑 기록(`record-` ID)은 태그와 무관하게 `CAMPGROUND(⛺)`로 고정하여 맛집 탭에 캠핑장이 오분류되던 버그 완치.
 
+### 1-7. 내 수첩 지도 생명주기 분리 및 팩트체크 +100P 실시간 적립 완결
+- **내 수첩 지도 생명주기 완벽 분리 (`myspace/page.tsx`)**:
+  - `loadAllData`의 강제 `setIsMapOpen(false)`를 제거하고, 오직 타 탭에서 내 수첩으로 첫 진입할 때만 `useEffect []` 1회성 초기화를 적용하여 10초 기록 ➔ 지도 0초 이동 완결.
+- **약속된 +100P 포인트 실시간 적립 (`user-verification.ts`)**:
+  - 유저가 팩트체크 장소를 1개 이상 담고 완료 시 `profiles.raon_token`과 `xp`에 +100P를 적립하고 `point_history`에 보너스 내역 영구 적재.
+
+
 
 
 
