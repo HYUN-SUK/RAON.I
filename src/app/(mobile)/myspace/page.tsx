@@ -44,9 +44,6 @@ export default function MySpacePage() {
     const [emberStats, setEmberStats] = useState<EmberStats | null>(null);
 
     const loadAllData = useCallback(async () => {
-        // [v11.9.107] 내수첩 진입 시 남아있던 isMapOpen 팝업 잔재를 강제 초기화하여 뒤로가기 엉킴 완벽 해제
-        useMySpaceStore.getState().setIsMapOpen(false);
-
         const supabase = createClient();
         
         try {
@@ -91,9 +88,15 @@ export default function MySpacePage() {
         }
     }, [router, refresh]);
 
+    // [v14.1.4] 다른 탭에서 내 수첩으로 첫 진입할 때만 딱 1회 이전 세션 잔재 초기화 (새로고침 시에는 지도 유지)
+    useEffect(() => {
+        useMySpaceStore.getState().setIsMapOpen(false);
+    }, []);
+
     useEffect(() => {
         loadAllData();
     }, [loadAllData]);
+
 
     const handleRecordClick = () => {
         setIsRecordOpen(true);

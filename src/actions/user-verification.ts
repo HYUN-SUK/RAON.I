@@ -193,10 +193,54 @@ export async function submitUserVerifyPicks(
             .update({ record_written: true, updated_at: new Date().toISOString() })
             .eq('id', scheduleId);
 
+        // 4) [v14.1.4] 1개 이상 선택 시 약속된 탐험 보너스 +100P 포인트 실시간 적립
+        if (userId && placeIds.length > 0) {
+            try {
+                const { error: rpcErr } = await supabase.rpc('grant_user_reward', {
+                    p_user_id: userId,
+                    p_xp_amount: 100,
+                    p_token_amount: 100,
+                    p_gold_amount: 0,
+                    p_reason: 'MISSION_COMPLETE',
+                    p_related_id: scheduleId
+                });
+
+                if (rpcErr) {
+                    const { data: prof } = await supabase
+                        .from('profiles')
+                        .select('raon_token, xp')
+                        .eq('id', userId)
+                        .single();
+
+                    if (prof) {
+                        await supabase
+                            .from('profiles')
+                            .update({
+                                raon_token: (prof.raon_token || 0) + 100,
+                                xp: (prof.xp || 0) + 100,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', userId);
+
+                        await supabase.from('point_history').insert({
+                            user_id: userId,
+                            amount: 100,
+                            type: 'EARN',
+                            description: '추천 맛집·명소 팩트체크 피드백 보너스 (+100P)',
+                            created_at: new Date().toISOString()
+                        });
+                    }
+                }
+            } catch (pErr) {
+                console.warn('Failed to award verification points:', pErr);
+            }
+        }
+
         revalidatePath('/myspace');
         revalidatePath('/myspace/records');
 
         return { success: true, count: placeIds.length };
+
     } catch (e: any) {
         console.error('submitUserVerifyPicks error:', e);
         return { success: false, error: e.message };
