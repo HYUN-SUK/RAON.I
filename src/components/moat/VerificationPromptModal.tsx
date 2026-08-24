@@ -6,28 +6,40 @@ import { Sparkles, UtensilsCrossed, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
+import { useMySpaceStore } from '@/store/useMySpaceStore';
+
 interface VerificationPromptModalProps {
-    isOpen: boolean;
-    scheduleId: string | null;
-    onClose: () => void;
+    isOpen?: boolean;
+    scheduleId?: string | null;
+    onClose?: () => void;
 }
 
 export default function VerificationPromptModal({
-    isOpen,
-    scheduleId,
-    onClose
-}: VerificationPromptModalProps) {
+    isOpen: propIsOpen,
+    scheduleId: propScheduleId,
+    onClose: propOnClose
+}: VerificationPromptModalProps = {}) {
     const router = useRouter();
+    const { 
+        isVerificationPromptOpen, 
+        verificationPromptScheduleId, 
+        closeVerificationPrompt 
+    } = useMySpaceStore();
 
-    if (!isOpen || !scheduleId) return null;
+    const activeIsOpen = propIsOpen !== undefined ? propIsOpen : isVerificationPromptOpen;
+    const activeScheduleId = propScheduleId !== undefined ? propScheduleId : verificationPromptScheduleId;
+    const handleClose = propOnClose || closeVerificationPrompt;
+
+    if (!activeIsOpen || !activeScheduleId) return null;
 
     const handleGoToVerify = () => {
-        onClose();
-        router.push(`/verify/${scheduleId}`);
+        handleClose();
+        router.push(`/verify/${activeScheduleId}`);
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <Dialog open={activeIsOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+
             <DialogContent className="max-w-xs sm:max-w-sm rounded-3xl p-6 bg-gradient-to-b from-stone-900 via-stone-900 to-stone-950 text-white border border-amber-500/30 shadow-2xl overflow-hidden">
                 {/* Background Glow */}
                 <div className="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
@@ -66,11 +78,12 @@ export default function VerificationPromptModal({
                         </Button>
 
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-stone-300 transition-colors"
                         >
                             다음에 할게요
                         </button>
+
                     </div>
                 </div>
             </DialogContent>

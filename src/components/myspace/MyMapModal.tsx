@@ -52,27 +52,24 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         optimisticRecordPin,
         setOptimisticRecordPin,
         pendingVerificationScheduleId,
-        setPendingVerificationScheduleId
+        setPendingVerificationScheduleId,
+        openVerificationPrompt
     } = useMySpaceStore();
     const { config } = useSiteConfig();
 
-    // 10초 기록 연계 팝업 상태
-    const [isPromptOpen, setIsPromptOpen] = useState(false);
-    const [promptScheduleId, setPromptScheduleId] = useState<string | null>(null);
-
-    // 모달 닫기 핸들러 (10초 기록 연계 진입 시에만 피드백 팝업 트리거)
+    // 모달 닫기 핸들러 (10초 기록 연계 진입 시에만 전역 피드백 팝업 트리거)
     const handleCloseWithPrompt = () => {
         if (mode === 'view' && pendingVerificationScheduleId) {
             const schedId = pendingVerificationScheduleId;
             setPendingVerificationScheduleId(null); // 1회성 소멸
-            setPromptScheduleId(schedId);
-            setIsPromptOpen(true);
+            openVerificationPrompt(schedId); // 전역 팝업 오픈!
         }
         onClose();
     };
 
     // [v11.9.108] 나만의 캠핑지도 모달 뒤로가기 닫힘 처리
     useModalBackHandler(isOpen, handleCloseWithPrompt, 'myMapModal');
+
 
     // UI States
     const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
@@ -888,17 +885,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 isNew={isAddingMode}
                 onSaveNew={handleSaveNew}
             />
-
-            {/* 10초 기록 연계 팩트 검증 피드백 유도 팝업 모달 */}
-            <VerificationPromptModal
-                isOpen={isPromptOpen}
-                scheduleId={promptScheduleId}
-                onClose={() => {
-                    setIsPromptOpen(false);
-                    setPromptScheduleId(null);
-                }}
-            />
         </Modal>
     );
 }
+
 

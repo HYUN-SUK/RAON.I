@@ -1,5 +1,6 @@
 import BottomNav from "@/components/BottomNav";
 import NavReturnPromptModal from "@/components/moat/NavReturnPromptModal";
+import VerificationPromptModal from "@/components/moat/VerificationPromptModal";
 
 export default function MobileLayout({
     children,
@@ -13,7 +14,9 @@ export default function MobileLayout({
             </main>
             <BottomNav />
             <NavReturnPromptModal />
+            <VerificationPromptModal />
         </div>
     );
 }
+
 

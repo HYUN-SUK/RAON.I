@@ -103,6 +103,12 @@ export interface MySpaceState {
     optimisticRecordPin: MapItem | null;
     setOptimisticRecordPin: (pin: MapItem | null) => void;
 
+    // [v14.1.1] 전역 승격된 팩트 검증 피드백 팝업 상태
+    isVerificationPromptOpen: boolean;
+    verificationPromptScheduleId: string | null;
+    openVerificationPrompt: (scheduleId: string) => void;
+    closeVerificationPrompt: () => void;
+
     reset: () => void;
 }
 
@@ -128,6 +134,12 @@ export const useMySpaceStore = create<MySpaceState>()(
             setPendingVerificationScheduleId: (scheduleId) => set({ pendingVerificationScheduleId: scheduleId }),
             optimisticRecordPin: null,
             setOptimisticRecordPin: (pin) => set({ optimisticRecordPin: pin }),
+
+            isVerificationPromptOpen: false,
+            verificationPromptScheduleId: null,
+            openVerificationPrompt: (scheduleId) => set({ isVerificationPromptOpen: true, verificationPromptScheduleId: scheduleId }),
+            closeVerificationPrompt: () => set({ isVerificationPromptOpen: false, verificationPromptScheduleId: null }),
+
 
 
             xp: 0,

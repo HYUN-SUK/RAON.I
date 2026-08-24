@@ -142,8 +142,23 @@ export default function QuickRecordForm({
     const [lastGenerated, setLastGenerated] = useState<string>(''); // Auto-caption tracking
     const [showSuccess, setShowSuccess] = useState<boolean>(false); // Success view state
 
+    // [v14.1.2] 방금 작성한 캠핑장 고정 스냅샷 (부모의 다음 미작성 일정 변경으로 인한 덮어쓰기 원천 방어)
+    const [submittedSnapshot, setSubmittedSnapshot] = useState<{
+        scheduleId?: string;
+        name: string;
+        address: string;
+        lat?: number;
+        lng?: number;
+        photoUrl?: string | null;
+        content: string;
+        rating: number;
+        tags: string[];
+        isRaonai: boolean;
+    } | null>(null);
+
     // New Fields
     const [name, setName] = useState('');
+
     const [address, setAddress] = useState('');
 
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -324,6 +339,11 @@ export default function QuickRecordForm({
 
         setIsSubmitting(true);
         try {
+            const finalLat = selectedLocation?.lat || scheduleInfo?.latitude;
+            const finalLng = selectedLocation?.lng || scheduleInfo?.longitude;
+            const finalName = name || scheduleInfo?.title || '나의 캠핑 기록';
+            const finalAddress = address || scheduleInfo?.campgroundAddress || '';
+
             const result = await createRecord({
                 scheduleId,
                 content: content.trim(),
@@ -331,16 +351,28 @@ export default function QuickRecordForm({
                 tags: selectedTags,
                 isPublic,
                 campgroundType: scheduleInfo?.isRaonai ? 'raonai' : 'external',
-                campgroundName: name,
-                campgroundAddress: address,
-                latitude: selectedLocation?.lat || scheduleInfo?.latitude,
-                longitude: selectedLocation?.lng || scheduleInfo?.longitude,
+                campgroundName: finalName,
+                campgroundAddress: finalAddress,
+                latitude: finalLat,
+                longitude: finalLng,
                 rating: rating, // Add rating (satisfaction level)
             });
 
             if (result.success) {
                 toast.success('기록이 저장되었어요! ✨');
-                onSuccess?.();
+                // 방금 작성한 일정의 스냅샷 고정 저장 (부모의 다음 미작성 일정 변경에 영향받지 않음)
+                setSubmittedSnapshot({
+                    scheduleId,
+                    name: finalName,
+                    address: finalAddress,
+                    lat: finalLat,
+                    lng: finalLng,
+                    photoUrl,
+                    content: content.trim(),
+                    rating,
+                    tags: selectedTags,
+                    isRaonai: !!scheduleInfo?.isRaonai
+                });
                 setShowSuccess(true); // Switch to success view instead of closing directly
             } else {
                 toast.error(result.error || '저장 실패');
@@ -352,7 +384,7 @@ export default function QuickRecordForm({
         }
     };
 
-    // 폼 리셋 및 닫기
+    // 폼 리셋 및 닫기 (완전히 닫힐 때 부모의 onSuccess 실행)
     const handleClose = () => {
         setContent('');
         setPhotoUrl(null);
@@ -362,8 +394,10 @@ export default function QuickRecordForm({
         setScheduleInfo(null);
         setIsMapOpen(false);
         setShowSuccess(false);
+        setSubmittedSnapshot(null);
         setRating(5);
         onClose();
+        onSuccess?.(); // 완료 화면이 완전히 닫힌 후 부모 데이터 갱신
     };
 
     return (
@@ -399,7 +433,7 @@ export default function QuickRecordForm({
                             <div>
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">기록 남기기 성공! ⛺</h3>
                                 <p className="text-sm text-gray-500 leading-relaxed">
-                                    다녀오신 소중한 추억이 나만의 캠핑 지도에<br />
+                                    <strong className="text-stone-800 font-bold">{submittedSnapshot?.name || '소중한 추억'}</strong>이 나만의 캠핑 지도에<br />
                                     별 모양 핀으로 예쁘게 꽂혔습니다.
                                 </p>
                             </div>
@@ -407,23 +441,25 @@ export default function QuickRecordForm({
                                 {/* 버튼 1: 내 캠핑 지도에서 핀 확인하기 */}
                                 <Button
                                     onClick={() => {
+                                        const snap = submittedSnapshot;
+                                        const targetSchedId = snap?.scheduleId || scheduleId;
+
                                         // 락인 액션: 10초 기록 연계 팝업용 스케줄 ID 보관
-                                        if (scheduleId) {
-                                            useMySpaceStore.getState().setPendingVerificationScheduleId(scheduleId);
+                                        if (targetSchedId) {
+                                            useMySpaceStore.getState().setPendingVerificationScheduleId(targetSchedId);
                                         }
 
-                                        // 좌표 결정 (실제 장소 좌표 우선 사용, 라온아이인 경우에만 라온아이 기본 좌표 적용)
-                                        let lat = selectedLocation?.lat || scheduleInfo?.latitude;
-                                        let lng = selectedLocation?.lng || scheduleInfo?.longitude;
-                                        const pinName = name || scheduleInfo?.title || '나의 캠핑 기록';
+                                        // 좌표 결정 (방금 저장한 스냅샷 데이터 최우선 사용)
+                                        let lat = snap?.lat;
+                                        let lng = snap?.lng;
+                                        const pinName = snap?.name || '나의 캠핑 기록';
 
                                         if (!lat || !lng) {
-                                            if (scheduleInfo?.isRaonai || pinName.includes('라온아이')) {
+                                            if (snap?.isRaonai || pinName.includes('라온아이')) {
                                                 lat = DEFAULT_CAMPING_LOCATION.latitude;
                                                 lng = DEFAULT_CAMPING_LOCATION.longitude;
                                             }
                                         }
-
 
                                         // 0초 즉시 핀 주입 (Optimistic Injection)
                                         useMySpaceStore.getState().setOptimisticRecordPin({
@@ -435,12 +471,12 @@ export default function QuickRecordForm({
                                             lng: lng,
                                             visitedDate: new Date().toISOString(),
                                             isStamped: true,
-                                            address: address || scheduleInfo?.campgroundAddress || '충청남도 예산군 응봉면 응봉서로 280',
-                                            photos: photoUrl ? [photoUrl] : [],
-                                            memo: content,
-                                            rating: rating,
+                                            address: snap?.address || '캠핑장 위치',
+                                            photos: snap?.photoUrl ? [snap.photoUrl] : [],
+                                            memo: snap?.content || '',
+                                            rating: snap?.rating || 5,
                                             isFavorite: false,
-                                            tags: selectedTags
+                                            tags: snap?.tags || []
                                         });
 
                                         if (lat && lng) {
@@ -454,19 +490,19 @@ export default function QuickRecordForm({
                                         useMySpaceStore.getState().setIsMapOpen(true);
                                         handleClose();
                                     }}
-
                                     className="w-full bg-[#224732] hover:bg-[#1a3626] text-white font-bold h-12 rounded-xl shadow-lg transition-transform active:scale-98"
                                 >
                                     ⛺ 내 캠핑 지도에서 핀 확인하기
                                 </Button>
 
                                 {/* 버튼 2: 추천 맛집/명소 피드백 남기기 황금색 버튼 */}
-                                {scheduleId && (
+                                {(submittedSnapshot?.scheduleId || scheduleId) && (
                                     <Button
                                         onClick={() => {
+                                            const targetSchedId = submittedSnapshot?.scheduleId || scheduleId;
                                             useMySpaceStore.getState().setPendingVerificationScheduleId(null);
                                             handleClose();
-                                            router.push(`/verify/${scheduleId}`);
+                                            router.push(`/verify/${targetSchedId}`);
                                         }}
                                         className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-stone-950 font-black h-12 rounded-xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5 transition-transform active:scale-98"
                                     >
@@ -474,6 +510,7 @@ export default function QuickRecordForm({
                                         <span>🌟 추천 맛집·명소 의견 남기기 (+100P)</span>
                                     </Button>
                                 )}
+
 
                                 {/* 버튼 3: 닫기 */}
                                 <button

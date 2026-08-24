@@ -8,7 +8,9 @@
     - [x] 5. 타겟 핀 감지 시 초기 광역 축척(level 10) 및 클러스터링 건너뛰고 4단계 상세 지형 뷰(`level={4}`)로 0.01초 만에 자동 줌인 & 별 핀(⭐) 정중앙 포커스
     - [x] 6. FCM `webpush.fcm_options.link` 제거로 안드로이드 OS의 브라우저 강제 탈취 차단 (`supabase/functions/push-notification/index.ts`)
     - [x] 7. 서비스 워커(`firebase-messaging-sw.js`)에서 기기에 설치된 PWA 독립 앱 최우선 포커스 & 딥링크 라우팅 및 웹 미설치자 웹브라우저 정상 분기
-    - [x] 8. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`166c837`) 완료
+    - [x] 8. 외부 캠핑장 좌표 누락 시 실제 주소/장소명 기반 카카오 지오코딩 실시간 복구 및 `user_schedules` DB 즉시 자동 백필(Backfill) 적용 (`record.ts`)
+    - [x] 9. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`6a3aaf5`) 완료
+
 
 - [x] **라온아이 ↔ 캠핏 양방향 실시간 예약 자동 연동 시스템 구축 (2026-08-23 완료)**
 
