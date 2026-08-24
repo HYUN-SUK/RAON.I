@@ -1,6 +1,17 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **10초 기록 의견수집 2중 유도·나만의 캠핑지도 0초 핀 고속화·PWA 푸시 분기 (2026-08-24 완료)**
+    - [x] 1. 10초 기록 완료 화면에 `[ 🌟 추천 맛집·명소 의견 남기기 (+100P) ]` 황금색 버튼 신설 (`QuickRecordForm.tsx`)
+    - [x] 2. 10초 기록 연계 지도 이탈 전용 피드백 유도 바텀시트 모달(`VerificationPromptModal.tsx`) 신설
+    - [x] 3. 나만의 캠핑 지도 평상시 일반 진입 시에는 팝업 0% 완전 차단 (컨텍스트 격리 `pendingVerificationScheduleId` 생명주기 관리)
+    - [x] 4. 나만의 캠핑 지도 0초 핀 즉시 주입(Optimistic Pin Injection)으로 DB 비동기 딜레이(0.8초) 0초화
+    - [x] 5. 타겟 핀 감지 시 초기 광역 축척(level 10) 및 클러스터링 건너뛰고 4단계 상세 지형 뷰(`level={4}`)로 0.01초 만에 자동 줌인 & 별 핀(⭐) 정중앙 포커스
+    - [x] 6. FCM `webpush.fcm_options.link` 제거로 안드로이드 OS의 브라우저 강제 탈취 차단 (`supabase/functions/push-notification/index.ts`)
+    - [x] 7. 서비스 워커(`firebase-messaging-sw.js`)에서 기기에 설치된 PWA 독립 앱 최우선 포커스 & 딥링크 라우팅 및 웹 미설치자 웹브라우저 정상 분기
+    - [x] 8. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`166c837`) 완료
+
 - [x] **라온아이 ↔ 캠핏 양방향 실시간 예약 자동 연동 시스템 구축 (2026-08-23 완료)**
+
     - [x] 1. 라온아이 전용 크롬 확장프로그램(`raoni-camfit-sync-extension/`) 패키징 (Manifest V3, 15초 백그라운드 큐 감시, 캠핏 DOM RPA 자동 차단 및 데스크톱 알림)
     - [x] 2. 캠핏 관리자 캘린더 자동 차단 시 고객명(`전혜련 (라온아이)`), 연락처, 메모(`[라온아이 앱 예약] 2가족`) 자동 기재
     - [x] 3. 백엔드 실시간 대기 큐 및 ACK API (`/api/admin/camfit-sync/queue`, `/api/admin/camfit-sync/ack`) 구축

@@ -412,10 +412,18 @@ export default function QuickRecordForm({
                                             useMySpaceStore.getState().setPendingVerificationScheduleId(scheduleId);
                                         }
 
-                                        // 좌표 보정 (누락 시 라온아이 기본 좌표로 100% 자동 폴백)
-                                        const lat = selectedLocation?.lat || scheduleInfo?.latitude || DEFAULT_CAMPING_LOCATION.latitude;
-                                        const lng = selectedLocation?.lng || scheduleInfo?.longitude || DEFAULT_CAMPING_LOCATION.longitude;
+                                        // 좌표 결정 (실제 장소 좌표 우선 사용, 라온아이인 경우에만 라온아이 기본 좌표 적용)
+                                        let lat = selectedLocation?.lat || scheduleInfo?.latitude;
+                                        let lng = selectedLocation?.lng || scheduleInfo?.longitude;
                                         const pinName = name || scheduleInfo?.title || '나의 캠핑 기록';
+
+                                        if (!lat || !lng) {
+                                            if (scheduleInfo?.isRaonai || pinName.includes('라온아이')) {
+                                                lat = DEFAULT_CAMPING_LOCATION.latitude;
+                                                lng = DEFAULT_CAMPING_LOCATION.longitude;
+                                            }
+                                        }
+
 
                                         // 0초 즉시 핀 주입 (Optimistic Injection)
                                         useMySpaceStore.getState().setOptimisticRecordPin({
@@ -435,15 +443,18 @@ export default function QuickRecordForm({
                                             tags: selectedTags
                                         });
 
-                                        useMySpaceStore.getState().setTargetLocation({
-                                            lat,
-                                            lng,
-                                            name: pinName
-                                        });
+                                        if (lat && lng) {
+                                            useMySpaceStore.getState().setTargetLocation({
+                                                lat,
+                                                lng,
+                                                name: pinName
+                                            });
+                                        }
 
                                         useMySpaceStore.getState().setIsMapOpen(true);
                                         handleClose();
                                     }}
+
                                     className="w-full bg-[#224732] hover:bg-[#1a3626] text-white font-bold h-12 rounded-xl shadow-lg transition-transform active:scale-98"
                                 >
                                     ⛺ 내 캠핑 지도에서 핀 확인하기

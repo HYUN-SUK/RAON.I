@@ -61,6 +61,23 @@ export async function createRecord(input: CreateRecordInput): Promise<{ success:
         const autoTags = extractTags(input.content);
         const allTags = [...new Set([...(input.tags || []), ...autoTags])];
 
+        // 좌표 누락 시 실제 장소 위경도 실시간 복구
+        let finalLat = input.latitude;
+        let finalLng = input.longitude;
+
+        if (!finalLat || !finalLng) {
+            if (input.campgroundType === 'raonai' || (input.campgroundName || '').includes('라온아이')) {
+                finalLat = DEFAULT_CAMPING_LOCATION.latitude;
+                finalLng = DEFAULT_CAMPING_LOCATION.longitude;
+            } else if (input.campgroundName || input.campgroundAddress) {
+                const resolved = await resolveCoordinates(input.campgroundName, input.campgroundAddress);
+                if (resolved) {
+                    finalLat = resolved.lat;
+                    finalLng = resolved.lng;
+                }
+            }
+        }
+
         const { data, error } = await supabase
             .from('camping_records')
             .insert({
@@ -73,12 +90,13 @@ export async function createRecord(input: CreateRecordInput): Promise<{ success:
                 campground_type: input.campgroundType ?? 'external',
                 campground_name: input.campgroundName || null,
                 campground_address: input.campgroundAddress || null,
-                latitude: input.latitude || null,
-                longitude: input.longitude || null,
+                latitude: finalLat || null,
+                longitude: finalLng || null,
                 rating: input.rating ?? 0,
             })
             .select('id')
             .single();
+
 
         if (error) {
             console.error('Create record error:', error);
@@ -493,7 +511,48 @@ export async function hasUnwrittenScheduleRecord(): Promise<{
     }
 }
 
-// 특정 일정의 상세 정보 가져오기 (캠핑장 정보 포함)
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
+
+/**
+ * 캠핑장 주소 또는 이름으로 카카오 로컬 API를 호출하여 실제 위도/경도를 실시간 복구
+ */
+async function resolveCoordinates(name?: string, address?: string): Promise<{ lat: number; lng: number } | null> {
+    const kakaoKey = process.env.KAKAO_REST_API_KEY;
+    if (!kakaoKey) return null;
+
+    try {
+        const headers = { 'Authorization': `KakaoAK ${kakaoKey}` };
+
+        // 1. 주소 검색 우선
+        if (address && address.trim().length > 2) {
+            const res = await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address.trim())}&size=1`, { headers });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.documents && data.documents.length > 0) {
+                    const doc = data.documents[0];
+                    return { lat: parseFloat(doc.y), lng: parseFloat(doc.x) };
+                }
+            }
+        }
+
+        // 2. 키워드/장소명 검색
+        if (name && name.trim().length > 1) {
+            const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(name.trim())}&size=1`, { headers });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.documents && data.documents.length > 0) {
+                    const doc = data.documents[0];
+                    return { lat: parseFloat(doc.y), lng: parseFloat(doc.x) };
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[resolveCoordinates] Kakao geocoding error:', err);
+    }
+    return null;
+}
+
+// 특정 일정의 상세 정보 가져오기 (캠핑장 정보 및 좌표 자동 복구 포함)
 export async function getScheduleForRecord(scheduleId: string): Promise<{
     id: string;
     title: string;
@@ -522,13 +581,39 @@ export async function getScheduleForRecord(scheduleId: string): Promise<{
         const isRaonai = data.source === 'raonai' ||
             (data.campground_name || '').toLowerCase().includes('라온아이');
 
+        let lat = data.campground_lat;
+        let lng = data.campground_lng;
+
+        // 좌표 누락 시 실제 장소 위경도 실시간 자동 복구
+        if (!lat || !lng) {
+            if (isRaonai) {
+                lat = DEFAULT_CAMPING_LOCATION.latitude;
+                lng = DEFAULT_CAMPING_LOCATION.longitude;
+            } else {
+                // 외부 캠핑장: 실제 주소/이름으로 카카오 지오코딩 조회
+                const resolved = await resolveCoordinates(data.campground_name, data.campground_address);
+                if (resolved) {
+                    lat = resolved.lat;
+                    lng = resolved.lng;
+                }
+            }
+
+            // 복구된 좌표를 user_schedules에 즉시 영구 백필 저장
+            if (lat && lng) {
+                await supabase
+                    .from('user_schedules')
+                    .update({ campground_lat: lat, campground_lng: lng })
+                    .eq('id', scheduleId);
+            }
+        }
+
         return {
             id: data.id,
             title: data.campground_name || '',
             campgroundName: data.campground_name,
             campgroundAddress: data.campground_address,
-            latitude: data.campground_lat,
-            longitude: data.campground_lng,
+            latitude: lat || undefined,
+            longitude: lng || undefined,
             isRaonai,
             startDate: data.check_in,
             endDate: data.check_out,
@@ -538,3 +623,4 @@ export async function getScheduleForRecord(scheduleId: string): Promise<{
         return null;
     }
 }
+
