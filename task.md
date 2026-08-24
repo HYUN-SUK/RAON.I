@@ -19,7 +19,15 @@
     - [x] 16. 지도 카테고리 판별 로직 정밀화: 캠핑 기록(`record-` ID)을 캠핑장(⛺)으로 엄격 고정하여 맛집 탭에 캠핑장이 오분류되는 버그 완치 (`MyMapModal.tsx`)
     - [x] 17. 내 수첩 지도 초기화 생명주기 완벽 분리: `loadAllData`의 강제 닫기를 제거하고 `useEffect []` 1회성 마운트로 이전 잔재만 격리 초기화 (10초 기록 ➔ 지도 0초 즉시 오픈 완결)
     - [x] 18. 팩트체크 추천 장소 선택 제출 시 약속된 탐험 보너스 `+100P`(라온 토큰) 실시간 지갑 적립 및 `point_history` 트랜잭션 기록 완결 (`user-verification.ts`)
-    - [x] 19. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`dda5f6b`) 완료
+    - [x] 19. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 통과 및 깃 푸시(`ee7f380`) 완료
+
+
+- [ ] **[다음 세션 예정] 스마트플랜 미생성 일정 추천장소 실시간 Fallback 조회 및 멀티 포맷 파서 탑재**
+    - [ ] 1. 스마트플랜 미생성(`smart_plan_data == null`) 일정 대응: 캠핑장 위경도 반경 15km 마스터 데이터셋(`places_master_dataset`) 실시간 Fallback 쿼리 탑재
+    - [ ] 2. `smart_plan_data` 멀티 포맷 파서 보강: 문자열(`JSON String`) 파싱, `candidates`/`places` 등 구버전 키 탐색 호환성 확보
+    - [ ] 3. 카테고리 별칭 매핑 확장 (`FOOD`, `CAFE`, `TOUR`, `ATTRACTION` 등 전수 포용)
+
+
 
 
 
