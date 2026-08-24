@@ -96,6 +96,13 @@ export interface MySpaceState {
     setIsMapOpen: (open: boolean) => void;
     targetLocation: { lat: number; lng: number; name: string } | null;
     setTargetLocation: (location: { lat: number; lng: number; name: string } | null) => void;
+
+    // [v14.1.0] 10초 기록 연계 검증 팝업용 1회성 스케줄 ID 및 0초 핀 주입
+    pendingVerificationScheduleId: string | null;
+    setPendingVerificationScheduleId: (scheduleId: string | null) => void;
+    optimisticRecordPin: MapItem | null;
+    setOptimisticRecordPin: (pin: MapItem | null) => void;
+
     reset: () => void;
 }
 
@@ -116,6 +123,12 @@ export const useMySpaceStore = create<MySpaceState>()(
             setIsMapOpen: (open) => set({ isMapOpen: open }),
             targetLocation: null,
             setTargetLocation: (location) => set({ targetLocation: location }),
+
+            pendingVerificationScheduleId: null,
+            setPendingVerificationScheduleId: (scheduleId) => set({ pendingVerificationScheduleId: scheduleId }),
+            optimisticRecordPin: null,
+            setOptimisticRecordPin: (pin) => set({ optimisticRecordPin: pin }),
+
 
             xp: 0,
             level: 1,

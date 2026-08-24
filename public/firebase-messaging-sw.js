@@ -40,34 +40,34 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
-// 알림 클릭 이벤트 핸들러
+// 알림 클릭 이벤트 핸들러 (PWA 독립 앱 최우선 포커스 & 딥링크 라우팅)
 self.addEventListener('notificationclick', (event) => {
   console.log('[Service Worker] Notification clicked');
   event.notification.close();
 
-  // 앱으로 이동
-  let urlToOpen = event.notification.data?.link || '/notifications'; // Default to notifications page
-  if (!urlToOpen || urlToOpen === '/') {
-    urlToOpen = '/notifications';
+  // 타겟 URL 결정 (data.link 또는 default)
+  let rawLink = event.notification.data?.link || '/notifications';
+  if (!rawLink || rawLink === '/') {
+    rawLink = '/notifications';
   }
+
+  // 절대 URL 생성
+  const targetUrl = rawLink.startsWith('http') ? rawLink : new URL(rawLink, self.location.origin).href;
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
-        // 1. Check if there is an existing window we can focus
+        // 1. 이미 열려 있는 PWA / 웹 창이 있다면 최우선 포커스
         for (const client of windowClients) {
-          // Check if client is under same origin
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            // Focus first, then SIGNAL the client to navigate (More reliable than client.navigate for PWA)
             return client.focus().then((focusedClient) => {
-              const targetUrl = new URL(urlToOpen, self.location.origin).href;
-
-              // 1. Try sending a message to the client (Handled by ServiceWorkerRegister.tsx)
+              // React 앱에 딥링크 메시지 전달
               focusedClient.postMessage({
                 type: 'NOTIFICATION_CLICK',
                 url: targetUrl
               });
 
-              // 2. Also try redirecting via param as backup (for full reloads)
+              // 백업: 파라미터 리다이렉트 (필요 시)
               const redirectUrl = new URL('/', self.location.origin);
               redirectUrl.searchParams.set('push_redirect', targetUrl);
               return focusedClient.navigate(redirectUrl.href);
@@ -75,15 +75,14 @@ self.addEventListener('notificationclick', (event) => {
           }
         }
 
-        // 2. If no window exists, open a new one
+        // 2. 창이 닫혀 있다면 PWA 윈도우로 오픈
         if (clients.openWindow) {
-          // Absolute URL is safer
-          const absoluteUrl = new URL(urlToOpen, self.location.origin).href;
-          return clients.openWindow(absoluteUrl);
+          return clients.openWindow(targetUrl);
         }
       })
   );
 });
+
 
 // (수동 푸시 이벤트 핸들러 삭제됨 - Firebase SDK(onBackgroundMessage)에 팝업 처리를 위임하여 충돌 방지)
 

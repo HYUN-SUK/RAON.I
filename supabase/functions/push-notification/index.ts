@@ -161,13 +161,11 @@ serve(async (req) => {
                             badge: "https://raon-i.co.kr/badge.png",       // 투명 단색 아이콘
                             image: heroImage,                                   // 큰 전경 이미지
                             requireInteraction: isReservation
-                        },
-                        fcm_options: {
-                            link: stringData.link
                         }
                     }
                 }
             };
+
 
             const res = await fetch(
                 `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,

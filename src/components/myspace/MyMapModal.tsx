@@ -15,6 +15,8 @@ import { useModalBackHandler } from '@/hooks/useModalBackHandler';
 import { toast } from 'sonner';
 
 
+import VerificationPromptModal from '@/components/moat/VerificationPromptModal';
+
 // Kakao Maps SDK Type Augmentation for TypeScript
 declare global {
     interface Window {
@@ -41,10 +43,36 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     });
 
     const { reservations } = useReservationStore();
-    const { mapItems, addMapItem, updateMapItem, targetLocation, setTargetLocation } = useMySpaceStore();
+    const { 
+        mapItems, 
+        addMapItem, 
+        updateMapItem, 
+        targetLocation, 
+        setTargetLocation,
+        optimisticRecordPin,
+        setOptimisticRecordPin,
+        pendingVerificationScheduleId,
+        setPendingVerificationScheduleId
+    } = useMySpaceStore();
     const { config } = useSiteConfig();
+
+    // 10초 기록 연계 팝업 상태
+    const [isPromptOpen, setIsPromptOpen] = useState(false);
+    const [promptScheduleId, setPromptScheduleId] = useState<string | null>(null);
+
+    // 모달 닫기 핸들러 (10초 기록 연계 진입 시에만 피드백 팝업 트리거)
+    const handleCloseWithPrompt = () => {
+        if (mode === 'view' && pendingVerificationScheduleId) {
+            const schedId = pendingVerificationScheduleId;
+            setPendingVerificationScheduleId(null); // 1회성 소멸
+            setPromptScheduleId(schedId);
+            setIsPromptOpen(true);
+        }
+        onClose();
+    };
+
     // [v11.9.108] 나만의 캠핑지도 모달 뒤로가기 닫힘 처리
-    useModalBackHandler(isOpen, onClose, 'myMapModal');
+    useModalBackHandler(isOpen, handleCloseWithPrompt, 'myMapModal');
 
     // UI States
     const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
@@ -102,19 +130,27 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         fetchRecords();
     }, [isOpen]);
 
-    // Combine Store Items + Record Items
+    // Combine Store Items + Record Items + Optimistic Pin (0초 핀 즉시 주입)
     const allMarkers = useMemo(() => {
-        // ID 중복 제거 (Store 아이템 우선)
         const storeIds = new Set(mapItems.map(i => i.id));
         const filteredRecords = recordItems.filter(r => !storeIds.has(r.id));
-        return [...mapItems, ...filteredRecords];
-    }, [mapItems, recordItems]);
+        let combined = [...mapItems, ...filteredRecords];
+
+        // 10초 기록 직후 주입된 핀이 있다면 최상위에 즉시 병합
+        if (optimisticRecordPin) {
+            combined = [optimisticRecordPin, ...combined.filter(m => m.id !== optimisticRecordPin.id)];
+        }
+
+        return combined;
+    }, [mapItems, recordItems, optimisticRecordPin]);
 
     // Map States
     const mapRef = useRef<any>(null); // Kakao Map Instance
-    const [center, setCenter] = useState<{ lat: number, lng: number }>(
-        { lat: DEFAULT_CAMPING_LOCATION.latitude, lng: DEFAULT_CAMPING_LOCATION.longitude }
-    );
+    const initialLat = targetLocation?.lat || optimisticRecordPin?.lat || DEFAULT_CAMPING_LOCATION.latitude;
+    const initialLng = targetLocation?.lng || optimisticRecordPin?.lng || DEFAULT_CAMPING_LOCATION.longitude;
+    const [center, setCenter] = useState<{ lat: number, lng: number }>({ lat: initialLat, lng: initialLng });
+    const initialLevel = (targetLocation || optimisticRecordPin) ? 4 : 10;
+
     // Temporary pin for adding new location
     const [pendingPin, setPendingPin] = useState<{ lat: number, lng: number, name?: string, address?: string } | null>(null);
     // Timestamp to skip map click after search selection (using window to bypass React closure)
@@ -456,11 +492,12 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleCloseWithPrompt}
             title={mode === 'schedule' ? '캠핑장 찾기' : '나만의 캠핑 지도'}
             fullScreen={true}
             className="flex flex-col bg-slate-50 overflow-y-auto"
         >
+
             {/* Search Bar - Floating (Top Right) */}
             <div className="absolute top-4 right-4 z-[100] w-auto flex flex-col items-end gap-2">
                 <div className={`bg-white rounded-full shadow-lg border border-gray-100 flex items-center px-4 py-2 transition-all duration-300 ${isSearching ? 'w-full max-w-sm' : 'w-12 h-12 p-0 justify-center'}`}>
@@ -589,10 +626,11 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     <Map
                         center={center}
                         style={{ width: "100%", height: "100%" }}
-                        level={10} // Initial Zoom Level (Country Wide like)
+                        level={initialLevel} // Initial Zoom Level (Country Wide 10 or Detailed 4 when target set)
                         onClick={handleMapClick}
                         ref={mapRef}
                     >
+
                         <MarkerClusterer
                             averageCenter={true}
                             minLevel={10} // Cluster at high levels (zoomed out)
@@ -850,6 +888,17 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 isNew={isAddingMode}
                 onSaveNew={handleSaveNew}
             />
+
+            {/* 10초 기록 연계 팩트 검증 피드백 유도 팝업 모달 */}
+            <VerificationPromptModal
+                isOpen={isPromptOpen}
+                scheduleId={promptScheduleId}
+                onClose={() => {
+                    setIsPromptOpen(false);
+                    setPromptScheduleId(null);
+                }}
+            />
         </Modal>
     );
 }
+

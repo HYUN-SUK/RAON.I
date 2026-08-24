@@ -40,7 +40,11 @@ interface ScheduleInfo {
     endDate: string;
 }
 
+import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
+import { UtensilsCrossed } from 'lucide-react';
+
 interface QuickRecordFormProps {
+
     isOpen: boolean;
     onClose: () => void;
     scheduleId?: string;
@@ -400,33 +404,76 @@ export default function QuickRecordForm({
                                 </p>
                             </div>
                             <div className="pt-4 space-y-2.5 max-w-xs mx-auto">
+                                {/* 버튼 1: 내 캠핑 지도에서 핀 확인하기 */}
                                 <Button
                                     onClick={() => {
-                                        // 락인 액션: 전역 지도 모달 오픈
-                                        const lat = selectedLocation?.lat || scheduleInfo?.latitude;
-                                        const lng = selectedLocation?.lng || scheduleInfo?.longitude;
-                                        if (lat && lng) {
-                                            useMySpaceStore.getState().setTargetLocation({
-                                                lat,
-                                                lng,
-                                                name: name || '캠핑 기록'
-                                            });
+                                        // 락인 액션: 10초 기록 연계 팝업용 스케줄 ID 보관
+                                        if (scheduleId) {
+                                            useMySpaceStore.getState().setPendingVerificationScheduleId(scheduleId);
                                         }
+
+                                        // 좌표 보정 (누락 시 라온아이 기본 좌표로 100% 자동 폴백)
+                                        const lat = selectedLocation?.lat || scheduleInfo?.latitude || DEFAULT_CAMPING_LOCATION.latitude;
+                                        const lng = selectedLocation?.lng || scheduleInfo?.longitude || DEFAULT_CAMPING_LOCATION.longitude;
+                                        const pinName = name || scheduleInfo?.title || '나의 캠핑 기록';
+
+                                        // 0초 즉시 핀 주입 (Optimistic Injection)
+                                        useMySpaceStore.getState().setOptimisticRecordPin({
+                                            id: `record-opt-${Date.now()}`,
+                                            siteName: pinName,
+                                            x: 50,
+                                            y: 50,
+                                            lat: lat,
+                                            lng: lng,
+                                            visitedDate: new Date().toISOString(),
+                                            isStamped: true,
+                                            address: address || scheduleInfo?.campgroundAddress || '충청남도 예산군 응봉면 응봉서로 280',
+                                            photos: photoUrl ? [photoUrl] : [],
+                                            memo: content,
+                                            rating: rating,
+                                            isFavorite: false,
+                                            tags: selectedTags
+                                        });
+
+                                        useMySpaceStore.getState().setTargetLocation({
+                                            lat,
+                                            lng,
+                                            name: pinName
+                                        });
+
                                         useMySpaceStore.getState().setIsMapOpen(true);
                                         handleClose();
                                     }}
-                                    className="w-full bg-[#224732] hover:bg-[#1a3626] text-white font-bold h-12 rounded-xl shadow-lg"
+                                    className="w-full bg-[#224732] hover:bg-[#1a3626] text-white font-bold h-12 rounded-xl shadow-lg transition-transform active:scale-98"
                                 >
-                                    내 캠핑 지도에서 핀 확인하기
+                                    ⛺ 내 캠핑 지도에서 핀 확인하기
                                 </Button>
+
+                                {/* 버튼 2: 추천 맛집/명소 피드백 남기기 황금색 버튼 */}
+                                {scheduleId && (
+                                    <Button
+                                        onClick={() => {
+                                            useMySpaceStore.getState().setPendingVerificationScheduleId(null);
+                                            handleClose();
+                                            router.push(`/verify/${scheduleId}`);
+                                        }}
+                                        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-stone-950 font-black h-12 rounded-xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5 transition-transform active:scale-98"
+                                    >
+                                        <UtensilsCrossed className="w-4 h-4" />
+                                        <span>🌟 추천 맛집·명소 의견 남기기 (+100P)</span>
+                                    </Button>
+                                )}
+
+                                {/* 버튼 3: 닫기 */}
                                 <button
                                     onClick={handleClose}
-                                    className="w-full text-sm font-medium text-gray-400 hover:text-gray-600 py-2"
+                                    className="w-full text-xs font-semibold text-gray-400 hover:text-gray-600 py-1.5 transition-colors"
                                 >
                                     닫기
                                 </button>
                             </div>
                         </div>
+
                     ) : (
                         /* 10초 콤팩트 작성 폼 (이모지 & 태그 최상단 배치) */
                         <div className="py-4 space-y-4">
