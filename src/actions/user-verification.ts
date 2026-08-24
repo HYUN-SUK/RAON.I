@@ -49,19 +49,20 @@ export async function getScheduleVerifyCards(scheduleId: string): Promise<{ succ
     try {
         const supabase = await createClient();
 
-        // 1) 스마트플랜 데이터 조회
-        const { data: planRecord, error: planErr } = await supabase
-            .from('smart_plan_data')
-            .select('plan_data')
-            .eq('schedule_id', scheduleId)
+        // 1) user_schedules에서 스마트플랜 데이터 조회
+        const { data: schedule, error: schedErr } = await supabase
+            .from('user_schedules')
+            .select('id, smart_plan_data')
+            .eq('id', scheduleId)
             .single();
 
-        if (planErr || !planRecord || !planRecord.plan_data) {
+        if (schedErr || !schedule || !schedule.smart_plan_data) {
             return { success: false, data: [], error: '일정 플랜 데이터를 찾을 수 없습니다.' };
         }
 
-        const rawData = planRecord.plan_data;
-        const plan = rawData.wrapped ? rawData.ai_plan : rawData;
+        const rawData = schedule.smart_plan_data;
+        const plan = rawData.wrapped ? (rawData.ai_plan || rawData) : rawData;
+
 
         // 2) 카테고리 필터링: 식당/카페/명소/축제 대상만 추출 (마트/주유소/병원은 화면 A에서 제외)
         const eligibleCards: Array<{ card: any; stage: string }> = [];

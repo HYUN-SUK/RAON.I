@@ -68,6 +68,7 @@ export async function getSchedulesForVerification(): Promise<{ success: boolean;
                 check_in_date,
                 check_out_date,
                 status,
+                smart_plan_data,
                 profiles:user_id ( full_name, phone_number ),
                 reservations:reservation_id ( site_name )
             `)
@@ -79,16 +80,9 @@ export async function getSchedulesForVerification(): Promise<{ success: boolean;
             return { success: false, data: [], error: schedErr.message };
         }
 
-        // 2) 스마트플랜 데이터 존재 여부 확인
         const scheduleIds = (schedules || []).map(s => s.id);
-        const { data: planDataList } = await supabase
-            .from('smart_plan_data')
-            .select('schedule_id')
-            .in('schedule_id', scheduleIds);
 
-        const planMap = new Set((planDataList || []).map(p => p.schedule_id));
-
-        // 3) 기존 검증 건수 확인
+        // 2) 기존 검증 건수 확인
         const { data: verifList } = await supabase
             .from('place_verifications')
             .select('schedule_id')
@@ -114,7 +108,7 @@ export async function getSchedulesForVerification(): Promise<{ success: boolean;
                 checkInDate: s.check_in_date,
                 checkOutDate: s.check_out_date,
                 siteName: resv?.site_name || '',
-                hasPlan: planMap.has(s.id),
+                hasPlan: !!s.smart_plan_data,
                 verificationCount: verifCountMap.get(s.id) || 0,
             };
         });
@@ -133,19 +127,20 @@ export async function getScheduleFactCards(scheduleId: string): Promise<{ succes
     try {
         const supabase = await createClient();
 
-        // 1) 스마트플랜 데이터 조회
-        const { data: planRecord, error: planErr } = await supabase
-            .from('smart_plan_data')
-            .select('plan_data')
-            .eq('schedule_id', scheduleId)
+        // 1) user_schedules에서 스마트플랜 데이터 조회
+        const { data: schedule, error: schedErr } = await supabase
+            .from('user_schedules')
+            .select('id, smart_plan_data')
+            .eq('id', scheduleId)
             .single();
 
-        if (planErr || !planRecord || !planRecord.plan_data) {
+        if (schedErr || !schedule || !schedule.smart_plan_data) {
             return { success: false, data: [], error: '스마트플랜 데이터가 존재하지 않습니다.' };
         }
 
-        const rawData = planRecord.plan_data;
-        const plan = rawData.wrapped ? rawData.ai_plan : rawData;
+        const rawData = schedule.smart_plan_data;
+        const plan = rawData.wrapped ? (rawData.ai_plan || rawData) : rawData;
+
 
         // 2) 11개 활성 카드 수집 (목적지 5개 + 가는길 3개 + 귀갓길 3개)
         const extracted: Array<{ card: any; stage: string; stageName: string }> = [];
