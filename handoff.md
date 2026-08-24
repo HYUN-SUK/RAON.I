@@ -33,6 +33,12 @@
   - 서비스 워커 `notificationclick`에서 기기에 설치된 라온아이 PWA 독립 앱을 최우선으로 깨우고(`focus()`), 내부 화면으로 부드럽게 딥링크 라우팅.
   - 앱이 없는 웹 사용자는 웹브라우저로 자연스럽게 열리도록 완벽 자동 분기.
 
+### 1-4. 스마트플랜 1년 보존 정책 및 팩트체크 추천 장소 조회 경로 완결
+- **`user_schedules.smart_plan_data` 컬럼 직접 조회 (`user-verification.ts` & `admin-verification.ts`)**:
+  - 기존의 잘못된 테이블 조회를 바로잡아 사용자가 실제로 추천받고 방문했던 맛집·명소·카페 카드 15~20곳(최대 8곳 표출)이 팩트체크 화면(`/verify/[scheduleId]`)과 관리자 화면에 **100% 정상 표출**.
+  - 임시 후보군 풀(`smart_plan_candidates`)만 7일 후 정리하고 유저의 최종 스마트플랜은 1년 이상 영구 보존(10만 명 기준 추가비용 0원).
+
+
 ---
 
 ## 2. 주요 기술적 결정 사항 (Architectural Decisions)
