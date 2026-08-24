@@ -383,12 +383,12 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
             </div>
 
             {/* Bottom Floating CTA Bar (화면 하단 상시 고정) */}
-            <div className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto p-4 bg-white/95 backdrop-blur-md border-t border-stone-200/80 shadow-2xl z-30">
+            <div className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto p-4 pb-6 bg-white/95 backdrop-blur-md border-t border-stone-200 shadow-2xl z-50">
                 <Button
                     size="lg"
                     disabled={isSubmitting}
                     onClick={handleSubmitPicks}
-                    className={`w-full h-12 font-black rounded-2xl shadow-md text-sm transition-all flex items-center justify-center gap-2 active:scale-98 ${
+                    className={`w-full h-13 font-black rounded-2xl shadow-lg text-sm transition-all flex items-center justify-center gap-2 active:scale-98 ${
                         selectedPlaceIds.length > 0
                             ? 'bg-[#224732] hover:bg-[#1C3B29] text-white shadow-emerald-900/20'
                             : 'bg-stone-800 hover:bg-stone-900 text-stone-100 shadow-stone-900/10'
@@ -396,7 +396,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                 >
                     {selectedPlaceIds.length > 0 ? (
                         <>
-                            <Sparkles className="w-4 h-4 text-amber-300" />
+                            <Sparkles className="w-4 h-4 text-amber-300 animate-bounce" />
                             <span>🌟 {selectedPlaceIds.length}곳 내 지도에 담고 +100P 받기</span>
                         </>
                     ) : (
@@ -410,4 +410,5 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
         </div>
     );
 }
+
 

@@ -51,8 +51,14 @@ export default function BottomNav() {
         return badges[target] || 0;
     };
 
+    // 팩트체크/의견수집 화면(/verify)에서는 하단 탭 메뉴 숨김 (전용 액션 바 공간 확보)
+    if (pathname.startsWith('/verify')) {
+        return null;
+    }
+
     return (
         <nav className="fixed bottom-0 w-full max-w-[430px] h-[80px] bg-white/90 backdrop-blur-md border-t border-surface-2 flex justify-around items-center z-50 pb-4">
+
             {tabs.map((tab) => {
                 const isActive = pathname === tab.href;
                 const badgeCount = getBadgeCount(tab.badgeTarget);
