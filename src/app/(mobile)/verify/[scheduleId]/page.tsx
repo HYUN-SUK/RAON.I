@@ -291,18 +291,19 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
     // 화면 A: 좋았던 곳 내 지도에 담기 (기본)
     // ==========================================
     return (
-        <div className="min-h-screen bg-[#F7F5EF] p-5 flex flex-col justify-between animate-fadeIn">
+        <div className="min-h-screen bg-[#F7F5EF] p-5 pb-32 flex flex-col justify-between animate-fadeIn relative">
             <div className="space-y-4 pt-2">
                 {/* 상단 Skip & Header */}
                 <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#224732] bg-[#224732]/10 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-[#224732] bg-[#224732]/10 px-2.5 py-1 rounded-full">
                         캠핑 후 가벼운 기록
                     </span>
                     <button
                         onClick={handleSkip}
-                        className="text-xs text-stone-400 hover:text-stone-600 font-semibold"
+                        className="px-3 py-1.5 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs flex items-center gap-1 shadow-xs transition-all active:scale-95"
                     >
-                        다음에 하기
+                        <span>다음에 하기</span>
+                        <X className="w-3.5 h-3.5 text-stone-500" />
                     </button>
                 </div>
 
@@ -323,7 +324,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                 </div>
 
                 {/* 8개 한정 칩 카드 그리드 */}
-                <div className="space-y-2.5 pt-2 max-h-[58vh] overflow-y-auto pr-1">
+                <div className="space-y-2.5 pt-2">
                     {cards.length === 0 ? (
                         <div className="p-12 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
                             추천 장소 내역이 없습니다.
@@ -381,22 +382,32 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                 </div>
             </div>
 
-            {/* Bottom CTA Bar */}
-            <div className="pt-4 pb-2">
+            {/* Bottom Floating CTA Bar (화면 하단 상시 고정) */}
+            <div className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto p-4 bg-white/95 backdrop-blur-md border-t border-stone-200/80 shadow-2xl z-30">
                 <Button
                     size="lg"
                     disabled={isSubmitting}
                     onClick={handleSubmitPicks}
-                    className="w-full py-4 bg-[#224732] hover:bg-[#1C3B29] text-white font-bold rounded-2xl shadow-md text-sm transition-all flex items-center justify-center gap-2"
+                    className={`w-full h-12 font-black rounded-2xl shadow-md text-sm transition-all flex items-center justify-center gap-2 active:scale-98 ${
+                        selectedPlaceIds.length > 0
+                            ? 'bg-[#224732] hover:bg-[#1C3B29] text-white shadow-emerald-900/20'
+                            : 'bg-stone-800 hover:bg-stone-900 text-stone-100 shadow-stone-900/10'
+                    }`}
                 >
-                    <Heart className="w-4 h-4 text-emerald-300" />
-                    <span>
-                        {selectedPlaceIds.length > 0
-                            ? `${selectedPlaceIds.length}곳 내 지도에 담기`
-                            : '선택 없이 넘어가기'}
-                    </span>
+                    {selectedPlaceIds.length > 0 ? (
+                        <>
+                            <Sparkles className="w-4 h-4 text-amber-300" />
+                            <span>🌟 {selectedPlaceIds.length}곳 내 지도에 담고 +100P 받기</span>
+                        </>
+                    ) : (
+                        <>
+                            <span>선택 없이 다음으로 넘어가기</span>
+                            <ArrowRight className="w-4 h-4 text-stone-400" />
+                        </>
+                    )}
                 </Button>
             </div>
         </div>
     );
 }
+
