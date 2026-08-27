@@ -1,5 +1,12 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **캠핏 알림톡 상호명 오인 스킵 완치 및 [RAON.I_APP] 고유 차단 태그 정립 (2026-08-27 핫픽스 완료)**
+    - [x] 1. 캠핏 알림톡 본문 속 '라온아이오토캠핑장' 상호명으로 인한 일반 예약/취소 알림톡 무한루프 오인 스킵 결함 완치 (`src/app/api/integration/camfit-webhook/route.ts`)
+    - [x] 2. 크롬 확장프로그램 캠핏 차단 등록 시 고객명 및 메모 고유 영문 태그(`[RAON.I_APP]`, `[RAON.I_APP_BLOCK]`) 주입 고도화 (`raoni-camfit-sync-extension/content.js`)
+    - [x] 3. 무한루프 방지 조건 정밀화 (`[RAON.I`, `(RAON.I`, `[라온아이`, `(라온아이)` 태그만 선별 스킵 및 일반 알림톡 100% 정상 통과 검증)
+    - [x] 4. 누락되었던 과거 알림톡 데이터 백필: 철수네 강전일 님 예약 취소(`CANCELLED`) 및 임기석 님 신규 예약(`PENDING`) DB 완벽 동기화
+    - [x] 5. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **10초 기록 의견수집 2중 유도·나만의 캠핑지도 0초 핀 고속화·PWA 푸시 분기 (2026-08-24 완료)**
     - [x] 1. 10초 기록 완료 화면에 `[ 🌟 추천 맛집·명소 의견 남기기 (+100P) ]` 황금색 버튼 신설 (`QuickRecordForm.tsx`)
     - [x] 2. 10초 기록 연계 지도 이탈 전용 피드백 유도 바텀시트 모달(`VerificationPromptModal.tsx`) 신설

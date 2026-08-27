@@ -38,9 +38,9 @@ async function handleCamfitBlock(item) {
             siteName: siteName,
             startDate: checkInDate,
             endDate: checkOutDate,
-            guestName: `${guestName} (라온아이)`,
+            guestName: `${guestName} [RAON.I_APP]`,
             guestPhone: guestPhone,
-            memo: memo || `[라온아이 앱 예약] ${guestName} (${guestPhone})`,
+            memo: memo || `[RAON.I_APP_BLOCK] ${guestName} (${guestPhone})`,
             type: 'MANUAL_BLOCK'
         };
 

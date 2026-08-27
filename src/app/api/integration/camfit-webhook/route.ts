@@ -177,8 +177,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'EMPTY_MESSAGE', message: '수신된 알림톡 문자 텍스트가 비어 있습니다.' }, { status: 400 });
     }
 
-    // [무한 루프(Echo Loop) 방지] 라온아이가 캠핏에 자동 차단한 건은 중복 처리 스킵
-    if (messageRaw.includes('라온아이') || messageRaw.includes('RAON.I') || messageRaw.includes('라온i')) {
+    // [무한 루프(Echo Loop) 방지] 라온아이 앱에서 캠핏으로 자동 차단한 건만 중복 처리 스킵
+    // 주의: 캠핏의 기본 상호명 '라온아이오토캠핑장'으로 인해 일반 고객 알림톡이 스킵되지 않도록 고유 시그니처 태그만 검사
+    const isEchoFromRaonApp = 
+        messageRaw.includes('[RAON.I') || 
+        messageRaw.includes('(RAON.I') || 
+        messageRaw.includes('[라온아이') || 
+        messageRaw.includes('(라온아이)');
+
+    if (isEchoFromRaonApp) {
         await supabase.from('camfit_integration_logs').insert({
             message_raw: messageRaw,
             external_id: null,
