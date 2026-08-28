@@ -42,6 +42,11 @@ export async function middleware(request: NextRequest) {
 
     // 2. Protect /api/admin backend routes (Require Admin Session or CRON_SECRET)
     if (pathname.startsWith('/api/admin')) {
+        // [Whitelisted] 캠핏 실시간 예약 동기화 확장프로그램 API는 인증 예외 통과
+        if (pathname.startsWith('/api/admin/camfit-sync')) {
+            return NextResponse.next();
+        }
+
         const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
         const isCron = !!process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`;
         const isAdmin = user && (

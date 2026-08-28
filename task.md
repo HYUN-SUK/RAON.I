@@ -1,5 +1,10 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **캠핏 동기화 API 미들웨어 401 권한 해제 및 통신 완전 개통 (2026-08-28 완결)**
+    - [x] 1. `src/middleware.ts`에서 `/api/admin/camfit-sync/*` 경로 인증 예외 통과 설정
+    - [x] 2. 확장프로그램 401 권한 거부 완전 해소
+    - [x] 3. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **과거 누적 큐 클린업 및 실시간 즉시 연동 최적화 (2026-08-28 완결)**
     - [x] 1. 과거 누적 예약 144건 일괄 완료 처리로 큐 병목 완전 해소 (`scratch/cleanup_legacy_queue.mjs`)
     - [x] 2. 큐 API 최근 24시간 실시간 변경분 집중 및 최신순 정렬 (`src/app/api/admin/camfit-sync/queue/route.ts`)
