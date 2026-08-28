@@ -52,6 +52,23 @@ async function waitForElement(selectorFn, maxWaitMs = 5000, intervalMs = 200) {
 }
 
 /**
+ * 텍스트 기반 물리 좌표(Y축) 정렬 버튼 탐색 헬퍼 (태그 무관)
+ */
+function findButtonsByText(targetText) {
+    const allElements = Array.from(document.querySelectorAll('button, div, span, a, p, input[type="button"], input[type="submit"]'));
+    const matches = allElements.filter(el => {
+        const t = (el.innerText || el.textContent || el.value || '').trim();
+        const rect = el.getBoundingClientRect();
+        const isVisible = el.offsetParent !== null && rect.height > 0 && rect.width > 0;
+        // 텍스트가 정확히 일치하거나 포함하면서 자식 텍스트가 너무 길지 않은 인터랙티브 요소
+        return isVisible && (t === targetText || (t.startsWith(targetText) && t.length < targetText.length + 5));
+    });
+
+    // Y 좌표(화면 상단으로부터의 거리) 기준 오름차순 정렬 (가장 위쪽 요소가 0번 인덱스)
+    return matches.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+}
+
+/**
  * 캠핏 관리자 페이지 내에서 사이트 자동 차단/생성/취소를 실행하는 핵심 엔진
  */
 async function handleCamfitSync(item) {
@@ -171,21 +188,16 @@ async function handleCamfitSync(item) {
 
             await delay(300);
 
-            // 3) 상단 [적용] 버튼 클릭 (상단 영역 우선, 없으면 전역 탐색)
-            const topApplyBtn = Array.from(topBlockSection.querySelectorAll('button, a, input[type="button"], input[type="submit"]')).find(btn => {
-                const t = (btn.innerText || btn.value || '').trim();
-                return t === '적용' || t.includes('적용');
-            }) || Array.from(document.querySelectorAll('button')).find(btn => {
-                const t = (btn.innerText || '').trim();
-                return t === '적용' || t.includes('적용');
-            });
+            // 3) 상단 [적용] 버튼 클릭 (물리 좌표 Y축 최소값 = 화면 최상단 적용 버튼)
+            const applyButtons = findButtonsByText('적용');
+            const topApplyBtn = applyButtons[0]; // 화면에서 가장 위쪽에 위치한 상단 적용 버튼
 
             if (topApplyBtn) {
-                console.log('[Raoni Sync] Clicking Top Apply Button:', topApplyBtn);
+                console.log('[Raoni Sync] Clicking Top Apply Button (Geometry Top):', topApplyBtn);
                 topApplyBtn.click();
                 await delay(800);
             } else {
-                throw new Error('상단 [적용] 버튼을 찾을 수 없습니다.');
+                throw new Error('화면에서 [적용] 버튼을 찾을 수 없습니다.');
             }
 
             showInPageToast(`✓ [라온아이] ${subSiteName || targetGroup} 입금대기 자동 차단 완료! (빨강)`, true);
@@ -197,13 +209,12 @@ async function handleCamfitSync(item) {
         else if (action === 'CREATE_RESERVATION') {
             console.log('[Raoni Sync] Executing CREATE_RESERVATION (Unblock Top + Create Bottom)...');
 
-            // 1) 상단에 걸려있던 예약불가 [해제] 버튼이 있다면 먼저 해제
-            const topUnblockBtn = Array.from(topBlockSection.querySelectorAll('button')).find(btn => {
-                const t = (btn.innerText || '').trim();
-                return t === '해제' || t.includes('해제');
-            });
+            // 1) 상단에 걸려있던 예약불가 [해제] 버튼이 있다면 먼저 해제 (Y축 최상단 해제 버튼)
+            const unblockButtons = findButtonsByText('해제');
+            const topUnblockBtn = unblockButtons[0];
+
             if (topUnblockBtn) {
-                console.log('[Raoni Sync] Clearing Top Block first...');
+                console.log('[Raoni Sync] Clearing Top Block first (Geometry Top):', topUnblockBtn);
                 topUnblockBtn.click();
                 await delay(600);
                 const confirmBtn = document.querySelector('.modal-confirm, button.confirm, button.primary');
@@ -212,10 +223,10 @@ async function handleCamfitSync(item) {
 
             // 2) 하단 테이블에서 [예약 생성] 버튼 탐색 및 클릭
             const targetScope = targetSiteRow || bottomSiteSection || document;
-            const createResBtn = Array.from(targetScope.querySelectorAll('button, a, span')).find(btn => {
+            const createResBtn = Array.from(targetScope.querySelectorAll('button, a, span, div')).find(btn => {
                 const t = (btn.innerText || '').trim();
                 return t === '예약 생성' || t.includes('예약 생성') || t.includes('직접 예약');
-            }) || Array.from(document.querySelectorAll('button, a, span')).find(btn => {
+            }) || Array.from(document.querySelectorAll('button, a, span, div')).find(btn => {
                 const t = (btn.innerText || '').trim();
                 return t === '예약 생성' || t.includes('예약 생성');
             });
@@ -236,7 +247,7 @@ async function handleCamfitSync(item) {
 
                 await delay(300);
 
-                const saveBtn = Array.from(modal.querySelectorAll('button')).find(b => {
+                const saveBtn = Array.from(modal.querySelectorAll('button, a, div')).find(b => {
                     const t = (b.innerText || '').trim();
                     return t === '저장' || t === '예약' || t.includes('완료') || t.includes('등록') || t.includes('확인');
                 });
@@ -252,7 +263,7 @@ async function handleCamfitSync(item) {
                 const memoInput = targetScope.querySelector('input[type="text"], input[placeholder*="메모"]');
                 if (memoInput) {
                     setNativeInputValue(memoInput, memo || `[RAON.I_APP_BLOCK] 입금완료 - ${guestName}`);
-                    const applyBtn = Array.from(targetScope.querySelectorAll('button')).find(btn => (btn.innerText || '').includes('적용'));
+                    const applyBtn = Array.from(targetScope.querySelectorAll('button, div')).find(btn => (btn.innerText || '').includes('적용'));
                     if (applyBtn) { applyBtn.click(); await delay(800); }
                 }
             }
