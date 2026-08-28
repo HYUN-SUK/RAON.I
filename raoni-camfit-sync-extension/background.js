@@ -171,16 +171,24 @@ async function sendAck(serverUrl, item, status, errorMessage = '') {
     }
 }
 
-// 6. 브라우저 데스크톱 알림
+// 6. 브라우저 데스크톱 알림 (안전 가드)
 function showNotification(title, message) {
-    if (chrome.notifications) {
-        chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23224732"><path d="M12 2L2 22h20L12 2zm0 4l6.5 13H5.5L12 6z"/></svg>',
-            title: title,
-            message: message,
-            priority: 2
-        });
+    try {
+        if (chrome.notifications && chrome.notifications.create) {
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                title: title,
+                message: message,
+                priority: 2
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    console.log('[Raoni Sync] Notification notice (ignored):', chrome.runtime.lastError.message);
+                }
+            });
+        }
+    } catch (notifErr) {
+        console.warn('[Raoni Sync] showNotification safely bypassed:', notifErr);
     }
 }
 

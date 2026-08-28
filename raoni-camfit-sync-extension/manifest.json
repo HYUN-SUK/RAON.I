@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "라온아이 ↔ 캠핏 실시간 예약 동기화 마스터",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "라온아이 앱 예약 발생 시 켜져 있는 캠핏 관리자 화면에서 해당 사이트를 실시간으로 자동 차단(빨강), 확정(초록), 취소(해제)합니다.",
   "permissions": [
     "storage",

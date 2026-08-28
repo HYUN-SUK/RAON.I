@@ -1,5 +1,10 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **알림창 에러 완치 및 실시간 큐 복구 완결 (2026-08-28 완결)**
+    - [x] 1. `showNotification` base64 PNG 적용 및 `try-catch` 안전 가드 (`raoni-camfit-sync-extension/background.js`)
+    - [x] 2. 서버 큐 엔드포인트 `count: 1` (`9/8~9/10 철수네`) 정상 대기 복구
+    - [x] 3. 확장프로그램 v2.5.0 릴리즈 & TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **캠핏 [적용] ➔ [확인] 팝업 자동 승인 및 패널 닫기 완결 (2026-08-28 완결)**
     - [x] 1. [적용] 클릭 후 '예약불가 기간 등록' [확인] 버튼 0.3초 만에 자동 클릭 (`raoni-camfit-sync-extension/content.js`)
     - [x] 2. 우측 상단 `X` 닫기 버튼 클릭하여 캘린더 화면 복귀 및 실시간 차단 렌더링
