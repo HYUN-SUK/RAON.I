@@ -195,7 +195,34 @@ async function handleCamfitSync(item) {
             if (topApplyBtn) {
                 console.log('[Raoni Sync] Clicking Top Apply Button (Geometry Top):', topApplyBtn);
                 topApplyBtn.click();
-                await delay(800);
+                await delay(600);
+
+                // 4) 화면 중앙에 나타난 '예약불가 기간이 등록되었습니다' [확인] 버튼 자동 클릭
+                const confirmButtons = findButtonsByText('확인');
+                const popupConfirmBtn = confirmButtons[0] || Array.from(document.querySelectorAll('button, div, span, a')).find(b => {
+                    const t = (b.innerText || '').trim();
+                    return t === '확인' || t.includes('확인');
+                });
+
+                if (popupConfirmBtn) {
+                    console.log('[Raoni Sync] Auto-confirming registration popup:', popupConfirmBtn);
+                    popupConfirmBtn.click();
+                    await delay(600);
+                }
+
+                // 5) 우측 패널 'X' (닫기) 버튼 클릭하여 캘린더 화면 복귀
+                const closeBtn = Array.from(document.querySelectorAll('button, div, span, i, svg')).find(el => {
+                    const t = (el.innerText || '').trim();
+                    const aria = el.getAttribute('aria-label') || '';
+                    const cls = el.className || '';
+                    return t === '✕' || t === '×' || t === 'X' || t === 'x' || aria.includes('close') || (typeof cls === 'string' && cls.includes('close'));
+                });
+
+                if (closeBtn) {
+                    console.log('[Raoni Sync] Closing side panel:', closeBtn);
+                    closeBtn.click();
+                    await delay(500);
+                }
             } else {
                 throw new Error('화면에서 [적용] 버튼을 찾을 수 없습니다.');
             }
