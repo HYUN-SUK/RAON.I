@@ -261,12 +261,53 @@ const generateId = (source, name, addr) => {
 // --- [Phase 1: 공통 방어막 (Exponential Backoff + Jitter)] ---
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
+/**
+ * 지능형 2단계 타임아웃 헬퍼
+ * - connectTimeoutMs: 첫 응답 헤더 수신까지 대기 (기본 10초) - 죽은 서버 10초 만에 탈출
+ * - streamTimeoutMs: 데이터 스트리밍 다운로드 중에는 충분한 시간 보장 (기본 90초)
+ */
+async function fetchWithTwoStageTimeout(url, options = {}, connectTimeoutMs = 10000, streamTimeoutMs = 90000) {
+  const controller = new AbortController();
+  let streamTimer = null;
+
+  const connectTimer = setTimeout(() => {
+    controller.abort(new Error(`Connect timeout after ${connectTimeoutMs}ms`));
+  }, connectTimeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+
+    clearTimeout(connectTimer);
+
+    if (res.ok && res.body) {
+      streamTimer = setTimeout(() => {
+        controller.abort(new Error(`Stream download timeout after ${streamTimeoutMs}ms`));
+      }, streamTimeoutMs);
+
+      if (typeof res.body.on === 'function') {
+        res.body.on('end', () => { if (streamTimer) clearTimeout(streamTimer); });
+        res.body.on('error', () => { if (streamTimer) clearTimeout(streamTimer); });
+        res.body.on('close', () => { if (streamTimer) clearTimeout(streamTimer); });
+      }
+    }
+
+    return res;
+  } catch (err) {
+    clearTimeout(connectTimer);
+    if (streamTimer) clearTimeout(streamTimer);
+    throw err;
+  }
+}
+
 async function fetchWithRetry(url, options = {}, maxRetries = 5) {
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
       const mergedOptions = {
-        timeout: 30000, // [v14.0 Upgrade] 공공데이터포털 지연 방어를 위해 30초 타임아웃 적용
+        timeout: 20000, // [v14.1 Upgrade] 20초 타임아웃 적용
         ...options,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -478,30 +519,39 @@ async function dailyRegionSync() {
 
   const seenIds = new Set();
 
+  // [실시간 점진적 로깅] 1단계: 시작 시 RUNNING 레코드 생성
+  let currentLogId = await updateAutomationLog(null, stats, 'RUNNING', `${targetSido} 지역 순환 동기화 시작`);
+
   // 2. 카테고리별 동기화 실행
   // [2.1] 식당군 (모범/안심/백년/LX)
+  console.log(`\n🍽️ [Step 2.1] 식당군 동기화 시작 (${targetSido})...`);
   await syncLocalDataCSV(targetSido, seenIds, stats, 'RESTAURANT');
   await syncSafeRestaurants(targetSido, seenIds, stats.categories.SAFE);
   await syncLXRestaurants(targetSido, seenIds, stats.categories.LX);
   await syncBaeknyeon(targetSido, seenIds, stats.categories.BAEK);
+  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 식당군 수집 완료`);
 
   // [2.2] 마트군 (대규모/기타식품)
+  console.log(`\n🛒 [Step 2.2] 마트군 동기화 시작 (${targetSido})...`);
   await syncLocalDataCSV(targetSido, seenIds, stats, 'MART');
+  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 마트군 수집 완료`);
 
   // [2.3] 명소군 (관광공사 지역기반 동기화) - KorService2
+  console.log(`\n🏞️ [Step 2.3] 관광명소 동기화 시작 (${targetSido})...`);
   await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
+  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 관광명소 수집 완료`);
 
   // [2.4] 병원군 (응급의료기관 동기화)
+  console.log(`\n🏥 [Step 2.4] 병원 동기화 시작 (${targetSido})...`);
   await syncHospitals(targetSido, seenIds, stats.categories.HOSPITAL);
+  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 병원 수집 완료`);
 
   // [2.5] 상세 정보 갱신 (100일 만료 / 미수집 대상 수집)
   await syncPlaceDetailsEnrichment(targetSido, stats.categories.ENRICHMENT);
 
-    // --- [SOP v12.0 Step 9: KTO Municipality Popularity Sync (Robust)] --- 
-    console.log(`\n9. [Popularity] Fetching KTO Official Ranking (Original Code Tracking)...`);
+    // --- [SOP v12.0 Step 9: KTO Municipality Popularity Sync (5-Worker 병렬 최적화)] --- 
+    console.log(`\n9. [Popularity] Fetching KTO Official Ranking (5-Worker 병렬 처리)...`);
     
-    // Use the same proven getAdminCodes() approach as Popularity Engine v2
-    // 1. Fetch active SPOT sigungus for the target Sido
     const { data: ktoSpots } = await supabase
         .from('master_places')
         .select('sigungu')
@@ -526,7 +576,6 @@ async function dailyRegionSync() {
 
     console.log(`   - Detected ${regionMap.length} KTO-standard sigungus in ${targetSido}.`);
 
-    // --- [In-Memory Lookup Map Optimization] ---
     console.log(`🔍 [Popularity] Pre-fetching master_places and smart_plan_facts for in-memory matching...`);
     const { data: dbSpots } = await supabase
         .from('master_places')
@@ -560,91 +609,83 @@ async function dailyRegionSync() {
     }
     console.log(`   - Loaded ${dbSpots?.length || 0} spots and ${dbSpfs?.length || 0} facts to memory.`);
 
-    for (const reg of regionMap) {
-        try {
-            const baseYm = await findLatestBaseYm();
-            const params = new URLSearchParams({ 
-                serviceKey: TOUR_API_KEY, 
-                numOfRows: '100', 
-                pageNo: '1', 
-                MobileOS: 'ETC', 
-                MobileApp: 'RAONAI', 
-                _type: 'json', 
-                areaCode: reg.areaCode, 
-                contentTypeId: '12'
-            });
-            if (reg.sigunguCode) params.append('sigunguCode', reg.sigunguCode);
+    // 5-Worker 병렬 파이프라인 적용
+    const KTO_CONCURRENCY = 5;
+    for (let cIdx = 0; cIdx < regionMap.length; cIdx += KTO_CONCURRENCY) {
+        const chunk = regionMap.slice(cIdx, cIdx + KTO_CONCURRENCY);
+        await Promise.allSettled(chunk.map(async (reg) => {
+            try {
+                const baseYm = CACHED_BASE_YM || await findLatestBaseYm();
+                const params = new URLSearchParams({ 
+                    serviceKey: TOUR_API_KEY, 
+                    numOfRows: '100', 
+                    pageNo: '1', 
+                    MobileOS: 'ETC', 
+                    MobileApp: 'RAONAI', 
+                    _type: 'json', 
+                    areaCode: reg.areaCode, 
+                    contentTypeId: '12'
+                });
+                if (reg.sigunguCode) params.append('sigunguCode', reg.sigunguCode);
 
-            const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`;
-            const data = await fetchWithRetry(url);
-            const items = data.response?.body?.items?.item || [];
+                const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`;
+                const data = await fetchWithRetry(url, {}, 2);
+                const items = data.response?.body?.items?.item || [];
 
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                const contentId = String(item.contentId || item.contentid || '');
-                const title = (item.title || item.name || '').trim();
-                const addr = item.addr1 || item.address || '';
-                const rank = i + 1;
-                const mapx = parseFloat(item.mapx || item.lng || 0);
-                const mapy = parseFloat(item.mapy || item.lat || 0);
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    const contentId = String(item.contentId || item.contentid || '');
+                    const title = (item.title || item.name || '').trim();
+                    const addr = item.addr1 || item.address || '';
+                    const rank = i + 1;
+                    const mapx = parseFloat(item.mapx || item.lng || 0);
+                    const mapy = parseFloat(item.mapy || item.lat || 0);
 
-                const ktoPatch = { kto_official: { rank, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
+                    const ktoPatch = { kto_official: { rank, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
 
-                let matchedMp = null;
+                    let matchedMp = null;
 
-                // 1차 중복 방어: contentId 매핑 (메모리 조회)
-                if (contentId && contentIdMap.has(contentId)) {
-                    matchedMp = contentIdMap.get(contentId);
-                }
-
-                // 2차 중복 방어: cleanName + sido + sigungu 매핑 (메모리 조회)
-                if (!matchedMp && title && nameMap.has(title)) {
-                    matchedMp = nameMap.get(title);
-                }
-
-                // 3차 중복 방어: deterministic UUID 매핑 (메모리 조회)
-                const detId = generateId('TOUR_SPOT', title, addr);
-                if (!matchedMp && idMap.has(detId)) {
-                    matchedMp = idMap.get(detId);
-                }
-
-                let matchedMpId = matchedMp ? matchedMp.id : null;
-
-                if (matchedMp) {
-                    // 데이터 갱신 생략 여부 검증 (동일 랭킹 & 동일 일자인 경우 DB UPDATE 차단)
-                    const currentKto = matchedMp.raw_data?.kto_official;
-                    const isSame = currentKto && 
-                                   currentKto.rank === rank && 
-                                   currentKto.baseYm === baseYm;
-
-                    if (!isSame) {
-                        const mergedRaw = { ...(matchedMp.raw_data || {}), ...ktoPatch };
-                        await supabase.from('master_places').update({ raw_data: mergedRaw }).eq('id', matchedMpId);
-                        
-                        // 메모리 캐시 상태 즉시 동기화
-                        matchedMp.raw_data = mergedRaw;
+                    if (contentId && contentIdMap.has(contentId)) {
+                        matchedMp = contentIdMap.get(contentId);
+                    }
+                    if (!matchedMp && title && nameMap.has(title)) {
+                        matchedMp = nameMap.get(title);
+                    }
+                    const detId = generateId('TOUR_SPOT', title, addr);
+                    if (!matchedMp && idMap.has(detId)) {
+                        matchedMp = idMap.get(detId);
                     }
 
-                    // Smart Plan Facts 업데이트 검사 및 수행
-                    const spfMatches = spfMap.get(title) || [];
-                    if (spfMatches.length > 0) {
-                        for (const spf of spfMatches) {
-                            const currentSpfKto = spf.raw_data?.kto_official;
-                            const isSpfSame = currentSpfKto && 
-                                              currentSpfKto.rank === rank && 
-                                              currentSpfKto.baseYm === baseYm;
-                            
-                            if (!isSpfSame) {
-                                const updatedSpfRaw = { ...(spf.raw_data || {}), ...ktoPatch };
-                                await supabase.from('smart_plan_facts').update({ raw_data: updatedSpfRaw }).eq('id', spf.id);
+                    let matchedMpId = matchedMp ? matchedMp.id : null;
+
+                    if (matchedMp) {
+                        const currentKto = matchedMp.raw_data?.kto_official;
+                        const isSame = currentKto && 
+                                       currentKto.rank === rank && 
+                                       currentKto.baseYm === baseYm;
+
+                        if (!isSame) {
+                            const mergedRaw = { ...(matchedMp.raw_data || {}), ...ktoPatch };
+                            await supabase.from('master_places').update({ raw_data: mergedRaw }).eq('id', matchedMpId);
+                            matchedMp.raw_data = mergedRaw;
+                        }
+
+                        const spfMatches = spfMap.get(title) || [];
+                        if (spfMatches.length > 0) {
+                            for (const spf of spfMatches) {
+                                const currentSpfKto = spf.raw_data?.kto_official;
+                                const isSpfSame = currentSpfKto && 
+                                                  currentSpfKto.rank === rank && 
+                                                  currentSpfKto.baseYm === baseYm;
                                 
-                                // 메모리 캐시 상태 즉시 동기화
-                                spf.raw_data = updatedSpfRaw;
+                                if (!isSpfSame) {
+                                    const updatedSpfRaw = { ...(spf.raw_data || {}), ...ktoPatch };
+                                    await supabase.from('smart_plan_facts').update({ raw_data: updatedSpfRaw }).eq('id', spf.id);
+                                    spf.raw_data = updatedSpfRaw;
+                                }
                             }
                         }
-                    }
-                } else {
-                        // 미존재 신규 명소: 풀 스키마 신규 추가 (INSERT)
+                    } else {
                         const newPlaceData = {
                             id: detId,
                             name: title,
@@ -688,8 +729,10 @@ async function dailyRegionSync() {
             } catch (e) {
                 console.error(`      ⚠️ Failed KTO Sync for ${reg.areaCode}/${reg.sigunguCode}: ${e.message}`);
             }
-            await delay(100); // Throttling
-        }
+        }));
+        await delay(50);
+    }
+    currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} KTO 인기도 수집 완료`);
 
   // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화 - paginatedCount 안전 적용)
   console.log(`\n📊 [Final Audit] ${targetSido} 지역별 최종 정합성 확인 중...`);
@@ -817,7 +860,7 @@ async function dailyRegionSync() {
      await finalizePopularityv2();
   }
 
-  await recordAutomationLog(stats);
+  await updateAutomationLog(currentLogId, stats, 'SUCCESS', `${targetSido} 지역 순환 동기화 완료 (식당/마트/명소)`);
 
   // 8. [SOP v11.3] 정밀 감사 결과 테이블 출력
   printAuditTable(stats);
@@ -1172,10 +1215,10 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
 
   for (const ep of endpoints) {
     console.log(`📥 [LocalData CSV] ${sido} (${orgCode}) ${ep.name} 다운로드 및 파싱 중...`);
-    // [WAF 방어막 회피] 파일 다중 연속 다운로드로 인한 차단 방어 (5초 대기)
-    await delay(5000);
+    // [WAF 방어막 회피] 파일 다중 연속 다운로드로 인한 차단 방어 (1초 안전 대기)
+    await delay(1000);
     
-    // 1차: 직접 다운로드 시도, 2차: 프록시 다운로드
+    // 1차: 직접 다운로드 시도 (연결 10초, 전송 90초), 2차: 프록시 다운로드 (연결 15초, 전송 90초)
     const directUrl = `https://file.localdata.go.kr/file/download/${ep.path}/info?orgCode=${orgCode}`;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://raon-i.co.kr';
     const proxyUrl = `${siteUrl}/api/cron/localdata-proxy?path=${ep.path}&orgCode=${orgCode}`;
@@ -1183,44 +1226,45 @@ async function syncLocalDataCSV(sido, seenIds, fullStats, categoryType) {
     try {
       let res = null;
       try {
-        // 1. 직접 다운로드 시도 (가장 빠르고 정확)
-        res = await fetch(directUrl, {
+        // 1. 직접 다운로드 시도 (연결 10초 초과 시 즉시 프록시로 전환)
+        res = await fetchWithTwoStageTimeout(directUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Referer': 'https://www.localdata.go.kr/',
             'Accept': '*/*'
           },
-          agent: httpsAgent,
-          timeout: 180000
-        });
+          agent: httpsAgent
+        }, 10000, 90000);
 
-        // 2. 만약 직접 다운로드 실패 시 프록시 경유
         if (!res.ok) {
-          console.warn(`  ⚠️ Direct download failed (${res.status}). Trying proxy...`);
-          res = await fetch(proxyUrl, {
+          console.warn(`  ⚠️ Direct download failed (HTTP ${res.status}). Trying proxy fallback...`);
+          res = await fetchWithTwoStageTimeout(proxyUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Referer': 'https://www.localdata.go.kr/',
               'Accept': '*/*'
             },
-            agent: httpsAgent,
-            timeout: 180000
-          });
+            agent: httpsAgent
+          }, 15000, 90000);
         }
       } catch (fetchErr) {
-        console.warn(`  ⚠️ Download attempt failed: ${fetchErr.message}. Trying proxy fallback...`);
-        res = await fetch(proxyUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-          agent: httpsAgent,
-          timeout: 180000
-        });
+        console.warn(`  ⚠️ Direct download timeout/error (${fetchErr.message}). Trying proxy fallback...`);
+        try {
+          res = await fetchWithTwoStageTimeout(proxyUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            agent: httpsAgent
+          }, 15000, 90000);
+        } catch (proxyErr) {
+          console.warn(`  ⚠️ Proxy download also failed (${proxyErr.message}). Skipping gracefully...`);
+          res = null;
+        }
       }
 
       const errStat = categoryType === 'MART' ? (ep.path === 'large_scale_retail_stores' ? fullStats.categories.LARGE_MART : fullStats.categories.OTHER_MART) : fullStats.categories.GOOD;
       if (!res || !res.ok) {
-        const statusStr = res ? `HTTP ${res.status}` : 'Unknown Error';
-        console.error(`  ❌ Failed to download ${ep.name}: ${statusStr}`);
-        errStat.note = `💥 ERROR: WAF 다운로드 차단 (${statusStr})`;
+        const statusStr = res ? `HTTP ${res.status}` : 'Timeout / Unreachable';
+        console.warn(`  ⚠️ [LocalData Failsafe] ${ep.name} 다운로드 일시 지연 (${statusStr}) - 기존 마스터 데이터 유지.`);
+        errStat.note = `⚠️ 행안부 일시 지연 (${statusStr})`;
         continue;
       }
       
@@ -1303,9 +1347,19 @@ async function syncSafeRestaurants(sido, seenIds, stat) {
       for (let page = 1; page <= 100; page++) { // [SOP v11.3] 1만개 제한 해제 (최대 10만개 허용, 실질적 무제한)
         const start = (page - 1) * 1000 + 1, end = page * 1000;
         const params = new URLSearchParams({ RELAX_SI_NM: callName });
-        const res = await fetch(`http://211.237.50.150:7080/openapi/${SAFE_API_KEY}/json/Grid_20200713000000000605_1/${start}/${end}?${params.toString()}`);
+        let res;
+        try {
+          res = await fetch(`http://211.237.50.150:7080/openapi/${SAFE_API_KEY}/json/Grid_20200713000000000605_1/${start}/${end}?${params.toString()}`, {
+            timeout: 10000
+          });
+        } catch (netErr) {
+          console.warn(`      ⚠️  SAFE API Connection Failed (${callName}): ${netErr.message}`);
+          stat.note = '⚠️ MAFRA 서버 응답 지연 (스킵)';
+          break;
+        }
         if (!res.ok) {
            console.warn(`      ⚠️  SAFE API Request Failed for ${callName}: HTTP ${res.status}`);
+           stat.note = `⚠️ MAFRA 서버 일시 지연 (HTTP ${res.status})`;
            break;
         }
         const text = await res.text();
@@ -1771,8 +1825,8 @@ async function upsertAndTrack(items, stat) {
   if (error) throw new Error(`[CRITICAL] DB Upsert Error: ${error.message}`);
 }
 
-// Helper: Record Automation Log
-async function recordAutomationLog(stats) {
+// Helper: Record Automation Log (Incremental & Real-time)
+async function updateAutomationLog(logId, stats, status = 'RUNNING', customMessage = null) {
   const apiStatusArr = Object.entries(stats.categories).map(([cat, val]) => ({
     name: cat,
     label: val.label,
@@ -1785,19 +1839,44 @@ async function recordAutomationLog(stats) {
     note: val.note || ''
   }));
 
-  const { error } = await supabase.from('automation_logs').insert({
-    job_name: 'DAILY_REGION_SYNC',
-    status: 'SUCCESS',
-    processed_count: apiStatusArr.reduce((acc, curr) => acc + (curr.fetched_count?.active || 0) + (curr.fetched_count?.inactive || 0), 0),
-    message: `${stats.sido} 지역 순환 동기화 완료 (식당/마트/명소)`,
-    api_status: apiStatusArr,
-    created_at: new Date().toISOString()
-  });
-  if (error) console.error('  ❌ Log Error:', error.message);
+  const totalProcessed = apiStatusArr.reduce((acc, curr) => acc + (curr.fetched_count?.active || 0) + (curr.fetched_count?.inactive || 0), 0);
+  const msg = customMessage || `${stats.sido} 지역 순환 동기화 (${status === 'SUCCESS' ? '완료' : (status === 'RUNNING' ? '진행 중' : '일부 실패')})`;
+
+  try {
+    if (!logId) {
+      const { data, error } = await supabase.from('automation_logs').insert({
+        job_name: 'DAILY_REGION_SYNC',
+        status: status,
+        processed_count: totalProcessed,
+        message: msg,
+        api_status: apiStatusArr,
+        created_at: new Date().toISOString()
+      }).select('id').single();
+
+      if (error) console.error('  ❌ Init Log Error:', error.message);
+      return data?.id || null;
+    } else {
+      const { error } = await supabase.from('automation_logs').update({
+        status: status,
+        processed_count: totalProcessed,
+        message: msg,
+        api_status: apiStatusArr
+      }).eq('id', logId);
+
+      if (error) console.error('  ❌ Update Log Error:', error.message);
+      return logId;
+    }
+  } catch (logErr) {
+    console.error('  ❌ Logging Exception:', logErr.message);
+    return logId;
+  }
 }
 
 // Execution
-dailyRegionSync();
+dailyRegionSync().catch(async (err) => {
+  console.error('💥 Fatal Daily Region Sync Error:', err);
+  process.exit(1);
+});
 
 // ==========================================
 // 상세 정보 갱신(Enrichment) 엔진 및 헬퍼 함수

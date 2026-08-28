@@ -14,9 +14,9 @@ export async function GET(req: Request) {
     console.log(`[LocalData Proxy] Requesting target: ${targetUrl}`);
 
     // node 내장 fetch API 사용 (Node 18+)
-    // 3분 타임아웃 처리를 위한 AbortController 설정
+    // Vercel Serverless 타임아웃(기본 한도)에 맞춘 25초 안전 타임아웃 설정
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180000);
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     const response = await fetch(targetUrl, {
       headers: {

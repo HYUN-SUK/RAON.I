@@ -1,5 +1,14 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **일일지역로테이션 갱신(DAILY_REGION_SYNC) 영구 안정화 & 2분 초고속 완주 (2026-08-28 완결)**
+    - [x] 1. 지능형 2단계 타임아웃 (Connect 10초 vs Stream 90초) 및 행안부 CSV Failsafe 탑재 (`scripts/daily-region-sync.mjs`)
+    - [x] 2. KTO 관광명소 및 인기도 랭킹 5-Worker 병렬 파이프라인 (`Promise.allSettled`) 구축 (`scripts/daily-region-sync.mjs`)
+    - [x] 3. 실시간 점진적 단계별 DB 로그 적재 (`RUNNING` ➔ 단계별 update ➔ `SUCCESS`) 구현 (`scripts/daily-region-sync.mjs`)
+    - [x] 4. Vercel 프록시 25초 안전 타임아웃 적용 (`src/app/api/cron/localdata-proxy/route.ts`)
+    - [x] 5. 크론 2중 안전망 (cron-job.org + GitHub Actions 04:37 KST) 및 타임아웃 120분 여유 유지 (`.github/workflows/daily-region-sync.yml`)
+    - [x] 6. 인천광역시 실측 벤치마크: **2분 18초 100% 무결 완주** 및 관리자 화면 리포트 즉시 표출 확인
+    - [x] 7. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **캠핏 알림톡 상호명 오인 스킵 완치 및 [RAON.I_APP] 고유 차단 태그 정립 (2026-08-27 핫픽스 완료)**
     - [x] 1. 캠핏 알림톡 본문 속 '라온아이오토캠핑장' 상호명으로 인한 일반 예약/취소 알림톡 무한루프 오인 스킵 결함 완치 (`src/app/api/integration/camfit-webhook/route.ts`)
     - [x] 2. 크롬 확장프로그램 캠핏 차단 등록 시 고객명 및 메모 고유 영문 태그(`[RAON.I_APP]`, `[RAON.I_APP_BLOCK]`) 주입 고도화 (`raoni-camfit-sync-extension/content.js`)
