@@ -1,5 +1,11 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **과거 누적 큐 클린업 및 실시간 즉시 연동 최적화 (2026-08-28 완결)**
+    - [x] 1. 과거 누적 예약 144건 일괄 완료 처리로 큐 병목 완전 해소 (`scratch/cleanup_legacy_queue.mjs`)
+    - [x] 2. 큐 API 최근 24시간 실시간 변경분 집중 및 최신순 정렬 (`src/app/api/admin/camfit-sync/queue/route.ts`)
+    - [x] 3. 방금 신청한 `9월 8일~10일 철수네` 건 1순위 최우선 배치
+    - [x] 4. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **환불 완료(REFUNDED) 사이트 예약 선점 오판 버그 완치 (2026-08-28 완결)**
     - [x] 1. `ReservationForm.tsx` 2차 실시간 검증 쿼리를 `.in('status', ['PENDING', 'CONFIRMED'])` 로 엄격화하여 `REFUNDED` 및 `CANCELLED`를 빈자리로 100% 통과
     - [x] 2. `SiteList.tsx` 및 `DateRangePicker.tsx`, `page.tsx`에서 `r.status === 'REFUNDED'` 상태를 취소와 동일하게 빈자리로 전수 처리

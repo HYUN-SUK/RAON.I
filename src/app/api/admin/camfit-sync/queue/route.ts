@@ -8,10 +8,10 @@ export async function GET(req: NextRequest) {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         const supabase = createClient(supabaseUrl!, supabaseKey!);
 
-        // 최근 14일 이내의 라온아이 예약 조회 (PENDING, CONFIRMED, CANCELLED 대상)
-        const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+        // 최근 24시간 이내의 라온아이 실시간 예약 조회 (PENDING, CONFIRMED, CANCELLED 대상)
+        const recentTimeWindow = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-        // 1. reservations와 sites 목록 조회
+        // 1. reservations와 sites 목록 조회 (최신 변경순 정렬)
         const { data: reservations, error: resErr } = await supabase
             .from('reservations')
             .select(`
@@ -30,8 +30,9 @@ export async function GET(req: NextRequest) {
                 updated_at
             `)
             .in('status', ['CONFIRMED', 'PENDING', 'CANCELLED'])
-            .gte('updated_at', fourteenDaysAgo)
-            .order('updated_at', { ascending: false });
+            .gte('updated_at', recentTimeWindow)
+            .order('updated_at', { ascending: false })
+            .limit(20);
 
         if (resErr) {
             console.error('[camfit-sync/queue] Supabase error:', resErr);
