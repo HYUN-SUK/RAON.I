@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useReservationGuard } from '@/hooks/useReservationGuard';
 import ReservationLockModal from './ReservationLockModal';
+import { Loader2 } from 'lucide-react';
 
 interface ReservationFormProps {
     site: Site;
@@ -40,6 +41,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const [requests, setRequests] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [termsDialogOpen, setTermsDialogOpen] = useState(false);
     const { config: fullConfig } = useSiteConfig();
 
@@ -62,7 +64,10 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 const checkOutStr = format(new Date(selectedDateRange.to), 'yyyy-MM-dd');
 
                 try {
-                    const { data: overlapping, error: checkErr } = await supabaseClient
+                    const { data: { user } } = await supabaseClient.auth.getUser();
+                    const currentUserId = user?.id;
+
+                    let query = supabaseClient
                         .from('reservations')
                         .select('id')
                         .eq('site_id', site.id)
@@ -70,11 +75,18 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         .lt('check_in_date', checkOutStr)
                         .gt('check_out_date', checkInStr);
 
+                    if (currentUserId) {
+                        query = query.neq('user_id', currentUserId);
+                    }
+
+                    const { data: overlapping, error: checkErr } = await query;
+
                     if (checkErr) {
                         console.error('[ReservationForm] Real-time check error', checkErr);
                     }
 
-                    if (overlapping && overlapping.length > 0) {
+                    // 제출 중이 아닐 때만 타인의 선점 경고 토스트 표출
+                    if (!isSubmitting && overlapping && overlapping.length > 0) {
                         toast.error('죄송합니다. 방금 다른 분이 먼저 이 사이트의 예약을 선점하셨습니다.');
                         router.push('/reservation');
                         return;
@@ -200,6 +212,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         if (!fromDate || !toDate || fromDate.getTime() === toDate.getTime()) {
             toast.error('퇴실일을 선택하세요.');
             return;
@@ -229,6 +243,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             toast.error(validationError);
             return;
         }
+
+        setIsSubmitting(true);
 
         try {
             // 동시성 제어가 적용된 안전한 예약 생성 (DB RPC)
@@ -301,8 +317,11 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     console.error('[Persona] Failed to dispatch reservation actions', err);
                 }
 
+                // 기존 토스트 모두 소멸 후 완료 화면으로 부드럽게 직행
+                toast.dismiss();
                 router.push('/reservation/complete');
             } else {
+                setIsSubmitting(false);
                 // 동시성 충돌 또는 중복 예약
                 if (result.error === 'ALREADY_BOOKED') {
                     toast.error('죄송합니다. 방금 다른 분이 먼저 예약을 완료했습니다.\n다른 날짜를 선택해주세요.');
@@ -313,6 +332,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 }
             }
         } catch (error: any) {
+            setIsSubmitting(false);
             toast.error(error.message || '예약 중 오류가 발생했습니다.');
         }
     };
@@ -585,10 +605,17 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
                     <button
                         type="submit"
-                        disabled={!fromDate || !toDate || fromDate.getTime() === toDate.getTime() || !agreed}
-                        className="w-full bg-[#2F5233] hover:bg-[#233e26] text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                        disabled={isSubmitting || !fromDate || !toDate || fromDate.getTime() === toDate.getTime() || !agreed}
+                        className="w-full bg-[#2F5233] hover:bg-[#233e26] text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
                     >
-                        예약 신청하기 (입금 대기)
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span>예약 신청 처리 중...</span>
+                            </>
+                        ) : (
+                            '예약 신청하기 (입금 대기)'
+                        )}
                     </button>
 
                     <div className="text-center text-xs text-white/50 mt-4">

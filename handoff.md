@@ -1,14 +1,23 @@
 # 🚀 [RAON.I] 개발 세션 인수인계 문서 (Handoff)
 
-**작성 일시**: 2026-08-28 16:16 (KST)  
+**작성 일시**: 2026-08-28 16:41 (KST)  
 **작성자**: Lead Developer  
-**상태**: **일일지역로테이션 갱신(DAILY_REGION_SYNC) 2단계 타임아웃·5-Worker 병렬화·실시간 점진 로깅 영구 안정화 완결 (2분 18초 100% 무결 완주)**
+**상태**: **예약 신청 더블 클릭(Double Submit) 방어 및 오발송 에러 팝업 100% 완치·Next.js 16 프로덕션 빌드 무결 통과**
 
 ---
 
 ## 1. 현재 상태 요약 (Completed Work)
 
-### 1-0. 일일지역로테이션 갱신(DAILY_REGION_SYNC) 영구 안정화 & 2분 초고속 완주 (2026-08-28 완결)
+### 1-0. 예약 신청 더블 클릭(Double Submit) 방어 및 오발송 에러 팝업 완치 (2026-08-28 완결)
+- **`isSubmitting` 로딩 락 및 물리적 버튼 비활성화 (`ReservationForm.tsx`)**:
+  - 버튼 터치 즉시 비활성화(`disabled`) 및 회전 스피너(`Loader2`, '예약 신청 처리 중...')를 적용하여, 모바일 지연 시 연속 터치(따닥)로 인한 2차 중복 DB 호출 및 `ALREADY_BOOKED` 오발송 원천 차단.
+- **폼 내부 2차 실시간 검증(`loadInitialData`) 안전 가드 (`ReservationForm.tsx`)**:
+  - 방금 신청한 본인 예약(`user_id`)을 중복 검사 대상에서 제외하고 `isSubmitting` 중 에러 토스트 차단.
+- **성공 시 `toast.dismiss()` 및 화면 직행 (`ReservationForm.tsx`)**:
+  - 예약 성공 즉시 기존 토스트 소멸 후 예약 완료 페이지로 부드럽게 화면 이동.
+- **Next.js 16 Production Build 102개 전 라우트 100% 무결점 통과**.
+
+### 1-0-1. 일일지역로테이션 갱신(DAILY_REGION_SYNC) 영구 안정화 & 2분 초고속 완주 (2026-08-28 완결)
 - **2단계 지능형 타임아웃 (Connect 10s vs Stream 90s) 도입 (`daily-region-sync.mjs`)**:
   - 행안부(LocalData) 서버 먹통/지연 시 10초 만에 즉시 국내 Vercel 프록시로 전환하고, 정상 데이터 수신 중에는 최대 90초까지 안전하게 보장하여 대용량 CSV도 끊김 없이 100% 수신. 2곳 모두 지연 시 안전 Failsafe로 스킵하여 전체 배치가 멈추는 현상 원천 차단.
 - **KTO 관광명소 및 인기도 랭킹 5-Worker 병렬 파이프라인 구축 (`daily-region-sync.mjs`)**:

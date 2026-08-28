@@ -1,5 +1,11 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **예약 신청 더블 클릭(Double Submit) 방어 및 오발송 에러 팝업 100% 완치 (2026-08-28 완결)**
+    - [x] 1. `isSubmitting` 로딩 락 및 물리적 버튼 비활성화 + `Loader2` 회전 스피너 탑재 (`src/components/reservation/ReservationForm.tsx`)
+    - [x] 2. 폼 내부 2차 실시간 검증(`loadInitialData`) 시 본인 예약(`user_id`) 제외 및 `isSubmitting` 가드 적용 (`src/components/reservation/ReservationForm.tsx`)
+    - [x] 3. 예약 성공 시 `toast.dismiss()` 호출로 이전 토스트 완전 소멸 후 완료 페이지 직행 (`src/components/reservation/ReservationForm.tsx`)
+    - [x] 4. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **일일지역로테이션 갱신(DAILY_REGION_SYNC) 영구 안정화 & 2분 초고속 완주 (2026-08-28 완결)**
     - [x] 1. 지능형 2단계 타임아웃 (Connect 10초 vs Stream 90초) 및 행안부 CSV Failsafe 탑재 (`scripts/daily-region-sync.mjs`)
     - [x] 2. KTO 관광명소 및 인기도 랭킹 5-Worker 병렬 파이프라인 (`Promise.allSettled`) 구축 (`scripts/daily-region-sync.mjs`)
