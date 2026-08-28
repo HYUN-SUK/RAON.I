@@ -6,16 +6,32 @@ const DEFAULT_SERVER_URL = 'https://raon-i.co.kr'; // 기본 프로덕션 서버
 const ALARM_NAME = 'RAONI_CAMFIT_SYNC_POLL';
 const POLL_INTERVAL_MINUTES = 0.25; // 약 15초 주기
 
-// 1. 확장프로그램 설치 및 시작 시 알람 등록
+// 1. 확장프로그램 설치 및 시작 시 즉시 검사 & 알람 등록
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('[Raoni Sync] Service Worker Installed');
+    console.log('[Raoni Sync] Service Worker Installed - Checking queue immediately...');
     setupAlarm();
+    checkAndSyncQueue(); // [FIX] 설치/새로고침 즉시 0초 검사 실행
     logHistory('시스템', '라온아이 동기화 마스터가 정상 시작되었습니다.');
 });
 
 chrome.runtime.onStartup.addListener(() => {
+    console.log('[Raoni Sync] Service Worker Startup - Checking queue immediately...');
     setupAlarm();
+    checkAndSyncQueue(); // [FIX] 브라우저 시작 즉시 검사
 });
+
+// 캠핏 관리자 탭이 열리거나 새로고침(F5)될 때 즉시 동기화 트리거
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete' && tab.url && tab.url.includes('camfit.co.kr')) {
+        console.log('[Raoni Sync] CamFit Tab updated - triggering instant sync...');
+        checkAndSyncQueue();
+    }
+});
+
+// 고속 10초 주기 인터벌 백업 (Service Worker 활성 상태 시 10초 주기 보장)
+setInterval(() => {
+    checkAndSyncQueue();
+}, 10000);
 
 function setupAlarm() {
     chrome.alarms.create(ALARM_NAME, {

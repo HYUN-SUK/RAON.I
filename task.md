@@ -1,5 +1,11 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **시작 즉시 0초 검사 및 실시간 탭 이벤트 트리거 완결 (2026-08-28 완결)**
+    - [x] 1. `onInstalled`/`onStartup` 즉시 `checkAndSyncQueue()` 호출 탑재 (`raoni-camfit-sync-extension/background.js`)
+    - [x] 2. `chrome.tabs.onUpdated` 캠핏 탭 새로고침 시 즉시 동기화 트리거
+    - [x] 3. 10초 주기 인터벌 백업 가동
+    - [x] 4. 확장프로그램 v2.3.0 릴리즈 & TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **물리 좌표(Y축 Geometry) 기반 상단 [적용] 버튼 클릭 완결 (2026-08-28 완결)**
     - [x] 1. `findButtonsByText` 헬퍼로 화면 내 모든 버튼 수집 후 Y 좌표 기준 상단 버튼 100% 특정 (`raoni-camfit-sync-extension/content.js`)
     - [x] 2. 태그 무관하게 상단 파란색 [적용] 버튼 0.001초 만에 클릭
