@@ -87,36 +87,38 @@ async function checkAndSyncQueue() {
 
         const targetTab = tabs[0];
 
-        // 3) 대기 중인 예약 건들을 순차적으로 캠핏 탭에 주입하여 자동 차단 실행
+        // 3) 대기 중인 예약 건들을 순차적으로 캠핏 탭에 주입하여 자동 차단/생성/취소 실행
         let successCount = 0;
         for (const item of data.queue) {
             try {
-                // 캠핏 탭의 content.js로 차단 실행 메시지 전송
-                const blockResult = await chrome.tabs.sendMessage(targetTab.id, {
-                    action: 'EXECUTE_CAMFIT_BLOCK',
+                // 캠핏 탭의 content.js로 작업 실행 명령 전송
+                const syncResult = await chrome.tabs.sendMessage(targetTab.id, {
+                    action: 'EXECUTE_CAMFIT_SYNC',
                     data: item
                 });
 
-                if (blockResult && blockResult.success) {
+                const actionLabel = item.action === 'CREATE_RESERVATION' ? '예약생성(초록)' : (item.action === 'UNBLOCK_CANCEL' ? '차단해제(빈자리복구)' : '입금대기차단(빨강)');
+
+                if (syncResult && syncResult.success) {
                     // 4) 라온아이 백엔드에 ACK 전송
                     await sendAck(serverUrl, item, 'SUCCESS');
                     successCount++;
 
-                    // 5) 브라우저 알림 발송
+                    // 5) 브라우저 데스크톱 알림 발송
                     showNotification(
-                        '⛺ 라온아이 ➔ 캠핏 자동 차단 완료',
-                        `[${item.siteName}] ${item.checkInDate} ~ ${item.checkOutDate}\n고객: ${item.guestName} (${item.guestPhone})`
+                        `⛺ [라온아이 ➔ 캠핏 ${actionLabel} 완료]`,
+                        `[${item.subSiteName || item.targetGroup}] ${item.checkInDate} ~ ${item.checkOutDate}\n고객: ${item.guestName}`
                     );
 
                     await logHistory(
-                        '차단완료',
-                        `[${item.siteName}] ${item.guestName}님 일정(${item.checkInDate}~${item.checkOutDate}) 캠핏 자동 차단 성공`,
+                        '동기화완료',
+                        `[${item.subSiteName || item.targetGroup}] ${item.guestName}님 일정(${item.checkInDate}~${item.checkOutDate}) 캠핏 ${actionLabel} 성공`,
                         'SUCCESS'
                     );
                 } else {
-                    const errMsg = blockResult?.error || '캠핏 페이지 내부 처리 실패';
+                    const errMsg = syncResult?.error || '캠핏 페이지 내부 처리 실패';
                     await sendAck(serverUrl, item, 'FAILED', errMsg);
-                    await logHistory('실패', `[${item.siteName}] 차단 실패: ${errMsg}`, 'ERROR');
+                    await logHistory('실패', `[${item.subSiteName || item.targetGroup}] ${actionLabel} 실패: ${errMsg}`, 'ERROR');
                 }
             } catch (tabErr) {
                 console.error('[Raoni Sync] Error communicating with CamFit tab:', tabErr);
@@ -139,7 +141,8 @@ async function sendAck(serverUrl, item, status, errorMessage = '') {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 reservationId: item.reservationId,
-                siteName: item.siteName,
+                action: item.action,
+                siteName: item.subSiteName || item.targetGroup,
                 checkInDate: item.checkInDate,
                 checkOutDate: item.checkOutDate,
                 guestName: item.guestName,

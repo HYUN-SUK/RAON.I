@@ -1,5 +1,12 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **라온아이 ↔ 캠핏 실시간 양방향 예약 자동 동기화 시스템 구축 (2026-08-28 완결)**
+    - [x] 1. 백엔드 동기화 큐 3단 액션 분기 및 사이트/에어컨 1:1 정규화 매핑 (`src/app/api/admin/camfit-sync/queue/route.ts`)
+    - [x] 2. 액션별 성공/실패 로그 기록 ACK API (`src/app/api/admin/camfit-sync/ack/route.ts`)
+    - [x] 3. 크롬 확장프로그램 v2.0 매니페스트 및 백그라운드 15초 디스패처 (`raoni-camfit-sync-extension/manifest.json`, `background.js`)
+    - [x] 4. 캠핏 캘린더 4중 안전 잠금 DOM 자동 제어 스크립트 (`raoni-camfit-sync-extension/content.js`)
+    - [x] 5. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **앱 포그라운드/백그라운드 100% 무결 푸시 도달 아키텍처 구축 (2026-08-28 완결)**
     - [x] 1. FCM HTTP v1 발송 시 `Urgency: high` 및 `android.priority: high` 최고 우선순위 헤더 주입 (`supabase/functions/push-notification/index.ts`)
     - [x] 2. 포그라운드(`onMessage`) 수신 시 스마트폰 OS 상단바 `showNotification` 명시적 호출로 헤드업 배너+진동/소리 동시 표출 (`src/components/pwa/ServiceWorkerRegister.tsx`)

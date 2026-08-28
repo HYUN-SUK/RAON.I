@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { reservationId, siteName, checkInDate, checkOutDate, guestName, status, errorMessage } = body;
+        const { reservationId, action, siteName, checkInDate, checkOutDate, guestName, status, errorMessage } = body;
 
         if (!reservationId) {
             return NextResponse.json({ success: false, error: 'reservationId is required' }, { status: 400 });
@@ -14,14 +14,17 @@ export async function POST(req: NextRequest) {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         const supabase = createClient(supabaseUrl!, supabaseKey!);
 
-        // 캠핏 연동 로그 적재
-        const logMessage = `[라온아이 ➔ 캠핏 자동 차단] ${siteName} (${checkInDate} ~ ${checkOutDate}) 예약자: ${guestName}`;
+        // 캠핏 연동 로그 적재 (액션별 명시)
+        const actionLabel = action === 'CREATE_RESERVATION' ? '예약생성(초록)' : (action === 'UNBLOCK_CANCEL' ? '차단해제(취소)' : '입금대기차단(빨강)');
+        const logMessage = `[라온아이 ➔ 캠핏 ${actionLabel}] ${siteName} (${checkInDate} ~ ${checkOutDate}) 예약자: ${guestName}`;
+
+        const finalErrorMessage = errorMessage || `[${action || 'BLOCK_PENDING'}] 크롬 확장프로그램 자동 처리 완료`;
 
         const { error } = await supabase.from('camfit_integration_logs').insert({
             external_id: reservationId,
             message_raw: logMessage,
             status: status === 'SUCCESS' ? 'SUCCESS' : 'FAILED',
-            error_message: errorMessage || (status === 'SUCCESS' ? '크롬 확장프로그램 자동 차단 완료' : '차단 실패'),
+            error_message: finalErrorMessage,
             created_at: new Date().toISOString()
         });
 
