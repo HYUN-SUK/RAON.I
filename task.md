@@ -1,5 +1,11 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **환불 완료(REFUNDED) 사이트 예약 선점 오판 버그 완치 (2026-08-28 완결)**
+    - [x] 1. `ReservationForm.tsx` 2차 실시간 검증 쿼리를 `.in('status', ['PENDING', 'CONFIRMED'])` 로 엄격화하여 `REFUNDED` 및 `CANCELLED`를 빈자리로 100% 통과
+    - [x] 2. `SiteList.tsx` 및 `DateRangePicker.tsx`, `page.tsx`에서 `r.status === 'REFUNDED'` 상태를 취소와 동일하게 빈자리로 전수 처리
+    - [x] 3. 에어컨 가용성 검사 시 `REFUNDED` 상태 빈자리 인정
+    - [x] 4. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **라온아이 ↔ 캠핏 실시간 양방향 예약 자동 동기화 시스템 구축 (2026-08-28 완결)**
     - [x] 1. 백엔드 동기화 큐 3단 액션 분기 및 사이트/에어컨 1:1 정규화 매핑 (`src/app/api/admin/camfit-sync/queue/route.ts`)
     - [x] 2. 액션별 성공/실패 로그 기록 ACK API (`src/app/api/admin/camfit-sync/ack/route.ts`)

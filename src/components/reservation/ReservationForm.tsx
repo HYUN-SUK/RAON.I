@@ -71,7 +71,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         .from('reservations')
                         .select('id')
                         .eq('site_id', site.id)
-                        .neq('status', 'CANCELLED')
+                        .in('status', ['PENDING', 'CONFIRMED']) // [FIX] CANCELLED 및 REFUNDED는 빈자리로 완벽히 통과
                         .lt('check_in_date', checkOutStr)
                         .gt('check_out_date', checkInStr);
 
@@ -163,7 +163,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 .map(s => {
                     // 웹 예약 중복 검사
                     const hasOverlap = reservations.some(r => {
-                        if (r.siteId !== s.id || r.status === 'CANCELLED') return false;
+                        if (r.siteId !== s.id || r.status === 'CANCELLED' || r.status === 'REFUNDED') return false;
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
                         return rCheckIn < checkOut && rCheckOut > checkIn;

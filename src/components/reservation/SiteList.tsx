@@ -31,7 +31,7 @@ export default function SiteList() {
 
         // 1. Check for overlapping reservations
         const hasOverlap = reservations.some(r => {
-            if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
+            if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED') return false;
             const rCheckIn = new Date(r.checkInDate);
             const rCheckOut = new Date(r.checkOutDate);
             return rCheckIn < checkOut && rCheckOut > checkIn;
@@ -59,7 +59,7 @@ export default function SiteList() {
                 nextDay.setDate(checkIn.getDate() + 1);
 
                 const isSaturdayBooked = reservations.some(r => {
-                    if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
+                    if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED') return false;
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
                     return rCheckIn <= nextDay && rCheckOut > nextDay;
@@ -73,7 +73,7 @@ export default function SiteList() {
                 prevDay.setDate(checkIn.getDate() - 1);
 
                 const isFridayBooked = reservations.some(r => {
-                    if (r.siteId !== siteId || r.status === 'CANCELLED') return false;
+                    if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED') return false;
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
                     return rCheckIn <= prevDay && rCheckOut > prevDay;
