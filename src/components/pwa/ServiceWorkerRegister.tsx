@@ -54,9 +54,25 @@ export default function ServiceWorkerRegister() {
                         console.log('[App] Foreground Message received:', payload);
                         const title = payload.data?.title || payload.notification?.title || '새 알림';
                         const body = payload.data?.body || payload.notification?.body || '';
+                        const targetLink = payload.data?.link || '/notifications';
                         const iconUrl = "/icons/icon-192.png";
 
-                        // Show Premium Toast with Brand Icon
+                        // [1] 스마트폰 OS 상단 알림바에 시스템 푸시 강제 표출 (진동/소리 + 헤드업 배너)
+                        if ('serviceWorker' in navigator && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                            navigator.serviceWorker.ready.then((registration) => {
+                                registration.showNotification(title, {
+                                    body,
+                                    icon: iconUrl,
+                                    badge: iconUrl,
+                                    data: { link: targetLink },
+                                    tag: payload.data?.related_id || 'raoni-foreground-push'
+                                } as any);
+                            }).catch((err) => {
+                                console.warn('[App] Foreground showNotification error:', err);
+                            });
+                        }
+
+                        // [2] 앱 화면 내 프리미엄 토스트 동시 표출 (인지 극대화)
                         toast(title, {
                             description: body,
                             icon: (
@@ -70,7 +86,7 @@ export default function ServiceWorkerRegister() {
                             action: {
                                 label: '보기',
                                 onClick: () => {
-                                    window.location.href = payload.data?.link || '/notifications';
+                                    window.location.href = targetLink;
                                 }
                             },
                             duration: 10000,

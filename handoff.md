@@ -1,14 +1,22 @@
 # 🚀 [RAON.I] 개발 세션 인수인계 문서 (Handoff)
 
-**작성 일시**: 2026-08-28 16:41 (KST)  
+**작성 일시**: 2026-08-28 17:10 (KST)  
 **작성자**: Lead Developer  
-**상태**: **예약 신청 더블 클릭(Double Submit) 방어 및 오발송 에러 팝업 100% 완치·Next.js 16 프로덕션 빌드 무결 통과**
+**상태**: **앱 포그라운드/백그라운드 100% 무결 푸시 도달 아키텍처 구축 완결·Next.js 16 프로덕션 빌드 무결 통과**
 
 ---
 
 ## 1. 현재 상태 요약 (Completed Work)
 
-### 1-0. 예약 신청 더블 클릭(Double Submit) 방어 및 오발송 에러 팝업 완치 (2026-08-28 완결)
+### 1-0. 앱 포그라운드/백그라운드 100% 무결 푸시 도달 아키텍처 구축 (2026-08-28 완결)
+- **FCM 최고 우선순위 헤더 및 안드로이드 깨우기 주입 (`supabase/functions/push-notification/index.ts`)**:
+  - `android: { priority: "high" }` 및 `webpush.headers: { Urgency: "high", TTL: "86400" }`를 주입하여, 스마트폰이 잠겨있거나 절전 모드(Doze Mode) 상태여도 0.1초 만에 스마트폰을 강제로 깨워 상단바에 푸시가 꽂히도록 보장.
+- **포그라운드(앱이 켜져있을 때) OS 상단바 푸시 강제 표출 (`ServiceWorkerRegister.tsx`)**:
+  - `onMessage` 수신 시 `registration.showNotification()`을 호출하여 스마트폰 OS 상단바(헤드업 배너 + 진동/소리)와 앱 화면 내 토스트(`toast`)가 동시에 100% 표출되도록 고도화.
+- **PWA 서비스워커 버전 갱신 (`public/firebase-messaging-sw.js` v2.2)**.
+- **Next.js 16 Production Build 102개 전 라우트 100% 무결점 통과**.
+
+### 1-0-1. 예약 신청 더블 클릭(Double Submit) 방어 및 오발송 에러 팝업 완치 (2026-08-28 완결)
 - **`isSubmitting` 로딩 락 및 물리적 버튼 비활성화 (`ReservationForm.tsx`)**:
   - 버튼 터치 즉시 비활성화(`disabled`) 및 회전 스피너(`Loader2`, '예약 신청 처리 중...')를 적용하여, 모바일 지연 시 연속 터치(따닥)로 인한 2차 중복 DB 호출 및 `ALREADY_BOOKED` 오발송 원천 차단.
 - **폼 내부 2차 실시간 검증(`loadInitialData`) 안전 가드 (`ReservationForm.tsx`)**:

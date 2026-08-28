@@ -1,5 +1,5 @@
 // public/firebase-messaging-sw.js
-// Version: 2.1 (Force Update)
+// Version: 2.2 (High Priority & Foreground/Background Sync)
 // Firebase Cloud Messaging Service Worker
 
 // 1. Firebase Config (Hardcoded for stability)

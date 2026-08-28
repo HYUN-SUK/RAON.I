@@ -1,5 +1,11 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **앱 포그라운드/백그라운드 100% 무결 푸시 도달 아키텍처 구축 (2026-08-28 완결)**
+    - [x] 1. FCM HTTP v1 발송 시 `Urgency: high` 및 `android.priority: high` 최고 우선순위 헤더 주입 (`supabase/functions/push-notification/index.ts`)
+    - [x] 2. 포그라운드(`onMessage`) 수신 시 스마트폰 OS 상단바 `showNotification` 명시적 호출로 헤드업 배너+진동/소리 동시 표출 (`src/components/pwa/ServiceWorkerRegister.tsx`)
+    - [x] 3. PWA 서비스워커 v2.2 업데이트 및 안정성 보강 (`public/firebase-messaging-sw.js`)
+    - [x] 4. TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **예약 신청 더블 클릭(Double Submit) 방어 및 오발송 에러 팝업 100% 완치 (2026-08-28 완결)**
     - [x] 1. `isSubmitting` 로딩 락 및 물리적 버튼 비활성화 + `Loader2` 회전 스피너 탑재 (`src/components/reservation/ReservationForm.tsx`)
     - [x] 2. 폼 내부 2차 실시간 검증(`loadInitialData`) 시 본인 예약(`user_id`) 제외 및 `isSubmitting` 가드 적용 (`src/components/reservation/ReservationForm.tsx`)

@@ -147,20 +147,30 @@ serve(async (req) => {
                 : undefined
             );
 
-            // [FIX] Double popup issue resolved by removing root 'notification' object 
-            // and mapping all details to webpush.notification to let service worker handle it cleanly.
+            // [FIX] 최고 우선순위(Urgency: high, android.priority: high) 주입으로 안드로이드 절전 모드 즉각 탈출 보장
             const message = {
                 message: {
                     token: t.token,
                     data: stringData,
+                    android: {
+                        priority: "high" // 안드로이드 Doze Mode 즉각 탈출 및 헤드업 배너 활성화
+                    },
                     webpush: {
+                        headers: {
+                            Urgency: "high", // WebPush 표준 최우선순위 헤더
+                            TTL: "86400"     // 24시간 보존
+                        },
                         notification: {
                             title: String(title),
                             body: String(body),
                             icon: "https://raon-i.co.kr/icons/icon-192.png", // 라온아이 공식 마스코트 로고
-                            badge: "https://raon-i.co.kr/badge.png",       // 투명 단색 아이콘
-                            image: heroImage,                                   // 큰 전경 이미지
-                            requireInteraction: isReservation
+                            badge: "https://raon-i.co.kr/badge.png",          // 투명 단색 아이콘
+                            image: heroImage,                                 // 큰 전경 이미지
+                            requireInteraction: isReservation,
+                            vibrate: [200, 100, 200]
+                        },
+                        fcm_options: {
+                            link: String(data?.link || "https://raon-i.co.kr/notifications")
                         }
                     }
                 }
