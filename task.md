@@ -1,5 +1,11 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **캠핏 상단(캠핑존 예약 불가) / 하단(사이트 예약 생성) 분리 자동화 완결 (2026-08-28 완결)**
+    - [x] 1. 입금 대기 시 상단 카드 타겟팅 ➔ 상단 [적용] 버튼 클릭 구현 (`raoni-camfit-sync-extension/content.js`)
+    - [x] 2. 입금 완료 시 상단 [해제] ➔ 하단 [예약 생성] 모달 입력 및 확정 저장 구현
+    - [x] 3. 취소 시 [해제] 버튼 클릭하여 빈자리 복원
+    - [x] 4. 확장프로그램 v2.1.0 릴리즈 & TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **캠핏 동기화 API 미들웨어 401 권한 해제 및 통신 완전 개통 (2026-08-28 완결)**
     - [x] 1. `src/middleware.ts`에서 `/api/admin/camfit-sync/*` 경로 인증 예외 통과 설정
     - [x] 2. 확장프로그램 401 권한 거부 완전 해소

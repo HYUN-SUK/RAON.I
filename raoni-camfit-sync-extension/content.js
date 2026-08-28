@@ -120,43 +120,40 @@ async function handleCamfitSync(item) {
 
         // 4. 셀 클릭 ➔ 오른쪽 관리 패널 오픈
         cellEl.click();
-        await delay(600);
+        await delay(500);
 
-        // 5. 오른쪽 패널의 타이틀 2중 검증 (Double Guard)
-        const panelTitleEl = await waitForElement(() => {
-            const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, div, span'));
-            return headings.find(h => {
-                const txt = (h.innerText || '').trim();
-                return txt === targetGroup || txt.includes(targetGroup);
+        // 6. 우측 패널 컨테이너 탐색 및 상단/하단 영역 분리
+        await delay(500);
+
+        // [구조 1] 상단 '캠핑존 예약 불가 설정' 영역
+        const topBlockSection = Array.from(document.querySelectorAll('div, section, form, .card')).find(el => {
+            const t = (el.innerText || '').trim();
+            return t.includes('캠핑존 예약 불가 설정') && (t.includes('적용') || t.includes('해제'));
+        }) || document.querySelector('.top-section') || document;
+
+        // [구조 2] 하단 '캠핑 사이트 목록' 테이블 영역
+        const bottomSiteSection = Array.from(document.querySelectorAll('div, section, table, .card')).find(el => {
+            const t = (el.innerText || '').trim();
+            return t.includes('캠핑 사이트 목록') || t.includes('사이트명') || t.includes('예약 생성');
+        }) || document;
+
+        // 하단 테이블에서 개별 사이트(예: 에어컨 1번 등) 타겟 행 탐색
+        let targetSiteRow = null;
+        if (isAircon && subSiteName) {
+            targetSiteRow = Array.from(bottomSiteSection.querySelectorAll('tr, div, .row')).find(r => {
+                const t = (r.innerText || '').trim();
+                return t.includes(subSiteName);
             });
-        }, 3000);
-
-        if (!panelTitleEl) {
-            console.warn(`[Raoni Sync] Double Guard Warning: Panel title for ${targetGroup} not strictly verified, continuing safely...`);
         }
-
-        // 6. 패널 내부에서 타겟 행(Row) 및 컨트롤 탐색
-        let targetRow = null;
-
-        if (isAircon) {
-            targetRow = await waitForElement(() => {
-                const rows = Array.from(document.querySelectorAll('tr, .site-row, .table-row'));
-                return rows.find(r => (r.innerText || '').includes(subSiteName));
-            }, 3000);
-
-            if (!targetRow) {
-                const allDivs = Array.from(document.querySelectorAll('div'));
-                targetRow = allDivs.find(d => (d.innerText || '').includes(subSiteName) && d.querySelector('button, select, input'));
-            }
-        }
-
-        const scope = targetRow || document.querySelector('.panel, .drawer, .modal, body') || document;
 
         // ==========================================================
-        // [Action 1] 입금 대기 차단 (BLOCK_PENDING - 빨간색)
+        // [Action 1] 입금 대기 차단 (BLOCK_PENDING - 상단 빨간색 예약불가)
         // ==========================================================
         if (action === 'BLOCK_PENDING') {
-            const selectEl = scope.querySelector('select');
+            console.log('[Raoni Sync] Targeting Top Block Section for BLOCK_PENDING...');
+
+            // 1) 상단 박수 드롭다운 선택
+            const selectEl = topBlockSection.querySelector('select') || document.querySelector('select');
             if (selectEl) {
                 const targetNightText = `${nights}박`;
                 const option = Array.from(selectEl.options).find(opt => opt.text.includes(targetNightText) || opt.value.includes(`${nights}`));
@@ -166,53 +163,69 @@ async function handleCamfitSync(item) {
                 }
             }
 
-            const memoInput = scope.querySelector('input[type="text"], input[placeholder*="메모"]');
+            // 2) 상단 메모 입력창 값 주입
+            const memoInput = topBlockSection.querySelector('input[type="text"], input[placeholder*="메모"]') || document.querySelector('input[placeholder*="메모"]');
             if (memoInput) {
                 setNativeInputValue(memoInput, memo || `[RAON.I_APP] 입금대기 - ${guestName} (${guestPhone})`);
             }
 
             await delay(300);
 
-            const applyBtn = Array.from(scope.querySelectorAll('button')).find(btn => {
+            // 3) 상단 [적용] 버튼 클릭 (상단 영역 우선, 없으면 전역 탐색)
+            const topApplyBtn = Array.from(topBlockSection.querySelectorAll('button, a, input[type="button"], input[type="submit"]')).find(btn => {
+                const t = (btn.innerText || btn.value || '').trim();
+                return t === '적용' || t.includes('적용');
+            }) || Array.from(document.querySelectorAll('button')).find(btn => {
                 const t = (btn.innerText || '').trim();
                 return t === '적용' || t.includes('적용');
             });
 
-            if (applyBtn) {
-                applyBtn.click();
+            if (topApplyBtn) {
+                console.log('[Raoni Sync] Clicking Top Apply Button:', topApplyBtn);
+                topApplyBtn.click();
                 await delay(800);
             } else {
-                throw new Error('[적용] 버튼을 찾을 수 없습니다.');
+                throw new Error('상단 [적용] 버튼을 찾을 수 없습니다.');
             }
 
             showInPageToast(`✓ [라온아이] ${subSiteName || targetGroup} 입금대기 자동 차단 완료! (빨강)`, true);
         }
 
         // ==========================================================
-        // [Action 2] 입금 완료 확정 (CREATE_RESERVATION - 초록색)
+        // [Action 2] 입금 완료 확정 (CREATE_RESERVATION - 초록색 예약 생성)
         // ==========================================================
         else if (action === 'CREATE_RESERVATION') {
-            const cancelBlockBtn = Array.from(scope.querySelectorAll('button')).find(btn => {
+            console.log('[Raoni Sync] Executing CREATE_RESERVATION (Unblock Top + Create Bottom)...');
+
+            // 1) 상단에 걸려있던 예약불가 [해제] 버튼이 있다면 먼저 해제
+            const topUnblockBtn = Array.from(topBlockSection.querySelectorAll('button')).find(btn => {
                 const t = (btn.innerText || '').trim();
                 return t === '해제' || t.includes('해제');
             });
-            if (cancelBlockBtn) {
-                cancelBlockBtn.click();
+            if (topUnblockBtn) {
+                console.log('[Raoni Sync] Clearing Top Block first...');
+                topUnblockBtn.click();
                 await delay(600);
                 const confirmBtn = document.querySelector('.modal-confirm, button.confirm, button.primary');
                 if (confirmBtn) { confirmBtn.click(); await delay(500); }
             }
 
-            const createResBtn = Array.from(scope.querySelectorAll('button, a, span')).find(btn => {
+            // 2) 하단 테이블에서 [예약 생성] 버튼 탐색 및 클릭
+            const targetScope = targetSiteRow || bottomSiteSection || document;
+            const createResBtn = Array.from(targetScope.querySelectorAll('button, a, span')).find(btn => {
                 const t = (btn.innerText || '').trim();
                 return t === '예약 생성' || t.includes('예약 생성') || t.includes('직접 예약');
+            }) || Array.from(document.querySelectorAll('button, a, span')).find(btn => {
+                const t = (btn.innerText || '').trim();
+                return t === '예약 생성' || t.includes('예약 생성');
             });
 
             if (createResBtn) {
+                console.log('[Raoni Sync] Opening Create Reservation Modal...');
                 createResBtn.click();
                 await delay(800);
 
-                const modal = document.querySelector('.modal, .dialog, .drawer') || document;
+                const modal = document.querySelector('.modal, .dialog, .drawer, [role="dialog"]') || document;
                 const nameInput = modal.querySelector('input[placeholder*="이름"], input[placeholder*="고객"], input[name*="name"]');
                 const phoneInput = modal.querySelector('input[placeholder*="연락처"], input[placeholder*="전화"], input[name*="phone"]');
                 const memoInput = modal.querySelector('textarea, input[placeholder*="메모"]');
@@ -225,17 +238,21 @@ async function handleCamfitSync(item) {
 
                 const saveBtn = Array.from(modal.querySelectorAll('button')).find(b => {
                     const t = (b.innerText || '').trim();
-                    return t === '저장' || t === '예약' || t.includes('완료') || t.includes('등록');
+                    return t === '저장' || t === '예약' || t.includes('완료') || t.includes('등록') || t.includes('확인');
                 });
+
                 if (saveBtn) {
                     saveBtn.click();
                     await delay(800);
+                } else {
+                    throw new Error('예약 생성 모달 내 [저장/등록] 버튼을 찾을 수 없습니다.');
                 }
             } else {
-                const memoInput = scope.querySelector('input[type="text"], input[placeholder*="메모"]');
+                // 하단에 예약 생성 버튼이 없는 경우 하단 메모 적용 Fallback
+                const memoInput = targetScope.querySelector('input[type="text"], input[placeholder*="메모"]');
                 if (memoInput) {
                     setNativeInputValue(memoInput, memo || `[RAON.I_APP_BLOCK] 입금완료 - ${guestName}`);
-                    const applyBtn = Array.from(scope.querySelectorAll('button')).find(btn => (btn.innerText || '').includes('적용'));
+                    const applyBtn = Array.from(targetScope.querySelectorAll('button')).find(btn => (btn.innerText || '').includes('적용'));
                     if (applyBtn) { applyBtn.click(); await delay(800); }
                 }
             }
@@ -247,7 +264,9 @@ async function handleCamfitSync(item) {
         // [Action 3] 예약 취소 (UNBLOCK_CANCEL - 빈자리 복원)
         // ==========================================================
         else if (action === 'UNBLOCK_CANCEL') {
-            const unblockBtn = Array.from(scope.querySelectorAll('button')).find(btn => {
+            console.log('[Raoni Sync] Executing UNBLOCK_CANCEL...');
+
+            const unblockBtn = Array.from(document.querySelectorAll('button')).find(btn => {
                 const t = (btn.innerText || '').trim();
                 return t === '해제' || t.includes('해제') || t.includes('삭제') || t.includes('취소');
             });
