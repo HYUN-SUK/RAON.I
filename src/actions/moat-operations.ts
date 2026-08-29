@@ -1,6 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase-server';
+import { createAdminClient } from '@/lib/supabase-admin';
+import { assertAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 
 const DEFAULT_PARTNER_ID = 'a0000000-0000-0000-0000-000000000001';
@@ -26,11 +27,13 @@ export interface MoatMetricsData {
 }
 
 /**
- * 1. 실시간 해자 데이터 수집 지표 및 최근 피드 조회
+ * 1. 실시간 해자 데이터 수집 지표 및 최근 피드 조회 (관리자 전용)
  */
 export async function getMoatMetrics(): Promise<{ success: boolean; data?: MoatMetricsData; error?: string }> {
     try {
-        const supabase = await createClient();
+        await assertAdmin();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
 
         // 1) nav_intent_log 총 건수
         const { count: navIntentCount } = await supabase
@@ -74,27 +77,25 @@ export async function getMoatMetrics(): Promise<{ success: boolean; data?: MoatM
             .select('*', { count: 'exact', head: true })
             .eq('is_active', false);
 
-        // 5) 최근 10개 검증 피드
+        // 5) 최근 10개 검증 피드 (외래키 조인 에러 없는 안전한 2-Step 매핑)
         const { data: recentList } = await supabase
             .from('place_verifications')
-            .select(`
-                id,
-                source,
-                fact_status,
-                liked,
-                reporter_weight,
-                review_state,
-                verified_at,
-                master_places:place_id ( name )
-            `)
+            .select('id, place_id, source, fact_status, liked, reporter_weight, review_state, verified_at')
             .order('verified_at', { ascending: false })
             .limit(10);
 
-        const recentVerifications = (recentList || []).map(r => {
-            const mp = Array.isArray(r.master_places) ? r.master_places[0] : r.master_places;
+        const placeIds = (recentList || []).map((r: any) => r.place_id).filter(Boolean);
+        const { data: placeRows } = placeIds.length > 0
+            ? await supabase.from('master_places').select('id, name').in('id', placeIds)
+            : { data: [] };
+
+        const placeNameMap = new Map<string, string>();
+        (placeRows || []).forEach((p: any) => placeNameMap.set(p.id, p.name));
+
+        const recentVerifications = (recentList || []).map((r: any) => {
             return {
                 id: r.id,
-                placeName: mp?.name || '장소명 미상',
+                placeName: placeNameMap.get(r.place_id) || '장소명 미상',
                 source: r.source,
                 factStatus: r.liked ? '좋았어요 (OK)' : (r.fact_status || '확인됨'),
                 reporterWeight: r.reporter_weight || 0,
@@ -134,7 +135,9 @@ export async function runMoatAutomatedLoop(): Promise<{
     error?: string;
 }> {
     try {
-        const supabase = await createClient();
+        await assertAdmin();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
         let deactivatedCount = 0;
         let rescuedCount = 0;
 
@@ -147,7 +150,7 @@ export async function runMoatAutomatedLoop(): Promise<{
 
         if (pendingReports && pendingReports.length > 0) {
             const placeWeightMap = new Map<string, { weight: number; ids: number[] }>();
-            pendingReports.forEach(r => {
+            pendingReports.forEach((r: any) => {
                 const current = placeWeightMap.get(r.place_id) || { weight: 0, ids: [] };
                 current.weight += (r.reporter_weight || 0.3);
                 current.ids.push(r.id);
@@ -189,7 +192,7 @@ export async function runMoatAutomatedLoop(): Promise<{
             .gte('miss_count', 1);
 
         if (strikePlaces && strikePlaces.length > 0) {
-            const strikePlaceIds = strikePlaces.map(p => p.id);
+            const strikePlaceIds = strikePlaces.map((p: any) => p.id);
 
             // 최근 30일 이내 길안내 실행 확인
             const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -208,8 +211,8 @@ export async function runMoatAutomatedLoop(): Promise<{
                 .gte('verified_at', thirtyDaysAgo);
 
             const activeSet = new Set<string>();
-            (activeNavs || []).forEach(n => activeSet.add(n.place_id));
-            (activeVerifs || []).forEach(v => activeSet.add(v.place_id));
+            (activeNavs || []).forEach((n: any) => activeSet.add(n.place_id));
+            (activeVerifs || []).forEach((v: any) => activeSet.add(v.place_id));
 
             for (const placeId of activeSet) {
                 await supabase

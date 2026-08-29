@@ -1,6 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase-server';
+import { createAdminClient } from '@/lib/supabase-admin';
+import { assertAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 
 const DEFAULT_PARTNER_ID = 'a0000000-0000-0000-0000-000000000001';
@@ -52,27 +53,19 @@ export interface VerificationInputItem {
 }
 
 /**
- * 1. 팩트 검증 대상 일정 목록 조회 (최근 60일 이내 완료 및 이용 중 일정)
+ * 1. 팩트 검증 대상 일정 목록 조회 (안전한 2-Step 매핑 및 컬럼 정합성 보장)
  */
 export async function getSchedulesForVerification(): Promise<{ success: boolean; data: VerificationScheduleItem[]; error?: string }> {
     try {
-        const supabase = await createClient();
+        await assertAdmin();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
 
-        // 1) 최근 일정 조회
+        // 1) 최근 일정 조회 (user_schedules 실제 컬럼: id, user_id, campground_name, check_in, check_out, status, smart_plan_data, reservation_id)
         const { data: schedules, error: schedErr } = await supabase
             .from('user_schedules')
-            .select(`
-                id,
-                user_id,
-                title,
-                check_in_date,
-                check_out_date,
-                status,
-                smart_plan_data,
-                profiles:user_id ( full_name, phone_number ),
-                reservations:reservation_id ( site_name )
-            `)
-            .order('check_in_date', { ascending: false })
+            .select('id, user_id, campground_name, check_in, check_out, status, smart_plan_data, reservation_id')
+            .order('check_in', { ascending: false })
             .limit(50);
 
         if (schedErr) {
@@ -80,34 +73,53 @@ export async function getSchedulesForVerification(): Promise<{ success: boolean;
             return { success: false, data: [], error: schedErr.message };
         }
 
-        const scheduleIds = (schedules || []).map(s => s.id);
+        const scheduleIds = (schedules || []).map((s: any) => s.id);
+        const userIds = (schedules || []).map((s: any) => s.user_id).filter(Boolean);
+        const reservationIds = (schedules || []).map((s: any) => s.reservation_id).filter(Boolean);
 
-        // 2) 기존 검증 건수 확인
-        const { data: verifList } = await supabase
-            .from('place_verifications')
-            .select('schedule_id')
-            .in('schedule_id', scheduleIds);
+        // 2) 프로필 매핑 (nickname, email)
+        const { data: profiles } = userIds.length > 0
+            ? await supabase.from('profiles').select('id, nickname, email').in('id', userIds)
+            : { data: [] };
+        const profileMap = new Map<string, any>();
+        (profiles || []).forEach((p: any) => profileMap.set(p.id, p));
+
+        // 3) 예약 정보 매핑 (guest_name, guest_phone, site_id)
+        const { data: reservations } = reservationIds.length > 0
+            ? await supabase.from('reservations').select('id, guest_name, guest_phone, site_id').in('id', reservationIds)
+            : { data: [] };
+        const resvMap = new Map<string, any>();
+        (reservations || []).forEach((r: any) => resvMap.set(r.id, r));
+
+        // 4) 기존 검증 건수 확인
+        const { data: verifList } = scheduleIds.length > 0
+            ? await supabase.from('place_verifications').select('schedule_id').in('schedule_id', scheduleIds)
+            : { data: [] };
 
         const verifCountMap = new Map<string, number>();
-        (verifList || []).forEach(v => {
+        (verifList || []).forEach((v: any) => {
             if (v.schedule_id) {
                 verifCountMap.set(v.schedule_id, (verifCountMap.get(v.schedule_id) || 0) + 1);
             }
         });
 
-        const items: VerificationScheduleItem[] = (schedules || []).map(s => {
-            const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
-            const resv = Array.isArray(s.reservations) ? s.reservations[0] : s.reservations;
+        const items: VerificationScheduleItem[] = (schedules || []).map((s: any) => {
+            const prof = s.user_id ? profileMap.get(s.user_id) : null;
+            const resv = s.reservation_id ? resvMap.get(s.reservation_id) : null;
+
+            const userName = resv?.guest_name || prof?.nickname || '익명 캠퍼';
+            const userPhone = resv?.guest_phone || '';
+            const siteName = resv?.site_id || s.campground_name || '라온아이 오토캠핑장';
 
             return {
                 id: s.id,
-                userId: s.user_id,
-                userName: profile?.full_name || '익명 캠퍼',
-                userPhone: profile?.phone_number || '',
-                title: s.title || `${s.check_in_date} 캠핑 일정`,
-                checkInDate: s.check_in_date,
-                checkOutDate: s.check_out_date,
-                siteName: resv?.site_name || '',
+                userId: s.user_id || '',
+                userName,
+                userPhone,
+                title: s.campground_name ? `${s.campground_name} (${s.check_in})` : `${s.check_in} 캠핑 일정`,
+                checkInDate: s.check_in,
+                checkOutDate: s.check_out,
+                siteName,
                 hasPlan: !!s.smart_plan_data,
                 verificationCount: verifCountMap.get(s.id) || 0,
             };
@@ -125,7 +137,9 @@ export async function getSchedulesForVerification(): Promise<{ success: boolean;
  */
 export async function getScheduleFactCards(scheduleId: string): Promise<{ success: boolean; data: FactCardForVerification[]; error?: string }> {
     try {
-        const supabase = await createClient();
+        await assertAdmin();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
 
         // 1) user_schedules에서 스마트플랜 데이터 조회
         const { data: schedule, error: schedErr } = await supabase
@@ -174,7 +188,7 @@ export async function getScheduleFactCards(scheduleId: string): Promise<{ succes
             .in('id', placeIds);
 
         const masterMap = new Map<string, any>();
-        (masterList || []).forEach(m => masterMap.set(m.id, m));
+        (masterList || []).forEach((m: any) => masterMap.set(m.id, m));
 
         // 4) 기존 입력된 검증 데이터 조회
         const { data: existingVerifs } = await supabase
@@ -183,7 +197,7 @@ export async function getScheduleFactCards(scheduleId: string): Promise<{ succes
             .eq('schedule_id', scheduleId);
 
         const verifMap = new Map<string, any>();
-        (existingVerifs || []).forEach(v => verifMap.set(`${v.place_id}_${v.stage}`, v));
+        (existingVerifs || []).forEach((v: any) => verifMap.set(`${v.place_id}_${v.stage}`, v));
 
         // 5) 최종 카드 목록 매핑
         const result: FactCardForVerification[] = extracted.map(item => {
@@ -228,16 +242,18 @@ export async function submitOwnerVerifications(
     verifications: VerificationInputItem[]
 ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-        const supabase = await createClient();
+        await assertAdmin();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
 
         // 1) 일정 정보 확인 (관측 일자 및 요일 추출)
         const { data: schedule } = await supabase
             .from('user_schedules')
-            .select('id, user_id, check_in_date, check_out_date')
+            .select('id, user_id, check_in, check_out')
             .eq('id', scheduleId)
             .single();
 
-        const observedDate = schedule?.check_in_date || new Date().toISOString().split('T')[0];
+        const observedDate = schedule?.check_in || new Date().toISOString().split('T')[0];
         const observedDow = new Date(observedDate).getDay(); // 0:일 ~ 6:토
         const userId = schedule?.user_id || null;
 
