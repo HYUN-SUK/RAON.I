@@ -103,7 +103,31 @@ async function checkAndSyncQueue() {
 
         const targetTab = tabs[0];
 
-        // 3) 대기 중인 예약 건들을 순차적으로 캠핏 탭에 주입하여 자동 차단/생성/취소 실행
+        // 3) 캠핏 탭에 content.js 수신기가 살아있는지 확인하고, 끊겨있으면 즉시 자동 주입(Auto-Inject)
+        let isTabReady = false;
+        try {
+            const pingRes = await chrome.tabs.sendMessage(targetTab.id, { action: 'PING' });
+            if (pingRes && pingRes.status === 'PONG') {
+                isTabReady = true;
+            }
+        } catch (e) {
+            isTabReady = false;
+        }
+
+        if (!isTabReady) {
+            console.log('[Raoni Sync] Content script disconnected. Auto-injecting content.js now into tab:', targetTab.id);
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: targetTab.id },
+                    files: ['content.js']
+                });
+                await new Promise(r => setTimeout(r, 400));
+            } catch (injectErr) {
+                console.error('[Raoni Sync] Failed to auto-inject content.js:', injectErr);
+            }
+        }
+
+        // 4) 대기 중인 예약 건들을 순차적으로 캠핏 탭에 주입하여 자동 차단/생성/취소 실행
         let successCount = 0;
         for (const item of data.queue) {
             try {

@@ -438,11 +438,36 @@ async function dailyRegionSync() {
   const targetIndex = (dayOfYear - 1) % SIDO_ROTATION.length;
   let targetSido = SIDO_ROTATION[targetIndex];
 
-  // CLI 인자로 시도 강제 설정 지원 (예: node scripts/daily-region-sync.mjs 인천광역시)
-  const forceSido = process.argv[2];
-  if (forceSido && SIDO_ROTATION.includes(forceSido)) {
+  // CLI 인자로 시도 강제 설정 및 force 옵션 지원
+  const args = process.argv.slice(2);
+  const forceRun = args.includes('--force');
+  const forceSido = args.find(a => SIDO_ROTATION.includes(a));
+  if (forceSido) {
     console.log(`💡 [Force Sido Enabled] Force target: ${forceSido}`);
     targetSido = forceSido;
+  }
+
+  // [SOP v15.0 2중 안전망] 당일 1회 성공(SUCCESS) 0초 스킵 락 (Idempotency Guard)
+  if (!forceRun && !forceSido) {
+    const kstNow = new Date(Date.now() + 9 * 3600000);
+    const todayKstStr = kstNow.toISOString().split('T')[0];
+    const kstStartOfDayUtc = new Date(`${todayKstStr}T00:00:00+09:00`).toISOString();
+
+    const { data: todayLogs, error: logCheckErr } = await supabase
+      .from('automation_logs')
+      .select('id, status, created_at, message')
+      .eq('job_name', 'DAILY_REGION_SYNC')
+      .eq('status', 'SUCCESS')
+      .gte('created_at', kstStartOfDayUtc)
+      .limit(1);
+
+    if (!logCheckErr && todayLogs && todayLogs.length > 0) {
+      console.log(`\n⚡ [Idempotency Guard] 오늘(${todayKstStr}) 일일 지역 동기화(DAILY_REGION_SYNC)가 이미 성공(SUCCESS) 완료되었습니다.`);
+      console.log(`   - 이전 완료 기록: [${todayLogs[0].created_at}] ${todayLogs[0].message}`);
+      console.log(`   - 2차/중복 트리거를 0초 만에 완벽히 스킵(Skip)하고 정상 종료합니다.\n`);
+      process.exitCode = 0;
+      return;
+    }
   }
 
   console.log(`\n📅 [Day ${dayOfYear}] Target Region: ${targetSido}`);
@@ -1454,15 +1479,43 @@ async function syncBaeknyeon(sido, seenIds, stat) {
 }
 
 /**
- * 관광공사 지역기반 명소 동기화 (SPOT) - KorService2 마이그레이션 완료
+ * 관광공사 지역기반 명소 동기화 (SPOT) - [SOP v15.0] modifiedtime 변경감지 + 400개 분할 롤링 갱신 엔진
  */
 async function syncTourSpots(sido, seenIds, stat) {
   const isJeonnamGwangju = sido === '전남광주시' || sido.includes('전남광주');
+  const shortSido = SIDO_SHORT_MAP[sido] || sido;
+  const aliases = SIDO_ALIASES[shortSido] || [sido];
   const areaCodes = isJeonnamGwangju ? ['5', '36'] : (SIDO_MAP[sido] ? [String(SIDO_MAP[sido])] : []);
   if (areaCodes.length === 0) return;
 
+  console.log(`🏞️  [TOUR v2 High-Speed] ${sido} 명소 동기화 시작 (수정일시 감지 + 400개 분할 롤링)...`);
+
+  // 1. 기존 DB 명소 캐시 사전 조회 (메모리 맵 구축)
+  const existingMap = new Map();
+  try {
+    const { data: existingSpots } = await supabase
+      .from('master_places')
+      .select('id, name, address, description, raw_data')
+      .eq('api_source', 'TOUR_SPOT')
+      .in('sido', aliases);
+
+    if (existingSpots) {
+      existingSpots.forEach(s => {
+        existingMap.set(s.id, s);
+        if (s.raw_data?.contentid) {
+          existingMap.set(String(s.raw_data.contentid), s);
+        }
+      });
+    }
+    console.log(`   - Loaded ${existingMap.size} existing SPOT cache entries from DB.`);
+  } catch (dbErr) {
+    console.warn(`   ⚠️ Failed to pre-fetch existing spots: ${dbErr.message}`);
+  }
+
+  let remainingRollingQuota = 400; // [대표님 승인 규격] 로테이션 1회당 최대 400개 분할 롤링
+
   for (const areaCode of areaCodes) {
-    console.log(`🏞️  [TOUR v2] ${sido} 명소(관광지) 동기화 중 (AreaCode: ${areaCode})...`);
+    console.log(`   - Fetching TourAPI list for AreaCode ${areaCode}...`);
     let pageNo = 1, hasMore = true;
     
     while (hasMore && pageNo <= 200) {
@@ -1479,75 +1532,113 @@ async function syncTourSpots(sido, seenIds, stat) {
 
       try {
         const data = await fetchWithRetry(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`);
-      if (data.response?.header?.resultCode && data.response.header.resultCode !== '0000') {
-        console.error('  ❌ Tour API Error Response:', data.response.header.resultMsg);
-        break;
-      }
-      const items = data.response?.body?.items?.item || [];
-      const itemList = Array.isArray(items) ? items : items ? [items] : [];
-      if (itemList.length === 0) break;
+        if (data.response?.header?.resultCode && data.response.header.resultCode !== '0000') {
+          console.error('  ❌ Tour API Error Response:', data.response.header.resultMsg);
+          break;
+        }
+        const items = data.response?.body?.items?.item || [];
+        const itemList = Array.isArray(items) ? items : items ? [items] : [];
+        if (itemList.length === 0) break;
 
-      // 10건씩 청크로 쪼개어 비동기 병렬 상세 조회 (공공 API 트래픽 제어)
-      const enrichedList = [];
-      const batchSize = 10;
-      for (let k = 0; k < itemList.length; k += batchSize) {
-        const batch = itemList.slice(k, k + batchSize);
-        const enrichedBatch = await Promise.all(batch.map(async (item) => {
-          try {
-            if (item.contentid) {
-              const details = await fetchTourPlaceDetails(item.contentid, '12', TOUR_API_KEY);
-              if (details) {
-                return { ...item, ...details };
-              }
+        // 2. 스마트 판별: 상세 조회가 필요한 대상 선별 (신규 / 수정일시 변경 / 400개 롤링 쿼터)
+        const targetFetchList = [];
+        const enrichedList = [];
+
+        for (const item of itemList) {
+          const id = generateId('TOUR_SPOT', item.title, item.addr1);
+          const exist = existingMap.get(id) || (item.contentid ? existingMap.get(String(item.contentid)) : null);
+
+          const isNew = !exist;
+          const isModified = exist && item.modifiedtime && String(exist.raw_data?.modifiedtime) !== String(item.modifiedtime);
+          const needsEnrich = exist && (!exist.raw_data?.operating_hours && !exist.raw_data?.usetime && !exist.description);
+          const shouldRollingRefresh = exist && remainingRollingQuota > 0;
+
+          if (isNew || isModified || needsEnrich || shouldRollingRefresh) {
+            targetFetchList.push({ item, id, exist });
+            if (shouldRollingRefresh && !isNew && !isModified) {
+              remainingRollingQuota--;
             }
-            return item;
-          } catch (e) {
-            return item; // 상세 조회 실패 시 기존 기본값 유지
+          } else {
+            // [초고속 캐시 재활용] 기존 상세 데이터를 100% 보존하여 API 호출 0회로 통과!
+            const mergedRaw = {
+              ...(exist.raw_data || {}),
+              ...item,
+              enriched: true
+            };
+            enrichedList.push({
+              ...item,
+              operating_hours: exist.raw_data?.operating_hours || exist.raw_data?.usetime,
+              closed_days: exist.raw_data?.closed_days || exist.raw_data?.restdate,
+              parking_available: exist.raw_data?.parking_available || exist.raw_data?.parking,
+              admission_fee: exist.raw_data?.admission_fee || exist.raw_data?.usefee,
+              homepage_url: exist.raw_data?.homepage_url || "",
+              description: exist.description || item.description || '한국관광공사 선정 관광명소',
+              raw_detail: exist.raw_data?.raw_detail || null,
+              _mergedRaw: mergedRaw
+            });
           }
-        }));
-        enrichedList.push(...enrichedBatch);
-        await new Promise(r => setTimeout(r, 200)); // 청크 간 0.2초 딜레이
-      }
+        }
 
-      const chunk = [];
-      for (const i of enrichedList) {
-        if (!i.title || !i.addr1) continue;
-        const id = generateId('TOUR_SPOT', i.title, i.addr1);
-        if (seenIds.has(id)) continue;
-        seenIds.add(id);
-        stat.fetched.active++;
+        // 3. 선별된 대상만 5-Worker 병렬 풀로 초고속 상세 API 호출 (Keep-Alive)
+        const batchSize = 5;
+        for (let k = 0; k < targetFetchList.length; k += batchSize) {
+          const batch = targetFetchList.slice(k, k + batchSize);
+          const batchResults = await Promise.all(batch.map(async ({ item, exist }) => {
+            try {
+              if (item.contentid) {
+                const details = await fetchTourPlaceDetails(item.contentid, '12', TOUR_API_KEY);
+                if (details) {
+                  return { ...item, ...details };
+                }
+              }
+              return { ...item, description: exist?.description || item.title };
+            } catch (e) {
+              return { ...item, description: exist?.description || item.title };
+            }
+          }));
+          enrichedList.push(...batchResults);
+          await delay(100); // 0.1초 안전 간격
+        }
 
-        // raw_data에 상세 데이터를 통합 머지합니다.
-        const raw_data = {
-          ...i,
-          enriched: true,
-          operating_hours: i.operating_hours || i.usetime,
-          closed_days: i.closed_days || i.restdate,
-          parking_available: i.parking_available || i.parking,
-          admission_fee: i.admission_fee || i.usefee,
-          homepage_url: i.homepage_url || ""
-        };
+        // 4. DB Upsert 데이터 패키징
+        const chunk = [];
+        for (const i of enrichedList) {
+          if (!i.title || !i.addr1) continue;
+          const id = generateId('TOUR_SPOT', i.title, i.addr1);
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+          stat.fetched.active++;
 
-        chunk.push({
-          id, api_source: 'TOUR_SPOT', category: 'SPOT',
-          name: i.title, address: i.addr1, trust_score: 50, is_active: true,
-          sido, raw_data, description: i.description || '한국관광공사 선정 관광명소', 
-          updated_at: new Date().toISOString()
-        });
-      }
-      if (chunk.length > 0) await upsertAndTrack(chunk, stat);
-      if (itemList.length < 100) {
-        hasMore = false;
-      } else {
-        pageNo++;
-      }
+          const raw_data = i._mergedRaw || {
+            ...i,
+            enriched: true,
+            operating_hours: i.operating_hours || i.usetime,
+            closed_days: i.closed_days || i.restdate,
+            parking_available: i.parking_available || i.parking,
+            admission_fee: i.admission_fee || i.usefee,
+            homepage_url: i.homepage_url || ""
+          };
+
+          chunk.push({
+            id, api_source: 'TOUR_SPOT', category: 'SPOT',
+            name: i.title, address: i.addr1, trust_score: 50, is_active: true,
+            sido, raw_data, description: i.description || '한국관광공사 선정 관광명소', 
+            updated_at: new Date().toISOString()
+          });
+        }
+
+        if (chunk.length > 0) await upsertAndTrack(chunk, stat);
+        if (itemList.length < 100) {
+          hasMore = false;
+        } else {
+          pageNo++;
+        }
       } catch (e) { 
         console.error(`  ❌ Tour API Error for Area ${areaCode} Page ${pageNo}:`, e.message); 
         stat.note = stat.note ? `${stat.note}, 일부지연(${e.message.slice(0, 15)})` : `일부지연(${e.message.slice(0, 20)})`;
-        // [v14.0] 1개 페이지 실패 시 전체 수집을 중단(break)하지 않고 다음 페이지로 계속 진행
         pageNo++;
-        if (pageNo > 20) hasMore = false; // 최대 안전 가드
-        await delay(1000);
+        if (pageNo > 20) hasMore = false;
+        await delay(500);
       }
     }
   }
@@ -1603,6 +1694,19 @@ async function syncHospitals(sido, seenIds, stat) {
         if (items) {
           const itemList = Array.isArray(items) ? items : [items];
 
+          // 5-Worker 병렬 풀로 상세 진료정보 초고속 동시 수집
+          const detailMap = new Map();
+          const hpidsToFetch = itemList.filter(i => i.hpid).map(i => i.hpid);
+          const hBatchSize = 5;
+          for (let b = 0; b < hpidsToFetch.length; b += hBatchSize) {
+            const batch = hpidsToFetch.slice(b, b + hBatchSize);
+            const res = await Promise.all(batch.map(hpid => fetchHospitalDetails(hpid, MOIS_API_KEY).catch(() => null)));
+            batch.forEach((hpid, idx) => {
+              if (res[idx]) detailMap.set(hpid, res[idx]);
+            });
+            await delay(50);
+          }
+
           for (const item of itemList) {
             const hAddr = item.dutyAddr || '';
             const tempFid = generateId('NMC_HOSPITAL', item.dutyName, hAddr);
@@ -1629,7 +1733,7 @@ async function syncHospitals(sido, seenIds, stat) {
                 hLat = coords.lat;
                 hLng = coords.lng;
                 if (coords.addr) finalAddr = coords.addr;
-                await delay(100);
+                await delay(50);
               }
             }
 
@@ -1638,15 +1742,7 @@ async function syncHospitals(sido, seenIds, stat) {
               seenIds.add(finalFid);
               stat.fetched.active++;
 
-              let details = null;
-              try {
-                if (item.hpid) {
-                  details = await fetchHospitalDetails(item.hpid, MOIS_API_KEY);
-                  await new Promise(r => setTimeout(r, 150)); // 호출 간 딜레이
-                }
-              } catch (de) {
-                console.warn(`[NMC Detail Sync Fail] hospital: ${item.dutyName}, err: ${de.message}`);
-              }
+              const details = item.hpid ? detailMap.get(item.hpid) : null;
 
               const raw_data = {
                 ...item,

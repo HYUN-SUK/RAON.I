@@ -1,10 +1,10 @@
 name: RAONAI Daily Region Sync (17-Day Rotation)
 
 on:
-  # [v12.0.2] 외부 크론잡(cron-job.org)과 깃허브 자체 스케줄러(04:37 KST) 2중 안전망 가동
+  # [v15.0 2중 안전망] 1차 외부 크론잡(04:00 KST) + 2차 깃허브 백업 스케줄러(06:07 KST)
   schedule:
-    # 04:37 KST 실행 (UTC 19:37) - 트래픽이 덜 몰리는 분 단위로 우회
-    - cron: '37 19 * * *'
+    # 06:07 KST 실행 (UTC 21:07) - 1차 완료 시 0초 스킵, 미완료 시 백업 재실행
+    - cron: '7 21 * * *'
   workflow_dispatch: # 수동 및 외부 트리거 허용
 
 jobs:

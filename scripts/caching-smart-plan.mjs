@@ -243,11 +243,31 @@ async function main() {
     const dateArg = args.find(a => a.startsWith('--target-date='))?.split('=')[1];
     const forceArg = args.includes('--force');
     
-    // [v11.9.80] KST 오늘 날짜 구하기
-    const todayKst = new Date(new Date().getTime() + 12 * 3600000);
-    const todayStr = todayKst.toISOString().split('T')[0];
+    // [SOP v15.0] KST 표준 오늘 날짜 구하기 (UTC + 9시간)
+    const kstNow = new Date(Date.now() + 9 * 3600000);
+    const todayStr = kstNow.toISOString().split('T')[0];
     
-    let targetStr = dateArg || new Date(new Date().getTime() + 12 * 3600000 + 3 * 86400000).toISOString().split('T')[0];
+    // [SOP v15.0 2중 안전망] 당일 1회 성공(SUCCESS) 0초 스킵 락 (Idempotency Guard)
+    if (!forceArg && !dateArg) {
+        const kstStartOfDayUtc = new Date(`${todayStr}T00:00:00+09:00`).toISOString();
+        const { data: todayLogs, error: logCheckErr } = await supabase
+            .from('automation_logs')
+            .select('id, status, created_at, message')
+            .eq('job_name', 'SMART_PLAN_CACHING')
+            .eq('status', 'SUCCESS')
+            .gte('created_at', kstStartOfDayUtc)
+            .limit(1);
+
+        if (!logCheckErr && todayLogs && todayLogs.length > 0) {
+            console.log(`\n⚡ [Idempotency Guard] 오늘(${todayStr}) 스마트플랜 캐싱(SMART_PLAN_CACHING)이 이미 성공(SUCCESS) 완료되었습니다.`);
+            console.log(`   - 이전 완료 기록: [${todayLogs[0].created_at}]`);
+            console.log(`   - 2차/중복 트리거를 0초 만에 완벽히 스킵(Skip)하고 정상 종료합니다.\n`);
+            process.exitCode = 0;
+            return;
+        }
+    }
+
+    let targetStr = dateArg || new Date(Date.now() + 9 * 3600000 + 3 * 86400000).toISOString().split('T')[0];
     const isSunday = new Date(targetStr).getDay() === 0;
 
     // 날짜 파싱 헬퍼 함수

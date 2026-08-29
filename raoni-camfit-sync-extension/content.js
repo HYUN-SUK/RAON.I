@@ -1,19 +1,29 @@
 // ==============================================================================
-// [라온아이 ➔ 캠핏 실시간 예약 동기화 마스터 v2.0] 캠핏 관리자 웹페이지 주입 스크립트
+// [라온아이 ➔ 캠핏 실시간 예약 동기화 마스터] 캠핏 관리자 웹페이지 주입 스크립트
 // ==============================================================================
 
-console.log('[Raoni Content Script v2.0] Injected into CamFit Admin:', window.location.href);
+if (window.__RAONI_CAMFIT_INJECTED__) {
+    console.log('[Raoni Content Script] Already running on this page.');
+} else {
+    window.__RAONI_CAMFIT_INJECTED__ = true;
+    console.log('[Raoni Content Script] Injected and active on CamFit Admin:', window.location.href);
 
-// 백그라운드로부터 동기화 실행 명령 수신
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'EXECUTE_CAMFIT_SYNC' || request.action === 'EXECUTE_CAMFIT_BLOCK') {
-        console.log('[Raoni Content Script] Received Order:', request.data);
-        handleCamfitSync(request.data)
-            .then(result => sendResponse(result))
-            .catch(err => sendResponse({ success: false, error: err.message }));
-        return true; // 비동기 응답 대기
-    }
-});
+    // 백그라운드로부터 동기화 실행 명령 또는 PING 수신
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'PING') {
+            sendResponse({ status: 'PONG' });
+            return true;
+        }
+
+        if (request.action === 'EXECUTE_CAMFIT_SYNC' || request.action === 'EXECUTE_CAMFIT_BLOCK') {
+            console.log('[Raoni Content Script] Received Order:', request.data);
+            handleCamfitSync(request.data)
+                .then(result => sendResponse(result))
+                .catch(err => sendResponse({ success: false, error: err.message }));
+            return true; // 비동기 응답 대기
+        }
+    });
+}
 
 /**
  * 딜레이 유틸리티
@@ -39,6 +49,28 @@ function setNativeInputValue(inputElement, value) {
 }
 
 /**
+ * 실제 사용자가 마우스를 꾹 누르는 것과 동일한 풀 마우스 이벤트 체인 발사 헬퍼
+ */
+function triggerRealClick(element) {
+    if (!element) return;
+    const mouseEvents = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+    mouseEvents.forEach(type => {
+        try {
+            const evt = new MouseEvent(type, {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                buttons: 1
+            });
+            element.dispatchEvent(evt);
+        } catch (e) {}
+    });
+    if (typeof element.click === 'function') {
+        try { element.click(); } catch (e) {}
+    }
+}
+
+/**
  * 특정 조건의 요소를 대기하며 찾는 헬퍼
  */
 async function waitForElement(selectorFn, maxWaitMs = 5000, intervalMs = 200) {
@@ -52,15 +84,15 @@ async function waitForElement(selectorFn, maxWaitMs = 5000, intervalMs = 200) {
 }
 
 /**
- * 텍스트 기반 물리 좌표(Y축) 정렬 버튼 탐색 헬퍼 (태그 무관)
+ * 텍스트 기반 물리 좌표(Y축) 정렬 버튼 탐색 헬퍼 (태그 무관, Fixed 레이어 완벽 지원)
  */
 function findButtonsByText(targetText) {
     const allElements = Array.from(document.querySelectorAll('button, div, span, a, p, input[type="button"], input[type="submit"]'));
     const matches = allElements.filter(el => {
         const t = (el.innerText || el.textContent || el.value || '').trim();
         const rect = el.getBoundingClientRect();
-        const isVisible = el.offsetParent !== null && rect.height > 0 && rect.width > 0;
-        // 텍스트가 정확히 일치하거나 포함하면서 자식 텍스트가 너무 길지 않은 인터랙티브 요소
+        // Fixed 팝업/모달에서도 정확히 가시성을 감지하도록 rect 크기 기반 판별
+        const isVisible = rect.height > 0 && rect.width > 0;
         return isVisible && (t === targetText || (t.startsWith(targetText) && t.length < targetText.length + 5));
     });
 
@@ -103,41 +135,51 @@ async function handleCamfitSync(item) {
         const dayNum = inDateObj.getDate(); // 2
         const dayNumStr = `${dayNum}일`;   // '2일' or '2'
 
-        // 3. 2차원 교차 탐색: 날짜 열 안에서 targetGroup 셀 찾기
+        // 3. 2차원 교차 탐색: 날짜 열 X좌표 안에서 targetGroup 셀 핀포인트 포착
         const cellEl = await waitForElement(() => {
-            const allElements = Array.from(document.querySelectorAll('*'));
-            
-            // 캘린더 내 사이트 태그들 (예: "[민수네] 0/1", "[에어컨 대여] 0/8")
-            return allElements.find(el => {
-                const text = (el.innerText || el.textContent || '').trim();
-                const matchesGroup = text.includes(`[${targetGroup}]`) || text.startsWith(`[${targetGroup}]`);
-                if (!matchesGroup) return false;
-
-                // 부모나 조상 엘리먼트 중에 해당 날짜가 포함되어 있는지 확인
-                let parent = el.parentElement;
-                let foundDay = false;
-                for (let i = 0; i < 6 && parent; i++) {
-                    const pText = parent.innerText || '';
-                    if (pText.includes(dayNumStr) || pText.includes(`${dayNum}`)) {
-                        foundDay = true;
-                        break;
-                    }
-                    parent = parent.parentElement;
-                }
-                return foundDay;
-            }) || allElements.find(el => {
-                const text = (el.innerText || el.textContent || '').trim();
-                return text.includes(`[${targetGroup}]`);
+            // 1) 화면 상단의 날짜 헤더 중에서 정확히 8일(또는 8) 헤더 요소 탐색
+            const allHeaders = Array.from(document.querySelectorAll('th, td, div, span, p')).filter(el => {
+                const t = (el.innerText || el.textContent || '').trim();
+                const r = el.getBoundingClientRect();
+                return r.height > 0 && r.width > 0 && (t === dayNumStr || t === `${dayNum}` || t.startsWith(dayNumStr));
             });
+
+            let targetDateRect = null;
+            if (allHeaders.length > 0) {
+                // 화면 위쪽에 위치한 헤더 선택
+                const topHeader = allHeaders.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+                targetDateRect = topHeader.getBoundingClientRect();
+            }
+
+            // 2) 사이트 셀들 중에서 targetGroup(철수네) 매칭
+            const groupMatches = Array.from(document.querySelectorAll('*')).filter(el => {
+                const text = (el.innerText || el.textContent || '').trim();
+                const r = el.getBoundingClientRect();
+                const isVisible = r.height > 0 && r.width > 0;
+                return isVisible && (text.includes(`[${targetGroup}]`) || text.startsWith(`[${targetGroup}]`));
+            });
+
+            // 3) targetDateRect(8일 열 X좌표)와 수평으로 겹치는 정확한 8일 셀 선택!
+            if (targetDateRect && groupMatches.length > 0) {
+                const colMatch = groupMatches.find(el => {
+                    const r = el.getBoundingClientRect();
+                    return (r.left >= targetDateRect.left - 20 && r.right <= targetDateRect.right + 20) ||
+                           (r.left < targetDateRect.right && r.right > targetDateRect.left);
+                });
+                if (colMatch) return colMatch;
+            }
+
+            return groupMatches[0] || null;
         }, 4000);
 
         if (!cellEl) {
             throw new Error(`캘린더에서 [${checkInDate}] [${targetGroup}] 셀을 찾을 수 없습니다.`);
         }
 
-        // 4. 셀 클릭 ➔ 오른쪽 관리 패널 오픈
-        cellEl.click();
-        await delay(500);
+        // 4. 셀 마우스 풀 이벤트 클릭 ➔ 오른쪽 관리 패널 자동 오픈!
+        console.log('[Raoni Sync] Opening Calendar Cell via triggerRealClick:', cellEl);
+        triggerRealClick(cellEl);
+        await delay(1000);
 
         // 6. 우측 패널 컨테이너 탐색 및 상단/하단 영역 분리
         await delay(500);
@@ -186,45 +228,48 @@ async function handleCamfitSync(item) {
                 setNativeInputValue(memoInput, memo || `[RAON.I_APP] 입금대기 - ${guestName} (${guestPhone})`);
             }
 
-            await delay(300);
+            // 3) 상단 [적용] 버튼 실시간 대기 및 네이티브 마우스 클릭 발사!
+            const topApplyBtn = await waitForElement(() => {
+                const applyButtons = findButtonsByText('적용');
+                return applyButtons.length > 0 ? applyButtons[0] : null;
+            }, 4000);
 
-            // 3) 상단 [적용] 버튼 클릭 (물리 좌표 Y축 최소값 = 화면 최상단 적용 버튼)
-            const applyButtons = findButtonsByText('적용');
-            const topApplyBtn = applyButtons[0]; // 화면에서 가장 위쪽에 위치한 상단 적용 버튼
+            if (!topApplyBtn) {
+                throw new Error('우측 상세 화면에서 [적용] 버튼을 찾을 수 없습니다.');
+            }
 
-            if (topApplyBtn) {
-                console.log('[Raoni Sync] Clicking Top Apply Button (Geometry Top):', topApplyBtn);
-                topApplyBtn.click();
-                await delay(600);
+            console.log('[Raoni Sync] Triggering Real Mouse Click on Top Apply Button:', topApplyBtn);
+            triggerRealClick(topApplyBtn);
+            await delay(800);
 
-                // 4) 화면 중앙에 나타난 '예약불가 기간이 등록되었습니다' [확인] 버튼 자동 클릭
+            // 4) 화면 중앙에 나타난 '예약불가 기간이 등록되었습니다' [확인] 버튼 자동 클릭
+            const popupConfirmBtn = await waitForElement(() => {
                 const confirmButtons = findButtonsByText('확인');
-                const popupConfirmBtn = confirmButtons[0] || Array.from(document.querySelectorAll('button, div, span, a')).find(b => {
+                return confirmButtons.length > 0 ? confirmButtons[0] : Array.from(document.querySelectorAll('button, div, span, a')).find(b => {
                     const t = (b.innerText || '').trim();
-                    return t === '확인' || t.includes('확인');
+                    const r = b.getBoundingClientRect();
+                    return r.height > 0 && (t === '확인' || t.includes('확인'));
                 });
+            }, 3000);
 
-                if (popupConfirmBtn) {
-                    console.log('[Raoni Sync] Auto-confirming registration popup:', popupConfirmBtn);
-                    popupConfirmBtn.click();
-                    await delay(600);
-                }
+            if (popupConfirmBtn) {
+                console.log('[Raoni Sync] Auto-confirming registration popup via triggerRealClick:', popupConfirmBtn);
+                triggerRealClick(popupConfirmBtn);
+                await delay(600);
+            }
 
-                // 5) 우측 패널 'X' (닫기) 버튼 클릭하여 캘린더 화면 복귀
-                const closeBtn = Array.from(document.querySelectorAll('button, div, span, i, svg')).find(el => {
-                    const t = (el.innerText || '').trim();
-                    const aria = el.getAttribute('aria-label') || '';
-                    const cls = el.className || '';
-                    return t === '✕' || t === '×' || t === 'X' || t === 'x' || aria.includes('close') || (typeof cls === 'string' && cls.includes('close'));
-                });
+            // 5) 우측 패널 'X' (닫기) 버튼 클릭하여 캘린더 화면 복귀
+            const closeBtn = Array.from(document.querySelectorAll('button, div, span, i, svg')).find(el => {
+                const t = (el.innerText || '').trim();
+                const aria = el.getAttribute('aria-label') || '';
+                const cls = el.className || '';
+                return t === '✕' || t === '×' || t === 'X' || t === 'x' || aria.includes('close') || (typeof cls === 'string' && cls.includes('close'));
+            });
 
-                if (closeBtn) {
-                    console.log('[Raoni Sync] Closing side panel:', closeBtn);
-                    closeBtn.click();
-                    await delay(500);
-                }
-            } else {
-                throw new Error('화면에서 [적용] 버튼을 찾을 수 없습니다.');
+            if (closeBtn) {
+                console.log('[Raoni Sync] Closing side panel via triggerRealClick:', closeBtn);
+                triggerRealClick(closeBtn);
+                await delay(500);
             }
 
             showInPageToast(`✓ [라온아이] ${subSiteName || targetGroup} 입금대기 자동 차단 완료! (빨강)`, true);

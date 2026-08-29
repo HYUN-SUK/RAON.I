@@ -1,9 +1,10 @@
 name: Smart Plan Daily Sync
 
 on:
+  # [v15.0 2중 안전망] 1차 외부 크론잡(04:05 KST) + 2차 깃허브 백업 스케줄러(06:08 KST)
   schedule:
-    # [v10.7 실험 패치] 매일 새벽 06:00 KST 실행 (UTC 기준 21:00)
-    - cron: '0 21 * * *'
+    # 06:08 KST 실행 (UTC 21:08) - 1차 완료 시 0초 스킵, 미완료 시 백업 재실행
+    - cron: '8 21 * * *'
   workflow_dispatch: # Allow manual trigger via GitHub Actions UI
 
 jobs:

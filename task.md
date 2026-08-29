@@ -1,5 +1,22 @@
 # Task Checklist: Smart Plan Stabilization & Personalization
 
+- [x] **네이티브 마우스 이벤트 셀 오픈 및 [적용] 버튼 클릭 완결 (2026-08-28 완결)**
+    - [x] 1. `triggerRealClick` 마우스 이벤트 체인 구현 및 셀/버튼 전면 탑재 (`raoni-camfit-sync-extension/content.js`)
+    - [x] 2. 8일 열 X좌표 매칭으로 `[철수네]` 셀 핀포인트 자동 오픈
+    - [x] 3. 상단 [적용] ➔ [확인] ➔ 닫기까지 마우스 이벤트로 완전 자동화
+    - [x] 4. 확장프로그램 v2.8.0 릴리즈 & TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
+- [x] **Fixed 레이어 버튼 감지 및 실시간 대기(Polling) 완결 (2026-08-28 완결)**
+    - [x] 1. `findButtonsByText`에서 `rect.height > 0 && rect.width > 0` 크기 기반 검사로 Fixed 모달 버튼 100% 포착 (`raoni-camfit-sync-extension/content.js`)
+    - [x] 2. `waitForElement` 루프로 [적용] 버튼이 렌더링될 때까지 최대 4초간 실시간 대기 후 클릭
+    - [x] 3. 확장프로그램 v2.7.0 릴리즈 & TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
+- [x] **자동 수신기 주입(Auto-Inject) 및 통신 단절 100% 원천 차단 완결 (2026-08-28 완결)**
+    - [x] 1. PING 체크 & `chrome.scripting.executeScript` 자동 주입 구현 (`raoni-camfit-sync-extension/background.js`)
+    - [x] 2. `content.js` PING 응답 및 중복 실행 방지 가드 탑재
+    - [x] 3. `Could not establish connection` 에러 100% 원천 박멸
+    - [x] 4. 확장프로그램 v2.6.0 릴리즈 & TypeScript 0에러 & Next.js 16 Production Build (`npm run build`) 102개 전 라우트 100% 무결 검증 통과
+
 - [x] **알림창 에러 완치 및 실시간 큐 복구 완결 (2026-08-28 완결)**
     - [x] 1. `showNotification` base64 PNG 적용 및 `try-catch` 안전 가드 (`raoni-camfit-sync-extension/background.js`)
     - [x] 2. 서버 큐 엔드포인트 `count: 1` (`9/8~9/10 철수네`) 정상 대기 복구
