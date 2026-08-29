@@ -161,7 +161,6 @@ export default function AdminPaymentsPage() {
         try {
             await updateReservationStatus(r.id, 'CONFIRMED');
             toast.success(`${r.guestName}님의 입금이 확인되어 예약이 확정되었습니다.`);
-            fetchAllReservations();
         } catch (err: any) {
             toast.error(err?.message || '확정 처리에 실패했습니다.');
         }
@@ -660,9 +659,6 @@ export default function AdminPaymentsPage() {
                 reservation={selectedReservation}
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
-                onStatusChanged={() => {
-                    fetchAllReservations();
-                }}
             />
         </div>
     );

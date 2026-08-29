@@ -58,7 +58,6 @@ export default function AdminReservationDetailModal({
         try {
             await updateReservationStatus(reservation.id, 'CONFIRMED');
             toast.success('입금 확인 및 예약이 확정되었습니다.');
-            fetchAllReservations();
             if (onStatusChanged) onStatusChanged();
             onClose();
         } catch (e: any) {
@@ -279,7 +278,6 @@ export default function AdminReservationDetailModal({
                                 reservationId={reservation.id}
                                 onSuccess={() => {
                                     toast.success('예약이 성공적으로 취소되었습니다.');
-                                    fetchAllReservations();
                                     if (onStatusChanged) onStatusChanged();
                                     onClose();
                                 }}

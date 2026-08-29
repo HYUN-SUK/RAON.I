@@ -93,14 +93,16 @@ export async function removeBlockDateServerAction(id: string): Promise<{ success
             return { success: false, error: error.message || '차단 해제 삭제 실패' };
         }
 
-        // 3. 빈자리 알림 발송 (비동기)
+        // 3. 빈자리 알림 발송 (백그라운드 비동기 분리)
         if (targetBlock) {
-            try {
-                const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
-                await notifyWaitlistUsers(targetBlock.start_date, targetBlock.site_id);
-            } catch (notifyErr) {
-                console.error('[admin-calendar] Waitlist notify failed:', notifyErr);
-            }
+            (async () => {
+                try {
+                    const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
+                    await notifyWaitlistUsers(targetBlock.start_date, targetBlock.site_id);
+                } catch (notifyErr) {
+                    console.error('[admin-calendar/Background] Waitlist notify failed:', notifyErr);
+                }
+            })();
         }
 
         return { success: true };

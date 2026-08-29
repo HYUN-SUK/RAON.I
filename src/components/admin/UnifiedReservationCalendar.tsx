@@ -636,7 +636,6 @@ export default function UnifiedReservationCalendar() {
                                                         await updateReservationStatus(selectedReservation.id, 'CONFIRMED');
                                                         toast.success('예약이 확정되었습니다.');
                                                         setSelectedReservation({ ...selectedReservation, status: 'CONFIRMED' });
-                                                        fetchAllReservations();
                                                     } catch (e: any) {
                                                         toast.error(e?.message || '확정 처리 실패');
                                                     }
@@ -666,7 +665,6 @@ export default function UnifiedReservationCalendar() {
                                                 onSuccess={() => {
                                                     setSelectedReservation({ ...selectedReservation, status: 'CANCELLED' });
                                                     setViewMode(null);
-                                                    fetchAllReservations();
                                                 }}
                                                 trigger={
                                                     <Button variant="destructive" size="sm" className="flex-1 font-bold">

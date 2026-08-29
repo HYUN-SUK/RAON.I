@@ -89,58 +89,60 @@ export async function updateReservationStatusAction(
         }
     }
 
-    // 3. 알림 발송 (Admin Client 사용하여 신뢰도 확보)
-    try {
-        notificationService.setAdminClient(supabase);
+    // 3. 백그라운드 비동기 후속 작업 (FCM 푸시, 대기자 알림, 일정 취소 동기화)
+    // Edge Functions 및 구글 FCM 외부 통신으로 인한 관리자 화면 멈춤을 원천 차단하기 위해 백그라운드로 안전하게 격리 실행
+    (async () => {
+        try {
+            notificationService.setAdminClient(supabase);
 
-        const siteName = SITES.find(s => s.id === reservation.site_id)?.name || reservation.site_id;
+            const siteName = SITES.find(s => s.id === reservation.site_id)?.name || reservation.site_id;
 
-        const payload = {
-            siteName,
-            checkIn: new Date(reservation.check_in_date).toLocaleDateString(),
-            checkOut: new Date(reservation.check_out_date).toLocaleDateString(),
-            totalPrice: reservation.total_price?.toLocaleString() || '0',
-            reason: cancelReason || (status === 'CONFIRMED' ? '입금 확인' : '관리자 예약 상태 변경')
-        };
+            const payload = {
+                siteName,
+                checkIn: new Date(reservation.check_in_date).toLocaleDateString(),
+                checkOut: new Date(reservation.check_out_date).toLocaleDateString(),
+                totalPrice: reservation.total_price?.toLocaleString() || '0',
+                reason: cancelReason || (status === 'CONFIRMED' ? '입금 확인' : '관리자 예약 상태 변경')
+            };
 
-        const eventType = status === 'CONFIRMED'
-            ? NotificationEventType.RESERVATION_CONFIRMED
-            : status === 'CANCELLED'
-                ? NotificationEventType.RESERVATION_CANCELLED
-                : null;
+            const eventType = status === 'CONFIRMED'
+                ? NotificationEventType.RESERVATION_CONFIRMED
+                : status === 'CANCELLED'
+                    ? NotificationEventType.RESERVATION_CANCELLED
+                    : null;
 
-        if (eventType) {
-            console.log(`[Action] Dispatching notification for ${id} (Type: ${eventType})`);
-            const pushResult = await notificationService.dispatchNotification(
-                eventType,
-                reservation.user_id,
-                payload,
-                id
-            );
-            console.log(`[Action] Notification result:`, pushResult);
+            if (eventType) {
+                console.log(`[Action/Background] Dispatching notification for ${id} (Type: ${eventType})`);
+                await notificationService.dispatchNotification(
+                    eventType,
+                    reservation.user_id,
+                    payload,
+                    id
+                );
 
-            // [v11.9.75] 예약 취소(CANCELLED) 처리 성공 시, 빈자리 대기자들에게 자동으로 알림 즉시 발송
-            if (status === 'CANCELLED') {
-                try {
-                    const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
-                    // DB에서 읽어온 reservation.check_in_date는 'YYYY-MM-DD' 문자열이므로 타임존 밀림 없이 100% 안전
-                    await notifyWaitlistUsers(reservation.check_in_date, reservation.site_id);
-                } catch (waitlistErr) {
-                    console.error('[Action] Waitlist notify trigger failed:', waitlistErr);
-                }
+                // [v11.9.75] 예약 취소(CANCELLED) 처리 성공 시, 빈자리 대기자들에게 자동으로 알림 발송
+                if (status === 'CANCELLED') {
+                    try {
+                        const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
+                        // DB에서 읽어온 reservation.check_in_date는 'YYYY-MM-DD' 문자열이므로 타임존 밀림 없이 100% 안전
+                        await notifyWaitlistUsers(reservation.check_in_date, reservation.site_id);
+                    } catch (waitlistErr) {
+                        console.error('[Action/Background] Waitlist notify trigger failed:', waitlistErr);
+                    }
 
-                // [v11.9.108] 예약 취소 시 연동된 일정 상태도 함께 취소('cancelled') 상태로 업데이트
-                try {
-                    const { cancelScheduleByReservation } = await import('./schedule');
-                    await cancelScheduleByReservation(id);
-                } catch (schedErr) {
-                    console.error('[Action] Cancel schedule trigger failed:', schedErr);
+                    // [v11.9.108] 예약 취소 시 연동된 일정 상태도 함께 취소('cancelled') 상태로 업데이트
+                    try {
+                        const { cancelScheduleByReservation } = await import('./schedule');
+                        await cancelScheduleByReservation(id);
+                    } catch (schedErr) {
+                        console.error('[Action/Background] Cancel schedule trigger failed:', schedErr);
+                    }
                 }
             }
+        } catch (notifErr) {
+            console.error('[Action/Background] Notification dispatch internal error:', notifErr);
         }
-    } catch (notifErr) {
-        console.error('[Action] Notification dispatch internal error:', notifErr);
-    }
+    })();
 
     // 4. 경로 무효화
     revalidatePath('/admin/reservations');

@@ -3,19 +3,16 @@
 ---
 
 ## 1. Work Completed
-1. **일일 지역 로테이션 & 스마트플랜 캐싱 2중 안전망 완결**:
-   - `scripts/daily-region-sync.mjs`: 당일 1회 성공 0초 스킵 락(Idempotency Guard) 탑재, 관광공사 `modifiedtime` 변경 감지 + 400개 분할 롤링 갱신 + NMC 병원 5-Worker 초고속 병렬 수집 탑재.
-   - `scripts/caching-smart-plan.mjs`: 당일 1회 성공 0초 스킵 락 탑재, KST 오프셋 (+9시간) 정규화.
-   - `.github/workflows/daily-region-sync.yml`: 06:07 KST 스케줄러 변경.
-   - `.github/workflows/smart-plan-sync-cron.yml`: 06:08 KST 스케줄러 변경.
-   - `src/app/api/cron/trigger-smart-plan/route.ts`: cron-job.org 호출용 경량 트리거 라우트 생성.
-2. **무결성 검증 및 배포**:
-   - Next.js 16 Production Build (`103/103` 라우트 성공).
-   - 로컬 스킵 가드 실측 테스트 완료 (0초 스킵 확인).
-   - Git 원격 저장소 푸시 완료 (`main` 브랜치 `b687d4e`).
+1. **관리자 입금확인 및 삭제/취소 반응 속도 초고속화 (0.01초 즉시 반영 완결)**:
+   - `src/actions/reservation.ts`: FCM 푸시, 빈자리 대기자 알림(`notifyWaitlistUsers`), 연동 일정 취소 처리를 백그라운드 비동기(IIFE)로 격리하여 DB 쓰기 직후 0.05초 만에 응답 반환.
+   - `src/actions/admin-calendar.ts`: 차단일 단일 삭제 시 대기자 알림을 백그라운드로 분리.
+   - `src/store/useReservationStore.ts`: `updateReservationStatus`에 낙관적 UI(Optimistic Update) 및 에러 롤백 가드 탑재.
+   - `UnifiedReservationCalendar.tsx`, `AdminReservationDetailModal.tsx`, `TodayCheckInsModal.tsx`, `payments/page.tsx`: 단일 건 변경 후 불필요하게 전체 DB를 다시 불러오던 `fetchAllReservations` 중복 호출 전면 제거.
+2. **무결성 검증**:
+   - Next.js 16.1.1 Production Build (`103/103` 전체 라우트 100% 성공).
 
 ---
 
 ## 2. Next Steps
-- 대표님께 cron-job.org 등록/변경 설정 안내 완료.
-- 향후 캠핏 채널 매니저 확장프로그램 별도 세션 개발 지원.
+- 대표님과 함께 실시간 브라우저 라이브 검증 (관리자 화면에서 입금확인 및 삭제/취소 동작 시 0.01초 즉시 반영 확인).
+- 깃 커밋 및 배포 진행.

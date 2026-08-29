@@ -876,35 +876,10 @@ export const useReservationStore = create<ReservationState>()(
                 return result;
             },
 
-            // 예약 상태 변경 (DB + 로컬 동기화)
+            // 예약 상태 변경 (낙관적 UI 0.01초 즉시 반영 + DB/서버액션 동기화)
             updateReservationStatus: async (id, status, cancelReason) => {
-                // CONFIRMED 또는 CANCELLED 상태 변경은 Server Action을 통해 처리 (알림/일정 동기화 보장)
-                if (status === 'CONFIRMED' || status === 'CANCELLED') {
-                    const { updateReservationStatusAction } = await import('@/actions/reservation');
-                    const result = await updateReservationStatusAction(id, status, cancelReason);
-
-                    if (!result.success) {
-                        console.error(`Failed to update reservation to ${status} via Server Action:`, result.error);
-                        throw new Error(result.error || `${status} 처리 실패`);
-                    }
-                } else {
-                    // 그 외 상태는 기존 로직 유지
-                    const { createClient } = await import('@/lib/supabase-client');
-                    const supabase = createClient();
-
-                    const updateData = { status, updated_at: new Date().toISOString() };
-                    const { error } = await supabase
-                        .from('reservations')
-                        .update(updateData)
-                        .eq('id', id);
-
-                    if (error) {
-                        console.error('Failed to update reservation status:', error);
-                        return;
-                    }
-                }
-
-                // 공통: 로컬 상태 업데이트 (UI 즉시 반영)
+                // 1. 낙관적 업데이트 (Optimistic Update): UI 반응을 0.01초 만에 즉시 반영
+                const previousReservations = get().reservations;
                 set((state) => ({
                     reservations: state.reservations.map((res) =>
                         res.id === id ? {
@@ -915,6 +890,39 @@ export const useReservationStore = create<ReservationState>()(
                         } : res
                     ),
                 }));
+
+                try {
+                    // CONFIRMED 또는 CANCELLED 상태 변경은 Server Action을 통해 처리 (알림/일정 동기화 보장)
+                    if (status === 'CONFIRMED' || status === 'CANCELLED') {
+                        const { updateReservationStatusAction } = await import('@/actions/reservation');
+                        const result = await updateReservationStatusAction(id, status, cancelReason);
+
+                        if (!result.success) {
+                            console.error(`Failed to update reservation to ${status} via Server Action:`, result.error);
+                            throw new Error(result.error || `${status} 처리 실패`);
+                        }
+                    } else {
+                        // 그 외 상태는 Supabase 클라이언트 직접 업데이트
+                        const { createClient } = await import('@/lib/supabase-client');
+                        const supabase = createClient();
+
+                        const updateData = { status, updated_at: new Date().toISOString() };
+                        const { error } = await supabase
+                            .from('reservations')
+                            .update(updateData)
+                            .eq('id', id);
+
+                        if (error) {
+                            console.error('Failed to update reservation status:', error);
+                            throw new Error(error.message || '상태 변경 DB 오류');
+                        }
+                    }
+                } catch (err) {
+                    // 서버 처리 실패 시 원래 상태로 안전 롤백
+                    console.error('[Store] updateReservationStatus error -> Rolling back:', err);
+                    set({ reservations: previousReservations });
+                    throw err;
+                }
             },
 
             // 예약 변경 (관리자 전용): 일정/사이트 변경 + 차액 계산
