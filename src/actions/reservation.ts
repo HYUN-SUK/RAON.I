@@ -163,16 +163,21 @@ export async function updateReservationAction(
     await assertAdmin();
     const supabase = createAdminClient();
 
-    const checkInStr = typeof updates.checkInDate === 'string' ? updates.checkInDate.split('T')[0] : formatLocalDate(updates.checkInDate);
-    const checkOutStr = typeof updates.checkOutDate === 'string' ? updates.checkOutDate.split('T')[0] : formatLocalDate(updates.checkOutDate);
+    // 순수 날짜 문자열 (YYYY-MM-DD) 추출
+    const checkInStr = typeof updates.checkInDate === 'string' && updates.checkInDate.includes('-')
+        ? updates.checkInDate.split('T')[0]
+        : formatLocalDate(updates.checkInDate);
+    const checkOutStr = typeof updates.checkOutDate === 'string' && updates.checkOutDate.includes('-')
+        ? updates.checkOutDate.split('T')[0]
+        : formatLocalDate(updates.checkOutDate);
 
-    // 0-1. 서버 2차 가드: DB blocked_dates 차단 여부 확인 (check_in <= date < check_out)
+    // 0-1. 서버 2차 가드: DB blocked_dates 차단 여부 확인 (start_date < checkOutStr && end_date >= checkInStr)
     const { data: blockedList } = await (supabase
         .from('blocked_dates') as any)
-        .select('id, date')
+        .select('id, start_date, end_date')
         .eq('site_id', updates.siteId)
-        .gte('date', checkInStr)
-        .lt('date', checkOutStr);
+        .lt('start_date', checkOutStr)
+        .gte('end_date', checkInStr);
 
     if (blockedList && blockedList.length > 0) {
         throw new Error('선택하신 사이트는 해당 기간에 관리자 차단(Blocked)이 설정되어 있어 변경할 수 없습니다.');

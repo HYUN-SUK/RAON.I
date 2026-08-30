@@ -989,8 +989,8 @@ export const useReservationStore = create<ReservationState>()(
                 try {
                     const { updateReservationAction } = await import('@/actions/reservation');
                     await updateReservationAction(id, {
-                        checkInDate: newCheckIn,
-                        checkOutDate: newCheckOut,
+                        checkInDate: targetCheckInStr,
+                        checkOutDate: targetCheckOutStr,
                         siteId: newSiteId,
                         totalPrice: newPrice
                     });
@@ -999,13 +999,16 @@ export const useReservationStore = create<ReservationState>()(
                     return { success: false, oldPrice, newPrice, diff, error: dbErr.message || '데이터베이스 갱신 실패' };
                 }
 
-                // 예약 업데이트
+                // 예약 로컬 스토어 업데이트 (parseSafeDate로 KST 로컬 자정 Date 안전 보장)
+                const finalCheckInDate = parseSafeDate(targetCheckInStr);
+                const finalCheckOutDate = parseSafeDate(targetCheckOutStr);
+
                 set((state) => ({
                     reservations: state.reservations.map((res) =>
                         res.id === id ? {
                             ...res,
-                            checkInDate: newCheckIn,
-                            checkOutDate: newCheckOut,
+                            checkInDate: finalCheckInDate,
+                            checkOutDate: finalCheckOutDate,
                             siteId: newSiteId,
                             familyCount: newFamilyCount,
                             visitorCount: newVisitorCount,

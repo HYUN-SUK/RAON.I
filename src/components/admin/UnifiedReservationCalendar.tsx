@@ -6,7 +6,7 @@ import {
     eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, addDays, isWithinInterval, differenceInDays, startOfDay
 } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Ban, CheckCircle, Clock, XCircle, Info, User, Phone, Search, Trash2, Edit2, Calendar, History } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ban, CheckCircle, Clock, XCircle, Info, User, Phone, Search, Trash2, Edit2, Calendar, History, Loader2 } from 'lucide-react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { Reservation, BlockedDate } from '@/types/reservation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -35,6 +35,7 @@ export default function UnifiedReservationCalendar() {
     // Modal State
     const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | 'CAMFIT_MONITOR' | 'ACTION_CONFIRM' | null>(null);
     const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+    const [isSubmittingModify, setIsSubmittingModify] = useState(false);
     const [confirmModalConfig, setConfirmModalConfig] = useState<{
         title: string;
         description: string;
@@ -924,53 +925,66 @@ export default function UnifiedReservationCalendar() {
                         )}
                     </div>
                     <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setViewMode('DETAIL')}>취소</Button>
+                        <Button variant="outline" onClick={() => setViewMode('DETAIL')} disabled={isSubmittingModify}>취소</Button>
                         <Button
                             className="bg-amber-600 hover:bg-amber-700"
-                            disabled={!modifyPricePreview}
+                            disabled={!modifyPricePreview || isSubmittingModify}
                             onClick={async () => {
-                                if (!selectedReservation || !modifyCheckIn || !modifyPricePreview) return;
-                                const newCheckOut = addDays(modifyCheckIn, parseInt(modifyDuration));
-                                const result = await updateReservation(selectedReservation.id, {
-                                    checkInDate: modifyCheckIn,
-                                    checkOutDate: newCheckOut,
-                                    siteId: modifySiteId
-                                });
-                                if (result.success) {
-                                    toast.success(`예약이 변경되었습니다. ${result.diff > 0 ? `추가 입금: ${result.diff.toLocaleString()}원` : result.diff < 0 ? `환불 예정: ${Math.abs(result.diff).toLocaleString()}원` : ''}`);
+                                if (!selectedReservation || !modifyCheckIn || !modifyPricePreview || isSubmittingModify) return;
+                                setIsSubmittingModify(true);
+                                try {
+                                    const newCheckOut = addDays(modifyCheckIn, parseInt(modifyDuration));
+                                    const result = await updateReservation(selectedReservation.id, {
+                                        checkInDate: modifyCheckIn,
+                                        checkOutDate: newCheckOut,
+                                        siteId: modifySiteId
+                                    });
+                                    if (result.success) {
+                                        toast.success(`예약이 변경되었습니다. ${result.diff > 0 ? `추가 입금: ${result.diff.toLocaleString()}원` : result.diff < 0 ? `환불 예정: ${Math.abs(result.diff).toLocaleString()}원` : ''}`);
 
-                                    // 푸시 알림 발송: 예약 변경
-                                    if (selectedReservation.userId) {
-                                        const oldSite = sites.find(s => s.id === selectedReservation.siteId);
-                                        const newSite = sites.find(s => s.id === modifySiteId);
-                                        const priceDiffText = result.diff > 0
-                                            ? `\n추가 입금: +${result.diff.toLocaleString()}원`
-                                            : result.diff < 0
-                                                ? `\n환불 금액: ${Math.abs(result.diff).toLocaleString()}원`
-                                                : '';
-                                        await notificationService.dispatchNotification(
-                                            NotificationEventType.RESERVATION_CHANGED,
-                                            selectedReservation.userId,
-                                            {
-                                                oldCheckIn: format(new Date(selectedReservation.checkInDate), 'MM.dd(eee)', { locale: ko }),
-                                                oldCheckOut: format(new Date(selectedReservation.checkOutDate), 'MM.dd(eee)', { locale: ko }),
-                                                oldSiteName: oldSite?.name || selectedReservation.siteId,
-                                                newCheckIn: format(modifyCheckIn, 'MM.dd(eee)', { locale: ko }),
-                                                newCheckOut: format(newCheckOut, 'MM.dd(eee)', { locale: ko }),
-                                                newSiteName: newSite?.name || modifySiteId,
-                                                priceDiff: priceDiffText,
-                                                reservation_id: selectedReservation.id
-                                            },
-                                            selectedReservation.id
-                                        );
+                                        // 푸시 알림 발송: 예약 변경
+                                        if (selectedReservation.userId) {
+                                            const oldSite = sites.find(s => s.id === selectedReservation.siteId);
+                                            const newSite = sites.find(s => s.id === modifySiteId);
+                                            const priceDiffText = result.diff > 0
+                                                ? `\n추가 입금: +${result.diff.toLocaleString()}원`
+                                                : result.diff < 0
+                                                    ? `\n환불 금액: ${Math.abs(result.diff).toLocaleString()}원`
+                                                    : '';
+                                            await notificationService.dispatchNotification(
+                                                NotificationEventType.RESERVATION_CHANGED,
+                                                selectedReservation.userId,
+                                                {
+                                                    oldCheckIn: format(new Date(selectedReservation.checkInDate), 'MM.dd(eee)', { locale: ko }),
+                                                    oldCheckOut: format(new Date(selectedReservation.checkOutDate), 'MM.dd(eee)', { locale: ko }),
+                                                    oldSiteName: oldSite?.name || selectedReservation.siteId,
+                                                    newCheckIn: format(modifyCheckIn, 'MM.dd(eee)', { locale: ko }),
+                                                    newCheckOut: format(newCheckOut, 'MM.dd(eee)', { locale: ko }),
+                                                    newSiteName: newSite?.name || modifySiteId,
+                                                    priceDiff: priceDiffText,
+                                                    reservation_id: selectedReservation.id
+                                                },
+                                                selectedReservation.id
+                                            );
+                                        }
+                                        setViewMode(null);
+                                    } else {
+                                        toast.error(result.error || '변경 실패');
                                     }
-                                    setViewMode(null);
-                                } else {
-                                    toast.error(result.error || '변경 실패');
+                                } catch (err: any) {
+                                    toast.error(err?.message || '변경 처리 중 오류가 발생했습니다.');
+                                } finally {
+                                    setIsSubmittingModify(false);
                                 }
                             }}
                         >
-                            변경 확정
+                            {isSubmittingModify ? (
+                                <span className="flex items-center gap-1.5 font-bold">
+                                    <Loader2 className="w-4 h-4 animate-spin" /> 변경 처리 중...
+                                </span>
+                            ) : (
+                                '변경 확정'
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
