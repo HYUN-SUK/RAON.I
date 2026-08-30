@@ -1,6 +1,6 @@
 # Task Management
 
-## Current Task: 일일 로테이션 명소 3대 갱신 지표(수정감지/롤링갱신/캐시재활용) UI 관제 고도화 완결
-- [x] `scripts/daily-region-sync.mjs`: `syncTourSpots`에 `modified_count`, `rolling_count`, `cached_count` 정밀 카운팅 및 `stat.note` 기록 탑재
-- [x] `src/app/admin/automation/logs/page.tsx`: SPOT 행 비고(Note) 컬럼에 `⚡수정감지 / 🔄롤링갱신 / 🚀캐시재활용` 3색 직관 뱃지 렌더링 적용
+## Current Task: 스마트 푸시 알림 10초 쿨다운 가드 & 다량 푸시 50개 청크 병렬 큐 최적화 완결
+- [x] `src/services/notificationService.ts`: 10초 쿨다운 Idempotency 스마트 가드 탑재 (광클 100% 방어 & 10초 후 2회차/3회차 예약변경 100% 실시간 발송)
+- [x] `supabase/functions/push-notification/index.ts`: 50개 단위 청크 병렬 큐 및 FCM Rate Limit 보호 50ms 딜레이 적용
 - [x] Next.js 16 Production Build 무결성 검증 (103/103 라우트 100% 통과)

@@ -75,18 +75,21 @@ export class NotificationService {
             return { success: true, method: 'badge', message: 'Quiet hours - badge fallback' };
         }
 
-        // 3. 중복 알림 체크 (Idempotency)
+        // 3. 중복 알림 체크 (10초 쿨다운 Idempotency 스마트 가드)
+        // 광클(1~2초 이내 연타)은 완벽 차단하고, 10초 이후의 2회차/3회차 예약 변경 및 상태 변경은 100% 정상 발송
         if (relatedId) {
+            const tenSecondsAgo = new Date(Date.now() - 10 * 1000).toISOString();
             const { data: existing, error: checkError } = await this.supabase
                 .from('notifications')
                 .select('id')
                 .eq('user_id', userId)
                 .eq('event_type', eventType)
                 .eq('related_id', relatedId)
+                .gte('created_at', tenSecondsAgo)
                 .maybeSingle();
 
             if (!checkError && existing) {
-                return { success: true, method: 'none', message: 'Duplicate notification blocked' };
+                return { success: true, method: 'none', message: 'Duplicate notification blocked (10s cooldown)' };
             }
         }
 

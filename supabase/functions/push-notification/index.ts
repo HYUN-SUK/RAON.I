@@ -116,84 +116,101 @@ serve(async (req) => {
             })
             .filter((t): t is { token: string } => !!t);
 
-        // [FIX] BROADCAST DELIVERY POLICY
-        // To ensure delivery across multiple sessions or devices, we send to ALL active unique tokens.
-        // FCM dedupes at the device level if it's the exact same registration.
+        // [FIX] BROADCAST DELIVERY POLICY (Chunked Parallel Queue v2.0)
+        // To ensure delivery across multiple sessions or devices without FCM socket exhaustion,
+        // we process tokens in chunks of 50 with rate limit protection.
         const deliveryTokens = uniqueTokens;
         console.log(`Sending to all ${deliveryTokens.length} unique token(s)...`);
 
-        const results = await Promise.all(deliveryTokens.map(async (t, idx) => {
-            console.log(`[STEP 4-${idx}] Preparing message for token ${t.token.slice(0, 20)}...`);
+        const CHUNK_SIZE = 50;
+        const results: any[] = [];
 
-            // Ensure all data fields are strings (FCM v1 requirement)
-            const stringData: Record<string, string> = {
-                title: String(title),
-                body: String(body),
-                link: String(data?.link || "https://raon-i.co.kr/notifications"),
-                event_type: String(event_type || 'default'),
-                related_id: String(related_id || 'general')
-            };
+        for (let i = 0; i < deliveryTokens.length; i += CHUNK_SIZE) {
+            const chunk = deliveryTokens.slice(i, i + CHUNK_SIZE);
+            const chunkResults = await Promise.all(chunk.map(async (t, idx) => {
+                const globalIdx = i + idx;
+                console.log(`[STEP 4-${globalIdx}] Preparing message for token ${t.token.slice(0, 20)}...`);
 
-            if (data && typeof data === 'object') {
-                Object.entries(data).forEach(([key, value]) => {
-                    stringData[key] = String(value);
-                });
-            }
+                // Ensure all data fields are strings (FCM v1 requirement)
+                const stringData: Record<string, string> = {
+                    title: String(title),
+                    body: String(body),
+                    link: String(data?.link || "https://raon-i.co.kr/notifications"),
+                    event_type: String(event_type || 'default'),
+                    related_id: String(related_id || 'general')
+                };
 
-            const isReservation = String(event_type).startsWith('reservation');
-            const heroImage = stringData.hero_image || (
-                (String(event_type).startsWith('upcoming_stay') || isReservation)
-                ? "https://raon-i.co.kr/images/reminder_hero.png"
-                : undefined
-            );
+                if (data && typeof data === 'object') {
+                    Object.entries(data).forEach(([key, value]) => {
+                        stringData[key] = String(value);
+                    });
+                }
 
-            // [FIX] 최고 우선순위(Urgency: high, android.priority: high) 주입으로 안드로이드 절전 모드 즉각 탈출 보장
-            const message = {
-                message: {
-                    token: t.token,
-                    data: stringData,
-                    android: {
-                        priority: "high" // 안드로이드 Doze Mode 즉각 탈출 및 헤드업 배너 활성화
-                    },
-                    webpush: {
-                        headers: {
-                            Urgency: "high", // WebPush 표준 최우선순위 헤더
-                            TTL: "86400"     // 24시간 보존
+                const isReservation = String(event_type).startsWith('reservation');
+                const heroImage = stringData.hero_image || (
+                    (String(event_type).startsWith('upcoming_stay') || isReservation)
+                    ? "https://raon-i.co.kr/images/reminder_hero.png"
+                    : undefined
+                );
+
+                // [FIX] 최고 우선순위(Urgency: high, android.priority: high) 주입으로 안드로이드 절전 모드 즉각 탈출 보장
+                const message = {
+                    message: {
+                        token: t.token,
+                        data: stringData,
+                        android: {
+                            priority: "high" // 안드로이드 Doze Mode 즉각 탈출 및 헤드업 배너 활성화
                         },
-                        notification: {
-                            title: String(title),
-                            body: String(body),
-                            icon: "https://raon-i.co.kr/icons/icon-192.png", // 라온아이 공식 마스코트 로고
-                            badge: "https://raon-i.co.kr/badge.png",          // 투명 단색 아이콘
-                            image: heroImage,                                 // 큰 전경 이미지
-                            requireInteraction: isReservation,
-                            vibrate: [200, 100, 200]
-                        },
-                        fcm_options: {
-                            link: String(data?.link || "https://raon-i.co.kr/notifications")
+                        webpush: {
+                            headers: {
+                                Urgency: "high", // WebPush 표준 최우선순위 헤더
+                                TTL: "86400"     // 24시간 보존
+                            },
+                            notification: {
+                                title: String(title),
+                                body: String(body),
+                                icon: "https://raon-i.co.kr/icons/icon-192.png", // 라온아이 공식 마스코트 로고
+                                badge: "https://raon-i.co.kr/badge.png",          // 투명 단색 아이콘
+                                image: heroImage,                                 // 큰 전경 이미지
+                                requireInteraction: isReservation,
+                                vibrate: [200, 100, 200]
+                            },
+                            fcm_options: {
+                                link: String(data?.link || "https://raon-i.co.kr/notifications")
+                            }
                         }
                     }
+                };
+
+                try {
+                    const res = await fetch(
+                        `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${accessToken}`,
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(message),
+                        }
+                    );
+
+                    const resBody = await res.json();
+                    console.log(`[STEP 4-${globalIdx}] FCM Response: ${res.status}`, JSON.stringify(resBody));
+                    return { token: t.token, status: res.status, resBody };
+                } catch (fetchErr: any) {
+                    console.error(`[STEP 4-${globalIdx}] FCM Fetch Error:`, fetchErr);
+                    return { token: t.token, status: 500, resBody: { error: fetchErr.message } };
                 }
-            };
+            }));
 
+            results.push(...chunkResults);
 
-            const res = await fetch(
-                `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${accessToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(message),
-                }
-            );
-
-            const resBody = await res.json();
-            console.log(`[STEP 4-${idx}] FCM Response: ${res.status}`, JSON.stringify(resBody));
-
-            return { token: t.token, status: res.status, resBody };
-        }));
+            // 50개 초과 대량 발송 시 50ms 안전 대기로 FCM 초당 Rate Limit 방어
+            if (i + CHUNK_SIZE < deliveryTokens.length) {
+                await new Promise(r => setTimeout(r, 50));
+            }
+        }
 
         console.log(`All FCM calls completed. Success: ${results.filter(r => r.status === 200).length}`);
 
