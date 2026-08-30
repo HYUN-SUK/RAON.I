@@ -19,6 +19,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { notificationService } from '@/services/notificationService';
 import { NotificationEventType } from '@/types/notificationEvents';
+import { parseSafeDate, formatLocalDate } from '@/utils/date';
 import CancelReservationDialog from './CancelReservationDialog';
 
 export default function UnifiedReservationCalendar() {
@@ -649,8 +650,14 @@ export default function UnifiedReservationCalendar() {
                                             size="sm"
                                             className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200"
                                             onClick={() => {
-                                                setModifyCheckIn(new Date(selectedReservation.checkInDate));
-                                                const nights = Math.ceil((new Date(selectedReservation.checkOutDate).getTime() - new Date(selectedReservation.checkInDate).getTime()) / (1000 * 60 * 60 * 24));
+                                                const inDate = typeof selectedReservation.checkInDate === 'string'
+                                                    ? parseSafeDate(selectedReservation.checkInDate)
+                                                    : new Date(selectedReservation.checkInDate);
+                                                const outDate = typeof selectedReservation.checkOutDate === 'string'
+                                                    ? parseSafeDate(selectedReservation.checkOutDate)
+                                                    : new Date(selectedReservation.checkOutDate);
+                                                setModifyCheckIn(inDate);
+                                                const nights = Math.max(1, Math.ceil((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24)));
                                                 setModifyDuration(nights.toString());
                                                 setModifySiteId(selectedReservation.siteId);
                                                 setModifyPricePreview(null);
@@ -754,9 +761,9 @@ export default function UnifiedReservationCalendar() {
                                 <Label>입실일</Label>
                                 <Input
                                     type="date"
-                                    value={modifyCheckIn ? format(modifyCheckIn, 'yyyy-MM-dd') : ''}
+                                    value={modifyCheckIn ? formatLocalDate(modifyCheckIn) : ''}
                                     onChange={(e) => {
-                                        setModifyCheckIn(new Date(e.target.value));
+                                        setModifyCheckIn(parseSafeDate(e.target.value));
                                         setModifyPricePreview(null);
                                     }}
                                 />
@@ -777,13 +784,82 @@ export default function UnifiedReservationCalendar() {
                                 <Select value={modifySiteId} onValueChange={(v) => { setModifySiteId(v); setModifyPricePreview(null); }}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        {sites.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
+                                        {sites.map(s => {
+                                            // 사이트 가용성 실시간 계산 (차단 / 예약중 여부)
+                                            let statusLabel = '';
+                                            if (modifyCheckIn) {
+                                                const inStr = formatLocalDate(modifyCheckIn);
+                                                const outStr = formatLocalDate(addDays(modifyCheckIn, parseInt(modifyDuration || '1')));
+
+                                                const isBlocked = (blockedDates || []).some(b => {
+                                                    if (b.siteId !== s.id) return false;
+                                                    const bStartStr = formatLocalDate(b.startDate as any);
+                                                    const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
+                                                    return bStartStr < outStr && bEndStr >= inStr;
+                                                });
+
+                                                const hasOverlap = reservations.some(r => {
+                                                    if (r.id === selectedReservation?.id) return false;
+                                                    if (r.siteId !== s.id) return false;
+                                                    if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') return false;
+                                                    const rIn = formatLocalDate(r.checkInDate as any);
+                                                    const rOut = formatLocalDate(r.checkOutDate as any);
+                                                    return rIn < outStr && rOut > inStr;
+                                                });
+
+                                                if (isBlocked) statusLabel = ' (🚫차단)';
+                                                else if (hasOverlap) statusLabel = ' (🔴예약중)';
+                                            }
+
+                                            return (
+                                                <SelectItem key={s.id} value={s.id}>
+                                                    {s.name}{statusLabel}
+                                                </SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
+
+                        {/* 선택 사이트 불가 안내 경고 */}
+                        {(() => {
+                            if (!modifyCheckIn || !modifySiteId) return null;
+                            const inStr = formatLocalDate(modifyCheckIn);
+                            const outStr = formatLocalDate(addDays(modifyCheckIn, parseInt(modifyDuration || '1')));
+
+                            const isBlocked = (blockedDates || []).some(b => {
+                                if (b.siteId !== modifySiteId) return false;
+                                const bStartStr = formatLocalDate(b.startDate as any);
+                                const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
+                                return bStartStr < outStr && bEndStr >= inStr;
+                            });
+
+                            const hasOverlap = reservations.some(r => {
+                                if (r.id === selectedReservation?.id) return false;
+                                if (r.siteId !== modifySiteId) return false;
+                                if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') return false;
+                                const rIn = formatLocalDate(r.checkInDate as any);
+                                const rOut = formatLocalDate(r.checkOutDate as any);
+                                return rIn < outStr && rOut > inStr;
+                            });
+
+                            if (isBlocked) {
+                                return (
+                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-bold flex items-center gap-1.5">
+                                        🚫 선택하신 사이트는 해당 일자에 관리자 차단(Blocked)되어 있어 변경할 수 없습니다.
+                                    </div>
+                                );
+                            }
+                            if (hasOverlap) {
+                                return (
+                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-bold flex items-center gap-1.5">
+                                        🔴 선택하신 사이트는 해당 일자에 이미 다른 예약(신청/완료)이 존재하여 변경할 수 없습니다.
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
 
                         {/* 가격 미리보기 버튼 */}
                         <Button
@@ -794,6 +870,34 @@ export default function UnifiedReservationCalendar() {
                                 const site = sites.find(s => s.id === modifySiteId);
                                 if (!site) return;
                                 const newCheckOut = addDays(modifyCheckIn, parseInt(modifyDuration));
+                                const inStr = formatLocalDate(modifyCheckIn);
+                                const outStr = formatLocalDate(newCheckOut);
+
+                                // 가용성 검증
+                                const isBlocked = (blockedDates || []).some(b => {
+                                    if (b.siteId !== modifySiteId) return false;
+                                    const bStartStr = formatLocalDate(b.startDate as any);
+                                    const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
+                                    return bStartStr < outStr && bEndStr >= inStr;
+                                });
+                                if (isBlocked) {
+                                    toast.error('선택하신 사이트는 해당 일자에 관리자 차단(Blocked)되어 있습니다.');
+                                    return;
+                                }
+
+                                const hasOverlap = reservations.some(r => {
+                                    if (r.id === selectedReservation?.id) return false;
+                                    if (r.siteId !== modifySiteId) return false;
+                                    if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') return false;
+                                    const rIn = formatLocalDate(r.checkInDate as any);
+                                    const rOut = formatLocalDate(r.checkOutDate as any);
+                                    return rIn < outStr && rOut > inStr;
+                                });
+                                if (hasOverlap) {
+                                    toast.error('선택하신 사이트는 해당 일자에 이미 다른 예약(신청/완료)이 존재합니다.');
+                                    return;
+                                }
+
                                 const priceBreakdown = calculatePrice(site, modifyCheckIn, newCheckOut, selectedReservation.familyCount, selectedReservation.visitorCount);
                                 setModifyPricePreview({
                                     oldPrice: selectedReservation.totalPrice,

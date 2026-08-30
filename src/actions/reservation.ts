@@ -7,6 +7,7 @@ import { notificationService } from '@/services/notificationService';
 import { ensureScheduleFromReservationAdmin } from './schedule';
 import { SITES } from '@/constants/sites';
 import { assertAdmin, checkIsAdmin, getCurrentUser } from '@/lib/auth-guard';
+import { formatLocalDate } from '@/utils/date';
 
 /**
  * 예약 상태 변경 및 후속 처리 (확정/취소 등)
@@ -157,17 +158,46 @@ export async function updateReservationStatusAction(
  */
 export async function updateReservationAction(
     id: string,
-    updates: { checkInDate: Date; checkOutDate: Date; siteId: string; totalPrice: number }
+    updates: { checkInDate: Date | string; checkOutDate: Date | string; siteId: string; totalPrice: number }
 ) {
     await assertAdmin();
     const supabase = createAdminClient();
+
+    const checkInStr = typeof updates.checkInDate === 'string' ? updates.checkInDate.split('T')[0] : formatLocalDate(updates.checkInDate);
+    const checkOutStr = typeof updates.checkOutDate === 'string' ? updates.checkOutDate.split('T')[0] : formatLocalDate(updates.checkOutDate);
+
+    // 0-1. 서버 2차 가드: DB blocked_dates 차단 여부 확인 (check_in <= date < check_out)
+    const { data: blockedList } = await (supabase
+        .from('blocked_dates') as any)
+        .select('id, date')
+        .eq('site_id', updates.siteId)
+        .gte('date', checkInStr)
+        .lt('date', checkOutStr);
+
+    if (blockedList && blockedList.length > 0) {
+        throw new Error('선택하신 사이트는 해당 기간에 관리자 차단(Blocked)이 설정되어 있어 변경할 수 없습니다.');
+    }
+
+    // 0-2. 서버 2차 가드: DB reservations 중복 예약 확인 (PENDING, CONFIRMED 상태만 차단)
+    const { data: overlapList } = await (supabase
+        .from('reservations') as any)
+        .select('id, status')
+        .neq('id', id)
+        .eq('site_id', updates.siteId)
+        .in('status', ['PENDING', 'CONFIRMED'])
+        .lt('check_in_date', checkOutStr)
+        .gt('check_out_date', checkInStr);
+
+    if (overlapList && overlapList.length > 0) {
+        throw new Error('선택하신 사이트는 해당 기간에 이미 다른 예약(신청/완료) 건이 존재하여 변경할 수 없습니다.');
+    }
 
     // 1. reservations 테이블 업데이트
     const { error: resError } = await (supabase
         .from('reservations') as any)
         .update({
-            check_in_date: updates.checkInDate.toISOString().split('T')[0],
-            check_out_date: updates.checkOutDate.toISOString().split('T')[0],
+            check_in_date: checkInStr,
+            check_out_date: checkOutStr,
             site_id: updates.siteId,
             total_price: updates.totalPrice,
             updated_at: new Date().toISOString()
@@ -183,8 +213,8 @@ export async function updateReservationAction(
     const { error: schedError } = await (supabase
         .from('user_schedules') as any)
         .update({
-            check_in: updates.checkInDate.toISOString().split('T')[0],
-            check_out: updates.checkOutDate.toISOString().split('T')[0],
+            check_in: checkInStr,
+            check_out: checkOutStr,
             smart_plan_data: null, // 날짜 변경으로 인한 기존 스마트플랜 캐시 리셋
             updated_at: new Date().toISOString()
         })

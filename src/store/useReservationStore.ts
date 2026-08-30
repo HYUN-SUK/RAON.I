@@ -942,17 +942,36 @@ export const useReservationStore = create<ReservationState>()(
                 const newFamilyCount = updates.familyCount ?? reservation.familyCount;
                 const newVisitorCount = updates.visitorCount ?? reservation.visitorCount;
 
-                // 중복 예약 검증 (자기 자신 제외)
+                const targetCheckInStr = formatLocalDate(newCheckIn as any);
+                const targetCheckOutStr = formatLocalDate(newCheckOut as any);
+
+                // 1. 차단일(Blocked Dates) 검증 (bStart < targetCheckOut && bEnd >= targetCheckIn)
+                const { blockedDates } = get();
+                const isBlocked = (blockedDates || []).some(b => {
+                    if (b.siteId !== newSiteId) return false;
+                    const bStartStr = formatLocalDate(b.startDate as any);
+                    const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
+                    return bStartStr < targetCheckOutStr && bEndStr >= targetCheckInStr;
+                });
+
+                if (isBlocked) {
+                    return { success: false, oldPrice: reservation.totalPrice, newPrice: 0, diff: 0, error: '선택하신 사이트는 해당 기간에 관리자 차단(Blocked)이 설정되어 있어 변경할 수 없습니다.' };
+                }
+
+                // 2. 중복 예약 검증 (신청 PENDING, 완료 CONFIRMED 상태만 차단 / 취소, 환불대기, 환불완료는 오픈)
                 const hasOverlap = reservations.some(r => {
                     if (r.id === id) return false; // 자기 자신 제외
-                    if (r.siteId !== newSiteId || r.status === 'CANCELLED') return false;
-                    const rCheckIn = new Date(r.checkInDate);
-                    const rCheckOut = new Date(r.checkOutDate);
-                    return rCheckIn < newCheckOut && rCheckOut > newCheckIn;
+                    if (r.siteId !== newSiteId) return false;
+                    if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') return false;
+
+                    const rCheckInStr = formatLocalDate(r.checkInDate as any);
+                    const rCheckOutStr = formatLocalDate(r.checkOutDate as any);
+
+                    return rCheckInStr < targetCheckOutStr && rCheckOutStr > targetCheckInStr;
                 });
 
                 if (hasOverlap) {
-                    return { success: false, oldPrice: reservation.totalPrice, newPrice: 0, diff: 0, error: '해당 기간에 이미 다른 예약이 있습니다.' };
+                    return { success: false, oldPrice: reservation.totalPrice, newPrice: 0, diff: 0, error: '선택하신 사이트는 해당 기간에 이미 다른 예약(신청/완료) 건이 존재하여 변경할 수 없습니다.' };
                 }
 
                 // 새로운 가격 계산
