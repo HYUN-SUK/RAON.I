@@ -1513,6 +1513,10 @@ async function syncTourSpots(sido, seenIds, stat) {
   }
 
   let remainingRollingQuota = 400; // [대표님 승인 규격] 로테이션 1회당 최대 400개 분할 롤링
+  let modifiedCount = 0;
+  let rollingCount = 0;
+  let cachedCount = 0;
+  let newSpotCount = 0;
 
   for (const areaCode of areaCodes) {
     console.log(`   - Fetching TourAPI list for AreaCode ${areaCode}...`);
@@ -1553,12 +1557,18 @@ async function syncTourSpots(sido, seenIds, stat) {
           const needsEnrich = exist && (!exist.raw_data?.operating_hours && !exist.raw_data?.usetime && !exist.description);
           const shouldRollingRefresh = exist && remainingRollingQuota > 0;
 
-          if (isNew || isModified || needsEnrich || shouldRollingRefresh) {
+          if (isNew) {
+            newSpotCount++;
             targetFetchList.push({ item, id, exist });
-            if (shouldRollingRefresh && !isNew && !isModified) {
-              remainingRollingQuota--;
-            }
+          } else if (isModified) {
+            modifiedCount++;
+            targetFetchList.push({ item, id, exist });
+          } else if (needsEnrich || shouldRollingRefresh) {
+            rollingCount++;
+            if (shouldRollingRefresh) remainingRollingQuota--;
+            targetFetchList.push({ item, id, exist });
           } else {
+            cachedCount++;
             // [초고속 캐시 재활용] 기존 상세 데이터를 100% 보존하여 API 호출 0회로 통과!
             const mergedRaw = {
               ...(exist.raw_data || {}),
@@ -1642,6 +1652,12 @@ async function syncTourSpots(sido, seenIds, stat) {
       }
     }
   }
+
+  stat.modified_count = modifiedCount;
+  stat.rolling_count = rollingCount;
+  stat.cached_count = cachedCount;
+  stat.new_spot_count = newSpotCount;
+  stat.note = `⚡수정감지 ${modifiedCount}건 | 🔄롤링갱신 ${rollingCount}건 | 🚀캐시재활용 ${cachedCount}건`;
 }
 
 /**

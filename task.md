@@ -1,7 +1,6 @@
 # Task Management
 
-## Current Task: 관리자 예약 변경 순수 날짜 문자열 직렬화(UTC 오차 0% 박멸) & 3-State UX 로딩 완결
-- [x] 클라이언트 스토어(`useReservationStore.ts`)에서 순수 날짜 문자열(`YYYY-MM-DD`) 직접 전달로 Next.js Date 직렬화 오차 0% 박멸
-- [x] 서버 액션 `updateReservationAction`에 순수 문자열 수신 및 DB `blocked_dates`(`start_date`, `end_date`) 스키마 일치화
-- [x] `UnifiedReservationCalendar.tsx` [변경 확정] 버튼에 `isSubmittingModify` 3-State UX 로딩 스피너 및 비활성화 가드 탑재
+## Current Task: 일일 로테이션 명소 3대 갱신 지표(수정감지/롤링갱신/캐시재활용) UI 관제 고도화 완결
+- [x] `scripts/daily-region-sync.mjs`: `syncTourSpots`에 `modified_count`, `rolling_count`, `cached_count` 정밀 카운팅 및 `stat.note` 기록 탑재
+- [x] `src/app/admin/automation/logs/page.tsx`: SPOT 행 비고(Note) 컬럼에 `⚡수정감지 / 🔄롤링갱신 / 🚀캐시재활용` 3색 직관 뱃지 렌더링 적용
 - [x] Next.js 16 Production Build 무결성 검증 (103/103 라우트 100% 통과)

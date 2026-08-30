@@ -481,8 +481,22 @@ export default function AutomationLogsPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-left text-xs font-bold text-gray-500 max-w-[250px] truncate" title={s.note || ''}>
-                          {s.note || '-'}
+                        <td className="px-4 py-3 text-left text-xs font-bold text-gray-500 max-w-[340px]">
+                          {s.name === 'SPOT' ? (
+                            <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200" title="한국관광공사 수정일시 변경 감지 실시간 갱신">
+                                ⚡ 수정감지 {s.modified_count ?? (s.note?.match(/수정감지\s*(\d+)건/)?.[1] || 0)}건
+                              </span>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200" title="400개 분할 롤링 쿼터 기반 상세 갱신">
+                                🔄 롤링갱신 {s.rolling_count ?? (s.note?.match(/롤링갱신\s*(\d+)건/)?.[1] || (typeof s.fetched_count === 'object' ? s.fetched_count?.active : s.fetched_count) || 0)}건
+                              </span>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200" title="기존 최신 상세데이터 0초 재활용">
+                                🚀 캐시재활용 {s.cached_count ?? (s.note?.match(/캐시재활용\s*(\d+)건/)?.[1] || Math.max(0, ((typeof s.total_count === 'object' ? s.total_count?.active : s.total_count) || 0) - ((typeof s.fetched_count === 'object' ? s.fetched_count?.active : s.fetched_count) || 0)))}건
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="truncate block" title={s.note || ''}>{s.note || '-'}</span>
+                          )}
                         </td>
                       </tr>
                     );
