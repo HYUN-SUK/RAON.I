@@ -1549,6 +1549,8 @@ async function syncTourSpots(sido, seenIds, stat) {
         const enrichedList = [];
 
         for (const item of itemList) {
+          stat.fetched.active++; // 실제 API로부터 정상 수신된 건수 가산
+
           const id = generateId('TOUR_SPOT', item.title, item.addr1);
           const exist = existingMap.get(id) || (item.contentid ? existingMap.get(String(item.contentid)) : null);
 
@@ -1617,7 +1619,6 @@ async function syncTourSpots(sido, seenIds, stat) {
           const id = generateId('TOUR_SPOT', i.title, i.addr1);
           if (seenIds.has(id)) continue;
           seenIds.add(id);
-          stat.fetched.active++;
 
           const raw_data = i._mergedRaw || {
             ...i,
@@ -1671,6 +1672,7 @@ async function syncHospitals(sido, seenIds, stat) {
 
   const isJeonnamGwangju = sido === '전남광주시' || sido.includes('전남광주');
   const apiSidos = isJeonnamGwangju ? ['광주', '전남', '전남광주통합특별시'] : [shortSido, sido];
+  const seenApiHospKeys = new Set();
 
   try {
     // 1. Supabase에서 기존 병원 좌표 데이터 조회
@@ -1709,6 +1711,15 @@ async function syncHospitals(sido, seenIds, stat) {
 
         if (items) {
           const itemList = Array.isArray(items) ? items : [items];
+
+          // API 수신 고유 병원 건수 가산
+          for (const item of itemList) {
+            const apiHospKey = item.hpid || item.dutyName;
+            if (apiHospKey && !seenApiHospKeys.has(apiHospKey)) {
+              seenApiHospKeys.add(apiHospKey);
+              stat.fetched.active++;
+            }
+          }
 
           // 5-Worker 병렬 풀로 상세 진료정보 초고속 동시 수집
           const detailMap = new Map();
@@ -1756,7 +1767,6 @@ async function syncHospitals(sido, seenIds, stat) {
             if (hLat && hLng) {
               if (seenIds.has(finalFid)) continue;
               seenIds.add(finalFid);
-              stat.fetched.active++;
 
               const details = item.hpid ? detailMap.get(item.hpid) : null;
 
