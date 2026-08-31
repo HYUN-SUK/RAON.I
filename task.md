@@ -1,6 +1,6 @@
 # Task Management
 
-## Current Task: 일일지역로테이션 관광명소(SPOT) 및 병원(HOSPITAL) 수신 카운터 및 3대 메트릭 집계 정상화 완결
-- [x] `scripts/daily-region-sync.mjs`: `syncTourSpots` 및 `syncHospitals`에서 API 목록 수신 즉시 `stat.fetched.active` 가산 및 3대 지표(`modified/rolling/cached`) 집계 스코프 정규화
-- [x] 대구광역시 재실행 검증: 관광명소(SPOT) 195건, 병원(HOSPITAL) 21건 실시간 정상 수신 및 DB 로그 반영 확인
+## Current Task: 스마트플랜 생성 직후 weather_window 메모리 동기화 및 D-7~D-1 / D-0 생명주기 락(Lock) 완결
+- [x] `SmartPlanProposal.tsx`: `fetchPlan` 완료 시 `weather_window` 즉시 주입으로 버튼 재활성화 깜빡임 버그 완치
+- [x] D-7~D-1 및 D-0 시기별 1회 락 정책 정규화로 중복 생성 방어
 - [x] Next.js 16 Production Build 무결성 검증 (103/103 라우트 100% 통과)

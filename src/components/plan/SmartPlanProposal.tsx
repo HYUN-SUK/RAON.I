@@ -258,24 +258,29 @@ export default function SmartPlanProposal({
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
                 const generatedPlan = await res.json();
 
-                // PRO vs BASIC 분기 저장
+                // PRO vs BASIC 분기 저장 및 weather_window 즉시 메모리 동기화 (버튼 깜빡임 버그 완치)
+                const calculatedWeatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'NONE');
+                const planWithWindow = {
+                    ...generatedPlan,
+                    weather_window: calculatedWeatherWindow
+                };
+
                 if (generatedPlan.mode === 'PRO') {
-                    setProPlan(generatedPlan);
+                    setProPlan(planWithWindow);
                 } else {
-                    setPlan(generatedPlan);
+                    setPlan(planWithWindow);
                 }
                 
                 // [v11.9.52] AI 플랜과 선택된 경로 데이터를 통합하여 영구 저장
                 if (scheduleId) {
-                    const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'UNAVAILABLE');
                     const wrappedData = {
                         wrapped: true,
                         mode: restoredMode,
                         travel_type: restoredTravelType,
-                        ai_plan: generatedPlan,
+                        ai_plan: planWithWindow,
                         selected_route: selectedRouteData,
                         selected_midpoint: selectedMidpoint,
-                        weather_window: weatherWindow,
+                        weather_window: calculatedWeatherWindow,
                         updated_at: new Date().toISOString()
                     };
                     updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
@@ -437,18 +442,22 @@ export default function SmartPlanProposal({
                 updatedPlan.itemListElement = newActiveList;
             }
 
-            setPlan(updatedPlan);
+            const calculatedWeatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'NONE');
+            const updatedPlanWithWindow = {
+                ...updatedPlan,
+                weather_window: (plan as any)?.weather_window || calculatedWeatherWindow
+            };
+            setPlan(updatedPlanWithWindow);
             if (scheduleId) {
-                const weatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'UNAVAILABLE');
                 // [v11.9.53] 카드 교체 시에도 선택된 경로 정보가 누락되지 않도록 래핑하여 저장
                 const wrappedData = {
                     wrapped: true,
                     mode: initialPlan?.mode || restoredMode,
                     travel_type: initialPlan?.travel_type || restoredTravelType,
-                    ai_plan: updatedPlan,
+                    ai_plan: updatedPlanWithWindow,
                     selected_route: selectedRouteData,
                     selected_midpoint: selectedMidpoint,
-                    weather_window: weatherWindow,
+                    weather_window: (plan as any)?.weather_window || calculatedWeatherWindow,
                     updated_at: new Date().toISOString()
                 };
                 updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
@@ -901,7 +910,7 @@ export default function SmartPlanProposal({
             ctaSubtext = '🌤️ 여행 7일 전 기상청 주간 날씨 예보가 준비되면 업데이트를 받으실 수 있습니다.';
             ctaIcon = '✨';
         } else if (diffDaysForRegen >= 1 && diffDaysForRegen <= 7) {
-            if (weatherWindow === 'NONE') {
+            if (weatherWindow === 'NONE' || weatherWindow === 'UNAVAILABLE') {
                 isCtaDisabled = false;
                 ctaButtonText = '🔄 주간 예보 정밀 플랜 업데이트';
                 ctaSubtext = '🌤️ 기상청 주간 날씨 예보가 최신화되었습니다! 여행 일정을 업데이트해 보세요.';

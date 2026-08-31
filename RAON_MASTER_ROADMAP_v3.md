@@ -7,6 +7,11 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.27 스마트플랜 생성 직후 weather_window 메모리 동기화 및 D-7~D-1 / D-0 생명주기 락(Lock) 완결 (2026-08-31)** 🟢
+  - [x] **weather_window 즉시 메모리 동기화**: `SmartPlanProposal.tsx`의 `fetchPlan` 및 `handleCardSwap`에서 현재 D-Day 시기(`diffDays <= 0 ? 'SHORT' : (diffDays <= 7 ? 'MID' : 'NONE')`)에 맞는 `calculatedWeatherWindow`를 `plan` 상태에 즉시 주입하여 버튼 깜빡임 재활성화 버그 완치.
+  - [x] **D-7~D-1 및 D-0 시기별 1회 락 정책 정규화**: `D-7~D-1` 시점에 생성 시 `[✨ 주간 예보 업데이트 완료]`(비활성화 락) 즉시 고정(D-0 전까지 재활성화 방지), `D-0` 시점에 생성 시 `[✨ 출발 당일 스마트플랜 최신화 완료]` 최종 락 고정.
+  - [x] **무결성 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 통과.
+
 - [x] **9.26 일일지역로테이션 관광명소(SPOT) 및 병원(HOSPITAL) 수신 카운터 및 3대 메트릭 정상화 완결 (2026-08-31)** 🟢
   - [x] **수신 카운터 원천 집계 정규화**: `scripts/daily-region-sync.mjs`의 `syncTourSpots` 및 `syncHospitals`에서 API 목록 응답 즉시 `stat.fetched.active` 가산 및 3대 지표(`modified/rolling/cached`) 집계 스코프 정상화.
   - [x] **대구광역시 재동기화 검증 완결**: `automation_logs`에서 관광명소 195건, 병원 21건 실시간 정상 수신 및 3색 뱃지 반영 확인.
