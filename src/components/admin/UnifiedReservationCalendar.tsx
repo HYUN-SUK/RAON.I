@@ -138,8 +138,10 @@ export default function UnifiedReservationCalendar() {
     const today = () => setCurrentDate(new Date());
 
     // --- Logic: Smart Blocking ---
+    // --- Logic: Smart Blocking ---
     const calculateMaxDuration = (start: Date, siteId: string) => {
-        const validReservations = reservations.filter(r => r.status !== 'CANCELLED' && r.status !== 'REFUNDED');
+        // [점유 조건 정규화] PENDING(입금대기) 및 CONFIRMED(예약완료)만 점유 (REFUND_PENDING/CANCELLED/REFUNDED는 오픈)
+        const validReservations = reservations.filter(r => r.status === 'PENDING' || r.status === 'CONFIRMED');
         // Find next occupancy for this site after start date
         const nextOccupancy = [...validReservations, ...blockedDates]
             .filter(item => {
@@ -172,11 +174,10 @@ export default function UnifiedReservationCalendar() {
     const getStatusForSite = (date: Date, siteId: string) => {
         const checkTime = startOfDay(date).getTime();
 
-        // Check Web Reservation (CANCELLED 및 REFUNDED 제외)
+        // [점유 조건 정규화] PENDING 및 CONFIRMED만 점유 (REFUND_PENDING 환불대기는 오픈)
         const reservation = reservations.find(r =>
             r.siteId === siteId &&
-            r.status !== 'CANCELLED' &&
-            r.status !== 'REFUNDED' &&
+            (r.status === 'PENDING' || r.status === 'CONFIRMED') &&
             startOfDay(new Date(r.checkInDate)).getTime() <= checkTime &&
             startOfDay(new Date(r.checkOutDate)).getTime() > checkTime
         );
@@ -201,11 +202,10 @@ export default function UnifiedReservationCalendar() {
 
         let occupied = 0;
         const details = aircons.map(s => {
-            // 웹 예약 내역 검사 (CANCELLED 및 REFUNDED 제외)
+            // 웹 예약 내역 검사 (PENDING 및 CONFIRMED만 점유)
             const r = reservations.find(res =>
                 res.siteId === s.id &&
-                res.status !== 'CANCELLED' &&
-                res.status !== 'REFUNDED' &&
+                (res.status === 'PENDING' || res.status === 'CONFIRMED') &&
                 startOfDay(new Date(res.checkInDate)).getTime() <= checkTime &&
                 startOfDay(new Date(res.checkOutDate)).getTime() > checkTime
             );

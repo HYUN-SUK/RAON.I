@@ -139,8 +139,17 @@ export default function AdminPaymentsPage() {
 
                 return true;
             })
-            // ★ 최신 변동 시각 우선 내림차순 정렬 (방금 취소/환불/예약된 건이 최상단 노출)
-            .sort((a, b) => getLatestTimestamp(b) - getLatestTimestamp(a));
+            // ★ 관리자 조치 필요 건(환불대기/결제대기) 최상단 고정(Pin to Top) + 최신 변동 시각 우선 내림차순 정렬
+            .sort((a, b) => {
+                const isActionRequired = (status: string) => status === 'REFUND_PENDING' || status === 'PENDING';
+                const aReq = isActionRequired(a.status);
+                const bReq = isActionRequired(b.status);
+
+                if (aReq && !bReq) return -1;
+                if (!aReq && bReq) return 1;
+
+                return getLatestTimestamp(b) - getLatestTimestamp(a);
+            });
     }, [reservations, activeTab, startDate, endDate, searchQuery, searchType]);
 
     // 페이지네이션 슬라이싱

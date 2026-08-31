@@ -649,6 +649,7 @@ export const useReservationStore = create<ReservationState>()(
                             requests: r.requests || '',
                             guestDetails: r.guest_details,
                             createdAt: new Date(r.created_at),
+                            updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
                             refundBank: r.refund_bank,
                             refundAccount: r.refund_account,
                             refundHolder: r.refund_holder,
@@ -697,6 +698,7 @@ export const useReservationStore = create<ReservationState>()(
                     requests: r.requests || '',
                     guestDetails: r.guest_details,
                     createdAt: new Date(r.created_at),
+                    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
                     // 환불 관련 필드
                     refundBank: r.refund_bank,
                     refundAccount: r.refund_account,
@@ -730,6 +732,11 @@ export const useReservationStore = create<ReservationState>()(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const publicReservations: Reservation[] = [];
                 data.forEach((r: any) => {
+                    // [가용성 정규화] PENDING과 CONFIRMED만 마감 점유로 반영 (REFUND_PENDING/CANCELLED/REFUNDED는 미포함 = 즉시 오픈)
+                    if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') {
+                        return;
+                    }
+
                     if (r.site_id === 'ALL') {
                         ['site-1', 'site-2', 'site-3', 'site-4', 'site-5', 'site-6', 'site-7', 'site-8'].forEach(sId => {
                             publicReservations.push({
@@ -743,7 +750,7 @@ export const useReservationStore = create<ReservationState>()(
                                 vehicleCount: 1,
                                 guests: 1,
                                 totalPrice: 0,
-                                status: 'CONFIRMED',
+                                status: r.status,
                                 requests: '',
                                 createdAt: new Date(),
                             });
@@ -760,7 +767,7 @@ export const useReservationStore = create<ReservationState>()(
                             vehicleCount: 1,
                             guests: 1,
                             totalPrice: 0,
-                            status: 'CONFIRMED',
+                            status: r.status,
                             requests: '',
                             createdAt: new Date(),
                         });

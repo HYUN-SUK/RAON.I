@@ -7,6 +7,11 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.24 환불대기 사이트 즉시 오픈 & 관리자 결제관리 Pin-to-Top 정렬 완결 (2026-08-31)** 🟢
+  - [x] **사이트 가용성 점유 조건 정규화**: `UnifiedReservationCalendar.tsx`와 `useReservationStore.ts`에서 `PENDING` 및 `CONFIRMED`만 점유로 인정하여, `REFUND_PENDING`인 10/16 영희네·석이네를 즉시 오픈하여 타 사용자 예약 가능화.
+  - [x] **결제관리 Pin to Top 및 변동일시 복구**: `fetchAllReservations`의 `updatedAt` 매핑을 복구하고, `/admin/payments` 전체 탭에서 `REFUND_PENDING` 및 `PENDING` 건을 최상단 1페이지에 고정 배치.
+  - [x] **무결성 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 통과.
+
 - [x] **9.23 스마트플랜 날씨 브리핑 KST 타임존 정규화(UTC 9시간 시차 왜곡 완치) 완결 (2026-08-31)** 🟢
   - [x] **서버 날씨 브리핑 KST 표준화**: `src/lib/smartPlan.ts`에 `toKstYMD` 및 `toKstDashDate` 표준 함수를 적용하여 UTC 환경 서버에서도 입실일(9/8) 및 날씨 브리핑(`09/08(화) ~ 09/10(목)`) 100% 일치 보장.
   - [x] **클라이언트 날짜 전송 정규화**: `SmartPlanProposal.tsx`에서 `toISOString()` 대신 `YYYY-MM-DD` 로컬 포맷 직송 적용.
