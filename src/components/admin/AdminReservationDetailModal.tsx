@@ -25,10 +25,11 @@ export default function AdminReservationDetailModal({
     onClose,
     onStatusChanged
 }: AdminReservationDetailModalProps) {
-    const { updateReservationStatus, fetchAllReservations, getUserHistory, sites } = useReservationStore();
+    const { updateReservationStatus, completeRefund, fetchAllReservations, getUserHistory, sites } = useReservationStore();
     const [userHistory, setUserHistory] = useState<Reservation[]>([]);
     const [showHistory, setShowHistory] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
 
     if (!reservation) return null;
 
@@ -36,7 +37,6 @@ export default function AdminReservationDetailModal({
     const siteName = site?.name || reservation.siteId || '사이트 미지정';
 
     const loadUserHistory = async () => {
-
         const q = reservation.guestPhone || reservation.userId || '';
         if (!q) return;
         setIsLoadingHistory(true);
@@ -45,8 +45,6 @@ export default function AdminReservationDetailModal({
             setUserHistory(history || []);
             setShowHistory(true);
         } catch (e) {
-
-
             console.error('Failed to load user history', e);
             toast.error('과거 이력 조회에 실패했습니다.');
         } finally {
@@ -65,6 +63,33 @@ export default function AdminReservationDetailModal({
         }
     };
 
+    const handleCompleteRefund = async () => {
+        const refundAmt = (reservation.refundAmount ?? reservation.totalPrice).toLocaleString();
+        const holderName = reservation.refundHolder || reservation.guestName || '예약자';
+        const bankName = reservation.refundBank || '계좌';
+        
+        const isConfirmed = window.confirm(
+            `[환불 완료 확인]\n\n• 대상: ${holderName} 님\n• 환불 계좌: ${bankName} ${reservation.refundAccount || ''}\n• 환불 금액: ${refundAmt}원\n\n위 계좌로 송금을 완료하셨습니까? 환불 완료로 상태를 변경합니다.`
+        );
+        if (!isConfirmed) return;
+
+        setIsRefunding(true);
+        try {
+            const res = await completeRefund(reservation.id);
+            if (res.success) {
+                toast.success('환불 완료 처리되었습니다.');
+                if (onStatusChanged) onStatusChanged();
+                onClose();
+            } else {
+                toast.error(res.message || '환불 처리에 실패했습니다.');
+            }
+        } catch (e: any) {
+            toast.error(e?.message || '환불 처리 중 오류가 발생했습니다.');
+        } finally {
+            setIsRefunding(false);
+        }
+    };
+
     // 요금 산출 내역 계산
     const checkIn = new Date(reservation.checkInDate);
     const checkOut = new Date(reservation.checkOutDate);
@@ -73,6 +98,8 @@ export default function AdminReservationDetailModal({
     const extraFamCost = extraFam * 35000 * nights;
     const visitorCost = (reservation.visitorCount || 0) * 10000;
     const baseStayCost = reservation.totalPrice - extraFamCost - visitorCost;
+
+    const isRefundCase = reservation.status === 'REFUND_PENDING' || reservation.status === 'REFUNDED' || !!reservation.refundAccount;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -86,13 +113,13 @@ export default function AdminReservationDetailModal({
                         <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
                             reservation.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
                             reservation.status === 'PENDING' ? 'bg-amber-100 text-amber-900' :
-                            reservation.status === 'REFUND_PENDING' ? 'bg-orange-100 text-orange-900' :
+                            reservation.status === 'REFUND_PENDING' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
                             reservation.status === 'REFUNDED' ? 'bg-purple-100 text-purple-900' :
                             'bg-gray-100 text-gray-700'
                         }`}>
                             {reservation.status === 'CONFIRMED' ? '예약확정 (결제완료)' :
                              reservation.status === 'PENDING' ? '입금대기' :
-                             reservation.status === 'REFUND_PENDING' ? '환불대기' :
+                             reservation.status === 'REFUND_PENDING' ? '환불대기 (송금 필요)' :
                              reservation.status === 'REFUNDED' ? '환불완료' :
                              reservation.status === 'CANCELLED' ? '예약취소' : reservation.status}
                         </span>
@@ -183,13 +210,55 @@ export default function AdminReservationDetailModal({
                         </div>
                     </div>
 
-                    {/* 우측: 요금 내역 및 과거 이력 */}
+                    {/* 우측: 환불 정보 / 요금 내역 / 과거 이력 */}
                     <div className="space-y-4">
+                        {/* 예약자가 취소하여 환불해야 할 때 노출되는 [환불 송금 정보 카드] */}
+                        {isRefundCase && (
+                            <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 text-xs space-y-2.5">
+                                <div className="flex justify-between items-center font-bold text-rose-900 border-b border-rose-200 pb-2">
+                                    <span className="flex items-center gap-1.5 text-rose-800">
+                                        <CreditCard className="w-4 h-4 text-rose-600" /> 환불 요청 계좌 정보
+                                    </span>
+                                    <span className="text-sm font-black text-rose-700">
+                                        {(reservation.refundAmount ?? reservation.totalPrice).toLocaleString()}원 환불
+                                    </span>
+                                </div>
+
+                                <div className="space-y-1.5 text-stone-700 text-xs">
+                                    <div className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-rose-100">
+                                        <span className="font-bold text-stone-500">입금 계좌</span>
+                                        <div className="text-right">
+                                            <div className="font-extrabold text-rose-900">
+                                                {reservation.refundBank || '은행미기재'} {reservation.refundAccount || '계좌번호 미입력'}
+                                            </div>
+                                            <div className="text-[11px] text-stone-500">
+                                                예금주: {reservation.refundHolder || reservation.guestName || '-'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {reservation.cancelReason && (
+                                        <div className="bg-white/80 p-2 rounded-lg border border-rose-100 text-[11px]">
+                                            <span className="font-bold text-stone-500">취소 사유:</span>{' '}
+                                            <span className="text-stone-800">{reservation.cancelReason}</span>
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between text-[11px] text-stone-500 pt-1">
+                                        <span>취소 신청일시:</span>
+                                        <span className="font-mono">
+                                            {reservation.cancelledAt ? format(new Date(reservation.cancelledAt), 'yyyy.MM.dd HH:mm') : '-'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* 요금 영수증 박스 */}
                         <div className="p-4 bg-blue-50/70 rounded-xl border border-blue-200 text-xs space-y-2">
                             <div className="flex justify-between items-center font-bold text-blue-900 border-b border-blue-200 pb-2">
                                 <span className="flex items-center gap-1.5">
-                                    <CreditCard className="w-4 h-4 text-blue-600" /> 요금 산출 내역
+                                    <CreditCard className="w-4 h-4 text-blue-600" /> 결제 금액 정보
                                 </span>
                                 <span className="text-base font-black text-blue-950">
                                     {reservation.totalPrice.toLocaleString()}원
@@ -216,7 +285,7 @@ export default function AdminReservationDetailModal({
 
                             {reservation.refundAmount !== undefined && reservation.refundAmount !== null && (
                                 <div className="pt-2 border-t border-blue-200 flex justify-between font-bold text-rose-600">
-                                    <span>• 환불 처리 금액</span>
+                                    <span>• 환불 처리 금액 (환불율 {reservation.refundRate ?? 100}%)</span>
                                     <span>-{reservation.refundAmount.toLocaleString()}원</span>
                                 </div>
                             )}
@@ -234,7 +303,7 @@ export default function AdminReservationDetailModal({
                                         <p className="text-xs text-stone-400 py-2 text-center">과거 내역이 없습니다.</p>
                                     ) : (
                                         userHistory.map(h => (
-                                            <div key={h.id} className="bg-white p-2 rounded-lg border border-stone-200 text-[11px] flex justify-between items-center">
+                                             <div key={h.id} className="bg-white p-2 rounded-lg border border-stone-200 text-[11px] flex justify-between items-center">
                                                 <div>
                                                     <span className="font-bold text-stone-800">{h.siteId}</span>
                                                     <span className="text-stone-400 ml-1.5">
@@ -263,6 +332,20 @@ export default function AdminReservationDetailModal({
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {/* 1. 예약자가 취소하여 환불해야 할 때만 단독 활성화되는 [환불 완료] 버튼 */}
+                        {reservation.status === 'REFUND_PENDING' && (
+                            <Button
+                                size="sm"
+                                disabled={isRefunding}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                                onClick={handleCompleteRefund}
+                            >
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                {isRefunding ? '처리 중...' : '환불 완료 (송금 완료)'}
+                            </Button>
+                        )}
+
+                        {/* 2. 입금 대기 중일 때의 [입금 확인] 버튼 */}
                         {reservation.status === 'PENDING' && (
                             <Button
                                 size="sm"
@@ -273,7 +356,8 @@ export default function AdminReservationDetailModal({
                             </Button>
                         )}
 
-                        {reservation.status !== 'CANCELLED' && reservation.status !== 'REFUNDED' && (
+                        {/* 3. 정상 예약 상태일 때만 노출되는 [예약 취소] 버튼 */}
+                        {reservation.status !== 'CANCELLED' && reservation.status !== 'REFUND_PENDING' && reservation.status !== 'REFUNDED' && (
                             <CancelReservationDialog
                                 reservationId={reservation.id}
                                 onSuccess={() => {

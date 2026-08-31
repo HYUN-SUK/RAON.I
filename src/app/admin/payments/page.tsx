@@ -29,7 +29,7 @@ type FilterTabType = 'ALL' | 'PENDING' | 'CONFIRMED' | 'REFUND_PENDING' | 'REFUN
 type PeriodQuickType = 'today' | 'yesterday' | '1week' | '1month' | '3month' | '6month' | '1year' | 'all';
 
 export default function AdminPaymentsPage() {
-    const { reservations, sites, fetchAllReservations, updateReservationStatus } = useReservationStore();
+    const { reservations, sites, fetchAllReservations, updateReservationStatus, completeRefund } = useReservationStore();
 
     // 1. Filter States
     const [activeTab, setActiveTab] = useState<FilterTabType>('ALL');
@@ -172,6 +172,29 @@ export default function AdminPaymentsPage() {
             toast.success(`${r.guestName}님의 입금이 확인되어 예약이 확정되었습니다.`);
         } catch (err: any) {
             toast.error(err?.message || '확정 처리에 실패했습니다.');
+        }
+    };
+
+    const handleQuickRefund = async (e: React.MouseEvent, r: Reservation) => {
+        e.stopPropagation();
+        const refundAmt = (r.refundAmount ?? r.totalPrice).toLocaleString();
+        const holderName = r.refundHolder || r.guestName || '예약자';
+        const bankName = r.refundBank || '계좌';
+
+        const isConfirmed = window.confirm(
+            `[환불 완료 확인]\n\n• 대상: ${holderName} 님\n• 환불 계좌: ${bankName} ${r.refundAccount || ''}\n• 환불 금액: ${refundAmt}원\n\n위 계좌로 송금을 완료하셨습니까? 환불 완료로 상태를 변경합니다.`
+        );
+        if (!isConfirmed) return;
+
+        try {
+            const res = await completeRefund(r.id);
+            if (res.success) {
+                toast.success(`${holderName}님의 환불이 완료 처리되었습니다.`);
+            } else {
+                toast.error(res.message || '환불 처리에 실패했습니다.');
+            }
+        } catch (err: any) {
+            toast.error(err?.message || '환불 처리 중 오류가 발생했습니다.');
         }
     };
 
@@ -588,7 +611,15 @@ export default function AdminPaymentsPage() {
 
                                             {/* 10. 관리 빠른 액션 */}
                                             <td className="py-3 px-3 text-center">
-                                                {r.status === 'PENDING' ? (
+                                                {r.status === 'REFUND_PENDING' ? (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={(e) => handleQuickRefund(e, r)}
+                                                        className="h-7 px-2.5 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-2xs"
+                                                    >
+                                                        환불완료
+                                                    </Button>
+                                                ) : r.status === 'PENDING' ? (
                                                     <Button
                                                         size="sm"
                                                         onClick={(e) => handleQuickConfirm(e, r)}

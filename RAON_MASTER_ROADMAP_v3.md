@@ -7,6 +7,12 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.25 환불대기 상태 전용 환불 완료 처리 버튼 및 환불 송금 정보 카드 탑재 완결 (2026-08-31)** 🟢
+  - [x] **통합 상세 모달 환불 송금 카드 신설**: `AdminReservationDetailModal.tsx`에 `isRefundCase` 시 환불 계좌, 환불 처리 금액, 환불율, 취소 사유 안내 카드 렌더링.
+  - [x] **상태별 버튼 동적 분기 & 환불완료 버튼 활성화**: `REFUND_PENDING` 상태일 때만 `[환불 완료 (송금 완료)]` 인디고색 버튼 단독 활성화 및 원클릭 환불 완료 처리 연동.
+  - [x] **결제관리 테이블 빠른 액션 탑재**: `/admin/payments` 테이블 행 우측에 `REFUND_PENDING` 시 `[환불완료]` 빠른 실행 버튼 탑재.
+  - [x] **무결성 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 통과.
+
 - [x] **9.24 환불대기 사이트 즉시 오픈 & 관리자 결제관리 Pin-to-Top 정렬 완결 (2026-08-31)** 🟢
   - [x] **사이트 가용성 점유 조건 정규화**: `UnifiedReservationCalendar.tsx`와 `useReservationStore.ts`에서 `PENDING` 및 `CONFIRMED`만 점유로 인정하여, `REFUND_PENDING`인 10/16 영희네·석이네를 즉시 오픈하여 타 사용자 예약 가능화.
   - [x] **결제관리 Pin to Top 및 변동일시 복구**: `fetchAllReservations`의 `updatedAt` 매핑을 복구하고, `/admin/payments` 전체 탭에서 `REFUND_PENDING` 및 `PENDING` 건을 최상단 1페이지에 고정 배치.
