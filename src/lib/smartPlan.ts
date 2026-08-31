@@ -840,12 +840,33 @@ export async function generatePersonalizedSmartPlan(
 
         const persona = await extractUserPersona(userId, 7, supabase); // 인증된 클라이언트 전달
 
+        // [KST 표준 날짜 정규화] UTC 시차 왜곡 원천 차단
+        const toKstYMD = (d: Date | string): string => {
+            if (typeof d === 'string') {
+                const match = d.match(/^(\d{4})[-/]?(\d{2})[-/]?(\d{2})/);
+                if (match) return `${match[1]}${match[2]}${match[3]}`;
+            }
+            const dateObj = new Date(d);
+            const kstTime = new Date(dateObj.getTime() + (9 * 60 * 60 * 1000));
+            const y = kstTime.getUTCFullYear();
+            const m = String(kstTime.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(kstTime.getUTCDate()).padStart(2, '0');
+            return `${y}${m}${day}`;
+        };
+
+        const toKstDashDate = (d: Date | string): string => {
+            const ymd = toKstYMD(d);
+            return `${ymd.substring(0, 4)}-${ymd.substring(4, 6)}-${ymd.substring(6, 8)}`;
+        };
+
+        const startStrDash = toKstDashDate(startDate);
+        const startStr = toKstYMD(startDate);
+        const endStr = toKstYMD(endDate);
+
         // 1. Find Reservation ID for Track A (Location-Aware Matching)
         let reservationId: string | null = null;
         if (userId) {
-            // [KST Timezone 보정] UTC 변환으로 인한 1일 왜곡 방지 (+9시간 적용)
-            const kstStartDate = new Date(startDate.getTime() + (9 * 60 * 60 * 1000));
-            const formattedDate = kstStartDate.toISOString().split('T')[0];
+            const formattedDate = startStrDash;
 
             // [v11.9.61] 1차: user_schedules에서 조회 (공간 매칭 도입)
             const { data: resData } = await supabase
@@ -890,8 +911,8 @@ export async function generatePersonalizedSmartPlan(
             
             // 3차 Fallback: 날짜를 ±3일 범위로 확장 검색 (여전히 공간 매칭 고려)
             if (!reservationId) {
-                const prevDate = new Date(startDate.getTime() - (3 * 86400000)).toISOString().split('T')[0];
-                const nextDate = new Date(startDate.getTime() + (3 * 86400000)).toISOString().split('T')[0];
+                const prevDate = new Date(new Date(startStrDash).getTime() - (3 * 86400000)).toISOString().split('T')[0];
+                const nextDate = new Date(new Date(startStrDash).getTime() + (3 * 86400000)).toISOString().split('T')[0];
                 const { data: expandData } = await supabase
                     .from('user_schedules')
                     .select('id, campground_lat, campground_lng')
@@ -925,9 +946,10 @@ export async function generatePersonalizedSmartPlan(
         let w: any = null; 
 
         // KST 기준 D-Day 계산 (보정 왜곡이 없는 UTC/로컬 순수 일 계산식)
-        const nowKST = new Date();
-        const todayDateOnly = new Date(nowKST.getFullYear(), nowKST.getMonth(), nowKST.getDate());
-        const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const nowKST = new Date(Date.now() + (9 * 60 * 60 * 1000));
+        const todayStr = `${nowKST.getUTCFullYear()}-${String(nowKST.getUTCMonth() + 1).padStart(2, '0')}-${String(nowKST.getUTCDate()).padStart(2, '0')}`;
+        const todayDateOnly = new Date(todayStr);
+        const startDateOnly = new Date(startStrDash);
         const diffDays = Math.round((startDateOnly.getTime() - todayDateOnly.getTime()) / (24 * 60 * 60 * 1000));
         const shouldFetchWeather = diffDays <= 7; // 7일 이내일 때만 실시간 호출
 
@@ -945,19 +967,9 @@ export async function generatePersonalizedSmartPlan(
                 if (prefetchedWeather && prefetchedWeather.daily && Array.isArray(prefetchedWeather.daily)) {
                     w = prefetchedWeather;
                 } else {
-                    w = await getForecast(location.lat, location.lng, startDate.toISOString().split('T')[0]);
+                    w = await getForecast(location.lat, location.lng, startStrDash);
                 }
                 if (w && w.daily && Array.isArray(w.daily)) {
-                    // [v13.5.1] KST 로컬 날짜 기준 YYYYMMDD 변환 (toISOString 시차 왜곡 원천 차단)
-                    const toLocalYMD = (d: Date) => {
-                        const y = d.getFullYear();
-                        const m = String(d.getMonth() + 1).padStart(2, '0');
-                        const day = String(d.getDate()).padStart(2, '0');
-                        return `${y}${m}${day}`;
-                    };
-                    const startStr = toLocalYMD(startDate);
-                    const endStr = toLocalYMD(endDate);
-                    
                     const weatherList: string[] = [];
                     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 

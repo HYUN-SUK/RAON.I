@@ -1,6 +1,6 @@
 # Task Management
 
-## Current Task: 홈 화면 다가오는 여행 카드(`ScheduleHomeWidget`) 5단계 스마트플랜 생명주기 뱃지 일치화 완결
-- [x] `src/components/schedule/ScheduleHomeWidget.tsx`: `badgeText` 수식을 `ScheduleCard.tsx`와 100% 동일한 5단계 D-Day 생명주기 및 `weather_window` 조건으로 일치화
-- [x] 뱃지 렌더링 스타일(`정밀/업데이트` 펄스 애니메이션 등) 통일 적용
+## Current Task: 스마트플랜 날씨 브리핑 KST 타임존 정규화(UTC 9시간 시차 왜곡 완치) 완결
+- [x] `src/lib/smartPlan.ts`: `toKstYMD`, `toKstDashDate` 표준 함수 적용 및 D-Day/기상청 날짜 필터링 KST 정규화
+- [x] `src/components/plan/SmartPlanProposal.tsx`: `toISOString()` 대신 로컬 `YYYY-MM-DD` 문자열 직송 적용
 - [x] Next.js 16 Production Build 무결성 검증 (103/103 라우트 100% 통과)

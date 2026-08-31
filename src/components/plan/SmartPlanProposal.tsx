@@ -209,11 +209,24 @@ export default function SmartPlanProposal({
         }
     }, [mockData, origin]);
 
-    // [v11.9.29] 무한 루프 방지: 객체/Date 대신 원시값으로 의존성 배열 비교
+    // [v11.9.29] 무한 루프 방지: 객체/Date 대신 원시값으로 의존성 배열 비교 (KST 로컬 YYYY-MM-DD 변환으로 시차 왜곡 차단)
+    const formatLocalDateStr = (d: Date | string) => {
+        if (!d) return '';
+        if (typeof d === 'string') {
+            const match = d.match(/^\d{4}-\d{2}-\d{2}/);
+            if (match) return match[0];
+        }
+        const dateObj = new Date(d);
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
     const locLat = location.lat;
     const locLng = location.lng;
-    const startStr = startDate.toISOString();
-    const endStr = endDate.toISOString();
+    const startStr = formatLocalDateStr(startDate);
+    const endStr = formatLocalDateStr(endDate);
     const originLat = userOrigin?.lat;
     const originLng = userOrigin?.lng;
 
