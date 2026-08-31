@@ -305,9 +305,9 @@ async function main() {
             .eq('check_in', dateArg);
         rawSchedules = schedules || [];
     } else {
-        const todayStrOnly = todayKst.toISOString().split('T')[0];
-        const d7Limit = new Date(todayKst.getTime() + 7 * 86400000).toISOString().split('T')[0];
-        const yesterdayStr = new Date(todayKst.getTime() - 1 * 86400000).toISOString().split('T')[0];
+        const todayStrOnly = kstNow.toISOString().split('T')[0];
+        const d7Limit = new Date(kstNow.getTime() + 7 * 86400000).toISOString().split('T')[0];
+        const yesterdayStr = new Date(kstNow.getTime() - 1 * 86400000).toISOString().split('T')[0];
         console.log(`  🔍 Auto-rolling query: (check_in >= ${todayStrOnly} AND check_in <= ${d7Limit}) OR created_at >= ${yesterdayStr}`);
         const { data: schedules } = await supabase.from('user_schedules')
             .select('id, campground_lat, campground_lng, campground_name, campground_address, check_in, created_at, smart_plan_data')

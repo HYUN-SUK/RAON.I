@@ -1,6 +1,6 @@
 # Task Management
 
-## Current Task: 스마트 푸시 알림 10초 쿨다운 가드 & 다량 푸시 50개 청크 병렬 큐 최적화 완결
-- [x] `src/services/notificationService.ts`: 10초 쿨다운 Idempotency 스마트 가드 탑재 (광클 100% 방어 & 10초 후 2회차/3회차 예약변경 100% 실시간 발송)
-- [x] `supabase/functions/push-notification/index.ts`: 50개 단위 청크 병렬 큐 및 FCM Rate Limit 보호 50ms 딜레이 적용
+## Current Task: 스마트플랜 캐싱 엔진(caching-smart-plan.mjs) ReferenceError 교정 및 5건 캐싱 완결
+- [x] `scripts/caching-smart-plan.mjs`: line 308~310의 미정의 변수(`todayKst`)를 `kstNow`로 정규화하여 런타임 크래시 완전 박멸
+- [x] 스마트플랜 캐싱 엔진 수동 즉시 가동: 오늘 대상 5건 예약(3개 클러스터, 411개 facts) 캐싱 완료 및 DB `automation_logs` 기록 복구
 - [x] Next.js 16 Production Build 무결성 검증 (103/103 라우트 100% 통과)
