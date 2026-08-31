@@ -1,6 +1,6 @@
 # Task Management
 
-## Current Task: 스마트플랜 캐싱 엔진(caching-smart-plan.mjs) ReferenceError 교정 및 5건 캐싱 완결
-- [x] `scripts/caching-smart-plan.mjs`: line 308~310의 미정의 변수(`todayKst`)를 `kstNow`로 정규화하여 런타임 크래시 완전 박멸
-- [x] 스마트플랜 캐싱 엔진 수동 즉시 가동: 오늘 대상 5건 예약(3개 클러스터, 411개 facts) 캐싱 완료 및 DB `automation_logs` 기록 복구
+## Current Task: 홈 화면 다가오는 여행 카드(`ScheduleHomeWidget`) 5단계 스마트플랜 생명주기 뱃지 일치화 완결
+- [x] `src/components/schedule/ScheduleHomeWidget.tsx`: `badgeText` 수식을 `ScheduleCard.tsx`와 100% 동일한 5단계 D-Day 생명주기 및 `weather_window` 조건으로 일치화
+- [x] 뱃지 렌더링 스타일(`정밀/업데이트` 펄스 애니메이션 등) 통일 적용
 - [x] Next.js 16 Production Build 무결성 검증 (103/103 라우트 100% 통과)

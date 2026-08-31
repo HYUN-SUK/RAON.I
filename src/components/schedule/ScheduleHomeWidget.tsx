@@ -299,7 +299,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         return new Date() < unlockTimeByCreation;
     }, [upcomingItem, reservations, schedules]);
 
-    // 뱃지 텍스트 결정 (4단계 동적 생명주기 뱃지 수식 - ScheduleCard와 100% 동일화)
+    // 뱃지 텍스트 결정 (스마트플랜 5단계 동적 D-Day 생명주기 뱃지 수식 - ScheduleCard와 100% 동일화)
     const badgeText = useMemo(() => {
         if (!upcomingItem) return '';
         
@@ -314,26 +314,42 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
 
         const hasPlanData = !!smartPlanData;
         const isPreviewPlan = smartPlanData?.is_preview === true;
+        const weatherWindow = smartPlanData?.weather_window || 'NONE';
 
         // 5단계: 사용자가 정밀/업데이트 플랜 작성을 완전히 완료한 경우
         if (hasPlanData && !isPreviewPlan) {
+            if (daysUntil <= 0) {
+                if (weatherWindow !== 'SHORT') {
+                    return '⚡ 당일 정밀날씨 업데이트 가능';
+                }
+                return '✨ 출발 당일 플랜 최신화 완료';
+            }
+            if (daysUntil <= 7 && daysUntil >= 1) {
+                if (weatherWindow === 'NONE') {
+                    return '🌤️ 날씨정보 업데이트 가능';
+                }
+                return '✨ 주간 예보 업데이트 완료';
+            }
             return '✨ 스마트플랜 생성 완료';
         }
 
-        // 3/4단계: DB 캐싱 완료 & 오전 9시 도달 시 (D-7 ~ D-0 은 업데이트 가이드)
+        // 3/4단계: DB 캐싱 완료 & 오전 9시 도달 시 (정밀 스마트플랜 생성 관문)
         if (isSmartPlanAvailable) {
-            if (daysUntil <= 7 && daysUntil >= 0) {
-                return '🔄 정밀 스마트플랜 업데이트 가능';
+            if (daysUntil <= 0) {
+                return '⚡ 당일 정밀날씨 업데이트 가능';
+            }
+            if (daysUntil <= 7 && daysUntil >= 1) {
+                return '🌤️ 날씨정보 업데이트 가능';
             }
             return '✨ 정밀 스마트플랜 생성가능';
         }
 
-        // 2단계: 맛보기 계획이 생성된 상태 (~ 오전 9시 전)
+        // 2단계: 맛보기 계획이 이미 생성된 상태 (~ 오전 9시 전)
         if (hasPlanData && isPreviewPlan) {
             return '⚡ 맛보기 계획 생성 완료';
         }
 
-        // 1단계: 신규 등록 직후 (맛보기 생성 전)
+        // 1단계: 맛보기 생성 전 (신규 등록 직후)
         return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
     }, [upcomingItem, isSmartPlanAvailable, schedules, daysUntil]);
 
@@ -669,7 +685,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                             "text-[11px] font-black px-2.5 py-1.5 rounded-lg w-fit mb-2.5 flex items-center gap-1.5 shadow-sm",
                             badgeText.includes('완료')
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : badgeText.includes('정밀')
+                                : badgeText.includes('정밀') || badgeText.includes('업데이트')
                                     ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
                                     : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                         )}>
