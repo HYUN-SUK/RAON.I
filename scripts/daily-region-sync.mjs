@@ -1518,6 +1518,8 @@ async function syncTourSpots(sido, seenIds, stat) {
   let cachedCount = 0;
   let newSpotCount = 0;
 
+  let lastTourError = null;
+
   for (const areaCode of areaCodes) {
     console.log(`   - Fetching TourAPI list for AreaCode ${areaCode}...`);
     let pageNo = 1, hasMore = true;
@@ -1534,122 +1536,146 @@ async function syncTourSpots(sido, seenIds, stat) {
         contentTypeId: '12' // 관광지
       });
 
-      try {
-        const data = await fetchWithRetry(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`);
-        if (data.response?.header?.resultCode && data.response.header.resultCode !== '0000') {
-          console.error('  ❌ Tour API Error Response:', data.response.header.resultMsg);
-          break;
-        }
-        const items = data.response?.body?.items?.item || [];
-        const itemList = Array.isArray(items) ? items : items ? [items] : [];
-        if (itemList.length === 0) break;
+      let fetchSuccess = false;
+      let retryCount = 0;
+      const maxRetries = 3;
 
-        // 2. 스마트 판별: 상세 조회가 필요한 대상 선별 (신규 / 수정일시 변경 / 400개 롤링 쿼터)
-        const targetFetchList = [];
-        const enrichedList = [];
+      while (!fetchSuccess && retryCount < maxRetries) {
+        try {
+          const data = await fetchWithRetry(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?${params.toString()}`);
+          if (data.response?.header?.resultCode && data.response.header.resultCode !== '0000') {
+            const errMsg = data.response.header.resultMsg || 'Unknown API Error';
+            console.error(`  ❌ Tour API Error Response (시도 ${retryCount + 1}/${maxRetries}):`, errMsg);
+            lastTourError = errMsg;
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await delay(3000 * retryCount);
+              continue;
+            }
+            break;
+          }
 
-        for (const item of itemList) {
-          stat.fetched.active++; // 실제 API로부터 정상 수신된 건수 가산
+          const items = data.response?.body?.items?.item || [];
+          const itemList = Array.isArray(items) ? items : items ? [items] : [];
+          if (itemList.length === 0) {
+            hasMore = false;
+            fetchSuccess = true;
+            break;
+          }
 
-          const id = generateId('TOUR_SPOT', item.title, item.addr1);
-          const exist = existingMap.get(id) || (item.contentid ? existingMap.get(String(item.contentid)) : null);
+          fetchSuccess = true;
 
-          const isNew = !exist;
-          const isModified = exist && item.modifiedtime && String(exist.raw_data?.modifiedtime) !== String(item.modifiedtime);
-          const needsEnrich = exist && (!exist.raw_data?.operating_hours && !exist.raw_data?.usetime && !exist.description);
-          const shouldRollingRefresh = exist && remainingRollingQuota > 0;
+          // 2. 스마트 판별: 상세 조회가 필요한 대상 선별 (신규 / 수정일시 변경 / 400개 롤링 쿼터)
+          const targetFetchList = [];
+          const enrichedList = [];
 
-          if (isNew) {
-            newSpotCount++;
-            targetFetchList.push({ item, id, exist });
-          } else if (isModified) {
-            modifiedCount++;
-            targetFetchList.push({ item, id, exist });
-          } else if (needsEnrich || shouldRollingRefresh) {
-            rollingCount++;
-            if (shouldRollingRefresh) remainingRollingQuota--;
-            targetFetchList.push({ item, id, exist });
-          } else {
-            cachedCount++;
-            // [초고속 캐시 재활용] 기존 상세 데이터를 100% 보존하여 API 호출 0회로 통과!
-            const mergedRaw = {
-              ...(exist.raw_data || {}),
-              ...item,
-              enriched: true
+          for (const item of itemList) {
+            stat.fetched.active++; // 실제 API로부터 정상 수신된 건수 가산
+
+            const id = generateId('TOUR_SPOT', item.title, item.addr1);
+            const exist = existingMap.get(id) || (item.contentid ? existingMap.get(String(item.contentid)) : null);
+
+            const isNew = !exist;
+            const isModified = exist && item.modifiedtime && String(exist.raw_data?.modifiedtime) !== String(item.modifiedtime);
+            const needsEnrich = exist && (!exist.raw_data?.operating_hours && !exist.raw_data?.usetime && !exist.description);
+            const shouldRollingRefresh = exist && remainingRollingQuota > 0;
+
+            if (isNew) {
+              newSpotCount++;
+              targetFetchList.push({ item, id, exist });
+            } else if (isModified) {
+              modifiedCount++;
+              targetFetchList.push({ item, id, exist });
+            } else if (needsEnrich || shouldRollingRefresh) {
+              rollingCount++;
+              if (shouldRollingRefresh) remainingRollingQuota--;
+              targetFetchList.push({ item, id, exist });
+            } else {
+              cachedCount++;
+              // [초고속 캐시 재활용] 기존 상세 데이터를 100% 보존하여 API 호출 0회로 통과!
+              const mergedRaw = {
+                ...(exist.raw_data || {}),
+                ...item,
+                enriched: true
+              };
+              enrichedList.push({
+                ...item,
+                operating_hours: exist.raw_data?.operating_hours || exist.raw_data?.usetime,
+                closed_days: exist.raw_data?.closed_days || exist.raw_data?.restdate,
+                parking_available: exist.raw_data?.parking_available || exist.raw_data?.parking,
+                admission_fee: exist.raw_data?.admission_fee || exist.raw_data?.usefee,
+                homepage_url: exist.raw_data?.homepage_url || "",
+                description: exist.description || item.description || '한국관광공사 선정 관광명소',
+                raw_detail: exist.raw_data?.raw_detail || null,
+                _mergedRaw: mergedRaw
+              });
+            }
+          }
+
+          // 3. 선별된 대상만 5-Worker 병렬 풀로 초고속 상세 API 호출 (Keep-Alive)
+          const batchSize = 5;
+          for (let k = 0; k < targetFetchList.length; k += batchSize) {
+            const batch = targetFetchList.slice(k, k + batchSize);
+            const batchResults = await Promise.all(batch.map(async ({ item, exist }) => {
+              try {
+                if (item.contentid) {
+                  const details = await fetchTourPlaceDetails(item.contentid, '12', TOUR_API_KEY);
+                  if (details) {
+                    return { ...item, ...details };
+                  }
+                }
+                return { ...item, description: exist?.description || item.title };
+              } catch (e) {
+                return { ...item, description: exist?.description || item.title };
+              }
+            }));
+            enrichedList.push(...batchResults);
+            await delay(100); // 0.1초 안전 간격
+          }
+
+          // 4. DB Upsert 데이터 패키징
+          const chunk = [];
+          for (const i of enrichedList) {
+            if (!i.title || !i.addr1) continue;
+            const id = generateId('TOUR_SPOT', i.title, i.addr1);
+            if (seenIds.has(id)) continue;
+            seenIds.add(id);
+
+            const raw_data = i._mergedRaw || {
+              ...i,
+              enriched: true,
+              operating_hours: i.operating_hours || i.usetime,
+              closed_days: i.closed_days || i.restdate,
+              parking_available: i.parking_available || i.parking,
+              admission_fee: i.admission_fee || i.usefee,
+              homepage_url: i.homepage_url || ""
             };
-            enrichedList.push({
-              ...item,
-              operating_hours: exist.raw_data?.operating_hours || exist.raw_data?.usetime,
-              closed_days: exist.raw_data?.closed_days || exist.raw_data?.restdate,
-              parking_available: exist.raw_data?.parking_available || exist.raw_data?.parking,
-              admission_fee: exist.raw_data?.admission_fee || exist.raw_data?.usefee,
-              homepage_url: exist.raw_data?.homepage_url || "",
-              description: exist.description || item.description || '한국관광공사 선정 관광명소',
-              raw_detail: exist.raw_data?.raw_detail || null,
-              _mergedRaw: mergedRaw
+
+            chunk.push({
+              id, api_source: 'TOUR_SPOT', category: 'SPOT',
+              name: i.title, address: i.addr1, trust_score: 50, is_active: true,
+              sido, raw_data, description: i.description || '한국관광공사 선정 관광명소', 
+              updated_at: new Date().toISOString()
             });
           }
+
+          if (chunk.length > 0) await upsertAndTrack(chunk, stat);
+          if (itemList.length < 100) {
+            hasMore = false;
+          } else {
+            pageNo++;
+          }
+        } catch (e) { 
+          lastTourError = e.message;
+          retryCount++;
+          console.error(`  ❌ Tour API Exception (시도 ${retryCount}/${maxRetries}):`, e.message);
+          if (retryCount < maxRetries) {
+            await delay(3000 * retryCount);
+          } else {
+            pageNo++;
+            if (pageNo > 20) hasMore = false;
+          }
         }
-
-        // 3. 선별된 대상만 5-Worker 병렬 풀로 초고속 상세 API 호출 (Keep-Alive)
-        const batchSize = 5;
-        for (let k = 0; k < targetFetchList.length; k += batchSize) {
-          const batch = targetFetchList.slice(k, k + batchSize);
-          const batchResults = await Promise.all(batch.map(async ({ item, exist }) => {
-            try {
-              if (item.contentid) {
-                const details = await fetchTourPlaceDetails(item.contentid, '12', TOUR_API_KEY);
-                if (details) {
-                  return { ...item, ...details };
-                }
-              }
-              return { ...item, description: exist?.description || item.title };
-            } catch (e) {
-              return { ...item, description: exist?.description || item.title };
-            }
-          }));
-          enrichedList.push(...batchResults);
-          await delay(100); // 0.1초 안전 간격
-        }
-
-        // 4. DB Upsert 데이터 패키징
-        const chunk = [];
-        for (const i of enrichedList) {
-          if (!i.title || !i.addr1) continue;
-          const id = generateId('TOUR_SPOT', i.title, i.addr1);
-          if (seenIds.has(id)) continue;
-          seenIds.add(id);
-
-          const raw_data = i._mergedRaw || {
-            ...i,
-            enriched: true,
-            operating_hours: i.operating_hours || i.usetime,
-            closed_days: i.closed_days || i.restdate,
-            parking_available: i.parking_available || i.parking,
-            admission_fee: i.admission_fee || i.usefee,
-            homepage_url: i.homepage_url || ""
-          };
-
-          chunk.push({
-            id, api_source: 'TOUR_SPOT', category: 'SPOT',
-            name: i.title, address: i.addr1, trust_score: 50, is_active: true,
-            sido, raw_data, description: i.description || '한국관광공사 선정 관광명소', 
-            updated_at: new Date().toISOString()
-          });
-        }
-
-        if (chunk.length > 0) await upsertAndTrack(chunk, stat);
-        if (itemList.length < 100) {
-          hasMore = false;
-        } else {
-          pageNo++;
-        }
-      } catch (e) { 
-        console.error(`  ❌ Tour API Error for Area ${areaCode} Page ${pageNo}:`, e.message); 
-        stat.note = stat.note ? `${stat.note}, 일부지연(${e.message.slice(0, 15)})` : `일부지연(${e.message.slice(0, 20)})`;
-        pageNo++;
-        if (pageNo > 20) hasMore = false;
-        await delay(500);
       }
     }
   }
@@ -1658,7 +1684,13 @@ async function syncTourSpots(sido, seenIds, stat) {
   stat.rolling_count = rollingCount;
   stat.cached_count = cachedCount;
   stat.new_spot_count = newSpotCount;
-  stat.note = `⚡수정감지 ${modifiedCount}건 | 🔄롤링갱신 ${rollingCount}건 | 🚀캐시재활용 ${cachedCount}건`;
+  if (stat.fetched.active > 0) {
+    stat.note = `⚡수정감지 ${modifiedCount}건 | 🔄롤링갱신 ${rollingCount}건 | 🚀캐시재활용 ${cachedCount}건`;
+  } else if (lastTourError) {
+    stat.note = `⚠️ TourAPI 수신지연 (${lastTourError.slice(0, 25)})`;
+  } else {
+    stat.note = '⚡수정감지 0건 | 🔄롤링갱신 0건 | 🚀캐시재활용 0건';
+  }
 }
 
 /**
@@ -1704,22 +1736,29 @@ async function syncHospitals(sido, seenIds, stat) {
 
     // 2. NMC API 호출 (시도별 격리 루프)
     for (const apiSido of apiSidos) {
-      try {
-        const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(apiSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
-        const data = await fetchWithRetry(url);
-        const items = data.response?.body?.items?.item;
+      let fetchSuccess = false;
+      let retryCount = 0;
+      const maxRetries = 3;
 
-        if (items) {
-          const itemList = Array.isArray(items) ? items : [items];
+      while (!fetchSuccess && retryCount < maxRetries) {
+        try {
+          const url = `http://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?serviceKey=${MOIS_API_KEY}&STAGE1=${encodeURIComponent(apiSido)}&STAGE2=&pageNo=1&numOfRows=100&_type=json`;
+          const data = await fetchWithRetry(url);
+          const items = data.response?.body?.items?.item;
 
-          // API 수신 고유 병원 건수 가산
-          for (const item of itemList) {
-            const apiHospKey = item.hpid || item.dutyName;
-            if (apiHospKey && !seenApiHospKeys.has(apiHospKey)) {
-              seenApiHospKeys.add(apiHospKey);
-              stat.fetched.active++;
+          fetchSuccess = true;
+
+          if (items) {
+            const itemList = Array.isArray(items) ? items : [items];
+
+            // API 수신 고유 병원 건수 가산
+            for (const item of itemList) {
+              const apiHospKey = item.hpid || item.dutyName;
+              if (apiHospKey && !seenApiHospKeys.has(apiHospKey)) {
+                seenApiHospKeys.add(apiHospKey);
+                stat.fetched.active++;
+              }
             }
-          }
 
           // 5-Worker 병렬 풀로 상세 진료정보 초고속 동시 수집
           const detailMap = new Map();
@@ -1801,9 +1840,13 @@ async function syncHospitals(sido, seenIds, stat) {
               });
             }
           }
+        } catch (subErr) {
+          retryCount++;
+          console.warn(`  ⚠️ NMC Stage1 (${apiSido}) fetch failed (시도 ${retryCount}/${maxRetries}): ${subErr.message}`);
+          if (retryCount < maxRetries) {
+            await delay(3000 * retryCount);
+          }
         }
-      } catch (subErr) {
-        console.warn(`  ⚠️ NMC Stage1 (${apiSido}) fetch failed: ${subErr.message}`);
       }
     }
 
