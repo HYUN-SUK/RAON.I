@@ -230,26 +230,18 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
         if (!upcomingItem) return false;
         
         let createdAtDate: Date;
-        let hasSmartPlan = false;
         
         if (upcomingItem.type === 'reservation') {
             const reservation = reservations.find(r => r.id === upcomingItem.id);
             if (!reservation || reservation.status !== 'CONFIRMED') return false;
             createdAtDate = new Date(reservation.createdAt);
-            
-            // 이미 생성된 일정에 smart_plan_data가 있는지 체크
-            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
-            if (matchedSchedule && matchedSchedule.smart_plan_data) {
-                hasSmartPlan = true;
-            }
         } else {
             const schedule = schedules.find(s => s.id === upcomingItem.id);
             if (!schedule || schedule.status !== 'scheduled') return false;
             createdAtDate = new Date(schedule.created_at);
-            hasSmartPlan = !!schedule.smart_plan_data;
         }
         
-        if (isNaN(createdAtDate.getTime()) || hasSmartPlan) return false;
+        if (isNaN(createdAtDate.getTime())) return false;
         
         const unlockTimeByCreation = new Date(createdAtDate);
         if (createdAtDate.getHours() < 5) {
@@ -689,7 +681,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                                     ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
                                     : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                         )}>
-                            <span>✨</span> {badgeText}
+                            {badgeText}
                         </div>
                     )}
 
