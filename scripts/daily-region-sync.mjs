@@ -1840,7 +1840,8 @@ async function syncHospitals(sido, seenIds, stat) {
               });
             }
           }
-        } catch (subErr) {
+        }
+      } catch (subErr) {
           retryCount++;
           console.warn(`  ⚠️ NMC Stage1 (${apiSido}) fetch failed (시도 ${retryCount}/${maxRetries}): ${subErr.message}`);
           if (retryCount < maxRetries) {

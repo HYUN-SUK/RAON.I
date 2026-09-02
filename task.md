@@ -1,10 +1,11 @@
 # Task Management
 
-## Completed Tasks (2026-09-01)
+## Completed Tasks (2026-09-02)
+- [x] **마일스톤 9.30**: 일일로테이션 `syncHospitals` 구문 오류 완치 및 배치 스크립트 빌드 파이프라인 강제 검증(`node --check`) 탑재 완결
+  - `scripts/daily-region-sync.mjs`: `syncHospitals`의 누락된 중괄호(`}`) 보완 및 `SyntaxError` 완벽 치유
+  - 오늘 대상 지역(전남광주시) 전계통 동기화 100% 완료 (관광명소 821건, 병원 65건, 식당 5,968건, 마트 553건 정상 수신 및 DB 적재 완료)
+  - `package.json`: `build` 스크립트에 `node --check scripts/*.mjs`를 강제 연동하여 향후 모든 빌드 시 배치 스크립트 구문 오류 원천 차단
 - [x] **마일스톤 9.29**: 홈 화면 다가오는 여행 카드(`ScheduleHomeWidget.tsx`)와 일정 관리 카드(`ScheduleCard.tsx`) 간 5단계 스마트플랜 생명주기 뱃지 표기 100% 완전 동기화
-  - `ScheduleHomeWidget.tsx`: `isSmartPlanAvailable`에서 `hasSmartPlan` 가드 제거하여 09:00 이후 3단계/4단계(`🌤️ 날씨정보 업데이트 가능`) 자동 승격 보장
-  - `ScheduleHomeWidget.tsx`: JSX 뱃지 앞 중복 `<span>✨</span>` 제거하여 깔끔한 단일 이모지 표출 정규화
-- [x] **마일스톤 9.28**: 스마트플랜 캐싱 정시 실행 100% 보장(GitHub API 직접 연동) 및 일일로테이션 TourAPI/NMC 지능형 백오프 재시도(Retry) 보완 완결
   - `cron-job.org`: 스마트플랜 캐싱 URL을 GitHub Actions API 직접 호출로 전환 완료 (1.52초 즉각 트리거 검증 완료)
   - `cron-job.org`: 일일 로테이션 실행 시각을 공공 API 점검 시간을 피한 04:30 AM으로 조정 완료
   - `scripts/daily-region-sync.mjs`: TourAPI 및 NMC API 호출 시 지능형 3회 백오프 재시도 및 실패 원인 정직한 표기 안전장치 탑재

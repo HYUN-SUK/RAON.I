@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "node --check scripts/daily-region-sync.mjs && node --check scripts/caching-smart-plan.mjs && next build",
     "start": "next start",
     "lint": "eslint"
   },
