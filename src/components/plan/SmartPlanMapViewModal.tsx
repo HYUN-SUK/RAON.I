@@ -33,6 +33,8 @@ interface SmartPlanMapViewModalProps {
     // [전체 동선 모드 전용 Props]
     /** 확정된 전체 방문 장소 목록 (숨김 장소는 이미 제외됨) */
     timelinePlaces?: any[];
+    /** 커스텀 장소 카드 렌더러 (스마트플랜 본문의 정품 FactCard 렌더러) */
+    renderCustomCard?: (card: any, onCloseCard: () => void) => React.ReactNode;
 }
 
 export default function SmartPlanMapViewModal({
@@ -47,7 +49,8 @@ export default function SmartPlanMapViewModal({
     candidateCards = [],
     onSelectCandidate,
     onSwitchToList,
-    timelinePlaces = []
+    timelinePlaces = [],
+    renderCustomCard
 }: SmartPlanMapViewModalProps) {
     // 1. 카카오맵 SDK 로더
     const [loading, error] = useKakaoLoader({
@@ -355,60 +358,53 @@ export default function SmartPlanMapViewModal({
 
             {/* 하단 인터랙션 영역: 마커를 터치했을 때만 슬라이드로 쏙 등장, 닫기 버튼 또는 마커 재터치 시 완전히 숨겨져 지도가 100% 확장됨 */}
             {focusedCard && (
-                <div className="bg-white p-4 pb-8 shrink-0 shadow-2xl border-t border-gray-100 z-10 animate-in slide-in-from-bottom-2 duration-200">
-                    <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-bold text-gray-900 text-sm truncate">{focusedCard.name}</h4>
-                                    {mode === 'alternatives' ? (
-                                        focusedCard.id === currentActiveCard?.id ? (
-                                            <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                <div className="bg-[#F7F5EF] p-2.5 pb-8 shrink-0 shadow-2xl border-t border-gray-200 z-10 animate-in slide-in-from-bottom-2 duration-200 max-h-[52vh] overflow-y-auto">
+                    {renderCustomCard ? (
+                        renderCustomCard(focusedCard, () => setFocusedCardId(null))
+                    ) : (
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-bold text-gray-900 text-sm truncate">{focusedCard.name}</h4>
+                                        {mode === 'alternatives' ? (
+                                            focusedCard.id === currentActiveCard?.id ? (
+                                                <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                            ) : (
+                                                <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-bold">후보 추천</span>
+                                            )
                                         ) : (
-                                            <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-bold">후보 추천</span>
-                                        )
-                                    ) : (
-                                        <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-bold">확정된 장소</span>
+                                            <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-bold">확정된 장소</span>
+                                        )}
+                                    </div>
+                                    {(focusedCard.metadata?.address || focusedCard.metadata?.addr || focusedCard.address) && (
+                                        <p className="text-[11px] text-gray-400 mb-1 flex items-center gap-1 truncate">
+                                            <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                            {focusedCard.metadata?.address || focusedCard.metadata?.addr || focusedCard.address}
+                                        </p>
                                     )}
+                                    <p className="text-xs text-gray-500 line-clamp-1 mb-1.5 font-medium">
+                                        {formatPlaceDetailText(focusedCard)}
+                                    </p>
+                                    {(() => {
+                                        const tel = getPlacePhoneNumber(focusedCard);
+                                        if (tel) {
+                                            return (
+                                                <a 
+                                                    href={`tel:${tel}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 font-bold hover:underline mb-1.5"
+                                                >
+                                                    <Phone className="w-3 h-3" />
+                                                    유선 확인 ({tel})
+                                                </a>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
-                                {/* 주소 표기 */}
-                                {(focusedCard.metadata?.address || focusedCard.metadata?.addr || focusedCard.address) && (
-                                    <p className="text-[11px] text-gray-400 mb-1 flex items-center gap-1 truncate">
-                                        <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                        {focusedCard.metadata?.address || focusedCard.metadata?.addr || focusedCard.address}
-                                    </p>
-                                )}
-                                <p className="text-xs text-gray-500 line-clamp-1 mb-1.5 font-medium">
-                                    {formatPlaceDetailText(focusedCard)}
-                                </p>
-                                {/* 유선 확인 안내 */}
-                                {(() => {
-                                    const tel = getPlacePhoneNumber(focusedCard);
-                                    if (tel) {
-                                        return (
-                                            <a 
-                                                href={`tel:${tel}`}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="inline-flex items-center gap-1 text-[11px] text-blue-600 font-bold hover:underline mb-1.5"
-                                            >
-                                                <Phone className="w-3 h-3" />
-                                                유선 확인 ({tel})
-                                            </a>
-                                        );
-                                    }
-                                    return null;
-                                })()}
-                                {focusedCard.reasoning && (
-                                    <p className="text-[11px] text-blue-600 font-semibold leading-tight line-clamp-2">
-                                        <span className="opacity-60 mr-1">AI Pick:</span>"{focusedCard.reasoning}"
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* 우측 버튼 영역: 선택 버튼 (대체모드) 및 [X] 닫기(지우기) 버튼 */}
-                            <div className="shrink-0 flex items-center gap-2">
-                                {mode === 'alternatives' && (
-                                    focusedCard.id !== currentActiveCard?.id ? (
+                                <div className="shrink-0 flex items-center gap-2">
+                                    {mode === 'alternatives' && focusedCard.id !== currentActiveCard?.id && (
                                         <Button
                                             size="sm"
                                             onClick={() => {
@@ -422,30 +418,19 @@ export default function SmartPlanMapViewModal({
                                             <Check className="w-3.5 h-3.5 mr-1" />
                                             이 장소로 선택
                                         </Button>
-                                    ) : (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            disabled
-                                            className="border-emerald-600 text-emerald-800 font-bold text-xs h-9 px-2.5 rounded-xl bg-emerald-50"
-                                        >
-                                            이미 선택됨
-                                        </Button>
-                                    )
-                                )}
-
-                                {/* [지우기/닫기] 버튼: 터치 시 하단 카드가 닫히고 지도가 즉시 전체화면 100%로 확장 */}
-                                <button
-                                    onClick={() => setFocusedCardId(null)}
-                                    className="p-1.5 text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full active:scale-90 transition-all"
-                                    title="카드 닫고 지도 크게 보기"
-                                    aria-label="카드 닫기"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
+                                    )}
+                                    <button
+                                        onClick={() => setFocusedCardId(null)}
+                                        className="p-1.5 text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full active:scale-90 transition-all"
+                                        title="카드 닫고 지도 크게 보기"
+                                        aria-label="카드 닫기"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
         </div>

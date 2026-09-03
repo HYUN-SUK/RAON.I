@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle, Eye, EyeOff, X } from 'lucide-react';
 
 import { StandardizedPlanJSON, FactCard, ProTimelinePlan } from '@/lib/smartPlan';
 import SmartPlanTimelinePro from './SmartPlanTimelinePro';
@@ -829,7 +829,7 @@ export default function SmartPlanProposal({
         });
     };
 
-    const renderFactCard = (card: FactCard, stage?: string) => {
+    const renderFactCard = (card: FactCard, stage?: string, onCloseModalCard?: () => void) => {
         // [v14.0.0] 숨김 처리된 카드는 슬림 바로 축소 렌더링
         if (hiddenCardIds.has(card.id)) {
             return (
@@ -842,18 +842,34 @@ export default function SmartPlanProposal({
                         <span className="font-bold truncate text-gray-600">{card.name}</span>
                         <span className="text-[10px] text-gray-400 shrink-0 bg-gray-200/60 px-1.5 py-0.5 rounded font-medium">숨김 처리됨</span>
                     </div>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleHideCard(card.id);
-                        }}
-                        className="h-7 px-2.5 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg shrink-0 flex items-center gap-1 border border-blue-200/50"
-                    >
-                        <Eye className="w-3 h-3" />
-                        보이기
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleHideCard(card.id);
+                            }}
+                            className="h-7 px-2.5 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg shrink-0 flex items-center gap-1 border border-blue-200/50"
+                        >
+                            <Eye className="w-3 h-3" />
+                            보이기
+                        </Button>
+                        {onCloseModalCard && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onCloseModalCard();
+                                }}
+                                className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full shrink-0 flex items-center justify-center"
+                                title="카드 닫고 지도 크게 보기"
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
             );
         }
@@ -866,31 +882,34 @@ export default function SmartPlanProposal({
             >
                 <CardContent className="p-3">
                     <div className="flex gap-2 items-start w-full min-w-0">
-                        {/* Left Compact Control Area (Touch targets preserved) */}
-                        <div className="flex flex-col items-center gap-1 shrink-0 w-10 min-w-[40px] pt-1">
+                        {/* Left Compact Control Area (위아래 2배 확대된 넉넉한 터치 영역) */}
+                        <div className="flex flex-col items-center gap-1.5 shrink-0 w-10 min-w-[40px] pt-0.5">
                             {/* Icon */}
-                            <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5">
+                            <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5 shrink-0">
                                 {CATEGORY_ICONS[card.category] || '📍'}
                             </div>
-                            {/* Swap Button (h-8 w-8 Touch Target Preserved) */}
+                            {/* Swap Button (h-14 w-9: 위아래 2배 확대 세로 알약형) */}
                             <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={(e) => { 
                                     e.stopPropagation(); 
+                                    setIsMapModalOpen(false); // 지도에서 클릭 시 지도 닫고 대체리스트 시트 즉시 띄움
                                     setSwapCategory(card.category); 
                                     setSwapTargetId(card.id);
                                     setSwapPage(0); 
                                 }}
-                                className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
+                                className="h-14 w-9 rounded-2xl bg-gray-50 text-gray-600 hover:text-[#224732] hover:bg-[#224732]/10 border border-gray-200/80 active:scale-95 transition-all flex items-center justify-center shadow-xs"
+                                title="다른 장소로 교체"
                             >
                                 <ArrowRightLeft className="w-4 h-4" />
                             </Button>
-                            {/* Nav Map Button (h-8 w-8 Touch Target Preserved) */}
+                            {/* Nav Map Button (h-14 w-9: 위아래 2배 확대 세로 알약형) */}
                             <Button
                                 size="icon"
                                 onClick={(e) => handleNavClick(e, card)}
-                                className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-none border-none"
+                                className="h-14 w-9 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-200/80 active:scale-95 transition-all flex items-center justify-center shadow-xs"
+                                title="길찾기 내비 연결"
                             >
                                 <MapPin className="w-4 h-4" />
                             </Button>
@@ -910,20 +929,37 @@ export default function SmartPlanProposal({
                                         </span>
                                     )}
                                 </div>
-                                {/* 숨기기 버튼 */}
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleToggleHideCard(card.id);
-                                    }}
-                                    className="h-6 px-1.5 text-[10px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md shrink-0 flex items-center gap-0.5"
-                                    title="이 일정 숨기기"
-                                >
-                                    <EyeOff className="w-3 h-3" />
-                                    <span>숨기기</span>
-                                </Button>
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {/* 숨기기 버튼 */}
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleHideCard(card.id);
+                                        }}
+                                        className="h-6 px-1.5 text-[10px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md shrink-0 flex items-center gap-0.5"
+                                        title="이 일정 숨기기"
+                                    >
+                                        <EyeOff className="w-3 h-3" />
+                                        <span>숨기기</span>
+                                    </Button>
+                                    {/* 모달 카드용 [X 닫기] 버튼 */}
+                                    {onCloseModalCard && (
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onCloseModalCard();
+                                            }}
+                                            className="h-6 w-6 p-0 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full shrink-0 flex items-center justify-center"
+                                            title="카드 닫고 지도 크게 보기"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             <h4 className="font-bold text-gray-900 text-[15px] truncate">{card.name}</h4>
                         
@@ -2063,6 +2099,7 @@ export default function SmartPlanProposal({
                 }}
                 onSwitchToList={handleSwitchToList}
                 timelinePlaces={timelinePlacesForMap}
+                renderCustomCard={(card, onCloseCard) => renderFactCard(card, undefined, onCloseCard)}
             />
         </div>
     );
