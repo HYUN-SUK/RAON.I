@@ -1584,6 +1584,7 @@ export default function SmartPlanProposal({
                     )}
 
                     {/* Stage 3: 목적지 근처 맛집/명소 (식당 -> 명소 -> 축제 순서 배치) */}
+                    {/* Stage 3: 목적지 근처 맛집/명소 (식당 -> 명소 -> 축제 순서 배치) */}
                     <div className="space-y-3 relative z-10 w-full min-w-0">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
@@ -1591,7 +1592,7 @@ export default function SmartPlanProposal({
                                 <span className="text-xs font-bold text-[#224732]">Stage 3. 목적지 근처 맛집/명소</span>
                             </div>
                             <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">
-                                "{plan.stageIntros?.['3'] || '목적지 주변의 검증된 로컬 맛집과 놓치기 아쉬운 힐링 명소를 엄선했습니다.'}"
+                                "목적지 주변의 검증된 로컬 맛집과 놓치기 아쉬운 힐링 명소를 엄선했습니다."
                             </p>
                         </div>
                         <div className="px-2 space-y-3 w-full min-w-0">
@@ -1610,18 +1611,26 @@ export default function SmartPlanProposal({
                         </div>
                     </div>
 
-                    {/* Stage 4: 편의시설 안내 (마트 -> 병원 -> 주유소 순서 배치) */}
+                    {/* Stage 4: 편의시설 안내 (다른 스테이지와 차별화된 안심 인프라 2중 박스 컨테이너) */}
                     <div className="space-y-3 relative z-10 w-full min-w-0">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">Stage 4. 편의시설 안내</span>
+                                <div className="w-3 h-3 rounded-full bg-blue-600 ring-4 ring-white z-10 -ml-[6px]" />
+                                <span className="text-xs font-bold text-blue-900">Stage 4. 편의시설 안내</span>
+                                <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">안전·인프라</span>
                             </div>
                             <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">
-                                "{plan.stageIntros?.['4'] || '쾌적하고 안전한 여행을 위한 장보기 마트, 응급 병원, 주유소 정보입니다.'}"
+                                "쾌적하고 안전한 여행을 위한 장보기 마트, 응급 병원, 주유소 정보입니다."
                             </p>
                         </div>
-                        <div className="px-2 space-y-3 w-full min-w-0">
+                        {/* 차별화된 안심 인프라 2중 박스 컨테이너 */}
+                        <div className="mx-2 p-3.5 bg-gradient-to-b from-blue-50/70 to-slate-50/80 border border-blue-200/90 rounded-2xl shadow-sm space-y-3">
+                            <div className="flex items-center justify-between px-1 pb-2 border-b border-blue-200/60 text-blue-900 text-[11px] font-bold">
+                                <span className="flex items-center gap-1.5">
+                                    🛡️ 안심 여행 필수 인프라
+                                </span>
+                                <span className="text-[10px] text-blue-600/80 font-medium">마트 · 병원 · 주유소</span>
+                            </div>
                             {/* 1. 마트 */}
                             {plan.itemListElement
                                 .filter(c => c.category === 'MART')
