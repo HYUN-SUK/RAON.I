@@ -136,6 +136,8 @@ export default function SmartPlanProposal({
     const [mapModalMode, setMapModalMode] = useState<'alternatives' | 'full_timeline'>('alternatives');
     const [mapCandidateCards, setMapCandidateCards] = useState<any[]>([]);
     const [mapCurrentActiveCard, setMapCurrentActiveCard] = useState<any>(null);
+    const savedSwapCategoryRef = useRef<any>(null);
+    const savedSwapTargetIdRef = useRef<string | null>(null);
 
     // 숨김 카드 ID 복원 및 상태 (Set)
     const initialHiddenCardIds = useMemo(() => {
@@ -569,12 +571,26 @@ export default function SmartPlanProposal({
         }
     };
 
-    // [v14.0.0] 대체리스트 지도로 보기 모달 오픈
+    // [v14.0.0] 대체리스트 지도로 보기 모달 오픈 (리스트 창 내리고 지도 화면 시원하게 전환)
     const handleOpenAlternativesMap = (currentActive: any, allOptions: any[]) => {
+        savedSwapCategoryRef.current = swapCategory;
+        savedSwapTargetIdRef.current = swapTargetId;
+        setSwapCategory(null); // 리스트 바텀시트가 아래로 부드럽게 내려감!
         setMapCurrentActiveCard(currentActive);
         setMapCandidateCards(allOptions);
         setMapModalMode('alternatives');
-        setIsMapModalOpen(true);
+        setIsMapModalOpen(true); // 지도 화면 표출!
+    };
+
+    // [v14.0.0] 지도 창에서 리스트로 즉시 복귀 핸들러
+    const handleSwitchToList = () => {
+        setIsMapModalOpen(false); // 지도 창 닫힘!
+        if (savedSwapCategoryRef.current) {
+            setSwapCategory(savedSwapCategoryRef.current); // 원래 보던 리스트 바텀시트 복구!
+            if (savedSwapTargetIdRef.current) {
+                setSwapTargetId(savedSwapTargetIdRef.current);
+            }
+        }
     };
 
     // [v14.0.0] 전체 여행 동선 지도 모달 오픈
@@ -2040,10 +2056,12 @@ export default function SmartPlanProposal({
                 currentActiveCard={mapCurrentActiveCard}
                 candidateCards={mapCandidateCards}
                 onSelectCandidate={(newPlaceId) => {
-                    if (swapCategory) {
-                        handleSwapOptionSelected(swapCategory, newPlaceId);
+                    const cat = swapCategory || savedSwapCategoryRef.current;
+                    if (cat) {
+                        handleSwapOptionSelected(cat, newPlaceId);
                     }
                 }}
+                onSwitchToList={handleSwitchToList}
                 timelinePlaces={timelinePlacesForMap}
                 onReorderPlaces={handleReorderPlaces}
                 onTriggerSwap={(place) => {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Map, Polyline, CustomOverlayMap, useKakaoLoader } from 'react-kakao-maps-sdk';
 import { motion, Reorder } from 'framer-motion';
-import { X, Navigation, MapPin, Phone, Check, RefreshCw, Layers, ArrowUpDown, ChevronRight } from 'lucide-react';
+import { X, Navigation, MapPin, Phone, Check, RefreshCw, Layers, ArrowUpDown, ChevronRight, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
@@ -30,6 +30,8 @@ interface SmartPlanMapViewModalProps {
     candidateCards?: any[];
     /** 후보 장소 선택 콜백 */
     onSelectCandidate?: (placeId: string) => void;
+    /** 리스트로 보기로 전환 콜백 */
+    onSwitchToList?: () => void;
 
     // [전체 동선 모드 전용 Props]
     /** 확정된 전체 방문 장소 목록 (숨김 장소는 이미 제외됨) */
@@ -51,6 +53,7 @@ export default function SmartPlanMapViewModal({
     currentActiveCard,
     candidateCards = [],
     onSelectCandidate,
+    onSwitchToList,
     timelinePlaces = [],
     onReorderPlaces,
     onTriggerSwap
@@ -211,7 +214,7 @@ export default function SmartPlanMapViewModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[999] flex flex-col bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
             {/* 상단 컨트롤 헤더 */}
             <div className="bg-[#112419] text-white px-4 py-3 flex items-center justify-between shrink-0 shadow-lg border-b border-white/10 z-10">
                 <div className="flex items-center gap-2 min-w-0">
@@ -220,13 +223,24 @@ export default function SmartPlanMapViewModal({
                         {mode === 'alternatives' ? '🗺️ 경로 기반 추천 장소 위치 비교' : '🚗 나의 최종 여행 전체 동선'}
                     </h3>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="p-1.5 text-gray-300 hover:text-white rounded-full hover:bg-white/10 active:scale-95 transition-all shrink-0"
-                    aria-label="닫기"
-                >
-                    <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                    {mode === 'alternatives' && onSwitchToList && (
+                        <button
+                            onClick={onSwitchToList}
+                            className="px-2.5 py-1 text-xs font-bold text-emerald-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl border border-emerald-400/30 flex items-center gap-1 active:scale-95 transition-all"
+                        >
+                            <List className="w-3.5 h-3.5" />
+                            <span>리스트로 보기</span>
+                        </button>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 text-gray-300 hover:text-white rounded-full hover:bg-white/10 active:scale-95 transition-all"
+                        aria-label="닫기"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             {/* 메인 지도 영역 (화면 상단부 시원하게 확보) */}
@@ -268,27 +282,33 @@ export default function SmartPlanMapViewModal({
                             />
                         )}
 
-                        {/* 3. 출발지 마커 */}
+                        {/* 3. 출발지 마커 (xAnchor 0.5, yAnchor 1.0 정밀 고정) */}
                         {origin && origin.lat && origin.lng && (
-                            <CustomOverlayMap position={origin}>
-                                <div className="px-2 py-1 bg-blue-600 text-white text-[10px] font-black rounded-full shadow-md border border-white flex items-center gap-1 -translate-x-1/2 -translate-y-full">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                                    출발지
+                            <CustomOverlayMap position={origin} xAnchor={0.5} yAnchor={1.0}>
+                                <div className="flex flex-col items-center">
+                                    <div className="px-2 py-1 bg-blue-600 text-white text-[10px] font-black rounded-full shadow-md border border-white flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                                        출발지
+                                    </div>
+                                    <div className="w-0 h-0 border-x-3 border-x-transparent border-t-4 border-t-blue-600 mx-auto" />
                                 </div>
                             </CustomOverlayMap>
                         )}
 
-                        {/* 4. 목적지 마커 */}
+                        {/* 4. 목적지 마커 (xAnchor 0.5, yAnchor 1.0 정밀 고정) */}
                         {destination && destination.lat && destination.lng && (
-                            <CustomOverlayMap position={destination}>
-                                <div className="px-2.5 py-1 bg-[#224732] text-white text-[11px] font-black rounded-full shadow-lg border-2 border-emerald-300 flex items-center gap-1 -translate-x-1/2 -translate-y-full">
-                                    <span>🚩</span>
-                                    <span>{destinationName}</span>
+                            <CustomOverlayMap position={destination} xAnchor={0.5} yAnchor={1.0}>
+                                <div className="flex flex-col items-center">
+                                    <div className="px-2.5 py-1 bg-[#224732] text-white text-[11px] font-black rounded-full shadow-lg border-2 border-emerald-300 flex items-center gap-1">
+                                        <span>🚩</span>
+                                        <span>{destinationName}</span>
+                                    </div>
+                                    <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 border-t-[#224732] mx-auto" />
                                 </div>
                             </CustomOverlayMap>
                         )}
 
-                        {/* 5-A. [대체리스트 모드] 후보 장소 커스텀 말풍선 마커 렌더링 */}
+                        {/* 5-A. [대체리스트 모드] 후보 장소 커스텀 말풍선 마커 렌더링 (xAnchor 0.5, yAnchor 1.0 정밀 자석 고정) */}
                         {mode === 'alternatives' && candidateCards.map((cand, idx) => {
                             if (!cand.lat || !cand.lng) return null;
                             const isCurrentActive = cand.id === currentActiveCard?.id;
@@ -300,11 +320,13 @@ export default function SmartPlanMapViewModal({
                                 <CustomOverlayMap
                                     key={cand.id}
                                     position={{ lat: cand.lat, lng: cand.lng }}
+                                    xAnchor={0.5}
+                                    yAnchor={1.0}
                                     zIndex={isFocused ? 40 : (isCurrentActive ? 30 : 10)}
                                 >
                                     <div
                                         onClick={() => setFocusedCardId(cand.id)}
-                                        className={`cursor-pointer transition-all transform -translate-x-1/2 -translate-y-full active:scale-95 ${
+                                        className={`cursor-pointer transition-transform active:scale-95 flex flex-col items-center ${
                                             isFocused ? 'scale-110 z-40' : 'scale-100 hover:scale-105'
                                         }`}
                                     >
@@ -326,7 +348,7 @@ export default function SmartPlanMapViewModal({
                                                 <span className="text-[8px] bg-emerald-400 text-gray-900 px-1 py-0.2 rounded font-bold">선택됨</span>
                                             )}
                                         </div>
-                                        {/* 말풍선 꼬리 */}
+                                        {/* 말풍선 꼬리: 하단 끝이 좌표에 100% 자석 고정됨 */}
                                         <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 mx-auto"
                                             style={{
                                                 borderTopColor: isFocused ? '#f59e0b' : (isCurrentActive ? '#224732' : '#ffffff')
@@ -337,7 +359,7 @@ export default function SmartPlanMapViewModal({
                             );
                         })}
 
-                        {/* 5-B. [전체동선 모드] 방문 순서 번호 마커 렌더링 */}
+                        {/* 5-B. [전체동선 모드] 방문 순서 번호 마커 렌더링 (xAnchor 0.5, yAnchor 1.0 정밀 자석 고정) */}
                         {mode === 'full_timeline' && orderedPlaces.map((place, idx) => {
                             if (!place.lat || !place.lng) return null;
                             const orderNum = idx + 1;
@@ -345,9 +367,11 @@ export default function SmartPlanMapViewModal({
                                 <CustomOverlayMap
                                     key={place.id}
                                     position={{ lat: place.lat, lng: place.lng }}
+                                    xAnchor={0.5}
+                                    yAnchor={1.0}
                                     zIndex={20 + idx}
                                 >
-                                    <div className="cursor-pointer transition-transform transform -translate-x-1/2 -translate-y-full hover:scale-105 active:scale-95">
+                                    <div className="cursor-pointer transition-transform hover:scale-105 active:scale-95 flex flex-col items-center">
                                         <div className="px-2.5 py-1 rounded-xl bg-blue-600 text-white shadow-xl flex items-center gap-1.5 border-2 border-white text-[11px] font-black whitespace-nowrap">
                                             <span className="w-4 h-4 rounded-full bg-white text-blue-600 flex items-center justify-center text-[9px] font-black">
                                                 {orderNum}
@@ -374,7 +398,7 @@ export default function SmartPlanMapViewModal({
             {/* 하단 인터랙션 영역 */}
             {mode === 'alternatives' ? (
                 /* [대체리스트 모드 하단]: 마커를 터치할 때마다 해당 장소 '단일 카드 1개'만 슬라이드로 쏙 등장 */
-                <div className="bg-white p-4 shrink-0 shadow-2xl border-t border-gray-100 z-10 animate-in slide-in-from-bottom-2 duration-200">
+                <div className="bg-white p-4 pb-8 shrink-0 shadow-2xl border-t border-gray-100 z-10 animate-in slide-in-from-bottom-2 duration-200">
                     {focusedCard ? (
                         <div className="space-y-3">
                             <div className="flex items-start justify-between gap-3">
@@ -449,7 +473,7 @@ export default function SmartPlanMapViewModal({
                 </div>
             ) : (
                 /* [전체동선 모드 하단]: 0.3초 롱프레스 드래그 순서 변경 리스트 */
-                <div className="bg-white p-4 shrink-0 shadow-2xl border-t border-gray-100 z-10 max-h-[42vh] flex flex-col">
+                <div className="bg-white p-4 pb-8 shrink-0 shadow-2xl border-t border-gray-100 z-10 max-h-[44vh] flex flex-col">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                             <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" />
