@@ -2063,12 +2063,6 @@ export default function SmartPlanProposal({
                 }}
                 onSwitchToList={handleSwitchToList}
                 timelinePlaces={timelinePlacesForMap}
-                onReorderPlaces={handleReorderPlaces}
-                onTriggerSwap={(place) => {
-                    setSwapCategory(place.category);
-                    setSwapTargetId(place.id);
-                    setSwapPage(0);
-                }}
             />
         </div>
     );
