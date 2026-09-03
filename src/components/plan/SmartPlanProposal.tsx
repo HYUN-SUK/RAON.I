@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 import { StandardizedPlanJSON, FactCard, ProTimelinePlan } from '@/lib/smartPlan';
 import SmartPlanTimelinePro from './SmartPlanTimelinePro';
@@ -15,6 +15,7 @@ import FactReportSheet from './FactReportSheet';
 
 import { toast } from 'sonner';
 import RouteSelector from './RouteSelector';
+import SmartPlanMapViewModal from './SmartPlanMapViewModal';
 import { openNavApp } from '@/lib/nav-utils';
 import { logPlanSwap } from '@/lib/moat-logger';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
@@ -129,6 +130,55 @@ export default function SmartPlanProposal({
     const [hasTriggeredRegen, setHasTriggeredRegen] = useState(false);
     const [expandedWeatherDate, setExpandedWeatherDate] = useState<string | null>(null);
     const hasSwappedInCurrentSessionRef = useRef<boolean>(false);
+
+    // [v14.0.0] 스마트플랜 지도 모달 및 숨김/방문순서 상태
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+    const [mapModalMode, setMapModalMode] = useState<'alternatives' | 'full_timeline'>('alternatives');
+    const [mapCandidateCards, setMapCandidateCards] = useState<any[]>([]);
+    const [mapCurrentActiveCard, setMapCurrentActiveCard] = useState<any>(null);
+
+    // 숨김 카드 ID 복원 및 상태 (Set)
+    const initialHiddenCardIds = useMemo(() => {
+        const ids = initialPlan?.hidden_card_ids || (isWrapped ? initialPlan?.ai_plan?.hidden_card_ids : null);
+        return new Set<string>(Array.isArray(ids) ? ids : []);
+    }, [initialPlan, isWrapped]);
+    const [hiddenCardIds, setHiddenCardIds] = useState<Set<string>>(initialHiddenCardIds);
+
+    // 방문 순서 ID 복원 및 상태 (Array)
+    const initialVisitOrder = useMemo(() => {
+        const order = initialPlan?.visit_order || (isWrapped ? initialPlan?.ai_plan?.visit_order : null);
+        return Array.isArray(order) ? order : [];
+    }, [initialPlan, isWrapped]);
+    const [visitOrder, setVisitOrder] = useState<string[]>(initialVisitOrder);
+
+    // [v14.0.0] 전체 여행 동선 지도용 방문 장소 목록 (숨김 장소 100% 자동 제외 및 visitOrder 반영)
+    const timelinePlacesForMap = useMemo(() => {
+        if (!plan) return [];
+        const allActive = [
+            ...(plan.routeListElement || []),
+            ...(plan.itemListElement || []),
+            ...(plan.returnListElement || [])
+        ].filter(c => !hiddenCardIds.has(c.id));
+
+        if (visitOrder && visitOrder.length > 0) {
+            const placeMap = new Map(allActive.map(p => [p.id, p]));
+            const ordered: any[] = [];
+            visitOrder.forEach(id => {
+                if (placeMap.has(id)) {
+                    ordered.push(placeMap.get(id));
+                    placeMap.delete(id);
+                }
+            });
+            // 순서표에 미기재된 신규 장소는 뒤에 이어붙임
+            allActive.forEach(p => {
+                if (placeMap.has(p.id)) {
+                    ordered.push(p);
+                }
+            });
+            return ordered;
+        }
+        return allActive;
+    }, [plan, hiddenCardIds, visitOrder]);
 
     // [v13.4.0] 비동기로 뒤늦게 수급된 initialPlan 동적 동기화 (Stale State 락 해제)
     useEffect(() => {
@@ -458,12 +508,80 @@ export default function SmartPlanProposal({
                     selected_route: selectedRouteData,
                     selected_midpoint: selectedMidpoint,
                     weather_window: (plan as any)?.weather_window || calculatedWeatherWindow,
+                    hidden_card_ids: Array.from(hiddenCardIds),
+                    visit_order: visitOrder,
                     updated_at: new Date().toISOString()
                 };
                 updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
             }
             setSwapCategory(null);
         }
+    };
+
+    // [v14.0.0] 추천 카드 숨기기/보이기 토글 핸들러
+    const handleToggleHideCard = (cardId: string) => {
+        const next = new Set(hiddenCardIds);
+        if (next.has(cardId)) {
+            next.delete(cardId);
+            toast.success('일정 카드가 다시 표시됩니다.');
+        } else {
+            next.add(cardId);
+            toast.info('일정 카드를 숨겼습니다. 전체 동선 지도에서도 제외됩니다.');
+        }
+        setHiddenCardIds(next);
+
+        if (scheduleId) {
+            const calculatedWeatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'NONE');
+            const wrappedData = {
+                wrapped: true,
+                mode: initialPlan?.mode || restoredMode,
+                travel_type: initialPlan?.travel_type || restoredTravelType,
+                ai_plan: plan,
+                selected_route: selectedRouteData,
+                selected_midpoint: selectedMidpoint,
+                weather_window: (plan as any)?.weather_window || calculatedWeatherWindow,
+                hidden_card_ids: Array.from(next),
+                visit_order: visitOrder,
+                updated_at: new Date().toISOString()
+            };
+            updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
+        }
+    };
+
+    // [v14.0.0] 방문 순서 재정렬 핸들러
+    const handleReorderPlaces = (newOrderedIds: string[]) => {
+        setVisitOrder(newOrderedIds);
+        if (scheduleId) {
+            const calculatedWeatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'NONE');
+            const wrappedData = {
+                wrapped: true,
+                mode: initialPlan?.mode || restoredMode,
+                travel_type: initialPlan?.travel_type || restoredTravelType,
+                ai_plan: plan,
+                selected_route: selectedRouteData,
+                selected_midpoint: selectedMidpoint,
+                weather_window: (plan as any)?.weather_window || calculatedWeatherWindow,
+                hidden_card_ids: Array.from(hiddenCardIds),
+                visit_order: newOrderedIds,
+                updated_at: new Date().toISOString()
+            };
+            updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
+        }
+    };
+
+    // [v14.0.0] 대체리스트 지도로 보기 모달 오픈
+    const handleOpenAlternativesMap = (currentActive: any, allOptions: any[]) => {
+        setMapCurrentActiveCard(currentActive);
+        setMapCandidateCards(allOptions);
+        setMapModalMode('alternatives');
+        setIsMapModalOpen(true);
+    };
+
+    // [v14.0.0] 전체 여행 동선 지도 모달 오픈
+    const handleOpenFullTimelineMap = () => {
+        if (!plan) return;
+        setMapModalMode('full_timeline');
+        setIsMapModalOpen(true);
     };
 
     // [v11.9.27] 카드 클릭 시 외부 링크 또는 검색 연동
@@ -695,58 +813,103 @@ export default function SmartPlanProposal({
         });
     };
 
-    const renderFactCard = (card: FactCard, stage?: string) => (
-        <Card
-            key={card.id}
-            className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white w-full`}
-            onClick={() => handleCardClick(card)}
-        >
-            <CardContent className="p-3">
-                <div className="flex gap-2 items-start w-full min-w-0">
-                    {/* Left Compact Control Area (Touch targets preserved) */}
-                    <div className="flex flex-col items-center gap-1 shrink-0 w-10 min-w-[40px] pt-1">
-                        {/* Icon */}
-                        <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5">
-                            {CATEGORY_ICONS[card.category] || '📍'}
-                        </div>
-                        {/* Swap Button (h-8 w-8 Touch Target Preserved) */}
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                setSwapCategory(card.category); 
-                                setSwapTargetId(card.id);
-                                setSwapPage(0); 
-                            }}
-                            className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
-                        >
-                            <ArrowRightLeft className="w-4 h-4" />
-                        </Button>
-                        {/* Nav Map Button (h-8 w-8 Touch Target Preserved) */}
-                        <Button
-                            size="icon"
-                            onClick={(e) => handleNavClick(e, card)}
-                            className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-none border-none"
-                        >
-                            <MapPin className="w-4 h-4" />
-                        </Button>
+    const renderFactCard = (card: FactCard, stage?: string) => {
+        // [v14.0.0] 숨김 처리된 카드는 슬림 바로 축소 렌더링
+        if (hiddenCardIds.has(card.id)) {
+            return (
+                <div
+                    key={card.id}
+                    className="flex items-center justify-between px-3.5 py-2.5 bg-gray-50/90 border border-dashed border-gray-300 rounded-2xl text-gray-500 text-xs transition-all shadow-sm w-full"
+                >
+                    <div className="flex items-center gap-2 truncate flex-1 min-w-0 pr-2">
+                        <span className="text-base opacity-70 shrink-0">{CATEGORY_ICONS[card.category] || '📍'}</span>
+                        <span className="font-bold truncate text-gray-600">{card.name}</span>
+                        <span className="text-[10px] text-gray-400 shrink-0 bg-gray-200/60 px-1.5 py-0.5 rounded font-medium">숨김 처리됨</span>
                     </div>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleHideCard(card.id);
+                        }}
+                        className="h-7 px-2.5 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg shrink-0 flex items-center gap-1 border border-blue-200/50"
+                    >
+                        <Eye className="w-3 h-3" />
+                        보이기
+                    </Button>
+                </div>
+            );
+        }
 
-                    {/* Right Info Area (Maximizing width) */}
-                    <div className="flex-1 min-w-0 pr-1">
-                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                            <span className="text-[10px] font-bold text-[#224732] px-1.5 py-0.5 bg-[#224732]/5 rounded-sm">
-                                {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
-                            </span>
-                            {card.verificationStatus === 'VERIFIED' && (
-                                <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm">
-                                    <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
-                                    검증됨
-                                </span>
-                            )}
+        return (
+            <Card
+                key={card.id}
+                className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white w-full`}
+                onClick={() => handleCardClick(card)}
+            >
+                <CardContent className="p-3">
+                    <div className="flex gap-2 items-start w-full min-w-0">
+                        {/* Left Compact Control Area (Touch targets preserved) */}
+                        <div className="flex flex-col items-center gap-1 shrink-0 w-10 min-w-[40px] pt-1">
+                            {/* Icon */}
+                            <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5">
+                                {CATEGORY_ICONS[card.category] || '📍'}
+                            </div>
+                            {/* Swap Button (h-8 w-8 Touch Target Preserved) */}
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setSwapCategory(card.category); 
+                                    setSwapTargetId(card.id);
+                                    setSwapPage(0); 
+                                }}
+                                className="h-8 w-8 rounded-full bg-gray-50 text-gray-500 hover:text-[#224732] hover:bg-[#224732]/10"
+                            >
+                                <ArrowRightLeft className="w-4 h-4" />
+                            </Button>
+                            {/* Nav Map Button (h-8 w-8 Touch Target Preserved) */}
+                            <Button
+                                size="icon"
+                                onClick={(e) => handleNavClick(e, card)}
+                                className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-none border-none"
+                            >
+                                <MapPin className="w-4 h-4" />
+                            </Button>
                         </div>
-                        <h4 className="font-bold text-gray-900 text-[15px] truncate">{card.name}</h4>
+
+                        {/* Right Info Area (Maximizing width) */}
+                        <div className="flex-1 min-w-0 pr-1">
+                            <div className="flex items-center justify-between gap-1.5 mb-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] font-bold text-[#224732] px-1.5 py-0.5 bg-[#224732]/5 rounded-sm">
+                                        {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
+                                    </span>
+                                    {card.verificationStatus === 'VERIFIED' && (
+                                        <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm">
+                                            <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
+                                            검증됨
+                                        </span>
+                                    )}
+                                </div>
+                                {/* 숨기기 버튼 */}
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleHideCard(card.id);
+                                    }}
+                                    className="h-6 px-1.5 text-[10px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md shrink-0 flex items-center gap-0.5"
+                                    title="이 일정 숨기기"
+                                >
+                                    <EyeOff className="w-3 h-3" />
+                                    <span>숨기기</span>
+                                </Button>
+                            </div>
+                            <h4 className="font-bold text-gray-900 text-[15px] truncate">{card.name}</h4>
                         
                         {/* [v11.9.32] Stage 2, 5 주소 표기 추가 */}
                         {['2', '5'].includes(stage || '') && (card.metadata?.address || card.metadata?.addr) && (
@@ -874,9 +1037,8 @@ export default function SmartPlanProposal({
                 </div>
             </CardContent>
         </Card>
-
-
-    );
+        );
+    };
 
     const isPreview = isPreviewMode || (plan as any)?.is_preview || (initialPlan as any)?.is_preview || (initialPlan as any)?.ai_plan?.is_preview;
     const weatherWindow = (plan as any)?.weather_window || (initialPlan as any)?.weather_window || (initialPlan as any)?.ai_plan?.weather_window || 'NONE';
@@ -1393,6 +1555,20 @@ export default function SmartPlanProposal({
                             <div className="w-3 h-3 rounded-full border-2 border-dashed border-gray-400 bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
                             <span className="text-[10px] font-semibold text-gray-400">안전하게 집에 도착했습니다.</span>
                         </div>
+
+                        {/* [v14.0.0] 스테이지 5 하단: 나의 최종 여행 동선 전체 지도로 보기 버튼 */}
+                        <div className="mt-5 px-2 w-full min-w-0">
+                            <Button
+                                onClick={() => handleOpenFullTimelineMap()}
+                                className="w-full h-12 bg-gradient-to-r from-[#224732] to-[#2d5d42] hover:from-[#1b3928] hover:to-[#224732] text-white font-bold text-sm rounded-2xl shadow-lg border border-emerald-400/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                            >
+                                <MapIcon className="w-4 h-4 text-emerald-300" />
+                                <span>🗺️ 나의 최종 여행 동선 전체 지도로 보기</span>
+                            </Button>
+                            <p className="text-[11px] text-gray-400 text-center mt-1.5 font-medium">
+                                방문 순서를 직접 변경하고 숨김 처리된 장소를 제외한 최종 경로를 확인하세요.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1528,6 +1704,23 @@ export default function SmartPlanProposal({
 
                             return (
                                 <>
+                                    {/* [v14.0.0] 상단 컨트롤 바: 지도로 보기 버튼 */}
+                                    <div className="flex items-center justify-between pb-3 mb-1 border-b border-gray-200/80">
+                                        <span className="text-xs font-bold text-gray-500">
+                                            총 {allOptions.length}개 추천 후보
+                                        </span>
+                                        <Button
+                                            size="sm"
+                                            onClick={() => {
+                                                handleOpenAlternativesMap(currentActive, allOptions);
+                                            }}
+                                            className="bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs h-8 px-3 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
+                                        >
+                                            <MapIcon className="w-3.5 h-3.5 text-emerald-300" />
+                                            <span>지도로 보기</span>
+                                        </Button>
+                                    </div>
+
                                     {/* 추천 후보 리스트 (3개 1묶음 페이지 단위 스와이프) [v11.9.56] */}
                                     <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-6 px-6 gap-6 pb-4">
                                         {(() => {
@@ -1834,6 +2027,31 @@ export default function SmartPlanProposal({
                     distanceKm={reportTargetCard.distanceKm}
                 />
             )}
+
+            {/* 6. [v14.0.0] 스마트플랜 통합 대화형 지도 모달 (대체리스트 지도 & 전체 동선 지도) */}
+            <SmartPlanMapViewModal
+                isOpen={isMapModalOpen}
+                onClose={() => setIsMapModalOpen(false)}
+                mode={mapModalMode}
+                selectedRouteData={selectedRouteData}
+                origin={userOrigin || origin}
+                destination={location}
+                destinationName={initialPlan?.title || initialPlan?.campground_name || '목적지'}
+                currentActiveCard={mapCurrentActiveCard}
+                candidateCards={mapCandidateCards}
+                onSelectCandidate={(newPlaceId) => {
+                    if (swapCategory) {
+                        handleSwapOptionSelected(swapCategory, newPlaceId);
+                    }
+                }}
+                timelinePlaces={timelinePlacesForMap}
+                onReorderPlaces={handleReorderPlaces}
+                onTriggerSwap={(place) => {
+                    setSwapCategory(place.category);
+                    setSwapTargetId(place.id);
+                    setSwapPage(0);
+                }}
+            />
         </div>
     );
 }
