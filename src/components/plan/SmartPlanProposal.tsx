@@ -156,9 +156,24 @@ export default function SmartPlanProposal({
     // [v14.0.0] 전체 여행 동선 지도용 방문 장소 목록 (숨김 장소 100% 자동 제외 및 visitOrder 반영)
     const timelinePlacesForMap = useMemo(() => {
         if (!plan) return [];
+        const categoryPriority: Record<string, number> = {
+            RESTAURANT: 1,
+            SPOT: 2,
+            FESTIVAL: 3,
+            MART: 4,
+            HOSPITAL: 5,
+            GAS_STATION: 6,
+        };
+
+        const sortedItems = [...(plan.itemListElement || [])].sort((a, b) => {
+            const pA = categoryPriority[a.category] || 99;
+            const pB = categoryPriority[b.category] || 99;
+            return pA - pB;
+        });
+
         const allActive = [
             ...(plan.routeListElement || []),
-            ...(plan.itemListElement || []),
+            ...sortedItems,
             ...(plan.returnListElement || [])
         ].filter(c => !hiddenCardIds.has(c.id));
 
@@ -1568,60 +1583,58 @@ export default function SmartPlanProposal({
                         </div>
                     )}
 
-                    {/* Stage 3: 캠프 준비 (Mart / Restaurant) - 맛보기 모드 시 중복 방지 */}
-                    {!plan.is_preview && (
-                        <div className="space-y-3 relative z-10 w-full min-w-0">
-                            <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                    <span className="text-xs font-bold text-[#224732]">Stage 3. 든든한 준비 (식사/장보기)</span>
-                                </div>
-                                {plan.stageIntros?.['3'] && (
-                                    <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['3']}"</p>
-                                )}
-                            </div>
-                            <div className="px-2 space-y-3 w-full min-w-0">
-                                {plan.itemListElement
-                                    .filter(c => ['MART', 'RESTAURANT'].includes(c.category))
-                                    .map((card) => renderFactCard(card, '3'))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Stage 4: 캠핑장 주변 (Spot / Hospital / Gas) */}
-                    <div className="space-y-3 relative z-10 w-full">
+                    {/* Stage 3: 목적지 근처 맛집/명소 (식당 -> 명소 -> 축제 순서 배치) */}
+                    <div className="space-y-3 relative z-10 w-full min-w-0">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">
-                                    {plan.is_preview ? 'Stage 2. 온전한 힐링 (현지 명소)' : 'Stage 4. 온전한 힐링 (현지 체류)'}
-                                </span>
+                                <span className="text-xs font-bold text-[#224732]">Stage 3. 목적지 근처 맛집/명소</span>
                             </div>
-                            {plan.stageIntros?.['2'] && plan.is_preview && (
-                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['2']}"</p>
-                            )}
-                            {plan.stageIntros?.['4'] && !plan.is_preview && (
-                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['4']}"</p>
-                            )}
+                            <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">
+                                "{plan.stageIntros?.['3'] || '목적지 주변의 검증된 로컬 맛집과 놓치기 아쉬운 힐링 명소를 엄선했습니다.'}"
+                            </p>
                         </div>
-                        {/* 힐링 장소 (Spot) 우선 노출 (맛보기 시 FESTIVAL 축제 완전 전면 제외!) */}
-                        <div className="px-4 space-y-3">
+                        <div className="px-2 space-y-3 w-full min-w-0">
+                            {/* 1. 식당 */}
                             {plan.itemListElement
-                                .filter(c => plan.is_preview ? c.category === 'SPOT' : ['SPOT', 'FESTIVAL'].includes(c.category))
+                                .filter(c => c.category === 'RESTAURANT')
+                                .map((card) => renderFactCard(card, '3'))}
+                            {/* 2. 명소 */}
+                            {plan.itemListElement
+                                .filter(c => c.category === 'SPOT')
+                                .map((card) => renderFactCard(card, '3'))}
+                            {/* 3. 축제 (명소 카드 바로 아래 배치, 맛보기 시 제외) */}
+                            {!plan.is_preview && plan.itemListElement
+                                .filter(c => c.category === 'FESTIVAL')
+                                .map((card) => renderFactCard(card, '3'))}
+                        </div>
+                    </div>
+
+                    {/* Stage 4: 편의시설 안내 (마트 -> 병원 -> 주유소 순서 배치) */}
+                    <div className="space-y-3 relative z-10 w-full min-w-0">
+                        <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
+                                <span className="text-xs font-bold text-[#224732]">Stage 4. 편의시설 안내</span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">
+                                "{plan.stageIntros?.['4'] || '쾌적하고 안전한 여행을 위한 장보기 마트, 응급 병원, 주유소 정보입니다.'}"
+                            </p>
+                        </div>
+                        <div className="px-2 space-y-3 w-full min-w-0">
+                            {/* 1. 마트 */}
+                            {plan.itemListElement
+                                .filter(c => c.category === 'MART')
+                                .map((card) => renderFactCard(card, '4'))}
+                            {/* 2. 병원 */}
+                            {plan.itemListElement
+                                .filter(c => c.category === 'HOSPITAL')
+                                .map((card) => renderFactCard(card, '4'))}
+                            {/* 3. 주유소 */}
+                            {plan.itemListElement
+                                .filter(c => c.category === 'GAS_STATION')
                                 .map((card) => renderFactCard(card, '4'))}
                         </div>
-
-                        {/* 편의 시설 (Hospital, Gas) 하단 노출 */}
-                        {(plan.itemListElement.some(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))) && (
-                            <div className="mt-4 pt-4 border-t-2 border-blue-200 bg-blue-50/30 rounded-xl py-3 px-0 mx-0 min-w-0">
-                                <p className="text-[11px] font-bold text-blue-600 mb-3 ml-4 flex items-center gap-1.5">
-                                    🛡️ {plan.is_preview ? 'Stage 3. 안전을 위한 편의시설' : '안전을 위한 편의시설'}
-                                </p>
-                                {plan.itemListElement
-                                    .filter(c => ['HOSPITAL', 'GAS_STATION'].includes(c.category))
-                                    .map((card) => renderFactCard(card, '4'))}
-                            </div>
-                        )}
                     </div>
 
                     {/* Stage 5: 안전한 귀가 (Return Trip) */}
