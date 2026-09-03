@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle, Eye, EyeOff, X } from 'lucide-react';
+import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle, Eye, EyeOff, X, Check } from 'lucide-react';
 
 import { StandardizedPlanJSON, FactCard, ProTimelinePlan } from '@/lib/smartPlan';
 import SmartPlanTimelinePro from './SmartPlanTimelinePro';
@@ -829,7 +829,17 @@ export default function SmartPlanProposal({
         });
     };
 
-    const renderFactCard = (card: FactCard, stage?: string, onCloseModalCard?: () => void) => {
+    type RenderFactCardOptions = {
+        onCloseModalCard?: () => void;
+        isAlternativeMapMode?: boolean;
+        isCurrentActive?: boolean;
+        onSelectCandidate?: (placeId: string) => void;
+    };
+
+    const renderFactCard = (card: FactCard, stage?: string, options?: RenderFactCardOptions) => {
+        const onCloseModalCard = options?.onCloseModalCard;
+        const isAlternativeMapMode = options?.isAlternativeMapMode;
+
         // [v14.0.0] 숨김 처리된 카드는 슬림 바로 축소 렌더링
         if (hiddenCardIds.has(card.id)) {
             return (
@@ -930,20 +940,22 @@ export default function SmartPlanProposal({
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
-                                    {/* 숨기기 버튼 */}
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleToggleHideCard(card.id);
-                                        }}
-                                        className="h-6 px-1.5 text-[10px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md shrink-0 flex items-center gap-0.5"
-                                        title="이 일정 숨기기"
-                                    >
-                                        <EyeOff className="w-3 h-3" />
-                                        <span>숨기기</span>
-                                    </Button>
+                                    {/* 숨기기 버튼 (대체리스트 비교 지도시에는 숨기고 닫기 버튼만 노출) */}
+                                    {!isAlternativeMapMode && (
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleToggleHideCard(card.id);
+                                            }}
+                                            className="h-6 px-1.5 text-[10px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md shrink-0 flex items-center gap-0.5"
+                                            title="이 일정 숨기기"
+                                        >
+                                            <EyeOff className="w-3 h-3" />
+                                            <span>숨기기</span>
+                                        </Button>
+                                    )}
                                     {/* 모달 카드용 [X 닫기] 버튼 */}
                                     {onCloseModalCard && (
                                         <Button
@@ -1068,11 +1080,37 @@ export default function SmartPlanProposal({
                                 </Button>
                             </div>
                         )}
-                        {/* [v14.0.0] 카드 하단 정보 신고 링크 (좌측 길안내/스왑 유지, 중복 제거 및 단정화) */}
+                        {/* [v14.0.0] 카드 하단 정보 신고 링크 및 카테고리별 대체지도 전용 [이 장소로 선택] 버튼 */}
                         <div 
-                            className="mt-2.5 pt-2 border-t border-gray-100/80 flex items-center justify-end"
+                            className={`mt-2.5 pt-2 border-t border-gray-100/80 flex items-center ${
+                                isAlternativeMapMode ? 'justify-between gap-2' : 'justify-end'
+                            }`}
                             onClick={(e) => e.stopPropagation()}
                         >
+                            {/* [카테고리별 대체지도 전용] 정보가 달라요 왼쪽에 '이 장소로 선택' 버튼 배치 */}
+                            {isAlternativeMapMode && (
+                                options?.isCurrentActive ? (
+                                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200/80 flex items-center gap-1">
+                                        <Check className="w-3 h-3 text-emerald-600" />
+                                        현재 선택된 장소
+                                    </span>
+                                ) : (
+                                    <Button
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (options?.onSelectCandidate) {
+                                                options.onSelectCandidate(card.id);
+                                            }
+                                        }}
+                                        className="h-8 px-3.5 bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+                                    >
+                                        <Check className="w-3.5 h-3.5" />
+                                        이 장소로 선택
+                                    </Button>
+                                )
+                            )}
+
                             <button
                                 type="button"
                                 onClick={(e) => {
@@ -2099,7 +2137,22 @@ export default function SmartPlanProposal({
                 }}
                 onSwitchToList={handleSwitchToList}
                 timelinePlaces={timelinePlacesForMap}
-                renderCustomCard={(card, onCloseCard) => renderFactCard(card, undefined, onCloseCard)}
+                renderCustomCard={(card, onCloseCard) => {
+                    const isAlt = mapModalMode === 'alternatives';
+                    const isCurrent = card.id === mapCurrentActiveCard?.id;
+                    return renderFactCard(card, undefined, {
+                        onCloseModalCard: onCloseCard,
+                        isAlternativeMapMode: isAlt,
+                        isCurrentActive: isCurrent,
+                        onSelectCandidate: (newPlaceId) => {
+                            const cat = swapCategory || savedSwapCategoryRef.current;
+                            if (cat) {
+                                handleSwapOptionSelected(cat, newPlaceId);
+                            }
+                            setIsMapModalOpen(false);
+                        }
+                    });
+                }}
             />
         </div>
     );
