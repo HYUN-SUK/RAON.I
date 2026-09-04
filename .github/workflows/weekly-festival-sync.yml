@@ -27,5 +27,5 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PUBLIC_DATA_API_KEY: ${{ secrets.PUBLIC_DATA_API_KEY }}
-          TOUR_API_KEY: ${{ secrets.TOUR_API_KEY }}
+          TOUR_API_KEY: ${{ secrets.TOUR_API_KEY || secrets.PUBLIC_DATA_API_KEY }}
         run: node scripts/sync-festivals-trigger.mjs

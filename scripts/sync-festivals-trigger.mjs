@@ -22,7 +22,7 @@ try {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const TOUR_API_KEY = process.env.TOUR_API_KEY;
+const TOUR_API_KEY = process.env.TOUR_API_KEY || process.env.PUBLIC_DATA_API_KEY;
 
 const MY_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 const generateFactId = (source, name, address) => 
@@ -31,8 +31,8 @@ const generateFactId = (source, name, address) =>
 async function runWeeklyFestivalSync() {
   console.log('🚀 Triggering Weekly Festival Sync manually...');
   if (!SUPABASE_URL || !SUPABASE_KEY || !TOUR_API_KEY) {
-    console.error('❌ Missing configuration keys in .env.local');
-    return;
+    console.error('❌ Missing configuration keys (SUPABASE_URL, SUPABASE_KEY, TOUR_API_KEY/PUBLIC_DATA_API_KEY)');
+    process.exit(1);
   }
 
   const startTime = Date.now();
@@ -76,7 +76,7 @@ async function runWeeklyFestivalSync() {
 
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0].replace(/-/g, '');
-    const tourUrl = `http://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${TOUR_API_KEY}&eventStartDate=${todayStr}&numOfRows=2000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
+    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${TOUR_API_KEY}&eventStartDate=${todayStr}&numOfRows=2000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
     
     console.log(`Fetching from TourAPI: ${tourUrl}`);
     const tourRes = await fetch(tourUrl);
@@ -208,14 +208,19 @@ async function runWeeklyFestivalSync() {
     console.log(`✅ Success! Upserted ${insertedCount} festivals in ${executionTime}ms.`);
   } catch (error) {
     console.error(`❌ Sync Failed:`, error.message);
-    await supabase.from('automation_logs').insert({
-      job_name: 'WEEKLY_FESTIVAL_SYNC',
-      status: 'FAILURE',
-      processed_count: 0,
-      message: `축제 동기화 실패: ${error.message}`,
-      duration_ms: Date.now() - startTime,
-      created_at: new Date().toISOString()
-    });
+    try {
+      await supabase.from('automation_logs').insert({
+        job_name: 'WEEKLY_FESTIVAL_SYNC',
+        status: 'FAILURE',
+        processed_count: 0,
+        message: `축제 동기화 실패: ${error.message}`,
+        duration_ms: Date.now() - startTime,
+        created_at: new Date().toISOString()
+      });
+    } catch (dbErr) {
+      console.error(`Failed to write failure log:`, dbErr.message);
+    }
+    process.exit(1);
   }
 }
 

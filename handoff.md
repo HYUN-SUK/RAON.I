@@ -1,6 +1,6 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-04T16:25:00+09:00  
+**작성 일시**: 2026-09-04T17:01:00+09:00  
 **기준 브랜치**: `main`  
 **빌드 상태**: Next.js 16.1.1 Production Build 103/103 (100% 정상 통과)  
 
@@ -8,7 +8,17 @@
 
 ## 1. 현재 상태 요약 (Completed Work in Current Session)
 
-이번 세션에서는 **Google Play 최신 Android 16 (API 수준 36) 타깃 AAB(v2) 심사 제출 완결** 및 **일일 로테이션 TourAPI 무한 루프 탈출 가드 탑재(120분 행 완치)**를 성공적으로 완료했습니다.
+이번 세션에서는 **주간 축제 정밀 동기화 API 키 폴백 및 에러 핸들링 정상화 완결**, **Google Play 최신 Android 16 (API 수준 36) 타깃 AAB(v2) 심사 제출 완결**, 그리고 **일일 로테이션 TourAPI 무한 루프 탈출 가드 탑재(120분 행 완치)**를 성공적으로 완료했습니다.
+
+### 🟢 마일스톤 9.39: 주간 축제 정밀 동기화 API 키 폴백 및 에러 핸들링 정상화 완결
+- **TOUR_API_KEY 폴백 정규화**:
+  - `scripts/sync-festivals-trigger.mjs`에서 `process.env.TOUR_API_KEY || process.env.PUBLIC_DATA_API_KEY` 폴백 추가 및 `.github/workflows/weekly-festival-sync.yml` 시크릿 연동 보강으로 7월 20일 이후 발생하던 환경변수 누락 0초 조기종료 완치.
+- **Silent Failure(에러 삼킴) 버그 완치**:
+  - 키 누락 또는 동기화 실패 시 `process.exit(1)` 명시 및 DB `automation_logs` 실패 기록 보강으로 투명한 관제 체계 확립.
+- **실시간 라이브 가동 검증 완료**:
+  - 전국 최신 축제 279건 정상 수신 및 DB `master_places`(총 591건) 적재 완료 (`automation_logs`에 2,665ms 성공 기록).
+- **3대 배치 스크립트 빌드 검증 강제화**:
+  - `package.json`의 `build` 스크립트에 `node --check scripts/sync-festivals-trigger.mjs` 필수 연동.
 
 ### 🟢 마일스톤 9.38: 일일 로테이션 TourAPI 무한 루프 탈출 가드 탑재 및 구글 플레이 Android 16(API 36) 타깃 업데이트 완결
 - **TourAPI 무한 루프(120분 행) 완치**:

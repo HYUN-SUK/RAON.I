@@ -1,6 +1,11 @@
 # Task Management
 
 ## Completed Tasks (2026-09-04)
+- [x] **마일스톤 9.39**: 주간 축제 정밀 동기화 API 키 폴백 및 에러 핸들링 정상화 완결
+  - **TOUR_API_KEY 폴백 정규화**: `scripts/sync-festivals-trigger.mjs`에서 `process.env.TOUR_API_KEY || process.env.PUBLIC_DATA_API_KEY` 폴백 추가 및 `.github/workflows/weekly-festival-sync.yml` 시크릿 연동 보강으로 7월 20일 이후 발생하던 환경변수 누락 0초 조기종료 완치
+  - **Silent Failure(에러 삼킴) 버그 완치**: 키 누락 또는 동기화 실패 시 `process.exit(1)` 명시 및 DB `automation_logs` 실패 기록 보강으로 투명한 관제 체계 확립
+  - **실시간 라이브 가동 검증 완료**: 전국 최신 축제 279건 정상 수신 및 DB `master_places`(총 591건) 적재 완료 (`automation_logs`에 2,665ms 성공 기록)
+  - **3대 배치 스크립트 빌드 검증 강제화**: `package.json`의 `build`에 `node --check scripts/sync-festivals-trigger.mjs` 연동
 - [x] **마일스톤 9.38**: 일일 로테이션 TourAPI 무한 루프 탈출 가드 탑재 및 구글 플레이 Android 16(API 36) 타깃 업데이트 완결
   - **TourAPI 무한 루프(120분 행) 완치**: `scripts/daily-region-sync.mjs`의 `syncTourSpots`에서 공공 API 새벽 점검/장애 응답(`resultCode !== '0000'`) 발생 시 3회 재시도 후 바깥 루프까지 안전 조기 종료(`hasMore = false`)하는 2중 철벽 가드 탑재하여 120분 강제 취소 사고 영구 방어
   - **구글 플레이 최신 Android 16(API 수준 36) 타깃 AAB(v2) 심사 제출 완결**: PWABuilder를 통해 기존 서명키(`signing.keystore`)로 `kr.co.raoni.app` 타깃 SDK 36 번들 패키징 후 Google Play Console 프로덕션 출시 제출 완료 (연례 필수 요건 100% 충족)
