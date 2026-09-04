@@ -1552,6 +1552,9 @@ async function syncTourSpots(sido, seenIds, stat) {
               await delay(3000 * retryCount);
               continue;
             }
+            // [v15.1 무한루프 방지] 3회 재시도 모두 실패 시 바깥 while 루프까지 안전하게 즉시 종료
+            console.warn(`  ⚠️ Tour API 응답 코드 에러로 인한 안전 조기 탈출 (API 점검/장애 감지): ${errMsg}`);
+            hasMore = false;
             break;
           }
 
@@ -1672,10 +1675,23 @@ async function syncTourSpots(sido, seenIds, stat) {
           if (retryCount < maxRetries) {
             await delay(3000 * retryCount);
           } else {
-            pageNo++;
-            if (pageNo > 20) hasMore = false;
+            // [v15.1 가드] 1페이지부터 예외 발생 시 API 다운으로 판단하여 무한 루프 차단
+            if (pageNo === 1) {
+              console.warn(`  ⚠️ Tour API 1페이지 호출 예외로 인한 안전 조기 탈출 (API 점검/장애 감지): ${e.message}`);
+              hasMore = false;
+              break;
+            } else {
+              pageNo++;
+              if (pageNo > 10) hasMore = false;
+            }
           }
         }
+      }
+
+      // [v15.1 2중 철벽 가드] 내부 루프에서 fetchSuccess 달성 실패 시 바깥 루프 무한 헛돌기 원천 차단
+      if (!fetchSuccess) {
+        console.warn(`  ⚠️ Tour API AreaCode ${areaCode} p.${pageNo} 최종 실패 - 안전 루프 탈출`);
+        hasMore = false;
       }
     }
   }

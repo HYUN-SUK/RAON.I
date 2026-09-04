@@ -1,5 +1,10 @@
 # Task Management
 
+## Completed Tasks (2026-09-04)
+- [x] **마일스톤 9.38**: 일일 로테이션 TourAPI 무한 루프 탈출 가드 탑재 및 구글 플레이 Android 16(API 36) 타깃 업데이트 완결
+  - **TourAPI 무한 루프(120분 행) 완치**: `scripts/daily-region-sync.mjs`의 `syncTourSpots`에서 공공 API 새벽 점검/장애 응답(`resultCode !== '0000'`) 발생 시 3회 재시도 후 바깥 루프까지 안전 조기 종료(`hasMore = false`)하는 2중 철벽 가드 탑재하여 120분 강제 취소 사고 영구 방어
+  - **구글 플레이 최신 Android 16(API 수준 36) 타깃 AAB(v2) 심사 제출 완결**: PWABuilder를 통해 기존 서명키(`signing.keystore`)로 `kr.co.raoni.app` 타깃 SDK 36 번들 패키징 후 Google Play Console 프로덕션 출시 제출 완료 (연례 필수 요건 100% 충족)
+
 ## Completed Tasks (2026-09-03)
 - [x] **마일스톤 9.37**: 스마트플랜 인트로 문구 확정 노출 및 Stage 4 안심 인프라 2중 박스 컨테이너 완결
   - Stage 3 & Stage 4 인트로 설명 문구 확정 노출 (구버전 DB 문자열 덮어쓰기 방지 및 최신 문구 100% 표출)
