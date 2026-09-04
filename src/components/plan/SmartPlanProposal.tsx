@@ -1584,7 +1584,6 @@ export default function SmartPlanProposal({
                     )}
 
                     {/* Stage 3: 목적지 근처 맛집/명소 (식당 -> 명소 -> 축제 순서 배치) */}
-                    {/* Stage 3: 목적지 근처 맛집/명소 (식당 -> 명소 -> 축제 순서 배치) */}
                     <div className="space-y-3 relative z-10 w-full min-w-0">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
