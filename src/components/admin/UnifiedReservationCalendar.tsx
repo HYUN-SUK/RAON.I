@@ -793,7 +793,7 @@ export default function UnifiedReservationCalendar() {
                                                 const outStr = formatLocalDate(addDays(modifyCheckIn, parseInt(modifyDuration || '1')));
 
                                                 const isBlocked = (blockedDates || []).some(b => {
-                                                    if (b.siteId !== s.id) return false;
+                                                    if (b.siteId !== s.id && b.siteId !== 'ALL') return false;
                                                     const bStartStr = formatLocalDate(b.startDate as any);
                                                     const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
                                                     return bStartStr < outStr && bEndStr > inStr;
@@ -830,7 +830,7 @@ export default function UnifiedReservationCalendar() {
                             const outStr = formatLocalDate(addDays(modifyCheckIn, parseInt(modifyDuration || '1')));
 
                             const isBlocked = (blockedDates || []).some(b => {
-                                if (b.siteId !== modifySiteId) return false;
+                                if (b.siteId !== modifySiteId && b.siteId !== 'ALL') return false;
                                 const bStartStr = formatLocalDate(b.startDate as any);
                                 const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
                                 return bStartStr < outStr && bEndStr > inStr;
@@ -876,7 +876,7 @@ export default function UnifiedReservationCalendar() {
 
                                 // 가용성 검증
                                 const isBlocked = (blockedDates || []).some(b => {
-                                    if (b.siteId !== modifySiteId) return false;
+                                    if (b.siteId !== modifySiteId && b.siteId !== 'ALL') return false;
                                     const bStartStr = formatLocalDate(b.startDate as any);
                                     const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
                                     return bStartStr < outStr && bEndStr > inStr;

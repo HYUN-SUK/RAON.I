@@ -955,7 +955,7 @@ export const useReservationStore = create<ReservationState>()(
                 // 1. 차단일(Blocked Dates) 검증 (bStart < targetCheckOut && bEnd > targetCheckIn)
                 const { blockedDates } = get();
                 const isBlocked = (blockedDates || []).some(b => {
-                    if (b.siteId !== newSiteId) return false;
+                    if (b.siteId !== newSiteId && b.siteId !== 'ALL') return false;
                     const bStartStr = formatLocalDate(b.startDate as any);
                     const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
                     return bStartStr < targetCheckOutStr && bEndStr > targetCheckInStr;

@@ -175,7 +175,7 @@ export async function updateReservationAction(
     const { data: blockedList } = await (supabase
         .from('blocked_dates') as any)
         .select('id, start_date, end_date')
-        .eq('site_id', updates.siteId)
+        .in('site_id', [updates.siteId, 'ALL'])
         .lt('start_date', checkOutStr)
         .gt('end_date', checkInStr);
 
