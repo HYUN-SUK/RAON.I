@@ -302,3 +302,94 @@ export async function submitUserVerifyReport(
         return { success: false, error: e.message };
     }
 }
+
+/**
+ * 4. 길안내 귀환 팝업 건너뛰기 / 닫기 (영구 완료 처리)
+ * createAdminClient()를 사용하여 RLS 제약 없이 확실하게 followed_up = true로 업데이트
+ */
+export async function dismissNavIntentAction(intentId: number): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { createAdminClient } = await import('@/lib/supabase-admin');
+        const supabase = createAdminClient();
+
+        const { error } = await (supabase
+            .from('nav_intent_log') as any)
+            .update({ followed_up: true })
+            .eq('id', intentId);
+
+        if (error) {
+            console.error('[user-verification] dismissNavIntentAction error:', error);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+    } catch (e: any) {
+        console.error('[user-verification] dismissNavIntentAction unexpected error:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * 5. 길안내 귀환 팝업 [좋았어요! 만족해요] 1탭 처리 (검증 등록 + 로그 완료 + miss_count 리셋)
+ */
+export async function submitNavLikedAction(params: {
+    intentId: number;
+    placeId: string;
+    scheduleId?: string | null;
+    userId?: string | null;
+    stage?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { createAdminClient } = await import('@/lib/supabase-admin');
+        const supabase = createAdminClient();
+        const now = new Date();
+
+        // 1) 팩트 검증 레코드 생성 (NAV_LAUNCHED 증거, 0.7 가중치)
+        const { error: insertErr } = await (supabase
+            .from('place_verifications') as any)
+            .insert({
+                partner_id: DEFAULT_PARTNER_ID,
+                schedule_id: params.scheduleId || null,
+                place_id: params.placeId,
+                user_id: params.userId || null,
+                stage: params.stage || 'DESTINATION',
+                visited: true,
+                liked: true,
+                fact_status: 'OK',
+                observed_at: now.toISOString().split('T')[0],
+                observed_dow: now.getDay(),
+                source: 'APP_USER',
+                entry_point: 'nav_return',
+                evidence: 'NAV_LAUNCHED',
+                reporter_weight: 0.7,
+                review_state: 'APPLIED',
+                verified_at: now.toISOString(),
+            });
+
+        if (insertErr) {
+            console.error('[user-verification] submitNavLikedAction insert error:', insertErr);
+        }
+
+        // 2) nav_intent_log followed_up 완료 처리
+        const { error: updateErr } = await (supabase
+            .from('nav_intent_log') as any)
+            .update({ followed_up: true })
+            .eq('id', params.intentId);
+
+        if (updateErr) {
+            console.error('[user-verification] submitNavLikedAction log update error:', updateErr);
+        }
+
+        // 3) miss_count 리셋 트리거
+        await (supabase
+            .from('master_places') as any)
+            .update({ miss_count: 0, updated_at: now.toISOString() })
+            .eq('id', params.placeId);
+
+        return { success: true };
+    } catch (e: any) {
+        console.error('[user-verification] submitNavLikedAction unexpected error:', e);
+        return { success: false, error: e.message };
+    }
+}
+

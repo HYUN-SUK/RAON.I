@@ -718,6 +718,9 @@ serve(async (req: any) => {
         const tomorrowDate = new Date(kst); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
         const tomorrow = tomorrowDate.toISOString().split('T')[0];
 
+        const d7Date = new Date(kst); d7Date.setDate(d7Date.getDate() + 7);
+        const d7 = d7Date.toISOString().split('T')[0];
+
         const d4Date = new Date(kst); d4Date.setDate(d4Date.getDate() + 4);
         const d4 = d4Date.toISOString().split('T')[0];
 
@@ -728,7 +731,7 @@ serve(async (req: any) => {
             .from('user_schedules')
             .select('*')
             .eq('status', 'scheduled')
-            .or(`check_in.in.(${today},${tomorrow},${d4}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
+            .or(`check_in.in.(${today},${tomorrow},${d7},${d4}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
 
         if (error) throw error;
         console.log(`[Query] Found ${schedules?.length || 0} schedules`);
@@ -885,8 +888,8 @@ serve(async (req: any) => {
                     user_id: s.user_id,
                     category: 'reservation',
                     event_type: 'upcoming_stay_today',
-                    title: `🏕️ 드디어 오늘이에요! 떠날 준비 되셨나요?`,
-                    body: `📍 ${displayName}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
+                    title: `🏕️ 드디어 오늘이에요! (스마트플랜 최종 업데이트)`,
+                    body: `[⚡ 오늘 09:00부터 최종 스마트플랜으로 업데이트할 수 있어요!]\n\n📍 ${displayName}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
                     data: { 
                         link: `/myspace/schedule/${s.id}`,
                         hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
@@ -916,8 +919,8 @@ serve(async (req: any) => {
                 });
                 updateIds.d1.push(s.id);
             }
-            // D-4: Gear Check
-            else if (s.check_in === d4 && !s.notification_d4_sent) {
+            // D-7 or D-4: Gear Check & 7-Day Precision Smart Plan Update Notice
+            else if ((s.check_in === d7 || s.check_in === d4) && !s.notification_d4_sent) {
                 const gears = await getScoredGearRecommendations(primaryForecast, 2);
                 let tip = '평범한 날씨네요! 가볍게 떠나보세요.';
 
@@ -929,17 +932,19 @@ serve(async (req: any) => {
                     else if (primaryForecast.tempMax >= 28) tip = '한낮 기온이 30도 내외로 무더워요 ☀️ 타프와 시원한 음료를 준비하세요.';
                 }
 
+                const daysLeft = s.check_in === d7 ? 7 : 4;
+
                 notifications.push({
                     user_id: s.user_id,
                     category: 'reservation',
-                    event_type: 'upcoming_stay_d4', // Fixed type
-                    title: `🎒 캠핑이 4일 남았어요!`,
-                    body: `📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
+                    event_type: s.check_in === d7 ? 'upcoming_stay_d7' : 'upcoming_stay_d4',
+                    title: `🎒 캠핑이 ${daysLeft}일 남았어요! (정밀 스마트플랜 오픈)`,
+                    body: `[⚡ 오늘 09:00부터 최신 정밀 스마트플랜으로 업데이트할 수 있어요!]\n\n📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
                     data: { 
                         link: `/myspace/schedule/${s.id}?tab=checklist`,
                         hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
                     },
-                    status: 'queued' // Fixed status
+                    status: 'queued'
                 });
                 updateIds.d4.push(s.id);
             }

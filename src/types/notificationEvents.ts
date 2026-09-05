@@ -15,6 +15,7 @@ export enum NotificationEventType {
     DEPOSIT_CONFIRMED = 'deposit_confirmed',
     UPCOMING_STAY_D1 = 'upcoming_stay_d1',
     UPCOMING_STAY_D4 = 'upcoming_stay_d4',
+    UPCOMING_STAY_D7 = 'upcoming_stay_d7',
     UPCOMING_STAY_TODAY = 'upcoming_stay_today',
 
     // 빈자리 알림 (사용자 명시적 요청, 푸시 허용)
@@ -176,8 +177,11 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         quiet_hours_override: true,
         fallback_badge: true,
         badge_target: 'reservation',
-        title_template: '오늘 캠핑 날이에요!',
-        body_template: '{{siteName}}에서 즐거운 시간 보내세요. 입실 시간은 {{checkInTime}}입니다.',
+        title_template: '오늘 캠핑 날이에요! 🏕️',
+        body_template: `[⚡ 오늘 09:00부터 최종 스마트플랜으로 업데이트할 수 있어요!]
+
+{{siteName}}에서 즐거운 시간 보내세요. 입실 시간은 {{checkInTime}}입니다.
+설레는 발걸음, 안전하게 다녀오세요!`,
     },
     [NotificationEventType.UPCOMING_STAY_D4]: {
         type: NotificationEventType.UPCOMING_STAY_D4,
@@ -185,8 +189,21 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         quiet_hours_override: true,
         fallback_badge: true,
         badge_target: 'reservation',
-        title_template: '캠핑이 4일 남았어요!',
-        body_template: '{{siteName}} 여행 준비는 잘 되어가시나요? 체크리스트를 확인해보세요.',
+        title_template: '캠핑이 4일 남았어요! 🎒',
+        body_template: `[⚡ 오늘 09:00부터 정밀 스마트플랜으로 업데이트할 수 있어요!]
+
+{{siteName}} 여행 준비는 잘 되어가시나요? 체크리스트를 확인해보세요.`,
+    },
+    [NotificationEventType.UPCOMING_STAY_D7]: {
+        type: NotificationEventType.UPCOMING_STAY_D7,
+        requires_push: true,
+        quiet_hours_override: true,
+        fallback_badge: true,
+        badge_target: 'reservation',
+        title_template: '캠핑이 7일 남았어요! 🎒',
+        body_template: `[⚡ 오늘 09:00부터 정밀 스마트플랜으로 업데이트할 수 있어요!]
+
+{{siteName}} 여행 준비는 잘 되어가시나요? 체크리스트와 맞춤 일정을 확인해보세요.`,
     },
 
     // ===== 빈자리 알림 (사용자 요청, 푸시 O) =====

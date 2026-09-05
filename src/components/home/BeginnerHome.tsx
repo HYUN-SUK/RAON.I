@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { Navigation, Phone, Map, Mountain, Tag, Tent, Clock, ChefHat, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
+import { Navigation, Phone, Map, Mountain, Tag, Tent, Clock, ChefHat, ChevronRight, ChevronDown, Calendar, Sparkles, MapPin } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import SlimNotice from '@/components/home/SlimNotice';
@@ -13,6 +13,7 @@ import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import RecipeDetailSheet, { RecipeData } from '@/components/common/RecipeDetailSheet';
+import InstantPlanModal from '@/components/home/InstantPlanModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
@@ -93,6 +94,21 @@ export default function BeginnerHome() {
     const [isIntroExpanded, setIsIntroExpanded] = useState(false);
     const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
     const [sosoCareSheetOpen, setSosoCareSheetOpen] = useState(false);
+
+    // [v14.0.0] 즉시 여행계획 만들기 (투트랙: 내 주변 / 목적지)
+    const [instantPlanOpen, setInstantPlanOpen] = useState(false);
+    const [instantPlanMode, setInstantPlanMode] = useState<'NEARBY' | 'DESTINATION'>('DESTINATION');
+    const [nearbyCoords, setNearbyCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const [nearbyFallbackNotice, setNearbyFallbackNotice] = useState<string | null>(null);
+    const [selectedAnchorDest, setSelectedAnchorDest] = useState<{ name: string; lat: number; lng: number; address?: string } | null>(null);
+
+    // 내 주변 즉시여행계획 생성 핸들러 (버튼 터치 즉시 0초 바텀시트 오픈)
+    const handleNearbyPlanClick = useCallback(() => {
+        setInstantPlanMode('NEARBY');
+        setSelectedAnchorDest(null);
+        setNearbyFallbackNotice(null);
+        setInstantPlanOpen(true);
+    }, []);
 
     const [isRecordOpen, setIsRecordOpen] = useState(false);
     const { unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
@@ -465,11 +481,92 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
-                {/* Card 1: 라온아이캠핑장 소개 · 예약하기 */}
-                <div className="px-4 mt-4 relative z-30 mb-4">
+                {/* 1. 나의 여행 일정 · 스마트플랜 위젯 (직접 노출) */}
+                <section className="px-4 mt-4 mb-4">
+                    <ScheduleHomeWidget isExpanded={true} />
+                </section>
+
+                {/* 2. 2열 정사각형 그리드: [내 주변 즉시여행계획 만들기] & [목적지 즉시여행계획 만들기] */}
+                <section className="px-4 mb-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        {/* 좌측: 내 주변 즉시여행계획 만들기 */}
+                        <button
+                            onClick={handleNearbyPlanClick}
+                            className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#F1F8F3] to-[#E5F2E8] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#224732]/25 rounded-2xl shadow-sm hover:shadow-md hover:border-[#224732]/40 active:scale-[0.98] transition-all text-left aspect-square group cursor-pointer"
+                        >
+                            <div className="flex items-center justify-between w-full">
+                                <div className="w-10 h-10 rounded-xl bg-[#224732] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                    <MapPin className="w-5 h-5 text-emerald-300" />
+                                </div>
+                                <span className="text-[10px] bg-[#224732]/10 text-[#224732] font-black px-1.5 py-0.5 rounded-full">
+                                    실시간 GPS
+                                </span>
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-black text-stone-900 dark:text-stone-100 leading-tight">
+                                    내 주변 즉시<br />여행계획 만들기
+                                </h4>
+                                <p className="text-[11px] text-stone-500 font-medium">
+                                    주변 맛집·명소·편의시설 즉시 탐색
+                                </p>
+                            </div>
+                        </button>
+
+                        {/* 우측: 목적지 즉시여행계획 만들기 */}
+                        <button
+                            onClick={() => {
+                                setSelectedAnchorDest(null);
+                                setNearbyFallbackNotice(null);
+                                setInstantPlanMode('DESTINATION');
+                                setInstantPlanOpen(true);
+                            }}
+                            className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#FDF6EE] to-[#F7EBDC] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#D48A37]/30 rounded-2xl shadow-sm hover:shadow-md hover:border-[#D48A37]/50 active:scale-[0.98] transition-all text-left aspect-square group cursor-pointer"
+                        >
+                            <div className="flex items-center justify-between w-full">
+                                <div className="w-10 h-10 rounded-xl bg-[#D48A37] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                    <Sparkles className="w-5 h-5 text-amber-200" />
+                                </div>
+                                <span className="text-[10px] bg-[#D48A37]/15 text-[#D48A37] font-black px-1.5 py-0.5 rounded-full">
+                                    어디든 즉시
+                                </span>
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-black text-stone-900 dark:text-stone-100 leading-tight">
+                                    목적지 즉시<br />여행계획 만들기
+                                </h4>
+                                <p className="text-[11px] text-stone-500 font-medium">
+                                    가고 싶은 여행지 코스 즉시 탐색
+                                </p>
+                            </div>
+                        </button>
+                    </div>
+                </section>
+
+                {/* 3. 소소한 챙김 (컴팩트 바) - 추후 업데이트를 위해 안보임 처리 */}
+                {/* 
+                <section className="px-4 mb-4">
+                    <button
+                        onClick={() => {
+                            setSosoCareSheetOpen(true);
+                            try { window.sessionStorage?.setItem('raonai_soso_sheet_open', 'true'); } catch {}
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-stone-50/90 dark:bg-zinc-850/80 border border-stone-200/60 dark:border-zinc-700/60 rounded-xl text-stone-600 dark:text-stone-300 text-xs font-medium hover:bg-stone-100 transition-all cursor-pointer"
+                    >
+                        <div className="flex items-center gap-2">
+                            <ChefHat className="w-4 h-4 text-[#C07865]" />
+                            <span className="font-semibold text-stone-700 dark:text-stone-300">소소한 챙김</span>
+                            <span className="text-[11px] text-stone-400">· 주간 미션, 캠핑 요리 레시피, 놀이</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-stone-400" />
+                    </button>
+                </section>
+                */}
+
+                {/* 4. 라온아이캠핑장 소개 · 예약하기 (가장 하단 배치) */}
+                <section className="px-4 mb-8">
                     <button
                         onClick={() => setIsIntroExpanded(!isIntroExpanded)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#5A9E6E] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#F1F8F3] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-6 py-5 bg-white dark:bg-zinc-900 border-[3px] border-[#5A9E6E] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#F1F8F3] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-[#5A9E6E] text-white rounded-xl">
@@ -485,156 +582,91 @@ export default function BeginnerHome() {
                             <ChevronDown className="w-5 h-5" />
                         </div>
                     </button>
-                </div>
 
-                <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ 
-                        height: isIntroExpanded ? 'auto' : 0, 
-                        opacity: isIntroExpanded ? 1 : 0 
-                    }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                >
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ 
+                            height: isIntroExpanded ? 'auto' : 0, 
+                            opacity: isIntroExpanded ? 1 : 0 
+                        }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                    >
+                        <div className="pt-4 space-y-6">
                             {/* 2. Info Chips */}
-                            <section className="px-4 mb-6 animate-in fade-in duration-300">
-                                <div className="grid grid-cols-3 gap-3">
-                                    {chips.map((chip, idx) => {
-                                        const ChipContent = (
-                                            <div
-                                                onClick={() => handleChipClick(chip)}
-                                                className="flex flex-col items-center justify-center aspect-square bg-[#FAF9F6]/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] border border-stone-200/50 dark:border-zinc-700/50 hover:bg-[#F5F2EA] dark:hover:bg-zinc-700 hover:scale-[1.02] transition-all duration-300 p-2 cursor-pointer group touch-feedback-soft"
-                                            >
-                                                {chip.icon}
-                                                <p className="text-responsive-chip-label font-bold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 text-center leading-tight transition-colors">{chip.label}</p>
-                                                <p className="text-responsive-badge text-stone-400 group-hover:text-[#C3A675] mt-1 transition-colors">{chip.sub}</p>
-                                            </div>
-                                        );
+                            <div className="grid grid-cols-3 gap-3">
+                                {chips.map((chip, idx) => {
+                                    const ChipContent = (
+                                        <div
+                                            onClick={() => handleChipClick(chip)}
+                                            className="flex flex-col items-center justify-center aspect-square bg-[#FAF9F6]/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-2xl shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] border border-stone-200/50 dark:border-zinc-700/50 hover:bg-[#F5F2EA] dark:hover:bg-zinc-700 hover:scale-[1.02] transition-all duration-300 p-2 cursor-pointer group touch-feedback-soft"
+                                        >
+                                            {chip.icon}
+                                            <p className="text-responsive-chip-label font-bold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 text-center leading-tight transition-colors">{chip.label}</p>
+                                            <p className="text-responsive-badge text-stone-400 group-hover:text-[#C3A675] mt-1 transition-colors">{chip.sub}</p>
+                                        </div>
+                                    );
 
-                                        if (chip.isPriceGuide) {
-                                            return (
-                                                <PriceGuideSheet key={idx} pricingText={config?.pricing_guide_text}>
-                                                    {ChipContent}
-                                                </PriceGuideSheet>
-                                            )
-                                        }
-                                        return <div key={idx}>{ChipContent}</div>
-                                    })}
-                                </div>
-                            </section>
+                                    if (chip.isPriceGuide) {
+                                        return (
+                                            <PriceGuideSheet key={idx} pricingText={config?.pricing_guide_text}>
+                                                {ChipContent}
+                                            </PriceGuideSheet>
+                                        );
+                                    }
+                                    return <div key={idx}>{ChipContent}</div>;
+                                })}
+                            </div>
 
                             {/* 2.5 Marketing USP Banner */}
-                            <section className="px-4 mb-6">
-                                <div className="w-full bg-[#ECE8DF]/60 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl p-5 border border-stone-200/40 dark:border-zinc-800 text-center space-y-2.5">
-                                    <p className="text-base font-bold text-[#1C4526] dark:text-[#C3A675] leading-relaxed">
-                                        두가족도 넉넉한 2배사이트, 깨끗한 개별욕실
-                                    </p>
-                                    <p className="text-sm text-stone-600 dark:text-stone-400 font-semibold">
-                                        라온아이에서 불편은 덜고, 추억은 쌓으세요.
-                                    </p>
-                                </div>
-                            </section>
+                            <div className="w-full bg-[#ECE8DF]/60 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl p-5 border border-stone-200/40 dark:border-zinc-800 text-center space-y-2.5">
+                                <p className="text-base font-bold text-[#1C4526] dark:text-[#C3A675] leading-relaxed">
+                                    두가족도 넉넉한 2배사이트, 깨끗한 개별욕실
+                                </p>
+                                <p className="text-sm text-stone-600 dark:text-stone-400 font-semibold">
+                                    라온아이에서 불편은 덜고, 추억은 쌓으세요.
+                                </p>
+                            </div>
 
                             {/* 3. Guide Card */}
-                            <section className="px-4 mb-6">
-                                <div className="w-full bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-sm border border-stone-100 dark:border-zinc-800">
-                                    <h3 className="text-xl font-bold text-[#1C4526] mb-4">처음 오셨나요?</h3>
-                                    <div className="space-y-6">
-                                        <div className="flex gap-4">
-                                            <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">1</div>
-                                            <div>
-                                                <h4 className="font-semibold text-stone-900 dark:text-stone-100">예약하기</h4>
-                                                <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
-                                                    원하는 날짜와 사이트를 선택하세요.<br />
-                                                    여유로운 캠핑을 위해 미리 준비하면 좋아요.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-4">
-                                            <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">2</div>
-                                            <div>
-                                                <h4 className="font-semibold text-stone-900 dark:text-stone-100">입,퇴실 안내</h4>
-                                                <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed break-keep">
-                                                    오후 2시 입실, 낮 12시 퇴실입니다.<br />
-                                                    앞,뒤 예약자가 없으면 여유로운 입,퇴실이 가능합니다.
-                                                </p>
-                                            </div>
+                            <div className="w-full bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-sm border border-stone-100 dark:border-zinc-800">
+                                <h3 className="text-xl font-bold text-[#1C4526] mb-4">처음 오셨나요?</h3>
+                                <div className="space-y-6">
+                                    <div className="flex gap-4">
+                                        <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">1</div>
+                                        <div>
+                                            <h4 className="font-semibold text-stone-900 dark:text-stone-100">예약하기</h4>
+                                            <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
+                                                원하는 날짜와 사이트를 선택하세요.<br />
+                                                여유로운 캠핑을 위해 미리 준비하면 좋아요.
+                                            </p>
                                         </div>
                                     </div>
-
-                                    <Button
-                                        className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-                                        onClick={() => handleProtectedAction(() => router.push('/reservation'))}
-                                    >
-                                        예약 하러 가기!
-                                    </Button>
-                                    <p className="text-center text-xs text-stone-400 mt-2">
-                                        {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
-                                    </p>
+                                    <div className="flex gap-4">
+                                        <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">2</div>
+                                        <div>
+                                            <h4 className="font-semibold text-stone-900 dark:text-stone-100">입,퇴실 안내</h4>
+                                            <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed break-keep">
+                                                오후 2시 입실, 낮 12시 퇴실입니다.<br />
+                                                앞,뒤 예약자가 없으면 여유로운 입,퇴실이 가능합니다.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </section>
-                </motion.div>
 
-                {/* Card 2: 여행계획 자동생성 · 여행일정 관리 */}
-                <div className="px-4 mb-4">
-                    <button
-                        onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#D48A37] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#FDF6EE] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-[#D48A37] text-white rounded-xl">
-                                <Calendar className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-black text-[#D48A37] dark:text-stone-200 tracking-tight leading-tight">
-                                    여행계획 자동생성<br />· 여행일정 관리
-                                </h3>
+                                <Button
+                                    className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                                    onClick={() => handleProtectedAction(() => router.push('/reservation'))}
+                                >
+                                    예약 하러 가기!
+                                </Button>
+                                <p className="text-center text-xs text-stone-400 mt-2">
+                                    {format(openDayRule?.closeAt || OPEN_DAY_CONFIG.closeAt, 'MM월 dd일')}까지 예약 가능합니다.
+                                </p>
                             </div>
                         </div>
-                        <div className={`text-[#D48A37] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isScheduleExpanded ? 'rotate-180' : 'animate-pulse'}`}>
-                            <ChevronDown className="w-5 h-5" />
-                        </div>
-                    </button>
-                </div>
-
-                <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ 
-                        height: isScheduleExpanded ? 'auto' : 0, 
-                        opacity: isScheduleExpanded ? 1 : 0 
-                    }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                >
-                            {/* 3.6 Schedule Widget */}
-                            <section className="px-4 mb-6">
-                                <ScheduleHomeWidget isExpanded={isScheduleExpanded} />
-                            </section>
-                </motion.div>
-
-                {/* Card 3: 소소한 챙김 */}
-                <div className="px-4 mb-8">
-                    <button
-                        onClick={() => {
-                            setSosoCareSheetOpen(true);
-                            try { window.sessionStorage?.setItem('raonai_soso_sheet_open', 'true'); } catch {}
-                        }}
-                        className="w-full flex items-center justify-between px-6 py-6 bg-white dark:bg-zinc-900 border-[3px] border-[#C07865] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#FCF3F1] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-[#C07865] text-white rounded-xl">
-                                <ChefHat className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-black text-[#C07865] dark:text-stone-200 tracking-tight leading-tight">소소한 챙김</h3>
-                                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 font-medium">주간 미션, 캠핑 요리 레시피, 놀이 탐색기</p>
-                            </div>
-                        </div>
-                        <div className="text-[#C07865] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full">
-                            <ChevronRight className="w-5 h-5" />
-                        </div>
-                    </button>
-                </div>
+                    </motion.div>
+                </section>
             </main>
 
 
@@ -792,6 +824,21 @@ export default function BeginnerHome() {
                     </div>
                 </SheetContent>
             </Sheet>
+
+            {/* [v14.0.0] 즉시 여행계획 만들기 통합 모달 (내 주변 / 목적지 투트랙) */}
+            <InstantPlanModal
+                isOpen={instantPlanOpen}
+                onClose={() => {
+                    setInstantPlanOpen(false);
+                    setSelectedAnchorDest(null);
+                    setNearbyFallbackNotice(null);
+                }}
+                initialMode={instantPlanMode}
+                userLat={nearbyCoords?.lat || lbs.location?.latitude}
+                userLng={nearbyCoords?.lng || lbs.location?.longitude}
+                fallbackNotice={nearbyFallbackNotice}
+                initialDestination={selectedAnchorDest}
+            />
         </div >
     );
 }

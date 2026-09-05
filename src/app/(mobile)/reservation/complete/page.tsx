@@ -204,8 +204,8 @@ export default function ReservationCompletePage() {
                         </h3>
                         <p className="text-xs text-white/70 mt-2 leading-relaxed whitespace-pre-line">
                             {status === 'CONFIRMED'
-                                ? `예약이 확정되었습니다.\n⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!`
-                                : `입금 후 예약확정 시 최적화됩니다.\n⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!`
+                                ? `예약이 확정되었습니다.\n⚡ 즉시 여행계획 생성가능!, 터치해보세요!`
+                                : `입금 후 예약확정 시 최적화됩니다.\n⚡ 즉시 여행계획 생성가능!, 터치해보세요!`
                             }
                         </p>
                         <button

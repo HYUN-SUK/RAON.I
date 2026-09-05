@@ -336,13 +336,13 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             return '✨ 정밀 스마트플랜 생성가능';
         }
 
-        // 2단계: 맛보기 계획이 이미 생성된 상태 (~ 오전 9시 전)
+        // 2단계: 즉시 여행계획이 이미 생성된 상태 (~ 오전 9시 전)
         if (hasPlanData && isPreviewPlan) {
-            return '⚡ 맛보기 계획 생성 완료';
+            return '⚡ 즉시 여행계획 생성 완료';
         }
 
-        // 1단계: 맛보기 생성 전 (신규 등록 직후)
-        return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
+        // 1단계: 즉시 여행계획 생성 전 (신규 등록 직후)
+        return "⚡ 즉시 여행계획 생성가능!, 터치해보세요!";
     }, [upcomingItem, isSmartPlanAvailable, schedules, daysUntil]);
 
     const handleCardClick = () => {
@@ -562,70 +562,6 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
 
     return (
         <div className="space-y-3">
-            {/* 날씨 정보 노출 조건분기 */}
-            {upcomingItem && (
-                <>
-                    {daysUntil > 10 ? (
-                        <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm rounded-xl p-3 border border-stone-200/50 dark:border-zinc-700/50 text-xs text-stone-600 dark:text-stone-300 flex items-center justify-between shadow-sm">
-                            <span className="flex items-center gap-1.5 font-medium">
-                                📅 여행 날씨 안내
-                            </span>
-                            <span className="text-[11px] opacity-80">출발 10일 전부터 여행지의 날씨가 안내됩니다. 🌤️</span>
-                        </div>
-                    ) : weather.loading ? (
-                        <div className="bg-white rounded-2xl p-4 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm animate-pulse space-y-3">
-                            <div className="h-4 w-32 bg-stone-100 rounded" />
-                            <div className="flex gap-3">
-                                <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
-                                <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
-                                <div className="flex-1 h-16 bg-stone-100 rounded-xl" />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm rounded-2xl p-4 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm space-y-2.5">
-                            <div className="flex items-center justify-between text-xs border-b border-stone-100 dark:border-zinc-700/50 pb-2">
-                                <span className="font-bold text-stone-800 dark:text-stone-200">
-                                    🏕️ 여행 일정 날씨 예보 ({upcomingItem.name})
-                                </span>
-                                {weather.lastUpdated && (
-                                    <span className="text-[10px] text-stone-400">
-                                        업데이트: {format(weather.lastUpdated, 'HH:mm')}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex gap-2.5 overflow-x-auto py-1 scrollbar-hide">
-                                {datesInRange.map(dateStr => {
-                                    const dayFcst = weather.daily?.find(d => d.date === dateStr);
-                                    const formattedDate = `${dateStr.substring(4, 6)}/${dateStr.substring(6, 8)}`;
-
-                                    return (
-                                        <div key={dateStr} className="flex-1 min-w-[65px] flex flex-col items-center p-2 rounded-xl bg-stone-50 dark:bg-zinc-900 border border-stone-100/50 dark:border-zinc-800/50">
-                                            <span className="text-[10px] font-medium text-stone-500">{formattedDate}</span>
-                                            {dayFcst ? (
-                                                <>
-                                                    <span className="text-xl my-1">{getWeatherIcon(dayFcst.weatherCode)}</span>
-                                                    <span className="text-[10px] font-semibold text-stone-700 dark:text-stone-300">
-                                                        {dayFcst.min !== null && dayFcst.max !== null ? `${Math.round(dayFcst.min)}°/${Math.round(dayFcst.max)}°` : '-'}
-                                                    </span>
-                                                    {dayFcst.pop > 0 && (
-                                                        <span className="text-[9px] text-blue-500 font-bold mt-0.5">{dayFcst.pop}%</span>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="text-xl my-1 text-stone-400">⏳</span>
-                                                    <span className="text-[9px] text-stone-400 font-medium">대기</span>
-                                                </>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </>
-            )}
-
             {/* 다가오는 캠핑 카드 */}
             <div
                 onClick={handleCardClick}

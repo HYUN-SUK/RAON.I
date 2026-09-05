@@ -105,13 +105,13 @@ export default function ScheduleCard({
             return '✨ 정밀 스마트플랜 생성가능';
         }
 
-        // 2단계: 맛보기 계획이 이미 생성된 상태 (~ 오전 9시 전)
+        // 2단계: 즉시 여행계획이 이미 생성된 상태 (~ 오전 9시 전)
         if (hasPlanData && isPreviewPlan) {
-            return '⚡ 맛보기 계획 생성 완료';
+            return '⚡ 즉시 여행계획 생성 완료';
         }
 
-        // 1단계: 맛보기 생성 전 (신규 등록 직후)
-        return "⚡ 바로 맛보기 계획 생성가능!, 터치해보세요!";
+        // 1단계: 즉시 여행계획 생성 전 (신규 등록 직후)
+        return "⚡ 즉시 여행계획 생성가능!, 터치해보세요!";
     }, [schedule, isSmartPlanAvailable, daysUntil]);
 
     // D-Day 텍스트

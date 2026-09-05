@@ -851,6 +851,8 @@ export default function SmartPlanProposal({
         onSelectCandidate?: (placeId: string) => void;
     };
 
+    const isPreview = isPreviewMode || (plan as any)?.is_preview || (initialPlan as any)?.is_preview || (initialPlan as any)?.ai_plan?.is_preview;
+
     const renderFactCard = (card: FactCard, stage?: string, options?: RenderFactCardOptions) => {
         const onCloseModalCard = options?.onCloseModalCard;
         const isAlternativeMapMode = options?.isAlternativeMapMode;
@@ -1060,6 +1062,23 @@ export default function SmartPlanProposal({
                                     {Number(card.metadata.kerosenePrice).toLocaleString()}원
                                 </span>
                             )}
+                            {card.category === 'FESTIVAL' && (
+                                <>
+                                    <span className="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded-md font-bold border border-rose-200">
+                                        🎪 개최 중인 지역 축제
+                                    </span>
+                                    {(card.metadata?.event_start_date || card.metadata?.event_end_date) && (
+                                        <span className="text-[10px] bg-rose-50/80 text-rose-600 px-1.5 py-0.5 rounded-md font-medium border border-rose-100">
+                                            🗓️ {(() => {
+                                                const s = String(card.metadata.event_start_date || '').replace(/\D/g, '');
+                                                const e = String(card.metadata.event_end_date || '').replace(/\D/g, '');
+                                                const fmt = (x: string) => x.length === 8 ? `${x.slice(4, 6)}.${x.slice(6, 8)}` : x;
+                                                return `${fmt(s)} ~ ${fmt(e)}`;
+                                            })()}
+                                        </span>
+                                    )}
+                                </>
+                            )}
                             {card.category === 'HOSPITAL' && (
                                 <>
                                     {card.metadata?.hvec !== undefined && parseInt(card.metadata.hvec) > 0 && (
@@ -1074,7 +1093,7 @@ export default function SmartPlanProposal({
                                     )}
                                 </>
                             )}
-                            {!['2', '5'].includes(stage || '') && !!(card.distanceKm && card.distanceKm > 0) && (
+                            {(isPreview || !['2', '5'].includes(stage || '')) && !!(card.distanceKm && card.distanceKm > 0) && (
                                 <span className="text-[10px] text-gray-400 font-medium">
                                     📍 {card.distanceKm}km 거리
                                 </span>
@@ -1145,7 +1164,6 @@ export default function SmartPlanProposal({
         );
     };
 
-    const isPreview = isPreviewMode || (plan as any)?.is_preview || (initialPlan as any)?.is_preview || (initialPlan as any)?.ai_plan?.is_preview;
     const weatherWindow = (plan as any)?.weather_window || (initialPlan as any)?.weather_window || (initialPlan as any)?.ai_plan?.weather_window || 'NONE';
 
     const now = new Date();
@@ -1177,7 +1195,13 @@ export default function SmartPlanProposal({
             ctaSubtext = '🌤️ 여행 7일 전 기상청 주간 날씨 예보가 준비되면 업데이트를 받으실 수 있습니다.';
             ctaIcon = '✨';
         } else if (diffDaysForRegen >= 1 && diffDaysForRegen <= 7) {
-            if (weatherWindow === 'NONE' || weatherWindow === 'UNAVAILABLE') {
+            // [v14.0.0] 7일 전 오전 9시 이전 락 보강
+            if (!isAfter9AM) {
+                isCtaDisabled = true;
+                ctaButtonText = '🔄 주간 예보 정밀 플랜 업데이트';
+                ctaSubtext = '⏳ 최신 기상청 주간 예보 반영을 위해 오전 9시부터 업데이트가 가능합니다.';
+                ctaIcon = '⏳';
+            } else if (weatherWindow === 'NONE' || weatherWindow === 'UNAVAILABLE') {
                 isCtaDisabled = false;
                 ctaButtonText = '🔄 주간 예보 정밀 플랜 업데이트';
                 ctaSubtext = '🌤️ 기상청 주간 날씨 예보가 최신화되었습니다! 여행 일정을 업데이트해 보세요.';
@@ -1190,10 +1214,16 @@ export default function SmartPlanProposal({
             }
         } else {
             // 출발 당일 (diffDaysForRegen <= 0)
-            if (weatherWindow !== 'SHORT') {
+            // [v14.0.0] 당일 오전 9시 이전 락 보강
+            if (!isAfter9AM) {
+                isCtaDisabled = true;
+                ctaButtonText = '🔄 출발 당일 초정밀 플랜 업데이트';
+                ctaSubtext = '⏳ 출발 당일 정밀 기상 정보 반영을 위해 오전 9시부터 업데이트가 가능합니다.';
+                ctaIcon = '⏳';
+            } else if (weatherWindow !== 'SHORT') {
                 isCtaDisabled = false;
                 ctaButtonText = '🔄 출발 당일 초정밀 플랜 업데이트';
-                ctaSubtext = '⚡ 출발 당일 100% 실시간 기상청 풍속 및 습도를 반영한 최신 스마트플랜을 받아보세요.';
+                ctaSubtext = '⚡ 출발 당일 100% 실시간 기상청 날씨를 반영한 최신 스마트플랜을 받아보세요.';
                 ctaIcon = '🔄';
             } else {
                 isCtaDisabled = true;
@@ -1205,8 +1235,8 @@ export default function SmartPlanProposal({
     }
 
     const showNoWeatherBanner = !isPublicView && diffDaysForRegen >= 8 && !isPreview;
-    const showMidTermActionBanner = !isPublicView && diffDaysForRegen >= 1 && diffDaysForRegen <= 7 && weatherWindow === 'NONE' && !isPreview;
-    const showShortTermActionBanner = !isPublicView && diffDaysForRegen <= 0 && weatherWindow !== 'SHORT' && !isPreview;
+    const showMidTermActionBanner = !isPublicView && diffDaysForRegen >= 1 && diffDaysForRegen <= 7 && weatherWindow === 'NONE' && !isPreview && isAfter9AM;
+    const showShortTermActionBanner = !isPublicView && diffDaysForRegen <= 0 && weatherWindow !== 'SHORT' && !isPreview && isAfter9AM;
 
     const handleCtaClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -1230,7 +1260,7 @@ export default function SmartPlanProposal({
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-1">
                                 <span className="text-[11px] font-bold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-md border border-amber-300/30">
-                                    {isPreview ? '맛보기 여행가이드 가동 중' : (isCtaDisabled ? '스마트플랜 가동 중' : '정밀 스마트플랜 업데이트 가능')}
+                                    {isPreview ? '즉시 여행계획 가동 중' : (isCtaDisabled ? '스마트플랜 가동 중' : '정밀 스마트플랜 업데이트 가능')}
                                 </span>
                             </div>
                             <p className="text-xs text-amber-200 font-bold leading-relaxed mb-2.5">
@@ -1565,20 +1595,28 @@ export default function SmartPlanProposal({
                         )}
                     </div>
 
-                    {/* Stage 2: 가는 길 (Route Facts) */}
-                    {(plan.routeListElement || []).length > 0 && (
+                    {/* Stage 2: 가는 길 (Route Facts) / 맛보기 카페 */}
+                    {((plan.routeListElement || []).length > 0 || (plan.is_preview && plan.itemListElement.some(c => c.category === 'ROUTE_CAFE'))) && (
                         <div className="space-y-3 relative z-10 w-full min-w-0">
                             <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                    <span className="text-xs font-bold text-[#224732]">Stage 2. 여정의 즐거움 (경유지)</span>
+                                    <span className="text-xs font-bold text-[#224732]">
+                                        {plan.is_preview ? 'Stage 2. 여행의 쉼표 (로컬 카페)' : 'Stage 2. 여정의 즐거움 (경유지)'}
+                                    </span>
                                 </div>
-                                {plan.stageIntros?.['2'] && (
-                                    <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-all mr-4 min-w-0">"{plan.stageIntros['2']}"</p>
-                                )}
+                                <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">
+                                    {plan.stageIntros?.['2'] || '잠시 쉬어가며 여유를 즐길 수 있는 분위기 좋은 카페입니다.'}
+                                </p>
                             </div>
                             <div className="px-2 space-y-3 w-full min-w-0">
-                                {plan.routeListElement?.map((card) => renderFactCard(card, '2'))}
+                                {plan.is_preview ? (
+                                    plan.itemListElement
+                                        .filter(c => c.category === 'ROUTE_CAFE')
+                                        .map((card) => renderFactCard(card, '2'))
+                                ) : (
+                                    plan.routeListElement?.map((card) => renderFactCard(card, '2'))
+                                )}
                             </div>
                         </div>
                     )}
@@ -1588,23 +1626,25 @@ export default function SmartPlanProposal({
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">Stage 3. 목적지 근처 맛집/명소</span>
+                                <span className="text-xs font-bold text-[#224732]">
+                                    {plan.is_preview ? 'Stage 3. 목적지 힐링 명소 & 축제' : 'Stage 3. 목적지 근처 맛집/명소'}
+                                </span>
                             </div>
                             <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">
-                                "목적지 주변의 검증된 로컬 맛집과 놓치기 아쉬운 힐링 명소를 엄선했습니다."
+                                {plan.stageIntros?.['3'] || '목적지 주변의 검증된 로컬 맛집과 놓치기 아쉬운 힐링 명소를 엄선했습니다.'}
                             </p>
                         </div>
                         <div className="px-2 space-y-3 w-full min-w-0">
-                            {/* 1. 식당 */}
-                            {plan.itemListElement
+                            {/* 1. 식당 (정밀 플랜일 때만 Stage 3에 표시, 맛보기는 Stage 1에 단독 표시하여 중복 방지) */}
+                            {!plan.is_preview && plan.itemListElement
                                 .filter(c => c.category === 'RESTAURANT')
                                 .map((card) => renderFactCard(card, '3'))}
                             {/* 2. 명소 */}
                             {plan.itemListElement
                                 .filter(c => c.category === 'SPOT')
                                 .map((card) => renderFactCard(card, '3'))}
-                            {/* 3. 축제 (명소 카드 바로 아래 배치, 맛보기 시 제외) */}
-                            {!plan.is_preview && plan.itemListElement
+                            {/* 3. 축제 (맛보기/정밀 모두 표시) */}
+                            {plan.itemListElement
                                 .filter(c => c.category === 'FESTIVAL')
                                 .map((card) => renderFactCard(card, '3'))}
                         </div>
@@ -1619,7 +1659,7 @@ export default function SmartPlanProposal({
                                 <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">안전·인프라</span>
                             </div>
                             <p className="text-[11px] text-gray-500 italic ml-5 leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">
-                                "쾌적하고 안전한 여행을 위한 장보기 마트, 응급 병원, 주유소 정보입니다."
+                                {plan.stageIntros?.['4'] || '쾌적하고 안전한 여행을 위한 장보기 마트, 응급 병원, 주유소 정보입니다.'}
                             </p>
                         </div>
                         {/* 차별화된 안심 인프라 2중 박스 컨테이너 */}
@@ -1638,48 +1678,69 @@ export default function SmartPlanProposal({
                             {plan.itemListElement
                                 .filter(c => c.category === 'HOSPITAL')
                                 .map((card) => renderFactCard(card, '4'))}
-                            {/* 3. 주유소 */}
-                            {plan.itemListElement
+                            {/* 3. 주유소 (정밀 플랜) */}
+                            {!plan.is_preview && plan.itemListElement
                                 .filter(c => c.category === 'GAS_STATION')
                                 .map((card) => renderFactCard(card, '4'))}
+                            {/* 주유소 안내 뱃지 (맛보기 플랜) */}
+                            {plan.is_preview && (
+                                <div className="p-3 bg-white/70 border border-blue-100 rounded-xl flex items-center justify-between text-xs text-blue-800">
+                                    <span className="flex items-center gap-1.5 font-medium">⛽ 최저가 주유소</span>
+                                    <span className="text-[10px] text-blue-600 font-medium bg-blue-100/60 px-2 py-0.5 rounded-full">정밀 승격 시 실시간 최저가 자동 배정</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Stage 5: 안전한 귀가 (Return Trip) */}
-                    <div className="space-y-3 relative z-10 w-full min-w-0">
-                        <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">Stage 5. 아쉬움을 뒤로하고 (귀갓길)</span>
+                    {/* Stage 5: 안전한 귀가 (Return Trip) - 등록된 일정(scheduleId 존재)의 맛보기(is_preview) 단계에서는 숨김 (정규 흐름으로 정밀 승격 시 실제 귀갓길 코스와 함께 노출) */}
+                    {(!plan.is_preview || !scheduleId) && (
+                        <div className="space-y-3 relative z-10 w-full min-w-0">
+                            <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
+                                    <span className="text-xs font-bold text-[#224732]">Stage 5. 아쉬움을 뒤로하고 (귀갓길)</span>
+                                </div>
+                                {plan.stageIntros?.['5'] && (
+                                    <p className="text-[11px] text-gray-500 italic ml-[38px] leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['5']}"</p>
+                                )}
                             </div>
-                            {plan.stageIntros?.['5'] && (
-                                <p className="text-[11px] text-gray-500 italic ml-[38px] leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['5']}"</p>
-                            )}
-                        </div>
-                        <div className="px-2 space-y-3 w-full min-w-0">
-                            {(plan.returnListElement || []).map((card) => renderFactCard(card, '5'))}
-                        </div>
+                            <div className="px-2 space-y-3 w-full min-w-0">
+                                {!plan.is_preview ? (
+                                    (plan.returnListElement || []).map((card) => renderFactCard(card, '5'))
+                                ) : (
+                                    <div className="p-3.5 bg-gradient-to-r from-emerald-50/70 to-stone-50 border border-emerald-200/80 rounded-2xl shadow-sm text-xs text-stone-600 flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="text-lg">🚗</span>
+                                            <div>
+                                                <p className="font-bold text-[#224732]">귀갓길 쉼터 & 명소 자동 연계</p>
+                                                <p className="text-[10px] text-stone-500 mt-0.5">내 일정 등록 후 익일 정밀 플랜 승격 시 집으로 가는 최적 코스가 배정됩니다.</p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-full whitespace-nowrap">D+1 자동완성</span>
+                                    </div>
+                                )}
+                            </div>
 
-                        
-                        {/* 여정 종료 마커 */}
-                        <div className="flex items-center gap-2 mt-4 ml-4 pb-2">
-                            <div className="w-3 h-3 rounded-full border-2 border-dashed border-gray-400 bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
-                            <span className="text-[10px] font-semibold text-gray-400">안전하게 집에 도착했습니다.</span>
+                            {/* 여정 종료 마커 */}
+                            <div className="flex items-center gap-2 mt-4 ml-4 pb-2">
+                                <div className="w-3 h-3 rounded-full border-2 border-dashed border-gray-400 bg-white ring-4 ring-white z-10 -ml-[5.5px]" />
+                                <span className="text-[10px] font-semibold text-gray-400">안전하게 집에 도착했습니다.</span>
+                            </div>
                         </div>
+                    )}
 
-                        {/* [v14.0.0] 스테이지 5 하단: 나의 최종 여행 동선 전체 지도로 보기 버튼 */}
-                        <div className="mt-5 px-2 w-full min-w-0">
-                            <Button
-                                onClick={() => handleOpenFullTimelineMap()}
-                                className="w-full h-12 bg-gradient-to-r from-[#224732] to-[#2d5d42] hover:from-[#1b3928] hover:to-[#224732] text-white font-bold text-sm rounded-2xl shadow-lg border border-emerald-400/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                            >
-                                <MapIcon className="w-4 h-4 text-emerald-300" />
-                                <span>🗺️ 나의 최종 여행 동선 전체 지도로 보기</span>
-                            </Button>
-                            <p className="text-[11px] text-gray-400 text-center mt-1.5 font-medium">
-                                방문 순서를 직접 변경하고 숨김 처리된 장소를 제외한 최종 경로를 확인하세요.
-                            </p>
-                        </div>
+                    {/* [v14.0.0] 스테이지 5 하단: 나의 최종 여행 동선 전체 지도로 보기 버튼 */}
+                    <div className="mt-5 px-2 w-full min-w-0">
+                        <Button
+                            onClick={() => handleOpenFullTimelineMap()}
+                            className="w-full h-12 bg-gradient-to-r from-[#224732] to-[#2d5d42] hover:from-[#1b3928] hover:to-[#224732] text-white font-bold text-sm rounded-2xl shadow-lg border border-emerald-400/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        >
+                            <MapIcon className="w-4 h-4 text-emerald-300" />
+                            <span>🗺️ 나의 최종 여행 동선 전체 지도로 보기</span>
+                        </Button>
+                        <p className="text-[11px] text-gray-400 text-center mt-1.5 font-medium">
+                            방문 순서를 직접 변경하고 숨김 처리된 장소를 제외한 최종 경로를 확인하세요.
+                        </p>
                     </div>
                 </div>
             </div>

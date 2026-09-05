@@ -30,18 +30,16 @@ export default function NavReturnPromptModal() {
 
     const checkPendingNavIntent = async () => {
         try {
-            // 이번 브라우저 세션에서 이미 프롬프트를 닫았거나 확인했으면 스킵
-            const sessionChecked = sessionStorage.getItem('raon_nav_return_prompt_dismissed');
-            if (sessionChecked) return;
-
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
             // 2시간 전 시각 계산
             const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+            // 24시간 전 시각 계산 (오래된 과거 내역 노출 방지)
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-            // nav_intent_log에서 2시간 이상 경과하고 followed_up = false인 건 1건 조회
+            // nav_intent_log에서 2시간 이상 경과 & 24시간 이내이고 followed_up = false인 건 1건 조회
             const { data: intents, error } = await supabase
                 .from('nav_intent_log')
                 .select(`
@@ -56,12 +54,23 @@ export default function NavReturnPromptModal() {
                 .eq('user_id', user.id)
                 .eq('followed_up', false)
                 .lte('launched_at', twoHoursAgo)
+                .gte('launched_at', twentyFourHoursAgo)
                 .order('launched_at', { ascending: false })
                 .limit(1);
 
             if (error || !intents || intents.length === 0) return;
 
             const targetIntent = intents[0];
+
+            // 로컬에 이미 닫았거나 응답한 건이면 스킵 및 DB 동기화
+            if (
+                localStorage.getItem(`raon_nav_dismissed_${targetIntent.id}`) ||
+                localStorage.getItem(`raon_nav_dismissed_place_${targetIntent.place_id}`)
+            ) {
+                const { dismissNavIntentAction } = await import('@/actions/user-verification');
+                dismissNavIntentAction(targetIntent.id).catch(() => {});
+                return;
+            }
 
             // 이미 place_verifications에 검증이 존재하는지 확인
             const { data: existingVerifs } = await supabase
@@ -72,11 +81,9 @@ export default function NavReturnPromptModal() {
                 .limit(1);
 
             if (existingVerifs && existingVerifs.length > 0) {
-                // 이미 검증했으면 followed_up = true로 정리
-                await supabase
-                    .from('nav_intent_log')
-                    .update({ followed_up: true })
-                    .eq('id', targetIntent.id);
+                // 이미 검증했으면 Server Action으로 followed_up = true 정리
+                const { dismissNavIntentAction } = await import('@/actions/user-verification');
+                await dismissNavIntentAction(targetIntent.id);
                 return;
             }
 
@@ -103,44 +110,25 @@ export default function NavReturnPromptModal() {
         setIsProcessing(true);
 
         try {
-            const supabase = createClient();
-            const now = new Date();
+            const targetId = pendingIntent.id;
+            const placeId = pendingIntent.place_id;
 
-            // 1) 팩트 검증 레코드 생성 (NAV_LAUNCHED 증거, 0.7 가중치)
-            await supabase.from('place_verifications').insert({
-                partner_id: 'a0000000-0000-0000-0000-000000000001',
-                schedule_id: pendingIntent.schedule_id || null,
-                place_id: pendingIntent.place_id,
-                user_id: pendingIntent.user_id || null,
-                stage: pendingIntent.stage || 'DESTINATION',
-                visited: true,
-                liked: true,
-                fact_status: 'OK',
-                observed_at: now.toISOString().split('T')[0],
-                observed_dow: now.getDay(),
-                source: 'APP_USER',
-                entry_point: 'nav_return',
-                evidence: 'NAV_LAUNCHED',
-                reporter_weight: 0.7,
-                review_state: 'APPLIED', // 긍정 신호는 즉시 반영 및 miss_count 리셋 대상
-                verified_at: now.toISOString(),
+            // 로컬 영구 차단 등록
+            localStorage.setItem(`raon_nav_dismissed_${targetId}`, 'true');
+            localStorage.setItem(`raon_nav_dismissed_place_${placeId}`, 'true');
+
+            const { submitNavLikedAction } = await import('@/actions/user-verification');
+            await submitNavLikedAction({
+                intentId: targetId,
+                placeId: placeId,
+                scheduleId: pendingIntent.schedule_id,
+                userId: pendingIntent.user_id,
+                stage: pendingIntent.stage,
             });
 
-            // 2) nav_intent_log follow_up 완료 처리
-            await supabase
-                .from('nav_intent_log')
-                .update({ followed_up: true })
-                .eq('id', pendingIntent.id);
-
-            // 3) miss_count 리셋 트리거 (해당 장소가 2스트라이크 등일 경우 오판 구제)
-            await supabase
-                .from('master_places')
-                .update({ miss_count: 0, updated_at: now.toISOString() })
-                .eq('id', pendingIntent.place_id);
-
             toast.success(`좋은 경험을 나눠주셔서 고마워요 🌿`, { duration: 3500 });
-            sessionStorage.setItem('raon_nav_return_prompt_dismissed', 'true');
             setIsOpen(false);
+            setPendingIntent(null);
         } catch (e) {
             console.error('[NavReturnPrompt] handleLiked error:', e);
         } finally {
@@ -151,21 +139,44 @@ export default function NavReturnPromptModal() {
     // 2. [ℹ️ 정보가 달랐어요] 탭 (화면 C 시트 이동)
     const handleReportIssue = async () => {
         if (!pendingIntent) return;
+        const targetId = pendingIntent.id;
+        const placeId = pendingIntent.place_id;
+
+        // 로컬 영구 차단 등록
+        localStorage.setItem(`raon_nav_dismissed_${targetId}`, 'true');
+        localStorage.setItem(`raon_nav_dismissed_place_${placeId}`, 'true');
+
         setIsOpen(false);
         setIsReportOpen(true);
-        // nav_intent_log follow_up 완료 처리
-        const supabase = createClient();
-        await supabase
-            .from('nav_intent_log')
-            .update({ followed_up: true })
-            .eq('id', pendingIntent.id);
-        sessionStorage.setItem('raon_nav_return_prompt_dismissed', 'true');
+
+        // nav_intent_log follow_up 완료 처리 (Server Action)
+        const { dismissNavIntentAction } = await import('@/actions/user-verification');
+        dismissNavIntentAction(targetId).catch(() => {});
     };
 
-    // 3. [🕐 아직 안 갔어요] 탭 (다음에 재노출)
-    const handleNotYet = () => {
-        sessionStorage.setItem('raon_nav_return_prompt_dismissed', 'true');
+    // 3. [🕐 아직 안 갔어요] 탭 또는 우상단 닫기('X') (영구 미노출)
+    const handleNotYet = async () => {
+        if (!pendingIntent) {
+            setIsOpen(false);
+            return;
+        }
+
+        const targetId = pendingIntent.id;
+        const placeId = pendingIntent.place_id;
+
+        // 즉시 UI 닫고 로컬 영구 차단 등록
+        localStorage.setItem(`raon_nav_dismissed_${targetId}`, 'true');
+        localStorage.setItem(`raon_nav_dismissed_place_${placeId}`, 'true');
         setIsOpen(false);
+        setPendingIntent(null);
+
+        // DB nav_intent_log followed_up = true 영구 저장 (Server Action)
+        try {
+            const { dismissNavIntentAction } = await import('@/actions/user-verification');
+            await dismissNavIntentAction(targetId);
+        } catch (e) {
+            console.error('[NavReturnPrompt] dismissNavIntentAction error:', e);
+        }
     };
 
     if (!isOpen || !pendingIntent) {

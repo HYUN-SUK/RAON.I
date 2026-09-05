@@ -666,7 +666,9 @@ async function dailyRegionSync() {
                     const mapx = parseFloat(item.mapx || item.lng || 0);
                     const mapy = parseFloat(item.mapy || item.lat || 0);
 
-                    const ktoPatch = { kto_official: { rank, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
+                    // [KTO 지자체 100위 순위 차등 점수화: 1위 100점 ~ 100위 50점 선형 감쇠]
+                    const ktoTrustScore = 50 + Math.round(50 * (1 - (rank - 1) / 100));
+                    const ktoPatch = { kto_official: { rank, kto_score: ktoTrustScore, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
 
                     let matchedMp = null;
 
@@ -689,10 +691,12 @@ async function dailyRegionSync() {
                                        currentKto.rank === rank && 
                                        currentKto.baseYm === baseYm;
 
-                        if (!isSame) {
-                            const mergedRaw = { ...(matchedMp.raw_data || {}), ...ktoPatch };
-                            await supabase.from('master_places').update({ raw_data: mergedRaw }).eq('id', matchedMpId);
+                        const mergedRaw = { ...(matchedMp.raw_data || {}), ...ktoPatch };
+                        const newTrustScore = Math.max(matchedMp.trust_score || 50, ktoTrustScore);
+                        if (!isSame || (matchedMp.trust_score || 0) < newTrustScore) {
+                            await supabase.from('master_places').update({ raw_data: mergedRaw, trust_score: newTrustScore }).eq('id', matchedMpId);
                             matchedMp.raw_data = mergedRaw;
+                            matchedMp.trust_score = newTrustScore;
                         }
 
                         const spfMatches = spfMap.get(title) || [];
@@ -722,7 +726,7 @@ async function dailyRegionSync() {
                             lng: mapx,
                             api_source: 'KTO_OFFICIAL_NEW',
                             is_active: true,
-                            trust_score: 85,
+                            trust_score: ktoTrustScore,
                             raw_data: {
                                 contentid: contentId,
                                 firstimage: item.firstimage || item.firstimage2 || '',
@@ -1171,8 +1175,9 @@ async function finalizePopularityv2() {
     
     const finalPopScore = Math.min(100, Math.round(basePopNorm * boost));
     
-    // 기존 trust_score 업데이트
-    const newTrustScore = Math.max(50, finalPopScore);
+    // 기존 trust_score 업데이트 (KTO 지자체 순위 점수 및 인기도 점수 보존)
+    const ktoScore = spot.raw_data?.kto_official?.kto_score || (spot.raw_data?.kto_official?.rank ? (50 + Math.round(50 * (1 - (spot.raw_data.kto_official.rank - 1) / 100))) : 0);
+    const newTrustScore = Math.max(50, finalPopScore, ktoScore, spot.trust_score || 50);
 
     updates.push({
       id: spot.id,

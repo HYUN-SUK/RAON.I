@@ -292,18 +292,19 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     const source = raw.api_source || raw.sourceName || raw.raw_data?.api_source || '';
     // [v11.9.26] smart_plan_candidates는 raw_data.badges에 인증 정보 저장
     const rawBadges: string[] = raw.badges || raw.raw_data?.badges || [];
+    const allSources: string[] = raw.allSources || (source ? [source] : []);
 
-    // [v11.9.26] 개별 인증 보장 및 중복 표기 로직 (api_source + raw_data.badges 통합 참조)
-    if (source === 'SMBA_BAEK' || rawBadges.includes('백년가게')) {
+    // [v11.9.26] 개별 인증 보장 및 중복 표기 로직 (api_source + allSources + raw_data.badges 통합 참조)
+    if (source === 'SMBA_BAEK' || allSources.includes('SMBA_BAEK') || rawBadges.includes('백년가게')) {
         certs.push('중기부 백년가게'); badges.push('백년가게'); emojis.push('🎖️백년가게');
     }
-    if (source === 'LX_RESTAURANT' || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증')) {
+    if (source === 'LX_RESTAURANT' || allSources.includes('LX_RESTAURANT') || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증')) {
         certs.push('LX한국국토정보공사 인증'); badges.push('LX인증'); emojis.push('🎖️LX인증');
     }
-    if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || rawBadges.includes('모범음식점')) {
+    if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || allSources.includes('MOIS_GOOD_RESTAURANT') || allSources.includes('LOCALDATA_RESTAURANT_GOOD') || rawBadges.includes('모범음식점')) {
         certs.push('행안부 모범음식점'); badges.push('모범음식점'); emojis.push('🎖️모범음식점');
     }
-    if (source === 'SAFE_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_SAFE' || rawBadges.includes('안심식당') || raw.raw_data?.RELAX_SEQ != null || raw.raw_data?.RELAX_USE_YN === 'Y') {
+    if (source === 'SAFE_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_SAFE' || allSources.includes('SAFE_RESTAURANT') || allSources.includes('LOCALDATA_RESTAURANT_SAFE') || rawBadges.includes('안심식당') || raw.raw_data?.RELAX_SEQ != null || raw.raw_data?.RELAX_USE_YN === 'Y') {
         certs.push('농식품부 안심식당'); badges.push('안심식당'); emojis.push('🎖️안심식당');
     }
     const isHospital = category === 'HOSPITAL' || category === 'ROUTE_HOSPITAL';
@@ -395,6 +396,17 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     };
 }
 
+function cleanPlaceName(rawName: string): string {
+    if (!rawName) return '';
+    let name = rawName.trim();
+    name = name.replace(/^\*\*.*?:+\*\*\s*/, '');
+    name = name.replace(/^\*\*.*?\*\*:\s*/, '');
+    name = name.replace(/^\*\*\[.*?\]\*\*\s*/, '');
+    name = name.replace(/^\[.*?\]\s*/, '');
+    name = name.replace(/\*+/g, '').trim();
+    return name;
+}
+
 function parseFactCard(row: any, mapCategory?: FactCard['category']): FactCard {
     const cat = mapCategory || row.category as FactCard['category'];
     // [v11.9.23] row 전체를 넘겨서 api_source 컬럼을 직접 참조할 수 있게 수정
@@ -417,7 +429,7 @@ function parseFactCard(row: any, mapCategory?: FactCard['category']): FactCard {
         "@type": cat === 'HOSPITAL' ? 'Hospital' : cat.includes('RESTAURANT') ? 'Restaurant' : cat === 'SPOT' ? 'TouristAttraction' : 'Store',
         id: row.fact_id || row.id,
         category: cat,
-        name: row.name,
+        name: cleanPlaceName(row.name),
         lat: parseFloat(row.lat) || 0,
         lng: parseFloat(row.lng) || 0,
         description: row.raw_data?.description || row.description || '',
@@ -1722,13 +1734,17 @@ export async function generatePersonalizedSmartPlan(
 }
 
 // ========================================================================================
-// [v12.7.0] 비용 0원 맛보기 스마트플랜 (Instant Preview Engine - 기존 RPC + calcContextFitDeep 100% 동일 이식)
+// [v14.0.0] 단 하나의 0원 공통 스마트플랜 엔진 (Instant Core Engine)
+// - 정밀 스마트플랜 4단계 파이프라인(DB추출 -> 점수가중치 -> 내림차순 정렬 -> 상위 쿼터 절삭) 100% 동일 이식
+// - 외부 API(카카오내비, 기상청, 카카오로컬) 0회 호출 (비용 0원, ~1.2초 즉시 생성)
+// - 맛보기 플랜, 목적지 1초 플랜, 내 주변 5km 실시간 탐색, 장소 앵커 플랜 전수 공통 공유
 // ========================================================================================
-export async function generatePreviewSmartPlan(
+export async function generateInstantSmartPlan(
     location: { lat: number; lng: number },
     startDate: Date,
     endDate: Date,
-    userId?: string
+    userId?: string,
+    anchorPlace?: FactCard
 ): Promise<StandardizedPlanJSON> {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -1738,14 +1754,13 @@ export async function generatePreviewSmartPlan(
     const lng = location.lng;
 
     try {
-        // [v12.8.0] 1. 유저 페르소나 0원 수집
+        // 1. 유저 페르소나 0원 수집
         const persona: UserPersona = userId ? await extractUserPersona(userId, 7, supabase) : { description: '일반 캠퍼', topTags: [] };
 
-        // [v13.5.0] 3대 카테고리(식당/명소/병원) 전수 독립 쿼리 + 실패 시 자동 재시도 + 반경 점진 확장(20km -> 35km -> 50km)
+        // 2. 5대 카테고리(식당/명소/병원/마트/축제) 전수 독립 쿼리 + 반경 점진 확장(20km -> 35km -> 50km)
         const fetchCategorySafely = async (cat: string, baseRadius: number, count: number) => {
             const radii = [baseRadius, 35000, 50000];
             for (const rMeters of radii) {
-                // 1차 시도
                 let { data, error } = await supabase.rpc('get_master_places_in_radius_v2', {
                     target_lat: lat,
                     target_lng: lng,
@@ -1754,7 +1769,6 @@ export async function generatePreviewSmartPlan(
                     p_category: cat
                 });
 
-                // 실패 시 1회 즉시 재시도 (Network Retry Failsafe)
                 if (error || !data || data.length === 0) {
                     const retryRes = await supabase.rpc('get_master_places_in_radius_v2', {
                         target_lat: lat,
@@ -1774,10 +1788,12 @@ export async function generatePreviewSmartPlan(
             return [];
         };
 
-        const [rawRestaurants, rawSpots, rawHospitals] = await Promise.all([
-            fetchCategorySafely('RESTAURANT', 20000, 300),
-            fetchCategorySafely('SPOT', 20000, 300),
-            fetchCategorySafely('HOSPITAL', 20000, 100)
+        const [rawRestaurants, rawSpots, rawHospitals, rawMarts, rawFestivals] = await Promise.all([
+            fetchCategorySafely('RESTAURANT', 20000, 300), // 식당 & 카페 풀
+            fetchCategorySafely('SPOT', 20000, 300),       // 순수 명소 풀
+            fetchCategorySafely('HOSPITAL', 20000, 100),   // NMC 응급 및 종합병원 풀
+            fetchCategorySafely('MART', 20000, 50),        // 장보기 마트 풀
+            fetchCategorySafely('FESTIVAL', 30000, 30)     // 투데이 로컬 축제 풀 (30km 확장)
         ]);
 
         // Haversine 거리 계산 함수 (km)
@@ -1792,12 +1808,14 @@ export async function generatePreviewSmartPlan(
             return parseFloat((R * c).toFixed(1));
         };
 
-        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|디지털|분재|연구소|양복|안경|서점|서적/;
-        const hospitalExcludeList = /여성|산부인과|한의원|치과|성형|피부과|의원|요양|안과|정신/;
-        const spotWhitelistRegex = /전망대|스카이워크|출렁다리|케이블카|루프탑|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대|수목원|둘레길/i;
+        const globalBlacklist = /정비|카센터|공업사|세차|타이어|배터리|공인중개사|부동산|장례|상조|종교|교회|사찰$|센터$|학원|관리소|사무소|지물포|건재|상사|유통|공구|이발|미용|세탁|철물|사진관|인쇄소|스튜디오|모텔|여관|호텔|약국|의원|병원|디지털|농약|종묘|정육|방앗간|기름집|분재|연구소|양복|안경|서점|서적/;
+        const martExcludeList = /아울렛|패션|의류|디지털|하이마트|전자랜드|가구|가전|타운|편의점|이마트24|GS25|CU|세븐일레븐/;
+        const hospitalExcludeList = /여성|산부인과|한의원|치과|성형|피부과|의원|요양|안과|정신|동물|주차장|행정|부서|구두/;
+        const spotWhitelistRegex = /출렁다리|스카이워크|전망대|케이블카|모노레일|레일바이크|짚라인|짚와이어|루프탑|수목원|식물원|조각공원|생태공원|자연휴양림|휴양림|둘레길|바다길|해수욕장|계곡|폭포|관광지|유원지|테마파크|휴게소|생가|기념관|미술관|박물관|문학관|정원|방조제|등대/i;
+        const cafeRegex = /카페|커피|베이커리|빵집|디저트|로스터리|cafe|coffee|bakery|dessert/i;
 
-        // [v12.9.0] 3. 정밀 스마트플랜 방안 C 스코어링 엔진 (하한선 보정 + base_pop 인기도 + 화이트리스트 + 5km 초근접 + 중복 도려내기)
-        const parseAndScore = (places: any[]) => {
+        // [중복 제거 및 파싱 헬퍼 (다중 출처/인증/축제날짜 보존)]
+        const parseAndDeduplicate = (places: any[]) => {
             const seenIds = new Set<string>();
             const uniqueById = places.filter(r => {
                 if (seenIds.has(r.id)) return false;
@@ -1805,7 +1823,6 @@ export async function generatePreviewSmartPlan(
                 return true;
             });
 
-            // [v12.9.0] 동일 명칭 및 극히 인접한 중복 명소 도려내기 (이응노생가 싹쓸이 차단)
             const cleanName = (s: string) => (s || '').replace(/\[.*?\]|\(.*?\)/g, '').replace(/\s+/g, '').toLowerCase();
             const deduplicated: any[] = [];
 
@@ -1820,173 +1837,378 @@ export async function generatePreviewSmartPlan(
 
                     const sameName = n1 === n2 || (n1.length >= 4 && n2.length >= 4 && (n1.includes(n2) || n2.includes(n1)));
                     const distDiff = Math.abs(calcDist(item.lat, item.lng) - calcDist(existing.lat, existing.lng));
-                    
+
                     if (sameName && distDiff < 1.0) {
                         isDup = true;
+                        // 1. raw_data 및 축제 날짜 병합
+                        if (!existing.raw_data) existing.raw_data = {};
+                        if (item.raw_data) {
+                            existing.raw_data = { ...item.raw_data, ...existing.raw_data };
+                            if (item.raw_data.event_start_date && !existing.raw_data.event_start_date) {
+                                existing.raw_data.event_start_date = item.raw_data.event_start_date;
+                            }
+                            if (item.raw_data.event_end_date && !existing.raw_data.event_end_date) {
+                                existing.raw_data.event_end_date = item.raw_data.event_end_date;
+                            }
+                            if (item.raw_data.eventstartdate && !existing.raw_data.eventstartdate) {
+                                existing.raw_data.eventstartdate = item.raw_data.eventstartdate;
+                            }
+                            if (item.raw_data.eventenddate && !existing.raw_data.eventenddate) {
+                                existing.raw_data.eventenddate = item.raw_data.eventenddate;
+                            }
+                        }
+                        // 2. allSources 누적 병합 (백년가게/LX 등 다중 인증 손실 방지)
+                        if (!existing.allSources) existing.allSources = [existing.api_source].filter(Boolean);
+                        if (item.api_source && !existing.allSources.includes(item.api_source)) {
+                            existing.allSources.push(item.api_source);
+                        }
+                        // 3. 뱃지 누적 병합
+                        const itemBadges = item.badges || item.raw_data?.badges || [];
+                        if (itemBadges.length > 0) {
+                            existing.badges = Array.from(new Set([...(existing.badges || []), ...itemBadges]));
+                        }
+                        // 4. 고득점 점수 보존
+                        if ((item.trust_score || 0) > (existing.trust_score || 0)) {
+                            existing.trust_score = item.trust_score;
+                        }
+                        if ((item.quality_score || 0) > (existing.quality_score || 0)) {
+                            existing.quality_score = item.quality_score;
+                        }
                         break;
                     }
                 }
                 if (!isDup) {
+                    if (!item.allSources) item.allSources = [item.api_source].filter(Boolean);
+                    if (!item.badges && item.raw_data?.badges) item.badges = item.raw_data.badges;
                     deduplicated.push(item);
                 }
             }
-
-            return deduplicated
-                .filter(r => {
-                    const name = r.name || '';
-                    if (r.category !== 'HOSPITAL' && globalBlacklist.test(name)) return false;
-                    return true;
-                })
-                .map(r => {
-                    const card = parseFactCard(r);
-                    card.distanceKm = calcDist(card.lat, card.lng);
-                    const dKm = card.distanceKm || 0;
-                    const name = r.name || '';
-                    const desc = r.description || r.raw_data?.description || '';
-                    const fullText = `${name} ${desc}`;
-                    const source = r.api_source || r.raw_data?.api_source || '';
-                    const rawBadges: string[] = r.badges || r.raw_data?.badges || card.evidence?.badges || [];
-
-                    let certBonus = 0;
-                    let whitelistBonus = 0;
-                    let distPenalty = 0;
-                    let baseScore = r.quality_score || 50;
-
-                    if (r.category === 'RESTAURANT' || r.category === 'ROUTE_RESTAURANT') {
-                        // [v12.9.0] 식당: 날씨 요소 개입 100% 원천 차단 (cFit 날씨 가점 Skip)
-                        card.scoreBreakdown!.contextFit = 0;
-
-                        // 식당 중복 인증 누적 합산 (Cumulative Cert Scoring)
-                        if (source === 'SMBA_BAEK' || rawBadges.includes('백년가게') || card.evidence?.certifications?.some(c => c.includes('백년가게'))) {
-                            certBonus += 80;
-                        }
-                        if (source === 'LX_RESTAURANT' || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증') || card.evidence?.certifications?.some(c => c.includes('LX'))) {
-                            certBonus += 80;
-                        }
-                        if (source === 'MOIS_GOOD_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_GOOD' || rawBadges.includes('모범음식점') || rawBadges.includes('모범식당')) {
-                            certBonus += 30;
-                        }
-                        if (source === 'SAFE_RESTAURANT' || source === 'LOCALDATA_RESTAURANT_SAFE' || rawBadges.includes('안심식당')) {
-                            certBonus += 20;
-                        }
-
-                        // 미쉐린/블루리본/식신 브랜드 가점 (최소 110점 보장)
-                        if (/미쉐린|미슐랭|블루리본|식신/.test(name)) {
-                            if (baseScore + certBonus < 110) {
-                                certBonus = Math.max(certBonus, 110 - baseScore);
-                            }
-                        }
-
-                        // 원본 동일 거리 페널티 (-3.0점/km)
-                        distPenalty = dKm * 3.0;
-                        // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
-                        const strikePenalty = (r.miss_count && r.miss_count >= 2) ? 50 : 0;
-                        card.trustScore = baseScore + certBonus - distPenalty - strikePenalty;
-
-                    } else if (r.category === 'SPOT' || r.category === 'ROUTE_SPOT') {
-                        // [v12.9.0] 방안 C 헌법 수식 적용:
-                        const isWhitelistMatch = spotWhitelistRegex.test(fullText);
-                        let rawBase = r.trust_score || r.quality_score || 50;
-
-                        // ① 랜드마크 하한선 보정 (화이트리스트 매칭 시 최소 80점 보장)
-                        if (isWhitelistMatch) {
-                            rawBase = Math.max(rawBase, 80);
-                            whitelistBonus = 40;
-                        }
-                        baseScore = rawBase;
-
-                        // ② 인기도 실측 가점 (base_pop * 0.5, 최대 40점 Cap)
-                        const rawPop = r.raw_data?.popularity_v2?.base_pop || r.raw_data?.popularity || 0;
-                        const popBonus = Math.min((typeof rawPop === 'number' ? rawPop : 0) * 0.5, 40);
-
-                        // ③ 초근접 가점 (5km 이내 +20점)
-                        const nearbyBonus = dKm <= 5.0 ? 20 : 0;
-
-                        // ④ 거리 페널티 (-2.0점/km)
-                        distPenalty = dKm * 2.0;
-
-                        // [v13.5.2] 2스트라이크 폐업 조기경보 감점 (-50점)
-                        const strikePenalty = (r.miss_count && r.miss_count >= 2) ? 50 : 0;
-
-                        // ⑤ 최종 점수 계산
-                        card.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty - strikePenalty;
-                        card.scoreBreakdown!.contextFit = popBonus + nearbyBonus;
-
-                    } else if (r.category === 'HOSPITAL') {
-                        // [v12.8.0] 병원: NMC 응급센터(+150) / 종합병원/응급(+100) / 일반(+40)
-                        const isNmc = source === 'NMC_HOSPITAL' || source === 'NMC' || r.raw_data?.hpid;
-                        const isEmerg = r.raw_data?.hvec || r.raw_data?.hvs01 || fullText.includes('응급실') || /종합병원|의료원|대학병원/.test(name);
-                        
-                        if (isNmc) certBonus += 150;
-                        else if (isEmerg) certBonus += 100;
-                        else certBonus += 40;
-
-                        // 원본 동일 거리 페널티 (-3.0점/km)
-                        distPenalty = dKm * 3.0;
-                        card.trustScore = baseScore + certBonus - distPenalty;
-                        card.scoreBreakdown!.contextFit = 0;
-                    } else {
-                        distPenalty = dKm * 3.0;
-                        card.trustScore = baseScore - distPenalty;
-                        card.scoreBreakdown!.contextFit = 0;
-                    }
-
-                    card.scoreBreakdown!.distanceBonus = -distPenalty;
-                    card.scoreBreakdown!.certBonus = certBonus;
-                    card.scoreBreakdown!.tierBonus = whitelistBonus;
-                    card.scoreBreakdown!.finalScore = card.trustScore;
-
-                    return card;
-                });
+            return deduplicated;
         };
 
-        // 1. 맛집 Top 3 (RESTAURANT)
-        const restaurants = parseAndScore(rawRestaurants)
-            .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0))
-            .slice(0, 3)
-            .map(c => ({ ...c, category: 'RESTAURANT' as const }));
+        // ① 식당 & 카페 스코어링
+        const dedupRestaurants = parseAndDeduplicate(rawRestaurants);
+        const scoredRestaurants: FactCard[] = [];
+        const scoredCafes: FactCard[] = [];
 
-        // 2. 순수 명소 Top 3 (SPOT만! FESTIVAL 축제 100% 전면 제외!)
-        const spots = parseAndScore(rawSpots)
-            .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0))
-            .slice(0, 3)
-            .map(c => ({ ...c, category: 'SPOT' as const }));
+        for (const r of dedupRestaurants) {
+            const name = r.name || '';
+            if (globalBlacklist.test(name)) continue;
+            if (r.is_closed === true || r.is_blacklisted === true) continue;
 
-        // 3. 안심 병원 Top 1 (HOSPITAL - 여성/치과/한의원 제외, 응급/종합병원 우선)
-        const hospitals = parseAndScore(rawHospitals)
-            .filter(c => !hospitalExcludeList.test(c.name))
-            .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0))
-            .slice(0, 1)
-            .map(c => ({ ...c, category: 'HOSPITAL' as const }));
+            const card = parseFactCard(r);
+            card.distanceKm = calcDist(card.lat, card.lng);
+            const dKm = card.distanceKm || 0;
+            const sources: string[] = r.allSources || (r.api_source ? [r.api_source] : []);
+            const rawBadges: string[] = r.badges || r.raw_data?.badges || card.evidence?.badges || [];
+            let baseScore = r.quality_score || 50;
+            const strikePenalty = (r.miss_count && r.miss_count >= 2) ? 50 : (r.miss_count === 1 ? 15 : 0);
 
-        const mainRestaurant = restaurants[0] || null;
-        const mainSpot = spots[0] || null;
-        const mainHospital = hospitals[0] || null;
+            // [정밀 스마트플랜과 100% 동일] 오직 매장 이름과 고유 카테고리만으로 카페 판정 (설명글 식당/카페 오분류 원천 차단)
+            const isCafePlace = cafeRegex.test(name) || r.category === 'CAFE';
+
+            if (isCafePlace) {
+                // 카페 스코어링 (식당과 동일하게 거리감점 -3.0점/km 적용)
+                const distPenalty = dKm * 3.0;
+                card.trustScore = baseScore - distPenalty - strikePenalty;
+                card.scoreBreakdown = {
+                    baseScore,
+                    contextFit: 0,
+                    distanceBonus: -distPenalty,
+                    riskPenalty: strikePenalty,
+                    finalScore: card.trustScore
+                };
+                card.category = 'ROUTE_CAFE';
+                card.roleName = '여행의 쉼표';
+                scoredCafes.push(card);
+            } else {
+                // 순수 식당 스코어링 (4대 누적 인증 점수 합산)
+                let certBonus = 0;
+                if (sources.includes('SMBA_BAEK') || rawBadges.includes('백년가게') || card.evidence?.certifications?.some(c => c.includes('백년가게'))) {
+                    certBonus += 80;
+                }
+                if (sources.includes('LX_RESTAURANT') || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증') || card.evidence?.certifications?.some(c => c.includes('LX'))) {
+                    certBonus += 80;
+                }
+                if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || rawBadges.includes('모범음식점') || rawBadges.includes('모범식당')) {
+                    certBonus += 30;
+                }
+                if (sources.includes('SAFE_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_SAFE') || rawBadges.includes('안심식당')) {
+                    certBonus += 20;
+                }
+
+                if (/미쉐린|미슐랭|블루리본|식신/.test(name)) {
+                    if (baseScore + certBonus < 110) {
+                        certBonus = Math.max(certBonus, 110 - baseScore);
+                    }
+                }
+
+                const distPenalty = dKm * 3.0;
+                card.trustScore = baseScore + certBonus - distPenalty - strikePenalty;
+                card.scoreBreakdown = {
+                    baseScore,
+                    contextFit: 0,
+                    certBonus,
+                    distanceBonus: -distPenalty,
+                    riskPenalty: strikePenalty,
+                    finalScore: card.trustScore
+                };
+                card.category = 'RESTAURANT';
+                card.roleName = '현지 대표 맛집';
+                scoredRestaurants.push(card);
+            }
+        }
+
+        // ② 명소 스코어링 (Option C 계층형 헌법 수식 100% 이식)
+        const dedupSpots = parseAndDeduplicate(rawSpots);
+        const scoredSpots: FactCard[] = [];
+
+        for (const r of dedupSpots) {
+            const name = r.name || '';
+            if (globalBlacklist.test(name)) continue;
+            if (r.is_closed === true || r.is_blacklisted === true) continue;
+
+            const card = parseFactCard(r);
+            card.distanceKm = calcDist(card.lat, card.lng);
+            const dKm = card.distanceKm || 0;
+            const desc = r.description || r.raw_data?.description || '';
+            const fullText = `${name} ${desc}`;
+
+            const isWhitelistMatch = spotWhitelistRegex.test(fullText);
+            let rawBase = r.trust_score || r.quality_score || 50;
+            let whitelistBonus = 0;
+
+            if (isWhitelistMatch) {
+                rawBase = Math.max(rawBase, 80); // 하한 80점 보장
+                whitelistBonus = 40;            // 화이트리스트 가점 +40
+            }
+            const baseScore = rawBase;
+
+            const rawPop = r.raw_data?.popularity_v2?.base_pop || r.raw_data?.popularity || 0;
+            const popBonus = Math.min((typeof rawPop === 'number' ? rawPop : 0) * 0.5, 40);
+            const nearbyBonus = dKm <= 5.0 ? 20 : 0;
+            const distPenalty = dKm * 2.0;
+            const strikePenalty = (r.miss_count && r.miss_count >= 2) ? 50 : (r.miss_count === 1 ? 15 : 0);
+
+            card.trustScore = baseScore + popBonus + whitelistBonus + nearbyBonus - distPenalty - strikePenalty;
+            card.scoreBreakdown = {
+                baseScore,
+                contextFit: popBonus + nearbyBonus,
+                tierBonus: whitelistBonus,
+                distanceBonus: -distPenalty,
+                riskPenalty: strikePenalty,
+                finalScore: card.trustScore
+            };
+            card.category = 'SPOT';
+            card.roleName = '현지 힐링 명소';
+            scoredSpots.push(card);
+        }
+
+        // ③ 축제 매칭 및 스코어링 (여행 일정과 겹치지 않으면 100% 노출 금지)
+        const dedupFestivals = parseAndDeduplicate(rawFestivals);
+        const scoredFestivals: FactCard[] = [];
+
+        const toKstYMDNum = (d: Date | string): number => {
+            const dateObj = new Date(d);
+            const kstTime = new Date(dateObj.getTime() + (9 * 60 * 60 * 1000));
+            const y = kstTime.getUTCFullYear();
+            const m = String(kstTime.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(kstTime.getUTCDate()).padStart(2, '0');
+            return parseInt(`${y}${m}${day}`);
+        };
+
+        const tripStartNum = toKstYMDNum(startDate);
+        const tripEndNum = toKstYMDNum(endDate);
+
+        for (const r of dedupFestivals) {
+            const name = r.name || '';
+            if (r.is_closed === true) continue;
+
+            const rawStart = r.raw_data?.event_start_date || r.raw_data?.eventstartdate;
+            const rawEnd = r.raw_data?.event_end_date || r.raw_data?.eventenddate;
+
+            // 축제 시작일/종료일 정보가 없으면 노출하지 않음
+            if (!rawStart || !rawEnd) continue;
+
+            const fStartNum = parseInt(String(rawStart).replace(/\D/g, ''));
+            const fEndNum = parseInt(String(rawEnd).replace(/\D/g, ''));
+
+            if (isNaN(fStartNum) || isNaN(fEndNum)) continue;
+
+            // 여행 기간(tripStartNum ~ tripEndNum)과 축제 기간(fStartNum ~ fEndNum)의 교집합 여부 검증
+            const isOverlapping = (fStartNum <= tripEndNum) && (fEndNum >= tripStartNum);
+            if (!isOverlapping) {
+                // 여행 일정과 겹치지 않으면 절대 노출하지 않음!
+                continue;
+            }
+
+            const card = parseFactCard(r);
+            if (!card.metadata) card.metadata = {};
+            card.metadata.event_start_date = String(rawStart);
+            card.metadata.event_end_date = String(rawEnd);
+            card.distanceKm = calcDist(card.lat, card.lng);
+            const dKm = card.distanceKm || 0;
+            const baseScore = 45;
+            const distPenalty = dKm * 1.0;
+
+            card.trustScore = baseScore - distPenalty;
+            card.scoreBreakdown = {
+                baseScore,
+                contextFit: 0,
+                distanceBonus: -distPenalty,
+                riskPenalty: 0,
+                finalScore: card.trustScore
+            };
+            card.category = 'FESTIVAL';
+            card.roleName = '투데이 로컬 축제';
+            scoredFestivals.push(card);
+        }
+
+        // ④ 마트 스코어링 (SSM 및 대형마트 랭킹)
+        const dedupMarts = parseAndDeduplicate(rawMarts);
+        const scoredMarts: FactCard[] = [];
+
+        for (const r of dedupMarts) {
+            const name = r.name || '';
+            if (martExcludeList.test(name)) continue;
+            if (r.is_closed === true) continue;
+
+            const card = parseFactCard(r);
+            card.distanceKm = calcDist(card.lat, card.lng);
+            const dKm = card.distanceKm || 0;
+
+            let baseScore = 70;
+            if (/이마트|롯데마트|홈플러스|트레이더스|하나로|NH/i.test(name)) {
+                if (/에브리데이|익스프레스|노브랜드|GS더프레시/i.test(name)) {
+                    baseScore = 70;
+                } else {
+                    baseScore = 80;
+                }
+            }
+            const distPenalty = dKm * 3.0;
+
+            card.trustScore = baseScore - distPenalty;
+            card.scoreBreakdown = {
+                baseScore,
+                contextFit: 0,
+                distanceBonus: -distPenalty,
+                riskPenalty: 0,
+                finalScore: card.trustScore
+            };
+            card.category = 'MART';
+            card.roleName = '장보기 마트';
+            scoredMarts.push(card);
+        }
+
+        // ⑤ 병원 스코어링 (NMC 권역응급의료센터 및 24시 응급실 가점)
+        const dedupHospitals = parseAndDeduplicate(rawHospitals);
+        const scoredHospitals: FactCard[] = [];
+
+        for (const r of dedupHospitals) {
+            const name = r.name || '';
+            if (hospitalExcludeList.test(name)) continue;
+            if (r.is_closed === true) continue;
+
+            const card = parseFactCard(r);
+            card.distanceKm = calcDist(card.lat, card.lng);
+            const dKm = card.distanceKm || 0;
+            const desc = r.description || r.raw_data?.description || '';
+            const fullText = `${name} ${desc}`;
+            const source = r.api_source || r.raw_data?.api_source || '';
+
+            const isNmc = source === 'NMC_HOSPITAL' || source === 'NMC' || r.raw_data?.hpid || r.raw_data?.badges?.includes('응급의료센터');
+            const isEmerg = r.raw_data?.hvec || r.raw_data?.hvs01 || fullText.includes('응급실') || /종합병원|의료원|대학병원/.test(name);
+
+            let certBonus = 40;
+            if (isNmc) certBonus = 150;
+            else if (isEmerg) certBonus = 100;
+
+            const baseScore = r.quality_score || 50;
+            const distPenalty = dKm * 3.0;
+
+            card.trustScore = baseScore + certBonus - distPenalty;
+            card.scoreBreakdown = {
+                baseScore,
+                contextFit: 0,
+                certBonus,
+                distanceBonus: -distPenalty,
+                riskPenalty: 0,
+                finalScore: card.trustScore
+            };
+            card.category = 'HOSPITAL';
+            card.roleName = '24시 응급의료';
+            scoredHospitals.push(card);
+        }
+
+        // [Step 3] 내림차순 정렬 (점수 높은 순 ➔ 거리 가까운 순)
+        const sortByScore = (a: FactCard, b: FactCard) => 
+            (b.trustScore || 0) - (a.trustScore || 0) || (a.distanceKm || 0) - (b.distanceKm || 0);
+
+        scoredRestaurants.sort(sortByScore);
+        scoredCafes.sort(sortByScore);
+        scoredSpots.sort(sortByScore);
+        scoredFestivals.sort(sortByScore);
+        scoredMarts.sort(sortByScore);
+        scoredHospitals.sort(sortByScore);
+
+        // [앵커 장소 지원: 특정 장소로 계획 만들기를 누른 경우 해당 장소를 1위로 고정]
+        if (anchorPlace) {
+            if (anchorPlace.category === 'RESTAURANT') {
+                const idx = scoredRestaurants.findIndex(x => x.id === anchorPlace.id || x.name === anchorPlace.name);
+                if (idx > 0) {
+                    const [picked] = scoredRestaurants.splice(idx, 1);
+                    scoredRestaurants.unshift(picked);
+                } else if (idx === -1) {
+                    scoredRestaurants.unshift(anchorPlace);
+                }
+            } else if (anchorPlace.category === 'SPOT') {
+                const idx = scoredSpots.findIndex(x => x.id === anchorPlace.id || x.name === anchorPlace.name);
+                if (idx > 0) {
+                    const [picked] = scoredSpots.splice(idx, 1);
+                    scoredSpots.unshift(picked);
+                } else if (idx === -1) {
+                    scoredSpots.unshift(anchorPlace);
+                }
+            }
+        }
+
+        // [Step 4] 상위 쿼터 절삭 (Primary 1개 + 정해진 수량의 Alternatives)
+        const mainRestaurant = scoredRestaurants[0] ? { ...scoredRestaurants[0], selectionTier: 'PRIMARY' as const } : null;
+        const mainCafe = scoredCafes[0] ? { ...scoredCafes[0], selectionTier: 'PRIMARY' as const } : null;
+        const mainSpot = scoredSpots[0] ? { ...scoredSpots[0], selectionTier: 'PRIMARY' as const } : null;
+        const mainFestival = scoredFestivals[0] ? { ...scoredFestivals[0], selectionTier: 'FEATURED' as const } : null;
+        const mainMart = scoredMarts[0] ? { ...scoredMarts[0], selectionTier: 'PRIMARY' as const } : null;
+        const mainHospital = scoredHospitals[0] ? { ...scoredHospitals[0], selectionTier: 'PRIMARY' as const } : null;
 
         const itemListElement: FactCard[] = [];
         if (mainRestaurant) itemListElement.push(mainRestaurant);
+        if (mainCafe) itemListElement.push(mainCafe);
         if (mainSpot) itemListElement.push(mainSpot);
+        if (mainFestival) itemListElement.push(mainFestival);
+        if (mainMart) itemListElement.push(mainMart);
         if (mainHospital) itemListElement.push(mainHospital);
 
-        const alternatives: Record<string, FactCard[]> = {};
-        if (mainRestaurant && restaurants.length > 1) {
-            alternatives['RESTAURANT'] = restaurants.slice(1);
-            alternatives[mainRestaurant.id] = restaurants.slice(1);
-        }
-        if (mainSpot && spots.length > 1) {
-            alternatives['SPOT'] = spots.slice(1);
-            alternatives[mainSpot.id] = spots.slice(1);
-        }
+        // 대안 리스트 (확정된 수량 쿼터제: 식당 10~14개, 명소 10~14개, 카페 3개, 마트 3개, 병원 3개)
+        const alternatives: Record<string, FactCard[]> = {
+            'RESTAURANT': scoredRestaurants.slice(1, 15).map(c => ({ ...c, selectionTier: 'ALTERNATIVE' as const })), // 최대 14개
+            'CAFE': scoredCafes.slice(1, 4).map(c => ({ ...c, selectionTier: 'ALTERNATIVE' as const })),             // 최대 3개
+            'ROUTE_CAFE': scoredCafes.slice(1, 4).map(c => ({ ...c, selectionTier: 'ALTERNATIVE' as const })),       // 키 호환성 (최대 3개)
+            'SPOT': scoredSpots.slice(1, 15).map(c => ({ ...c, selectionTier: 'ALTERNATIVE' as const })),             // 최대 14개
+            'FESTIVAL': scoredFestivals.slice(1, 3).map(c => ({ ...c, selectionTier: 'ALTERNATIVE' as const })),      // 최대 2개
+            'MART': scoredMarts.slice(1, 4).map(c => ({ ...c, selectionTier: 'ALTERNATIVE' as const })),             // 최대 3개
+            'HOSPITAL': scoredHospitals.slice(1, 4).map(c => ({ ...c, selectionTier: 'ALTERNATIVE' as const }))      // 최대 3개
+        };
 
         return {
             "@context": "https://schema.org",
             "@type": "ItemList",
-            narration: "여행지 주변의 핵심 맛집, 명소, 안심 병원을 0원 맛보기로 안내해 드립니다.",
+            narration: "여행지 주변의 핵심 맛집, 감성 카페, 힐링 명소 및 필수 편의시설을 즉시 맞춤 플랜으로 완성했습니다.",
             target_date: startDate.toISOString().split('T')[0],
             stageIntros: {
-                '1': '여행지 근처의 검증된 맛집을 먼저 만나보세요.',
-                '2': '현지의 보석 같은 명소들을 찾아 떠나요.',
-                '3': '만약의 상황을 대비한 가장 가까운 병원입니다.'
+                '1': '목적지 근처의 검증된 현지 대표 맛집입니다.',
+                '2': '잠시 쉬어가며 여유를 즐길 수 있는 감성 카페입니다.',
+                '3': '놓치면 아쉬운 힐링 명소와 지금 열리는 지역 축제입니다.',
+                '4': '쾌적하고 안전한 여행을 위한 필수 편의 인프라입니다.'
             },
             itemListElement,
             alternatives,
@@ -1994,9 +2216,19 @@ export async function generatePreviewSmartPlan(
         };
 
     } catch (e) {
-        console.error('[generatePreviewSmartPlan] Error:', e);
+        console.error('[generateInstantSmartPlan] Error:', e);
         return buildFallbackPreviewPlan(startDate);
     }
+}
+
+// [기존 호출부 완벽 호환 래퍼]
+export async function generatePreviewSmartPlan(
+    location: { lat: number; lng: number },
+    startDate: Date,
+    endDate: Date,
+    userId?: string
+): Promise<StandardizedPlanJSON> {
+    return generateInstantSmartPlan(location, startDate, endDate, userId);
 }
 
 function buildFallbackPreviewPlan(startDate: Date): StandardizedPlanJSON {

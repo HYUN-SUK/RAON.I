@@ -32,8 +32,12 @@ function formatPhoneNumber(tel: string): string {
 export function cleanOperatingHours(hoursStr: string): string {
   if (!hoursStr) return '';
   
-  // 1. 날짜 괄호 패턴 (M/D) 제거: "(6/18)" -> ""
-  let cleaned = hoursStr.replace(/\(\d{1,2}\/\d{1,2}\)/g, '').replace(/\s+/g, ' ').trim();
+  // 1. HTML br 태그 치환 및 날짜 괄호 패턴 (M/D) 제거: "(6/18)" -> ""
+  let cleaned = hoursStr
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/\(\d{1,2}\/\d{1,2}\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   
   // 2. 범용 요일별 시간대 매칭 정규식
   // [월화수목금토일](요일) 뒤에 바로 또는 공백을 두고 XX:XX ~ YY:YY 가 오는 패턴
@@ -125,11 +129,9 @@ export function cleanOperatingHours(hoursStr: string): string {
 export function cleanClosedDays(closedStr: string): string {
   if (!closedStr) return '';
 
-  // 1. 날짜 패턴 제거
-  // - "YYYY-MM-DD" or "YYYY.MM.DD"
-  // - "M/D" or "M.D"
-  // - "M월 D일" or "D일"
+  // 1. HTML br 태그 치환 및 날짜 패턴 제거
   let cleaned = closedStr
+    .replace(/<br\s*\/?>/gi, ' ')
     .replace(/\d{4}[-./]\d{1,2}[-./]\d{1,2}/g, '')
     .replace(/\b\d{1,2}\/\d{1,2}\b/g, '')
     .replace(/\b\d{1,2}\.\d{1,2}\b/g, '')
@@ -164,8 +166,8 @@ export function formatPlaceDetailText(place: PlaceFormatterInput): string {
   
   // 1. 축제 카테고리 (FESTIVAL)
   if (category === 'FESTIVAL') {
-    const start = formatFestivalDate(metadata.event_start_date);
-    const end = formatFestivalDate(metadata.event_end_date);
+    const start = formatFestivalDate(metadata.event_start_date || metadata.eventstartdate);
+    const end = formatFestivalDate(metadata.event_end_date || metadata.eventenddate);
     const usefee = metadata.usefee || '';
     
     const parts = [];

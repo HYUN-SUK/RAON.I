@@ -83,12 +83,43 @@ export async function getAdminAnalyticsAction(
             console.error('[Analytics] consents query failed:', e);
         }
 
+        // 2.5 Internal Accounts Detection (Exclude internal test accounts: tootg, wlgustns19, admin)
+        const internalUserIds = new Set<string>();
+        try {
+            const { data: internalProfiles } = await supabase
+                .from('profiles')
+                .select('id')
+                .or('email.ilike.%tootg%,email.ilike.%wlgustns%,email.ilike.%admin%,is_admin.eq.true');
+            (internalProfiles || []).forEach((p: any) => {
+                if (p.id) internalUserIds.add(p.id);
+            });
+        } catch (e) {
+            console.warn('[Analytics] Failed to fetch internal profiles:', e);
+        }
+
         // 3. Feature Stats (Independent Safe Queries)
 
-        // ① 스마트플랜 (reservations + camping_records)
+        // ① 스마트플랜 (user_schedules + reservations)
         const smartPlanUsersSet = new Set<string>();
         let smartPlanTotal = 0;
         try {
+            // 1) user_schedules에서 스마트플랜이 연동된 일정 조회
+            const { data: schedData } = await supabase
+                .from('user_schedules')
+                .select('user_id, smart_plan_data')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+
+            (schedData || []).forEach((s: any) => {
+                if (s.user_id && !internalUserIds.has(s.user_id)) {
+                    if (s.smart_plan_data) {
+                        smartPlanUsersSet.add(s.user_id);
+                        smartPlanTotal++;
+                    }
+                }
+            });
+
+            // 2) reservations(정밀 스마트플랜 대상 예약) 조회
             const { data: resData } = await supabase
                 .from('reservations')
                 .select('user_id')
@@ -96,9 +127,11 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (resData || []).forEach((r: any) => {
-                if (r.user_id) smartPlanUsersSet.add(r.user_id);
+                if (r.user_id && !internalUserIds.has(r.user_id)) {
+                    smartPlanUsersSet.add(r.user_id);
+                    smartPlanTotal++;
+                }
             });
-            smartPlanTotal += (resData || []).length;
         } catch (e) {
             console.error('[Analytics] smartPlan query failed:', e);
         }
@@ -114,9 +147,9 @@ export async function getAdminAnalyticsAction(
                 .select('author_id, read_count')
                 .gte('created_at', startISO)
                 .lte('created_at', endISO);
-            postsData = pData || [];
+            postsData = (pData || []).filter((p: any) => !internalUserIds.has(p.author_id));
 
-            (postsData || []).forEach((p: any) => {
+            postsData.forEach((p: any) => {
                 if (p.author_id) communityExploreUsersSet.add(p.author_id);
                 communityExploreTotal += (p.read_count || 1);
             });
@@ -126,9 +159,9 @@ export async function getAdminAnalyticsAction(
                 .select('user_id')
                 .gte('created_at', startISO)
                 .lte('created_at', endISO);
-            commentsData = cData || [];
+            commentsData = (cData || []).filter((c: any) => !internalUserIds.has(c.user_id));
 
-            (commentsData || []).forEach((c: any) => {
+            commentsData.forEach((c: any) => {
                 if (c.user_id) communityExploreUsersSet.add(c.user_id);
             });
         } catch (e) {
@@ -146,12 +179,12 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (recordsData || []).forEach((r: any) => {
-                if (r.user_id) {
+                if (r.user_id && !internalUserIds.has(r.user_id)) {
                     recordUsersSet.add(r.user_id);
                     smartPlanUsersSet.add(r.user_id); // Records also view smart plan facts
+                    quickRecordTotal++;
                 }
             });
-            quickRecordTotal = (recordsData || []).length;
         } catch (e) {
             console.error('[Analytics] camping_records query failed:', e);
         }
@@ -175,9 +208,14 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (missionsData || []).forEach((m: any) => {
-                if (m.user_id) missionUsersSet.add(m.user_id);
+                if (m.user_id && !internalUserIds.has(m.user_id)) {
+                    missionUsersSet.add(m.user_id);
+                    if (m.status === 'COMPLETED') missionTotal++;
+                }
             });
-            missionTotal = (missionsData || []).filter((m: any) => m.status === 'COMPLETED').length || (missionsData || []).length;
+            if (missionTotal === 0 && missionsData) {
+                missionTotal = (missionsData || []).filter((m: any) => !internalUserIds.has(m.user_id)).length;
+            }
         } catch (e) {
             console.error('[Analytics] user_missions query failed:', e);
         }
@@ -193,9 +231,11 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (recipeData || []).forEach((r: any) => {
-                if (r.author_id) recipeUsersSet.add(r.author_id);
+                if (r.author_id && !internalUserIds.has(r.author_id)) {
+                    recipeUsersSet.add(r.author_id);
+                    recipeTotal++;
+                }
             });
-            recipeTotal = (recipeData || []).length;
         } catch (e) {
             console.error('[Analytics] travel_recipes query failed:', e);
         }
@@ -211,9 +251,11 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (playData || []).forEach((p: any) => {
-                if (p.author_id) playExplorerUsersSet.add(p.author_id);
+                if (p.author_id && !internalUserIds.has(p.author_id)) {
+                    playExplorerUsersSet.add(p.author_id);
+                    playExplorerTotal++;
+                }
             });
-            playExplorerTotal = (playData || []).length;
         } catch (e) {
             console.error('[Analytics] travel_plays query failed:', e);
         }
