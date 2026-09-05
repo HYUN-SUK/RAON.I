@@ -52,66 +52,6 @@ async function getFcmAccessToken() {
 }
 
 // ==========================================
-// DB-BASED SCORING MEAL RECOMMENDATION
-// ==========================================
-interface Recipe {
-    id: string;
-    title: string;
-    description: string;
-    tags: string[];
-    servings: string;
-    metadata: any;
-    _score?: number;
-}
-
-async function getScoredMenuRecommendations(
-    userId: string,
-    weather: { tempMin: number; tempMax: number; isRainy: boolean; weatherLabel: string },
-    memberCount: number,
-    count: number = 2
-): Promise<Recipe[]> {
-    try {
-        const { data: pool, error } = await supabase
-            .from('recommendation_pool')
-            .select('id, title, description, tags, servings, metadata')
-            .eq('category', 'cooking');
-
-        if (error || !pool || pool.length === 0) return [];
-
-        const isCold = weather.tempMin < 10;
-        const isHot = weather.tempMax > 28;
-        const isRainy = weather.isRainy;
-
-        const month = new Date().getMonth() + 1;
-
-        const scored = pool.map((item: any) => {
-            let score = 0;
-            const tags = item.tags || [];
-
-            if (isRainy && tags.includes('#비오는날')) score += 50;
-            if (isCold && (tags.includes('#추운날') || tags.includes('#겨울') || tags.includes('#국물'))) score += 40;
-            if (isHot && (tags.includes('#더운날') || tags.includes('#여름') || tags.includes('#시원한'))) score += 40;
-
-            if (memberCount >= 4 && (tags.includes('#파티') || tags.includes('#대용량'))) score += 30;
-            if (memberCount <= 2 && (tags.includes('#혼밥') || tags.includes('#커플'))) score += 30;
-
-            if (tags.includes('#저녁')) score += 10;
-
-            score += Math.random() * 10;
-            return { ...item, _score: score };
-        });
-
-        return scored
-            .sort((a: any, b: any) => (b._score || 0) - (a._score || 0))
-            .slice(0, count);
-
-    } catch (err) {
-        console.error("[Menu Scoring] Error:", err);
-        return [];
-    }
-}
-
-// ==========================================
 // DB-BASED SCORING GEAR RECOMMENDATION
 // ==========================================
 async function getScoredGearRecommendations(
@@ -715,14 +655,8 @@ serve(async (req: any) => {
         const kst = new Date(now.getTime() + 9 * 3600000);
         const today = kst.toISOString().split('T')[0];
 
-        const tomorrowDate = new Date(kst); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-        const tomorrow = tomorrowDate.toISOString().split('T')[0];
-
         const d7Date = new Date(kst); d7Date.setDate(d7Date.getDate() + 7);
         const d7 = d7Date.toISOString().split('T')[0];
-
-        const d4Date = new Date(kst); d4Date.setDate(d4Date.getDate() + 4);
-        const d4 = d4Date.toISOString().split('T')[0];
 
         const yesterdayDate = new Date(kst); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
         const yesterday = yesterdayDate.toISOString().split('T')[0];
@@ -731,7 +665,7 @@ serve(async (req: any) => {
             .from('user_schedules')
             .select('*')
             .eq('status', 'scheduled')
-            .or(`check_in.in.(${today},${tomorrow},${d7},${d4}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
+            .or(`check_in.in.(${today},${d7}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
 
         if (error) throw error;
         console.log(`[Query] Found ${schedules?.length || 0} schedules`);
@@ -898,29 +832,8 @@ serve(async (req: any) => {
                 });
                 updateIds.d0.push(s.id);
             }
-            // D-1: Meal Recommendations
-            else if (s.check_in === tomorrow && !s.notification_d1_sent) {
-                const meals = await getScoredMenuRecommendations(s.user_id, primaryForecast, s.member_count || 2);
-                const menuText = meals.length > 0
-                    ? meals.map(m => `🍽️ ${m.title}`).join(', ')
-                    : "캠핑장에서 즐기기 좋은 맛있는 요리";
-
-                notifications.push({
-                    user_id: s.user_id,
-                    category: 'reservation',
-                    event_type: 'upcoming_stay_d1',
-                    title: `🍳 내일 뭐 먹을지 고민되시나요?`,
-                    body: `📍 ${displayName}\n${weatherLine}\n\n날씨에 딱 맞는 메뉴를 골라봤어요!\n추천 메뉴: ${menuText}\n\n레시피가 궁금하다면 확인해보세요!`,
-                    data: { 
-                        link: `/recipe`, 
-                        hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
-                    },
-                    status: 'queued'
-                });
-                updateIds.d1.push(s.id);
-            }
-            // D-7 or D-4: Gear Check & 7-Day Precision Smart Plan Update Notice
-            else if ((s.check_in === d7 || s.check_in === d4) && !s.notification_d4_sent) {
+            // D-7: 7-Day Weekly Weather & Precision Smart Plan Notice (D-7 단일화)
+            else if (s.check_in === d7 && !s.notification_d4_sent) {
                 const gears = await getScoredGearRecommendations(primaryForecast, 2);
                 let tip = '평범한 날씨네요! 가볍게 떠나보세요.';
 
@@ -932,13 +845,11 @@ serve(async (req: any) => {
                     else if (primaryForecast.tempMax >= 28) tip = '한낮 기온이 30도 내외로 무더워요 ☀️ 타프와 시원한 음료를 준비하세요.';
                 }
 
-                const daysLeft = s.check_in === d7 ? 7 : 4;
-
                 notifications.push({
                     user_id: s.user_id,
                     category: 'reservation',
-                    event_type: s.check_in === d7 ? 'upcoming_stay_d7' : 'upcoming_stay_d4',
-                    title: `🎒 캠핑이 ${daysLeft}일 남았어요! (정밀 스마트플랜 오픈)`,
+                    event_type: 'upcoming_stay_d7',
+                    title: `🎒 캠핑이 7일 남았어요! (주간 날씨 & 스마트플랜 오픈)`,
                     body: `[⚡ 오늘 09:00부터 최신 정밀 스마트플랜으로 업데이트할 수 있어요!]\n\n📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
                     data: { 
                         link: `/myspace/schedule/${s.id}?tab=checklist`,

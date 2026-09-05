@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Map, Polyline, CustomOverlayMap, useKakaoLoader } from 'react-kakao-maps-sdk';
 import { X, MapPin, Phone, Check, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
 import { useModalBackHandler } from '@/hooks/useModalBackHandler';
+import { cn } from '@/lib/utils';
 
 interface SmartPlanMapViewModalProps {
     isOpen: boolean;
@@ -64,6 +65,15 @@ export default function SmartPlanMapViewModal({
     // 맵 인스턴스
     const [map, setMap] = useState<any>(null);
 
+    // [DOM Keep-Alive 싱글톤] 최초 1회 열림 추적 가드 (미사용 시 0원, 열림 시 최초 1회만 카카오 지도 생성)
+    const [hasBeenOpened, setHasBeenOpened] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setHasBeenOpened(true);
+        }
+    }, [isOpen]);
+
     // 현재 지도에서 마커 터치로 포커스된 단일 장소 ID (없으면 하단 카드 숨김)
     const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
 
@@ -97,8 +107,8 @@ export default function SmartPlanMapViewModal({
         return path;
     }, [selectedRouteData]);
 
-    // 3. 카카오 LatLngBounds 자동 화면 피팅
-    useEffect(() => {
+    // 3. 카카오 LatLngBounds 자동 화면 피팅 함수 (useCallback으로 재사용 보장)
+    const fitBounds = useCallback(() => {
         if (!map || !window.kakao || !window.kakao.maps || !window.kakao.maps.LatLngBounds) return;
 
         try {
@@ -152,6 +162,24 @@ export default function SmartPlanMapViewModal({
         }
     }, [map, mode, candidateCards, timelinePlaces, baseRoutePath, origin, destination]);
 
+    // 데이터 변경 시 바운드 동기화
+    useEffect(() => {
+        if (isOpen) {
+            fitBounds();
+        }
+    }, [isOpen, fitBounds]);
+
+    // [Keep-Alive 복원] 재오픈 시 DOM 크기 복원 후 0.001초 만에 map.relayout() 동기화 (추가 쿼터 소모 0건)
+    useEffect(() => {
+        if (isOpen && map) {
+            const timer = setTimeout(() => {
+                map.relayout();
+                fitBounds();
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, map, fitBounds]);
+
     // 4. 포커스된 장소 정보 (대체리스트 모드 or 전체동선 모드 통합 지원)
     const focusedCard = useMemo(() => {
         if (!focusedCardId) return null;
@@ -162,10 +190,16 @@ export default function SmartPlanMapViewModal({
         }
     }, [focusedCardId, mode, candidateCards, timelinePlaces]);
 
-    if (!isOpen) return null;
+    // 최초 오픈 이전에는 DOM 마운트 일체 방지 (0원 유지)
+    if (!hasBeenOpened && !isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[999] flex flex-col bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+        <div 
+            className={cn(
+                "fixed inset-0 z-[999] flex flex-col bg-black/70 backdrop-blur-sm transition-opacity duration-200",
+                !isOpen && "hidden pointer-events-none"
+            )}
+        >
             {/* 상단 컨트롤 헤더 */}
             <div className="bg-[#112419] text-white px-4 py-3 flex items-center justify-between shrink-0 shadow-lg border-b border-white/10 z-10">
                 <div className="flex items-center gap-2 min-w-0">
@@ -196,6 +230,7 @@ export default function SmartPlanMapViewModal({
 
             {/* 메인 지도 영역 (화면 상단부 시원하게 확보) */}
             <div 
+                id="smart-plan-kakao-map-wrapper"
                 className="relative flex-1 w-full bg-gray-100 overflow-hidden"
                 style={{ touchAction: 'none' }} // 모바일 지도 드래그 시 모달 스크롤 간섭 방지
             >
