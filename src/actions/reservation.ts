@@ -171,13 +171,13 @@ export async function updateReservationAction(
         ? updates.checkOutDate.split('T')[0]
         : formatLocalDate(updates.checkOutDate);
 
-    // 0-1. 서버 2차 가드: DB blocked_dates 차단 여부 확인 (start_date < checkOutStr && end_date >= checkInStr)
+    // 0-1. 서버 2차 가드: DB blocked_dates 차단 여부 확인 (start_date < checkOutStr && end_date > checkInStr)
     const { data: blockedList } = await (supabase
         .from('blocked_dates') as any)
         .select('id, start_date, end_date')
         .eq('site_id', updates.siteId)
         .lt('start_date', checkOutStr)
-        .gte('end_date', checkInStr);
+        .gt('end_date', checkInStr);
 
     if (blockedList && blockedList.length > 0) {
         throw new Error('선택하신 사이트는 해당 기간에 관리자 차단(Blocked)이 설정되어 있어 변경할 수 없습니다.');
