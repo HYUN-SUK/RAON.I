@@ -273,9 +273,10 @@ export default function ScheduleCard({
                         <div />
                     )}
                     {onClick && !(schedule as any).is_pending_reservation && (
-                        <span className="text-sm text-[#224732] font-medium flex items-center gap-0.5">
-                            상세보기
-                            <ChevronRight className="w-4 h-4" />
+                        <span className="text-sm text-[#224732] font-semibold flex items-center gap-1 group">
+                            <span className="inline-block animate-bounce text-xs">👆</span>
+                            <span>상세보기</span>
+                            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                         </span>
                     )}
                 </div>

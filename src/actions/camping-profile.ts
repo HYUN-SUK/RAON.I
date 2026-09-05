@@ -132,7 +132,7 @@ export async function saveCampingProfile(
  * [Phase 5] 카카오 주소 검색 (Server-side)
  * 클라이언트 CORS 및 API 키 노출 방지를 위해 Server Action으로 처리합니다.
  */
-export async function searchAddressAction(query: string): Promise<{ label: string; lat: number; lng: number }[]> {
+export async function searchAddressAction(query: string): Promise<{ label: string; address?: string; lat: number; lng: number }[]> {
     if (!query.trim()) return [];
 
     const kakaoKey = process.env.KAKAO_REST_API_KEY;
@@ -152,24 +152,26 @@ export async function searchAddressAction(query: string): Promise<{ label: strin
 
         const [keywordData, addressData] = await Promise.all([keywordPromise, addressPromise]);
 
-        const results: { label: string; lat: number; lng: number }[] = [];
+        const results: { label: string; address?: string; lat: number; lng: number }[] = [];
         const seen = new Set<string>();
 
-        // 키워드 결과 먼저 추가
+        // 키워드 결과 먼저 추가 (장소명 + 도로명/지번 주소)
         for (const doc of (keywordData.documents || [])) {
             const label = doc.place_name || doc.address_name;
+            const address = doc.road_address_name || doc.address_name || '';
             if (label && !seen.has(label)) {
                 seen.add(label);
-                results.push({ label, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
             }
         }
         
         // 주소 결과 추가
         for (const doc of (addressData.documents || [])) {
             const label = doc.address_name;
+            const address = doc.road_address?.address_name || doc.address_name || '';
             if (label && !seen.has(label)) {
                 seen.add(label);
-                results.push({ label, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
             }
         }
 

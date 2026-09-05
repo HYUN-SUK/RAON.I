@@ -16,6 +16,16 @@ import RecipeDetailSheet, { RecipeData } from '@/components/common/RecipeDetailS
 import InstantPlanModal from '@/components/home/InstantPlanModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import { OPEN_DAY_CONFIG } from '@/constants/reservation';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
@@ -101,6 +111,7 @@ export default function BeginnerHome() {
     const [nearbyCoords, setNearbyCoords] = useState<{ lat: number; lng: number } | null>(null);
     const [nearbyFallbackNotice, setNearbyFallbackNotice] = useState<string | null>(null);
     const [selectedAnchorDest, setSelectedAnchorDest] = useState<{ name: string; lat: number; lng: number; address?: string } | null>(null);
+    const [isNearbyConfirmOpen, setIsNearbyConfirmOpen] = useState(false);
 
     // 내 주변 즉시여행계획 생성 핸들러 (버튼 터치 즉시 0초 바텀시트 오픈)
     const handleNearbyPlanClick = useCallback(() => {
@@ -448,8 +459,8 @@ export default function BeginnerHome() {
                     )}
                 </AnimatePresence>
 
-                {/* 1. Hero Section */}
-                <section className="relative w-full h-[42vh] min-h-[380px] flex flex-col justify-end p-6">
+                {/* 1. Hero Section (슬림화 및 골든존 최적화) */}
+                <section className="relative w-full h-[26vh] min-h-[210px] flex flex-col justify-end p-4">
                     <div className="absolute inset-0 z-0 bg-stone-300">
                         {/* Hero Image */}
                         <div
@@ -464,19 +475,22 @@ export default function BeginnerHome() {
                         <NotificationBadge variant="hero" />
                     </div>
 
-                    <div className="relative z-20 text-white space-y-2 mb-8 w-full text-center">
+                    <div className="relative z-20 text-white space-y-1 mb-2 w-full text-center">
+                        {/* 골든존 확보를 위해 인사문구 숨김 처리 */}
+                        {/* 
                         <p className="text-[#C8E6C9] font-bold text-lg mb-4 leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
                             {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
                         </p>
+                        */}
                         
-                        <span className="tracking-[0.2em] font-black text-white/90 text-[18px] block mb-5 pl-[0.2em]">
+                        <span className="tracking-[0.2em] font-black text-white/90 text-[15px] block mb-2 pl-[0.2em]">
                             나만의 스마트 여행수첩
                         </span>
 
-                        <div className="py-1 w-full">
-                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2" />
-                            <span className="tracking-[0.4em] font-bold text-white/95 text-[30px] text-center block pl-[0.4em]">라 온 아 이</span>
-                            <div className="w-36 h-[2px] bg-white/30 mx-auto my-2" />
+                        <div className="py-0.5 w-full">
+                            <div className="w-28 h-[1.5px] bg-white/30 mx-auto my-1" />
+                            <span className="tracking-[0.4em] font-bold text-white/95 text-[24px] text-center block pl-[0.4em]">라 온 아 이</span>
+                            <div className="w-28 h-[1.5px] bg-white/30 mx-auto my-1" />
                         </div>
                     </div>
                 </section>
@@ -491,7 +505,7 @@ export default function BeginnerHome() {
                     <div className="grid grid-cols-2 gap-3">
                         {/* 좌측: 내 주변 즉시여행계획 만들기 */}
                         <button
-                            onClick={handleNearbyPlanClick}
+                            onClick={() => setIsNearbyConfirmOpen(true)}
                             className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#F1F8F3] to-[#E5F2E8] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#224732]/25 rounded-2xl shadow-sm hover:shadow-md hover:border-[#224732]/40 active:scale-[0.98] transition-all text-left aspect-square group cursor-pointer"
                         >
                             <div className="flex items-center justify-between w-full">
@@ -839,6 +853,40 @@ export default function BeginnerHome() {
                 fallbackNotice={nearbyFallbackNotice}
                 initialDestination={selectedAnchorDest}
             />
+
+            {/* 내 주변 즉시 여행계획 생성 확인 팝업 */}
+            <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
+                <AlertDialogContent className="w-[90%] max-w-[360px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
+                    <AlertDialogHeader className="space-y-2 text-left">
+                        <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                            <div className="p-2 bg-[#224732]/10 text-[#224732] dark:text-emerald-400 rounded-xl">
+                                <MapPin className="w-4 h-4" />
+                            </div>
+                            내 주변 즉시 여행계획 생성
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
+                            현재 계신 위치(실시간 GPS)를 기반으로 4단계 여행코스(맛집·카페·힐링명소·편의시설)를 즉시 완성해 드릴까요?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-row items-center justify-end gap-2 mt-4">
+                        <AlertDialogCancel 
+                            onClick={() => setIsNearbyConfirmOpen(false)}
+                            className="flex-1 h-10 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100 dark:hover:bg-zinc-800 mt-0"
+                        >
+                            아니오
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setIsNearbyConfirmOpen(false);
+                                handleNearbyPlanClick();
+                            }}
+                            className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#224732] hover:bg-[#1a3827] shadow-sm"
+                        >
+                            확인
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div >
     );
 }

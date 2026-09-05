@@ -100,10 +100,54 @@ export async function saveInstantPlanToScheduleAction(params: {
         }
 
         // 2. 일정 생성 (외부/독립 일정으로 생성)
+        let finalCampgroundName = params.campgroundName;
+        let finalCampgroundAddress = params.campgroundAddress || '';
+
+        // [내 주변 즉시여행] 일정 등록 시점에만 카카오 로컬 역지오코딩 API 호출
+        if (
+            (params.campgroundName.includes('내 주변') || !finalCampgroundAddress || finalCampgroundAddress === '내 현재 위치') &&
+            params.campgroundLat &&
+            params.campgroundLng
+        ) {
+            const kakaoKey = process.env.KAKAO_REST_API_KEY;
+            if (kakaoKey) {
+                try {
+                    const revRes = await fetch(
+                        `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${params.campgroundLng}&y=${params.campgroundLat}`,
+                        { headers: { Authorization: `KakaoAK ${kakaoKey}` }, cache: 'no-store' }
+                    );
+                    if (revRes.ok) {
+                        const revData = await revRes.json();
+                        const doc = revData.documents?.[0];
+                        if (doc) {
+                            const roadAddr = doc.road_address?.address_name;
+                            const jibunAddr = doc.address?.address_name;
+                            const fullAddr = roadAddr || jibunAddr || '';
+
+                            const region2 = doc.road_address?.region_2depth_name || doc.address?.region_2depth_name || '';
+                            const region3 = doc.road_address?.region_3depth_name || doc.address?.region_3depth_name || '';
+                            const regionLabel = `${region2} ${region3}`.trim();
+
+                            if (regionLabel) {
+                                finalCampgroundName = `${regionLabel} 주변 여행`;
+                            } else if (fullAddr) {
+                                finalCampgroundName = `${fullAddr} 주변 여행`;
+                            }
+                            if (fullAddr) {
+                                finalCampgroundAddress = fullAddr;
+                            }
+                        }
+                    }
+                } catch (revErr) {
+                    console.warn('[saveInstantPlanToScheduleAction] Reverse geocoding failed:', revErr);
+                }
+            }
+        }
+
         const schedRes = await createSchedule({
             source: 'external',
-            campgroundName: params.campgroundName,
-            campgroundAddress: params.campgroundAddress,
+            campgroundName: finalCampgroundName,
+            campgroundAddress: finalCampgroundAddress,
             campgroundLat: params.campgroundLat,
             campgroundLng: params.campgroundLng,
             checkIn: params.checkIn,
@@ -116,7 +160,11 @@ export async function saveInstantPlanToScheduleAction(params: {
         }
 
         // 3. 생성된 일정에 스마트플랜 데이터 연동
-        await updateSmartPlanData(schedRes.id, params.planData);
+        const planToSave = { ...params.planData };
+        if ((planToSave as any).title && typeof (planToSave as any).title === 'string' && (planToSave as any).title.includes('내 주변')) {
+            (planToSave as any).title = `${finalCampgroundName} 플랜`;
+        }
+        await updateSmartPlanData(schedRes.id, planToSave);
 
         return { success: true, scheduleId: schedRes.id };
     } catch (err: any) {

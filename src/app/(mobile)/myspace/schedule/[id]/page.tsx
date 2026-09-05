@@ -604,9 +604,9 @@ function ScheduleDetailContent() {
 
     return (
         <div className="min-h-screen bg-[#F7F5EF]">
-            {/* 헤더 */}
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
-                <div className="flex items-center justify-between px-4 h-14">
+            {/* 헤더 (옵션 B: 상단 카드 완전 제거 및 헤더 바 일체형 흡수) */}
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-xs">
+                <div className="flex items-center justify-between px-3 py-2.5 min-h-[58px]">
                     <button
                         onClick={() => {
                             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
@@ -616,91 +616,70 @@ function ScheduleDetailContent() {
                                 router.push('/myspace/schedule');
                             }
                         }}
-                        className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-2 -ml-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
+                        title="뒤로가기"
                     >
                         <ChevronLeft className="w-6 h-6 text-gray-700" />
                     </button>
-                    <h1 className="text-lg font-semibold text-gray-900 truncate max-w-[180px]">
-                        {schedule.campground_name}
-                    </h1>
+
+                    <div className="flex-1 min-w-0 px-2 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                            {schedule.source === 'raonai' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#224732]/10 text-[#224732]">
+                                    라온아이
+                                </span>
+                            )}
+                            <h1 className="text-base font-bold text-gray-900 truncate">
+                                {schedule.campground_name}
+                            </h1>
+                        </div>
+                        <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500 font-medium truncate mt-0.5">
+                            <span className="font-bold text-[#224732] bg-[#224732]/10 px-1.5 py-0.2 rounded text-[10px]">
+                                {schedule.status === 'completed'
+                                    ? '완료된 여행'
+                                    : daysUntil === 0
+                                    ? 'D-Day!'
+                                    : daysUntil > 0
+                                    ? `D-${daysUntil}`
+                                    : '지남'}
+                            </span>
+                            <span>{format(checkIn, 'M.d (EEE)', { locale: ko })} ~ {format(checkOut, 'M.d (EEE)', { locale: ko })}</span>
+                            <span className="text-gray-400">({nights}박 {nights + 1}일)</span>
+                        </div>
+                    </div>
+
                     {/* 타캠핑장 일정만 수정/삭제 가능 */}
                     {schedule.source === 'external' ? (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 shrink-0">
                             <button
                                 onClick={() => setIsEditSheetOpen(true)}
                                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                                 title="수정"
                             >
-                                <Pencil className="w-5 h-5 text-gray-600" />
+                                <Pencil className="w-4 h-4 text-gray-600" />
                             </button>
                             <button
                                 onClick={() => setIsDeleteDialogOpen(true)}
                                 className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                                 title="삭제"
                             >
-                                <Trash2 className="w-5 h-5 text-red-500" />
+                                <Trash2 className="w-4 h-4 text-red-500" />
                             </button>
                         </div>
                     ) : (
-                        <div className="w-10" />
+                        <div className="w-10 shrink-0" />
                     )}
                 </div>
             </div>
 
             <div className="p-4 space-y-4">
-                {/* D-Day 히어로 */}
-                <div className="bg-gradient-to-br from-[#224732] to-[#1a3626] rounded-2xl p-6 text-white">
-                    <div className="flex items-center justify-between mb-4">
-                        {schedule.source === 'raonai' && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-white/20">
-                                라온아이 예약
-                            </span>
-                        )}
-                        {schedule.status === 'scheduled' && daysUntil >= 0 && (
-                            <span className="text-3xl font-bold">
-                                {daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
-                            </span>
-                        )}
-                        {schedule.status === 'completed' && (
-                            <span className="px-3 py-1 rounded-full text-sm bg-white/20">
-                                완료된 여행
-                            </span>
-                        )}
+                {/* 주소 표시 (상세 주소가 등록되어 있고 목적지명과 다를 때 슬림하게 노출) */}
+                {schedule.campground_address && schedule.campground_address !== schedule.campground_name && schedule.campground_address !== '내 현재 위치' && (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 px-1 -mt-1">
+                        <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                        <span className="truncate">{schedule.campground_address}</span>
                     </div>
-                    <h2 className="text-xl font-bold mb-1">{schedule.campground_name}</h2>
-                    {schedule.campground_address && (
-                        <p className="text-sm text-white/80 flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {schedule.campground_address}
-                        </p>
-                    )}
-                </div>
-
-                {/* 일정 정보 */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm">
-                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-[#224732]" />
-                        일정 정보
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-xs text-gray-500 mb-1">입실일</p>
-                            <p className="font-medium text-gray-900">
-                                {format(checkIn, 'yyyy.M.d (EEE)', { locale: ko })}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500 mb-1">퇴실일</p>
-                            <p className="font-medium text-gray-900">
-                                {format(checkOut, 'yyyy.M.d (EEE)', { locale: ko })}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span>{nights}박 {nights + 1}일</span>
-                    </div>
-                </div>
+                )}
 
                 {/* 날씨 정보 */}
                 {daysUntil > 10 ? (

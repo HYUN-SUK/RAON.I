@@ -38,6 +38,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
 import { openNavApp } from '@/lib/nav-utils';
 import SmartPlanMapViewModal from '@/components/plan/SmartPlanMapViewModal';
+import { cn } from '@/lib/utils';
 
 const CATEGORY_ICONS: Record<string, string> = {
     'ROUTE_CAFE': '☕',
@@ -109,7 +110,7 @@ export default function InstantPlanModal({
     const [targetDate, setTargetDate] = useState<string>(defaultSaturday);
 
     // Search results
-    const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
+    const [searchResults, setSearchResults] = useState<{ label: string; address?: string; lat: number; lng: number }[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
     // Generated plan
@@ -129,11 +130,66 @@ export default function InstantPlanModal({
     const savedSwapCategoryRef = React.useRef<string | null>(null);
     const savedSwapTargetIdRef = React.useRef<string | null>(null);
 
-    // Schedule saving state
+    // Schedule saving state & travel dates
     const [isSaving, setIsSaving] = useState(false);
     const [existingProfile, setExistingProfile] = useState<CampingProfile | null>(null);
     const [activeFallbackNotice, setActiveFallbackNotice] = useState<string | null>(fallbackNotice || null);
     const nearbyRunningRef = React.useRef(false);
+
+    // Registration dates (입실일 / 퇴실일 / 박수)
+    const [regCheckIn, setRegCheckIn] = useState<string>(todayStr);
+    const [regCheckOut, setRegCheckOut] = useState<string>(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().split('T')[0];
+    });
+    const [regStayType, setRegStayType] = useState<'0n1d' | '1n2d' | '2n3d' | '3n4d' | 'custom'>('1n2d');
+
+    const handleApplyStayType = (type: '0n1d' | '1n2d' | '2n3d' | '3n4d') => {
+        setRegStayType(type);
+        const base = new Date(regCheckIn);
+        if (type === '0n1d') {
+            setRegCheckOut(regCheckIn);
+        } else if (type === '1n2d') {
+            base.setDate(base.getDate() + 1);
+            setRegCheckOut(base.toISOString().split('T')[0]);
+        } else if (type === '2n3d') {
+            base.setDate(base.getDate() + 2);
+            setRegCheckOut(base.toISOString().split('T')[0]);
+        } else if (type === '3n4d') {
+            base.setDate(base.getDate() + 3);
+            setRegCheckOut(base.toISOString().split('T')[0]);
+        }
+    };
+
+    const handleCheckInChange = (newIn: string) => {
+        setRegCheckIn(newIn);
+        const base = new Date(newIn);
+        if (regStayType === '0n1d') {
+            setRegCheckOut(newIn);
+        } else if (regStayType === '1n2d') {
+            base.setDate(base.getDate() + 1);
+            setRegCheckOut(base.toISOString().split('T')[0]);
+        } else if (regStayType === '2n3d') {
+            base.setDate(base.getDate() + 2);
+            setRegCheckOut(base.toISOString().split('T')[0]);
+        } else if (regStayType === '3n4d') {
+            base.setDate(base.getDate() + 3);
+            setRegCheckOut(base.toISOString().split('T')[0]);
+        } else {
+            if (newIn > regCheckOut) {
+                setRegCheckOut(newIn);
+            }
+        }
+    };
+
+    const calculatedNights = useMemo(() => {
+        if (!regCheckIn || !regCheckOut) return 1;
+        const d1 = new Date(regCheckIn);
+        const d2 = new Date(regCheckOut);
+        const diff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.max(0, diff);
+    }, [regCheckIn, regCheckOut]);
 
     useEffect(() => {
         setActiveFallbackNotice(fallbackNotice || null);
@@ -403,6 +459,14 @@ export default function InstantPlanModal({
             setExistingProfile(prof);
         } catch {}
 
+        // Initialize registration dates from targetDate
+        const start = targetDate || todayStr;
+        setRegCheckIn(start);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        setRegCheckOut(end.toISOString().split('T')[0]);
+        setRegStayType('1n2d');
+
         setStep('PROFILE_GATE');
     };
 
@@ -412,17 +476,13 @@ export default function InstantPlanModal({
 
         setIsSaving(true);
         try {
-            const checkOutDate = new Date(targetDate);
-            checkOutDate.setDate(checkOutDate.getDate() + 1);
-            const checkOutStr = checkOutDate.toISOString().split('T')[0];
-
             const res = await saveInstantPlanToScheduleAction({
                 campgroundName: selectedDestination.name,
                 campgroundAddress: selectedDestination.address || '',
                 campgroundLat: selectedDestination.lat,
                 campgroundLng: selectedDestination.lng,
-                checkIn: targetDate,
-                checkOut: checkOutStr,
+                checkIn: regCheckIn,
+                checkOut: regCheckOut,
                 planData: planData,
                 profile: profile,
             });
@@ -505,24 +565,35 @@ export default function InstantPlanModal({
 
                                 {/* 검색 자동완성 결과 리스트 */}
                                 {searchResults.length > 0 && (
-                                    <div className="bg-white dark:bg-zinc-900 border border-stone-200 rounded-xl shadow-lg overflow-hidden divide-y divide-stone-100">
+                                    <div className="bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden divide-y divide-stone-100 dark:divide-zinc-800">
                                         {searchResults.map((item, idx) => (
                                             <button
                                                 key={idx}
+                                                type="button"
                                                 onClick={() => {
                                                     setSelectedDestination({
                                                         name: item.label,
                                                         lat: item.lat,
                                                         lng: item.lng,
-                                                        address: item.label,
+                                                        address: item.address || item.label,
                                                     });
                                                     setSearchQuery(item.label);
                                                     setSearchResults([]);
                                                 }}
-                                                className="w-full px-4 py-3 text-left hover:bg-amber-50 dark:hover:bg-zinc-800 flex items-center justify-between text-xs text-stone-800 dark:text-stone-200"
+                                                className="w-full px-4 py-2.5 text-left hover:bg-amber-50 dark:hover:bg-zinc-800/60 flex items-center justify-between gap-3 text-stone-800 dark:text-stone-200 transition-colors"
                                             >
-                                                <span className="font-semibold">{item.label}</span>
-                                                <span className="text-[10px] text-amber-600 font-bold">선택</span>
+                                                <div className="flex flex-col min-w-0 flex-1">
+                                                    <span className="font-semibold text-xs text-stone-900 dark:text-stone-100 truncate">{item.label}</span>
+                                                    {item.address && (
+                                                        <span className="text-[11px] text-stone-500 dark:text-stone-400 truncate flex items-center gap-1 mt-0.5">
+                                                            <MapPin className="w-3 h-3 text-stone-400 shrink-0" />
+                                                            {item.address}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] text-amber-600 dark:text-amber-500 font-bold shrink-0 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50">
+                                                    선택
+                                                </span>
                                             </button>
                                         ))}
                                     </div>
@@ -710,6 +781,77 @@ export default function InstantPlanModal({
                     {/* 4. 프로필 게이트 단계 (PROFILE_GATE) */}
                     {step === 'PROFILE_GATE' && (
                         <div className="space-y-4 py-2">
+                            {/* 1. 여행 기간 (입실일 · 퇴실일) 설정 카드 */}
+                            <div className="p-4 bg-white dark:bg-zinc-900 border border-emerald-200/90 dark:border-emerald-900/60 rounded-2xl shadow-xs space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-xs font-bold text-[#224732] dark:text-emerald-400 flex items-center gap-1.5">
+                                        <Calendar className="w-4 h-4" />
+                                        여행 기간 (입실일 · 퇴실일)
+                                    </h4>
+                                    <span className="text-[11px] font-black text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                                        {calculatedNights === 0 ? '당일치기 (0박 1일)' : `${calculatedNights}박 ${calculatedNights + 1}일`}
+                                    </span>
+                                </div>
+
+                                {/* 퀵 박수 선택 칩 */}
+                                <div className="flex items-center gap-1.5 pt-0.5">
+                                    {[
+                                        { id: '0n1d', label: '당일치기' },
+                                        { id: '1n2d', label: '1박 2일' },
+                                        { id: '2n3d', label: '2박 3일' },
+                                        { id: '3n4d', label: '3박 4일' },
+                                    ].map(chip => (
+                                        <button
+                                            key={chip.id}
+                                            type="button"
+                                            onClick={() => handleApplyStayType(chip.id as any)}
+                                            className={cn(
+                                                "flex-1 py-1.5 text-xs font-bold rounded-xl transition-all border",
+                                                regStayType === chip.id
+                                                    ? "bg-[#224732] text-white border-[#224732] shadow-xs"
+                                                    : "bg-stone-50 dark:bg-zinc-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100"
+                                            )}
+                                        >
+                                            {chip.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* 날짜 입력기 */}
+                                <div className="grid grid-cols-2 gap-2 pt-1">
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-bold text-stone-600 dark:text-stone-400">
+                                            입실일 (체크인)
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            value={regCheckIn}
+                                            onChange={(e) => handleCheckInChange(e.target.value)}
+                                            className="h-10 text-xs font-medium rounded-xl border-stone-200 dark:border-zinc-700"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-bold text-stone-600 dark:text-stone-400">
+                                            퇴실일 (체크아웃)
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            value={regCheckOut}
+                                            min={regCheckIn}
+                                            onChange={(e) => {
+                                                setRegCheckOut(e.target.value);
+                                                setRegStayType('custom');
+                                            }}
+                                            className="h-10 text-xs font-medium rounded-xl border-stone-200 dark:border-zinc-700"
+                                        />
+                                    </div>
+                                </div>
+
+                                <p className="text-[10px] text-stone-500 font-medium leading-tight">
+                                    💡 설정된 여행 기간을 기준으로 맞춤 날씨 예보 및 09:00 정밀 스마트플랜이 가동됩니다.
+                                </p>
+                            </div>
+
                             <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
                                 <p className="font-bold flex items-center gap-1">
                                     <Users className="w-4 h-4 text-amber-700" />

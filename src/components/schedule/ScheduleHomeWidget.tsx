@@ -621,16 +621,22 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
                         </div>
                     )}
 
-                    <div className="flex items-center gap-3 text-sm opacity-90">
-                        <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {format(upcomingItem.checkIn, 'M.d(EEE)', { locale: ko })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {nights}박
-                        </span>
-                        <ChevronRight className="w-4 h-4 ml-auto" />
+                    <div className="flex items-center justify-between text-sm mt-1">
+                        <div className="flex items-center gap-3 opacity-90">
+                            <span className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                {format(upcomingItem.checkIn, 'M.d(EEE)', { locale: ko })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {nights}박
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs font-bold text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-full border border-white/25 transition-all shadow-xs group">
+                            <span className="inline-block animate-bounce text-xs">👆</span>
+                            <span>상세보기</span>
+                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                        </div>
                     </div>
                 </div>
             </div>
