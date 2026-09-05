@@ -79,8 +79,10 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     // Search States
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const lastSearchTimeRef = useRef<number>(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [isSearchLoading, setIsSearchLoading] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]); // Kakao Places result
     const [visibleCount, setVisibleCount] = useState(10); // Pagination for list
 
@@ -273,6 +275,13 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             return;
         }
 
+        // 1초 내 연타 방지 가드 (Throttle)
+        const now = Date.now();
+        if (now - lastSearchTimeRef.current < 1000) {
+            return;
+        }
+        lastSearchTimeRef.current = now;
+
         setSearchQuery(query);
 
         if (!window.kakao || !window.kakao.maps.services) {
@@ -280,9 +289,11 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             return;
         }
 
+        setIsSearchLoading(true);
         const ps = new window.kakao.maps.services.Places();
 
         ps.keywordSearch(query, (data: any[], status: any) => {
+            setIsSearchLoading(false);
             if (status === window.kakao.maps.services.Status.OK) {
                 setSearchResults(data);
             } else {
@@ -533,9 +544,10 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             />
                             <button
                                 onClick={handleSearchExecute}
-                                className="ml-2 px-3.5 py-1.5 bg-[#224732] hover:bg-[#1a3626] text-white text-xs sm:text-sm font-semibold rounded-full shrink-0 transition-colors shadow-sm"
+                                disabled={isSearchLoading}
+                                className="ml-2 px-3.5 py-1.5 bg-[#224732] hover:bg-[#1a3626] text-white text-xs sm:text-sm font-semibold rounded-full shrink-0 transition-colors shadow-sm disabled:opacity-50"
                             >
-                                검색
+                                {isSearchLoading ? '검색 중...' : '검색'}
                             </button>
                             <button 
                                 onClick={() => { 

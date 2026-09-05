@@ -129,6 +129,7 @@ export default function InstantPlanModal({
     const [mapCandidateCards, setMapCandidateCards] = useState<any[]>([]);
     const savedSwapCategoryRef = React.useRef<string | null>(null);
     const savedSwapTargetIdRef = React.useRef<string | null>(null);
+    const lastSearchTimeRef = React.useRef<number>(0);
 
     // Schedule saving state & travel dates
     const [isSaving, setIsSaving] = useState(false);
@@ -302,18 +303,31 @@ export default function InstantPlanModal({
         }
     }, [isOpen, initialMode, todayStr, defaultSaturday]);
 
-    // Handle address / keyword search
+    // Handle address / keyword search (Only triggered upon Enter key or [검색] button click)
     const handleSearch = async (query: string) => {
-        if (!query.trim()) {
+        const trimmed = query.trim();
+        if (!trimmed) {
             setSearchResults([]);
             return;
         }
+
+        // 1초 내 연타 방지 가드 (Throttle)
+        const now = Date.now();
+        if (now - lastSearchTimeRef.current < 1000) {
+            return;
+        }
+        lastSearchTimeRef.current = now;
+
         setIsSearching(true);
         try {
-            const res = await searchAddressAction(query);
+            const res = await searchAddressAction(trimmed);
             setSearchResults(res);
+            if (res.length === 0) {
+                toast.info('검색 결과가 없습니다. 다른 검색어로 시도해보세요.');
+            }
         } catch (err) {
             console.error('Search failed:', err);
+            toast.error('검색 중 오류가 발생했습니다.');
         } finally {
             setIsSearching(false);
         }
@@ -550,17 +564,39 @@ export default function InstantPlanModal({
                                     <MapPin className="w-3.5 h-3.5 text-amber-600" />
                                     어디로 떠나시나요? (캠핑장 또는 여행지)
                                 </label>
-                                <div className="relative">
-                                    <Input
-                                        value={searchQuery}
-                                        onChange={(e) => {
-                                            setSearchQuery(e.target.value);
-                                            handleSearch(e.target.value);
-                                        }}
-                                        placeholder="캠핑장명, 지역, 관광지 검색 (예: 가평, 태안, 라온아이)"
-                                        className="h-12 pl-10 pr-4 rounded-xl text-sm border-stone-300 focus-visible:ring-amber-500"
-                                    />
-                                    <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-4" />
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-4" />
+                                        <Input
+                                            value={searchQuery}
+                                            onChange={(e) => {
+                                                setSearchQuery(e.target.value);
+                                                if (!e.target.value.trim()) {
+                                                    setSearchResults([]);
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleSearch(searchQuery);
+                                                }
+                                            }}
+                                            placeholder="캠핑장명, 지역, 관광지 검색 (예: 가평, 태안, 라온아이)"
+                                            className="h-12 pl-10 pr-4 rounded-xl text-sm border-stone-300 focus-visible:ring-amber-500"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={() => handleSearch(searchQuery)}
+                                        disabled={isSearching || !searchQuery.trim()}
+                                        className="h-12 px-4 rounded-xl bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs shrink-0 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {isSearching ? (
+                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                        ) : (
+                                            <span>검색</span>
+                                        )}
+                                    </Button>
                                 </div>
 
                                 {/* 검색 자동완성 결과 리스트 */}

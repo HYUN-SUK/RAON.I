@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     MapPin,
     Users,
@@ -60,6 +60,7 @@ export default function CampingProfileGate({
     const [addressQuery, setAddressQuery] = useState('');
     const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const lastSearchTimeRef = useRef<number>(0);
 
     // 프로필 로딩 (듀얼 폴백 패치 + 쾌속 동기 스토리지 캐시 검사)
     useEffect(() => {
@@ -145,12 +146,21 @@ export default function CampingProfileGate({
 
     // 카카오 맵 로드 체크 (이미 프로젝트에서 사용 중이므로 window.kakao 활용)
     const searchAddress = useCallback(async (query: string) => {
-        if (!query.trim()) return;
+        const trimmed = query.trim();
+        if (!trimmed) return;
+
+        // 1초 내 연타 방지 가드 (Throttle)
+        const now = Date.now();
+        if (now - lastSearchTimeRef.current < 1000) {
+            return;
+        }
+        lastSearchTimeRef.current = now;
+
         setIsSearching(true);
         setSearchResults([]);
 
         try {
-            const results = await searchAddressAction(query);
+            const results = await searchAddressAction(trimmed);
             setSearchResults(results);
 
             if (results.length === 0) {
