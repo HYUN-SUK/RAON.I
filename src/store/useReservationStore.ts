@@ -952,13 +952,13 @@ export const useReservationStore = create<ReservationState>()(
                 const targetCheckInStr = formatLocalDate(newCheckIn as any);
                 const targetCheckOutStr = formatLocalDate(newCheckOut as any);
 
-                // 1. 차단일(Blocked Dates) 검증 (bStart < targetCheckOut && bEnd >= targetCheckIn)
+                // 1. 차단일(Blocked Dates) 검증 (bStart < targetCheckOut && bEnd > targetCheckIn)
                 const { blockedDates } = get();
                 const isBlocked = (blockedDates || []).some(b => {
                     if (b.siteId !== newSiteId) return false;
                     const bStartStr = formatLocalDate(b.startDate as any);
                     const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
-                    return bStartStr < targetCheckOutStr && bEndStr >= targetCheckInStr;
+                    return bStartStr < targetCheckOutStr && bEndStr > targetCheckInStr;
                 });
 
                 if (isBlocked) {

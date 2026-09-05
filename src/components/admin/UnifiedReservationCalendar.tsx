@@ -796,7 +796,7 @@ export default function UnifiedReservationCalendar() {
                                                     if (b.siteId !== s.id) return false;
                                                     const bStartStr = formatLocalDate(b.startDate as any);
                                                     const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
-                                                    return bStartStr < outStr && bEndStr >= inStr;
+                                                    return bStartStr < outStr && bEndStr > inStr;
                                                 });
 
                                                 const hasOverlap = reservations.some(r => {
@@ -833,7 +833,7 @@ export default function UnifiedReservationCalendar() {
                                 if (b.siteId !== modifySiteId) return false;
                                 const bStartStr = formatLocalDate(b.startDate as any);
                                 const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
-                                return bStartStr < outStr && bEndStr >= inStr;
+                                return bStartStr < outStr && bEndStr > inStr;
                             });
 
                             const hasOverlap = reservations.some(r => {
@@ -879,7 +879,7 @@ export default function UnifiedReservationCalendar() {
                                     if (b.siteId !== modifySiteId) return false;
                                     const bStartStr = formatLocalDate(b.startDate as any);
                                     const bEndStr = b.endDate ? formatLocalDate(b.endDate as any) : bStartStr;
-                                    return bStartStr < outStr && bEndStr >= inStr;
+                                    return bStartStr < outStr && bEndStr > inStr;
                                 });
                                 if (isBlocked) {
                                     toast.error('선택하신 사이트는 해당 일자에 관리자 차단(Blocked)되어 있습니다.');
