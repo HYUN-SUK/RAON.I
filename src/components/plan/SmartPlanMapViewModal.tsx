@@ -54,7 +54,7 @@ export default function SmartPlanMapViewModal({
     renderCustomCard
 }: SmartPlanMapViewModalProps) {
     // 1. 카카오맵 SDK 로더
-    const [loading, error] = useKakaoLoader({
+    const [loading] = useKakaoLoader({
         appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!,
         libraries: ['services', 'clusterer'],
     });

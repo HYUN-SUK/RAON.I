@@ -5,8 +5,6 @@ import {
     MapPin,
     Users,
     Dog,
-    ChevronDown,
-    ChevronUp,
     Loader2,
     Check,
     Pencil,
