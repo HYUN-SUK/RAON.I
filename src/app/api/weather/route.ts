@@ -147,22 +147,33 @@ export async function GET(req: NextRequest) {
     const baseTimeNow = `${String(hours).padStart(2, '0')}00`;
 
     try {
+        // [v14.1.0] 기상청 호출 2.5초 타임아웃 헬퍼
+        const fetchKmaWithTimeout = async (url: string, timeoutMs: number = 2500) => {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const r = await fetch(url, { signal: controller.signal });
+                if (!r.ok) return null;
+                const text = await r.text();
+                return JSON.parse(text);
+            } catch (e) {
+                return null;
+            } finally {
+                clearTimeout(timer);
+            }
+        };
+
         // Fetch Current (UltraSrtNcst)
         const ncstUrl = `${KMA_BASE_URL}/getUltraSrtNcst?serviceKey=${serviceKey}&pageNo=1&numOfRows=10&dataType=JSON&base_date=${todayStr}&base_time=${baseTimeNow}&nx=${nx}&ny=${ny}`;
-        const ncstRes = await fetch(ncstUrl);
-        const ncstJson = await ncstRes.json();
+        const ncstJson = await fetchKmaWithTimeout(ncstUrl, 2500);
 
         // Fetch Forecast (getVilageFcst) - For 3 Day
-        // Base time: 0200, 0500, 0800, 1100, 1400, 1700, 2000, 2300
-        // Find closest previous base time
         const baseTimes = [2, 5, 8, 11, 14, 17, 20, 23];
         const currentHour = dateObj.getHours();
         let fcstBaseHour = baseTimes.reverse().find(h => h <= currentHour) || 23;
 
-        // If current hour < 2, needs yesterday 23.
         let fcstDateStr = todayStr;
         if (currentHour < 2) {
-            // Handle yesterday date calc
             const yest = new Date(dateObj);
             yest.setDate(yest.getDate() - 1);
             const yM = String(yest.getMonth() + 1).padStart(2, '0');
@@ -173,15 +184,30 @@ export async function GET(req: NextRequest) {
         const fcstBaseTime = `${String(fcstBaseHour).padStart(2, '0')}00`;
 
         const fcstUrl = `${KMA_BASE_URL}/getVilageFcst?serviceKey=${serviceKey}&pageNo=1&numOfRows=1000&dataType=JSON&base_date=${fcstDateStr}&base_time=${fcstBaseTime}&nx=${nx}&ny=${ny}`;
-        const fcstRes = await fetch(fcstUrl);
-        const fcstJson = await fcstRes.json();
+        const fcstJson = await fetchKmaWithTimeout(fcstUrl, 2500);
 
         // Process Data
-        const currentData = parseNcst(ncstJson); // Helper
-        const forecastData = await parseFcst(fcstJson, lat, lng); // Helper
+        let currentData = ncstJson ? parseNcst(ncstJson) : null;
+        let forecastData = fcstJson ? await parseFcst(fcstJson, lat, lng) : null;
 
-        if (!currentData || forecastData.daily.length === 0 || forecastData.timeline.length === 0) {
-            throw new Error("KMA Response empty (Quota exceeded or Invalid Format)");
+        // [v14.1.0] 기상청 단기 실패 or 실황 누락 시 메테오 핀포인트 보충
+        if (!currentData || !forecastData || forecastData.daily.length === 0) {
+            const omFallback = await fetchOpenMeteoFallback(lat, lng);
+            if (!currentData && omFallback?.current) {
+                currentData = omFallback.current;
+            }
+            if (!forecastData || forecastData.daily.length === 0) {
+                if (omFallback) {
+                    forecastData = {
+                        daily: omFallback.daily,
+                        timeline: omFallback.timeline
+                    };
+                }
+            }
+        }
+
+        if (!currentData || !forecastData || forecastData.daily.length === 0) {
+            throw new Error("KMA Response empty and Open-Meteo fallback failed");
         }
 
         const finalData = {
@@ -377,19 +403,24 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
         }))
         .sort((a, b) => parseInt(`${a.date}${a.time}`) - parseInt(`${b.date}${b.time}`));
 
-    // --- Phase 2: Mid-term Forecast Integration ---
+    // --- Phase 2: 단기 & 중기 전구간 핀포인트 하이브리드 결합 파이프라인 ---
     try {
         let midDaily = await getMidTermForecast(lat, lng);
-        if (!midDaily || midDaily.length === 0) {
-            // Fallback: If KMA mid-term fails or returns empty, fetch Open-Meteo mid-term to prevent date gaps
-            const omFallback = await fetchOpenMeteoFallback(lat, lng);
-            if (omFallback && omFallback.daily) {
-                midDaily = omFallback.daily;
-            }
-        }
+        const omFallback = await fetchOpenMeteoFallback(lat, lng);
+        const omDaily = omFallback?.daily || [];
 
+        // 1. 중기예보(D+4 ~ D+10) 기상청 데이터 세팅 + 결손 기온 핀포인트 보충
         if (midDaily && midDaily.length > 0) {
             midDaily.forEach(m => {
+                // 기상청 중기 기온(min/max)이 null이면 메테오에서 핀포인트 주입 (육상 날씨는 기상청 것 보존!)
+                if (m.min === null || m.max === null) {
+                    const omMatch = omDaily.find(od => od.date === m.date);
+                    if (omMatch) {
+                        if (m.min === null && omMatch.min !== null) m.min = omMatch.min;
+                        if (m.max === null && omMatch.max !== null) m.max = omMatch.max;
+                        if ((!m.pop || m.pop === 0) && omMatch.pop) m.pop = omMatch.pop;
+                    }
+                }
                 const existing = daily.find(d => d.date === m.date);
                 if (existing) {
                     if (existing.min === null && m.min !== null) existing.min = m.min;
@@ -399,10 +430,35 @@ async function parseFcst(json: unknown, lat: number, lng: number): Promise<{ dai
                     daily.push(m);
                 }
             });
-            daily.sort((a, b) => parseInt(a.date) - parseInt(b.date));
+        }
+
+        // 2. 단기예보(D-0 ~ D+3) 결손 기온 핀포인트 보충 (기상청 당일 최저기온 null 고질병 치유)
+        daily.forEach(d => {
+            if (d.min === null || d.max === null) {
+                const omMatch = omDaily.find(od => od.date === d.date);
+                if (omMatch) {
+                    if (d.min === null && omMatch.min !== null) d.min = omMatch.min;
+                    if (d.max === null && omMatch.max !== null) d.max = omMatch.max;
+                }
+            }
+        });
+
+        // 3. 10일 전구간 연속성 검증: 기상청 단기/중기에서 빠진 일자가 있으면 메테오 데이터로 보충
+        omDaily.forEach(om => {
+            const exists = daily.find(d => d.date === om.date);
+            if (!exists) {
+                daily.push(om);
+            }
+        });
+
+        daily.sort((a, b) => parseInt(a.date) - parseInt(b.date));
+
+        // 4. 타임라인(timeline) 누락 시 메테오 타임라인으로 핀포인트 보강
+        if ((!timeline || timeline.length < 10) && omFallback?.timeline && omFallback.timeline.length > 0) {
+            timeline.splice(0, timeline.length, ...omFallback.timeline);
         }
     } catch (e) {
-        console.warn("Mid-term fetch failed, returning short-term only", e);
+        console.warn("Hybrid weather merge failed, continuing with current daily", e);
     }
 
     return { daily, timeline };
@@ -516,62 +572,52 @@ async function getMidTermForecast(lat: number, lng: number) {
     const tempUrl = `http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa?serviceKey=${serviceKey}&numOfRows=10&pageNo=1&dataType=JSON&regId=${tempCode}&tmFc=${tmFc}`;
 
     try {
-        const [landRes, tempRes] = await Promise.all([
-            fetch(landUrl).then(async r => {
-                if (!r.ok) {
-                    console.error(`Mid Land Fetch Failed: ${r.status} ${await r.text()}`);
-                    return null;
-                }
+        // [v14.1.0] 기상청 중기예보 2.5초 타임아웃 가드 적용 (서버 무한 행 방어)
+        const fetchKmaWithTimeout = async (url: string, timeoutMs: number = 2500) => {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const r = await fetch(url, { signal: controller.signal });
+                if (!r.ok) return null;
                 const text = await r.text();
-                // Mid Land Res log removed
-                try { return JSON.parse(text); } catch (e) { console.error("Mid Land Parse Error", e); return null; }
-            }),
-            fetch(tempUrl).then(async r => {
-                if (!r.ok) {
-                    console.error(`Mid Temp Fetch Failed: ${r.status} ${await r.text()}`);
-                    return null;
-                }
-                const text = await r.text();
-                try { return JSON.parse(text); } catch (e) { console.error("Mid Temp Parse Error", e); return null; }
-            })
-        ]);
+                return JSON.parse(text);
+            } catch (e) {
+                return null;
+            } finally {
+                clearTimeout(timer);
+            }
+        };
 
-        if (!landRes?.response?.body?.items?.item) {
-            console.warn("Mid Land Body Empty", JSON.stringify(landRes).substring(0, 200));
-        }
+        const [landRes, tempRes] = await Promise.all([
+            fetchKmaWithTimeout(landUrl, 2500),
+            fetchKmaWithTimeout(tempUrl, 2500)
+        ]);
 
         const landItem = landRes?.response?.body?.items?.item?.[0];
         const tempItem = tempRes?.response?.body?.items?.item?.[0];
 
-        if (!landItem || !tempItem) {
-            console.warn('[Weather] Mid-term: No landItem or tempItem found');
+        // landItem도 없으면 기상청 중기예보 실패 -> 메테오 중기예보로 전체 대체
+        if (!landItem) {
+            console.warn('[Weather] Mid-term: No landItem found, falling back to Open-Meteo for mid-term');
             return [];
         }
 
-        // Use TODAY (KST) as reference, not baseDate
-        // Mid-term forecast provides D+3 ~ D+10 from TODAY
+        // Use TODAY (KST) as reference
+        // Mid-term forecast provides D+4 ~ D+10 from TODAY
         const todayKST = new Date(utcNow + kstOffset);
         todayKST.setHours(0, 0, 0, 0); // Reset to midnight
 
-        const midDaily = [];
-        // KMA Mid-term gives 3day to 10day
-        for (let i = 3; i <= 10; i++) {
-            // Calculate date string for D+i from TODAY
+        const midDaily: DailyWeather[] = [];
+        // KMA Mid-term gives D+4 to D+10 (D+3은 단기예보가 담당)
+        for (let i = 4; i <= 10; i++) {
             const d = new Date(todayKST);
             d.setDate(d.getDate() + i);
             const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
 
-            // Sky: wf3Am, wf3Pm ... wf7, wf8 (Day 8-10 are single value)
             let skyStr = '';
             let pop = 0;
 
             if (i <= 7) {
-                // AM/PM Split available, use PM as representative or average? 
-                // Let's use PM for "Day" if simplified, or handle split. 
-                // Our UI is simple daily list. Let's use PM if valid, else AM.
-                // Or "Am/Pm" strings.
-                // KMA returns "맑음", "구름많음", "흐림", "비", "눈" text.
-                // We need to map to our types.
                 skyStr = landItem[`wf${i}Pm`] || landItem[`wf${i}Am`] || landItem[`wf${i}`] || '맑음';
                 pop = landItem[`rnSt${i}Pm`] || landItem[`rnSt${i}Am`] || landItem[`rnSt${i}`] || 0;
             } else {
@@ -579,9 +625,9 @@ async function getMidTermForecast(lat: number, lng: number) {
                 pop = landItem[`rnSt${i}`] || 0;
             }
 
-            // Temp: taMin3, taMax3 ...
-            const min = tempItem[`taMin${i}`] ?? null;
-            const max = tempItem[`taMax${i}`] ?? null;
+            // Temp: tempItem이 실패하면 null 유지 -> 이후 메테오에서 핀포인트로 결합!
+            const min = tempItem ? (tempItem[`taMin${i}`] ?? null) : null;
+            const max = tempItem ? (tempItem[`taMax${i}`] ?? null) : null;
 
             // Map text to code
             let weatherCode = 'sunny';
@@ -628,7 +674,8 @@ async function fetchOpenMeteoFallback(lat: number, lng: number): Promise<CachedW
             if (code === 2) return 'partly_cloudy';
             if (code === 3) return 'cloudy';
             if (code >= 51 && code <= 67) return 'rainy';
-            if (code >= 71 && code <= 86) return 'snowy';
+            if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snowy';
+            if (code >= 80 && code <= 82) return 'rainy'; // WMO 80,81,82: Rain showers(소나기/비)
             if (code >= 95) return 'rainy';
             return 'sunny';
         };

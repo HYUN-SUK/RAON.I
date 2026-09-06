@@ -976,7 +976,13 @@ export async function generatePersonalizedSmartPlan(
 
         try {
             if (shouldFetchWeather) {
-                if (prefetchedWeather && prefetchedWeather.daily && Array.isArray(prefetchedWeather.daily)) {
+                // [v14.1.0] prefetchedWeather가 들어와도 daily가 비어있으면(length === 0) 서버 자체 getForecast 호출!
+                const hasValidPrefetched = prefetchedWeather && 
+                                           prefetchedWeather.daily && 
+                                           Array.isArray(prefetchedWeather.daily) && 
+                                           prefetchedWeather.daily.length > 0;
+
+                if (hasValidPrefetched) {
                     w = prefetchedWeather;
                 } else {
                     w = await getForecast(location.lat, location.lng, startStrDash);

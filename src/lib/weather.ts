@@ -89,7 +89,8 @@ export async function getForecast(lat: number, lng: number, dateStr: string) {
                     if (code === 2) return 'partly_cloudy';
                     if (code === 3) return 'cloudy';
                     if (code >= 51 && code <= 67) return 'rainy';
-                    if (code >= 71 && code <= 86) return 'snowy';
+                    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snowy';
+                    if (code >= 80 && code <= 82) return 'rainy'; // WMO 80,81,82: Rain showers(소나기/비)
                     if (code >= 95) return 'rainy';
                     return 'sunny';
                 };

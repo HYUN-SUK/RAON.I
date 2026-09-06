@@ -713,15 +713,16 @@ export default function SmartPlanProposal({
     };
 
     if (isGenerating) {
+        const isWeatherPending = liveWeather?.loading || (!liveWeather?.daily || liveWeather.daily.length === 0);
         return (
             <div ref={generatingLoaderRef} className="w-full flex flex-col items-center justify-center p-12 space-y-5 bg-[#F7F5EF] rounded-3xl border border-dashed border-[#224732]/20 shadow-sm animate-pulse m-0">
                 <RefreshCw className="w-10 h-10 text-[#224732] animate-spin" />
                 <div className="text-center space-y-2">
                     <p className="text-sm font-bold text-[#224732]">
-                        여정에 어울리는 장소를 조립하는 중...
+                        {isWeatherPending ? '🌤️ 최신 날씨 정보를 수신하여 조립하는 중...' : '여정에 어울리는 장소를 조립하는 중...'}
                     </p>
                     <p className="text-[11px] text-gray-500">
-                        선택하신 경로를 기반으로 정밀 분석을 시작합니다.
+                        {isWeatherPending ? '기상청 및 위성 예보를 기반으로 정밀 분석을 시작합니다.' : '선택하신 경로를 기반으로 정밀 분석을 시작합니다.'}
                     </p>
                 </div>
             </div>
@@ -1201,10 +1202,12 @@ export default function SmartPlanProposal({
                 ctaButtonText = '🔄 주간 예보 정밀 플랜 업데이트';
                 ctaSubtext = '⏳ 최신 기상청 주간 예보 반영을 위해 오전 9시부터 업데이트가 가능합니다.';
                 ctaIcon = '⏳';
-            } else if (weatherWindow === 'NONE' || weatherWindow === 'UNAVAILABLE') {
+            } else if (weatherWindow === 'NONE' || weatherWindow === 'UNAVAILABLE' || !plan?.weatherBriefing?.dailyForecasts?.length) {
                 isCtaDisabled = false;
                 ctaButtonText = '🔄 주간 예보 정밀 플랜 업데이트';
-                ctaSubtext = '🌤️ 기상청 주간 날씨 예보가 최신화되었습니다! 여행 일정을 업데이트해 보세요.';
+                ctaSubtext = !plan?.weatherBriefing?.dailyForecasts?.length
+                    ? '🌤️ 날씨 예보를 새로 불러와 스마트플랜 날씨 브리핑을 완성할 수 있습니다.'
+                    : '🌤️ 기상청 주간 날씨 예보가 최신화되었습니다! 여행 일정을 업데이트해 보세요.';
                 ctaIcon = '🔄';
             } else {
                 isCtaDisabled = true;
@@ -1220,10 +1223,12 @@ export default function SmartPlanProposal({
                 ctaButtonText = '🔄 출발 당일 초정밀 플랜 업데이트';
                 ctaSubtext = '⏳ 출발 당일 정밀 기상 정보 반영을 위해 오전 9시부터 업데이트가 가능합니다.';
                 ctaIcon = '⏳';
-            } else if (weatherWindow !== 'SHORT') {
+            } else if (weatherWindow !== 'SHORT' || !plan?.weatherBriefing?.dailyForecasts?.length) {
                 isCtaDisabled = false;
                 ctaButtonText = '🔄 출발 당일 초정밀 플랜 업데이트';
-                ctaSubtext = '⚡ 출발 당일 100% 실시간 기상청 날씨를 반영한 최신 스마트플랜을 받아보세요.';
+                ctaSubtext = !plan?.weatherBriefing?.dailyForecasts?.length
+                    ? '⚡ 당일 날씨 예보를 새로 불러와 스마트플랜 날씨 브리핑을 완성할 수 있습니다.'
+                    : '⚡ 출발 당일 100% 실시간 기상청 날씨를 반영한 최신 스마트플랜을 받아보세요.';
                 ctaIcon = '🔄';
             } else {
                 isCtaDisabled = true;
@@ -1401,8 +1406,8 @@ export default function SmartPlanProposal({
                             </p>
                         )}
 
-                        {/* [v12.6.0] 날씨 브리핑 카드 UI */}
-                        {plan.weatherBriefing && (
+                        {/* [v12.6.0] 날씨 브리핑 카드 UI (자가 치유 지원) */}
+                        {(plan.weatherBriefing || diffDaysForRegen <= 7) && (
                             <div className="mt-4 -mx-3.5 sm:mx-0 p-3 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-white overflow-hidden">
                                 <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
                                     <div className="flex items-center gap-2 font-bold text-sm text-emerald-300">
@@ -1410,14 +1415,40 @@ export default function SmartPlanProposal({
                                         <span>날씨 브리핑</span>
                                     </div>
                                     <span className="text-xs font-semibold text-white/80 bg-white/15 px-2.5 py-0.5 rounded-full">
-                                        {plan.weatherBriefing.dDay > 0 ? `D-${plan.weatherBriefing.dDay}` : plan.weatherBriefing.dDay === 0 ? 'D-Day' : `D+${Math.abs(plan.weatherBriefing.dDay)}`}
+                                        {plan.weatherBriefing?.dDay != null
+                                            ? (plan.weatherBriefing.dDay > 0 ? `D-${plan.weatherBriefing.dDay}` : plan.weatherBriefing.dDay === 0 ? 'D-Day' : `D+${Math.abs(plan.weatherBriefing.dDay)}`)
+                                            : (diffDaysForRegen > 0 ? `D-${diffDaysForRegen}` : diffDaysForRegen === 0 ? 'D-Day' : `D+${Math.abs(diffDaysForRegen)}`)}
                                     </span>
                                 </div>
 
-                                {plan.weatherBriefing.status === 'UNAVAILABLE' ? (
+                                {plan.weatherBriefing?.status === 'UNAVAILABLE' ? (
                                     <p className="text-xs text-white/70 italic">
                                         출발일이 아직 넉넉히 남아 날씨 정보는 예보 도달 시(D-7 이내) 자동으로 업데이트됩니다.
                                     </p>
+                                ) : (!plan.weatherBriefing?.dailyForecasts || plan.weatherBriefing.dailyForecasts.length === 0) ? (
+                                    <div className="py-3 px-3.5 rounded-xl bg-amber-500/10 border border-amber-400/20 text-center space-y-2.5">
+                                        <p className="text-xs text-amber-200/90 leading-relaxed font-medium">
+                                            날씨정보를 가져오지 못해 날씨브리핑이 비어있습니다.<br />
+                                            날씨정보 업데이트 버튼을 눌러서 날씨정보를 업데이트할 수 있습니다.
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (onTriggerGeneration) {
+                                                    onTriggerGeneration('BASIC');
+                                                } else if (onReset) {
+                                                    onReset();
+                                                }
+                                            }}
+                                            disabled={isLoading || isGenerating}
+                                            className="h-8 px-3.5 text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-[#1a3626] border border-amber-300/40 rounded-lg shadow-sm transition-all active:scale-95 mx-auto inline-flex items-center gap-1.5"
+                                        >
+                                            <RefreshCw className={`w-3.5 h-3.5 ${isLoading || isGenerating ? 'animate-spin' : ''}`} />
+                                            날씨정보 업데이트
+                                        </Button>
+                                    </div>
                                 ) : (
                                     <div className="space-y-2.5">
                                     {/* 일별 요약 리스트 */}
@@ -1493,18 +1524,18 @@ export default function SmartPlanProposal({
                                     })}
 
                                     {/* 하단 3대 기상 요약 (평균풍속, 최대풍속(방향), 평균습도) 또는 중기예보 안내 */}
-                                    {plan.weatherBriefing.status === 'DETAILED' && (plan.weatherBriefing.avgWindSpeed != null || plan.weatherBriefing.avgHumidity != null) ? (
+                                    {plan.weatherBriefing?.status === 'DETAILED' && (plan.weatherBriefing?.avgWindSpeed != null || plan.weatherBriefing?.avgHumidity != null) ? (
                                         <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/80 px-0.5">
                                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                                {plan.weatherBriefing.avgWindSpeed != null && (
+                                                {plan.weatherBriefing?.avgWindSpeed != null && (
                                                     <span>💨 평균풍속 {plan.weatherBriefing.avgWindSpeed > 0 ? `${plan.weatherBriefing.avgWindSpeed}m/s` : '선선'}</span>
                                                 )}
-                                                {plan.weatherBriefing.maxWindSpeed != null && (
+                                                {plan.weatherBriefing?.maxWindSpeed != null && (
                                                     <span>
                                                         🌪️ 최대풍속 {plan.weatherBriefing.maxWindSpeed}m/s({plan.weatherBriefing.windDirection ? (plan.weatherBriefing.windDirection.endsWith('풍') ? plan.weatherBriefing.windDirection : plan.weatherBriefing.windDirection + '풍') : '남서풍'})
                                                     </span>
                                                 )}
-                                                {plan.weatherBriefing.avgHumidity != null && (
+                                                {plan.weatherBriefing?.avgHumidity != null && (
                                                     <span>💧 평균습도 {plan.weatherBriefing.avgHumidity}%</span>
                                                 )}
                                             </div>
@@ -1517,7 +1548,7 @@ export default function SmartPlanProposal({
                                     )}
 
                                     {/* ⚠️ 날씨 흐름 알림 (있을 경우) */}
-                                    {plan.weatherBriefing.flowAlert && (
+                                    {plan.weatherBriefing?.flowAlert && (
                                         <div className="mt-2 text-xs font-semibold text-amber-300 bg-amber-500/20 border border-amber-400/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
                                             <span>⚠️</span>
                                             <span>{plan.weatherBriefing.flowAlert}</span>
