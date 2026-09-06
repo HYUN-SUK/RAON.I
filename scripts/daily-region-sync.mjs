@@ -103,6 +103,18 @@ const TOUR_API_SIGUNGU_MASTER = {
     isCombined: true,
     gwangju: { areaCode: '5', sigungus: { '동구':'1','서구':'2','남구':'3','북구':'4','광산구':'5' } },
     jeonnam: { areaCode: '36', sigungus: { '목포시':'1','여수시':'2','순천시':'3','나주시':'4','광양시':'5','담양군':'6','곡성군':'7','구례군':'8','고흥군':'9','보성군':'10','화순군':'11','장흥군':'12','강진군':'13','해남군':'14','영암군':'15','무안군':'16','함평군':'17','영광군':'18','장성군':'19','완도군':'20','진도군':'21','신안군':'22' } }
+  },
+  '경기도': {
+    areaCode: '31',
+    sigungus: {
+      '가평군': '1', '고양시': '2', '과천시': '3', '광명시': '4', '광주시': '5',
+      '구리시': '6', '군포시': '7', '김포시': '8', '남양주시': '9', '동두천시': '10',
+      '부천시': '11', '성남시': '12', '수원시': '13', '시흥시': '14', '안산시': '15',
+      '안성시': '16', '안양시': '17', '양주시': '18', '양평군': '19', '여주시': '20',
+      '연천군': '21', '오산시': '22', '용인시': '23', '의왕시': '24', '의정부시': '25',
+      '이천시': '26', '파주시': '27', '평택시': '28', '포천시': '29', '하남시': '30',
+      '화성시': '31'
+    }
   }
 };
 
@@ -438,17 +450,31 @@ async function dailyRegionSync() {
   const targetIndex = (dayOfYear - 1) % SIDO_ROTATION.length;
   let targetSido = SIDO_ROTATION[targetIndex];
 
-  // CLI 인자로 시도 강제 설정 및 force 옵션 지원
+  // CLI 인자로 시도 강제 설정 및 force/선별 카테고리(--only) 옵션 지원
   const args = process.argv.slice(2);
   const forceRun = args.includes('--force');
+  const onlyArg = args.find(a => a.startsWith('--only='));
+  const onlyCategories = onlyArg 
+    ? onlyArg.replace('--only=', '').split(',').map(c => c.trim().toUpperCase()) 
+    : null;
+
+  const shouldRunCategory = (cat) => {
+    if (!onlyCategories || onlyCategories.length === 0) return true;
+    return onlyCategories.includes(cat.toUpperCase());
+  };
+
   const forceSido = args.find(a => SIDO_ROTATION.includes(a));
   if (forceSido) {
     console.log(`💡 [Force Sido Enabled] Force target: ${forceSido}`);
     targetSido = forceSido;
   }
+  if (onlyCategories) {
+    console.log(`🎯 [Targeted Category Sync] Selected categories: ${onlyCategories.join(', ')}`);
+  }
 
   // [SOP v15.0 2중 안전망] 당일 1회 성공(SUCCESS) 0초 스킵 락 (Idempotency Guard)
-  if (!forceRun && !forceSido) {
+  // forceRun, forceSido, 또는 특정 카테고리 선별 실행(--only)인 경우 가드를 안전하게 우회
+  if (!forceRun && !forceSido && !onlyCategories) {
     const kstNow = new Date(Date.now() + 9 * 3600000);
     const todayKstStr = kstNow.toISOString().split('T')[0];
     const kstStartOfDayUtc = new Date(`${todayKstStr}T00:00:00+09:00`).toISOString();
@@ -549,31 +575,52 @@ async function dailyRegionSync() {
 
   // 2. 카테고리별 동기화 실행
   // [2.1] 식당군 (모범/안심/백년/LX)
-  console.log(`\n🍽️ [Step 2.1] 식당군 동기화 시작 (${targetSido})...`);
-  await syncLocalDataCSV(targetSido, seenIds, stats, 'RESTAURANT');
-  await syncSafeRestaurants(targetSido, seenIds, stats.categories.SAFE);
-  await syncLXRestaurants(targetSido, seenIds, stats.categories.LX);
-  await syncBaeknyeon(targetSido, seenIds, stats.categories.BAEK);
-  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 식당군 수집 완료`);
+  if (shouldRunCategory('RESTAURANT')) {
+    console.log(`\n🍽️ [Step 2.1] 식당군 동기화 시작 (${targetSido})...`);
+    await syncLocalDataCSV(targetSido, seenIds, stats, 'RESTAURANT');
+    await syncSafeRestaurants(targetSido, seenIds, stats.categories.SAFE);
+    await syncLXRestaurants(targetSido, seenIds, stats.categories.LX);
+    await syncBaeknyeon(targetSido, seenIds, stats.categories.BAEK);
+    currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 식당군 수집 완료`);
+  } else {
+    console.log(`⏩ [Step 2.1] 식당군 스킵 (--only 옵션)`);
+  }
 
   // [2.2] 마트군 (대규모/기타식품)
-  console.log(`\n🛒 [Step 2.2] 마트군 동기화 시작 (${targetSido})...`);
-  await syncLocalDataCSV(targetSido, seenIds, stats, 'MART');
-  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 마트군 수집 완료`);
+  if (shouldRunCategory('MART')) {
+    console.log(`\n🛒 [Step 2.2] 마트군 동기화 시작 (${targetSido})...`);
+    await syncLocalDataCSV(targetSido, seenIds, stats, 'MART');
+    currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 마트군 수집 완료`);
+  } else {
+    console.log(`⏩ [Step 2.2] 마트군 스킵 (--only 옵션)`);
+  }
 
   // [2.3] 명소군 (관광공사 지역기반 동기화) - KorService2
-  console.log(`\n🏞️ [Step 2.3] 관광명소 동기화 시작 (${targetSido})...`);
-  await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
-  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 관광명소 수집 완료`);
+  if (shouldRunCategory('SPOT')) {
+    console.log(`\n🏞️ [Step 2.3] 관광명소 동기화 시작 (${targetSido})...`);
+    await syncTourSpots(targetSido, seenIds, stats.categories.SPOT);
+    currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 관광명소 수집 완료`);
+  } else {
+    console.log(`⏩ [Step 2.3] 관광명소 스킵 (--only 옵션)`);
+  }
 
   // [2.4] 병원군 (응급의료기관 동기화)
-  console.log(`\n🏥 [Step 2.4] 병원 동기화 시작 (${targetSido})...`);
-  await syncHospitals(targetSido, seenIds, stats.categories.HOSPITAL);
-  currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 병원 수집 완료`);
+  if (shouldRunCategory('HOSPITAL')) {
+    console.log(`\n🏥 [Step 2.4] 병원 동기화 시작 (${targetSido})...`);
+    await syncHospitals(targetSido, seenIds, stats.categories.HOSPITAL);
+    currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} 병원 수집 완료`);
+  } else {
+    console.log(`⏩ [Step 2.4] 병원 스킵 (--only 옵션)`);
+  }
 
   // [2.5] 상세 정보 갱신 (100일 만료 / 미수집 대상 수집)
-  await syncPlaceDetailsEnrichment(targetSido, stats.categories.ENRICHMENT);
+  if (shouldRunCategory('ENRICHMENT')) {
+    await syncPlaceDetailsEnrichment(targetSido, stats.categories.ENRICHMENT);
+  } else {
+    console.log(`⏩ [Step 2.5] 상세 정보 갱신 스킵 (--only 옵션)`);
+  }
 
+  if (shouldRunCategory('SPOT')) {
     // --- [SOP v12.0 Step 9: KTO Municipality Popularity Sync (5-Worker 병렬 최적화)] --- 
     console.log(`\n9. [Popularity] Fetching KTO Official Ranking (5-Worker 병렬 처리)...`);
     
@@ -667,8 +714,8 @@ async function dailyRegionSync() {
                     const mapy = parseFloat(item.mapy || item.lat || 0);
 
                     // [KTO 지자체 100위 순위 차등 점수화: 1위 100점 ~ 100위 50점 선형 감쇠]
+                    const currentSigungu = reg.sigungu || '';
                     const ktoTrustScore = 50 + Math.round(50 * (1 - (rank - 1) / 100));
-                    const ktoPatch = { kto_official: { rank, kto_score: ktoTrustScore, baseYm, updated_at: new Date().toISOString(), source: 'KTO_DAILY_ROTATION' } };
 
                     let matchedMp = null;
 
@@ -686,13 +733,46 @@ async function dailyRegionSync() {
                     let matchedMpId = matchedMp ? matchedMp.id : null;
 
                     if (matchedMp) {
-                        const currentKto = matchedMp.raw_data?.kto_official;
-                        const isSame = currentKto && 
-                                       currentKto.rank === rank && 
-                                       currentKto.baseYm === baseYm;
+                        const existingKto = matchedMp.raw_data?.kto_official;
+                        
+                        // [Best-Rank Win] 기존 지자체 랭킹 맵을 보존하며 현재 지자체 순위 누적 병합
+                        const existingRanks = {
+                            ...(existingKto?.ranks_by_sigungu || 
+                               (existingKto?.rank && (existingKto?.best_sigungu || matchedMp.sigungu)
+                                   ? { [existingKto.best_sigungu || matchedMp.sigungu]: existingKto.rank }
+                                   : {}))
+                        };
+                        if (currentSigungu) {
+                            existingRanks[currentSigungu] = rank;
+                        }
+
+                        // 여러 지자체 중 가장 높은 순위(가장 작은 rank 숫자)를 대표 랭킹으로 선정
+                        const allRankValues = Object.values(existingRanks);
+                        const bestRank = allRankValues.length > 0 ? Math.min(...allRankValues) : rank;
+                        const bestSigungu = Object.keys(existingRanks).find(k => existingRanks[k] === bestRank) || currentSigungu || matchedMp.sigungu || '';
+                        const bestKtoScore = 50 + Math.round(50 * (1 - (bestRank - 1) / 100));
+
+                        const ktoPatch = {
+                            kto_official: {
+                                rank: bestRank,
+                                kto_score: bestKtoScore,
+                                best_sigungu: bestSigungu,
+                                ranks_by_sigungu: existingRanks,
+                                baseYm,
+                                updated_at: new Date().toISOString(),
+                                source: 'KTO_DAILY_ROTATION'
+                            }
+                        };
+
+                        const isSame = existingKto && 
+                                       existingKto.rank === bestRank && 
+                                       existingKto.kto_score === bestKtoScore &&
+                                       existingKto.best_sigungu === bestSigungu &&
+                                       (!currentSigungu || existingKto.ranks_by_sigungu?.[currentSigungu] === rank) &&
+                                       existingKto.baseYm === baseYm;
 
                         const mergedRaw = { ...(matchedMp.raw_data || {}), ...ktoPatch };
-                        const newTrustScore = Math.max(matchedMp.trust_score || 50, ktoTrustScore);
+                        const newTrustScore = Math.max(matchedMp.trust_score || 50, bestKtoScore);
                         if (!isSame || (matchedMp.trust_score || 0) < newTrustScore) {
                             await supabase.from('master_places').update({ raw_data: mergedRaw, trust_score: newTrustScore }).eq('id', matchedMpId);
                             matchedMp.raw_data = mergedRaw;
@@ -704,7 +784,10 @@ async function dailyRegionSync() {
                             for (const spf of spfMatches) {
                                 const currentSpfKto = spf.raw_data?.kto_official;
                                 const isSpfSame = currentSpfKto && 
-                                                  currentSpfKto.rank === rank && 
+                                                  currentSpfKto.rank === bestRank && 
+                                                  currentSpfKto.kto_score === bestKtoScore &&
+                                                  currentSpfKto.best_sigungu === bestSigungu &&
+                                                  (!currentSigungu || currentSpfKto.ranks_by_sigungu?.[currentSigungu] === rank) &&
                                                   currentSpfKto.baseYm === baseYm;
                                 
                                 if (!isSpfSame) {
@@ -715,12 +798,24 @@ async function dailyRegionSync() {
                             }
                         }
                     } else {
+                        const newKtoPatch = {
+                            kto_official: {
+                                rank: rank,
+                                kto_score: ktoTrustScore,
+                                best_sigungu: currentSigungu,
+                                ranks_by_sigungu: currentSigungu ? { [currentSigungu]: rank } : {},
+                                baseYm,
+                                updated_at: new Date().toISOString(),
+                                source: 'KTO_DAILY_ROTATION'
+                            }
+                        };
+
                         const newPlaceData = {
                             id: detId,
                             name: title,
                             category: 'SPOT',
                             sido: targetSido,
-                            sigungu: reg.sigungu || '',
+                            sigungu: currentSigungu,
                             address: addr,
                             lat: mapy,
                             lng: mapx,
@@ -733,7 +828,7 @@ async function dailyRegionSync() {
                                 tel: item.tel || '',
                                 cat1: item.cat1 || '', cat2: item.cat2 || '', cat3: item.cat3 || '',
                                 badges: ['KTO 공식 인기 명소'],
-                                ...ktoPatch
+                                ...newKtoPatch
                             }
                         };
                         await supabase.from('master_places').upsert([newPlaceData], { onConflict: 'id' });
@@ -762,6 +857,9 @@ async function dailyRegionSync() {
         await delay(50);
     }
     currentLogId = await updateAutomationLog(currentLogId, stats, 'RUNNING', `${targetSido} KTO 인기도 수집 완료`);
+  } else {
+    console.log(`⏩ [Step 9] KTO 인기도 수집 스킵 (--only 옵션)`);
+  }
 
   // 3. [SOP v11.3 Update] 최종 지역별 건수 재집계 (7대 지표 정밀화 - paginatedCount 안전 적용)
   console.log(`\n📊 [Final Audit] ${targetSido} 지역별 최종 정합성 확인 중...`);
@@ -889,7 +987,10 @@ async function dailyRegionSync() {
      await finalizePopularityv2();
   }
 
-  await updateAutomationLog(currentLogId, stats, 'SUCCESS', `${targetSido} 지역 순환 동기화 완료 (식당/마트/명소)`);
+  const finalMsg = onlyCategories 
+    ? `${targetSido} 지역 선별 동기화 완료 (${onlyCategories.join('/')})`
+    : `${targetSido} 지역 순환 동기화 완료 (식당/마트/명소)`;
+  await updateAutomationLog(currentLogId, stats, 'SUCCESS', finalMsg);
 
   // 8. [SOP v11.3] 정밀 감사 결과 테이블 출력
   printAuditTable(stats);
