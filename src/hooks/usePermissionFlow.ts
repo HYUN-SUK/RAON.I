@@ -44,8 +44,12 @@ export function usePermissionFlow() {
     const [locationGranted, setLocationGranted] = useState<boolean>(() => {
         if (typeof window !== 'undefined') {
             const val = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
-            if (val === 'false') return false;
-            return true; // 기본값 ON (동의 우선 원칙)
+            // 과거 오염된 false가 아닌 이상 기본값은 무조건 ON
+            if (val === 'false') {
+                // DB가 이미 true로 승격되었으므로 초기 렌더도 true로 방어
+                return true;
+            }
+            return true;
         }
         return true;
     });
@@ -53,8 +57,10 @@ export function usePermissionFlow() {
     const [pushGranted, setPushGranted] = useState<boolean>(() => {
         if (typeof window !== 'undefined') {
             const val = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
-            if (val === 'false') return false;
-            return true; // 기본값 ON (동의 우선 원칙)
+            if (val === 'false') {
+                return true;
+            }
+            return true;
         }
         return true;
     });
@@ -92,54 +98,10 @@ export function usePermissionFlow() {
         const syncConsents = async () => {
             if (typeof window === 'undefined') return;
 
-            const localLoc = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
-            const localPush = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
+            let actualLocation = true;
+            let actualPush = true;
 
-            let actualLocation = localLoc === 'false' ? false : true;
-            let actualPush = localPush === 'false' ? false : true;
-
-            // 1. 브라우저에서 명시적으로 차단('denied')된 경우에만 OFF 처리
-            if (typeof navigator !== 'undefined' && navigator.permissions) {
-                try {
-                    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-                    if (!isCancelled) {
-                        if (status.state === 'denied') {
-                            actualLocation = false;
-                        } else if (localLoc !== 'false') {
-                            actualLocation = true;
-                        }
-                    }
-
-                    // 브라우저 권한 실시간 변경 감지
-                    status.onchange = () => {
-                        const isLocOff = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED) === 'false';
-                        if (status.state === 'granted') {
-                            if (!isLocOff) {
-                                setLocationGranted(true);
-                                localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
-                                saveConsentToServer('location', true);
-                            }
-                        } else if (status.state === 'denied') {
-                            setLocationGranted(false);
-                        }
-                    };
-                } catch {
-                    // query 미지원 환경 대비 안전 처리
-                }
-            }
-
-            // 2. 알림 권한: 브라우저에서 차단('denied')된 경우만 OFF
-            if (localPush === 'false') {
-                actualPush = false;
-            } else if (typeof Notification !== 'undefined') {
-                if (Notification.permission === 'denied') {
-                    actualPush = false;
-                } else {
-                    actualPush = true;
-                }
-            }
-
-            // 3. DB 저장 내역 동기화
+            // 1. DB 동의 상태를 최우선 진실의 원천(Source of Truth)으로 확인
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user && !isCancelled) {
@@ -150,41 +112,51 @@ export function usePermissionFlow() {
                         .maybeSingle();
 
                     if (consent) {
-                        if (consent.location_granted === false && localLoc === 'false') {
-                            actualLocation = false;
-                        } else if (consent.location_granted === true && localLoc !== 'false') {
-                            actualLocation = true;
-                        }
-
-                        if (consent.push_granted === false && localPush === 'false') {
-                            actualPush = false;
-                        } else if (consent.push_granted === true && localPush !== 'false') {
-                            actualPush = true;
-                        }
-                    }
-
-                    // 기본 ON 상태를 DB에도 자동 동기화
-                    if (actualLocation === true && (!consent || !consent.location_granted)) {
+                        // DB에 명시적으로 false가 저장되어 있는 경우에만 OFF, true라면 로컬스토리지의 과거 오염값까지 즉시 true로 정화
+                        actualLocation = consent.location_granted === false ? false : true;
+                        actualPush = consent.push_granted === false ? false : true;
+                    } else {
+                        // 신규 유저 또는 consent 미생성 유저: 기본 ON으로 DB 등록
+                        actualLocation = true;
+                        actualPush = true;
                         saveConsentToServer('location', true);
-                    }
-                    if (actualPush === true && (!consent || !consent.push_granted)) {
                         saveConsentToServer('push', true);
                     }
+                } else {
+                    // 비로그인 유저: 로컬스토리지 상태 참조
+                    const localLoc = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
+                    const localPush = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
+                    if (localLoc === 'false') actualLocation = false;
+                    if (localPush === 'false') actualPush = false;
                 }
             } catch (e) {
                 console.warn('[PermissionFlow] Consent sync warning:', e);
             }
 
+            // 2. 브라우저 실시간 변경 감지 리스너 (허용 시 즉시 반영)
+            if (typeof navigator !== 'undefined' && navigator.permissions) {
+                try {
+                    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+
+                    status.onchange = () => {
+                        if (status.state === 'granted') {
+                            setLocationGranted(true);
+                            localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
+                            saveConsentToServer('location', true);
+                        }
+                    };
+                } catch {
+                    // query 미지원 환경 대비 안전 처리
+                }
+            }
+
+            // 3. 상태 확정 및 로컬스토리지 동기화 (오염된 과거 false 값 완전 제거)
             if (!isCancelled) {
                 setLocationGranted(actualLocation);
-                if (actualLocation && localLoc !== 'false') {
-                    localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
-                }
+                localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, actualLocation ? 'true' : 'false');
 
                 setPushGranted(actualPush);
-                if (actualPush && localPush !== 'false') {
-                    localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, 'true');
-                }
+                localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, actualPush ? 'true' : 'false');
             }
         };
 
@@ -200,8 +172,6 @@ export function usePermissionFlow() {
                 if (Notification.permission === 'granted' && !isPushOff) {
                     setPushGranted(true);
                     localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, 'true');
-                } else if (Notification.permission === 'denied') {
-                    setPushGranted(false);
                 }
             }
 
@@ -210,8 +180,6 @@ export function usePermissionFlow() {
                     if (res.state === 'granted' && !isLocOff) {
                         setLocationGranted(true);
                         localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
-                    } else if (res.state === 'denied') {
-                        setLocationGranted(false);
                     }
                 }).catch(() => {});
             }
