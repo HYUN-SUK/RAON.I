@@ -842,120 +842,134 @@ export default function BeginnerHome() {
             </Sheet>
 
             {/* [v14.0.0] 즉시 여행계획 만들기 통합 모달 (내 주변 / 목적지 투트랙) */}
-            <InstantPlanModal
-                isOpen={instantPlanOpen}
-                onClose={() => {
-                    setInstantPlanOpen(false);
-                    setSelectedAnchorDest(null);
-                    setNearbyFallbackNotice(null);
-                    setSkipLocationRequest(false);
-                }}
-                initialMode={instantPlanMode}
-                userLat={nearbyCoords?.lat || ((!lbs.usingDefault && !lbs.isLoading) ? lbs.location?.latitude : undefined)}
-                userLng={nearbyCoords?.lng || ((!lbs.usingDefault && !lbs.isLoading) ? lbs.location?.longitude : undefined)}
-                fallbackNotice={nearbyFallbackNotice}
-                skipLocationRequest={skipLocationRequest}
-                initialDestination={selectedAnchorDest}
-            />
+            {(() => {
+                const isAppLocationDisabled = typeof window !== 'undefined' && localStorage.getItem('raon_location_granted') === 'false';
+                const isLocationGranted = !isAppLocationDisabled && (lbs.permissionStatus === 'granted' || (!lbs.usingDefault && !lbs.isLoading));
+                const actualUserLat = (!isAppLocationDisabled && !lbs.usingDefault && !lbs.isLoading) ? lbs.location?.latitude : undefined;
+                const actualUserLng = (!isAppLocationDisabled && !lbs.usingDefault && !lbs.isLoading) ? lbs.location?.longitude : undefined;
 
-            {/* 내 주변 즉시 여행계획 생성 확인/선택 팝업 */}
-            <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
-                <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
-                    <AlertDialogHeader className="space-y-2 text-left">
-                        <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                            <div className="p-2 bg-[#224732]/10 text-[#224732] dark:text-emerald-400 rounded-xl">
-                                <MapPin className="w-4 h-4" />
-                            </div>
-                            내 주변 즉시 여행계획 생성
-                        </AlertDialogTitle>
-                        {/* 권한 여부에 따른 맞춤 안내 문구 */}
-                        {(lbs.permissionStatus === 'granted' || (!lbs.usingDefault && !lbs.isLoading)) ? (
-                            <AlertDialogDescription className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed font-medium">
-                                현재 계신 위치(실시간 GPS)를 기반으로 4단계 여행코스(맛집·카페·힐링명소·편의시설)를 즉시 완성해 드릴까요?
-                            </AlertDialogDescription>
-                        ) : (
-                            <div className="space-y-2.5 text-left">
-                                <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
-                                    현재 계신 위치(실시간 GPS)를 기반으로 4단계 여행코스를 즉시 완성해 드릴까요?
-                                </p>
-                                <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/60 leading-relaxed font-medium">
-                                    💡 <strong>위치 정보(GPS) 권한을 허용</strong>하시면 현재 계신 곳 주변으로 맞춤 추천되며, 미동의 시 대표 기준 위치(라온아이 캠핑장)로 여행코스가 추천됩니다.
-                                </div>
-                            </div>
-                        )}
-                    </AlertDialogHeader>
+                return (
+                    <>
+                        <InstantPlanModal
+                            isOpen={instantPlanOpen}
+                            onClose={() => {
+                                setInstantPlanOpen(false);
+                                setSelectedAnchorDest(null);
+                                setNearbyFallbackNotice(null);
+                                setSkipLocationRequest(false);
+                            }}
+                            initialMode={instantPlanMode}
+                            userLat={nearbyCoords?.lat || actualUserLat}
+                            userLng={nearbyCoords?.lng || actualUserLng}
+                            fallbackNotice={nearbyFallbackNotice}
+                            skipLocationRequest={skipLocationRequest || isAppLocationDisabled}
+                            initialDestination={selectedAnchorDest}
+                        />
 
-                    {/* 권한 여부에 따른 푸터 버튼 분기 */}
-                    {(lbs.permissionStatus === 'granted' || (!lbs.usingDefault && !lbs.isLoading)) ? (
-                        <AlertDialogFooter className="flex flex-row items-center justify-end gap-2 mt-4">
-                            <AlertDialogCancel 
-                                onClick={() => setIsNearbyConfirmOpen(false)}
-                                className="flex-1 h-10 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100 dark:hover:bg-zinc-800 mt-0"
-                            >
-                                아니오
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={() => {
-                                    setIsNearbyConfirmOpen(false);
-                                    handleNearbyPlanClick(false);
-                                }}
-                                className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#224732] hover:bg-[#1a3827] shadow-sm"
-                            >
-                                확인
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    ) : (
-                        <div className="flex flex-col gap-2 mt-4">
-                            {/* 1. [위치 동의하고 내 주변 찾기] - User Gesture 직결 브라우저 Geolocation 호출 */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (typeof window !== 'undefined' && navigator.geolocation) {
-                                        try {
-                                            navigator.geolocation.getCurrentPosition(
-                                                (pos) => {
-                                                    setNearbyCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                                                },
-                                                (err) => {
-                                                    console.warn("User gesture geolocation trigger error:", err);
-                                                },
-                                                { timeout: 4000, enableHighAccuracy: true, maximumAge: 0 }
-                                            );
-                                        } catch {}
-                                    }
-                                    setIsNearbyConfirmOpen(false);
-                                    handleNearbyPlanClick(false);
-                                }}
-                                className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#224732] hover:bg-[#1a3827] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
-                            >
-                                <MapPin className="w-3.5 h-3.5 text-emerald-300" />
-                                <span>📍 위치 동의하고 내 주변 찾기</span>
-                            </button>
+                        {/* 내 주변 즉시 여행계획 생성 확인/선택 팝업 */}
+                        <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
+                            <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
+                                <AlertDialogHeader className="space-y-2 text-left">
+                                    <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                                        <div className="p-2 bg-[#224732]/10 text-[#224732] dark:text-emerald-400 rounded-xl">
+                                            <MapPin className="w-4 h-4" />
+                                        </div>
+                                        내 주변 즉시 여행계획 생성
+                                    </AlertDialogTitle>
+                                    {/* 권한 여부에 따른 맞춤 안내 문구 */}
+                                    {isLocationGranted ? (
+                                        <AlertDialogDescription className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed font-medium">
+                                            현재 계신 위치(실시간 GPS)를 기반으로 4단계 여행코스(맛집·카페·힐링명소·편의시설)를 즉시 완성해 드릴까요?
+                                        </AlertDialogDescription>
+                                    ) : (
+                                        <div className="space-y-2.5 text-left">
+                                            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
+                                                현재 계신 위치(실시간 GPS)를 기반으로 4단계 여행코스를 즉시 완성해 드릴까요?
+                                            </p>
+                                            <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/60 leading-relaxed font-medium">
+                                                💡 <strong>위치 정보(GPS) 권한을 허용</strong>하시면 현재 계신 곳 주변으로 맞춤 추천되며, 미동의 시 대표 기준 위치(라온아이 캠핑장)로 여행코스가 추천됩니다.
+                                            </div>
+                                        </div>
+                                    )}
+                                </AlertDialogHeader>
 
-                            {/* 2. [동의 없이 시작 (라온아이 기준)] */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsNearbyConfirmOpen(false);
-                                    handleNearbyPlanClick(true);
-                                }}
-                                className="w-full h-10 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98]"
-                            >
-                                🏕️ 동의 없이 시작 (라온아이 기준)
-                            </button>
+                                {/* 권한 여부에 따른 푸터 버튼 분기 */}
+                                {isLocationGranted ? (
+                                    <AlertDialogFooter className="flex flex-row items-center justify-end gap-2 mt-4">
+                                        <AlertDialogCancel 
+                                            onClick={() => setIsNearbyConfirmOpen(false)}
+                                            className="flex-1 h-10 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100 dark:hover:bg-zinc-800 mt-0"
+                                        >
+                                            아니오
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={() => {
+                                                setIsNearbyConfirmOpen(false);
+                                                handleNearbyPlanClick(false);
+                                            }}
+                                            className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#224732] hover:bg-[#1a3827] shadow-sm"
+                                        >
+                                            확인
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                ) : (
+                                    <div className="flex flex-col gap-2 mt-4">
+                                        {/* 1. [위치 동의하고 내 주변 찾기] - User Gesture 직결 브라우저 Geolocation 호출 & 동의 복구 */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                try {
+                                                    localStorage.setItem('raon_location_granted', 'true');
+                                                } catch {}
+                                                if (typeof window !== 'undefined' && navigator.geolocation) {
+                                                    try {
+                                                        navigator.geolocation.getCurrentPosition(
+                                                            (pos) => {
+                                                                setNearbyCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                                                            },
+                                                            (err) => {
+                                                                console.warn("User gesture geolocation trigger error:", err);
+                                                            },
+                                                            { timeout: 4000, enableHighAccuracy: true, maximumAge: 0 }
+                                                        );
+                                                    } catch {}
+                                                }
+                                                setIsNearbyConfirmOpen(false);
+                                                handleNearbyPlanClick(false);
+                                            }}
+                                            className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#224732] hover:bg-[#1a3827] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                                        >
+                                            <MapPin className="w-3.5 h-3.5 text-emerald-300" />
+                                            <span>📍 위치 동의하고 내 주변 찾기</span>
+                                        </button>
 
-                            {/* 3. [닫기] */}
-                            <button
-                                type="button"
-                                onClick={() => setIsNearbyConfirmOpen(false)}
-                                className="w-full py-1.5 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium transition-colors"
-                            >
-                                닫기
-                            </button>
-                        </div>
-                    )}
-                </AlertDialogContent>
-            </AlertDialog>
+                                        {/* 2. [동의 없이 시작 (라온아이 기준)] */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsNearbyConfirmOpen(false);
+                                                handleNearbyPlanClick(true);
+                                            }}
+                                            className="w-full h-10 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98]"
+                                        >
+                                            🏕️ 동의 없이 시작 (라온아이 기준)
+                                        </button>
+
+                                        {/* 3. [닫기] */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsNearbyConfirmOpen(false)}
+                                            className="w-full py-1.5 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium transition-colors"
+                                        >
+                                            닫기
+                                        </button>
+                                    </div>
+                                )}
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </>
+                );
+            })()}
         </div >
     );
 }

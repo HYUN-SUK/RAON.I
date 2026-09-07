@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase-client";
-import { LogOut, LogIn, Settings, User, Bell, FileText, Download, Sparkles } from "lucide-react";
+import { LogOut, LogIn, Settings, User, Bell, FileText, Download, Sparkles, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { pointService } from "@/services/pointService";
 import { getLevelInfo } from "@/config/pointPolicy";
@@ -16,6 +16,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { usePushNotification } from "@/hooks/usePushNotification";
@@ -49,6 +50,10 @@ export default function TopBar() {
         showLocationPrompt,
         showPushPrompt,
         showIOSPWAPrompt,
+        locationGranted,
+        pushGranted,
+        toggleLocationConsent,
+        togglePushConsent,
         startFlow,
         handleLocationResult,
         handlePushResult,
@@ -205,33 +210,76 @@ export default function TopBar() {
                                 )}
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 bg-white">
-                            <DropdownMenuLabel>
+                        <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-zinc-900 shadow-xl rounded-2xl p-1.5 border border-stone-200 dark:border-zinc-800">
+                            <DropdownMenuLabel className="px-3 py-2 text-xs font-bold text-stone-900 dark:text-stone-100">
                                 {userInfo?.nickname || '내 계정'}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => router.push('/myspace')} className="cursor-pointer">
-                                <User className="mr-2 h-4 w-4" />
+                            <DropdownMenuItem onClick={() => router.push('/myspace')} className="cursor-pointer rounded-xl px-3 py-2 text-xs font-medium">
+                                <User className="mr-2 h-4 w-4 text-stone-500" />
                                 <span>프로필 / 내 공간</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => requestPermission(true)} className="cursor-pointer">
-                                <Bell className="mr-2 h-4 w-4" />
-                                <span>알림 설정 / 권한 허용</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push('/terms')} className="cursor-pointer">
-                                <FileText className="mr-2 h-4 w-4" />
+
+                            <DropdownMenuSeparator />
+
+                            {/* 1. 알림 수신 동의 토글 */}
+                            <div 
+                                className="flex items-center justify-between px-3 py-2 hover:bg-stone-50 dark:hover:bg-zinc-800/60 rounded-xl transition-colors cursor-pointer select-none"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    togglePushConsent(!pushGranted);
+                                }}
+                            >
+                                <div className="flex items-center gap-2 text-xs font-semibold text-stone-800 dark:text-stone-200">
+                                    <Bell className={`w-4 h-4 shrink-0 transition-colors ${pushGranted ? 'text-amber-600 dark:text-amber-400' : 'text-stone-400'}`} />
+                                    <span>알림 수신 동의</span>
+                                </div>
+                                <Switch 
+                                    checked={pushGranted} 
+                                    onCheckedChange={(val) => togglePushConsent(val)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="data-[state=checked]:bg-emerald-600 scale-90"
+                                />
+                            </div>
+
+                            {/* 2. 위치 정보 이용 동의 토글 */}
+                            <div 
+                                className="flex items-center justify-between px-3 py-2 hover:bg-stone-50 dark:hover:bg-zinc-800/60 rounded-xl transition-colors cursor-pointer select-none"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleLocationConsent(!locationGranted);
+                                }}
+                            >
+                                <div className="flex items-center gap-2 text-xs font-semibold text-stone-800 dark:text-stone-200">
+                                    <MapPin className={`w-4 h-4 shrink-0 transition-colors ${locationGranted ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-400'}`} />
+                                    <span>위치 정보 이용 동의</span>
+                                </div>
+                                <Switch 
+                                    checked={locationGranted} 
+                                    onCheckedChange={(val) => toggleLocationConsent(val)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="data-[state=checked]:bg-emerald-600 scale-90"
+                                />
+                            </div>
+
+                            <DropdownMenuSeparator />
+
+                            <DropdownMenuItem onClick={() => router.push('/terms')} className="cursor-pointer rounded-xl px-3 py-2 text-xs font-medium">
+                                <FileText className="mr-2 h-4 w-4 text-stone-500" />
                                 <span>이용 약관</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push('/privacy-policy')} className="cursor-pointer">
-                                <FileText className="mr-2 h-4 w-4" />
+                            <DropdownMenuItem onClick={() => router.push('/privacy-policy')} className="cursor-pointer rounded-xl px-3 py-2 text-xs font-medium">
+                                <FileText className="mr-2 h-4 w-4 text-stone-500" />
                                 <span>개인정보처리방침</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push('/myspace/settings/withdraw')} className="cursor-pointer text-stone-500">
+                            <DropdownMenuItem onClick={() => router.push('/myspace/settings/withdraw')} className="cursor-pointer text-stone-500 rounded-xl px-3 py-2 text-xs font-medium">
                                 <Settings className="mr-2 h-4 w-4" />
                                 <span>회원 탈퇴</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer rounded-xl px-3 py-2 text-xs font-medium">
                                 <LogOut className="mr-2 h-4 w-4" />
                                 <span>로그아웃</span>
                             </DropdownMenuItem>

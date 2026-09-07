@@ -60,8 +60,8 @@ export function usePushNotification() {
         };
     }, []);
 
-    const requestPermission = useCallback(async (force?: boolean) => {
-        if (typeof window === 'undefined') return;
+    const requestPermission = useCallback(async (force?: boolean): Promise<string | null> => {
+        if (typeof window === 'undefined') return null;
 
         try {
             const token = await firebaseRequestPermission();
@@ -101,6 +101,7 @@ export function usePushNotification() {
                         toast.error('로그인이 필요한 서비스입니다.');
                     }
                 }
+                return token;
             } else {
                 if (Notification.permission === 'denied') {
                     console.warn('Notification permission denied');
@@ -112,6 +113,7 @@ export function usePushNotification() {
                         toast.error('알림 권한을 승인받지 못했습니다.');
                     }
                 }
+                return null;
             }
         } catch (error: any) {
             // [v11.9.150] Permission request failed 에러를 console.error 대신 console.warn으로 로깅하여
@@ -120,6 +122,7 @@ export function usePushNotification() {
             if (force) {
                 toast.error('알림 동기화 도중 오류가 발생했습니다.');
             }
+            return null;
         }
     }, []); // Zero dependencies = Guaranteed Stability
 
