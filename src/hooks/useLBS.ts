@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 
 interface Coordinates {
@@ -29,6 +29,42 @@ export const useLBS = () => {
         permissionStatus: 'unknown',
     });
 
+    const handleSuccess = useCallback((position: GeolocationPosition) => {
+        setState({
+            location: {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            },
+            isLoading: false,
+            error: null,
+            errorCode: null,
+            usingDefault: false,
+            permissionStatus: 'granted',
+        });
+    }, []);
+
+    const handleError = useCallback((error: GeolocationPositionError) => {
+        console.warn("LBS Access Denied/Error:", error.message, "code:", error.code);
+        // Fallback to default without blocking the UI
+        setState({
+            location: DEFAULT_CAMPING_LOCATION,
+            isLoading: false,
+            error: error.message,
+            errorCode: error.code,
+            usingDefault: true, // Mark as using default so UI can show "Campsite Base" vs "My Location"
+            permissionStatus: error.code === 1 ? 'denied' : 'prompt',
+        });
+    }, []);
+
+    const refreshLocation = useCallback(() => {
+        if (typeof window === 'undefined' || !navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0,
+        });
+    }, [handleSuccess, handleError]);
+
     useEffect(() => {
         // 권한 상태 사전 확인
         if (typeof navigator !== 'undefined' && navigator.permissions) {
@@ -54,40 +90,24 @@ export const useLBS = () => {
             return;
         }
 
-        const handleSuccess = (position: GeolocationPosition) => {
-            setState({
-                location: {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                },
-                isLoading: false,
-                error: null,
-                errorCode: null,
-                usingDefault: false,
-                permissionStatus: 'granted',
-            });
-        };
-
-        const handleError = (error: GeolocationPositionError) => {
-            console.warn("LBS Access Denied/Error:", error.message, "code:", error.code);
-            // Fallback to default without blocking the UI
-            setState({
-                location: DEFAULT_CAMPING_LOCATION,
-                isLoading: false,
-                error: error.message,
-                errorCode: error.code,
-                usingDefault: true, // Mark as using default so UI can show "Campsite Base" vs "My Location"
-                permissionStatus: error.code === 1 ? 'denied' : 'prompt',
-            });
-        };
-
         // Timeout: 5s
-        navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0,
-        });
-    }, []);
+        refreshLocation();
+    }, [refreshLocation]);
+
+    // 화면 복귀(포커스 복귀 및 visibilitychange) 시 최신 GPS 자동 갱신
+    useEffect(() => {
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                refreshLocation();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('pageshow', refreshLocation);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            window.removeEventListener('pageshow', refreshLocation);
+        };
+    }, [refreshLocation]);
 
     // Util: Get distance in km
     const getDistanceKm = (targetLat: number, targetLng: number) => {
@@ -105,5 +125,5 @@ export const useLBS = () => {
         return parseFloat(d.toFixed(1)); // Return 1 decimal place
     };
 
-    return { ...state, getDistanceKm };
+    return { ...state, getDistanceKm, refreshLocation };
 };

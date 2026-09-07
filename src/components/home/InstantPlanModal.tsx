@@ -277,14 +277,14 @@ export default function InstantPlanModal({
                     allowRetry = false;
                     setStep('GENERATING');
                     setGeneratingStage('OPTIMIZING');
-                } else if (!targetLat || !targetLng) {
-                    // [Case B] 사용자가 위치 동의를 눌렀거나, 진입 직후라 좌표가 아직 없는 경우 -> 1단계 LOCATING 로더 가동
+                } else {
+                    // [Case B] 내 주변 즉시여행계획: 항상 1단계 LOCATING 로더를 가동하여 '실시간 최신 GPS'를 측정
                     setStep('GENERATING');
                     setGeneratingStage('LOCATING');
                     setSelectedDestination({
                         name: '내 주변 위치 확인 중...',
-                        lat: 36.6354349,
-                        lng: 126.7638091,
+                        lat: userLat || 36.6354349,
+                        lng: userLng || 126.7638091,
                         address: '실시간 GPS 측정 중',
                     });
                     setSearchQuery('내 주변 위치 확인 중...');
@@ -303,31 +303,33 @@ export default function InstantPlanModal({
                             notice = null;
                             allowRetry = false;
                         } catch (geoErr: any) {
-                            console.warn('GPS measurement error in modal, fallback to Raon I:', geoErr);
-                            targetLat = 36.6354349;
-                            targetLng = 126.7638091;
-                            if (geoErr?.code === 1) { // PERMISSION_DENIED
-                                notice = "위치 정보 권한이 허용되지 않아 대표 기준 위치(라온아이 캠핑장)를 기준으로 추천해 드립니다. 내 주변 추천을 원하시면 브라우저 위치 권한을 허용해 주세요.";
-                                allowRetry = false;
-                            } else { // 2 (POSITION_UNAVAILABLE) or 3 (TIMEOUT)
-                                notice = "현재 계신 곳의 GPS 위치를 확인할 수 없어 대표 기준 위치(라온아이 캠핑장)로 추천해 드립니다. 잠시 후 다시 시도해 보세요.";
+                            console.warn('GPS measurement error in modal, evaluating fallback:', geoErr);
+                            // 일시적 GPS 수신 불량 시 기존에 수집된 좌표가 있으면 최후의 안전망으로 활용
+                            if (userLat && userLng) {
+                                targetLat = userLat;
+                                targetLng = userLng;
+                                notice = "최신 GPS 신호가 약하여 최근 감지된 위치를 기준으로 작성되었습니다.";
                                 allowRetry = true;
+                            } else {
+                                targetLat = 36.6354349;
+                                targetLng = 126.7638091;
+                                if (geoErr?.code === 1) { // PERMISSION_DENIED
+                                    notice = "위치 정보 권한이 허용되지 않아 대표 기준 위치(라온아이 캠핑장)를 기준으로 추천해 드립니다. 내 주변 추천을 원하시면 브라우저 위치 권한을 허용해 주세요.";
+                                    allowRetry = false;
+                                } else { // 2 (POSITION_UNAVAILABLE) or 3 (TIMEOUT)
+                                    notice = "현재 계신 곳의 GPS 위치를 확인할 수 없어 대표 기준 위치(라온아이 캠핑장)로 추천해 드립니다. 잠시 후 다시 시도해 보세요.";
+                                    allowRetry = true;
+                                }
                             }
                         }
                     } else {
-                        targetLat = 36.6354349;
-                        targetLng = 126.7638091;
+                        targetLat = userLat || 36.6354349;
+                        targetLng = userLng || 126.7638091;
                         notice = "위치 서비스를 지원하지 않는 기기여서 대표 기준 위치(라온아이 캠핑장)로 추천해 드립니다.";
                         allowRetry = false;
                     }
                     // 위치 확인 완료 후 2단계 플랜 생성 로더로 전환
                     setGeneratingStage('OPTIMIZING');
-                } else {
-                    // [Case C] 이미 사용자 좌표가 준비되어 있는 경우 -> 바로 2단계 로더로 직행
-                    setStep('GENERATING');
-                    setGeneratingStage('OPTIMIZING');
-                    notice = null;
-                    allowRetry = false;
                 }
 
                 setActiveFallbackNotice(notice);
