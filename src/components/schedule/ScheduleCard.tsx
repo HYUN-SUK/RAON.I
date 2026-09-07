@@ -41,13 +41,27 @@ export default function ScheduleCard({
 }: ScheduleCardProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const checkIn = parseISO(schedule.check_in);
-    const checkOut = parseISO(schedule.check_out);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // [v14.1.0] 날짜 유효성 검증 적용하여 Invalid Date로 인한 RangeError 크래시 원천 차단
+    const checkIn = useMemo(() => {
+        if (!schedule?.check_in) return new Date();
+        const parsed = parseISO(schedule.check_in);
+        return isNaN(parsed.getTime()) ? new Date() : parsed;
+    }, [schedule?.check_in]);
 
-    const daysUntil = differenceInDays(checkIn, today);
-    const nights = differenceInDays(checkOut, checkIn);
+    const checkOut = useMemo(() => {
+        if (!schedule?.check_out) return new Date();
+        const parsed = parseISO(schedule.check_out);
+        return isNaN(parsed.getTime()) ? new Date() : parsed;
+    }, [schedule?.check_out]);
+
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
+    const daysUntil = useMemo(() => differenceInDays(checkIn, today), [checkIn, today]);
+    const nights = useMemo(() => Math.max(0, differenceInDays(checkOut, checkIn)), [checkOut, checkIn]);
 
     // 스마트플랜 사용 가능 여부 판별 (예약 생성 새벽 5시 이전 당일 9시, 이후 다음날 오전 9시 활성화)
     const isSmartPlanAvailable = useMemo(() => {
@@ -67,9 +81,19 @@ export default function ScheduleCard({
         return new Date() >= unlockTimeByCreation;
     }, [schedule]);
 
-    // [v13.7.0] 스마트플랜 5단계 동적 D-Day 생명주기 뱃지 수식
+    // [v14.1.0] 스마트플랜 5단계 동적 D-Day 생명주기 뱃지 수식 (완료/취소 일정 상태 분기 보강)
     const smartPlanMessage = useMemo(() => {
         if ((schedule as any).is_pending_reservation) {
+            return null;
+        }
+
+        // 완료된 일정: 과거 일정이므로 '생성가능' 대신 '완료' 뱃지 표시
+        if (schedule.status === 'completed') {
+            return schedule.smart_plan_data ? '✨ 스마트플랜 완료' : '🏕️ 캠핑 완료';
+        }
+
+        // 취소된 일정: 뱃지 숨김
+        if (schedule.status === 'cancelled') {
             return null;
         }
 
@@ -138,6 +162,14 @@ export default function ScheduleCard({
     };
 
     const ddayText = getDDayText();
+
+    const dateRangeText = useMemo(() => {
+        try {
+            return `${format(checkIn, 'M.d(EEE)', { locale: ko })} ~ ${format(checkOut, 'M.d(EEE)', { locale: ko })}`;
+        } catch {
+            return `${schedule.check_in} ~ ${schedule.check_out}`;
+        }
+    }, [checkIn, checkOut, schedule.check_in, schedule.check_out]);
 
     return (
         <div
@@ -239,7 +271,7 @@ export default function ScheduleCard({
                 <div className="flex items-center gap-1.5 text-gray-700">
                     <Calendar className="w-4 h-4 text-[#224732]" />
                     <span>
-                        {format(checkIn, 'M.d(EEE)', { locale: ko })} ~ {format(checkOut, 'M.d(EEE)', { locale: ko })}
+                        {dateRangeText}
                     </span>
                 </div>
                 <div className="flex items-center gap-1 text-gray-500">

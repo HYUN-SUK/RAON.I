@@ -497,13 +497,13 @@ export default function BeginnerHome() {
                     </div>
                 </section>
 
-                {/* 1. 나의 여행 일정 · 스마트플랜 위젯 (직접 노출) */}
-                <section className="px-4 mt-4 mb-4">
-                    <ScheduleHomeWidget isExpanded={true} />
+                {/* 1. 다가오는 여행 일정 카드 (직접 노출, 다른일정추가 버튼 가림) */}
+                <section className="px-4 mt-4 mb-3">
+                    <ScheduleHomeWidget isExpanded={true} showButtons={false} />
                 </section>
 
                 {/* 2. 2열 정사각형 그리드: [내 주변 즉시여행계획 만들기] & [목적지 즉시여행계획 만들기] */}
-                <section className="px-4 mb-4">
+                <section className="px-4 mb-3">
                     <div className="grid grid-cols-2 gap-3">
                         {/* 좌측: 내 주변 즉시여행계획 만들기 */}
                         <button
@@ -556,6 +556,25 @@ export default function BeginnerHome() {
                             </div>
                         </button>
                     </div>
+                </section>
+
+                {/* 3. 나의 전체 여행일정 바로가기 버튼 */}
+                <section className="px-4 mb-4">
+                    <button
+                        onClick={() => handleProtectedAction(() => router.push('/myspace/schedule'))}
+                        className="w-full flex items-center justify-between px-4 py-3.5 bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 rounded-2xl text-stone-800 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-zinc-850 active:scale-[0.98] shadow-xs hover:shadow-sm transition-all group cursor-pointer"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-[#224732]/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#224732] dark:text-emerald-400">
+                                <Calendar className="w-4 h-4" />
+                            </div>
+                            <span className="text-sm font-bold tracking-tight text-stone-900 dark:text-stone-100">나의 전체 여행일정</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-stone-400 font-medium">
+                            <span>전체보기</span>
+                            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                    </button>
                 </section>
 
                 {/* 3. 소소한 챙김 (컴팩트 바) - 추후 업데이트를 위해 안보임 처리 */}

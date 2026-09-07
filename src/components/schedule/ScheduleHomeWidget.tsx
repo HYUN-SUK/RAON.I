@@ -36,11 +36,23 @@ interface UnifiedSchedule {
     status?: 'PENDING' | 'CONFIRMED'; // 예약 상태 (입금대기/확정)
 }
 
+interface ScheduleHomeWidgetProps {
+    isExpanded?: boolean;
+    showButtons?: boolean;
+    hideOtherScheduleButton?: boolean;
+    scheduleButtonText?: string;
+}
+
 /**
  * 홈 화면에서 다가오는 캠핑 일정을 보여주는 위젯
  * 라온아이 예약 + 타캠핑장 일정을 통합하여 가장 가까운 1개 표시
  */
-const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false }: { isExpanded?: boolean }) {
+const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ 
+    isExpanded = false,
+    showButtons = true,
+    hideOtherScheduleButton = true,
+    scheduleButtonText = '나의 전체 여행일정',
+}: ScheduleHomeWidgetProps) {
     const router = useRouter();
     const { withAuth } = useRequireAuth();
     const { reservations, fetchMyReservations } = useReservationStore();
@@ -455,23 +467,36 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
     if (!upcomingItem) {
         return (
             <>
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-dashed border-[#224732]/30 shadow-sm space-y-3">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675]">
-                            <Calendar className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
-                        </div>
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-dashed border-[#224732]/30 shadow-sm flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675] shrink-0">
+                        <Calendar className="w-5 h-5" />
                     </div>
-                    <button
-                        onClick={handleExternalScheduleClick}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.98] transition-all duration-200"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>다른 여행 일정추가</span>
-                    </button>
+                    <div>
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
+                        <p className="text-xs text-stone-500 dark:text-stone-400 font-medium mt-0.5">아래 즉시 여행계획으로 맞춤 일정을 만들어보세요.</p>
+                    </div>
                 </div>
+
+                {showButtons && (
+                    <div className="flex flex-col gap-2 w-full mt-2">
+                        {!hideOtherScheduleButton && (
+                            <button
+                                onClick={handleExternalScheduleClick}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.98] transition-all duration-200"
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span>다른 여행 일정추가</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={() => withAuth(() => router.push('/myspace/schedule'))}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
+                        >
+                            <Calendar className="w-4 h-4 text-[#C3A675]" />
+                            <span>{scheduleButtonText}</span>
+                        </button>
+                    </div>
+                )}
 
                 {/* 다른 여행 자동계획 안내 커스텀 모달 팝업 */}
                 <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
@@ -642,22 +667,26 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({ isExpanded = false
             </div>
 
             {/* 다른 여행 일정추가 및 나의 여행일정 버튼 */}
-            <div className="flex flex-col gap-2 w-full">
-                <button
-                    onClick={handleExternalScheduleClick}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-sm font-semibold">다른 여행 일정추가</span>
-                </button>
-                <button
-                    onClick={() => withAuth(() => router.push('/myspace/schedule'))}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
-                >
-                    <Calendar className="w-4 h-4 text-[#C3A675]" />
-                    <span>나의 여행일정</span>
-                </button>
-            </div>
+            {showButtons && (
+                <div className="flex flex-col gap-2 w-full">
+                    {!hideOtherScheduleButton && (
+                        <button
+                            onClick={handleExternalScheduleClick}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span className="text-sm font-semibold">다른 여행 일정추가</span>
+                        </button>
+                    )}
+                    <button
+                        onClick={() => withAuth(() => router.push('/myspace/schedule'))}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
+                    >
+                        <Calendar className="w-4 h-4 text-[#C3A675]" />
+                        <span>{scheduleButtonText}</span>
+                    </button>
+                </div>
+            )}
 
             {/* 다른 여행 자동계획 안내 커스텀 모달 팝업 */}
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
