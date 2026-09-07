@@ -45,21 +45,18 @@ export function usePermissionFlow() {
         if (typeof window !== 'undefined') {
             const val = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
             if (val === 'false') return false;
-            return val === 'true';
+            return true; // 기본값 ON (동의 우선 원칙)
         }
-        return false;
+        return true;
     });
 
     const [pushGranted, setPushGranted] = useState<boolean>(() => {
         if (typeof window !== 'undefined') {
             const val = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
             if (val === 'false') return false;
-            if (val === 'true') return true;
-            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                return true;
-            }
+            return true; // 기본값 ON (동의 우선 원칙)
         }
-        return false;
+        return true;
     });
 
     const supabase = createClient();
@@ -98,24 +95,18 @@ export function usePermissionFlow() {
             const localLoc = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
             const localPush = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
 
-            let actualLocation: boolean | null = null;
-            let actualPush: boolean | null = null;
+            let actualLocation = localLoc === 'false' ? false : true;
+            let actualPush = localPush === 'false' ? false : true;
 
-            // 1. 위치 권한: 사용자가 앱 내에서 명시적 OFF를 하지 않은 경우 브라우저 권한 감지
-            if (localLoc === 'false') {
-                actualLocation = false;
-            } else if (localLoc === 'true') {
-                actualLocation = true;
-            }
-
+            // 1. 브라우저에서 명시적으로 차단('denied')된 경우에만 OFF 처리
             if (typeof navigator !== 'undefined' && navigator.permissions) {
                 try {
                     const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
                     if (!isCancelled) {
-                        if (status.state === 'granted') {
-                            if (localLoc !== 'false') actualLocation = true;
-                        } else if (status.state === 'denied') {
+                        if (status.state === 'denied') {
                             actualLocation = false;
+                        } else if (localLoc !== 'false') {
+                            actualLocation = true;
                         }
                     }
 
@@ -137,14 +128,14 @@ export function usePermissionFlow() {
                 }
             }
 
-            // 2. 알림 권한: 실제 Notification.permission 감지
+            // 2. 알림 권한: 브라우저에서 차단('denied')된 경우만 OFF
             if (localPush === 'false') {
                 actualPush = false;
             } else if (typeof Notification !== 'undefined') {
-                if (Notification.permission === 'granted') {
-                    actualPush = true;
-                } else if (Notification.permission === 'denied') {
+                if (Notification.permission === 'denied') {
                     actualPush = false;
+                } else {
+                    actualPush = true;
                 }
             }
 
@@ -159,20 +150,20 @@ export function usePermissionFlow() {
                         .maybeSingle();
 
                     if (consent) {
-                        if (consent.location_granted === false && localLoc !== 'true') {
+                        if (consent.location_granted === false && localLoc === 'false') {
                             actualLocation = false;
-                        } else if (consent.location_granted === true && actualLocation !== false) {
+                        } else if (consent.location_granted === true && localLoc !== 'false') {
                             actualLocation = true;
                         }
 
-                        if (consent.push_granted === false && localPush !== 'true') {
+                        if (consent.push_granted === false && localPush === 'false') {
                             actualPush = false;
-                        } else if (consent.push_granted === true && actualPush !== false) {
+                        } else if (consent.push_granted === true && localPush !== 'false') {
                             actualPush = true;
                         }
                     }
 
-                    // 브라우저에서 이미 허용되어 있는데 DB에 미반영된 경우 자동 업서트
+                    // 기본 ON 상태를 DB에도 자동 동기화
                     if (actualLocation === true && (!consent || !consent.location_granted)) {
                         saveConsentToServer('location', true);
                     }
@@ -185,17 +176,14 @@ export function usePermissionFlow() {
             }
 
             if (!isCancelled) {
-                if (actualLocation !== null) {
-                    setLocationGranted(actualLocation);
-                    if (actualLocation && localLoc !== 'false') {
-                        localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
-                    }
+                setLocationGranted(actualLocation);
+                if (actualLocation && localLoc !== 'false') {
+                    localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
                 }
-                if (actualPush !== null) {
-                    setPushGranted(actualPush);
-                    if (actualPush && localPush !== 'false') {
-                        localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, 'true');
-                    }
+
+                setPushGranted(actualPush);
+                if (actualPush && localPush !== 'false') {
+                    localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, 'true');
                 }
             }
         };
