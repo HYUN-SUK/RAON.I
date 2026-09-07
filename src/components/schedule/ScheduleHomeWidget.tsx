@@ -23,6 +23,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { createClient } from '@/lib/supabase-client';
 
 // 통합 일정 타입 (라온아이 예약 또는 타캠핑장 일정)
 interface UnifiedSchedule {
@@ -55,6 +56,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
 }: ScheduleHomeWidgetProps) {
     const router = useRouter();
     const { withAuth } = useRequireAuth();
+    const supabase = useMemo(() => createClient(), []);
     const { reservations, fetchMyReservations } = useReservationStore();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const schedulesRef = useRef(schedules);
@@ -68,6 +70,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         };
     }, []);
 
+    // 로그인 인증 상태 (초기값 null = 확인 중)
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
     // 마운트 시 뒤로가기 복귀 여부 확인
     const isBackFromDetail = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -78,12 +83,13 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         }
     }, []);
 
-    // 로컬스토리지 동기 캐시 파싱 (라온아이 예약)
+    // 로컬스토리지 동기 캐시 파싱 (라온아이 예약) - 비로그인 시 일체 배제
     const cachedReservations = useMemo<Reservation[]>(() => {
+        if (isAuthenticated === false) return [];
         if (reservations && reservations.length > 0) return reservations;
         if (typeof window === 'undefined') return [];
         try {
-            const raw = localStorage.getItem('reservation-storage-v2');
+            const raw = localStorage.getItem('reservation-storage-v3') || localStorage.getItem('reservation-storage-v2');
             if (!raw) return [];
             const parsed = JSON.parse(raw);
             const list = parsed?.state?.reservations;
@@ -92,10 +98,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         } catch {
             return [];
         }
-    }, [reservations]);
+    }, [reservations, isAuthenticated]);
 
-    // 로컬스토리지 동기 캐시 파싱 (타캠핑장 일정)
+    // 로컬스토리지 동기 캐시 파싱 (타캠핑장 일정) - 비로그인 시 일체 배제
     const cachedSchedules = useMemo<Schedule[]>(() => {
+        if (isAuthenticated === false) return [];
         if (schedules && schedules.length > 0) return schedules;
         if (typeof window === 'undefined') return [];
         try {
@@ -107,7 +114,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         } catch {
             return [];
         }
-    }, [schedules]);
+    }, [schedules, isAuthenticated]);
 
     // 로딩 상태: 뒤로가기 복귀 시에는 스켈레톤 없이 즉시 노출(false), 첫진입/새로고침 시에는 스켈레톤 정상 노출(true)
     const [isLoading, setIsLoading] = useState(() => {
@@ -122,13 +129,20 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
 
     // 통합 일정 계산 (라온아이 예약 + 타캠핑장 일정)
     const upcomingItem = useMemo(() => {
+        // [Security] 비로그인 상태가 확인되면 어떤 캐시도 노출하지 않고 즉시 null 반환
+        if (isAuthenticated === false) return null;
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const unifiedList: UnifiedSchedule[] = [];
 
-        const activeReservations = (cachedReservations && cachedReservations.length > 0) ? cachedReservations : reservations;
-        const activeSchedules = (cachedSchedules && cachedSchedules.length > 0) ? cachedSchedules : schedules;
+        const activeReservations = (cachedReservations && cachedReservations.length > 0) 
+            ? cachedReservations 
+            : (isAuthenticated ? reservations : []);
+        const activeSchedules = (cachedSchedules && cachedSchedules.length > 0) 
+            ? cachedSchedules 
+            : (isAuthenticated ? schedules : []);
 
         // 라온아이 예약 필터링
         if (Array.isArray(activeReservations)) {
@@ -215,11 +229,26 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     const weather = useWeather(itemLat, itemLng, isWeatherEnabled);
 
     useEffect(() => {
-        const fetchAll = async () => {
+        let isSubscribed = true;
+
+        const checkAuthAndFetch = async () => {
             try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!isSubscribed) return;
+
+                if (!session?.user) {
+                    setIsAuthenticated(false);
+                    setSchedules([]);
+                    setIsLoading(false);
+                    return;
+                }
+
+                setIsAuthenticated(true);
+
                 // 백그라운드 Silent Revalidation
                 await fetchMyReservations();
                 const schedulesData = await getMySchedules('scheduled');
+                if (!isSubscribed) return;
                 setSchedules(schedulesData);
                 try {
                     localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
@@ -227,13 +256,31 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
             } catch (error) {
                 console.error('Fetch error:', error);
             } finally {
-                setIsLoading(false);
+                if (isSubscribed) {
+                    setIsLoading(false);
+                }
             }
         };
 
-        fetchAll();
+        checkAuthAndFetch();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (!isSubscribed) return;
+            if (event === 'SIGNED_OUT' || !session) {
+                setIsAuthenticated(false);
+                setSchedules([]);
+                setIsLoading(false);
+            } else if (event === 'SIGNED_IN' || session) {
+                setIsAuthenticated(true);
+            }
+        });
+
+        return () => {
+            isSubscribed = false;
+            subscription.unsubscribe();
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [supabase]);
 
 
 

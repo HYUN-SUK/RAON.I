@@ -19,6 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
+import { useReservationStore } from "@/store/useReservationStore";
 import { usePushNotification } from "@/hooks/usePushNotification";
 import { usePermissionFlow } from "@/hooks/usePermissionFlow";
 import { useAppStandaloneDetector } from "@/hooks/useAppStandaloneDetector";
@@ -107,6 +108,27 @@ export default function TopBar() {
         }
     };
 
+    const clearUserAuthCaches = () => {
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('user_schedules_cache');
+                localStorage.removeItem('reservation-storage-v3');
+                localStorage.removeItem('reservation-storage-v2');
+                localStorage.removeItem('raonai_back_from_detail');
+                try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
+                useReservationStore.getState().reset?.();
+                useReservationStore.setState({
+                    reservations: [],
+                    lastReservation: null,
+                    rebookData: null,
+                    userContactInfo: null,
+                });
+            }
+        } catch (e) {
+            console.error('Error clearing auth caches:', e);
+        }
+    };
+
     useEffect(() => {
         checkUser();
 
@@ -118,7 +140,7 @@ export default function TopBar() {
             } else if (event === 'SIGNED_OUT') {
                 setIsLoggedIn(false);
                 setUserInfo(null);
-                try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
+                clearUserAuthCaches();
                 reset();
             } else if (session) {
                 setIsLoggedIn(true);
@@ -138,9 +160,7 @@ export default function TopBar() {
     const handleLogout = async () => {
         try {
             await supabase.auth.signOut({ scope: 'local' });
-            if (typeof window !== 'undefined') {
-                try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
-            }
+            clearUserAuthCaches();
             toast.success('로그아웃 되었습니다.');
             setIsLoggedIn(false);
             setUserInfo(null);

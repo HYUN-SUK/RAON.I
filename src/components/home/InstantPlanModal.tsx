@@ -1065,7 +1065,7 @@ export default function InstantPlanModal({
                             <div className="flex items-center justify-between px-0.5">
                                 <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
                                     <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                                    등록 시 열리는 오전 9시 업데이트
+                                    일정 저장 시 열리는 오전 9시 업데이트
                                 </span>
                                 <span className="text-[9px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
                                     무료 혜택
@@ -1093,7 +1093,7 @@ export default function InstantPlanModal({
                                 {isLoggedIn ? (
                                     <span>💡 각 단계 오전 9시에 업데이트 버튼이 활성화됩니다</span>
                                 ) : (
-                                    <span className="text-amber-900 dark:text-amber-200 font-semibold">🔒 카카오 3초 간편로그인으로 평생 무료 소장</span>
+                                    <span className="text-amber-900 dark:text-amber-200 font-semibold">🔒 카카오 3초 간편로그인으로 자동 여행계획이 가능해요!</span>
                                 )}
                             </p>
                         </div>
