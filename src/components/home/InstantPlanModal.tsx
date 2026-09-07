@@ -801,37 +801,37 @@ export default function InstantPlanModal({
                     {/* 3. 4단계 여행계획 결과 표시 (RESULT) */}
                     {step === 'RESULT' && planData && (
                         <div className="space-y-6 pb-4">
-                            {/* 위치 미동의 / GPS 확인 불가 안내 배너 */}
-                            {activeFallbackNotice && (
-                                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+                            {/* 위치 미동의 / GPS 확인 불가 시: 붉은 톤 안내 배너 단독 노출 */}
+                            {activeFallbackNotice ? (
+                                <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-950 dark:text-rose-200 shadow-xs">
                                     <div className="flex items-start gap-2.5">
-                                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                        <p className="font-medium leading-relaxed">{activeFallbackNotice}</p>
+                                        <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                        <p className="font-semibold leading-relaxed">{activeFallbackNotice}</p>
                                     </div>
                                     {canRetryGps && (
                                         <button
                                             type="button"
                                             onClick={handleRetryGps}
-                                            className="self-end sm:self-auto px-3 py-1.5 bg-amber-200/80 hover:bg-amber-300 text-amber-900 font-bold rounded-xl text-xs transition-all active:scale-95 shrink-0 flex items-center gap-1 shadow-sm"
+                                            className="self-end sm:self-auto px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition-all active:scale-95 shrink-0 flex items-center gap-1 shadow-sm"
                                         >
                                             <RefreshCw className="w-3.5 h-3.5" />
                                             <span>🛰️ 내 위치 다시 시도</span>
                                         </button>
                                     )}
                                 </div>
-                            )}
-
-                            {/* 헤더 요약 뱃지 */}
-                            <div className="p-3.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-300/60 rounded-2xl flex items-center justify-between text-xs text-amber-900">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-base">📍</span>
-                                    <span className="font-bold">{selectedDestination?.name}</span>
-                                    <span className="text-[11px] text-stone-500 font-medium">({targetDate})</span>
+                            ) : (
+                                /* 정상 GPS 수신 시: 기존 요약 배너 단독 노출 */
+                                <div className="p-3.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-300/60 rounded-2xl flex items-center justify-between text-xs text-amber-900">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-base">📍</span>
+                                        <span className="font-bold">{selectedDestination?.name}</span>
+                                        <span className="text-[11px] text-stone-500 font-medium">({targetDate})</span>
+                                    </div>
+                                    <span className="text-[10px] bg-amber-200/80 text-amber-900 font-black px-2 py-0.5 rounded-full">
+                                        즉시 여행계획 4단계
+                                    </span>
                                 </div>
-                                <span className="text-[10px] bg-amber-200/80 text-amber-900 font-black px-2 py-0.5 rounded-full">
-                                    즉시 여행계획 4단계
-                                </span>
-                            </div>
+                            )}
 
                             {/* 감성 타임라인 리스트 (Stage 1 ~ 4) */}
                             <div className="grid grid-cols-1 gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0 w-full min-w-0">
@@ -1045,68 +1045,55 @@ export default function InstantPlanModal({
                     )}
                 </div>
 
-                {/* 하단 고정 CTA (안 1. 3단계 정밀 업데이트 해금형) */}
+                {/* 하단 고정 CTA (초간결 미니멀 럭셔리) */}
                 {step === 'RESULT' && (
-                    <div className="p-4 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-3">
-                        {/* 1. 상단 플로팅 뱃지 + 럭셔리 쉬머 CTA 버튼 */}
-                        <div className="relative pt-2">
-                            {/* 상단 샴페인 골드 플로팅 뱃지 */}
-                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap pointer-events-none">
-                                <span className="text-[10px] font-bold bg-[#FAF6EE] dark:bg-zinc-800 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
-                                    💎 영구 보관 · 다음날/7일전/당일 09:00 업데이트 오픈
-                                </span>
-                            </div>
+                    <div className="p-3.5 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-2.5">
+                        {/* 1. 메인 버튼: 딥 에메랄드 + 골드 보더 + 골드 쉬머 광택 애니메이션 */}
+                        <Button
+                            onClick={handleStartSaveSchedule}
+                            className="relative overflow-hidden w-full h-12 bg-gradient-to-r from-[#173824] via-[#224E35] to-[#173824] hover:from-[#132e1e] hover:to-[#1c402b] text-white font-extrabold text-sm rounded-xl border border-amber-300/40 shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                        >
+                            {/* 골드 쉬머 광택 레이어 */}
+                            <span className="absolute inset-0 -translate-x-full animate-shimmer-wave bg-gradient-to-r from-transparent via-amber-200/25 to-transparent pointer-events-none" />
 
-                            {/* 메인 버튼: 딥 에메랄드 + 골드 보더 + 골드 쉬머 광택 애니메이션 */}
-                            <Button
-                                onClick={handleStartSaveSchedule}
-                                className="relative overflow-hidden w-full h-12 bg-gradient-to-r from-[#173824] via-[#224E35] to-[#173824] hover:from-[#132e1e] hover:to-[#1c402b] text-white font-extrabold text-sm rounded-xl border border-amber-300/40 shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-                            >
-                                {/* 골드 쉬머 광택 레이어 */}
-                                <span className="absolute inset-0 -translate-x-full animate-shimmer-wave bg-gradient-to-r from-transparent via-amber-200/25 to-transparent pointer-events-none" />
+                            <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
+                            <span className="tracking-tight text-[14px]">✨ 이 계획 내 일정에 저장하기</span>
+                        </Button>
 
-                                <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
-                                <span className="tracking-tight text-[13.5px]">✨ 이 계획 내 일정에 저장하고 3단계 업데이트 열기</span>
-                            </Button>
-                        </div>
-
-                        {/* 2. 하단 3단계 정밀 로드맵 카드 */}
-                        <div className="bg-gradient-to-b from-amber-500/[0.07] to-emerald-500/[0.04] border border-amber-400/30 dark:border-amber-500/20 rounded-2xl p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[11.5px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                        {/* 2. 하단 3단계 정밀 로드맵 카드 (초간결 2단어 버전) */}
+                        <div className="bg-gradient-to-b from-amber-500/[0.07] to-emerald-500/[0.04] border border-amber-400/30 dark:border-amber-500/20 rounded-2xl p-2.5 space-y-2">
+                            <div className="flex items-center justify-between px-0.5">
+                                <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
                                     <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                                    공식 등록 시 열리는 3단계 오전 9시 업데이트
+                                    등록 시 열리는 오전 9시 업데이트
                                 </span>
-                                <span className="text-[9.5px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
+                                <span className="text-[9px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
                                     무료 혜택
                                 </span>
                             </div>
 
-                            {/* 가로 3열 미니 스텝 칩 */}
+                            {/* 가로 3열 미니 스텝 칩 (핵심 키워드 2줄로 압축) */}
                             <div className="grid grid-cols-3 gap-1.5 text-center">
-                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl p-1.5 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
-                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 block">1차: 내일 09시</span>
-                                    <span className="text-[10px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">정밀 플랜 생성</span>
-                                    <span className="text-[8.5px] text-stone-500 dark:text-stone-400 block leading-tight mt-0.5">출발지 맞춤 경로</span>
+                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl py-1.5 px-1 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
+                                    <span className="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 block">내일 09시</span>
+                                    <span className="text-[11px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">정밀 플랜</span>
                                 </div>
-                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl p-1.5 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
-                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 block">2차: D-7일 09시</span>
-                                    <span className="text-[10px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">주간예보 최신화</span>
-                                    <span className="text-[8.5px] text-stone-500 dark:text-stone-400 block leading-tight mt-0.5">날씨 맞춤 경유지</span>
+                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl py-1.5 px-1 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
+                                    <span className="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 block">D-7 09시</span>
+                                    <span className="text-[11px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">날씨 최신</span>
                                 </div>
-                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl p-1.5 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
-                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 block">3차: 당일 09시</span>
-                                    <span className="text-[10px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">실시간 최종완성</span>
-                                    <span className="text-[8.5px] text-stone-500 dark:text-stone-400 block leading-tight mt-0.5">당일 기상·교통 반영</span>
+                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl py-1.5 px-1 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
+                                    <span className="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 block">당일 09시</span>
+                                    <span className="text-[11px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">최종 완성</span>
                                 </div>
                             </div>
 
-                            {/* 비로그인 / 로그인 스마트 타겟팅 풋터 */}
-                            <p className="text-[10.5px] text-center text-stone-600 dark:text-stone-400 font-medium pt-0.5">
+                            {/* 비로그인 / 로그인 스마트 타겟팅 풋터 (1줄 압축) */}
+                            <p className="text-[10px] text-center text-stone-600 dark:text-stone-400 font-medium">
                                 {isLoggedIn ? (
-                                    <span>💡 등록 후 내 일정 상세 화면에서 매 단계 오전 9시마다 업데이트 버튼이 활성화됩니다.</span>
+                                    <span>💡 각 단계 오전 9시에 업데이트 버튼이 활성화됩니다</span>
                                 ) : (
-                                    <span className="text-amber-900 dark:text-amber-200 font-semibold">🔒 카카오 3초 간편등록으로 내 폰에 소장하고 3단계 업데이트를 무료로 이용하세요.</span>
+                                    <span className="text-amber-900 dark:text-amber-200 font-semibold">🔒 카카오 3초 간편로그인으로 평생 무료 소장</span>
                                 )}
                             </p>
                         </div>
