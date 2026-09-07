@@ -10,7 +10,9 @@ interface LBSState {
     location: Coordinates;
     isLoading: boolean;
     error: string | null;
+    errorCode: number | null;
     usingDefault: boolean;
+    permissionStatus: 'granted' | 'prompt' | 'denied' | 'unknown';
 }
 
 const deg2rad = (deg: number) => {
@@ -22,16 +24,32 @@ export const useLBS = () => {
         location: DEFAULT_CAMPING_LOCATION,
         isLoading: true,
         error: null,
+        errorCode: null,
         usingDefault: true,
+        permissionStatus: 'unknown',
     });
 
     useEffect(() => {
+        // 권한 상태 사전 확인
+        if (typeof navigator !== 'undefined' && navigator.permissions) {
+            try {
+                navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((status) => {
+                    setState(prev => ({ ...prev, permissionStatus: status.state as any }));
+                    status.onchange = () => {
+                        setState(prev => ({ ...prev, permissionStatus: status.state as any }));
+                    };
+                }).catch(() => {});
+            } catch {}
+        }
+
         if (!navigator.geolocation) {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
                 error: "Geolocation is not supported by this browser.",
-                usingDefault: true
+                errorCode: null,
+                usingDefault: true,
+                permissionStatus: 'denied',
             }));
             return;
         }
@@ -44,18 +62,22 @@ export const useLBS = () => {
                 },
                 isLoading: false,
                 error: null,
+                errorCode: null,
                 usingDefault: false,
+                permissionStatus: 'granted',
             });
         };
 
         const handleError = (error: GeolocationPositionError) => {
-            console.warn("LBS Access Denied/Error:", error.message);
+            console.warn("LBS Access Denied/Error:", error.message, "code:", error.code);
             // Fallback to default without blocking the UI
             setState({
                 location: DEFAULT_CAMPING_LOCATION,
                 isLoading: false,
                 error: error.message,
+                errorCode: error.code,
                 usingDefault: true, // Mark as using default so UI can show "Campsite Base" vs "My Location"
+                permissionStatus: error.code === 1 ? 'denied' : 'prompt',
             });
         };
 

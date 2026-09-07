@@ -71,6 +71,7 @@ interface InstantPlanModalProps {
     userLat?: number;
     userLng?: number;
     fallbackNotice?: string | null;
+    skipLocationRequest?: boolean;
     initialDestination?: { name: string; lat: number; lng: number; address?: string } | null;
 }
 
@@ -81,12 +82,15 @@ export default function InstantPlanModal({
     userLat,
     userLng,
     fallbackNotice,
+    skipLocationRequest = false,
     initialDestination,
 }: InstantPlanModalProps) {
     const router = useRouter();
 
     // Step state: 'INPUT' | 'GENERATING' | 'RESULT' | 'PROFILE_GATE'
     const [step, setStep] = useState<'INPUT' | 'GENERATING' | 'RESULT' | 'PROFILE_GATE'>('INPUT');
+    const [generatingStage, setGeneratingStage] = useState<'LOCATING' | 'OPTIMIZING'>('OPTIMIZING');
+    const [canRetryGps, setCanRetryGps] = useState(false);
 
     // Form inputs
     const [searchQuery, setSearchQuery] = useState('');
@@ -196,7 +200,54 @@ export default function InstantPlanModal({
         setActiveFallbackNotice(fallbackNotice || null);
     }, [fallbackNotice]);
 
-    // Reset or initialize on open (0초 즉시 시트 오픈 및 로딩 진입)
+    // GPS 재시도 핸들러 (GPS 신호 불량 / 타임아웃 발생 시 결과 화면에서 호출)
+    const handleRetryGps = async () => {
+        setStep('GENERATING');
+        setGeneratingStage('LOCATING');
+        setPlanData(null);
+        try {
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    timeout: 5000,
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                });
+            });
+            setGeneratingStage('OPTIMIZING');
+            const dest = {
+                name: '내 주변 (실시간 GPS)',
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                address: '내 현재 위치',
+            };
+            setSelectedDestination(dest);
+            setSearchQuery(dest.name);
+            setActiveFallbackNotice(null);
+            setCanRetryGps(false);
+
+            const res = await generateInstantPlanAction({
+                targetLat: dest.lat,
+                targetLng: dest.lng,
+                targetName: dest.name,
+                targetDate: todayStr,
+                stayDays: 1,
+            });
+            if (res.success && res.data) {
+                setPlanData(res.data);
+                setStep('RESULT');
+                toast.success('⚡ 내 위치 기반 즉시 여행계획이 완성되었습니다!');
+            } else {
+                toast.error(res.error || '여행계획 생성에 실패했습니다.');
+                setStep('INPUT');
+            }
+        } catch (e: any) {
+            console.warn('GPS retry failed:', e);
+            toast.error('현재 위치(GPS)를 아직 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+            setStep('RESULT');
+        }
+    };
+
+    // Reset or initialize on open (0초 즉시 시트 오픈 및 2단계 로딩 진입)
     useEffect(() => {
         if (!isOpen) {
             nearbyRunningRef.current = false;
@@ -207,59 +258,86 @@ export default function InstantPlanModal({
             if (nearbyRunningRef.current) return;
             nearbyRunningRef.current = true;
 
-            // 1. 즉시 로딩 상태 및 기본 목적지 명칭 세팅 (0초 반응)
-            setStep('GENERATING');
             setPlanData(null);
             setSwapCategory(null);
             setTargetDate(todayStr);
-            const initialTargetName = fallbackNotice ? '라온아이 캠핑장 (예산)' : '내 주변 (실시간 GPS)';
-            setSelectedDestination({
-                name: initialTargetName,
-                lat: userLat || 36.6575,
-                lng: userLng || 126.6582,
-                address: fallbackNotice ? '충남 예산군 덕산면' : '내 현재 위치',
-            });
-            setSearchQuery(initialTargetName);
 
-            // 2. 비동기 위치 확인 후 즉시 4단계 플랜 생성 기동
+            // 비동기 위치 확인 후 즉시 4단계 플랜 생성 기동
             (async () => {
                 let targetLat = userLat;
                 let targetLng = userLng;
                 let notice = fallbackNotice || null;
+                let allowRetry = false;
 
-                // props로 좌표가 아직 없는 경우 브라우저 실시간 GPS 직접 측정 (최대 4초 타임아웃)
-                if (!targetLat || !targetLng) {
+                // [Case A] 사용자가 팝업에서 "동의 없이 시작 (라온아이 기준)"을 누른 경우
+                if (skipLocationRequest) {
+                    targetLat = 36.6354349;
+                    targetLng = 126.7638091;
+                    notice = "위치 동의를 건너뛰어 대표 기준 위치(라온아이 캠핑장)를 기준으로 작성되었습니다.";
+                    allowRetry = false;
+                    setStep('GENERATING');
+                    setGeneratingStage('OPTIMIZING');
+                } else if (!targetLat || !targetLng) {
+                    // [Case B] 사용자가 위치 동의를 눌렀거나, 진입 직후라 좌표가 아직 없는 경우 -> 1단계 LOCATING 로더 가동
+                    setStep('GENERATING');
+                    setGeneratingStage('LOCATING');
+                    setSelectedDestination({
+                        name: '내 주변 위치 확인 중...',
+                        lat: 36.6354349,
+                        lng: 126.7638091,
+                        address: '실시간 GPS 측정 중',
+                    });
+                    setSearchQuery('내 주변 위치 확인 중...');
+
                     if (typeof window !== 'undefined' && navigator.geolocation) {
                         try {
                             const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
                                 navigator.geolocation.getCurrentPosition(resolve, reject, {
-                                    timeout: 4000,
+                                    timeout: 4500,
                                     enableHighAccuracy: true,
-                                    maximumAge: 60000,
+                                    maximumAge: 0,
                                 });
                             });
                             targetLat = pos.coords.latitude;
                             targetLng = pos.coords.longitude;
-                        } catch (geoErr) {
+                            notice = null;
+                            allowRetry = false;
+                        } catch (geoErr: any) {
                             console.warn('GPS measurement error in modal, fallback to Raon I:', geoErr);
-                            targetLat = 36.6575;
-                            targetLng = 126.6582;
-                            notice = "위치 동의를 받지 못하여 대표 기준 위치(라온아이 캠핑장)를 기준으로 즉시 여행계획을 작성했습니다.";
+                            targetLat = 36.6354349;
+                            targetLng = 126.7638091;
+                            if (geoErr?.code === 1) { // PERMISSION_DENIED
+                                notice = "위치 정보 권한이 허용되지 않아 대표 기준 위치(라온아이 캠핑장)를 기준으로 추천해 드립니다. 내 주변 추천을 원하시면 브라우저 위치 권한을 허용해 주세요.";
+                                allowRetry = false;
+                            } else { // 2 (POSITION_UNAVAILABLE) or 3 (TIMEOUT)
+                                notice = "현재 계신 곳의 GPS 위치를 확인할 수 없어 대표 기준 위치(라온아이 캠핑장)로 추천해 드립니다. 잠시 후 다시 시도해 보세요.";
+                                allowRetry = true;
+                            }
                         }
                     } else {
-                        targetLat = 36.6575;
-                        targetLng = 126.6582;
-                        notice = "위치 동의를 받지 못하여 대표 기준 위치(라온아이 캠핑장)를 기준으로 즉시 여행계획을 작성했습니다.";
+                        targetLat = 36.6354349;
+                        targetLng = 126.7638091;
+                        notice = "위치 서비스를 지원하지 않는 기기여서 대표 기준 위치(라온아이 캠핑장)로 추천해 드립니다.";
+                        allowRetry = false;
                     }
+                    // 위치 확인 완료 후 2단계 플랜 생성 로더로 전환
+                    setGeneratingStage('OPTIMIZING');
+                } else {
+                    // [Case C] 이미 사용자 좌표가 준비되어 있는 경우 -> 바로 2단계 로더로 직행
+                    setStep('GENERATING');
+                    setGeneratingStage('OPTIMIZING');
+                    notice = null;
+                    allowRetry = false;
                 }
 
                 setActiveFallbackNotice(notice);
+                setCanRetryGps(allowRetry);
                 const finalTargetName = notice ? '라온아이 캠핑장 (예산)' : '내 주변 (실시간 GPS)';
                 const finalAddress = notice ? '충남 예산군 덕산면' : '내 현재 위치';
                 const dest = {
                     name: finalTargetName,
-                    lat: targetLat!,
-                    lng: targetLng!,
+                    lat: targetLat || 36.6354349,
+                    lng: targetLng || 126.7638091,
                     address: finalAddress,
                 };
                 setSelectedDestination(dest);
@@ -288,6 +366,7 @@ export default function InstantPlanModal({
                 }
             })();
         } else {
+            setCanRetryGps(false);
             if (initialDestination) {
                 setSelectedDestination(initialDestination);
                 setSearchQuery(initialDestination.name);
@@ -301,7 +380,7 @@ export default function InstantPlanModal({
             setPlanData(null);
             setSwapCategory(null);
         }
-    }, [isOpen, initialMode, todayStr, defaultSaturday]);
+    }, [isOpen, initialMode, todayStr, defaultSaturday, skipLocationRequest, userLat, userLng]);
 
     // Handle address / keyword search (Only triggered upon Enter key or [검색] button click)
     const handleSearch = async (query: string) => {
@@ -664,32 +743,63 @@ export default function InstantPlanModal({
                         </div>
                     )}
 
-                    {/* 2. 생성 중 로딩 애니메이션 (GENERATING) */}
+                    {/* 2. 생성 중 로딩 애니메이션 (GENERATING - 2단계 프로그레시브 로더) */}
                     {step === 'GENERATING' && (
                         <div className="py-24 flex flex-col items-center justify-center text-center space-y-4">
-                            <div className="relative">
-                                <div className="w-16 h-16 rounded-full border-4 border-amber-200 border-t-amber-600 animate-spin" />
-                                <Sparkles className="w-6 h-6 text-amber-500 absolute inset-0 m-auto animate-pulse" />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm font-black text-stone-800 dark:text-stone-100">
-                                    {selectedDestination?.name ? `${selectedDestination.name} ` : ''}4단계 일정 최적화 중...
-                                </p>
-                                <p className="text-xs text-stone-500">
-                                    검증된 내부 데이터베이스를 바탕으로 인증 맛집, 분위기 카페, 힐링 명소를 엄선합니다.
-                                </p>
-                            </div>
+                            {generatingStage === 'LOCATING' ? (
+                                <>
+                                    <div className="relative">
+                                        <div className="w-16 h-16 rounded-full border-4 border-emerald-200 border-t-[#224732] animate-spin" />
+                                        <MapPin className="w-6 h-6 text-emerald-600 absolute inset-0 m-auto animate-bounce" />
+                                    </div>
+                                    <div className="space-y-1.5 px-4">
+                                        <p className="text-sm font-black text-stone-800 dark:text-stone-100">
+                                            🛰️ 현재 계신 곳의 실시간 위치(GPS)를 확인하고 있습니다...
+                                        </p>
+                                        <p className="text-xs text-stone-500 leading-relaxed">
+                                            위성 및 네트워크 신호로 현재 위치를 정밀 측정하고 있습니다.
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="relative">
+                                        <div className="w-16 h-16 rounded-full border-4 border-amber-200 border-t-amber-600 animate-spin" />
+                                        <Sparkles className="w-6 h-6 text-amber-500 absolute inset-0 m-auto animate-pulse" />
+                                    </div>
+                                    <div className="space-y-1 px-4">
+                                        <p className="text-sm font-black text-stone-800 dark:text-stone-100">
+                                            {selectedDestination?.name ? `${selectedDestination.name} ` : ''}4단계 일정 최적화 중...
+                                        </p>
+                                        <p className="text-xs text-stone-500 leading-relaxed">
+                                            검증된 내부 데이터베이스를 바탕으로 인증 맛집, 분위기 카페, 힐링 명소를 엄선합니다.
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
 
                     {/* 3. 4단계 여행계획 결과 표시 (RESULT) */}
                     {step === 'RESULT' && planData && (
                         <div className="space-y-6 pb-4">
-                            {/* 위치 미동의 안내 배너 */}
+                            {/* 위치 미동의 / GPS 확인 불가 안내 배너 */}
                             {activeFallbackNotice && (
-                                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
-                                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                    <p className="font-medium leading-relaxed">{activeFallbackNotice}</p>
+                                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+                                    <div className="flex items-start gap-2.5">
+                                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                        <p className="font-medium leading-relaxed">{activeFallbackNotice}</p>
+                                    </div>
+                                    {canRetryGps && (
+                                        <button
+                                            type="button"
+                                            onClick={handleRetryGps}
+                                            className="self-end sm:self-auto px-3 py-1.5 bg-amber-200/80 hover:bg-amber-300 text-amber-900 font-bold rounded-xl text-xs transition-all active:scale-95 shrink-0 flex items-center gap-1 shadow-sm"
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" />
+                                            <span>🛰️ 내 위치 다시 시도</span>
+                                        </button>
+                                    )}
                                 </div>
                             )}
 
