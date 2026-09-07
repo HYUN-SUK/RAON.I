@@ -354,9 +354,31 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     }
     const isSpot = category === 'SPOT' || category === 'ROUTE_SPOT';
     if (isSpot) {
-        // [v13.1.2] raw_data.badges에서 명소 인증 정보 추출 (한국관광 100선, 예산 8경, 강릉 8경, 단양 8경, 9경, 10경 등)
+        // 1. 한국관광 100선 판별
+        const is100Sun = source === 'TOURISM_100' || 
+                         allSources.includes('TOURISM_100') || 
+                         rawBadges.includes('한국관광 100선') || 
+                         rawBadges.includes('한국관광100선') ||
+                         (raw.name && raw.name.includes('한국관광 100선'));
+        if (is100Sun && !certs.includes('한국관광 100선')) {
+            certs.push('한국관광 100선');
+            badges.push('한국관광 100선');
+            emojis.push('👑한국관광 100선');
+        }
+
+        // 2. KTO 공식 인기 명소 판별
+        const isKtoOfficial = source === 'KTO_OFFICIAL_NEW' || 
+                              allSources.includes('KTO_OFFICIAL_NEW') || 
+                              raw.raw_data?.kto_official || 
+                              rawBadges.some(b => b.includes('KTO') || b.includes('공식 인기'));
+        if (isKtoOfficial && !certs.includes('한국관광공사 선정') && !is100Sun) {
+            certs.push('한국관광공사 선정');
+            badges.push('한국관광공사');
+            emojis.push('🏛️한국관광공사');
+        }
+
+        // 3. 지자체 N경 (예산 8경, 단양 8경, 9경, 10경, 12경 등)
         const spotBadge = rawBadges.find(b => 
-            b === '한국관광 100선' || 
             b.includes('8경') || 
             b.includes('9경') || 
             b.includes('10경') || 
@@ -366,18 +388,46 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
             b.includes('십경') ||
             b.includes('지역 8경')
         );
-        if (spotBadge) {
-            certs.push(spotBadge); badges.push(spotBadge); emojis.push(`👑${spotBadge}`);
+        if (spotBadge && !certs.includes(spotBadge)) {
+            certs.push(spotBadge);
+            badges.push(spotBadge);
+            emojis.push(`👑${spotBadge}`);
         }
-        // 티어 점수가 70점 이상이면 무조건 지역명소 마크 부여
-        const ts = raw.trust_score || raw.quality_score || 0;
+
         const fullText = (raw.name || '') + ' ' + (raw.description || '') + ' ' + (raw.raw_data?.description || '');
         const match8 = fullText.match(/([가-힣]+)\s*(8경|구경|팔경)/);
-        
-        if (match8 && !emojis.some(e => e.includes('경'))) {
-            emojis.push(`👑${match8[1]} ${match8[2]}!`);
-        } else if (ts >= 70 && !emojis.some(e => e.includes('👑'))) {
-            certs.push('지역명소'); badges.push('지역명소'); emojis.push('👑지역명소');
+        if (match8 && !emojis.some(e => e.includes('경')) && !certs.some(c => c.includes('경'))) {
+            const scenicLabel = `${match8[1]} ${match8[2]}`;
+            certs.push(scenicLabel);
+            badges.push(scenicLabel);
+            emojis.push(`👑${scenicLabel}`);
+        }
+
+        // 4. 한국관광공사 TourAPI 공인 명소 (TOUR_SPOT)
+        const isTourSpot = source === 'TOUR_SPOT' || 
+                           allSources.includes('TOUR_SPOT') || 
+                           raw.raw_data?.contentid || 
+                           raw.raw_data?.contenttypeid === 12;
+        if (isTourSpot && !certs.some(c => c.includes('관광공사') || c.includes('100선'))) {
+            certs.push('한국관광공사 인증');
+            badges.push('한국관광공사');
+            emojis.push('🏛️한국관광공사');
+        }
+
+        // 5. 지자체 공인명소 (PUBLIC_BULK_ENRICHMENT / PRESTIGE_ENRICHMENT)
+        const isPublicEnriched = source === 'PUBLIC_BULK_ENRICHMENT' || source === 'PRESTIGE_ENRICHMENT' || allSources.includes('PUBLIC_BULK_ENRICHMENT');
+        if (isPublicEnriched && !certs.some(c => c.includes('관광공사') || c.includes('100선') || c.includes('공인명소'))) {
+            certs.push('지자체 공인명소');
+            badges.push('지자체공인');
+            emojis.push('🏞️지자체공인');
+        }
+
+        // 6. 티어 점수 70점 이상 시 지역명소 보증
+        const ts = raw.trust_score || raw.quality_score || 0;
+        if (ts >= 70 && certs.length === 0) {
+            certs.push('지역명소');
+            badges.push('지역명소');
+            emojis.push('👑지역명소');
         }
     }
 

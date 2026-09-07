@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, memo, useRef } from 'react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Calendar, ChevronRight, Tent, Clock, Plus, MapPin } from 'lucide-react';
+import { Calendar, ChevronRight, Tent, Clock, Plus, MapPin, Loader2 } from 'lucide-react';
 import { Schedule, getMySchedules, ensureScheduleFromReservation } from '@/actions/schedule';
 import { useReservationStore } from '@/store/useReservationStore';
 import { Reservation } from '@/types/reservation';
@@ -445,20 +445,18 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     // 로딩 (새로고침 / 첫 진입 데이터 조회 중)
     if (isLoading) {
         return (
-            <div className="bg-white dark:bg-zinc-900 border-[2px] border-amber-500/20 rounded-2xl p-5 animate-pulse space-y-3 shadow-sm">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-amber-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center">
-                            <Clock className="w-5 h-5 text-amber-500/60" />
-                        </div>
-                        <div className="space-y-1.5">
-                            <div className="h-4 w-36 bg-stone-200 dark:bg-zinc-800 rounded-md" />
-                            <div className="h-3 w-24 bg-stone-200 dark:bg-zinc-800 rounded-md" />
-                        </div>
-                    </div>
-                    <div className="w-12 h-6 bg-amber-200/60 dark:bg-zinc-800 rounded-full" />
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-[#224732]/20 shadow-sm flex items-center gap-3.5 animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675] shrink-0">
+                    <Loader2 className="w-5 h-5 animate-spin" />
                 </div>
-                <div className="h-10 w-full bg-stone-100 dark:bg-zinc-800/60 rounded-xl" />
+                <div className="space-y-0.5">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100 flex items-center gap-1.5">
+                        일정을 불러오고 있습니다...
+                    </h4>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                        잠시만 기다려주시면 다가오는 여행을 안내해 드립니다.
+                    </p>
+                </div>
             </div>
         );
     }

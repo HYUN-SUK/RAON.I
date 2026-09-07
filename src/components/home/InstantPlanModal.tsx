@@ -620,7 +620,7 @@ export default function InstantPlanModal({
                             </div>
                         </div>
 
-                        {step === 'RESULT' && (
+                        {step === 'RESULT' && initialMode !== 'NEARBY' && (
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -1178,11 +1178,16 @@ export default function InstantPlanModal({
                                                                                     {opt.evidence?.stars && (
                                                                                         <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold border border-yellow-100/30">⭐ {opt.evidence.stars.toFixed(1)}</span>
                                                                                     )}
-                                                                                    {(opt.evidence?.displayBadges || []).map((badge: any, i: number) => (
-                                                                                        <span key={i} className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center justify-center leading-none shadow-sm" title={badge.label}>
-                                                                                            {badge.emoji}
-                                                                                        </span>
-                                                                                    ))}
+                                                                                    {(opt.evidence?.displayBadges || []).map((badge: any, i: number) => {
+                                                                                        const text = badge.emoji || badge.label || '';
+                                                                                        const label = badge.label || '';
+                                                                                        const displayText = text.includes(label) ? text : (label ? `${text} ${label}` : text);
+                                                                                        return (
+                                                                                            <span key={i} className="text-[9px] font-bold text-amber-700 bg-amber-50/90 px-1.5 py-0.5 rounded-md border border-amber-200/60 flex items-center gap-1 leading-tight shadow-xs" title={badge.label}>
+                                                                                                {displayText}
+                                                                                            </span>
+                                                                                        );
+                                                                                    })}
                                                                                     {opt.category === 'HOSPITAL' && (
                                                                                         <>
                                                                                             {opt.metadata?.hvec !== undefined && parseInt(opt.metadata.hvec) > 0 && (
@@ -1492,11 +1497,16 @@ export default function InstantPlanModal({
                                         💬 리뷰 {card.evidence.reviews >= 100 ? '100+' : card.evidence.reviews}
                                     </span>
                                 )}
-                                {(card.evidence?.displayBadges || []).map((badge, idx) => (
-                                    <span key={idx} className="text-[12px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center justify-center leading-none shadow-sm" title={badge.label}>
-                                        {badge.emoji}
-                                    </span>
-                                ))}
+                                {(card.evidence?.displayBadges || []).map((badge, idx) => {
+                                    const text = badge.emoji || badge.label || '';
+                                    const label = badge.label || '';
+                                    const displayText = text.includes(label) ? text : (label ? `${text} ${label}` : text);
+                                    return (
+                                        <span key={idx} className="text-[10px] font-bold text-amber-700 bg-amber-50/90 px-2 py-0.5 rounded-md border border-amber-200/60 flex items-center gap-1 leading-tight shadow-xs" title={badge.label}>
+                                            {displayText}
+                                        </span>
+                                    );
+                                })}
                                 {isFestival && (
                                     <>
                                         <span className="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded-md font-bold border border-rose-200">
