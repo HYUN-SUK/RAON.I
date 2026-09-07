@@ -26,6 +26,7 @@ import {
     Phone,
     Map as MapIcon,
     X,
+    Crown,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
@@ -139,7 +140,22 @@ export default function InstantPlanModal({
     const [isSaving, setIsSaving] = useState(false);
     const [existingProfile, setExistingProfile] = useState<CampingProfile | null>(null);
     const [activeFallbackNotice, setActiveFallbackNotice] = useState<string | null>(fallbackNotice || null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const nearbyRunningRef = React.useRef(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const checkUser = async () => {
+            try {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                setIsLoggedIn(!!user);
+            } catch {
+                setIsLoggedIn(false);
+            }
+        };
+        checkUser();
+    }, [isOpen]);
 
     // Registration dates (입실일 / 퇴실일 / 박수)
     const [regCheckIn, setRegCheckIn] = useState<string>(todayStr);
@@ -1029,19 +1045,71 @@ export default function InstantPlanModal({
                     )}
                 </div>
 
-                {/* 하단 고정 CTA */}
+                {/* 하단 고정 CTA (안 1. 3단계 정밀 업데이트 해금형) */}
                 {step === 'RESULT' && (
-                    <div className="p-4 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-1.5">
-                        <Button
-                            onClick={handleStartSaveSchedule}
-                            className="w-full h-12 bg-gradient-to-r from-[#224732] to-[#2d5d42] hover:from-[#1b3928] hover:to-[#224732] text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.98]"
-                        >
-                            <Calendar className="w-4 h-4 text-emerald-300" />
-                            <span>📅 이 계획으로 내 일정에 등록하기</span>
-                        </Button>
-                        <p className="text-[11px] text-center text-stone-500 dark:text-stone-400 font-medium">
-                            💡 공식 일정으로 등록 시 경유지, 날씨 등 더 풍부한 계획을 받아보실 수 있습니다.
-                        </p>
+                    <div className="p-4 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-3">
+                        {/* 1. 상단 플로팅 뱃지 + 럭셔리 쉬머 CTA 버튼 */}
+                        <div className="relative pt-2">
+                            {/* 상단 샴페인 골드 플로팅 뱃지 */}
+                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap pointer-events-none">
+                                <span className="text-[10px] font-bold bg-[#FAF6EE] dark:bg-zinc-800 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                                    💎 영구 보관 · 다음날/7일전/당일 09:00 업데이트 오픈
+                                </span>
+                            </div>
+
+                            {/* 메인 버튼: 딥 에메랄드 + 골드 보더 + 골드 쉬머 광택 애니메이션 */}
+                            <Button
+                                onClick={handleStartSaveSchedule}
+                                className="relative overflow-hidden w-full h-12 bg-gradient-to-r from-[#173824] via-[#224E35] to-[#173824] hover:from-[#132e1e] hover:to-[#1c402b] text-white font-extrabold text-sm rounded-xl border border-amber-300/40 shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                            >
+                                {/* 골드 쉬머 광택 레이어 */}
+                                <span className="absolute inset-0 -translate-x-full animate-shimmer-wave bg-gradient-to-r from-transparent via-amber-200/25 to-transparent pointer-events-none" />
+
+                                <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
+                                <span className="tracking-tight text-[13.5px]">✨ 이 계획 내 일정에 저장하고 3단계 업데이트 열기</span>
+                            </Button>
+                        </div>
+
+                        {/* 2. 하단 3단계 정밀 로드맵 카드 */}
+                        <div className="bg-gradient-to-b from-amber-500/[0.07] to-emerald-500/[0.04] border border-amber-400/30 dark:border-amber-500/20 rounded-2xl p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11.5px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                                    <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                    공식 등록 시 열리는 3단계 오전 9시 업데이트
+                                </span>
+                                <span className="text-[9.5px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
+                                    무료 혜택
+                                </span>
+                            </div>
+
+                            {/* 가로 3열 미니 스텝 칩 */}
+                            <div className="grid grid-cols-3 gap-1.5 text-center">
+                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl p-1.5 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
+                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 block">1차: 내일 09시</span>
+                                    <span className="text-[10px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">정밀 플랜 생성</span>
+                                    <span className="text-[8.5px] text-stone-500 dark:text-stone-400 block leading-tight mt-0.5">출발지 맞춤 경로</span>
+                                </div>
+                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl p-1.5 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
+                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 block">2차: D-7일 09시</span>
+                                    <span className="text-[10px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">주간예보 최신화</span>
+                                    <span className="text-[8.5px] text-stone-500 dark:text-stone-400 block leading-tight mt-0.5">날씨 맞춤 경유지</span>
+                                </div>
+                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl p-1.5 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
+                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 block">3차: 당일 09시</span>
+                                    <span className="text-[10px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">실시간 최종완성</span>
+                                    <span className="text-[8.5px] text-stone-500 dark:text-stone-400 block leading-tight mt-0.5">당일 기상·교통 반영</span>
+                                </div>
+                            </div>
+
+                            {/* 비로그인 / 로그인 스마트 타겟팅 풋터 */}
+                            <p className="text-[10.5px] text-center text-stone-600 dark:text-stone-400 font-medium pt-0.5">
+                                {isLoggedIn ? (
+                                    <span>💡 등록 후 내 일정 상세 화면에서 매 단계 오전 9시마다 업데이트 버튼이 활성화됩니다.</span>
+                                ) : (
+                                    <span className="text-amber-900 dark:text-amber-200 font-semibold">🔒 카카오 3초 간편등록으로 내 폰에 소장하고 3단계 업데이트를 무료로 이용하세요.</span>
+                                )}
+                            </p>
+                        </div>
                     </div>
                 )}
 

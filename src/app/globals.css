@@ -382,3 +382,17 @@ body.admin-body {
   width: 100% !important;
   max-width: 100% !important;
 }
+
+/* Luxury Gold Shimmer Animation for Instant Plan CTA */
+@keyframes shimmerWave {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%, 100% {
+    transform: translateX(250%);
+  }
+}
+
+.animate-shimmer-wave {
+  animation: shimmerWave 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
