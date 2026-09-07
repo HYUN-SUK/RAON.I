@@ -44,6 +44,7 @@ export function usePermissionFlow() {
     const [locationGranted, setLocationGranted] = useState<boolean>(() => {
         if (typeof window !== 'undefined') {
             const val = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
+            if (val === 'false') return false;
             return val === 'true';
         }
         return false;
@@ -52,7 +53,11 @@ export function usePermissionFlow() {
     const [pushGranted, setPushGranted] = useState<boolean>(() => {
         if (typeof window !== 'undefined') {
             const val = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
-            return val === 'true';
+            if (val === 'false') return false;
+            if (val === 'true') return true;
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                return true;
+            }
         }
         return false;
     });
@@ -61,12 +66,92 @@ export function usePermissionFlow() {
     const { requestPermission, permission: pushPermission } = usePushNotification();
     const { platform } = usePWAInstallPrompt();
 
-    // 초기 마운트 시 DB 및 브라우저 상태 동기화
+    // 서버에 동의 상태 저장
+    const saveConsentToServer = useCallback(async (type: 'location' | 'push', granted: boolean) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const updateData = type === 'location'
+                ? { location_granted: granted, location_granted_at: granted ? new Date().toISOString() : null }
+                : { push_granted: granted, push_granted_at: granted ? new Date().toISOString() : null };
+
+            await supabase
+                .from('user_permission_consents')
+                .upsert({
+                    user_id: user.id,
+                    ...updateData,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+        } catch (error) {
+            console.error(`[PermissionFlow] Failed to save ${type} consent:`, error);
+        }
+    }, [supabase]);
+
+    // 초기 마운트 시 실제 브라우저 권한 및 DB 상태 통합 동기화 & 실시간 리스너 바인딩
     useEffect(() => {
+        let isCancelled = false;
+
         const syncConsents = async () => {
+            if (typeof window === 'undefined') return;
+
+            const localLoc = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED);
+            const localPush = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED);
+
+            let actualLocation: boolean | null = null;
+            let actualPush: boolean | null = null;
+
+            // 1. 위치 권한: 사용자가 앱 내에서 명시적 OFF를 하지 않은 경우 브라우저 권한 감지
+            if (localLoc === 'false') {
+                actualLocation = false;
+            } else if (localLoc === 'true') {
+                actualLocation = true;
+            }
+
+            if (typeof navigator !== 'undefined' && navigator.permissions) {
+                try {
+                    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+                    if (!isCancelled) {
+                        if (status.state === 'granted') {
+                            if (localLoc !== 'false') actualLocation = true;
+                        } else if (status.state === 'denied') {
+                            actualLocation = false;
+                        }
+                    }
+
+                    // 브라우저 권한 실시간 변경 감지
+                    status.onchange = () => {
+                        const isLocOff = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED) === 'false';
+                        if (status.state === 'granted') {
+                            if (!isLocOff) {
+                                setLocationGranted(true);
+                                localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
+                                saveConsentToServer('location', true);
+                            }
+                        } else if (status.state === 'denied') {
+                            setLocationGranted(false);
+                        }
+                    };
+                } catch {
+                    // query 미지원 환경 대비 안전 처리
+                }
+            }
+
+            // 2. 알림 권한: 실제 Notification.permission 감지
+            if (localPush === 'false') {
+                actualPush = false;
+            } else if (typeof Notification !== 'undefined') {
+                if (Notification.permission === 'granted') {
+                    actualPush = true;
+                } else if (Notification.permission === 'denied') {
+                    actualPush = false;
+                }
+            }
+
+            // 3. DB 저장 내역 동기화
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
+                if (user && !isCancelled) {
                     const { data: consent } = await supabase
                         .from('user_permission_consents')
                         .select('location_granted, push_granted')
@@ -74,22 +159,85 @@ export function usePermissionFlow() {
                         .maybeSingle();
 
                     if (consent) {
-                        if (typeof consent.location_granted === 'boolean') {
-                            setLocationGranted(consent.location_granted);
-                            localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, consent.location_granted ? 'true' : 'false');
+                        if (consent.location_granted === false && localLoc !== 'true') {
+                            actualLocation = false;
+                        } else if (consent.location_granted === true && actualLocation !== false) {
+                            actualLocation = true;
                         }
-                        if (typeof consent.push_granted === 'boolean') {
-                            setPushGranted(consent.push_granted);
-                            localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, consent.push_granted ? 'true' : 'false');
+
+                        if (consent.push_granted === false && localPush !== 'true') {
+                            actualPush = false;
+                        } else if (consent.push_granted === true && actualPush !== false) {
+                            actualPush = true;
                         }
+                    }
+
+                    // 브라우저에서 이미 허용되어 있는데 DB에 미반영된 경우 자동 업서트
+                    if (actualLocation === true && (!consent || !consent.location_granted)) {
+                        saveConsentToServer('location', true);
+                    }
+                    if (actualPush === true && (!consent || !consent.push_granted)) {
+                        saveConsentToServer('push', true);
                     }
                 }
             } catch (e) {
                 console.warn('[PermissionFlow] Consent sync warning:', e);
             }
+
+            if (!isCancelled) {
+                if (actualLocation !== null) {
+                    setLocationGranted(actualLocation);
+                    if (actualLocation && localLoc !== 'false') {
+                        localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
+                    }
+                }
+                if (actualPush !== null) {
+                    setPushGranted(actualPush);
+                    if (actualPush && localPush !== 'false') {
+                        localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, 'true');
+                    }
+                }
+            }
         };
+
         syncConsents();
-    }, [supabase]);
+
+        // 4. 화면 복귀(포커스/탭 전환) 시 권한 실시간 재확인
+        const handleVisibilityOrFocus = () => {
+            if (typeof window === 'undefined') return;
+            const isLocOff = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED) === 'false';
+            const isPushOff = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED) === 'false';
+
+            if (typeof Notification !== 'undefined') {
+                if (Notification.permission === 'granted' && !isPushOff) {
+                    setPushGranted(true);
+                    localStorage.setItem(STORAGE_KEYS.PUSH_GRANTED, 'true');
+                } else if (Notification.permission === 'denied') {
+                    setPushGranted(false);
+                }
+            }
+
+            if (typeof navigator !== 'undefined' && navigator.permissions) {
+                navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((res) => {
+                    if (res.state === 'granted' && !isLocOff) {
+                        setLocationGranted(true);
+                        localStorage.setItem(STORAGE_KEYS.LOCATION_GRANTED, 'true');
+                    } else if (res.state === 'denied') {
+                        setLocationGranted(false);
+                    }
+                }).catch(() => {});
+            }
+        };
+
+        window.addEventListener('focus', handleVisibilityOrFocus);
+        document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+        return () => {
+            isCancelled = true;
+            window.removeEventListener('focus', handleVisibilityOrFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+        };
+    }, [supabase, saveConsentToServer]);
 
     // iOS Safari 감지
     const isIOSSafari = platform === 'ios';
@@ -153,8 +301,15 @@ export function usePermissionFlow() {
             console.warn('[PermissionFlow] Failed to fetch DB consents:', e);
         }
 
-        // 위치 권한 확인 (로컬스토리지 또는 DB 동의 완료 여부)
-        const locationGranted = dbLocationGranted || localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED) === 'true';
+        // 위치 권한 확인 (브라우저 실제 권한, 로컬스토리지 또는 DB 동의 완료 여부)
+        let hasBrowserLocation = false;
+        if (typeof navigator !== 'undefined' && navigator.permissions) {
+            try {
+                const res = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+                if (res.state === 'granted') hasBrowserLocation = true;
+            } catch {}
+        }
+        const locationGranted = hasBrowserLocation || dbLocationGranted || localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED) === 'true';
         const locationInCooldown = isInCooldown(STORAGE_KEYS.LOCATION_DISMISSED_AT);
 
         // 위치 권한이 필요한 경우
@@ -201,28 +356,6 @@ export function usePermissionFlow() {
         // 모든 권한 완료
         completeFlow();
     }, [isInCooldown, pushPermission, isIOSSafari, isPWAInstalled]);
-
-    // 서버에 동의 상태 저장
-    const saveConsentToServer = useCallback(async (type: 'location' | 'push', granted: boolean) => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const updateData = type === 'location'
-                ? { location_granted: granted, location_granted_at: granted ? new Date().toISOString() : null }
-                : { push_granted: granted, push_granted_at: granted ? new Date().toISOString() : null };
-
-            await supabase
-                .from('user_permission_consents')
-                .upsert({
-                    user_id: user.id,
-                    ...updateData,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'user_id' });
-        } catch (error) {
-            console.error(`[PermissionFlow] Failed to save ${type} consent:`, error);
-        }
-    }, [supabase]);
 
     // 위치 권한 결과 처리
     const handleLocationResult = useCallback(async (accepted: boolean) => {
