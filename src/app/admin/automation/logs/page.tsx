@@ -145,6 +145,8 @@ export default function AutomationLogsPage() {
     switch (status) {
       case 'SUCCESS':
         return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800">성공</span>;
+      case 'PARTIAL_FAIL':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">일부실패</span>;
       case 'FAILURE':
         return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">실패</span>;
       default:

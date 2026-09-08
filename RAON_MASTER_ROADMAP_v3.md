@@ -7,6 +7,14 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.45 공공데이터포털 새벽 지연 방어 타임아웃 45초·Keep-Alive 탑재, PARTIAL_FAIL 자가치유 파이프라인 및 2차 백업 스케줄러(07:15 KST) 최적화 완결 (2026-09-08)** 🟢
+  - [x] **오늘 충청북도 긴급 선별 복구 완결 (`--only=SPOT,HOSPITAL`)**: 식당/마트 5,200여 건 데이터의 완벽한 보존 하에 관광명소(SPOT) 503건, KTO 순위 1,108건, Tmap/KT 이동성 지표 12,810건, 응급병원(HOSPITAL) 15건 100% 정상 수신 및 DB 적재 완수.
+  - [x] **네트워크 탄력성 극대화 (`fetchWithRetry`)**: 타임아웃을 기존 20초에서 45초로 상향하고, 누락되어 있던 `httpsAgent` (Keep-Alive, timeout: 180s)를 공식 연결하여 새벽 공공데이터포털 트래픽 지연 및 SSL 핸드셰이크 병목 영구 탈출.
+  - [x] **2단계 자가치유(Self-Healing) 파이프라인 탑재 (`PARTIAL_FAIL`)**: 명소/병원 등 핵심 카테고리 0건 수신 시 최종 상태를 `SUCCESS`가 아닌 `PARTIAL_FAIL`로 분기하여, 2차 백업 스케줄러가 `Idempotency Guard`에 막히지 않고 자동으로 재시도하여 누락을 스스로 복구하도록 개선.
+  - [x] **관리자 UI 관제 투명화 (`/admin/automation/logs`)**: `PARTIAL_FAIL` 시 앰버(주황색) 뱃지 표출 및 상세 실패 사유(`stat.note`) 투명 표기.
+  - [x] **GitHub Actions 2차 백업 스케줄러 시각 최적화**: 06:07 KST ➔ **07:15 KST (UTC 22:15)**로 조정하여, 06:00 KST 1차 크론잡 및 타 스케줄러(06:08 스마트플랜, 08:15 캠핑알림)와의 큐 충돌 0건 보장.
+  - [x] **빌드 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.44 비로그인 캐시 보안 격리 및 즉시 여행계획 카피라이팅 최적화 완결 (2026-09-07~08)** 🟢
   - [x] **비로그인 일정 노출 원천 차단 (`ScheduleHomeWidget.tsx`)**: 세션 미확인/비로그인 시 로컬스토리지 캐시(`cachedReservations`, `cachedSchedules`, `reservations`)를 완전히 배제하고 `upcomingItem = null` (일정 없음 점선 카드)로 즉시 렌더링. 실시간 `onAuthStateChange` 리스너로 로그아웃 시 즉각 반응형 동기화.
   - [x] **로그아웃 시 로컬 캐시 완전 정화 (`TopBar.tsx`)**: 로그아웃 및 `SIGNED_OUT` 감지 시 브라우저 내의 예약/일정 로컬 캐시(`reservation-storage-v3`, `reservation-storage-v2`, `user_schedules_cache`) 및 Zustand 메모리를 완전히 즉시 삭제하여 공용 기기 및 재접속 시 데이터 혼선 원천 차단.

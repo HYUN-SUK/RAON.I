@@ -319,7 +319,8 @@ async function fetchWithRetry(url, options = {}, maxRetries = 5) {
   while (attempt <= maxRetries) {
     try {
       const mergedOptions = {
-        timeout: 20000, // [v14.1 Upgrade] 20초 타임아웃 적용
+        timeout: 45000, // [v15.2 Upgrade] 새벽 공공데이터포털 지연 대비 45초 타임아웃
+        agent: options.agent || (url.startsWith('https') ? httpsAgent : undefined),
         ...options,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -987,10 +988,26 @@ async function dailyRegionSync() {
      await finalizePopularityv2();
   }
 
-  const finalMsg = onlyCategories 
+  // [v15.2 Self-Healing Guard] 핵심 공공 API(SPOT, HOSPITAL) 수신 건수 무결성 검증
+  // 일반 전체 동기화일 때 명소 또는 병원이 0건이면 PARTIAL_FAIL로 분기하여 2차 백업 스케줄러 재시도 허용
+  const isSpotFailed = shouldRunCategory('SPOT') && (stats.categories.SPOT.fetched.active === 0);
+  const isHospFailed = shouldRunCategory('HOSPITAL') && (stats.categories.HOSPITAL.fetched.active === 0);
+  const isPartialFail = !onlyCategories && (isSpotFailed || isHospFailed);
+
+  const failedItems = [];
+  if (isSpotFailed) failedItems.push('관광명소 0건');
+  if (isHospFailed) failedItems.push('응급병원 0건');
+
+  const finalStatus = isPartialFail ? 'PARTIAL_FAIL' : 'SUCCESS';
+  let finalMsg = onlyCategories 
     ? `${targetSido} 지역 선별 동기화 완료 (${onlyCategories.join('/')})`
     : `${targetSido} 지역 순환 동기화 완료 (식당/마트/명소)`;
-  await updateAutomationLog(currentLogId, stats, 'SUCCESS', finalMsg);
+
+  if (isPartialFail) {
+    finalMsg = `${targetSido} 동기화 일부 지연 [${failedItems.join(', ')}] - 2차 백업 스케줄러 자동 재시도 대기`;
+  }
+
+  await updateAutomationLog(currentLogId, stats, finalStatus, finalMsg);
 
   // 8. [SOP v11.3] 정밀 감사 결과 테이블 출력
   printAuditTable(stats);
@@ -1779,7 +1796,7 @@ async function syncTourSpots(sido, seenIds, stat) {
           retryCount++;
           console.error(`  ❌ Tour API Exception (시도 ${retryCount}/${maxRetries}):`, e.message);
           if (retryCount < maxRetries) {
-            await delay(3000 * retryCount);
+            await delay(5000 * retryCount);
           } else {
             // [v15.1 가드] 1페이지부터 예외 발생 시 API 다운으로 판단하여 무한 루프 차단
             if (pageNo === 1) {
@@ -1827,6 +1844,7 @@ async function syncHospitals(sido, seenIds, stat) {
   const isJeonnamGwangju = sido === '전남광주시' || sido.includes('전남광주');
   const apiSidos = isJeonnamGwangju ? ['광주', '전남', '전남광주통합특별시'] : [shortSido, sido];
   const seenApiHospKeys = new Set();
+  let lastHospError = null;
 
   try {
     // 1. Supabase에서 기존 병원 좌표 데이터 조회
@@ -1965,9 +1983,10 @@ async function syncHospitals(sido, seenIds, stat) {
         }
       } catch (subErr) {
           retryCount++;
+          lastHospError = subErr.message;
           console.warn(`  ⚠️ NMC Stage1 (${apiSido}) fetch failed (시도 ${retryCount}/${maxRetries}): ${subErr.message}`);
           if (retryCount < maxRetries) {
-            await delay(3000 * retryCount);
+            await delay(5000 * retryCount);
           }
         }
       }
@@ -1975,6 +1994,9 @@ async function syncHospitals(sido, seenIds, stat) {
 
     if (chunk.length > 0) {
       await upsertAndTrack(chunk, stat);
+    }
+    if (stat.fetched.active === 0 && lastHospError) {
+      stat.note = `⚠️ NMC 수신지연 (${lastHospError.slice(0, 25)})`;
     }
   } catch (e) {
     console.error('  ❌ NMC Hospital Sync Error:', e.message);
