@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { SITES } from '@/constants/sites';
 import { useWeather } from '@/hooks/useWeather';
-import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { toast } from 'sonner';
 import {
@@ -123,7 +122,6 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     });
 
     const [isNavigating, setIsNavigating] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [dontShowToday, setDontShowToday] = useState(false);
 
@@ -201,7 +199,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         // 체크인 날짜 기준 정렬 후 가장 가까운 것 선택
         unifiedList.sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime());
         return unifiedList[0] || null;
-    }, [cachedReservations, reservations, cachedSchedules, schedules]);
+    }, [cachedReservations, reservations, cachedSchedules, schedules, isAuthenticated]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
