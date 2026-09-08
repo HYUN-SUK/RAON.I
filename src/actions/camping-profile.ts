@@ -129,55 +129,93 @@ export async function saveCampingProfile(
 }
 
 /**
- * [Phase 5] 카카오 주소 검색 (Server-side)
- * 클라이언트 CORS 및 API 키 노출 방지를 위해 Server Action으로 처리합니다.
+ * [Phase 5] 카카오 & 네이버 하이브리드 주소/장소 검색 (Server-side)
+ * - 1차: 카카오 DAPI 키워드 및 주소 병렬 검색
+ * - 2차: 카카오 형태소 버그(예: 일월관광농원 등) 또는 색인 누락으로 0건일 때 네이버 로컬 검색 API Fallback
+ * - 클라이언트 CORS 및 API 키 노출 방지를 위해 Server Action으로 처리합니다.
  */
 export async function searchAddressAction(query: string): Promise<{ label: string; address?: string; lat: number; lng: number }[]> {
-    if (!query.trim()) return [];
+    const trimmed = query.trim();
+    if (!trimmed) return [];
 
     const kakaoKey = process.env.KAKAO_REST_API_KEY;
-    if (!kakaoKey) {
-        console.error('[CampingProfile] KAKAO_REST_API_KEY is missing in env');
+    const naverId = process.env.NAVER_CLIENT_ID;
+    const naverSecret = process.env.NAVER_CLIENT_SECRET;
+
+    if (!kakaoKey && !naverId) {
+        console.error('[CampingProfile] Search API keys (KAKAO_REST_API_KEY, NAVER_CLIENT_ID) are missing in env');
         return [];
     }
 
-    try {
-        const headers = { Authorization: `KakaoAK ${kakaoKey}` };
-        const queryEncoded = encodeURIComponent(query);
-        
-        // 1. 키워드 검색 (장소명 위주)
-        const keywordPromise = fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
-        // 2. 주소 검색 (도로명/지번 위주)
-        const addressPromise = fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
+    const results: { label: string; address?: string; lat: number; lng: number }[] = [];
+    const seen = new Set<string>();
+    const queryEncoded = encodeURIComponent(trimmed);
 
-        const [keywordData, addressData] = await Promise.all([keywordPromise, addressPromise]);
+    // 1. 1차: 카카오 키워드 & 주소 검색
+    if (kakaoKey) {
+        try {
+            const headers = { Authorization: `KakaoAK ${kakaoKey}` };
+            const keywordPromise = fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
+            const addressPromise = fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
 
-        const results: { label: string; address?: string; lat: number; lng: number }[] = [];
-        const seen = new Set<string>();
+            const [keywordData, addressData] = await Promise.all([keywordPromise, addressPromise]);
 
-        // 키워드 결과 먼저 추가 (장소명 + 도로명/지번 주소)
-        for (const doc of (keywordData.documents || [])) {
-            const label = doc.place_name || doc.address_name;
-            const address = doc.road_address_name || doc.address_name || '';
-            if (label && !seen.has(label)) {
-                seen.add(label);
-                results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+            // 키워드 결과 먼저 추가 (장소명 + 도로명/지번 주소)
+            for (const doc of (keywordData.documents || [])) {
+                const label = doc.place_name || doc.address_name;
+                const address = doc.road_address_name || doc.address_name || '';
+                if (label && !seen.has(label)) {
+                    seen.add(label);
+                    results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                }
             }
-        }
-        
-        // 주소 결과 추가
-        for (const doc of (addressData.documents || [])) {
-            const label = doc.address_name;
-            const address = doc.road_address?.address_name || doc.address_name || '';
-            if (label && !seen.has(label)) {
-                seen.add(label);
-                results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
-            }
-        }
 
-        return results.slice(0, 5); // 최대 5개까지만
-    } catch (err) {
-        console.error('[CampingProfile] Address search failed:', err);
-        return [];
+            // 주소 결과 추가
+            for (const doc of (addressData.documents || [])) {
+                const label = doc.address_name;
+                const address = doc.road_address?.address_name || doc.address_name || '';
+                if (label && !seen.has(label)) {
+                    seen.add(label);
+                    results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                }
+            }
+        } catch (err) {
+            console.warn('[CampingProfile] Kakao search failed:', err);
+        }
     }
+
+    // 2. 2차: 카카오 결과가 0건일 때 네이버 로컬 검색 Fallback (카카오 형태소 버그 및 색인 누락 완벽 보완)
+    if (results.length === 0 && naverId && naverSecret) {
+        try {
+            const naverRes = await fetch(`https://openapi.naver.com/v1/search/local.json?query=${queryEncoded}&display=5`, {
+                headers: {
+                    'X-Naver-Client-Id': naverId,
+                    'X-Naver-Client-Secret': naverSecret,
+                }
+            });
+
+            if (naverRes.ok) {
+                const naverData: any = await naverRes.json();
+                for (const item of (naverData.items || [])) {
+                    const cleanLabel = (item.title || '').replace(/<[^>]+>/g, '').trim();
+                    const address = item.roadAddress || item.address || '';
+                    const rawX = parseInt(item.mapx, 10);
+                    const rawY = parseInt(item.mapy, 10);
+                    if (cleanLabel && rawX && rawY && !seen.has(cleanLabel)) {
+                        seen.add(cleanLabel);
+                        results.push({
+                            label: cleanLabel,
+                            address: address,
+                            lat: rawY / 1e7,
+                            lng: rawX / 1e7,
+                        });
+                    }
+                }
+            }
+        } catch (nErr) {
+            console.warn('[CampingProfile] Naver search fallback failed:', nErr);
+        }
+    }
+
+    return results.slice(0, 5); // 최대 5개까지만
 }
