@@ -1,5 +1,13 @@
 # Task Management
 
+## Completed Tasks (2026-09-09)
+- [x] **마일스톤 9.46**: 홈 백그라운드 최적화, 비로그인 즉시플랜 10분 선택형 복원 퍼널 및 관리자 대시보드 5대 실효 지표 개편 완결
+  - **홈 화면 백그라운드 헛돌기 100% 차단 (`BeginnerHome.tsx`)**: 가림 처리된 인삿말에 물려있던 `usePersonalizedRecommendation(false)` 훅 호출 및 미사용 시트 바인딩을 주석 처리하여 불필요한 Supabase `profiles`, `recommendation_pool` 쿼리 및 기상청 날씨 API 트래픽을 완벽히 차단. 다가오는 일정 카드, 즉시플랜 버튼 등 정상 노출 UI는 0.1픽셀도 건드리지 않고 100% 온전히 보존.
+  - **비로그인 `draft_instant_plan` 10분 보존 & [확인/거부] 선택 복원 퍼널 (`InstantPlanModal.tsx`, `BeginnerHome.tsx`)**: 비로그인 상태에서 [내 일정 저장] 클릭 시 브라우저 `localStorage`에 10분 TTL 스냅샷을 임시 저장(서버/DB 소모량 0바이트) 후 로그인 페이지로 이동. 10분 이내 로그인 복귀 시 세련된 AlertDialog(확인/거부 선택 창)를 띄워 원스톱으로 일정 등록을 완료하거나 즉시 삭제할 수 있도록 사용자 통제권 보장. 10분 초과 시 조용히 자동 삭제되어 오랜 시간 뒤의 혼란 원천 방지.
+  - **즉시 여행계획 로깅 & 사이트 방문자 수(PV/UV) 카운팅 신설 (`analytics-logger.ts`, `instant-plan.ts`)**: Supabase 정규 테이블 `user_action_log`를 100% 활용한 Fail-Safe 비동기 로깅 탑재. 플랜 생성 시 고유 `logId`를 발급하고, DB 저장이 성공하는 순간 1:1 매칭으로 전환(`INSTANT_PLAN_CONVERT`) 확정 기록. 홈 진입 시 `visitorKey`와 1회 세션 디바운스로 비로그인 포함 전체 사이트 방문자 수(PV)와 순 방문자(UV)를 실시간 집계.
+  - **관리자 대시보드 3대 미사용 제거 & 5대 실효 지표 개편 (`admin-analytics.ts`, `admin/page.tsx`)**: 요리 레시피, 놀이 탐색기, **커뮤니티 소식 탐색** 3대 미사용 카드를 완전 제거. 상단에 사이트 총 방문 요약 카드(PV/UV) 신설, 즉시 여행계획 전용 카드(내주변/목적지 비율, 비로그인 비율, 내 일정 전환 건수 및 전환율%) 신설, 정밀 스마트플랜 단순 예약자/10초기록자 허수 박멸 정규화, 10초 기록 순수 캠핑 핀 정합성 유지.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
 ## Completed Tasks (2026-09-08)
 - [x] **마일스톤 9.45**: 공공데이터포털 새벽 지연 방어 타임아웃 45초·Keep-Alive 탑재, PARTIAL_FAIL 자가치유 파이프라인 및 2차 백업 스케줄러(07:15 KST) 최적화 완결
   - **오늘 충청북도 긴급 선별 복구 완결 (`--only=SPOT,HOSPITAL`)**: 식당/마트 5,200여 건 데이터의 완벽한 보존 하에 관광명소(SPOT) 503건, KTO 순위 1,108건, Tmap/KT 이동성 지표 12,810건, 응급병원(HOSPITAL) 15건 100% 정상 수신 및 DB 적재 완수.
