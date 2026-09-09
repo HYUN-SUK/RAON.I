@@ -159,16 +159,17 @@ export default function TopBar() {
 
     const handleLogout = async () => {
         try {
-            await supabase.auth.signOut({ scope: 'local' });
+            await supabase.auth.signOut();
             clearUserAuthCaches();
             toast.success('로그아웃 되었습니다.');
             setIsLoggedIn(false);
             setUserInfo(null);
             reset(); // Reset global store state
-            router.push('/'); // Redirect to home
-            router.refresh();
+            window.location.href = '/';
         } catch (error) {
             console.error('Logout error:', error);
+            clearUserAuthCaches();
+            window.location.href = '/';
         }
     };
 

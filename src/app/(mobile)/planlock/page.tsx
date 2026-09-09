@@ -108,7 +108,7 @@ export default function PlanLockPage() {
 
         if (favCountData) {
             const map = new Map<string, number>();
-            favCountData.forEach((row) => {
+            favCountData.forEach((row: any) => {
                 map.set(row.campground_id, row.heart_count);
             });
             setFavorites(map);

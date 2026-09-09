@@ -587,45 +587,55 @@ export default function InstantPlanModal({
 
     // Proceed to Save Schedule (Check user session & profile)
     const handleStartSaveSchedule = async () => {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            // [복원 퍼널] 비로그인 유저가 작성한 플랜 브라우저(localStorage)에 10분간 임시 보존
-            if (planData && selectedDestination) {
-                const draftPayload = {
-                    planData,
-                    selectedDestination,
-                    targetDate: targetDate || todayStr,
-                    regStayType: regStayType || '1n2d',
-                    logId: currentLogId,
-                    savedAt: Date.now(),
-                };
-                try {
-                    localStorage.setItem('raon_draft_instant_plan', JSON.stringify(draftPayload));
-                } catch (e) {
-                    console.warn('[DraftPlan] Failed to save draft:', e);
-                }
-            }
-            toast.info('10분 이내에 로그인하시면 방금 만든 일정을 바로 등록하실 수 있어요!', { duration: 5000 });
-            router.push('/login');
-            return;
-        }
-
-        // Check if profile exists
         try {
-            const prof = await getCampingProfile();
-            setExistingProfile(prof);
-        } catch {}
+            const supabase = createClient();
+            // [0ms 즉시 세션 판정] 원격 네트워크 통신(getUser) 대신 로컬 쿠키/메모리 세션(getSession)을 우선 조회
+            // 네트워크가 지연되는 야외/캠핑장 환경에서도 로그인 유저가 절대 튕기지 않음
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
 
-        // Initialize registration dates from targetDate
-        const start = targetDate || todayStr;
-        setRegCheckIn(start);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        setRegCheckOut(end.toISOString().split('T')[0]);
-        setRegStayType('1n2d');
+            if (!user) {
+                // [복원 퍼널] 비로그인 유저가 작성한 플랜 브라우저(localStorage)에 10분간 임시 보존
+                if (planData && selectedDestination) {
+                    const draftPayload = {
+                        planData,
+                        selectedDestination,
+                        targetDate: targetDate || todayStr,
+                        regStayType: regStayType || '1n2d',
+                        logId: currentLogId,
+                        savedAt: Date.now(),
+                    };
+                    try {
+                        localStorage.setItem('raon_draft_instant_plan', JSON.stringify(draftPayload));
+                    } catch (e) {
+                        console.warn('[DraftPlan] Failed to save draft:', e);
+                    }
+                }
+                toast.info('10분 이내에 로그인하시면 방금 만든 일정을 바로 등록하실 수 있어요!', { duration: 5000 });
+                router.push('/login');
+                return;
+            }
 
-        setStep('PROFILE_GATE');
+            // Check if profile exists
+            try {
+                const prof = await getCampingProfile();
+                setExistingProfile(prof);
+            } catch {}
+
+            // Initialize registration dates from targetDate
+            const start = targetDate || todayStr;
+            setRegCheckIn(start);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 1);
+            setRegCheckOut(end.toISOString().split('T')[0]);
+            setRegStayType('1n2d');
+
+            setStep('PROFILE_GATE');
+        } catch (error) {
+            console.error('[InstantPlanModal] handleStartSaveSchedule error:', error);
+            toast.info('로그인이 필요합니다. 로그인 후 다시 시도해 주세요.');
+            router.push('/login');
+        }
     };
 
     // Final Save Execution after profile gate complete

@@ -7,6 +7,14 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.47 Supabase 세션 데드락 박멸, 브라우저 싱글톤 구축, 로그아웃 정상화 및 0ms 비로그인 즉시 판정 완결 (2026-09-09)** 🟢
+  - [x] **Supabase 브라우저 싱글톤 구축 (`supabase-client.ts`)**: `createBrowserClient`를 모듈 단일 인스턴스로 전역 공유하여 Web Locks(`navigator.locks`) 자물쇠 경합 및 세션 데드락 원천 박멸. SSR 환경에서는 요청 간 세션 격리를 유지하도록 독립 인스턴스 반환 분기 처리.
+  - [x] **로그아웃 정상화 & 클린 리셋 (`TopBar.tsx`)**: 세션 꼬임을 유발하던 `scope: 'local'` 제거 후 표준 `await supabase.auth.signOut()`으로 정화. 로그아웃 완료 시 `window.location.href = '/'`로 브라우저 하드 리셋을 수행하여 메모리 락과 Zustand 전역 스토어 캐시를 100% 완전 초기화.
+  - [x] **ScheduleHomeWidget 0ms 비로그인 즉시 판정 & Fail-Safe 방어**: 쿠키/스토리지에 Supabase 인증 토큰이 없으면 0ms 만에 즉시 스켈레톤을 끄고 "다가오는 일정이 없습니다"로 전환. 4초 Fail-Safe 타임아웃 가드로 무한 대기 원천 차단. 로그인 유저는 로컬 캐시 0ms 렌더링으로 일정이 튕기거나 사라지지 않도록 보호.
+  - [x] **InstantPlanModal 저장 버튼 0ms 로컬 판정 & 에러 바운더리**: 원격 통신(`getUser`) 대신 0ms 로컬 세션 조회(`getSession`)로 전환하여 네트워크 지연 시에도 로그인 유저가 튕기지 않고 원스톱 일정 저장으로 진입하도록 보장. 비로그인은 0ms 만에 판정 후 10분 임시 보존 후 안전 리다이렉트. `try-catch` 안전망으로 버튼 무반응 원천 방지.
+  - [x] **PlanLock TypeScript 타입 안전성 보강 (`planlock/page.tsx`)**: `favCountData.forEach((row: any))` 타입 명시로 엄격 모드 빌드 오류 방지.
+  - [x] **빌드 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.46 홈 백그라운드 최적화, 비로그인 즉시플랜 10분 선택형 복원 퍼널 및 관리자 대시보드 5대 실효 지표 개편 완결 (2026-09-09)** 🟢
   - [x] **홈 화면 백그라운드 헛돌기 100% 차단 (`BeginnerHome.tsx`)**: 가림 처리된 인삿말에 물려있던 `usePersonalizedRecommendation(false)` 훅 호출 및 미사용 시트 바인딩을 주석 처리하여 불필요한 Supabase `profiles`, `recommendation_pool` 쿼리 및 기상청 날씨 API 트래픽을 완벽히 차단. 다가오는 일정 카드, 즉시플랜 버튼 등 정상 노출 UI는 0.1픽셀도 건드리지 않고 100% 온전히 보존.
   - [x] **비로그인 `draft_instant_plan` 10분 보존 & [확인/거부] 선택 복원 퍼널 (`InstantPlanModal.tsx`, `BeginnerHome.tsx`)**: 비로그인 상태에서 [내 일정 저장] 클릭 시 브라우저 `localStorage`에 10분 TTL 스냅샷을 임시 저장(서버/DB 소모량 0바이트) 후 로그인 페이지로 이동. 10분 이내 로그인 복귀 시 세련된 AlertDialog(확인/거부 선택 창)를 띄워 원스톱으로 일정 등록을 완료하거나 즉시 삭제할 수 있도록 사용자 통제권 보장. 10분 초과 시 조용히 자동 삭제되어 오랜 시간 뒤의 혼란 원천 방지.

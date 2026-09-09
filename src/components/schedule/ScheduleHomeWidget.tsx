@@ -230,8 +230,26 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         let isSubscribed = true;
 
         const checkAuthAndFetch = async () => {
+            // [0ms 즉시 판정] 쿠키 및 스토리지에 Supabase 인증 토큰이 아예 없다면 비로그인으로 즉시 확정하여 불필요한 대기 원천 차단
+            const hasAuthToken = (typeof document !== 'undefined' && document.cookie.includes('sb-')) ||
+                (typeof window !== 'undefined' && Object.keys(localStorage).some(k => k.includes('auth-token') || k.startsWith('sb-')));
+
+            if (!hasAuthToken) {
+                if (isSubscribed) {
+                    setIsAuthenticated(false);
+                    setSchedules([]);
+                    setIsLoading(false);
+                }
+                return;
+            }
+
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                // Fail-safe timeout (4초): 만에 하나 브라우저 Web Locks 지연이 발생하더라도 스켈레톤 무한 대기 원천 방어
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+                    setTimeout(() => resolve({ data: { session: null } }), 4000)
+                );
+                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
                 if (!isSubscribed) return;
 
                 if (!session?.user) {

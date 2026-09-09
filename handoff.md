@@ -1,14 +1,32 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-09T15:35:00+09:00  
-**기준 브랜치**: `main` (최신 커밋 `58d990c`)  
+**작성 일시**: 2026-09-09T16:30:00+09:00  
+**기준 브랜치**: `main`  
 **빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과)  
 
 ---
 
 ## 1. 현재 상태 요약 (Completed Work in Current Session)
 
-이번 세션에서는 **홈 화면 백그라운드 헛돌기(미사용 DB/기상청 쿼리) 100% 차단**, **비로그인 `draft_instant_plan` 10분 임시 보존 및 로그인 복귀 시 [확인/거부] 선택형 복원 퍼널 구축**, **즉시 여행계획(내 주변/목적지) 생성 및 내 일정 전환(1:1 실효 매칭) 로깅과 사이트 방문자 수(PV/UV) 카운팅 신설**, 그리고 **관리자 대시보드 3대 미사용 카드(레시피, 놀이, 커뮤니티 소식 탐색) 완전 제거 및 허수 0% 5대 실효 지표 개편**을 완벽히 달성하였습니다.
+이번 세션에서는 **Supabase 브라우저 세션 데드락 완치**, **클라이언트 싱글톤(Singleton) 구축**, **로그아웃 정상화(scope: 'local' 제거 및 하드 리셋)**, **홈 일정 카드 0ms 비로그인 즉시 판정 및 Fail-Safe 방어**, **즉시플랜 일정 저장 버튼 0ms 로컬 세션 확인 및 튕김 방지 안전망 구축**을 완벽히 달성하였습니다.
+
+### 🟢 마일스톤 9.47: Supabase 세션 데드락 박멸, 브라우저 싱글톤 구축, 로그아웃 정상화 및 0ms 비로그인 즉시 판정 완결 (2026-09-09)
+1. **Supabase 브라우저 싱글톤 구축 (`src/lib/supabase-client.ts`)**:
+   - `createBrowserClient`를 모듈 단일 인스턴스(`browserClient`)로 전역 공유하여 브라우저 자물쇠(`navigator.locks`) 경합 및 세션 데드락 원천 박멸.
+   - SSR 환경(`typeof window === 'undefined'`)에서는 요청 간 세션 격리를 위해 독립 인스턴스 반환 보장.
+2. **TopBar 로그아웃 정상화 & 클린 리셋 (`src/components/TopBar.tsx`)**:
+   - 세션 불일치를 유발하던 `scope: 'local'` 제거 후 표준 `await supabase.auth.signOut()`으로 정화.
+   - 로그아웃 시 `window.location.href = '/'`로 브라우저 하드 리프레시를 적용하여 메모리 락과 Zustand 전역 스토어 캐시를 100% 완전 초기화.
+3. **ScheduleHomeWidget 0ms 비로그인 즉시 판정 & Fail-Safe 방어 (`src/components/schedule/ScheduleHomeWidget.tsx`)**:
+   - 쿠키/스토리지에 Supabase 인증 토큰이 없으면 0ms 만에 즉시 스켈레톤을 끄고 "다가오는 일정이 없습니다"로 전환.
+   - 4초 Fail-Safe 타임아웃 가드로 무한 스켈레톤 대기 원천 차단.
+   - 로그인 유저는 기존 로컬 캐시 0ms 렌더링으로 일정이 튕기거나 사라지지 않도록 보호.
+4. **InstantPlanModal 저장 버튼 0ms 로컬 판정 & 에러 바운더리 (`src/components/home/InstantPlanModal.tsx`)**:
+   - 원격 통신(`getUser`) 대신 0ms 로컬 세션 조회(`getSession`)로 전환하여 네트워크 지연 시에도 로그인 유저가 튕기지 않고 원스톱 일정 저장으로 진입하도록 보장.
+   - 비로그인은 0ms 만에 판정 후 10분 임시 보존 후 안전 리다이렉트. `try-catch` 안전망으로 버튼 무반응 원천 방지.
+5. **PlanLock TypeScript 타입 안전성 보강 (`src/app/(mobile)/planlock/page.tsx`)**:
+   - `favCountData.forEach((row: any))` 타입 명시로 엄격 모드 빌드 무결성 확보.
+6. **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
 
 ### 🟢 마일스톤 9.46: 홈 백그라운드 최적화, 비로그인 10분 복원 퍼널 및 대시보드 5대 실효 지표 개편 완결 (2026-09-09)
 1. **홈 화면 백그라운드 헛돌기 100% 차단 (`BeginnerHome.tsx`)**:
