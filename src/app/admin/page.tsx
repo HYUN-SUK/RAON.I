@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
     CalendarCheck, AlertCircle, ShoppingCart, Server, Users, Activity, Bell, MapPin, 
     Compass, Camera, MessageSquare, Flag, Utensils, Gamepad2, Calendar as CalendarIcon,
-    RefreshCw, CheckCircle2, UserX
+    RefreshCw, CheckCircle2, UserX, Zap, Eye
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -135,6 +135,7 @@ export default function AdminDashboard() {
 
     const getIconComponent = (key: string) => {
         switch (key) {
+            case 'Zap': return <Zap className="w-5 h-5 text-amber-500" />;
             case 'Map': return <MapPin className="w-5 h-5 text-[#224732]" />;
             case 'Compass': return <Compass className="w-5 h-5 text-blue-600" />;
             case 'Camera': return <Camera className="w-5 h-5 text-rose-500" />;
@@ -324,13 +325,13 @@ export default function AdminDashboard() {
                 )}
             </div>
 
-            {/* Header User Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Header User & Traffic Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* 1. Total Registered Users (총 가입 유저 수) */}
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 rounded-2xl border border-indigo-100 shadow-sm flex flex-col justify-between">
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-4 rounded-2xl border border-indigo-100 shadow-sm flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-indigo-700">총 가입 유저 수</span>
-                        <Users className="w-5 h-5 text-indigo-600" />
+                        <Users className="w-4 h-4 text-indigo-600" />
                     </div>
                     <div className="text-2xl font-black text-indigo-950">
                         {loading ? '-' : `${analytics?.totalUsers.toLocaleString()} 명`}
@@ -341,10 +342,10 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* 2. Active Users in Period (선택 기간 접속 유저) */}
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-5 rounded-2xl border border-emerald-100 shadow-sm flex flex-col justify-between">
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-4 rounded-2xl border border-emerald-100 shadow-sm flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-emerald-700">선택 기간 접속 유저</span>
-                        <Activity className="w-5 h-5 text-emerald-600" />
+                        <Activity className="w-4 h-4 text-emerald-600" />
                     </div>
                     <div className="text-2xl font-black text-emerald-950">
                         {loading ? '-' : `${analytics?.periodActiveUsers.toLocaleString()} 명`}
@@ -355,30 +356,44 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* 3. Inactive Users (기능 미활용 유저) */}
-                <div className="bg-gradient-to-br from-rose-50 to-rose-100/50 p-5 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between">
+                <div className="bg-gradient-to-br from-rose-50 to-rose-100/50 p-4 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-rose-700">기능 미활용 유저</span>
-                        <UserX className="w-5 h-5 text-rose-600" />
+                        <UserX className="w-4 h-4 text-rose-600" />
                     </div>
                     <div className="text-2xl font-black text-rose-950">
                         {loading ? '-' : `${analytics?.inactiveUsers.toLocaleString()} 명`}
                     </div>
                     <p className="text-[11px] text-rose-600/80 mt-1 font-medium">
-                        기간 중 7대 기능 이용 0회
+                        기간 중 5대 기능 이용 0회
                     </p>
                 </div>
 
                 {/* 4. Both Consents (100% 알림 도달 가능자) */}
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-5 rounded-2xl border border-amber-100 shadow-sm flex flex-col justify-between">
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-4 rounded-2xl border border-amber-100 shadow-sm flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-amber-800">🔔 100% 알림 도달 가능자</span>
-                        <Bell className="w-5 h-5 text-amber-600" />
+                        <span className="text-xs font-bold text-amber-800">🔔 100% 알림 도달</span>
+                        <Bell className="w-4 h-4 text-amber-600" />
                     </div>
                     <div className="text-2xl font-black text-amber-950">
                         {loading ? '-' : `${analytics?.bothConsents.toLocaleString()} 명`}
                     </div>
                     <p className="text-[11px] text-amber-700/80 mt-1 font-medium">
-                        위치 + 푸시 동의 완료 ({analytics && analytics.totalUsers > 0 ? Math.round((analytics.bothConsents / analytics.totalUsers) * 100) : 0}%)
+                        위치 + 푸시 동의 ({analytics && analytics.totalUsers > 0 ? Math.round((analytics.bothConsents / analytics.totalUsers) * 100) : 0}%)
+                    </p>
+                </div>
+
+                {/* 5. [신설] Site Visits (사이트 방문 PV / UV) */}
+                <div className="bg-gradient-to-br from-cyan-50 to-sky-100/50 p-4 rounded-2xl border border-sky-200/70 shadow-sm flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-sky-800">🌐 사이트 방문 (PV)</span>
+                        <Eye className="w-4 h-4 text-sky-600" />
+                    </div>
+                    <div className="text-2xl font-black text-sky-950">
+                        {loading ? '-' : `${analytics?.siteVisits?.totalPv.toLocaleString() ?? 0} 회`}
+                    </div>
+                    <p className="text-[11px] text-sky-700 font-medium">
+                        순 방문자(UV): <strong className="font-bold">{loading ? '-' : `${analytics?.siteVisits?.totalUv.toLocaleString() ?? 0} 명`}</strong>
                     </p>
                 </div>
             </div>
@@ -387,45 +402,84 @@ export default function AdminDashboard() {
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <span>🎮 라온아이 7대 대표 기능 기간별 활용 현황판</span>
+                        <span>🎮 라온아이 5대 핵심 기능 기간별 활용 현황판</span>
                     </h3>
-                    <span className="text-xs text-gray-400">선택 기간 데이터 실시간 반영</span>
+                    <span className="text-xs text-gray-400">선택 기간 데이터 실시간 반영 (허수 0%)</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {analytics?.features && Object.values(analytics.features).map((feat, idx) => (
-                        <div
-                            key={idx}
-                            className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-[#224732]/30 transition-all flex flex-col justify-between space-y-4"
-                        >
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-100">
-                                        {getIconComponent(feat.iconKey)}
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 text-sm">{feat.name}</h4>
-                                        <p className="text-[11px] text-gray-400 mt-0.5">{feat.description}</p>
-                                    </div>
-                                </div>
-                            </div>
+                    {analytics?.features && Object.entries(analytics.features).map(([key, feat]: [string, any], idx) => {
+                        const isInstant = key === 'instantPlan';
 
-                            <div className="grid grid-cols-2 gap-2 bg-stone-50/70 p-3 rounded-xl border border-stone-100 text-center">
-                                <div>
-                                    <span className="text-[10px] font-semibold text-stone-500 block">이용 캠퍼 수</span>
-                                    <span className="text-base font-black text-[#224732]">
-                                        {loading ? '-' : `${feat.usersCount.toLocaleString()} 명`}
-                                    </span>
+                        return (
+                            <div
+                                key={idx}
+                                className={`bg-white p-5 rounded-2xl border shadow-sm transition-all flex flex-col justify-between space-y-4 ${
+                                    isInstant ? 'border-amber-300/80 ring-1 ring-amber-100 hover:border-amber-400' : 'border-gray-100 hover:border-[#224732]/30'
+                                }`}
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2.5 rounded-xl border ${isInstant ? 'bg-amber-50 border-amber-200' : 'bg-stone-50 border-stone-100'}`}>
+                                            {getIconComponent(feat.iconKey)}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-gray-900 text-sm">{feat.name}</h4>
+                                                {isInstant && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-100 text-amber-800">
+                                                        신설
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-gray-400 mt-0.5">{feat.description}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="border-l border-stone-200">
-                                    <span className="text-[10px] font-semibold text-stone-500 block">누적 사용/생성</span>
-                                    <span className="text-base font-black text-indigo-900">
-                                        {loading ? '-' : `${feat.totalCount.toLocaleString()} 회`}
-                                    </span>
+
+                                {/* 메인 수치 요약 */}
+                                <div className="grid grid-cols-2 gap-2 bg-stone-50/70 p-3 rounded-xl border border-stone-100 text-center">
+                                    <div>
+                                        <span className="text-[10px] font-semibold text-stone-500 block">이용 회원 수</span>
+                                        <span className="text-base font-black text-[#224732]">
+                                            {loading ? '-' : `${feat.usersCount.toLocaleString()} 명`}
+                                        </span>
+                                    </div>
+                                    <div className="border-l border-stone-200">
+                                        <span className="text-[10px] font-semibold text-stone-500 block">총 생성/가동</span>
+                                        <span className="text-base font-black text-indigo-900">
+                                            {loading ? '-' : `${feat.totalCount.toLocaleString()} 회`}
+                                        </span>
+                                    </div>
                                 </div>
+
+                                {/* 즉시 여행계획 전용 서브 수치: 내주변/목적지 비율 및 내 일정 전환율 */}
+                                {isInstant && (
+                                    <div className="pt-2 border-t border-stone-100 space-y-2 text-xs">
+                                        <div className="flex items-center justify-between text-stone-600 text-[11px]">
+                                            <span>모드별 생성:</span>
+                                            <span className="font-semibold text-stone-800">
+                                                내 주변 <strong className="text-emerald-700">{feat.nearbyCount || 0}</strong>회 / 목적지 <strong className="text-blue-700">{feat.destCount || 0}</strong>회
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-stone-600 text-[11px]">
+                                            <span>비로그인 이용:</span>
+                                            <span className="font-semibold text-stone-700">
+                                                {feat.guestCount || 0}건 ({feat.totalCount > 0 ? Math.round(((feat.guestCount || 0) / feat.totalCount) * 100) : 0}%)
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/80 border border-emerald-200/60">
+                                            <span className="text-[11px] font-bold text-emerald-800">내 일정 저장 전환</span>
+                                            <div className="text-right">
+                                                <span className="text-xs font-black text-emerald-950">{feat.convertedCount || 0}건</span>
+                                                <span className="ml-1 text-[11px] font-extrabold text-emerald-700">({feat.conversionRate || 0}%)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 

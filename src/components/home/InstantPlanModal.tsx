@@ -74,6 +74,13 @@ interface InstantPlanModalProps {
     fallbackNotice?: string | null;
     skipLocationRequest?: boolean;
     initialDestination?: { name: string; lat: number; lng: number; address?: string } | null;
+    initialDraftData?: {
+        planData: StandardizedPlanJSON;
+        selectedDestination: { name: string; lat: number; lng: number; address?: string };
+        targetDate?: string;
+        regStayType?: '0n1d' | '1n2d' | '2n3d' | '3n4d' | 'custom';
+        logId?: string;
+    } | null;
 }
 
 export default function InstantPlanModal({
@@ -85,6 +92,7 @@ export default function InstantPlanModal({
     fallbackNotice,
     skipLocationRequest = false,
     initialDestination,
+    initialDraftData,
 }: InstantPlanModalProps) {
     const router = useRouter();
 
@@ -92,6 +100,7 @@ export default function InstantPlanModal({
     const [step, setStep] = useState<'INPUT' | 'GENERATING' | 'RESULT' | 'PROFILE_GATE'>('INPUT');
     const [generatingStage, setGeneratingStage] = useState<'LOCATING' | 'OPTIMIZING'>('OPTIMIZING');
     const [canRetryGps, setCanRetryGps] = useState(false);
+    const [currentLogId, setCurrentLogId] = useState<string | null>(null);
 
     // Form inputs
     const [searchQuery, setSearchQuery] = useState('');
@@ -250,6 +259,7 @@ export default function InstantPlanModal({
             });
             if (res.success && res.data) {
                 setPlanData(res.data);
+                if (res.logId) setCurrentLogId(res.logId);
                 setStep('RESULT');
                 toast.success('⚡ 내 위치 기반 즉시 여행계획이 완성되었습니다!');
             } else {
@@ -267,6 +277,25 @@ export default function InstantPlanModal({
     useEffect(() => {
         if (!isOpen) {
             nearbyRunningRef.current = false;
+            return;
+        }
+
+        // [복원 퍼널] 로그인 후 방금 작성한 draft 복원 진입
+        if (initialDraftData) {
+            setPlanData(initialDraftData.planData);
+            setSelectedDestination(initialDraftData.selectedDestination);
+            setSearchQuery(initialDraftData.selectedDestination.name);
+            if (initialDraftData.targetDate) setTargetDate(initialDraftData.targetDate);
+            if (initialDraftData.logId) setCurrentLogId(initialDraftData.logId);
+
+            const start = initialDraftData.targetDate || todayStr;
+            setRegCheckIn(start);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 1);
+            setRegCheckOut(end.toISOString().split('T')[0]);
+            setRegStayType(initialDraftData.regStayType || '1n2d');
+
+            setStep('PROFILE_GATE');
             return;
         }
 
@@ -371,6 +400,7 @@ export default function InstantPlanModal({
                     });
                     if (res.success && res.data) {
                         setPlanData(res.data);
+                        if (res.logId) setCurrentLogId(res.logId);
                         setStep('RESULT');
                         toast.success('⚡ 즉시 여행계획이 완성되었습니다!');
                     } else {
@@ -398,7 +428,7 @@ export default function InstantPlanModal({
             setPlanData(null);
             setSwapCategory(null);
         }
-    }, [isOpen, initialMode, todayStr, defaultSaturday, skipLocationRequest, userLat, userLng]);
+    }, [isOpen, initialMode, todayStr, defaultSaturday, skipLocationRequest, userLat, userLng, initialDraftData]);
 
     // Handle address / keyword search (Only triggered upon Enter key or [검색] button click)
     const handleSearch = async (query: string) => {
@@ -450,6 +480,7 @@ export default function InstantPlanModal({
 
             if (res.success && res.data) {
                 setPlanData(res.data);
+                if (res.logId) setCurrentLogId(res.logId);
                 setStep('RESULT');
                 toast.success('⚡ 즉시 여행계획이 완성되었습니다!');
             } else {
@@ -559,7 +590,23 @@ export default function InstantPlanModal({
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            toast.error('내 일정으로 저장하려면 로그인이 필요합니다.');
+            // [복원 퍼널] 비로그인 유저가 작성한 플랜 브라우저(localStorage)에 10분간 임시 보존
+            if (planData && selectedDestination) {
+                const draftPayload = {
+                    planData,
+                    selectedDestination,
+                    targetDate: targetDate || todayStr,
+                    regStayType: regStayType || '1n2d',
+                    logId: currentLogId,
+                    savedAt: Date.now(),
+                };
+                try {
+                    localStorage.setItem('raon_draft_instant_plan', JSON.stringify(draftPayload));
+                } catch (e) {
+                    console.warn('[DraftPlan] Failed to save draft:', e);
+                }
+            }
+            toast.info('10분 이내에 로그인하시면 방금 만든 일정을 바로 등록하실 수 있어요!', { duration: 5000 });
             router.push('/login');
             return;
         }
@@ -596,9 +643,15 @@ export default function InstantPlanModal({
                 checkOut: regCheckOut,
                 planData: planData,
                 profile: profile,
+                logId: currentLogId || undefined,
             });
 
             if (res.success && res.scheduleId) {
+                // 성공 시 브라우저 임시 draft 삭제
+                try {
+                    localStorage.removeItem('raon_draft_instant_plan');
+                } catch {}
+
                 toast.success('🎉 내 일정에 저장되었습니다! 다음날 오전 9시 이후 정밀 플랜으로 업그레이드할 수 있습니다.');
                 onClose();
                 router.push(`/myspace/schedule/${res.scheduleId}`);

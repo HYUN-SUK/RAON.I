@@ -11,6 +11,20 @@ export interface FeatureStat {
     description: string;
 }
 
+export interface InstantPlanStat extends FeatureStat {
+    nearbyCount: number;       // 내 주변 생성 수
+    destCount: number;         // 목적지 생성 수
+    guestCount: number;        // 비로그인 이용 건수
+    memberCount: number;       // 회원 이용 건수
+    convertedCount: number;    // 내 일정 저장(전환) 건수
+    conversionRate: number;    // 전환율 (%)
+}
+
+export interface SiteVisitStat {
+    totalPv: number;           // 총 페이지뷰 (PV)
+    totalUv: number;           // 순 방문자 (UV)
+}
+
 export interface AdminAnalyticsData {
     totalUsers: number;             // 총 가입 유저 수
     periodNewUsers: number;         // 선택 기간 신규 가입 유저 수
@@ -19,14 +33,13 @@ export interface AdminAnalyticsData {
     pushConsents: number;           // 푸시 동의자 수
     locationConsents: number;       // 위치 동의자 수
     bothConsents: number;           // 푸시+위치 100% 동의자 수
+    siteVisits: SiteVisitStat;      // [신설] 사이트 방문 현황 (PV / UV)
     features: {
-        smartPlan: FeatureStat;
-        communityExplore: FeatureStat;
-        quickRecord: FeatureStat;
-        postAndComment: FeatureStat;
-        mission: FeatureStat;
-        recipe: FeatureStat;
-        playExplorer: FeatureStat;
+        instantPlan: InstantPlanStat;  // [신설] 즉시 여행계획 (내 주변 / 목적지)
+        smartPlan: FeatureStat;        // [정규화] 정밀 스마트플랜 (허수 박멸)
+        quickRecord: FeatureStat;      // [유지] 10초 기록 (나만의 지도)
+        postAndComment: FeatureStat;   // [유지] 글쓰기 & 댓글 소통
+        mission: FeatureStat;          // [유지] 오늘의 미션 수행
     };
 }
 
@@ -99,36 +112,91 @@ export async function getAdminAnalyticsAction(
 
         // 3. Feature Stats (Independent Safe Queries)
 
-        // ① 스마트플랜 (user_schedules + reservations)
+        // ★ [신설] 사이트 방문 현황 (PV / UV) (user_action_log where action_type = 'SITE_VISIT')
+        let totalPv = 0;
+        const uvSet = new Set<string>();
+        try {
+            const { data: visitLogs } = await supabase
+                .from('user_action_log')
+                .select('entity_id, user_id')
+                .eq('action_type', 'SITE_VISIT')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+
+            (visitLogs || []).forEach((v: any) => {
+                totalPv++;
+                const key = v.entity_id || v.user_id;
+                if (key) uvSet.add(key);
+            });
+        } catch (e) {
+            console.warn('[Analytics] site_visit logs query warning:', e);
+        }
+
+        // ① [신설] 즉시 여행계획 (user_action_log: INSTANT_PLAN_GENERATE & INSTANT_PLAN_CONVERT)
+        let instantPlanTotal = 0;
+        let instantNearbyCount = 0;
+        let instantDestCount = 0;
+        let instantGuestCount = 0;
+        const instantMemberUsersSet = new Set<string>();
+        let instantConvertedCount = 0;
+
+        try {
+            // 1) 플랜 생성 로그
+            const { data: genLogs } = await supabase
+                .from('user_action_log')
+                .select('user_id, raw_metadata')
+                .eq('action_type', 'INSTANT_PLAN_GENERATE')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+
+            (genLogs || []).forEach((g: any) => {
+                instantPlanTotal++;
+                const mode = g.raw_metadata?.mode;
+                if (mode === 'nearby') instantNearbyCount++;
+                else instantDestCount++;
+
+                if (g.user_id && !internalUserIds.has(g.user_id)) {
+                    instantMemberUsersSet.add(g.user_id);
+                } else if (!g.user_id) {
+                    instantGuestCount++;
+                }
+            });
+
+            // 2) 내 일정 저장(전환) 로그
+            const { data: convLogs } = await supabase
+                .from('user_action_log')
+                .select('entity_id, user_id')
+                .eq('action_type', 'INSTANT_PLAN_CONVERT')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+
+            (convLogs || []).forEach((c: any) => {
+                if (!c.user_id || !internalUserIds.has(c.user_id)) {
+                    instantConvertedCount++;
+                }
+            });
+        } catch (e) {
+            console.warn('[Analytics] instant plan logs query warning:', e);
+        }
+
+        const instantConversionRate = instantPlanTotal > 0
+            ? Math.min(100, Math.round((instantConvertedCount / instantPlanTotal) * 1000) / 10)
+            : 0;
+
+        // ② [정규화] 정밀 스마트플랜 (순수 user_schedules.smart_plan_data IS NOT NULL만 집계 - 허수 완전 박멸!)
         const smartPlanUsersSet = new Set<string>();
         let smartPlanTotal = 0;
         try {
-            // 1) user_schedules에서 스마트플랜이 연동된 일정 조회
             const { data: schedData } = await supabase
                 .from('user_schedules')
                 .select('user_id, smart_plan_data')
+                .not('smart_plan_data', 'is', null)
                 .gte('created_at', startISO)
                 .lte('created_at', endISO);
 
             (schedData || []).forEach((s: any) => {
                 if (s.user_id && !internalUserIds.has(s.user_id)) {
-                    if (s.smart_plan_data) {
-                        smartPlanUsersSet.add(s.user_id);
-                        smartPlanTotal++;
-                    }
-                }
-            });
-
-            // 2) reservations(정밀 스마트플랜 대상 예약) 조회
-            const { data: resData } = await supabase
-                .from('reservations')
-                .select('user_id')
-                .gte('created_at', startISO)
-                .lte('created_at', endISO);
-
-            (resData || []).forEach((r: any) => {
-                if (r.user_id && !internalUserIds.has(r.user_id)) {
-                    smartPlanUsersSet.add(r.user_id);
+                    smartPlanUsersSet.add(s.user_id);
                     smartPlanTotal++;
                 }
             });
@@ -136,39 +204,7 @@ export async function getAdminAnalyticsAction(
             console.error('[Analytics] smartPlan query failed:', e);
         }
 
-        // ② 커뮤니티 소식 탐색 (posts + comments)
-        const communityExploreUsersSet = new Set<string>();
-        let communityExploreTotal = 0;
-        let postsData: any[] = [];
-        let commentsData: any[] = [];
-        try {
-            const { data: pData } = await supabase
-                .from('posts')
-                .select('author_id, read_count')
-                .gte('created_at', startISO)
-                .lte('created_at', endISO);
-            postsData = (pData || []).filter((p: any) => !internalUserIds.has(p.author_id));
-
-            postsData.forEach((p: any) => {
-                if (p.author_id) communityExploreUsersSet.add(p.author_id);
-                communityExploreTotal += (p.read_count || 1);
-            });
-
-            const { data: cData } = await supabase
-                .from('comments')
-                .select('user_id')
-                .gte('created_at', startISO)
-                .lte('created_at', endISO);
-            commentsData = (cData || []).filter((c: any) => !internalUserIds.has(c.user_id));
-
-            commentsData.forEach((c: any) => {
-                if (c.user_id) communityExploreUsersSet.add(c.user_id);
-            });
-        } catch (e) {
-            console.error('[Analytics] communityExplore query failed:', e);
-        }
-
-        // ③ 10초 기록 (camping_records)
+        // ③ [유지] 10초 기록 (camping_records 실데이터 - 피드백 장소 혼입 없음)
         const recordUsersSet = new Set<string>();
         let quickRecordTotal = 0;
         try {
@@ -181,7 +217,6 @@ export async function getAdminAnalyticsAction(
             (recordsData || []).forEach((r: any) => {
                 if (r.user_id && !internalUserIds.has(r.user_id)) {
                     recordUsersSet.add(r.user_id);
-                    smartPlanUsersSet.add(r.user_id); // Records also view smart plan facts
                     quickRecordTotal++;
                 }
             });
@@ -189,7 +224,27 @@ export async function getAdminAnalyticsAction(
             console.error('[Analytics] camping_records query failed:', e);
         }
 
-        // ④ 글쓰기 & 댓글 소통 (posts + comments)
+        // ④ [유지] 글쓰기 & 댓글 소통 (posts + comments)
+        let postsData: any[] = [];
+        let commentsData: any[] = [];
+        try {
+            const { data: pData } = await supabase
+                .from('posts')
+                .select('author_id')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+            postsData = (pData || []).filter((p: any) => !internalUserIds.has(p.author_id));
+
+            const { data: cData } = await supabase
+                .from('comments')
+                .select('user_id')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO);
+            commentsData = (cData || []).filter((c: any) => !internalUserIds.has(c.user_id));
+        } catch (e) {
+            console.error('[Analytics] posts/comments query failed:', e);
+        }
+
         const postAuthorsSet = new Set([
             ...postsData.map((p: any) => p.author_id).filter(Boolean),
             ...commentsData.map((c: any) => c.user_id).filter(Boolean)
@@ -197,7 +252,7 @@ export async function getAdminAnalyticsAction(
         const postAndCommentUsers = postAuthorsSet.size;
         const postAndCommentTotal = postsData.length + commentsData.length;
 
-        // ⑤ 미션 인증 수행 (user_missions)
+        // ⑤ [유지] 오늘의 미션 수행 (user_missions)
         const missionUsersSet = new Set<string>();
         let missionTotal = 0;
         try {
@@ -220,55 +275,13 @@ export async function getAdminAnalyticsAction(
             console.error('[Analytics] user_missions query failed:', e);
         }
 
-        // ⑥ 캠핑 요리 레시피 탐색 (travel_recipes)
-        const recipeUsersSet = new Set<string>();
-        let recipeTotal = 0;
-        try {
-            const { data: recipeData } = await supabase
-                .from('travel_recipes')
-                .select('author_id')
-                .gte('created_at', startISO)
-                .lte('created_at', endISO);
-
-            (recipeData || []).forEach((r: any) => {
-                if (r.author_id && !internalUserIds.has(r.author_id)) {
-                    recipeUsersSet.add(r.author_id);
-                    recipeTotal++;
-                }
-            });
-        } catch (e) {
-            console.error('[Analytics] travel_recipes query failed:', e);
-        }
-
-        // ⑦ 아이 놀이 탐색기 이용 (travel_plays)
-        const playExplorerUsersSet = new Set<string>();
-        let playExplorerTotal = 0;
-        try {
-            const { data: playData } = await supabase
-                .from('travel_plays')
-                .select('author_id')
-                .gte('created_at', startISO)
-                .lte('created_at', endISO);
-
-            (playData || []).forEach((p: any) => {
-                if (p.author_id && !internalUserIds.has(p.author_id)) {
-                    playExplorerUsersSet.add(p.author_id);
-                    playExplorerTotal++;
-                }
-            });
-        } catch (e) {
-            console.error('[Analytics] travel_plays query failed:', e);
-        }
-
-        // Overall active users in period
+        // Overall active users in period (정규화된 실활동 유저 합산)
         const allActiveUsersSet = new Set([
             ...recordUsersSet,
             ...postAuthorsSet,
             ...missionUsersSet,
             ...smartPlanUsersSet,
-            ...communityExploreUsersSet,
-            ...recipeUsersSet,
-            ...playExplorerUsersSet
+            ...instantMemberUsersSet,
         ]);
 
         const periodActiveUsers = Math.min(totalUsers, Math.max(allActiveUsersSet.size, periodNewUsers > 0 ? Math.min(periodNewUsers, totalUsers) : 0));
@@ -282,56 +295,52 @@ export async function getAdminAnalyticsAction(
             pushConsents,
             locationConsents,
             bothConsents,
+            siteVisits: {
+                totalPv,
+                totalUv: uvSet.size,
+            },
             features: {
+                instantPlan: {
+                    name: '즉시 여행계획',
+                    iconKey: 'Zap',
+                    usersCount: instantMemberUsersSet.size,
+                    totalCount: instantPlanTotal,
+                    nearbyCount: instantNearbyCount,
+                    destCount: instantDestCount,
+                    guestCount: instantGuestCount,
+                    memberCount: instantPlanTotal - instantGuestCount,
+                    convertedCount: instantConvertedCount,
+                    conversionRate: instantConversionRate,
+                    description: '내 주변 및 목적지 즉시 여행계획 생성 및 내 일정 전환'
+                },
                 smartPlan: {
-                    name: '스마트플랜',
+                    name: '정밀 스마트플랜',
                     iconKey: 'Map',
                     usersCount: smartPlanUsersSet.size,
-                    totalCount: Math.max(smartPlanTotal, smartPlanUsersSet.size),
-                    description: '스마트플랜 자동 캐싱 및 일정 연동'
-                },
-                communityExplore: {
-                    name: '커뮤니티 소식 탐색',
-                    iconKey: 'Compass',
-                    usersCount: communityExploreUsersSet.size,
-                    totalCount: communityExploreTotal,
-                    description: '캠핑장 소식 및 이야기 피드 읽기'
+                    totalCount: smartPlanTotal,
+                    description: '내 일정에 등록된 정밀 스마트플랜 자동 생성'
                 },
                 quickRecord: {
                     name: '10초 기록 (나만의 지도)',
                     iconKey: 'Camera',
                     usersCount: recordUsersSet.size,
                     totalCount: quickRecordTotal,
-                    description: '캠핑 다녀온 소중한 추억 핀 등록'
+                    description: '캠핑 다녀온 소중한 추억 핀 등록 (피드백 장소 미포함 순수 기록)'
                 },
                 postAndComment: {
                     name: '글쓰기 & 댓글 소통',
                     iconKey: 'MessageSquare',
                     usersCount: postAndCommentUsers,
                     totalCount: postAndCommentTotal,
-                    description: '게시글 및 댓글 작성으로 소통'
+                    description: '커뮤니티 게시글 및 댓글 작성으로 소통'
                 },
                 mission: {
-                    name: '미션 인증 수행',
+                    name: '오늘의 미션 수행',
                     iconKey: 'Flag',
                     usersCount: missionUsersSet.size,
                     totalCount: missionTotal,
                     description: '주간 미션 및 특별 미션 인증 완료'
                 },
-                recipe: {
-                    name: '캠핑 요리 레시피 탐색',
-                    iconKey: 'Utensils',
-                    usersCount: recipeUsersSet.size,
-                    totalCount: recipeTotal,
-                    description: '맛있는 캠핑 레시피 검색 및 둘러보기'
-                },
-                playExplorer: {
-                    name: '아이 놀이 탐색기 이용',
-                    iconKey: 'Gamepad2',
-                    usersCount: playExplorerUsersSet.size,
-                    totalCount: playExplorerTotal,
-                    description: '아이와 함께하는 놀이 콘텐츠 검색'
-                }
             }
         };
 
@@ -410,4 +419,3 @@ export async function getOpsStatsAction(): Promise<{ success: boolean; data?: Op
         return { success: false, error: err?.message || '통계 조회 실패' };
     }
 }
-

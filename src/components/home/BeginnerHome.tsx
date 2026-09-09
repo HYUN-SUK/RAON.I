@@ -43,6 +43,7 @@ import { Database } from '@/types/supabase';
 import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
 import { useFabSparkle } from '@/hooks/useFabSparkle';
+import { recordSiteVisitAction } from '@/actions/analytics-logger';
 import ReminderBanner from '@/components/myspace/ReminderBanner';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
@@ -114,6 +115,10 @@ export default function BeginnerHome() {
     const [selectedAnchorDest, setSelectedAnchorDest] = useState<{ name: string; lat: number; lng: number; address?: string } | null>(null);
     const [isNearbyConfirmOpen, setIsNearbyConfirmOpen] = useState(false);
 
+    // [v14.2.0] 비로그인 10분 draft 복원 상태
+    const [draftToRestore, setDraftToRestore] = useState<any>(null);
+    const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+
     // 내 주변 즉시여행계획 생성 핸들러 (skipLocation: 위치 동의 건너뛰고 라온아이 기준 생성 여부)
     const handleNearbyPlanClick = useCallback((skipLocation: boolean = false) => {
         setInstantPlanMode('NEARBY');
@@ -127,7 +132,8 @@ export default function BeginnerHome() {
     const { unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
     const { isMapOpen, setIsMapOpen } = useMySpaceStore();
 
-    const { data: recData, weather, shuffle } = usePersonalizedRecommendation(false);
+    // [백그라운드 헛돌기 100% 차단] 가림 처리된 인삿말에 물려있던 DB/기상청 쿼리 중단
+    // const { data: recData, weather, shuffle } = usePersonalizedRecommendation(false);
     const { requestPermission } = usePushNotification();
 
     React.useEffect(() => {
@@ -136,6 +142,49 @@ export default function BeginnerHome() {
         fetchMyReservations();
         requestPermission();
         refresh();
+
+        // [방문자 카운팅] 세션당 1회 초경량 PV/UV 비동기 기록
+        try {
+            const hasRecordedVisit = window.sessionStorage?.getItem('raon_visit_recorded');
+            if (!hasRecordedVisit) {
+                let visitorKey = window.localStorage?.getItem('raon_visitor_key');
+                if (!visitorKey) {
+                    visitorKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : `vis_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                    window.localStorage?.setItem('raon_visitor_key', visitorKey);
+                }
+                window.sessionStorage?.setItem('raon_visit_recorded', 'true');
+                recordSiteVisitAction({ visitorKey, path: '/' });
+            }
+        } catch {}
+
+        // [복원 퍼널] 비로그인 draft 10분 유효기간 및 로그인 세션 검증
+        const checkDraftPlan = async () => {
+            try {
+                const rawDraft = window.localStorage?.getItem('raon_draft_instant_plan');
+                if (!rawDraft) return;
+                const draft = JSON.parse(rawDraft);
+
+                // 10분(600,000ms) 초과 시 조용히 영구 삭제
+                const elapsed = Date.now() - (draft.savedAt || 0);
+                if (elapsed > 10 * 60 * 1000) {
+                    window.localStorage?.removeItem('raon_draft_instant_plan');
+                    return;
+                }
+
+                // 로그인 세션 확인
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setDraftToRestore(draft);
+                    setIsRestoreModalOpen(true);
+                }
+            } catch (err) {
+                console.warn('[DraftRestore] Check failed:', err);
+            }
+        };
+        checkDraftPlan();
 
         // [v11.9.115] 상세페이지에서 '뒤로가기'로 복귀한 경우 아코디언 펼침 복원
         const checkBackIntent = () => {
@@ -706,6 +755,8 @@ export default function BeginnerHome() {
 
 
 
+            {/* [백그라운드 헛돌기 차단] 미사용 시트 바인딩 주석 처리 */}
+            {/*
             <HomeDetailSheet
                 isOpen={detailSheetOpen}
                 onClose={() => setDetailSheetOpen(false)}
@@ -728,6 +779,7 @@ export default function BeginnerHome() {
                     />
                 )
             }
+            */}
 
             {/* Live LBS Events Sheet */}
             <NearbyDetailSheet
@@ -876,6 +928,7 @@ export default function BeginnerHome() {
                                 setSelectedAnchorDest(null);
                                 setNearbyFallbackNotice(null);
                                 setSkipLocationRequest(false);
+                                setDraftToRestore(null);
                             }}
                             initialMode={instantPlanMode}
                             userLat={nearbyCoords?.lat || actualUserLat}
@@ -883,7 +936,52 @@ export default function BeginnerHome() {
                             fallbackNotice={nearbyFallbackNotice}
                             skipLocationRequest={skipLocationRequest || isAppLocationDisabled}
                             initialDestination={selectedAnchorDest}
+                            initialDraftData={draftToRestore}
                         />
+
+                        {/* [v14.2.0] 비로그인 즉시플랜 10분 복원 퍼널 [확인 / 거부] 선택 다이얼로그 */}
+                        <AlertDialog open={isRestoreModalOpen} onOpenChange={setIsRestoreModalOpen}>
+                            <AlertDialogContent className="w-[90%] max-w-[360px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
+                                <AlertDialogHeader className="space-y-2.5 text-left">
+                                    <div className="w-10 h-10 rounded-full bg-[#224732]/10 dark:bg-emerald-950/30 flex items-center justify-center text-[#224732] dark:text-emerald-400">
+                                        <Sparkles className="w-5 h-5 animate-pulse" />
+                                    </div>
+                                    <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100">
+                                        방금 만든 여행 일정이 있어요! ⛺
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
+                                        <strong className="font-bold text-[#224732] dark:text-emerald-400">
+                                            {draftToRestore?.selectedDestination?.name || '작성 중이던 여행'}
+                                        </strong>
+                                        {draftToRestore?.targetDate ? ` (${draftToRestore.targetDate})` : ''} 일정을 내 일정에 바로 등록하시겠습니까?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="flex-row gap-2 mt-4 sm:space-x-0">
+                                    <AlertDialogCancel
+                                        onClick={() => {
+                                            try { window.localStorage?.removeItem('raon_draft_instant_plan'); } catch {}
+                                            setDraftToRestore(null);
+                                            setIsRestoreModalOpen(false);
+                                            toast.info('임시 보관된 일정을 삭제했습니다.');
+                                        }}
+                                        className="flex-1 h-11 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-100 dark:border-zinc-700 dark:text-stone-300 m-0"
+                                    >
+                                        거부 (괜찮아요)
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => {
+                                            setIsRestoreModalOpen(false);
+                                            setInstantPlanMode(draftToRestore?.selectedDestination?.name?.includes('내 주변') ? 'NEARBY' : 'DESTINATION');
+                                            setSelectedAnchorDest(draftToRestore?.selectedDestination || null);
+                                            setInstantPlanOpen(true);
+                                        }}
+                                        className="flex-1 h-11 rounded-xl bg-[#224732] hover:bg-[#1a3827] text-white text-xs font-bold shadow-md m-0"
+                                    >
+                                        확인 (일정 등록)
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
 
                         {/* 내 주변 즉시 여행계획 생성 확인/선택 팝업 */}
                         <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>

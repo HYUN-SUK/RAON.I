@@ -4,6 +4,7 @@ import { generateInstantSmartPlan, StandardizedPlanJSON } from '@/lib/smartPlan'
 import { createSchedule, updateSmartPlanData } from '@/actions/schedule';
 import { saveCampingProfile, CampingProfile } from '@/actions/camping-profile';
 import { createClient } from '@/lib/supabase-server';
+import { logInstantPlanGenerateAction, logInstantPlanConvertAction } from '@/actions/analytics-logger';
 
 /**
  * 내 주변 5km 실시간 맛집·명소 데이터 조회 (Server Action)
@@ -12,7 +13,7 @@ export async function getNearbyPlacesAction(params: {
     lat: number;
     lng: number;
     radiusKm?: number;
-}): Promise<{ success: boolean; data?: StandardizedPlanJSON; error?: string }> {
+}): Promise<{ success: boolean; data?: StandardizedPlanJSON; logId?: string; error?: string }> {
     try {
         const today = new Date();
         const tomorrow = new Date(today);
@@ -24,7 +25,19 @@ export async function getNearbyPlacesAction(params: {
             tomorrow
         );
 
-        return { success: true, data: plan };
+        // Fail-Safe 비동기 로깅
+        let logId: string | undefined;
+        try {
+            const logRes = await logInstantPlanGenerateAction({
+                mode: 'nearby',
+                targetName: '내 주변 5km 여행',
+                lat: params.lat,
+                lng: params.lng,
+            });
+            if (logRes.success) logId = logRes.logId;
+        } catch {}
+
+        return { success: true, data: plan, logId };
     } catch (err: any) {
         console.error('[getNearbyPlacesAction] Error:', err);
         return { success: false, error: err.message || '장소를 조회하는데 실패했습니다.' };
@@ -40,7 +53,7 @@ export async function generateInstantPlanAction(params: {
     targetName: string;
     targetDate?: string;
     stayDays?: number;
-}): Promise<{ success: boolean; data?: StandardizedPlanJSON; error?: string }> {
+}): Promise<{ success: boolean; data?: StandardizedPlanJSON; logId?: string; error?: string }> {
     try {
         const startDate = params.targetDate ? new Date(params.targetDate) : new Date();
         const endDate = new Date(startDate);
@@ -52,7 +65,19 @@ export async function generateInstantPlanAction(params: {
             endDate
         );
 
-        return { success: true, data: plan };
+        // Fail-Safe 비동기 로깅
+        let logId: string | undefined;
+        try {
+            const logRes = await logInstantPlanGenerateAction({
+                mode: 'destination',
+                targetName: params.targetName,
+                lat: params.targetLat,
+                lng: params.targetLng,
+            });
+            if (logRes.success) logId = logRes.logId;
+        } catch {}
+
+        return { success: true, data: plan, logId };
     } catch (err: any) {
         console.error('[generateInstantPlanAction] Error:', err);
         return { success: false, error: err.message || '즉시 여행계획을 생성하는데 실패했습니다.' };
@@ -75,6 +100,7 @@ export async function saveInstantPlanToScheduleAction(params: {
     checkOut: string; // YYYY-MM-DD
     planData: StandardizedPlanJSON;
     profile?: Partial<CampingProfile>;
+    logId?: string;
 }): Promise<{ success: boolean; scheduleId?: string; error?: string }> {
     try {
         const supabase = await createClient();
@@ -165,6 +191,15 @@ export async function saveInstantPlanToScheduleAction(params: {
             (planToSave as any).title = `${finalCampgroundName} 플랜`;
         }
         await updateSmartPlanData(schedRes.id, planToSave);
+
+        // 4. [Fail-Safe] 즉시 플랜 -> 내 일정 전환 로깅
+        try {
+            await logInstantPlanConvertAction({
+                logId: params.logId,
+                scheduleId: schedRes.id,
+                targetName: finalCampgroundName,
+            });
+        } catch {}
 
         return { success: true, scheduleId: schedRes.id };
     } catch (err: any) {
