@@ -1,6 +1,12 @@
 # Task Management
 
 ## Completed Tasks (2026-09-10)
+- [x] **마일스톤 9.49**: 대시보드 실회원 지표 정규화, 즉시 여행계획 비로그인 로깅 정상화 및 신설 뱃지 제거 완결
+  - **비로그인 고객 로깅 파이프라인 정상화 (`analytics.ts`, `analytics-logger.ts`)**: `user_action_log`의 `user_id` NOT NULL 제약으로 인한 비로그인 방문자/생성자 DB 저장 에러(`23502`)를 해결하기 위해 전용 게스트 식별자 `ANONYMOUS_GUEST_USER_ID` 체계를 구축하여 비로그인 사이트 방문(PV/UV) 및 즉시 여행계획 생성이 100% 정상 수집되도록 보정.
+  - **즉시 여행계획 생성 모드('내 주변' vs '목적지') 분기 정상화 (`instant-plan.ts`, `InstantPlanModal.tsx`)**: `generateInstantPlanAction`에 `mode?: 'nearby' | 'destination'` 파라미터를 추가하고 GPS 기반 생성은 `nearby`, 검색 기반 생성은 `destination`을 전달하여 대시보드에서 모드별 생성이 정확히 분리 집계되도록 조치.
+  - **대시보드 3대 내부 테스트 계정 제외 및 실회원 정규화 (`admin-analytics.ts`)**: 정밀 스마트플랜(실회원 21명/24회 유지), 즉시 여행계획(내부 계정 생성분 제외 순수 고객 지표만 카운트), 사이트 방문(관리자 대시보드 트래픽 제외 순수 외부 방문자 PV/UV만 집계) 전반에 걸쳐 `admin`, `tootg`, `wlgustns19` 계정을 철저히 제외.
+  - **대시보드 UI 보정 및 기간 필터 정밀화 (`admin/page.tsx`)**: 즉시 여행계획 카드 상단의 `[신설]` 뱃지 완전 삭제. `all` 탭 선택 시 1970년부터 안전 집계, `custom` 날짜 선택 시 종료일 `23:59:59.999`까지 포함하여 당일 오후 데이터 누락 방지.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
 - [x] **마일스톤 9.48**: 관리자 화면 로그아웃 정상화 및 미들웨어 역주행(Bounce) 방지 완결
   - **관리자 전용 서버 로그아웃 Server Action 신설 (`admin-auth.ts`)**: Next.js 서버 레벨(`cookies().delete()`)에서 `sb-` 관련 모든 인증 쿠키를 즉시 강제 만료 처리하여 브라우저 잔류 토큰 완벽 소멸.
   - **AdminLayout 3중 클라이언트 정화 & 1초 타임아웃 가드 (`src/app/admin/layout.tsx`)**: 클라이언트 쿠키/스토리지 즉시 파기, `supabase.auth.signOut()` 1초 타임아웃 가드 적용, `window.location.href = '/admin/login?logout=true'` 직통 이동 구현.
