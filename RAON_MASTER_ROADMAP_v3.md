@@ -7,6 +7,12 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.48 관리자 화면 로그아웃 정상화 및 미들웨어 역주행(Bounce) 방지 완결 (2026-09-10)** 🟢
+  - [x] **관리자 전용 서버 로그아웃 Server Action 신설 (`admin-auth.ts`)**: Next.js 서버 레벨(`cookies().delete()`)에서 `sb-` 관련 모든 인증 쿠키를 즉시 강제 만료 처리하여 브라우저 잔류 토큰 완벽 소멸.
+  - [x] **AdminLayout 3중 클라이언트 정화 & 1초 타임아웃 가드 (`src/app/admin/layout.tsx`)**: 클라이언트 쿠키/스토리지 즉시 파기, `supabase.auth.signOut()` 1초 타임아웃 가드 적용, `window.location.href = '/admin/login?logout=true'` 직통 이동 구현.
+  - [x] **middleware.ts 로그아웃 직통 파라미터 역주행 방지 가드 (`src/middleware.ts`)**: `logout=true` 파라미터로 로그인 페이지 진입 시 대시보드로 역주행시키지 않고 로그인 화면을 100% 온전히 표출하도록 안전 분기 추가.
+  - [x] **빌드 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.47 Supabase 세션 데드락 박멸, 브라우저 싱글톤 구축, 로그아웃 정상화 및 0ms 비로그인 즉시 판정 완결 (2026-09-09)** 🟢
   - [x] **Supabase 브라우저 싱글톤 구축 (`supabase-client.ts`)**: `createBrowserClient`를 모듈 단일 인스턴스로 전역 공유하여 Web Locks(`navigator.locks`) 자물쇠 경합 및 세션 데드락 원천 박멸. SSR 환경에서는 요청 간 세션 격리를 유지하도록 독립 인스턴스 반환 분기 처리.
   - [x] **로그아웃 정상화 & 클린 리셋 (`TopBar.tsx`)**: 세션 꼬임을 유발하던 `scope: 'local'` 제거 후 표준 `await supabase.auth.signOut()`으로 정화. 로그아웃 완료 시 `window.location.href = '/'`로 브라우저 하드 리셋을 수행하여 메모리 락과 Zustand 전역 스토어 캐시를 100% 완전 초기화.

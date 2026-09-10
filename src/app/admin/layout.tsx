@@ -8,6 +8,7 @@ import { Home, Calendar, CreditCard, Settings, Users, ShoppingBag, Bell, Shield,
 
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
+import { adminSignOutAction } from '@/actions/admin-auth';
 
 export default function AdminLayout({
     children,
@@ -28,11 +29,39 @@ export default function AdminLayout({
     const handleSignOut = async () => {
         try {
             setIsOpen(false);
-            await supabase.auth.signOut();
+
+            // 1. 브라우저 document.cookie 및 localStorage 내 sb-* 인증 토큰 즉시 소멸
+            if (typeof document !== 'undefined') {
+                const cookies = document.cookie.split(';');
+                for (const c of cookies) {
+                    const eqPos = c.indexOf('=');
+                    const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+                    if (name.startsWith('sb-') || name.includes('auth-token')) {
+                        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;`;
+                    }
+                }
+            }
+            if (typeof window !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('sb-') || key.includes('auth-token'))) {
+                        localStorage.removeItem(key);
+                    }
+                }
+            }
+
+            // 2. 클라이언트 Supabase 세션 파기 (1초 타임아웃 가드 적용)
+            const clientSignOutPromise = supabase.auth.signOut().catch(() => {});
+            const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 1000));
+            await Promise.race([clientSignOutPromise, timeoutPromise]);
+
+            // 3. 서버 레벨 쿠키 강제 파기 Server Action 호출
+            await adminSignOutAction().catch(() => {});
         } catch (e) {
             console.error('[AdminLayout] SignOut error:', e);
         } finally {
-            window.location.href = '/admin/login';
+            // 4. 미들웨어 역주행을 원천 차단하는 로그아웃 플래그와 함께 로그인 페이지로 직통 이동
+            window.location.href = '/admin/login?logout=true';
         }
     };
 

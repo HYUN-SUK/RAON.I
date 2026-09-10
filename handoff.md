@@ -1,6 +1,6 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-09T16:30:00+09:00  
+**작성 일시**: 2026-09-10T13:00:00+09:00  
 **기준 브랜치**: `main`  
 **빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과)  
 
@@ -8,7 +8,20 @@
 
 ## 1. 현재 상태 요약 (Completed Work in Current Session)
 
-이번 세션에서는 **Supabase 브라우저 세션 데드락 완치**, **클라이언트 싱글톤(Singleton) 구축**, **로그아웃 정상화(scope: 'local' 제거 및 하드 리셋)**, **홈 일정 카드 0ms 비로그인 즉시 판정 및 Fail-Safe 방어**, **즉시플랜 일정 저장 버튼 0ms 로컬 세션 확인 및 튕김 방지 안전망 구축**을 완벽히 달성하였습니다.
+이번 세션에서는 **관리자 화면 로그아웃 정상화**, **서버 레벨 쿠키 강제 파기 Server Action (`adminSignOutAction`) 신설**, **클라이언트 3중 정화 및 1초 타임아웃 가드 장착**, **`middleware.ts` 로그아웃 직통 파라미터 역주행(Bounce) 방지 가드 구축**을 완벽히 달성하였습니다.
+
+### 🟢 마일스톤 9.48: 관리자 화면 로그아웃 정상화 및 미들웨어 역주행(Bounce) 방지 완결 (2026-09-10)
+1. **관리자 전용 서버 로그아웃 Server Action 신설 (`src/actions/admin-auth.ts`)**:
+   - `createClient`(`src/lib/supabase-server.ts`)를 통해 Supabase 서버 레벨 세션 파기(`signOut()`).
+   - Next.js 서버 레벨(`cookies()`)에서 `sb-`로 시작하거나 `auth-token`을 포함하는 모든 관리자 인증 쿠키를 즉시 강제 만료(`delete()`) 처리하여 브라우저 잔류 토큰을 완벽히 소멸.
+2. **AdminLayout 3중 클라이언트 정화 & 1초 타임아웃 가드 (`src/app/admin/layout.tsx`)**:
+   - `document.cookie` 및 `localStorage` 내 모든 `sb-` 인증 토큰을 `Max-Age=0` 및 `removeItem`으로 즉시 삭제.
+   - 클라이언트 `supabase.auth.signOut()`에 1초 타임아웃(`Promise.race`)을 걸어 네트워크 지연이나 Web Lock 대기가 발생하더라도 1초 내에 무조건 다음 단계로 진행.
+   - 서버 측 `adminSignOutAction()`을 호출하여 서버 쿠키까지 완전 소멸.
+   - `window.location.href = '/admin/login?logout=true'`로 이동하여 미들웨어 역주행 차단.
+3. **middleware.ts 로그아웃 직통 파라미터 역주행 방지 가드 (`src/middleware.ts`)**:
+   - `/admin/login` 접근 시 로그아웃 파라미터(`logout=true`)가 포함되어 있으면, 브라우저 캐시에 이전 잔여물이 남아있더라도 **대시보드로 역주행시키지 않고 로그인 폼(`/admin/login`)을 100% 그대로 노출**하도록 안전 분기 추가.
+4. **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
 
 ### 🟢 마일스톤 9.47: Supabase 세션 데드락 박멸, 브라우저 싱글톤 구축, 로그아웃 정상화 및 0ms 비로그인 즉시 판정 완결 (2026-09-09)
 1. **Supabase 브라우저 싱글톤 구축 (`src/lib/supabase-client.ts`)**:

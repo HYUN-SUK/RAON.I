@@ -68,6 +68,12 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/admin')) {
         // Exception: Login page is public
         if (pathname === '/admin/login') {
+            // [Fix] 로그아웃 직통 파라미터가 있거나 로그아웃 처리 중인 경우 대시보드로 역주행하지 않고 무조건 로그인 페이지 렌더링
+            const isExplicitLogout = request.nextUrl.searchParams.get('logout') === 'true';
+            if (isExplicitLogout) {
+                return response;
+            }
+
             // If already logged in, redirect to dashboard
             if (user && (user.email === 'admin@raon.ai' || user.user_metadata?.role === 'admin')) {
                 return NextResponse.redirect(new URL('/admin', request.url));
