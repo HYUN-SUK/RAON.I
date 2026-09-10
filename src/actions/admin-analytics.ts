@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase-admin';
 import { assertAdmin } from '@/lib/auth-guard';
+import { ANONYMOUS_GUEST_USER_ID } from '@/constants/analytics';
 
 export interface FeatureStat {
     name: string;
@@ -65,12 +66,14 @@ export async function getAdminAnalyticsAction(
         try {
             const { count: tCount } = await supabase
                 .from('profiles')
-                .select('id', { count: 'exact', head: true });
+                .select('id', { count: 'exact', head: true })
+                .not('email', 'ilike', '%guest_anonymous%');
             totalUsers = tCount || 0;
 
             const { count: pCount } = await supabase
                 .from('profiles')
                 .select('id', { count: 'exact', head: true })
+                .not('email', 'ilike', '%guest_anonymous%')
                 .gte('created_at', startISO)
                 .lte('created_at', endISO);
             periodNewUsers = pCount || 0;
@@ -112,7 +115,7 @@ export async function getAdminAnalyticsAction(
 
         // 3. Feature Stats (Independent Safe Queries)
 
-        // ★ [신설] 사이트 방문 현황 (PV / UV) (user_action_log where action_type = 'SITE_VISIT')
+        // ★ 사이트 방문 현황 (PV / UV) (user_action_log where action_type = 'SITE_VISIT')
         let totalPv = 0;
         const uvSet = new Set<string>();
         try {
@@ -124,6 +127,9 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (visitLogs || []).forEach((v: any) => {
+                // 내부 관리자 계정의 업무/새로고침 트래픽은 제외 (순수 외부 고객 트래픽만 집계)
+                if (v.user_id && internalUserIds.has(v.user_id)) return;
+
                 totalPv++;
                 const key = v.entity_id || v.user_id;
                 if (key) uvSet.add(key);
@@ -132,7 +138,7 @@ export async function getAdminAnalyticsAction(
             console.warn('[Analytics] site_visit logs query warning:', e);
         }
 
-        // ① [신설] 즉시 여행계획 (user_action_log: INSTANT_PLAN_GENERATE & INSTANT_PLAN_CONVERT)
+        // ① 즉시 여행계획 (user_action_log: INSTANT_PLAN_GENERATE & INSTANT_PLAN_CONVERT)
         let instantPlanTotal = 0;
         let instantNearbyCount = 0;
         let instantDestCount = 0;
@@ -150,15 +156,19 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (genLogs || []).forEach((g: any) => {
+                // 내부 테스트 계정 생성분 제외 (순수 고객 생성만 집계)
+                if (g.user_id && internalUserIds.has(g.user_id)) return;
+
                 instantPlanTotal++;
                 const mode = g.raw_metadata?.mode;
                 if (mode === 'nearby') instantNearbyCount++;
                 else instantDestCount++;
 
-                if (g.user_id && !internalUserIds.has(g.user_id)) {
-                    instantMemberUsersSet.add(g.user_id);
-                } else if (!g.user_id) {
+                const isGuest = !g.user_id || g.user_id === ANONYMOUS_GUEST_USER_ID;
+                if (isGuest) {
                     instantGuestCount++;
+                } else {
+                    instantMemberUsersSet.add(g.user_id);
                 }
             });
 
@@ -171,9 +181,9 @@ export async function getAdminAnalyticsAction(
                 .lte('created_at', endISO);
 
             (convLogs || []).forEach((c: any) => {
-                if (!c.user_id || !internalUserIds.has(c.user_id)) {
-                    instantConvertedCount++;
-                }
+                // 내부 테스트 계정 전환분 제외
+                if (c.user_id && internalUserIds.has(c.user_id)) return;
+                instantConvertedCount++;
             });
         } catch (e) {
             console.warn('[Analytics] instant plan logs query warning:', e);

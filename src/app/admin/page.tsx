@@ -112,11 +112,13 @@ export default function AdminDashboard() {
             start = startOfMonth(now);
             end = endOfMonth(now);
         } else if (selectedPeriod === 'all') {
-            start = new Date(2025, 0, 1);
+            start = new Date(0);
         } else if (selectedPeriod === 'custom') {
             if (customStart && customEnd) {
                 start = new Date(customStart);
+                start.setHours(0, 0, 0, 0);
                 end = new Date(customEnd);
+                end.setHours(23, 59, 59, 999);
             }
         }
 
@@ -426,11 +428,6 @@ export default function AdminDashboard() {
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h4 className="font-bold text-gray-900 text-sm">{feat.name}</h4>
-                                                {isInstant && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-100 text-amber-800">
-                                                        신설
-                                                    </span>
-                                                )}
                                             </div>
                                             <p className="text-[11px] text-gray-400 mt-0.5">{feat.description}</p>
                                         </div>

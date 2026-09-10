@@ -53,6 +53,7 @@ export async function generateInstantPlanAction(params: {
     targetName: string;
     targetDate?: string;
     stayDays?: number;
+    mode?: 'nearby' | 'destination';
 }): Promise<{ success: boolean; data?: StandardizedPlanJSON; logId?: string; error?: string }> {
     try {
         const startDate = params.targetDate ? new Date(params.targetDate) : new Date();
@@ -69,7 +70,7 @@ export async function generateInstantPlanAction(params: {
         let logId: string | undefined;
         try {
             const logRes = await logInstantPlanGenerateAction({
-                mode: 'destination',
+                mode: params.mode || 'destination',
                 targetName: params.targetName,
                 lat: params.targetLat,
                 lng: params.targetLng,

@@ -256,6 +256,7 @@ export default function InstantPlanModal({
                 targetName: dest.name,
                 targetDate: todayStr,
                 stayDays: 1,
+                mode: 'nearby',
             });
             if (res.success && res.data) {
                 setPlanData(res.data);
@@ -397,6 +398,7 @@ export default function InstantPlanModal({
                         targetName: dest.name,
                         targetDate: todayStr,
                         stayDays: 1,
+                        mode: 'nearby',
                     });
                     if (res.success && res.data) {
                         setPlanData(res.data);
@@ -476,6 +478,7 @@ export default function InstantPlanModal({
                 targetName: target.name,
                 targetDate: targetDate,
                 stayDays: 1,
+                mode: 'destination',
             });
 
             if (res.success && res.data) {
