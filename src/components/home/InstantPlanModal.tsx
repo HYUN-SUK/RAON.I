@@ -1543,7 +1543,7 @@ export default function InstantPlanModal({
                             <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5 shrink-0">
                                 {CATEGORY_ICONS[card.category] || '📍'}
                             </div>
-                            {/* Swap Button (h-14 w-9: 세로 알약형) */}
+                            {/* Swap Button (h-14 w-10: 세로 알약형 + 변경 라벨 + 선명한 2px 테두리) */}
                             {allowSwap && !options?.isAlternativeMapMode && (
                                 <Button
                                     size="icon"
@@ -1554,20 +1554,22 @@ export default function InstantPlanModal({
                                         setSwapCategory(cat);
                                         setSwapTargetId(card.id);
                                     }}
-                                    className="h-14 w-9 rounded-2xl bg-gray-50 text-gray-600 hover:text-[#224732] hover:bg-[#224732]/10 border border-gray-200/80 active:scale-95 transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                                    className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#224732] hover:bg-[#224732]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#224732]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
                                     title="다른 장소로 교체"
                                 >
-                                    <ArrowRightLeft className="w-4 h-4" />
+                                    <ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="text-[9px] font-black tracking-tighter leading-none select-none">변경</span>
                                 </Button>
                             )}
-                            {/* Nav Map Button (h-14 w-9: 세로 알약형) */}
+                            {/* Nav Map Button (h-14 w-10: 세로 알약형 + 내비 라벨 + 선명한 2px 블루 테두리) */}
                             <Button
                                 size="icon"
                                 onClick={(e) => handleNavClick(e, card)}
-                                className="h-14 w-9 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-200/80 active:scale-95 transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                                className="h-14 w-10 rounded-2xl bg-blue-50/90 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 hover:text-blue-700 border-2 border-blue-300 dark:border-blue-700 hover:border-blue-400 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
                                 title="길찾기 내비 연결"
                             >
-                                <MapPin className="w-4 h-4" />
+                                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                <span className="text-[9px] font-black tracking-tighter leading-none select-none">내비</span>
                             </Button>
                         </div>
 
