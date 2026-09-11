@@ -29,6 +29,7 @@ export default function AdminDashboard() {
         todayPaidCount: 0,
         marketOrders: 0
     });
+    const [opsLoading, setOpsLoading] = useState(true);
 
     const [isTodayModalOpen, setIsTodayModalOpen] = useState(false);
 
@@ -44,6 +45,7 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
 
     const fetchOpsStats = async () => {
+        setOpsLoading(true);
         try {
             const res = await getOpsStatsAction();
             if (res.success && res.data) {
@@ -58,6 +60,8 @@ export default function AdminDashboard() {
             }
         } catch (err) {
             console.error('Ops stats error:', err);
+        } finally {
+            setOpsLoading(false);
         }
     };
 
@@ -185,7 +189,7 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-black text-blue-950 flex items-baseline gap-1">
-                                <span>{opsStats.todayCheckIns}</span>
+                                <span>{opsLoading ? '-' : opsStats.todayCheckIns}</span>
                                 <span className="text-xs font-semibold text-stone-400">팀</span>
                             </div>
                             <p className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-0.5 hover:underline">
@@ -198,7 +202,7 @@ export default function AdminDashboard() {
                 {/* 2. 결제 목록 (캠핏 스타일 하단 서브 정보) */}
                 <Link href="/admin/payments" className="block transition-transform hover:scale-[1.02] active:scale-[0.98]">
                     <Card className={`transition-colors shadow-xs h-full ${
-                        (opsStats.pendingCount > 0 || opsStats.refundPendingCount > 0) ? 'border-amber-300 bg-amber-50/20' : 'hover:border-stone-300'
+                        (!opsLoading && (opsStats.pendingCount > 0 || opsStats.refundPendingCount > 0)) ? 'border-amber-300 bg-amber-50/20' : 'hover:border-stone-300'
                     }`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5">
                             <CardTitle className="text-sm font-bold text-stone-700">
@@ -210,20 +214,20 @@ export default function AdminDashboard() {
                             <div className="flex items-baseline justify-between">
                                 <span className="text-xs text-stone-500 font-medium">오늘 결제</span>
                                 <span className="text-base font-extrabold text-emerald-800">
-                                    {opsStats.todayPaidAmount.toLocaleString()}원
+                                    {opsLoading ? '-' : `${opsStats.todayPaidAmount.toLocaleString()}원`}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between pt-1 border-t border-stone-200/60 text-xs">
                                 <div className="flex items-center gap-1 font-semibold text-amber-800">
                                     <span>결제대기</span>
                                     <span className="px-1.5 py-0.2 bg-amber-200/70 rounded-full text-[11px] font-bold">
-                                        {opsStats.pendingCount}
+                                        {opsLoading ? '-' : opsStats.pendingCount}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1 font-semibold text-rose-700">
                                     <span>환불대기</span>
                                     <span className="px-1.5 py-0.2 bg-rose-100 rounded-full text-[11px] font-bold">
-                                        {opsStats.refundPendingCount}
+                                        {opsLoading ? '-' : opsStats.refundPendingCount}
                                     </span>
                                 </div>
                             </div>
@@ -238,7 +242,7 @@ export default function AdminDashboard() {
                         <ShoppingCart className="text-green-500 w-5 h-5" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{opsStats.marketOrders}</div>
+                        <div className="text-2xl font-bold">{opsLoading ? '-' : opsStats.marketOrders}</div>
                         <p className="text-xs text-muted-foreground">배송 준비 중</p>
                     </CardContent>
                 </Card>

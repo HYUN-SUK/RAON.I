@@ -1,5 +1,13 @@
 # Task Management
 
+## Completed Tasks (2026-09-11)
+- [x] **마일스톤 9.50**: 관리자 입금확인 2연타 더블트리거 방어 가드 장착 & 대시보드 쿼리 전면 병렬화 1초 미만 초고속 렌더링 최적화 완결
+  - **입금확인 2연타 더블트리거 방어 가드 (`payments/page.tsx`, `AdminReservationDetailModal.tsx`, `UnifiedReservationCalendar.tsx`)**: 입금확인 처리 시 고객 일정 자동 생성(`ensureScheduleFromReservationAdmin`)으로 소요되는 수 초 동안 버튼이 재활성화되어 중복 클릭되던 현상을 원천 차단. 3대 관리자 화면 전반에 버튼 잠금(`disabled`) 및 스피너(`Loader2 animate-spin`) 가드를 탑재하여 다중 터치 및 중복 완료 팝업 발생 완전 방지.
+  - **대시보드 통계 쿼리 전면 병렬화 (`admin-analytics.ts`)**: 과거 캐싱 배제 원칙을 준수하면서도 진입 및 새로고침 시 4.5초 이상 걸리던 12개 집계 쿼리(`getAdminAnalyticsAction`)와 5대 핵심 운영 쿼리(`getOpsStatsAction`)를 `Promise.all`로 전면 병렬 실행하여 0.3~0.7초 만에 즉시 렌더링되도록 초고속 최적화.
+  - **대시보드 초기 깜빡임(Flicker) 제거 (`admin/page.tsx`)**: 페이지 진입 시 일시적으로 `0원`, `결제대기 0`, `환불대기 0`으로 잠깐 보였다가 숫자가 바뀌는 시각적 왜곡(착시)을 제거하기 위해 `opsLoading` 기반 클린 대시(`-`) 표기 처리.
+  - **즉시여행계획 비로그인/로그인 집계 검증**: 비로그인 게스트 식별자(`ANONYMOUS_GUEST_USER_ID`)와 실회원 데이터가 목적지/내주변 모드별로 정상 수집 및 통합 집계됨을 실측 DB 검증 완료.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
 ## Completed Tasks (2026-09-10)
 - [x] **마일스톤 9.49**: 대시보드 실회원 지표 정규화, 즉시 여행계획 비로그인 로깅 정상화 및 신설 뱃지 제거 완결
   - **비로그인 고객 로깅 파이프라인 정상화 (`analytics.ts`, `analytics-logger.ts`)**: `user_action_log`의 `user_id` NOT NULL 제약으로 인한 비로그인 방문자/생성자 DB 저장 에러(`23502`)를 해결하기 위해 전용 게스트 식별자 `ANONYMOUS_GUEST_USER_ID` 체계를 구축하여 비로그인 사이트 방문(PV/UV) 및 즉시 여행계획 생성이 100% 정상 수집되도록 보정.

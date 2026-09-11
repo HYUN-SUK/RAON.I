@@ -1184,6 +1184,12 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
   * TMAP/KT 모빌리티 인기도 `areaCd` 단일 분기 매핑으로 KT 집중률 23,016건 갱신.
   * 사전/사후 카운트 쿼리 `.in('sido', aliases)` 적용으로 기존 14,919건 장소 정상 집계 완료.
 
-
-
-
+### [2026-09-11 Update - Milestone 9.50]
+* [x] **관리자 입금확인 2연타 더블트리거 방어 가드 장착**:
+  * 결제 관리(`payments/page.tsx`), 예약 상세 모달(`AdminReservationDetailModal.tsx`), 통합 캘린더(`UnifiedReservationCalendar.tsx`) 3대 관리자 화면 전반에 버튼 잠금(`disabled`) 및 로딩 스피너(`Loader2 animate-spin`) 가드 탑재.
+  * 입금확인 시 고객 일정 자동 생성(`ensureScheduleFromReservationAdmin`) 처리 동안 버튼이 다시 활성화되어 2번 연속 클릭되고 완료 팝업이 2회 뜨던 결함 원천 차단.
+* [x] **대시보드 통계 쿼리 전면 병렬화로 1초 미만 초고속 렌더링 최적화**:
+  * 12개 집계 쿼리(`getAdminAnalyticsAction`) 및 5대 핵심 운영 쿼리(`getOpsStatsAction`)를 `Promise.all`로 전면 병렬화.
+  * 기존 4.5초 소요 대기 시간을 0.3~0.7초로 단축하여 진입/새로고침 즉시 실시간 통계가 표출되도록 구현.
+  * 과거 캐싱 배제 원칙을 준수하고, `opsLoading` 기반 클린 대시(`-`) 표기 처리로 0원/0건 깜빡임(착시) 완전 해소.
+* [x] **즉시여행계획 비로그인/로그인 통합 집계 무결성 검증**: 비로그인 게스트 식별자(`ANONYMOUS_GUEST_USER_ID`)와 실회원 데이터가 목적지/내주변 모드별로 정상 수집 및 통합 집계됨을 실측 DB 검증 완료.

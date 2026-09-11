@@ -36,6 +36,7 @@ export default function UnifiedReservationCalendar() {
     const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | 'CAMFIT_MONITOR' | 'ACTION_CONFIRM' | null>(null);
     const [isActionSubmitting, setIsActionSubmitting] = useState(false);
     const [isSubmittingModify, setIsSubmittingModify] = useState(false);
+    const [isConfirmingDeposit, setIsConfirmingDeposit] = useState(false);
     const [confirmModalConfig, setConfirmModalConfig] = useState<{
         title: string;
         description: string;
@@ -632,18 +633,33 @@ export default function UnifiedReservationCalendar() {
                                         {selectedReservation.status === 'PENDING' && (
                                             <Button
                                                 size="sm"
-                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                                disabled={isConfirmingDeposit}
+                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50"
                                                 onClick={async () => {
+                                                    if (isConfirmingDeposit) return;
+                                                    setIsConfirmingDeposit(true);
                                                     try {
                                                         await updateReservationStatus(selectedReservation.id, 'CONFIRMED');
                                                         toast.success('예약이 확정되었습니다.');
                                                         setSelectedReservation({ ...selectedReservation, status: 'CONFIRMED' });
                                                     } catch (e: any) {
                                                         toast.error(e?.message || '확정 처리 실패');
+                                                    } finally {
+                                                        setIsConfirmingDeposit(false);
                                                     }
                                                 }}
                                             >
-                                                <CheckCircle className="w-4 h-4 mr-1" /> 입금 확인
+                                                {isConfirmingDeposit ? (
+                                                    <span className="flex items-center gap-1 justify-center">
+                                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                                        처리중...
+                                                    </span>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                                        입금 확인
+                                                    </>
+                                                )}
                                             </Button>
                                         )}
                                         <Button

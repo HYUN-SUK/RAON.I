@@ -6,7 +6,7 @@ import { useReservationStore } from '@/store/useReservationStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, History, Phone, User, Calendar, CreditCard, Tent, Car, Users, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, History, Phone, User, Calendar, CreditCard, Tent, Car, Users, Clock, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -30,6 +30,7 @@ export default function AdminReservationDetailModal({
     const [showHistory, setShowHistory] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     if (!reservation) return null;
 
@@ -53,6 +54,8 @@ export default function AdminReservationDetailModal({
     };
 
     const handleConfirmPayment = async () => {
+        if (isConfirming) return;
+        setIsConfirming(true);
         try {
             await updateReservationStatus(reservation.id, 'CONFIRMED');
             toast.success('입금 확인 및 예약이 확정되었습니다.');
@@ -60,6 +63,8 @@ export default function AdminReservationDetailModal({
             onClose();
         } catch (e: any) {
             toast.error(e?.message || '확정 처리에 실패했습니다.');
+        } finally {
+            setIsConfirming(false);
         }
     };
 
@@ -349,10 +354,21 @@ export default function AdminReservationDetailModal({
                         {reservation.status === 'PENDING' && (
                             <Button
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl"
+                                disabled={isConfirming}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl disabled:opacity-50"
                                 onClick={handleConfirmPayment}
                             >
-                                <CheckCircle className="w-3.5 h-3.5 mr-1" /> 입금 확인 (확정)
+                                {isConfirming ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                                        처리 중...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                        입금 확인 (확정)
+                                    </>
+                                )}
                             </Button>
                         )}
 

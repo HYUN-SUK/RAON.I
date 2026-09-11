@@ -14,7 +14,8 @@ import {
     ChevronRight, 
     CheckCircle2, 
     AlertCircle, 
-    X
+    X,
+    Loader2
 } from 'lucide-react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -46,6 +47,9 @@ export default function AdminPaymentsPage() {
     // 3. Modal State
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+    // 4. Processing States (Double-click prevention)
+    const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchAllReservations();
@@ -167,11 +171,15 @@ export default function AdminPaymentsPage() {
 
     const handleQuickConfirm = async (e: React.MouseEvent, r: Reservation) => {
         e.stopPropagation();
+        if (confirmingId) return;
+        setConfirmingId(r.id);
         try {
             await updateReservationStatus(r.id, 'CONFIRMED');
             toast.success(`${r.guestName}님의 입금이 확인되어 예약이 확정되었습니다.`);
         } catch (err: any) {
             toast.error(err?.message || '확정 처리에 실패했습니다.');
+        } finally {
+            setConfirmingId(null);
         }
     };
 
@@ -622,10 +630,18 @@ export default function AdminPaymentsPage() {
                                                 ) : r.status === 'PENDING' ? (
                                                     <Button
                                                         size="sm"
+                                                        disabled={confirmingId === r.id}
                                                         onClick={(e) => handleQuickConfirm(e, r)}
-                                                        className="h-7 px-2.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs"
+                                                        className="h-7 px-2.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs disabled:opacity-50"
                                                     >
-                                                        입금확인
+                                                        {confirmingId === r.id ? (
+                                                            <span className="flex items-center gap-1">
+                                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                                처리중
+                                                            </span>
+                                                        ) : (
+                                                            '입금확인'
+                                                        )}
                                                     </Button>
                                                 ) : (
                                                     <Button
