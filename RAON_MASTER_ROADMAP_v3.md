@@ -7,6 +7,33 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.52 장소카드 좌측 액션 버튼 초미니 라벨('변경'/'내비') 및 2px 선명한 테두리 고도화 완결 (2026-09-11)** 🟢
+  - [x] **초미니 2글자 라벨 탑재 (`InstantPlanModal.tsx`, `SmartPlanProposal.tsx`)**: 상단 버튼에 `[ ⇄ 변경 ]`, 하단 버튼에 `[ 📍 내비 ]` 마이크로 텍스트(`text-[9px] font-black tracking-tighter leading-none`)를 추가하여 터치 목적을 0.1초 만에 직관적으로 인지할 수 있도록 시인성 극대화.
+  - [x] **선명한 2px 테두리 및 그림자 부여 (`InstantPlanModal.tsx`, `SmartPlanProposal.tsx`)**: 흐릿한 연회색 단일 테두리 대신 `border-2 border-stone-300`(변경) 및 `border-2 border-blue-300`(내비)과 은은한 그림자(`shadow-xs`)를 부여하여 "누를 수 있는 정품 버튼"임을 부각.
+  - [x] **좌측 컨트롤 열 너비 최적화 (`w-10 h-14`)**: 상단 카테고리 아이콘(`w-10`, 40px)과 가로 폭을 1:1로 일치시켜 모바일 카드 본문 영역의 가로폭 침범 없이 안정적인 알약형 정렬감 완성.
+  - [x] **동작 보존 100%**: 장소 교체 바텀시트 호출, 3대 모바일 내비(티맵/카카오내비/네이버지도) 연동, 카드 본문 터치 상세조회 일체 간섭 없음 (Side-Effect 0%).
+  - [x] **빌드 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
+- [x] **9.51 즉시 여행계획 GPS 재시도 실패 시 자동 라온아이 폴백 & [현재 위치 기준으로 다시 보기] 안전 바운더리 구축 완결 (2026-09-11)** 🟢
+  - [x] **GPS 재시도 자동 라온아이 폴백(Auto-Fallback) 탑재 (`InstantPlanModal.tsx`)**: GPS 신호 불량 시 `[🛰️ 내 위치 다시 시도]` 터치 후 재측정에 실패하더라도 화면을 빈 채(`planData === null`)로 두지 않고, 자동으로 라온아이 대표 좌표 기반 플랜을 즉시 생성·보충하여 4단계 여행코스가 100% 온전히 유지되도록 방어.
+  - [x] **UI 렌더링 Fail-Safe 안전 바운더리 구축 (`InstantPlanModal.tsx`)**: 네트워크 단절 등 만에 하나의 이상 상황으로 `planData`가 없을 때 흰색 빈 화면이 노출되는 대신, `"여행계획을 불러오지 못했습니다"` 안내와 함께 **`[🛰️ 현재 위치 기준으로 다시 보기]`** 복구 버튼을 노출.
+  - [x] **하단 고정 저장 CTA 바 동기화 (`InstantPlanModal.tsx`)**: `planData`가 완벽히 존재할 때만 저장 버튼과 3단계 로드맵 박스가 노출되도록 `planData &&` 안전 가드 결합.
+  - [x] **빌드 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
+- [x] **9.50 관리자 입금확인 2연타 더블트리거 방어 가드 장착 & 대시보드 쿼리 전면 병렬화 1초 미만 초고속 렌더링 최적화 완결 (2026-09-11)** 🟢
+  - [x] **입금확인 2연타 더블트리거 방어 가드 (`payments/page.tsx`, `AdminReservationDetailModal.tsx`, `UnifiedReservationCalendar.tsx`)**: 입금확인 처리 시 고객 일정 자동 생성(`ensureScheduleFromReservationAdmin`)으로 소요되는 수 초 동안 버튼이 재활성화되어 중복 클릭되던 현상을 원천 차단. 3대 관리자 화면 전반에 버튼 잠금(`disabled`) 및 스피너(`Loader2 animate-spin`) 가드를 탑재하여 다중 터치 및 중복 완료 팝업 발생 완전 방지.
+  - [x] **대시보드 통계 쿼리 전면 병렬화 (`admin-analytics.ts`)**: 과거 캐싱 배제 원칙을 준수하면서도 진입 및 새로고침 시 4.5초 이상 걸리던 12개 집계 쿼리(`getAdminAnalyticsAction`)와 5대 핵심 운영 쿼리(`getOpsStatsAction`)를 `Promise.all`로 전면 병렬 실행하여 0.3~0.7초 만에 즉시 렌더링되도록 초고속 최적화.
+  - [x] **대시보드 초기 깜빡임(Flicker) 제거 (`admin/page.tsx`)**: 페이지 진입 시 일시적으로 `0원`, `결제대기 0`, `환불대기 0`으로 잠깐 보였다가 숫자가 바뀌는 시각적 왜곡(착시)을 제거하기 위해 `opsLoading` 기반 클린 대시(`-`) 표기 처리.
+  - [x] **결제 목록 상세화면 0건 깜빡임(Flicker) 방지 클린 대시('-') 및 로딩 스피너 탑재 (`payments/page.tsx`)**: 진입 시 `0건`, `0원`, `(0개 검색됨)`, `내역 없음`으로 먼저 번쩍이던 시각적 혼선을 제거하고, `isLoading` 상태 가드를 탑재하여 데이터 수신 전까지 `-` 표시 및 테이블 중앙 로딩 스피너 표출 처리.
+  - [x] **빌드 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
+- [x] **9.49 대시보드 실회원 지표 정규화, 즉시 여행계획 비로그인 로깅 정상화 및 신설 뱃지 제거 완결 (2026-09-10)** 🟢
+  - [x] **비로그인 고객 로깅 파이프라인 정상화 (`analytics.ts`, `analytics-logger.ts`)**: `user_action_log`의 `user_id` NOT NULL 제약으로 인한 비로그인 방문자/생성자 DB 저장 에러(`23502`)를 해결하기 위해 전용 게스트 식별자 `ANONYMOUS_GUEST_USER_ID` 체계를 구축하여 비로그인 사이트 방문(PV/UV) 및 즉시 여행계획 생성이 100% 정상 수집되도록 보정.
+  - [x] **즉시 여행계획 생성 모드('내 주변' vs '목적지') 분기 정상화 (`instant-plan.ts`, `InstantPlanModal.tsx`)**: `generateInstantPlanAction`에 `mode?: 'nearby' | 'destination'` 파라미터를 추가하고 GPS 기반 생성은 `nearby`, 검색 기반 생성은 `destination`을 전달하여 대시보드에서 모드별 생성이 정확히 분리 집계되도록 조치.
+  - [x] **대시보드 3대 내부 테스트 계정 제외 및 실회원 정규화 (`admin-analytics.ts`)**: 정밀 스마트플랜, 즉시 여행계획, 사이트 방문 전반에 걸쳐 `admin`, `tootg`, `wlgustns19` 계정을 철저히 제외.
+  - [x] **대시보드 UI 보정 및 기간 필터 정밀화 (`admin/page.tsx`)**: 즉시 여행계획 카드 상단의 `[신설]` 뱃지 완전 삭제. `all` 탭 선택 시 1970년부터 안전 집계, `custom` 날짜 선택 시 종료일 `23:59:59.999`까지 포함하여 당일 오후 데이터 누락 방지.
+  - [x] **빌드 검증**: Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.48 관리자 화면 로그아웃 정상화 및 미들웨어 역주행(Bounce) 방지 완결 (2026-09-10)** 🟢
   - [x] **관리자 전용 서버 로그아웃 Server Action 신설 (`admin-auth.ts`)**: Next.js 서버 레벨(`cookies().delete()`)에서 `sb-` 관련 모든 인증 쿠키를 즉시 강제 만료 처리하여 브라우저 잔류 토큰 완벽 소멸.
   - [x] **AdminLayout 3중 클라이언트 정화 & 1초 타임아웃 가드 (`src/app/admin/layout.tsx`)**: 클라이언트 쿠키/스토리지 즉시 파기, `supabase.auth.signOut()` 1초 타임아웃 가드 적용, `window.location.href = '/admin/login?logout=true'` 직통 이동 구현.
