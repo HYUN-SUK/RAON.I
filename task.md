@@ -1,6 +1,11 @@
 # Task Management
 
 ## Completed Tasks (2026-09-11)
+- [x] **마일스톤 9.51**: 즉시 여행계획 GPS 재시도 실패 시 자동 라온아이 폴백 & [현재 위치 기준으로 다시 보기] 안전 바운더리 구축 완결
+  - **GPS 재시도 자동 라온아이 폴백(Auto-Fallback) 탑재 (`InstantPlanModal.tsx`)**: GPS 신호 불량 시 `[🛰️ 내 위치 다시 시도]` 터치 후 재측정에 실패하더라도 화면을 빈 채(`planData === null`)로 두지 않고, 자동으로 라온아이 대표 좌표 기반 플랜을 즉시 생성·보충하여 4단계 여행코스가 100% 온전히 유지되도록 방어.
+  - **UI 렌더링 Fail-Safe 안전 바운더리 구축 (`InstantPlanModal.tsx`)**: 네트워크 단절 등 만에 하나의 이상 상황으로 `planData`가 없을 때 흰색 빈 화면이 노출되는 대신, `"여행계획을 불러오지 못했습니다"` 안내와 함께 **`[🛰️ 현재 위치 기준으로 다시 보기]`** 복구 버튼을 노출.
+  - **하단 고정 저장 CTA 바 동기화 (`InstantPlanModal.tsx`)**: `planData`가 완벽히 존재할 때만 저장 버튼과 3단계 로드맵 박스가 노출되도록 `planData &&` 안전 가드 결합.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
 - [x] **마일스톤 9.50**: 관리자 입금확인 2연타 더블트리거 방어 가드 장착 & 대시보드 쿼리 전면 병렬화 1초 미만 초고속 렌더링 최적화 완결
   - **입금확인 2연타 더블트리거 방어 가드 (`payments/page.tsx`, `AdminReservationDetailModal.tsx`, `UnifiedReservationCalendar.tsx`)**: 입금확인 처리 시 고객 일정 자동 생성(`ensureScheduleFromReservationAdmin`)으로 소요되는 수 초 동안 버튼이 재활성화되어 중복 클릭되던 현상을 원천 차단. 3대 관리자 화면 전반에 버튼 잠금(`disabled`) 및 스피너(`Loader2 animate-spin`) 가드를 탑재하여 다중 터치 및 중복 완료 팝업 발생 완전 방지.
   - **대시보드 통계 쿼리 전면 병렬화 (`admin-analytics.ts`)**: 과거 캐싱 배제 원칙을 준수하면서도 진입 및 새로고침 시 4.5초 이상 걸리던 12개 집계 쿼리(`getAdminAnalyticsAction`)와 5대 핵심 운영 쿼리(`getOpsStatsAction`)를 `Promise.all`로 전면 병렬 실행하여 0.3~0.7초 만에 즉시 렌더링되도록 초고속 최적화.

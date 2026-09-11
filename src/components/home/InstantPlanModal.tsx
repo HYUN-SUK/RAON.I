@@ -225,8 +225,9 @@ export default function InstantPlanModal({
         setActiveFallbackNotice(fallbackNotice || null);
     }, [fallbackNotice]);
 
-    // GPS 재시도 핸들러 (GPS 신호 불량 / 타임아웃 발생 시 결과 화면에서 호출)
+    // GPS 재시도 핸들러 (GPS 신호 불량 / 타임아웃 발생 시 결과 화면 또는 안전 바운더리에서 호출)
     const handleRetryGps = async () => {
+        const prevPlanData = planData;
         setStep('GENERATING');
         setGeneratingStage('LOCATING');
         setPlanData(null);
@@ -264,13 +265,52 @@ export default function InstantPlanModal({
                 setStep('RESULT');
                 toast.success('⚡ 내 위치 기반 즉시 여행계획이 완성되었습니다!');
             } else {
-                toast.error(res.error || '여행계획 생성에 실패했습니다.');
-                setStep('INPUT');
+                throw new Error(res.error || '내 위치 기반 여행계획 생성에 실패했습니다.');
             }
         } catch (e: any) {
-            console.warn('GPS retry failed:', e);
-            toast.error('현재 위치(GPS)를 아직 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.');
-            setStep('RESULT');
+            console.warn('GPS retry failed, automatically falling back to RAON.I standard:', e);
+            toast.info('현재 위치(GPS)를 확인할 수 없어 대표 기준 위치(라온아이 캠핑장)로 완성합니다.');
+
+            // [Auto-Fallback] GPS 재시도 실패 시 절대로 빈 화면을 남기지 않고 자동으로 라온아이 기준으로 플랜 생성
+            const fallbackNoticeMsg = "현재 계신 곳의 GPS 위치를 확인할 수 없어 대표 기준 위치(라온아이 캠핑장)로 추천해 드립니다. 잠시 후 다시 시도해 보세요.";
+            setActiveFallbackNotice(fallbackNoticeMsg);
+            setCanRetryGps(true);
+            const fallbackDest = {
+                name: '라온아이 캠핑장 (예산)',
+                lat: 36.6354349,
+                lng: 126.7638091,
+                address: '충남 예산군 덕산면',
+            };
+            setSelectedDestination(fallbackDest);
+            setSearchQuery(fallbackDest.name);
+            setGeneratingStage('OPTIMIZING');
+
+            try {
+                const fallbackRes = await generateInstantPlanAction({
+                    targetLat: fallbackDest.lat,
+                    targetLng: fallbackDest.lng,
+                    targetName: fallbackDest.name,
+                    targetDate: todayStr,
+                    stayDays: 1,
+                    mode: 'nearby',
+                });
+                if (fallbackRes.success && fallbackRes.data) {
+                    setPlanData(fallbackRes.data);
+                    if (fallbackRes.logId) setCurrentLogId(fallbackRes.logId);
+                    setStep('RESULT');
+                } else if (prevPlanData) {
+                    setPlanData(prevPlanData);
+                    setStep('RESULT');
+                } else {
+                    setStep('RESULT');
+                }
+            } catch (fallbackErr) {
+                console.error('Fallback plan generation failed:', fallbackErr);
+                if (prevPlanData) {
+                    setPlanData(prevPlanData);
+                }
+                setStep('RESULT');
+            }
         }
     };
 
@@ -865,8 +905,9 @@ export default function InstantPlanModal({
                     )}
 
                     {/* 3. 4단계 여행계획 결과 표시 (RESULT) */}
-                    {step === 'RESULT' && planData && (
-                        <div className="space-y-6 pb-4">
+                    {step === 'RESULT' && (
+                        planData ? (
+                            <div className="space-y-6 pb-4">
                             {/* 위치 미동의 / GPS 확인 불가 시: 붉은 톤 안내 배너 단독 노출 */}
                             {activeFallbackNotice ? (
                                 <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-950 dark:text-rose-200 shadow-xs">
@@ -1006,7 +1047,28 @@ export default function InstantPlanModal({
                                 </div>
                             </div>
                         </div>
-                    )}
+                    ) : (
+                        <div className="py-20 px-4 flex flex-col items-center justify-center text-center space-y-4">
+                            <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-700 dark:text-amber-300 shadow-xs">
+                                <AlertCircle className="w-7 h-7" />
+                            </div>
+                            <div className="space-y-1.5 max-w-xs">
+                                <h4 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                                    여행계획을 불러오지 못했습니다
+                                </h4>
+                                <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
+                                    일시적인 위치(GPS) 신호 약화 또는 네트워크 지연일 수 있습니다.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={handleRetryGps}
+                                className="mt-2 h-11 px-5 bg-[#224732] hover:bg-[#1a3827] text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
+                            >
+                                <MapPin className="w-4 h-4 text-emerald-300" />
+                                <span>🛰️ 현재 위치 기준으로 다시 보기</span>
+                            </Button>
+                        </div>
+                    ))}
 
                     {/* 4. 프로필 게이트 단계 (PROFILE_GATE) */}
                     {step === 'PROFILE_GATE' && (
@@ -1112,7 +1174,7 @@ export default function InstantPlanModal({
                 </div>
 
                 {/* 하단 고정 CTA (초간결 미니멀 럭셔리) */}
-                {step === 'RESULT' && (
+                {step === 'RESULT' && planData && (
                     <div className="p-3.5 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-2.5">
                         {/* 1. 메인 버튼: 딥 에메랄드 + 골드 보더 + 골드 쉬머 광택 애니메이션 */}
                         <Button
