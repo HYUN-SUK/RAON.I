@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { useReservationStore } from '@/store/useReservationStore';
 import { Reservation } from '@/types/reservation';
@@ -51,10 +51,22 @@ export default function AdminPaymentsPage() {
     // 4. Processing States (Double-click prevention)
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchAllReservations();
-        applyQuickPeriod('3month');
+    // 5. Loading State (Prevents flicker of 0건 before data arrives)
+    const [isLoading, setIsLoading] = useState(true);
+
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            await fetchAllReservations();
+        } finally {
+            setIsLoading(false);
+        }
     }, [fetchAllReservations]);
+
+    useEffect(() => {
+        loadData();
+        applyQuickPeriod('3month');
+    }, [loadData]);
 
     const applyQuickPeriod = (p: PeriodQuickType) => {
         setPeriodQuick(p);
@@ -224,10 +236,11 @@ export default function AdminPaymentsPage() {
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => fetchAllReservations()} 
-                        className="rounded-xl text-xs bg-white text-stone-700 hover:bg-stone-50"
+                        disabled={isLoading}
+                        onClick={() => loadData()} 
+                        className="rounded-xl text-xs bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-50"
                     >
-                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> 새로고침
+                        <RotateCcw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} /> 새로고침
                     </Button>
                 </div>
             </div>
@@ -239,11 +252,11 @@ export default function AdminPaymentsPage() {
                     <div className="space-y-1">
                         <span className="text-xs font-bold text-stone-500 block">오늘 결제</span>
                         <div className="flex items-baseline gap-1.5">
-                            <span className="text-3xl font-black text-stone-900">{todayPaidCount}</span>
+                            <span className="text-3xl font-black text-stone-900">{isLoading ? '-' : todayPaidCount}</span>
                             <span className="text-xs font-bold text-stone-400">건</span>
                         </div>
                         <p className="text-xs font-extrabold text-blue-600">
-                            {todayPaidAmount.toLocaleString()}원
+                            {isLoading ? '-' : `${todayPaidAmount.toLocaleString()}원`}
                         </p>
                     </div>
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
@@ -256,13 +269,13 @@ export default function AdminPaymentsPage() {
                     <div className="space-y-1">
                         <span className="text-xs font-bold text-stone-500 block">환불 대기</span>
                         <div className="flex items-baseline gap-1.5">
-                            <span className={`text-3xl font-black ${refundPendingCount > 0 ? 'text-rose-600' : 'text-stone-900'}`}>
-                                {refundPendingCount}
+                            <span className={`text-3xl font-black ${!isLoading && refundPendingCount > 0 ? 'text-rose-600' : 'text-stone-900'}`}>
+                                {isLoading ? '-' : refundPendingCount}
                             </span>
                             <span className="text-xs font-bold text-stone-400">건</span>
                         </div>
-                        <p className={`text-xs font-extrabold ${refundPendingCount > 0 ? 'text-rose-600' : 'text-stone-400'}`}>
-                            {refundPendingAmount.toLocaleString()}원
+                        <p className={`text-xs font-extrabold ${!isLoading && refundPendingCount > 0 ? 'text-rose-600' : 'text-stone-400'}`}>
+                            {isLoading ? '-' : `${refundPendingAmount.toLocaleString()}원`}
                         </p>
                     </div>
                     <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
@@ -275,13 +288,13 @@ export default function AdminPaymentsPage() {
                     <div className="space-y-1">
                         <span className="text-xs font-bold text-stone-500 block">결제 대기</span>
                         <div className="flex items-baseline gap-1.5">
-                            <span className={`text-3xl font-black ${paymentPendingCount > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
-                                {paymentPendingCount}
+                            <span className={`text-3xl font-black ${!isLoading && paymentPendingCount > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
+                                {isLoading ? '-' : paymentPendingCount}
                             </span>
                             <span className="text-xs font-bold text-stone-400">건</span>
                         </div>
-                        <p className={`text-xs font-extrabold ${paymentPendingCount > 0 ? 'text-amber-700' : 'text-stone-400'}`}>
-                            {paymentPendingAmount.toLocaleString()}원
+                        <p className={`text-xs font-extrabold ${!isLoading && paymentPendingCount > 0 ? 'text-amber-700' : 'text-stone-400'}`}>
+                            {isLoading ? '-' : `${paymentPendingAmount.toLocaleString()}원`}
                         </p>
                     </div>
                     <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
@@ -297,7 +310,7 @@ export default function AdminPaymentsPage() {
                         <Search className="w-4 h-4 text-[#224732]" />
                         결제 검색
                         <span className="text-xs font-normal text-stone-400 ml-1">
-                            ({totalCount}개 검색됨)
+                            ({isLoading ? '-' : `${totalCount}개 검색됨`})
                         </span>
                     </h3>
                 </div>
@@ -421,7 +434,7 @@ export default function AdminPaymentsPage() {
                             <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                                 activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
                             }`}>
-                                {tab.count}
+                                {isLoading ? '-' : tab.count}
                             </span>
                         </button>
                     ))}
@@ -469,7 +482,14 @@ export default function AdminPaymentsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-stone-100 text-stone-700">
-                            {paginatedList.length === 0 ? (
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={10} className="py-16 text-center text-stone-400">
+                                        <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                                        <p className="text-xs font-semibold text-stone-600">결제 및 예약 내역을 불러오는 중입니다...</p>
+                                    </td>
+                                </tr>
+                            ) : paginatedList.length === 0 ? (
                                 <tr>
                                     <td colSpan={10} className="py-16 text-center text-stone-400">
                                         <AlertCircle className="w-8 h-8 mx-auto mb-2 text-stone-300" />
@@ -666,7 +686,7 @@ export default function AdminPaymentsPage() {
                 </div>
 
                 {/* 6. 하단 페이지네이션 바 */}
-                {totalPages > 1 && (
+                {!isLoading && totalPages > 1 && (
                     <div className="p-3 border-t border-stone-100 flex items-center justify-center gap-1.5 bg-stone-50/50">
                         <Button
                             variant="outline"
