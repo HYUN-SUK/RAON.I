@@ -32,8 +32,14 @@ export async function GET(request: NextRequest) {
 
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (!error) {
-            const { data: { user } } = await supabase.auth.getUser();
+        if (error) {
+            console.error('[AuthCallback] Code exchange failed:', error.message);
+            const loginUrl = new URL("/login", request.url);
+            loginUrl.searchParams.set("error", "oauth_failed");
+            return NextResponse.redirect(loginUrl);
+        }
+
+        const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 // 프로필 존재 여부 확인
                 const { data: existingProfile } = await supabase
@@ -78,7 +84,6 @@ export async function GET(request: NextRequest) {
                 }
             }
         }
-    }
 
     // 2. 최종 리다이렉트 응답 생성
     const redirectResponse = NextResponse.redirect(new URL(next, request.url));

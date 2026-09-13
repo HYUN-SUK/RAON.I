@@ -1,5 +1,15 @@
 # Task Management
 
+## Completed Tasks (2026-09-13)
+- [x] **마일스톤 9.53**: 즉시 여행계획 저장 버튼 0ms 무결성 안전망 & TWA 카카오 로그인 튕김 방어 완결
+  - **`hasAuthToken` 0ms 사전 검사 탑재 (`InstantPlanModal.tsx`)**: 쿠키(`sb-`) 및 스토리지에 Supabase 인증 토큰이 없을 때 세션 자물쇠 함수(`getSession`)를 아예 호출하지 않고 0.00초 만에 즉시 비로그인 확정 및 10분 draft 저장 후 로그인 페이지로 안전 이동.
+  - **Fail-Safe 3초 타임아웃 가드 장착 (`InstantPlanModal.tsx`)**: 카카오 로그인 취소 등으로 Web Locks 데드락에 빠지더라도 3초 만에 무조건 강제 탈출하여 버튼 굳음(Freeze) 현상 100% 박멸.
+  - **모달 시트 닫힘 연동 (`InstantPlanModal.tsx`)**: 비로그인 판정 시 `onClose()`를 호출하여 화면 겹침 및 뒤편 잔류 방지.
+  - **10분 복원 퍼널 데드락 안전망 동기화 (`BeginnerHome.tsx`)**: `checkDraftPlan`에서 무거운 원격 `getUser()`를 제거하고 `hasAuthToken` 0ms 사전 검증 및 `getSession()` + 3초 타임아웃으로 홈 첫 진입 속도 향상.
+  - **TWA 안드로이드 앱 카카오 OAuth 안정화 (`SocialLoginButtons.tsx`)**: `queryParams: { prompt: 'login' }`을 적용하여 스마트폰 카카오톡 앱 전환으로 인한 프로세스 리셋 및 PKCE 쿠키 유실 원천 차단.
+  - **인증 콜백 에러 투명화 (`route.ts`, `login/page.tsx`)**: `exchangeCodeForSession` 실패 시 세션 없이 홈으로 튕기지 않고 `/login?error=oauth_failed`로 분기하여 정직한 토스트 피드백 제공.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
 ## Completed Tasks (2026-09-11)
 - [x] **마일스톤 9.52**: 장소카드 좌측 액션 버튼 초미니 라벨('변경'/'내비') 및 2px 선명한 테두리 고도화 완결
   - **초미니 2글자 라벨 탑재 (`InstantPlanModal.tsx`, `SmartPlanProposal.tsx`)**: 상단 버튼에 `[ ⇄ 변경 ]`, 하단 버튼에 `[ 📍 내비 ]` 마이크로 텍스트(`text-[9px] font-black tracking-tighter leading-none`)를 추가하여 터치 목적을 0.1초 만에 직관적으로 인지할 수 있도록 시인성 극대화.

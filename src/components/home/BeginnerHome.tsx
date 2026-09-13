@@ -173,9 +173,24 @@ export default function BeginnerHome() {
                     return;
                 }
 
-                // 로그인 세션 확인
+                // [0ms 즉시 토큰 사전 검사]
+                const hasAuthToken = (typeof document !== 'undefined' && document.cookie.includes('sb-')) ||
+                    (typeof window !== 'undefined' && Object.keys(localStorage).some(k => k.includes('auth-token') || k.startsWith('sb-')));
+
+                if (!hasAuthToken) {
+                    return; // 비로그인 방문 시 세션 조회 스킵 (0ms 탈출)
+                }
+
+                // 로그인 세션 확인 (3초 타임아웃 가드 결합으로 Web Locks 데드락 방어)
                 const supabase = createClient();
-                const { data: { user } } = await supabase.auth.getUser();
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+                    setTimeout(() => resolve({ data: { session: null } }), 3000)
+                );
+
+                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+                const user = session?.user;
+
                 if (user) {
                     setDraftToRestore(draft);
                     setIsRestoreModalOpen(true);

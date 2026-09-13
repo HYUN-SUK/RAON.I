@@ -31,6 +31,11 @@ export default function LoginPage() {
                 });
                 // Clear query parameters to prevent duplicate toasts on refresh
                 window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (params.get("error") === "oauth_failed") {
+                toast.error("로그인 미완료", { 
+                    description: "인증 세션이 연결되지 않았습니다. 다시 한 번 시도해 주세요." 
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
     }, []);

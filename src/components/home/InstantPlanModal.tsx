@@ -147,6 +147,7 @@ export default function InstantPlanModal({
 
     // Schedule saving state & travel dates
     const [isSaving, setIsSaving] = useState(false);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(false);
     const [existingProfile, setExistingProfile] = useState<CampingProfile | null>(null);
     const [activeFallbackNotice, setActiveFallbackNotice] = useState<string | null>(fallbackNotice || null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -628,34 +629,58 @@ export default function InstantPlanModal({
         }
     };
 
+    // 안전한 draft 임시 저장 및 모달 닫기 & 로그인 이동 헬퍼
+    const saveDraftAndRedirectToLogin = () => {
+        if (planData && selectedDestination) {
+            const draftPayload = {
+                planData,
+                selectedDestination,
+                targetDate: targetDate || todayStr,
+                regStayType: regStayType || '1n2d',
+                logId: currentLogId,
+                savedAt: Date.now(),
+            };
+            try {
+                localStorage.setItem('raon_draft_instant_plan', JSON.stringify(draftPayload));
+            } catch (e) {
+                console.warn('[DraftPlan] Failed to save draft:', e);
+            }
+        }
+        toast.info('10분 이내에 로그인하시면 방금 만든 일정을 바로 등록하실 수 있어요!', { duration: 5000 });
+        onClose(); // 모달 시트 깔끔히 닫기 (화면 겹침 및 뒤편 잔류 방지)
+        router.push('/login');
+    };
+
     // Proceed to Save Schedule (Check user session & profile)
     const handleStartSaveSchedule = async () => {
+        if (isCheckingAuth) return;
+        setIsCheckingAuth(true);
+
         try {
+            // 1. [0ms 즉시 토큰 사전 검사]
+            // 브라우저 쿠키(sb-) 및 localStorage에 Supabase 인증 토큰이 아예 없다면
+            // Web Locks 자물쇠 경합을 유발하는 Supabase getSession을 아예 호출조차 하지 않고 0ms 만에 비로그인 확정
+            const hasAuthToken = (typeof document !== 'undefined' && document.cookie.includes('sb-')) ||
+                (typeof window !== 'undefined' && Object.keys(localStorage).some(k => k.includes('auth-token') || k.startsWith('sb-')));
+
+            if (!hasAuthToken) {
+                saveDraftAndRedirectToLogin();
+                return;
+            }
+
+            // 2. [Fail-Safe Timeout 3초]
+            // 토큰이 있더라도 카카오 로그인 취소 등으로 Web Locks 데드락에 빠질 경우 3초 만에 강제 탈출
             const supabase = createClient();
-            // [0ms 즉시 세션 판정] 원격 네트워크 통신(getUser) 대신 로컬 쿠키/메모리 세션(getSession)을 우선 조회
-            // 네트워크가 지연되는 야외/캠핑장 환경에서도 로그인 유저가 절대 튕기지 않음
-            const { data: { session } } = await supabase.auth.getSession();
+            const sessionPromise = supabase.auth.getSession();
+            const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+                setTimeout(() => resolve({ data: { session: null } }), 3000)
+            );
+
+            const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
             const user = session?.user;
 
             if (!user) {
-                // [복원 퍼널] 비로그인 유저가 작성한 플랜 브라우저(localStorage)에 10분간 임시 보존
-                if (planData && selectedDestination) {
-                    const draftPayload = {
-                        planData,
-                        selectedDestination,
-                        targetDate: targetDate || todayStr,
-                        regStayType: regStayType || '1n2d',
-                        logId: currentLogId,
-                        savedAt: Date.now(),
-                    };
-                    try {
-                        localStorage.setItem('raon_draft_instant_plan', JSON.stringify(draftPayload));
-                    } catch (e) {
-                        console.warn('[DraftPlan] Failed to save draft:', e);
-                    }
-                }
-                toast.info('10분 이내에 로그인하시면 방금 만든 일정을 바로 등록하실 수 있어요!', { duration: 5000 });
-                router.push('/login');
+                saveDraftAndRedirectToLogin();
                 return;
             }
 
@@ -676,8 +701,9 @@ export default function InstantPlanModal({
             setStep('PROFILE_GATE');
         } catch (error) {
             console.error('[InstantPlanModal] handleStartSaveSchedule error:', error);
-            toast.info('로그인이 필요합니다. 로그인 후 다시 시도해 주세요.');
-            router.push('/login');
+            saveDraftAndRedirectToLogin();
+        } finally {
+            setIsCheckingAuth(false);
         }
     };
 
@@ -1179,13 +1205,23 @@ export default function InstantPlanModal({
                         {/* 1. 메인 버튼: 딥 에메랄드 + 골드 보더 + 골드 쉬머 광택 애니메이션 */}
                         <Button
                             onClick={handleStartSaveSchedule}
-                            className="relative overflow-hidden w-full h-12 bg-gradient-to-r from-[#173824] via-[#224E35] to-[#173824] hover:from-[#132e1e] hover:to-[#1c402b] text-white font-extrabold text-sm rounded-xl border border-amber-300/40 shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                            disabled={isCheckingAuth}
+                            className="relative overflow-hidden w-full h-12 bg-gradient-to-r from-[#173824] via-[#224E35] to-[#173824] hover:from-[#132e1e] hover:to-[#1c402b] disabled:opacity-70 text-white font-extrabold text-sm rounded-xl border border-amber-300/40 shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
                         >
                             {/* 골드 쉬머 광택 레이어 */}
                             <span className="absolute inset-0 -translate-x-full animate-shimmer-wave bg-gradient-to-r from-transparent via-amber-200/25 to-transparent pointer-events-none" />
 
-                            <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
-                            <span className="tracking-tight text-[14px]">✨ 이 계획 내 일정에 저장하기</span>
+                            {isCheckingAuth ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 text-amber-300 animate-spin shrink-0" />
+                                    <span className="tracking-tight text-[14px]">인증 상태 확인 중...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
+                                    <span className="tracking-tight text-[14px]">✨ 이 계획 내 일정에 저장하기</span>
+                                </>
+                            )}
                         </Button>
 
                         {/* 2. 하단 3단계 정밀 로드맵 카드 (초간결 2단어 버전) */}

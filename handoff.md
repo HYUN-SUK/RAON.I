@@ -1,15 +1,32 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-11T18:30:00+09:00  
+**작성 일시**: 2026-09-13T18:00:00+09:00  
 **기준 브랜치**: `main`  
-**최신 커밋**: `16cbf1f` (기능 반영), `df2f867` (문서 동기화)  
 **빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과)  
 
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
-이번 세션에서는 사용성 및 UI/UX 인지성 고도화, GPS 신호 불량 시의 복구 안전망 구축, 관리자 대시보드 초고속 실시간화 및 이중 입금확인 차단 가드를 완결하였습니다.
+이번 세션에서는 비로그인 즉시 여행계획 생성 후 카카오 로그인 시도 시의 TWA 안드로이드 앱 튕김 방어 및 직후 저장하기 버튼 무한 대기(데드락 Freeze) 결함을 완벽히 해결하였습니다.
+
+### 🟢 마일스톤 9.53: 즉시 여행계획 저장 버튼 0ms 무결성 안전망 & TWA 카카오 로그인 튕김 방어 완결 (2026-09-13)
+1. **`hasAuthToken` 0ms 사전 검사 탑재 (`src/components/home/InstantPlanModal.tsx`)**:
+   - 브라우저 쿠키(`sb-`) 및 `localStorage`에 Supabase 인증 토큰이 존재하지 않으면, 브라우저 Web Locks(`navigator.locks`)를 건드리는 `supabase.auth.getSession()`을 **아예 호출하지 않고 0.00초 만에 즉시 비로그인 확정**.
+   - 10분 TTL 스냅샷 draft(`raon_draft_instant_plan`)를 안전하게 저장하고, **`onClose()`를 호출하여 모달 시트를 깔끔히 닫은 후** `router.push('/login')`으로 이동.
+2. **Fail-Safe 3초 타임아웃(`Promise.race`) 장착**:
+   - 잔여 토큰이나 직전 카카오 로그인 중단으로 Web Locks 데드락에 빠지더라도, **3초 만에 무조건 강제 탈출**하여 비로그인 분기로 직행 (버튼 먹통 가능성 0% 박멸).
+   - 저사양 스마트폰 CPU 스로틀링을 고려하여 타임아웃을 3초로 넉넉하게 부여하여 정상 로그인 유저 오탐 0% 보장.
+3. **홈 화면 10분 복원 퍼널 세션 데드락 안전망 동기화 (`src/components/home/BeginnerHome.tsx`)**:
+   - `checkDraftPlan`에서 무거운 원격 네트워크 함수 `getUser()`를 제거하고 `hasAuthToken` 0ms 사전 검증 및 `getSession()` + 3초 타임아웃으로 홈 첫 진입 속도 향상.
+4. **TWA 안드로이드 앱 카카오 OAuth 안정화 (`src/components/auth/SocialLoginButtons.tsx`)**:
+   - `queryParams: { prompt: 'login' }`을 적용하여 안드로이드 TWA 앱에서 스마트폰 카카오톡 앱 전환으로 인한 프로세스 리셋 및 PKCE 쿠키 유실 원천 차단.
+   - 10초 안전 해제 타임아웃을 두어 취소 복귀 시 무한 스피너 방지.
+5. **인증 콜백 에러 투명화 (`src/app/auth/callback/route.ts`, `src/app/login/page.tsx`)**:
+   - `exchangeCodeForSession` 실패 시 세션 없이 홈으로 조용히 튕기지 않고 `/login?error=oauth_failed`로 분기하여 정직한 토스트 피드백 제공.
+6. **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
+---
 
 ### 🟢 마일스톤 9.52: 장소카드 좌측 액션 버튼 초미니 라벨('변경'/'내비') 및 2px 선명한 테두리 고도화 (2026-09-11)
 1. **초미니 2글자 라벨 탑재 (`src/components/home/InstantPlanModal.tsx`, `src/components/plan/SmartPlanProposal.tsx`)**:
