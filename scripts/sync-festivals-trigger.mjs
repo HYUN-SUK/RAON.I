@@ -1,7 +1,58 @@
 import fs from 'fs';
+import https from 'https';
 import { createClient } from '@supabase/supabase-js';
 import { v5 as uuidv5 } from 'uuid';
 import fetch from 'node-fetch';
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 1000,
+  maxSockets: 10,
+  timeout: 45000
+});
+
+async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      const mergedOptions = {
+        timeout: 45000,
+        agent: options.agent || (url.startsWith('https') ? httpsAgent : undefined),
+        ...options,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.data.go.kr/',
+          ...(options.headers || {})
+        }
+      };
+
+      const res = await fetch(url, mergedOptions);
+
+      if (!res.ok) {
+        if (res.status >= 500) throw new Error(`HTTP ${res.status} (Server Error)`);
+        if (attempt === maxRetries) return res;
+      }
+
+      const text = await res.text();
+      const contentType = res.headers.get('content-type') || '';
+      if (text.trim().startsWith('<') || text.includes('Unexpected errors') || contentType.includes('text/html')) {
+        throw new Error(`Invalid Response (HTML/WAF/Unexpected errors): ${text.substring(0, 80).replace(/\n/g, ' ')}`);
+      }
+
+      const json = JSON.parse(text);
+      return json;
+    } catch (e) {
+      attempt++;
+      if (attempt > maxRetries) {
+        console.error(`❌ [fetchWithRetry] Exhausted ${maxRetries} retries for ${url}:`, e.message);
+        throw e;
+      }
+      const backoffMs = Math.pow(2, attempt) * 1000;
+      console.warn(`⚠️ [fetchWithRetry] Attempt ${attempt} failed (${e.message}). Retrying in ${backoffMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
+  }
+}
 
 // Load .env.local
 try {
@@ -74,15 +125,16 @@ async function runWeeklyFestivalSync() {
       });
     }
 
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0].replace(/-/g, '');
+    // KST(한국 표준시) 기준 오늘 날짜 계산 (YYYYMMDD)
+    const now = new Date();
+    const kstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const todayStr = kstDate.toISOString().split('T')[0].replace(/-/g, '');
     const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${TOUR_API_KEY}&eventStartDate=${todayStr}&numOfRows=2000&_type=json&MobileOS=ETC&MobileApp=RAONAI`;
     
     console.log(`Fetching from TourAPI: ${tourUrl}`);
-    const tourRes = await fetch(tourUrl);
-    const tourData = await tourRes.json();
+    const tourData = await fetchWithRetry(tourUrl, { agent: httpsAgent });
     const items = tourData.response?.body?.items?.item || [];
-    const festivalList = Array.isArray(items) ? items : [items];
+    const festivalList = Array.isArray(items) ? items : (items ? [items] : []);
 
     console.log(`Fetched ${festivalList.length} items from TourAPI.`);
 
