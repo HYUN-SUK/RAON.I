@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { MapPin, X } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -63,10 +64,23 @@ export default function LocationPermissionPrompt({
                     {/* 나중에 버튼 */}
                     <button
                         onClick={onDismiss}
-                        className="text-stone-400 text-sm hover:text-stone-600 transition-colors py-2"
+                        className="text-stone-400 text-sm hover:text-stone-600 transition-colors py-1.5 mb-2"
                     >
                         나중에 할게요
                     </button>
+
+                    {/* 위치기반서비스 약관 고지 */}
+                    <p className="text-[11px] text-stone-400 text-center leading-relaxed max-w-[280px]">
+                        위치 정보를 허용하시면 라온아이{' '}
+                        <Link
+                            href="/terms?tab=lbs"
+                            target="_blank"
+                            className="underline text-stone-500 hover:text-stone-800 font-medium"
+                        >
+                            위치기반서비스 이용약관
+                        </Link>
+                        에 동의하는 것으로 간주됩니다.
+                    </p>
                 </div>
             </SheetContent>
         </Sheet>

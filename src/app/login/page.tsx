@@ -195,7 +195,7 @@ export default function LoginPage() {
                 {/* Footer */}
                 <div className="mt-8 text-center px-2">
                     <p className="text-[10px] text-white/40 leading-relaxed">
-                        계속 진행하면 라온아이의 <Link href="/terms" className="underline cursor-pointer hover:text-white/60">이용약관</Link> 및 <Link href="/privacy-policy" className="underline cursor-pointer hover:text-white/60">개인정보처리방침</Link>에 동의하게 됩니다.
+                        계속 진행하면 라온아이의 <Link href="/terms" className="underline cursor-pointer hover:text-white/60">이용약관</Link>, <Link href="/terms?tab=lbs" className="underline cursor-pointer hover:text-white/60">위치기반서비스 이용약관</Link> 및 <Link href="/privacy-policy" className="underline cursor-pointer hover:text-white/60">개인정보처리방침</Link>에 동의하게 됩니다.
                     </p>
                 </div>
             </div>
