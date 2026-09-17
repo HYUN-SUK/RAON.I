@@ -583,8 +583,8 @@ export default function BeginnerHome() {
                                 </span>
                             </div>
                             <div className="space-y-1">
-                                <h4 className="text-sm font-black text-stone-900 dark:text-stone-100 leading-tight">
-                                    내 주변 즉시<br />여행계획 만들기
+                                <h4 className="text-sm font-black text-stone-900 dark:text-stone-100 leading-tight tracking-tight">
+                                    내 주변 즉시<br />맛집, 관광지 찾기
                                 </h4>
                                 <p className="text-[11px] text-stone-500 font-medium">
                                     주변 맛집·명소·편의시설 즉시 탐색
@@ -998,7 +998,7 @@ export default function BeginnerHome() {
                             </AlertDialogContent>
                         </AlertDialog>
 
-                        {/* 내 주변 즉시 여행계획 생성 확인/선택 팝업 */}
+                        {/* 내 주변 즉시 맛집, 관광지 찾기 확인/선택 팝업 */}
                         <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
                             <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
                                 <AlertDialogHeader className="space-y-2 text-left">
@@ -1006,20 +1006,20 @@ export default function BeginnerHome() {
                                         <div className="p-2 bg-[#224732]/10 text-[#224732] dark:text-emerald-400 rounded-xl">
                                             <MapPin className="w-4 h-4" />
                                         </div>
-                                        내 주변 즉시 여행계획 생성
+                                        내 주변 즉시 맛집, 관광지 찾기
                                     </AlertDialogTitle>
                                     {/* 권한 여부에 따른 맞춤 안내 문구 */}
                                     {isLocationGranted ? (
                                         <AlertDialogDescription className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed font-medium">
-                                            현재 계신 위치(실시간 GPS)를 기반으로 4단계 여행코스(맛집·카페·힐링명소·편의시설)를 즉시 완성해 드릴까요?
+                                            현재 계신 위치(실시간 GPS)를 기반으로 내 주변 5km 검증된 맛집·카페·관광지·편의시설을 즉시 찾아드릴까요?
                                         </AlertDialogDescription>
                                     ) : (
                                         <div className="space-y-2.5 text-left">
                                             <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
-                                                현재 계신 위치(실시간 GPS)를 기반으로 4단계 여행코스를 즉시 완성해 드릴까요?
+                                                현재 계신 위치(실시간 GPS)를 기반으로 내 주변 5km 검증된 맛집·카페·관광지를 즉시 찾아드릴까요?
                                             </p>
                                             <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/60 leading-relaxed font-medium">
-                                                💡 <strong>위치 정보(GPS) 권한을 허용</strong>하시면 현재 계신 곳 주변으로 맞춤 추천되며, 미동의 시 대표 기준 위치(라온아이 캠핑장)로 여행코스가 추천됩니다.
+                                                💡 <strong>위치 정보(GPS) 권한을 허용</strong>하시면 현재 계신 곳 주변으로 맞춤 추천되며, 미동의 시 대표 기준 위치(라온아이 캠핑장)로 추천됩니다.
                                             </div>
                                         </div>
                                     )}
