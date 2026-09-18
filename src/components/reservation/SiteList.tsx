@@ -9,11 +9,10 @@ import { Site } from '@/types/reservation';
 import WaitlistButton from './WaitlistButton';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase-client';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites, fetchPublicReservations, fetchSites } = useReservationStore();
+    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites, fetchSites } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {

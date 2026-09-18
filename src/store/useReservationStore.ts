@@ -729,8 +729,8 @@ export const useReservationStore = create<ReservationState>()(
                     return;
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const publicReservations: Reservation[] = [];
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 data.forEach((r: any) => {
                     // [가용성 정규화] PENDING, CONFIRMED, BLOCKED만 마감 점유로 반영 (REFUND_PENDING/CANCELLED/REFUNDED는 미포함 = 즉시 오픈)
                     if (r.status !== 'PENDING' && r.status !== 'CONFIRMED' && r.status !== 'BLOCKED') {

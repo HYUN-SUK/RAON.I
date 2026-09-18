@@ -8,7 +8,7 @@
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
 - [x] **9.55 11월 예약 오픈 대비 취소 즉시 빈자리 전환 일치화 & 0ms 로컬 세션 전환 완결 (2026-09-18)** 🟢
-  - [x] **0ms 로컬 세션 전환 (`useReservationStore.ts`, `ReservationForm.tsx`)**: 원격 Supabase Auth 서버 통신(`getUser()`, 1~3초)을 메모리 즉시 조회(`getSession()`, 0ms)로 전면 교체하여 트래픽 폭주 시 지연/타임아웃 원천 차단. 비로그인 시에도 안전하게 게스트 UUID로 안전 폴백.
+  - [x] **0ms 로컬 세션 전환 (`useReservationStore.ts`, `ReservationForm.tsx`, `useReservationGuard.ts`)**: 원격 Supabase Auth 서버 통신(`getUser()`, 1~3초)을 메모리 즉시 조회(`getSession()`, 0ms)로 전면 교체 (`createReservationSafe`, `loadInitialData`, `fetchUserContactInfo`, `fetchLastReservation`, `checkPermission`). 트래픽 폭주 시 폼 진입 렉 및 타임아웃 원천 차단, 성함/연락처 0초 자동완성 유지. 비로그인 시에도 안전하게 게스트 UUID로 안전 폴백.
   - [x] **취소 즉시 빈자리 전환 일치화 (`SiteList.tsx`, `DateRangePicker.tsx`, `reservation/page.tsx`, `ReservationForm.tsx`)**: 고객 취소 시 상태가 `REFUND_PENDING`(환불 대기)이 되며, 관리자 송금 전이라도 즉시 타인이 예약할 수 있도록 4대 클라이언트 컴포넌트 전반의 가용성 검사에 `r.status === 'REFUND_PENDING'` 빈자리 처리 반영.
   - [x] **모바일 메인 예약 헤더 동기화 (`reservation/page.tsx`)**: 금/토 1박 규칙 및 전체 사이트 마감(`allSitesBooked`) 체크에도 `REFUND_PENDING` 빈자리 인정을 빠짐없이 반영하여 헤더와 캘린더 간의 마감 상태 불일치 완벽 해소.
   - [x] **DB 제약조건 & RPC 동기화 마이그레이션 (`20260918000000_align_refund_pending_availability.sql`)**: PostgreSQL 물리적 배제 제약조건(`exclude_overlapping_reservations`), `create_reservation_safe` RPC, `get_public_reservations` RPC의 제외 상태 목록에 `'REFUND_PENDING'`을 공식 추가하여 DB 레벨에서 취소 즉시 오픈 일치화 및 `blocked_dates`(대관/차단일) 철벽 방어 유지.

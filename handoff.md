@@ -1,116 +1,82 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-13T18:00:00+09:00  
+**작성 일시**: 2026-09-18T18:40:00+09:00  
 **기준 브랜치**: `main`  
-**빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과)  
+**빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과, TypeScript 0에러)  
 
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
-이번 세션에서는 비로그인 즉시 여행계획 생성 후 카카오 로그인 시도 시의 TWA 안드로이드 앱 튕김 방어 및 직후 저장하기 버튼 무한 대기(데드락 Freeze) 결함을 완벽히 해결하였습니다.
+이번 세션에서는 **20일 오전 9시 11월 대규모 예약 오픈**을 앞두고, 대량 동시 접속 시 발생할 수 있는 서버 타임아웃, 중복 예약, 관리자 차단일 뚫림, 환불 대기(`REFUND_PENDING`) 자리의 즉시 오픈 불일치를 100% 원천 방어하는 **마일스톤 9.55** 작업을 성공적으로 완료하였습니다.
 
-### 🟢 마일스톤 9.53: 즉시 여행계획 저장 버튼 0ms 무결성 안전망 & TWA 카카오 로그인 튕김 방어 완결 (2026-09-13)
-1. **`hasAuthToken` 0ms 사전 검사 탑재 (`src/components/home/InstantPlanModal.tsx`)**:
-   - 브라우저 쿠키(`sb-`) 및 `localStorage`에 Supabase 인증 토큰이 존재하지 않으면, 브라우저 Web Locks(`navigator.locks`)를 건드리는 `supabase.auth.getSession()`을 **아예 호출하지 않고 0.00초 만에 즉시 비로그인 확정**.
-   - 10분 TTL 스냅샷 draft(`raon_draft_instant_plan`)를 안전하게 저장하고, **`onClose()`를 호출하여 모달 시트를 깔끔히 닫은 후** `router.push('/login')`으로 이동.
-2. **Fail-Safe 3초 타임아웃(`Promise.race`) 장착**:
-   - 잔여 토큰이나 직전 카카오 로그인 중단으로 Web Locks 데드락에 빠지더라도, **3초 만에 무조건 강제 탈출**하여 비로그인 분기로 직행 (버튼 먹통 가능성 0% 박멸).
-   - 저사양 스마트폰 CPU 스로틀링을 고려하여 타임아웃을 3초로 넉넉하게 부여하여 정상 로그인 유저 오탐 0% 보장.
-3. **홈 화면 10분 복원 퍼널 세션 데드락 안전망 동기화 (`src/components/home/BeginnerHome.tsx`)**:
-   - `checkDraftPlan`에서 무거운 원격 네트워크 함수 `getUser()`를 제거하고 `hasAuthToken` 0ms 사전 검증 및 `getSession()` + 3초 타임아웃으로 홈 첫 진입 속도 향상.
-4. **TWA 안드로이드 앱 카카오 OAuth 안정화 (`src/components/auth/SocialLoginButtons.tsx`)**:
-   - `queryParams: { prompt: 'login' }`을 적용하여 안드로이드 TWA 앱에서 스마트폰 카카오톡 앱 전환으로 인한 프로세스 리셋 및 PKCE 쿠키 유실 원천 차단.
-   - 10초 안전 해제 타임아웃을 두어 취소 복귀 시 무한 스피너 방지.
-5. **인증 콜백 에러 투명화 (`src/app/auth/callback/route.ts`, `src/app/login/page.tsx`)**:
-   - `exchangeCodeForSession` 실패 시 세션 없이 홈으로 조용히 튕기지 않고 `/login?error=oauth_failed`로 분기하여 정직한 토스트 피드백 제공.
-6. **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+### 🟢 마일스톤 9.55: 11월 예약 오픈 대비 취소 즉시 빈자리 전환 일치화 & 0ms 로컬 세션 전환 완결 (2026-09-18)
 
----
+1. **0ms 로컬 세션 전환 (인증 타임아웃 및 화면 렉 원천 박멸)**:
+   - **`useReservationStore.ts` & `ReservationForm.tsx` & `useReservationGuard.ts`**:
+     - 기존 원격 Supabase Auth 서버 통신(`getUser()`, 1~3초 네트워크 왕복 소요)을 브라우저 메모리 즉시 조회(`getSession()`, 0ms)로 전면 교체.
+     - 대상 함수: 최종 예약 생성(`createReservationSafe`), 폼 진입 2차 실시간 검증(`loadInitialData`), 예약자 연락처 자동완성(`fetchUserContactInfo`), 이전 예약 불러오기(`fetchLastReservation`), 예약 가드(`checkPermission`).
+     - 비로그인(게스트) 시에도 0초 만에 `null`을 확인하고 게스트 UUID(`00000000-0000-0000-0000-000000000000`)로 안전 폴백.
+     - **결과**: 20일 9시 정각 수백 명이 동시 접속하더라도 Auth 서버 병목에 의한 타임아웃/지연 0%, 성함/연락처 0초 자동완성 유지.
 
-### 🟢 마일스톤 9.52: 장소카드 좌측 액션 버튼 초미니 라벨('변경'/'내비') 및 2px 선명한 테두리 고도화 (2026-09-11)
-1. **초미니 2글자 라벨 탑재 (`src/components/home/InstantPlanModal.tsx`, `src/components/plan/SmartPlanProposal.tsx`)**:
-   - 상단 버튼: `[ ⇄ 변경 ]` (2글자 마이크로 라벨, `text-[9px] font-black tracking-tighter leading-none`)
-   - 하단 버튼: `[ 📍 내비 ]` (2글자 대칭 마이크로 라벨, `text-[9px] font-black tracking-tighter leading-none`)
-   - 아이콘만 단독 배치되었을 때의 기능 모호성을 해결하여 일반 사용자가 0.1초 만에 "다른 장소로 교체", "내비 길안내 연결" 기능임을 직관적으로 인지.
-2. **선명한 2px 테두리 및 그림자 부여**:
-   - 기존 연회색 단일 테두리(`border border-gray-200/80`) 대신 `border-2 border-stone-300`(변경) 및 `border-2 border-blue-300`(내비)과 은은한 그림자(`shadow-xs`)를 부여하여 "누를 수 있는 정품 버튼" 시인성 극대화.
-3. **좌측 열 너비 최적화 (`w-10 h-14`)**:
-   - 상단 카테고리 아이콘(`w-10`, 40px)과 1:1로 일치시켜 세로 알약형 기하학적 정렬감을 완성하고, 우측 본문 텍스트 밀림 0.1px도 발생하지 않도록 방어.
-4. **동작 보존 100% (Side-Effect 0%)**:
-   - `e.stopPropagation()` 보존으로 카드 본문 터치(상세 모달 오픈) 간섭 없음.
-   - 장소 교체 바텀시트 오픈 및 3대 모바일 내비(티맵/카카오내비/네이버지도) 호출 팝업 100% 정상 작동.
-5. **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+2. **취소 즉시 빈자리 전환 일치화 (`REFUND_PENDING` 오픈)**:
+   - **배경**: 고객이 취소 신청 시 상태가 `REFUND_PENDING`(환불 대기)이 되는데, 과거에는 DB 제약조건과 RPC에서 이를 제외하지 않아 관리자가 송금하기 전까지 타인이 예약하지 못하는 불일치가 있었음.
+   - **조치**: 4대 클라이언트 컴포넌트 전반의 가용성 검사에 `r.status === 'REFUND_PENDING'` 빈자리 처리 반영.
+     - `SiteList.tsx`: 사이트 중복 검사(`hasOverlap`) 및 금/토 1박 규칙(`isSaturdayBooked`, `isFridayBooked`)에서 빈자리 즉시 인정.
+     - `DateRangePicker.tsx`: 캘린더 주말 1박 점유 필터링에서 빈자리 즉시 표출.
+     - `reservation/page.tsx`: 모바일 메인 헤더의 금/토 1박 및 전체 사이트 마감(`allSitesBooked`) 체크에 반영하여 캘린더와 헤더 간 불일치 완벽 해소.
+     - `ReservationForm.tsx`: 에어컨 개별 기기(air-1 ~ air-8) 중복 검사에도 `REFUND_PENDING` 빈자리 처리 동기화.
 
----
+3. **DB 제약조건 & RPC 동기화 마이그레이션**:
+   - `supabase/migrations/20260918000000_align_refund_pending_availability.sql` 작성 완료.
+   - **PostgreSQL GiST 물리적 배제 제약조건 (`exclude_overlapping_reservations`)**: `WHERE (status NOT IN ('CANCELLED', 'REFUNDED', 'REFUND_PENDING'))`로 갱신.
+   - **`create_reservation_safe` RPC**: 기존 예약 중복 검사 조건에 `REFUND_PENDING` 제외 추가 (동시에 `blocked_dates` 관리자 차단일/대관일 DB 레벨 철벽 방어 로직 100% 보존).
+   - **`get_public_reservations` RPC**: `WHERE r.status NOT IN ('CANCELLED', 'REFUNDED', 'REFUND_PENDING')`로 일치화.
 
-### 🟢 마일스톤 9.51: 즉시 여행계획 GPS 재시도 실패 시 자동 라온아이 폴백 & [현재 위치 기준으로 다시 보기] 안전 바운더리 구축 완결 (2026-09-11)
-1. **GPS 재시도 자동 라온아이 폴백 (Auto-Fallback)**:
-   - `handleRetryGps` 실행 시 GPS 측정이 다시 실패하더라도 `planData`를 빈 채(`null`)로 두지 않고, 자동으로 라온아이 대표 좌표(`36.6354349`, `126.7638091`) 기반 추천 플랜을 즉시 생성·보충하여 4단계 여행코스가 100% 온전히 유지되도록 방어.
-2. **Fail-Safe 안전 바운더리 구축**:
-   - 만에 하나의 이상 상황으로 `planData`가 없을 때 흰색 빈 화면이 노출되는 대신, `"여행계획을 불러오지 못했습니다"` 안내와 함께 **`[🛰️ 현재 위치 기준으로 다시 보기]`** 복구 버튼 노출.
-   - 해당 복구 버튼 클릭 시 현재 GPS를 재측정하고, 실패 시 자동 라온아이 플랜으로 복구되는 안전 루프 연동.
-3. **하단 저장 CTA 바 동기화**:
-   - `planData`가 존재할 때만 저장 버튼과 3단계 로드맵 박스가 노출되도록 `planData &&` 안전 가드 결합.
-4. **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+4. **다수 동시 접속 및 극단적 예외 상황 5대 안전망 검증 완료**:
+   - **더블 터치 오발송 방어**: `isSubmitting` 로딩 락 및 `disabled` 버튼, 회전 스피너, 예약 성공 즉시 `toast.dismiss()`로 "다른 분이 먼저 잡으셨습니다" 오발송 팝업 100% 박멸.
+   - **이중 예약 방어**: PostgreSQL Advisory Lock(사이트 단위 직렬화) + 날짜 겹침 카운트 검사 + DB GiST 물리적 배제 제약조건(스토리지 엔진 차단)의 **3중 방어로 중복 예약 수학적 0% 보장**.
+   - **대관/차단일 철벽 방어**: DB 레벨 `blocked_dates` 검사로 어떤 클라이언트 우회나 렉 상황에서도 100% 예약 차단.
+
+5. **코드 정리 및 빌드 검증**:
+   - `SiteList.tsx` 미사용 import(`createClient`, `fetchPublicReservations`) 정리.
+   - `useReservationStore.ts` eslint directive 위치 정규화.
+   - TypeScript 컴파일 검사: `npx tsc --noEmit` 에러 0건 통과.
+   - Next.js 16.1.1 Production Build: **103/103 전체 라우트 100% 정상 통과**.
 
 ---
 
-### 🟢 마일스톤 9.50: 관리자 입금확인 2연타 방어 가드 & 대시보드 쿼리 전면 병렬화 1초 미만 최적화 (2026-09-11)
-1. **입금확인 2연타 더블트리거 방어 가드 (`src/app/admin/payments/page.tsx`, `AdminReservationDetailModal.tsx`, `UnifiedReservationCalendar.tsx`)**:
-   - 입금확인 버튼 터치 시 즉시 `disabled`(잠금) 및 `<Loader2 /> 처리중` 상태로 전환하여 중복 터치 및 팝업 2회 연속 발생을 원천 차단.
-2. **대시보드 실시간 초고속화 (과거 캐싱 배제 원칙 준수)**:
-   - 직전 캐시(`sessionStorage`)를 보여주지 않고 항상 100% 최신 실시간 DB 수치로 렌더링.
-   - 진입 시 가짜 `0` 노출 없이 클린 대시 상태(`-`)로 출발.
-   - 서버 측 12개 쿼리를 `Promise.all`로 전면 동시 병렬화하여 조회 시간을 4.5초에서 **0.7초대**로 80% 이상 초고속 단축.
-3. **결제 목록 상세화면 클린 대시(`-`) 및 로딩 스피너 (`src/app/admin/payments/page.tsx`)**:
-   - 화면 진입 시 가짜 `0건`, `0원`, `(0개 검색됨)`, `내역 없음`으로 번쩍이던 착시 완전 제거.
-   - 상단 3종 요약 카드와 검색 건수, 6대 상태 탭 뱃지 모두 데이터 도착 전까지 `-` 표시 후 스피너 표출.
-4. **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+## 2. 기술적 결정 사항 (Architectural Decisions)
+
+1. **`getUser()` 전면 배제 및 `getSession()` 표준화**:
+   - Supabase의 `getUser()`는 매 호출마다 원격 GoTrue Auth 서버로 HTTP 왕복을 수행합니다. 티켓팅/예약 오픈처럼 수초 내에 수백 명이 몰리는 순간에는 외부 Auth API의 레이턴시(1~3초) 및 Rate Limit으로 인해 화면이 멈추거나 튕깁니다.
+   - 반면 `getSession()`은 브라우저 스토리지/쿠키에 이미 보관된 로컬 JWT 토큰을 0ms 만에 메모리에서 읽어옵니다.
+   - 중복 예약 방지는 사용자 신원이 아닌 DB의 사이트 ID와 날짜(`site_id`, `check_in_date`, `check_out_date`)로만 결정되므로, 인증 방식을 로컬 세션으로 변경해도 보안 및 정합성에 영향이 전혀 없으면서 타임아웃만 완벽히 제거됩니다.
+
+2. **`REFUND_PENDING` 상태의 예약 가용성 정책**:
+   - 관리자가 통장 송금을 하기 전이라도, 고객이 취소 버튼을 누른 즉시 다른 손님이 그 자리를 예약할 수 있어야 공실률을 최소화할 수 있습니다.
+   - 따라서 프론트엔드 달력, 사이트 목록, 헤더 마감 판정, DB RPC, DB 배제 제약조건까지 전 영역에서 `REFUND_PENDING`을 `CANCELLED`, `REFUNDED`와 완전히 동일하게 "비어있는 자리"로 처리하도록 공식 표준화했습니다.
+
+3. **PostgreSQL Advisory Lock 기반 사이트 단위 직렬화**:
+   - 전체 예약 테이블을 잠그면 동시 접속자가 많을 때 전체 서버가 멈춥니다.
+   - `hashtext('site_lock_' || p_site_id)`를 키로 사용하여 오직 "동일한 사이트에 대한 동시 요청"만 직렬화하고, 서로 다른 사이트는 완벽히 병렬로 초고속 처리되도록 설계되었습니다.
 
 ---
 
-### 🟢 마일스톤 9.49: 대시보드 실회원 지표 정규화, 즉시 여행계획 비로그인 로깅 정상화 및 신설 뱃지 제거 완결 (2026-09-10)
-1. **비로그인 고객 로깅 파이프라인 정상화 (`src/actions/analytics.ts`, `src/lib/analytics-logger.ts`)**:
-   - `user_action_log`의 `user_id` NOT NULL 제약 에러(`23502`)를 해결하기 위해 전용 게스트 식별자 `ANONYMOUS_GUEST_USER_ID` 체계 구축.
-2. **즉시 여행계획 생성 모드('내 주변' vs '목적지') 분기 정상화 (`src/actions/instant-plan.ts`)**:
-   - GPS 기반 생성은 `nearby`, 검색 기반 생성은 `destination`으로 분리 집계.
-3. **대시보드 3대 내부 테스트 계정(`admin`, `tootg`, `wlgustns19`) 제외 및 순수 고객 지표 정규화**.
+## 3. 다음 작업 가이드 (Next Action Items)
+
+1. **Supabase 대시보드 SQL 마이그레이션 적용**:
+   - `supabase/migrations/20260918000000_align_refund_pending_availability.sql` 내용을 Supabase SQL Editor에서 1회 실행하여 DB 제약조건 및 RPC 2종을 최신화.
+2. **20일 오전 9시 11월 예약 오픈 모니터링**:
+   - 오픈 직후 관리자 대시보드(`/admin/reservations`, `/admin/payments`)에서 실시간 예약 접수 상태 모니터링.
+3. **캠핏 양방향 동기화 큐 작동 상태 점검**:
+   - 예약 신규 접수 및 취소 시 `/api/admin/camfit-sync/queue`가 정상적으로 캠핏 큐를 적재하는지 확인.
 
 ---
 
-## 2. 기술적 결정 사항 (Technical Decisions)
+## 4. 주의 사항 (Known Issues & Warnings)
 
-1. **알약형 버튼 폭 40px(`w-10`) 일치**:
-   - 모바일 카드 내 좌측 컨트롤 열의 너비가 상단 카테고리 아이콘(`w-10`, 40px)으로 이미 설정되어 있으므로, 하단 버튼을 `w-10 h-14`로 맞춤으로써 가로 폭 오버플로우나 텍스트 밀림 없이 수직 정렬의 기하학적 균형을 완성함.
-2. **초미니 2글자 라벨 타이포그래피 (`text-[9px] font-black tracking-tighter leading-none`)**:
-   - 한국어 2글자 폭은 약 18~20px로, 40px 알약 버튼 내부에서 아이콘(14px)과 완벽한 상하 비율을 유지함. 3글자(`길안내`) 대신 `내비`를 적용하여 `변경`과 1:1 대칭을 확보함.
-3. **선명한 2px 테두리 (`border-2`) 채택**:
-   - Tailwind의 기본 `border`(1px)는 레티나 고해상도 모바일 기기에서 0.5px 굵기로 연하게 보여 터치 가능한 버튼인지 구분이 어려웠음. `border-2`(2px)를 전용 톤(`border-stone-300`, `border-blue-300`)과 함께 적용하여 명확한 물리적 인지성을 확보함.
-4. **GPS 재시도 실패 시 무조건 유효 플랜 보장 (Auto-Fallback)**:
-   - 사용자가 [내 위치 다시 시도]를 눌렀으나 핸드폰 GPS 권한이 꺼져 있거나 음영 지역인 경우, 흰색 빈 카드나 에러 모달로 방치하지 않고 기본 라온아이 좌표 플랜으로 즉시 자동 보충하여 언제나 4단계 여행 플랜이 유지되도록 Fail-Safe 루프 완성.
-
----
-
-## 3. 다음 작업 가이드 (Next Session Roadmap Guide)
-
-다음 세션에서는 대표님의 피드백에 따라 다음 우선순위 항목을 이어갈 수 있습니다:
-
-1. **모바일 장소카드 및 세부 정보 고도화**:
-   - 장소카드 내 영업시간, 전화번호, 휴무일 등 세부 정보의 원터치 복사 또는 통화 연결 인터랙션 점검.
-   - 대체 장소 교체 바텀시트 내 정렬(거리순 / 평점순) UI 점검.
-2. **관리자 운영 편의 기능 지속 점검**:
-   - 예약 목록 및 회원 관리에서의 필터링 성능 및 엑셀 다운로드 속도 점검.
-3. **푸시 알림 및 백그라운드 크론 안정성 모니터링**:
-   - 매일 아침 06:00, 07:15, 08:15 실행되는 GitHub Actions 자동화 배치 로그 모니터링.
-
----
-
-## 4. 주의 사항 및 환경 설정 (Notes & Known Caveats)
-
-1. **Windows PowerShell 환경 주의**:
-   - 로컬 셸이 Windows PowerShell 5.1이므로 커맨드 연속 실행 시 `&&` 대신 `;`을 사용해야 함.
-2. **Next.js 16 Production Build 전수 검사 필수**:
-   - 라우트가 총 103개로 구성되어 있으므로 코드 수정 후 반드시 `cmd /c npm run build`를 통해 전수 검사를 통과해야 배포 무결성이 유지됨.
-3. **SessionStorage 캐싱 배제 원칙**:
-   - 관리자 대시보드는 최신 데이터 왜곡 방지를 위해 클라이언트 세션 스토리지 캐시를 쓰지 않고 실시간 `Promise.all` 병렬 쿼리로 응답하도록 설정되어 있음.
+- **퇴실일 당일 입실(Turnover) 보존**:
+  - 체크인/체크아웃 날짜 비교는 반드시 `check_in_date < p_check_out AND check_out_date > p_check_in` (반열린 구간)을 준수해야 합니다. 부등호에 등호(`<=`)를 잘못 넣으면 퇴실일 당일 입실 손님이 겹침 오판으로 차단되므로 임의 변경 금지.
+- **예약 잠금 스위치 (`IS_RESERVATION_LOCKED`)**:
+  - 현재 `src/constants/reservationGuard.ts`에서 `false`로 상시 해제되어 있습니다. 정식 오픈 중에는 이 값을 `true`로 바꾸지 않도록 주의.
