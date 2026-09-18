@@ -444,9 +444,9 @@ export const useReservationStore = create<ReservationState>()(
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
 
-                // 현재 사용자 확인
-                const { data: { user } } = await supabase.auth.getUser();
-                const userId = user?.id || '00000000-0000-0000-0000-000000000000'; // Guest UUID
+                // 현재 사용자 확인 (로컬 세션 즉시 조회 - 원격 HTTP 왕복 지연 0ms)
+                const { data: { session } } = await supabase.auth.getSession();
+                const userId = session?.user?.id || '00000000-0000-0000-0000-000000000000'; // Guest UUID
 
 
 

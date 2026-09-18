@@ -78,7 +78,7 @@ export default function DateRangePicker() {
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
-                    return rCheckIn <= nextDay && rCheckOut > nextDay && r.status !== 'CANCELLED' && r.status !== 'REFUNDED';
+                    return rCheckIn <= nextDay && rCheckOut > nextDay && r.status !== 'CANCELLED' && r.status !== 'REFUNDED' && r.status !== 'REFUND_PENDING';
                 })
                 .map(r => r.siteId);
 
@@ -86,7 +86,7 @@ export default function DateRangePicker() {
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
-                    return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED' && r.status !== 'REFUNDED';
+                    return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED' && r.status !== 'REFUNDED' && r.status !== 'REFUND_PENDING';
                 })
                 .map(r => r.siteId);
 
@@ -103,7 +103,7 @@ export default function DateRangePicker() {
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
-                    return rCheckIn <= prevDay && rCheckOut > prevDay && r.status !== 'CANCELLED' && r.status !== 'REFUNDED';
+                    return rCheckIn <= prevDay && rCheckOut > prevDay && r.status !== 'CANCELLED' && r.status !== 'REFUNDED' && r.status !== 'REFUND_PENDING';
                 })
                 .map(r => r.siteId);
 
@@ -111,7 +111,7 @@ export default function DateRangePicker() {
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
-                    return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED' && r.status !== 'REFUNDED';
+                    return rCheckIn <= checkIn && rCheckOut > checkIn && r.status !== 'CANCELLED' && r.status !== 'REFUNDED' && r.status !== 'REFUND_PENDING';
                 })
                 .map(r => r.siteId);
 

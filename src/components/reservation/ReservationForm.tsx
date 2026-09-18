@@ -64,8 +64,9 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 const checkOutStr = format(new Date(selectedDateRange.to), 'yyyy-MM-dd');
 
                 try {
-                    const { data: { user } } = await supabaseClient.auth.getUser();
-                    const currentUserId = user?.id;
+                    // 로컬 세션 즉시 조회 (원격 HTTP 왕복 지연 0ms)
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    const currentUserId = session?.user?.id;
 
                     let query = supabaseClient
                         .from('reservations')
@@ -163,7 +164,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 .map(s => {
                     // 웹 예약 중복 검사
                     const hasOverlap = reservations.some(r => {
-                        if (r.siteId !== s.id || r.status === 'CANCELLED' || r.status === 'REFUNDED') return false;
+                        if (r.siteId !== s.id || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
                         return rCheckIn < checkOut && rCheckOut > checkIn;
