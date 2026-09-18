@@ -1184,7 +1184,9 @@ export const useReservationStore = create<ReservationState>()(
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
 
-                const { data: { user } } = await supabase.auth.getUser();
+                // 로컬 세션 즉시 조회 (원격 HTTP 지연 0ms)
+                const { data: { session } } = await supabase.auth.getSession();
+                const user = session?.user;
                 if (!user) {
                     set({ lastReservation: null });
                     return;
@@ -1267,7 +1269,9 @@ export const useReservationStore = create<ReservationState>()(
             fetchUserContactInfo: async () => {
                 const { createClient } = await import('@/lib/supabase-client');
                 const supabase = createClient();
-                const { data: { user } } = await supabase.auth.getUser();
+                // 로컬 세션 즉시 조회 (원격 HTTP 지연 0ms)
+                const { data: { session } } = await supabase.auth.getSession();
+                const user = session?.user;
                 if (!user) return;
 
                 // 상태 상관없이 가장 최근 예약 1건 조회 (이름/연락처만)

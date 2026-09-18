@@ -23,7 +23,8 @@ export function useReservationGuard() {
         const checkPermission = async () => {
             try {
                 const supabase = createClient();
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data: { session } } = await supabase.auth.getSession();
+                const user = session?.user;
 
                 if (user && user.email) {
                     const userEmail = user.email.toLowerCase().trim();
