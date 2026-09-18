@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useRouter } from 'next/navigation';
 import { Site } from '@/types/reservation';
@@ -42,6 +42,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const [agreed, setAgreed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false); // 모바일 더블 탭(0.05초 연타) 즉시 차단용 동기 락
     const [termsDialogOpen, setTermsDialogOpen] = useState(false);
     const { config: fullConfig } = useSiteConfig();
 
@@ -213,7 +214,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (isSubmitting) return;
+        // 모바일 0.05초 연타 더블 탭 원천 차단 (동기 ref + 비동기 state 이중 가드)
+        if (isSubmittingRef.current || isSubmitting) return;
 
         if (!fromDate || !toDate || fromDate.getTime() === toDate.getTime()) {
             toast.error('퇴실일을 선택하세요.');
@@ -245,6 +247,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             return;
         }
 
+        // 검증 완료 후 즉시 원자적(Atomic) 잠금 활성화
+        isSubmittingRef.current = true;
         setIsSubmitting(true);
 
         try {
@@ -318,10 +322,12 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     console.error('[Persona] Failed to dispatch reservation actions', err);
                 }
 
-                // 기존 토스트 모두 소멸 후 완료 화면으로 부드럽게 직행
+                // 기존 토스트 모두 소멸 후 완료 화면으로 부드럽게 직행 (락 유지)
                 toast.dismiss();
                 router.push('/reservation/complete');
             } else {
+                // 실패 시 재시도 가능하도록 동기 락 즉시 해제
+                isSubmittingRef.current = false;
                 setIsSubmitting(false);
                 // 동시성 충돌 또는 중복 예약
                 if (result.error === 'ALREADY_BOOKED') {
@@ -333,6 +339,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 }
             }
         } catch (error: any) {
+            // 예외 발생 시 재시도 가능하도록 동기 락 즉시 해제
+            isSubmittingRef.current = false;
             setIsSubmitting(false);
             toast.error(error.message || '예약 중 오류가 발생했습니다.');
         }

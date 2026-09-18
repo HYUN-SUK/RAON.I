@@ -1141,7 +1141,7 @@ export const useReservationStore = create<ReservationState>()(
                             saturdayDate.setDate(saturdayDate.getDate() + 1); // This is Saturday
 
                             const isSaturdayBooked = reservations.some(r => {
-                                if (r.status === 'CANCELLED' || r.siteId !== siteId) return false;
+                                if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                                 const rCheckIn = new Date(r.checkInDate);
                                 const rCheckOut = new Date(r.checkOutDate);
                                 return rCheckIn <= saturdayDate && rCheckOut > saturdayDate;
@@ -1161,7 +1161,7 @@ export const useReservationStore = create<ReservationState>()(
                             fridayDate.setDate(fridayDate.getDate() - 1); // This is Friday
 
                             const isFridayBooked = reservations.some(r => {
-                                if (r.status === 'CANCELLED' || r.siteId !== siteId) return false;
+                                if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                                 const rCheckIn = new Date(r.checkInDate);
                                 const rCheckOut = new Date(r.checkOutDate);
                                 return rCheckIn <= fridayDate && rCheckOut > fridayDate;

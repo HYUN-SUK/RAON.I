@@ -78,10 +78,14 @@ BEGIN
         );
     END IF;
 
-    -- 3-2. 관리자 차단일/대관(blocked_dates) 중복 검사 (철벽 방어 유지)
+    -- 3-2. 관리자 차단일/대관(blocked_dates) 중복 검사 (철벽 방어 유지 & 에어컨 대표카드 연동)
     SELECT COUNT(*) INTO v_existing_count
     FROM blocked_dates
-    WHERE (site_id = p_site_id OR site_id = 'ALL')
+    WHERE (
+        site_id = p_site_id 
+        OR site_id = 'ALL'
+        OR (p_site_id LIKE 'air-%' AND site_id = 'air-group')
+      )
       AND start_date < p_check_out
       AND end_date > p_check_in;
 

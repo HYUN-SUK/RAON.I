@@ -34,34 +34,37 @@ export default function ReservationPage() {
     }, [fetchOpenDayRule, fetchSites, fetchSiteConfig, fetchPublicReservations]);
 
     // Realtime Postgres changes subscription to sync database modifications (e.g. block cancel) instantly
+    // [동시성 최적화] 대량 접속 시 잇단 예약 완료 브로드캐스트로 인한 6개월치 RPC 폭증을 500ms 디바운스로 압축
     useEffect(() => {
         const supabase = createClient();
+        let debounceTimer: NodeJS.Timeout | null = null;
+
+        const handleRealtimeUpdate = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const start = new Date();
+                const end = new Date();
+                end.setMonth(end.getMonth() + 6);
+                fetchPublicReservations(start, end);
+            }, 500);
+        };
         
         const channel = supabase
             .channel('realtime_public_reservations')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'reservations' },
-                () => {
-                    const start = new Date();
-                    const end = new Date();
-                    end.setMonth(end.getMonth() + 6);
-                    fetchPublicReservations(start, end);
-                }
+                handleRealtimeUpdate
             )
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'blocked_dates' },
-                () => {
-                    const start = new Date();
-                    const end = new Date();
-                    end.setMonth(end.getMonth() + 6);
-                    fetchPublicReservations(start, end);
-                }
+                handleRealtimeUpdate
             )
             .subscribe();
 
         return () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
             supabase.removeChannel(channel);
         };
     }, [fetchPublicReservations]);

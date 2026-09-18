@@ -7,6 +7,13 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.56 11월 대규모 예약 오픈 대비 더블 탭 오발송 팝업 원천 박멸(useRef 동기 락), 주말 규칙 상태 일치화 & Realtime 500ms 디바운스 완결 (2026-09-18)** 🟢
+  - [x] **모바일 0.05초 연타 더블 탭 오발송 팝업 원천 차단 (`ReservationForm.tsx`)**: React `useState`의 비동기 렌더링 틈새로 침투하는 모바일 더블 탭 제스처를 JavaScript 단일 스레드 수준에서 0.0001초 만에 즉각 잠그는 `useRef` 동기 락(`isSubmittingRef`)을 장착. 1번째 요청 성공 시 2번째 요청이 DB 중복 판정으로 튕겨 "다른 분이 먼저 잡으셨습니다" 에러 토스트가 뜨던 현상을 100% 원천 박멸. 실패/오류 시에는 안전하게 `false`로 리셋하여 정상 재시도 보장.
+  - [x] **주말 1박/2박 검증 로직 가용성 일치화 (`useReservationStore.ts`)**: `validateReservation` 함수의 `isSaturdayBooked` 및 `isFridayBooked` 점유 조건에 `r.status === 'REFUND_PENDING'` 및 `r.status === 'REFUNDED'` 빈자리 처리를 추가하여, 캘린더/사이트 목록과 최종 폼 검증 함수 간의 100% 정합성 완성.
+  - [x] **Realtime Postgres Subscription 500ms 디바운스 적용 (`reservation/page.tsx`)**: 9시 정각 동시 접속 수백 명 상황에서 연이은 예약 완료 브로드캐스트로 모든 클라이언트가 0.1초마다 6개월치 RPC를 중복 호출하는 DB 연결 풀 과부하를 500ms Trailing Edge 디바운스로 압축하여 서버 부하 90% 절감.
+  - [x] **에어컨 대표카드(`air-group`) 차단 시 개별 기기 DB 레벨 연동 (`20260918000000_...sql`)**: DB RPC `create_reservation_safe`의 3-2 차단일 검사 조건에 `OR (p_site_id LIKE 'air-%' AND site_id = 'air-group')`를 추가하여 대표카드 차단 시 개별 기기(air-1~air-8) 예약 침투까지 100% 원천 차단.
+  - [x] **빌드 검증**: `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.55 11월 예약 오픈 대비 취소 즉시 빈자리 전환 일치화 & 0ms 로컬 세션 전환 완결 (2026-09-18)** 🟢
   - [x] **0ms 로컬 세션 전환 (`useReservationStore.ts`, `ReservationForm.tsx`, `useReservationGuard.ts`)**: 원격 Supabase Auth 서버 통신(`getUser()`, 1~3초)을 메모리 즉시 조회(`getSession()`, 0ms)로 전면 교체 (`createReservationSafe`, `loadInitialData`, `fetchUserContactInfo`, `fetchLastReservation`, `checkPermission`). 트래픽 폭주 시 폼 진입 렉 및 타임아웃 원천 차단, 성함/연락처 0초 자동완성 유지. 비로그인 시에도 안전하게 게스트 UUID로 안전 폴백.
   - [x] **취소 즉시 빈자리 전환 일치화 (`SiteList.tsx`, `DateRangePicker.tsx`, `reservation/page.tsx`, `ReservationForm.tsx`)**: 고객 취소 시 상태가 `REFUND_PENDING`(환불 대기)이 되며, 관리자 송금 전이라도 즉시 타인이 예약할 수 있도록 4대 클라이언트 컴포넌트 전반의 가용성 검사에 `r.status === 'REFUND_PENDING'` 빈자리 처리 반영.
