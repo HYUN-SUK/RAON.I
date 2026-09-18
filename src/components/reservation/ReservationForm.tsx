@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { useReservationGuard } from '@/hooks/useReservationGuard';
 import ReservationLockModal from './ReservationLockModal';
 import { Loader2 } from 'lucide-react';
+import { useAuthModalStore } from '@/store/useAuthModalStore';
 
 interface ReservationFormProps {
     site: Site;
@@ -244,6 +245,15 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         const validationError = validateReservation(targetSiteId, fromDate, toDate);
         if (validationError) {
             toast.error(validationError);
+            return;
+        }
+
+        // [옵션 C] 로그인 세션 확인: 비로그인 상태인 경우 모달 유도 및 즉시 차단
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+            toast.info('예약을 진행하시려면 먼저 로그인해주세요.');
+            useAuthModalStore.getState().open();
             return;
         }
 

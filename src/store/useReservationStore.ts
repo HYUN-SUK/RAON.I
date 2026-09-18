@@ -446,7 +446,7 @@ export const useReservationStore = create<ReservationState>()(
 
                 // 현재 사용자 확인 (로컬 세션 즉시 조회 - 원격 HTTP 왕복 지연 0ms)
                 const { data: { session } } = await supabase.auth.getSession();
-                const userId = session?.user?.id || '00000000-0000-0000-0000-000000000000'; // Guest UUID
+                const userId = session?.user?.id || null;
 
 
 
@@ -491,7 +491,7 @@ export const useReservationStore = create<ReservationState>()(
                     // 로컬 상태에도 추가 (옵티미스틱 업데이트)
                     const newReservation: Reservation = {
                         id: result.reservation_id || Math.random().toString(36).substr(2, 9),
-                        userId: userId,
+                        userId: userId || '',
                         siteId: params.siteId,
                         checkInDate: params.checkIn,
                         checkOutDate: params.checkOut,
@@ -515,22 +515,24 @@ export const useReservationStore = create<ReservationState>()(
                     // 입금 기한: 현재 + deadlineHours (default 6h)
                     const deadline = new Date(Date.now() + get().deadlineHours * 60 * 60 * 1000);
 
-                    // Fire & Forget (await 하지 않음)
-                    notificationService.dispatchNotification(
-                        NotificationEventType.RESERVATION_SUBMITTED,
-                        userId,
-                        {
-                            bankName: siteConfig?.bankName || '농협',
-                            bankAccount: siteConfig?.bankAccount || '000-0000-0000-00',
-                            bankHolder: siteConfig?.bankHolder || '라온아이',
-                            totalPrice: params.totalPrice.toLocaleString(),
-                            deadline: deadline.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                            checkIn: params.checkIn.toLocaleDateString(),
-                            checkOut: params.checkOut.toLocaleDateString(),
-                            siteName: siteName
-                        },
-                        result.reservation_id
-                    ).catch(err => console.error('[Store] Notification Dispatch Failed:', err));
+                    // Fire & Forget (await 하지 않음 - 회원인 경우에만 발송)
+                    if (userId) {
+                        notificationService.dispatchNotification(
+                            NotificationEventType.RESERVATION_SUBMITTED,
+                            userId,
+                            {
+                                bankName: siteConfig?.bankName || '농협',
+                                bankAccount: siteConfig?.bankAccount || '000-0000-0000-00',
+                                bankHolder: siteConfig?.bankHolder || '라온아이',
+                                totalPrice: params.totalPrice.toLocaleString(),
+                                deadline: deadline.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                                checkIn: params.checkIn.toLocaleDateString(),
+                                checkOut: params.checkOut.toLocaleDateString(),
+                                siteName: siteName
+                            },
+                            result.reservation_id
+                        ).catch(err => console.error('[Store] Notification Dispatch Failed:', err));
+                    }
                 }
 
                 return {
