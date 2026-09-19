@@ -36,10 +36,16 @@
 3. **11월 예약 실전 시뮬레이션 17개 전 케이스 100% PASS (`scripts/simulate-reservation-scenarios.mjs`)**:
    - 모바일 0.05초 연타 더블 탭 차단, 동일 사이트 동시 경합 이중 예약 0% 방어, 관리자 차단일 및 에어컨 그룹/개별기기 DB 레벨 차단, 환불대기(`REFUND_PENDING`) 즉시 오픈, 퇴실일 당일 입실(Turnover) 보존, 주말 1박/2박 규칙, Realtime 500ms 디바운스 등 17개 전 시나리오 검증 완료 (성공률 100%).
 
-4. **TypeScript 0에러 & Next.js 16.1.1 Production Build 100% 무결성 검증**:
+4. **100명 가상 유저 동시 폭격 극한 스트레스 부하 테스트 100% PASS (`scripts/stress-test-concurrency.mjs`)**:
+   - 2099년 격리 환경에서 100명 동시 광클(50ms 내 동일 사이트) 폭격 시: 1명 당첨 / 99명 안전 거절 (`CONCURRENT_REQUEST` 및 `ALREADY_BOOKED`), 500 에러 0건, 이중 예약 0건, 평균 처리 시간 266ms.
+   - 10개 사이트 분산 50명 동시 폭격 시: 10명 당첨 / 40명 안전 거절, 데드락 0건, 전체 소요 시간 87ms.
+   - 관리자 차단일 동시 침투 0건 완벽 방어, 퇴실일 Turnover 20명 경합 1명 당첨 / 19명 탈락 / 날짜 겹침 0건.
+   - 테스트 시작 전/후 자동 2중 클린업으로 운영 DB 2099년 잔여 0건, 2026년 11월 예약 0건(완전 백지 상태) 실측 확인.
+
+5. **TypeScript 0에러 & Next.js 16.1.1 Production Build 100% 무결성 검증**:
    - `npx tsc --noEmit` 에러 0건.
    - 103/103 전체 라우트 빌드 성공.
-   - `git commit` (`9f55226`), `origin/main` 푸시 완료.
+   - `git commit` (`3ff524a`), `origin/main` 푸시 완료.
 
 ---
 
