@@ -1,5 +1,12 @@
 # Task Management
 
+## Completed Tasks (2026-09-19)
+- [x] **마일스톤 9.58**: 캠핑 리마인더 Edge Function D-1/D-4 구버전 영구 소멸 원격 배포 및 D-0 행사 거리 소수점 1자리 정돈 완결
+  - **D-1 요리 추천(비공개 레시피 링크) 및 D-4 알림 원천 소멸 원격 배포**: 로컬 코드와 원격 Supabase Edge Function 간의 버전 괴리를 해소하기 위해 `camping-reminder`를 최신 코드로 원격 클라우드에 성공적으로 배포(`npx supabase functions deploy camping-reminder --use-api`). 9월 6일 정책 합의에 따라 D-1, D-4 알림을 영구 차단하고 D-7 주간예보 단일화 체계 확립.
+  - **D-0 당일 행사 거리 소수점 1자리 정돈 (`supabase/functions/camping-reminder/index.ts`)**: 당일 행사 안내 푸시에서 거리가 `(17.62731828783119km)`처럼 소수점 14자리로 길게 노출되던 결함을 `(${Number(e.dist).toFixed(1)}km)` (예: `17.6km`)로 깔끔하게 반올림 정돈.
+  - **원격 라이브 검증 완료**: 배포 후 원격 엔드포인트(`https://khqiqwtoyvesxahsjukk.supabase.co/functions/v1/camping-reminder?mode=prefetch`) 실측 호출 결과 200 OK (`{"success":true,"mode":"prefetch","grids":2}`) 정상 응답 확인.
+  - **TypeScript 0에러 검증**: `npx tsc --noEmit` 0에러 통과.
+
 ## Completed Tasks (2026-09-18)
 - [x] **마일스톤 9.56**: 11월 대규모 예약 오픈 대비 더블 탭 오발송 팝업 원천 박멸(useRef 동기 락), 주말 규칙 상태 일치화 및 Realtime 500ms 디바운스 최적화 완결
   - **모바일 0.05초 연타 더블 탭 오발송 팝업 원천 차단 (`ReservationForm.tsx`)**: React `useState`의 비동기 렌더링 틈새로 침투하는 모바일 더블 탭 제스처를 JavaScript 단일 스레드 수준에서 0.0001초 만에 즉각 잠그는 `useRef` 동기 락(`isSubmittingRef`)을 장착. 1번째 요청 성공 시 2번째 요청이 DB 중복 판정으로 튕겨 "다른 분이 먼저 잡으셨습니다" 에러 토스트가 뜨던 현상을 100% 원천 박멸. 실패/오류 시에는 안전하게 `false`로 리셋하여 정상 재시도 보장.

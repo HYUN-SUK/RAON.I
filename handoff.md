@@ -1,6 +1,6 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-18T19:35:00+09:00  
+**작성 일시**: 2026-09-19T11:28:00+09:00  
 **기준 브랜치**: `main`  
 **빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과, TypeScript 0에러)  
 
@@ -8,7 +8,19 @@
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
-이번 세션에서는 **20일 오전 9시 11월 대규모 예약 오픈**을 앞두고, 모바일 0.05초 연타 더블 탭으로 인한 오발송 팝업("다른 분이 먼저 잡으셨습니다"), 주말 규칙 검증 함수의 환불대기(`REFUND_PENDING`) 누락 불일치, 대량 동시 접속 시 Realtime RPC 과부하를 원천 차단하는 **마일스톤 9.56** 작업을 성공적으로 완료하였습니다.
+### 🟢 마일스톤 9.58: 캠핑 리마인더 Edge Function D-1/D-4 구버전 영구 소멸 원격 배포 및 D-0 행사 거리 소수점 1자리 정돈 완결 (2026-09-19)
+
+1. **D-1 요리 추천 및 D-4 알림 원천 소멸 원격 배포 (`camping-reminder`)**:
+   - **배경**: 9월 6일(마일스톤 9.41) 로컬 소스코드에서 D-1(요리 레시피 추천) 및 D-4 알림을 삭제하고 D-7 주간예보 단일화로 개편하였으나, 원격 Supabase Edge Function 배포가 누락되어 서버상에는 구버전 코드가 실행되어 9월 17일~18일 D-1 푸시("🍳 내일 뭐 먹을지 고민되시나요?")가 오발송됨.
+   - **조치**: Supabase CLI(`npx supabase functions deploy camping-reminder --use-api`)를 통해 최신 코드를 원격 프로덕션에 성공적으로 배포 완료. 구버전 D-1/D-4 발송 로직 및 불필요한 `recommendation_pool` 쿼리를 원천 소멸시키고 D-7 주간예보 단일화 체계를 확립.
+
+2. **D-0 당일 행사 거리 소수점 1자리 정돈 (`supabase/functions/camping-reminder/index.ts`)**:
+   - D-0 당일 푸시에서 주변 행사 거리가 `(17.62731828783119km)`처럼 소수점 14자리로 길게 깨져 출력되던 현상을 `(${Number(e.dist).toFixed(1)}km)` (예: `17.6km`)로 깔끔하게 반올림 정돈.
+
+3. **원격 엔드포인트 라이브 검증 완료**:
+   - 원격 배포 직후 `https://khqiqwtoyvesxahsjukk.supabase.co/functions/v1/camping-reminder?mode=prefetch` 실측 호출 결과 `Status: 200 OK` (`{"success":true,"mode":"prefetch","grids":2}`) 정상 응답 및 기능 무결성 검증 완료.
+
+---
 
 ### 🟢 마일스톤 9.57: 11월 예약 오픈 대비 예약 신청 로그인 필수 유도(옵션 C) & 17개 실전 시뮬레이션 100% 통과 (2026-09-18)
 

@@ -815,7 +815,7 @@ serve(async (req: any) => {
                 let eventText = "주변에 예정된 행사가 없어요~ 조용한 캠핑을 즐겨보세요!";
                 if (events.length > 0) {
                     eventText = `근처에서 행사가 열리고 있어요!\n` +
-                        events.slice(0, 2).map(e => `🎈 ${e.title} (${e.dist}km)`).join('\n');
+                        events.slice(0, 2).map(e => `🎈 ${e.title} (${Number(e.dist).toFixed(1)}km)`).join('\n');
                 }
 
                 notifications.push({
