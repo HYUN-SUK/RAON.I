@@ -3,11 +3,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Reservation } from '@/types/reservation';
 import { useReservationStore } from '@/store/useReservationStore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+
+function safeFormatDate(dateVal: any, formatStr: string, options?: any): string {
+    if (!dateVal) return '-';
+    try {
+        const d = typeof dateVal === 'string' ? new Date(dateVal) : dateVal;
+        if (!d || isNaN(d.getTime())) return '-';
+        return format(d, formatStr, options);
+    } catch {
+        return '-';
+    }
+}
 import { 
     CheckCircle, 
     XCircle, 
@@ -100,29 +111,38 @@ export default function AdminReservationDetailModal({
         }
     }, [reservation, isOpen]);
 
-    if (!reservation) return null;
+    const site = useMemo(() => {
+        if (!reservation) return undefined;
+        return sites.find(s => s.id === reservation.siteId);
+    }, [sites, reservation]);
 
-    const site = sites.find(s => s.id === reservation.siteId);
-    const siteName = site?.name || reservation.siteId || '사이트 미지정';
+    const siteName = site?.name || reservation?.siteId || '사이트 미지정';
 
-    // 실시간 가격 변동 및 차액 계산
+    // 실시간 가격 변동 및 차액 계산 (Rules of Hooks: 조건부 리턴보다 상단에 위치)
     const pricePreview = useMemo(() => {
         if (!reservation || !site) return { newPrice: reservation?.totalPrice || 0, diff: 0 };
         try {
+            const inDate = new Date(reservation.checkInDate);
+            const outDate = new Date(reservation.checkOutDate);
+            if (isNaN(inDate.getTime()) || isNaN(outDate.getTime())) {
+                return { newPrice: reservation.totalPrice || 0, diff: 0 };
+            }
             const breakdown = calculatePrice(
                 site,
-                new Date(reservation.checkInDate),
-                new Date(reservation.checkOutDate),
+                inDate,
+                outDate,
                 familyCount,
                 visitorCount
             );
             const newPrice = breakdown.totalPrice;
-            const diff = newPrice - reservation.totalPrice;
+            const diff = newPrice - (reservation.totalPrice || 0);
             return { newPrice, diff };
         } catch {
-            return { newPrice: reservation.totalPrice, diff: 0 };
+            return { newPrice: reservation?.totalPrice || 0, diff: 0 };
         }
     }, [reservation, site, familyCount, visitorCount, calculatePrice]);
+
+    if (!reservation) return null;
 
     const loadUserHistory = async () => {
         const q = reservation.guestPhone || reservation.userId || '';
@@ -224,14 +244,16 @@ export default function AdminReservationDetailModal({
         }
     };
 
-    // 요금 산출 내역 계산
+    // 요금 산출 내역 안전 계산
     const checkIn = new Date(reservation.checkInDate);
     const checkOut = new Date(reservation.checkOutDate);
-    const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
+    const isValidDates = !isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime());
+    const nights = isValidDates ? Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))) : 1;
     const extraFam = Math.max(0, (reservation.familyCount || 1) - 1);
     const extraFamCost = extraFam * 35000 * nights;
     const visitorCost = (reservation.visitorCount || 0) * 10000;
-    const baseStayCost = reservation.totalPrice - extraFamCost - visitorCost;
+    const currentTotalPrice = reservation.totalPrice || 0;
+    const baseStayCost = Math.max(0, currentTotalPrice - extraFamCost - visitorCost);
 
     const isRefundCase = reservation.status === 'REFUND_PENDING' || reservation.status === 'REFUNDED' || !!reservation.refundAccount;
 
@@ -244,49 +266,56 @@ export default function AdminReservationDetailModal({
                             <Tent className="w-5 h-5 text-[#224732]" />
                             예약 상세 정보
                         </span>
-
-                        <div className="flex items-center gap-1.5">
-                            {!isEditing && (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setIsEditing(true)}
-                                    className="h-7 px-2.5 text-xs font-bold rounded-lg border-amber-300 bg-amber-50/80 text-amber-900 hover:bg-amber-100 flex items-center gap-1"
-                                >
-                                    <Edit3 className="w-3.5 h-3.5" /> 정보 수정
-                                </Button>
-                            )}
-                            {onModifySchedule && !isEditing && (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                        onClose();
-                                        onModifySchedule(reservation);
-                                    }}
-                                    className="h-7 px-2.5 text-xs font-bold rounded-lg border-blue-300 bg-blue-50/80 text-blue-900 hover:bg-blue-100 flex items-center gap-1"
-                                >
-                                    <Calendar className="w-3.5 h-3.5" /> 일정/사이트 변경
-                                </Button>
-                            )}
-                            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
-                                reservation.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
-                                reservation.status === 'PENDING' ? 'bg-amber-100 text-amber-900' :
-                                reservation.status === 'REFUND_PENDING' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
-                                reservation.status === 'REFUNDED' ? 'bg-purple-100 text-purple-900' :
-                                'bg-gray-100 text-gray-700'
-                            }`}>
-                                {reservation.status === 'CONFIRMED' ? '예약확정 (결제완료)' :
-                                 reservation.status === 'PENDING' ? '입금대기' :
-                                 reservation.status === 'REFUND_PENDING' ? '환불대기 (송금 필요)' :
-                                 reservation.status === 'REFUNDED' ? '환불완료' :
-                                 reservation.status === 'CANCELLED' ? '예약취소' : reservation.status}
-                            </span>
-                        </div>
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        예약 상세 정보 조회 및 전체 수정 모달입니다.
+                    </DialogDescription>
                 </DialogHeader>
+
+                {/* 상단 컨트롤 바 */}
+                <div className="flex flex-wrap items-center justify-between pb-3 border-b border-stone-200 gap-2">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+                        reservation.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
+                        reservation.status === 'PENDING' ? 'bg-amber-100 text-amber-900' :
+                        reservation.status === 'REFUND_PENDING' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                        reservation.status === 'REFUNDED' ? 'bg-purple-100 text-purple-900' :
+                        'bg-gray-100 text-gray-700'
+                    }`}>
+                        {reservation.status === 'CONFIRMED' ? '예약확정 (결제완료)' :
+                         reservation.status === 'PENDING' ? '입금대기' :
+                         reservation.status === 'REFUND_PENDING' ? '환불대기 (송금 필요)' :
+                         reservation.status === 'REFUNDED' ? '환불완료' :
+                         reservation.status === 'CANCELLED' ? '예약취소' : reservation.status}
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                        {!isEditing && (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsEditing(true)}
+                                className="h-7 px-2.5 text-xs font-bold rounded-lg border-amber-300 bg-amber-50/80 text-amber-900 hover:bg-amber-100 flex items-center gap-1"
+                            >
+                                <Edit3 className="w-3.5 h-3.5" /> 정보 수정
+                            </Button>
+                        )}
+                        {onModifySchedule && !isEditing && (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                    onClose();
+                                    onModifySchedule(reservation);
+                                }}
+                                className="h-7 px-2.5 text-xs font-bold rounded-lg border-blue-300 bg-blue-50/80 text-blue-900 hover:bg-blue-100 flex items-center gap-1"
+                            >
+                                <Calendar className="w-3.5 h-3.5" /> 일정/사이트 변경
+                            </Button>
+                        )}
+                    </div>
+                </div>
 
                 {isEditing ? (
                     /* 수정 모드 폼 */
@@ -548,7 +577,7 @@ export default function AdminReservationDetailModal({
                                 <div className="text-xs">
                                     <span className="text-stone-400">예약 일정:</span>
                                     <p className="font-bold text-stone-800">
-                                        {format(checkIn, 'yyyy.MM.dd(eee)', { locale: ko })} ~ {format(checkOut, 'yyyy.MM.dd(eee)', { locale: ko })} ({nights}박)
+                                        {safeFormatDate(reservation.checkInDate, 'yyyy.MM.dd(eee)', { locale: ko })} ~ {safeFormatDate(reservation.checkOutDate, 'yyyy.MM.dd(eee)', { locale: ko })} ({nights}박)
                                     </p>
                                 </div>
                             </div>
@@ -626,7 +655,7 @@ export default function AdminReservationDetailModal({
                                         <div className="flex justify-between text-[11px] text-stone-500 pt-1">
                                             <span>취소 신청일시:</span>
                                             <span className="font-mono">
-                                                {reservation.cancelledAt ? format(new Date(reservation.cancelledAt), 'yyyy.MM.dd HH:mm') : '-'}
+                                                {safeFormatDate(reservation.cancelledAt, 'yyyy.MM.dd HH:mm')}
                                             </span>
                                         </div>
                                     </div>
@@ -686,7 +715,7 @@ export default function AdminReservationDetailModal({
                                                     <div>
                                                         <span className="font-bold text-stone-800">{h.siteId}</span>
                                                         <span className="text-stone-400 ml-1.5">
-                                                            {h.checkInDate ? format(new Date(h.checkInDate), 'yy.MM.dd') : ''}
+                                                            {safeFormatDate(h.checkInDate, 'yy.MM.dd')}
                                                         </span>
                                                     </div>
                                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
@@ -745,7 +774,7 @@ export default function AdminReservationDetailModal({
                     ) : (
                         <>
                             <div className="text-xs text-stone-400">
-                                신청일시: {reservation.createdAt ? format(new Date(reservation.createdAt), 'yyyy.MM.dd HH:mm') : '-'}
+                                신청일시: {safeFormatDate(reservation.createdAt, 'yyyy.MM.dd HH:mm')}
                             </div>
 
                             <div className="flex items-center gap-2">

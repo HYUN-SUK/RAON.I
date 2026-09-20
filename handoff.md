@@ -40,8 +40,13 @@
      - 관리자가 `PENDING` 행에서 [입금확인]을 눌러 `CONFIRMED`로 바뀌어도 행의 위치가 아래로 밀려나지 않고 **그 자리에서 [결제완료] 뱃지로 바뀌며 완벽히 제자리 유지**.
      - 오늘 들어온 신규 예약(대기/완료)은 최신 신청일시를 가지므로 상단에 순서대로 배치.
 
-3. **TypeScript 무결성 검증**:
+3. **상세 모달 오픈 시 홈화면 튕김 버그 해결 (`AdminReservationDetailModal.tsx`)**:
+   - `if (!reservation) return null;` 조기 리턴이 `useMemo`보다 위에 있어 발생했던 **React Rules of Hooks 위반 예외** 및 이로 인한 Root Error Boundary(`global-error.tsx`)의 홈 리다이렉트 동작 원천 해결.
+   - 모든 훅을 조기 리턴 상단으로 배치하고, `safeFormatDate` 도입으로 비정상 날짜 데이터 유입 시에도 렌더링 크래시 0% 방어.
+
+4. **프로덕션 빌드 및 무결성 검증**:
    - `npx tsc --noEmit` 실행 결과 **오류 0건 (Exit Code 0)** PASS.
+   - `npm run build` Next.js 16.1.1 Production Build 103/103 전체 라우트 번들링 정상 완료.
 
 ---
 
