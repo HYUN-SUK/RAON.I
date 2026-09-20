@@ -41,6 +41,12 @@ export interface Reservation {
             teen: number;
         };
         hasPet?: boolean; // 반려견 동반 여부
+        additionalPayment?: {
+            amount: number;
+            status: 'PENDING' | 'CONFIRMED';
+            createdAt: string;
+            confirmedAt?: string | null;
+        };
     };
     totalPrice: number;
     status: ReservationStatus;

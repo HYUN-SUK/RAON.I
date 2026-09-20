@@ -30,10 +30,11 @@ type FilterTabType = 'ALL' | 'PENDING' | 'CONFIRMED' | 'REFUND_PENDING' | 'REFUN
 type PeriodQuickType = 'today' | 'yesterday' | '1week' | '1month' | '3month' | '6month' | '1year' | 'all';
 
 export interface PaymentListItem {
-    id: string; // reservation.id or `${reservation.id}-partial`
+    id: string; // reservation.id or `${reservation.id}-partial` or `${reservation.id}-additional`
     reservationId: string;
     isPartialRefund?: boolean;
-    type: 'PAYMENT' | 'REFUND' | 'PARTIAL_REFUND' | 'CANCEL';
+    isAdditionalPayment?: boolean;
+    type: 'PAYMENT' | 'REFUND' | 'PARTIAL_REFUND' | 'ADDITIONAL_PAYMENT' | 'CANCEL';
     status: ReservationStatus;
     guestName: string;
     guestPhone: string;
@@ -47,11 +48,12 @@ export interface PaymentListItem {
     createdAt: Date;
     updatedAt?: Date;
     refundedAt?: Date;
+    confirmedAt?: Date;
     raw: Reservation;
 }
 
 export default function AdminPaymentsPage() {
-    const { reservations, sites, fetchAllReservations, updateReservationStatus, completeRefund, completePartialRefund } = useReservationStore();
+    const { reservations, sites, fetchAllReservations, updateReservationStatus, completeRefund, completePartialRefund, completeAdditionalPayment } = useReservationStore();
 
     // 1. Filter States
     const [activeTab, setActiveTab] = useState<FilterTabType>('ALL');
@@ -177,6 +179,30 @@ export default function AdminPaymentsPage() {
                     raw: r
                 });
             }
+
+            // 3. ★ 예약 수정으로 발생한 '추가 입금(차액 입금)' 독립 항목
+            // 본 예약이 CONFIRMED이고 additionalPayment가 존재하는 경우 별도 분리 노출!
+            const additionalPay = r.guestDetails?.additionalPayment;
+            if (additionalPay && (additionalPay.amount ?? 0) > 0) {
+                const isAddPaid = additionalPay.status === 'CONFIRMED';
+                items.push({
+                    id: `${r.id}-additional`,
+                    reservationId: r.id,
+                    isAdditionalPayment: true,
+                    type: 'ADDITIONAL_PAYMENT',
+                    status: isAddPaid ? 'CONFIRMED' : 'PENDING',
+                    guestName: r.guestName || '',
+                    guestPhone: r.guestPhone || '',
+                    siteId: r.siteId,
+                    checkInDate: r.checkInDate,
+                    checkOutDate: r.checkOutDate,
+                    amount: additionalPay.amount,
+                    createdAt: additionalPay.createdAt ? new Date(additionalPay.createdAt) : (r.updatedAt || r.createdAt),
+                    updatedAt: r.updatedAt,
+                    confirmedAt: additionalPay.confirmedAt ? new Date(additionalPay.confirmedAt) : undefined,
+                    raw: r
+                });
+            }
         });
 
         return items;
@@ -185,7 +211,7 @@ export default function AdminPaymentsPage() {
     // 상단 3종 요약 데이터 계산
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const todayPaidList = allPaymentItems.filter(i => {
-        if (i.type !== 'PAYMENT' || i.status !== 'CONFIRMED') return false;
+        if ((i.type !== 'PAYMENT' && i.type !== 'ADDITIONAL_PAYMENT') || i.status !== 'CONFIRMED') return false;
         const cDate = i.createdAt ? format(new Date(i.createdAt), 'yyyy-MM-dd') : '';
         const uDate = i.updatedAt ? format(new Date(i.updatedAt), 'yyyy-MM-dd') : '';
         return cDate === todayStr || uDate === todayStr;
@@ -267,6 +293,10 @@ export default function AdminPaymentsPage() {
                         if (item.refundedAt) return new Date(item.refundedAt).getTime();
                         if (item.updatedAt) return new Date(item.updatedAt).getTime();
                     }
+                    // 추가 입금 건 (PENDING or CONFIRMED): 생성 시각 기준
+                    if (item.isAdditionalPayment) {
+                        return item.createdAt ? new Date(item.createdAt).getTime() : 0;
+                    }
                     // 일반 예약 결제 건 (PENDING, CONFIRMED, CANCELLED):
                     // [입금확인]을 눌러도 제자리 유지를 위해 항상 createdAt 기준!
                     return item.createdAt ? new Date(item.createdAt).getTime() : 0;
@@ -304,6 +334,36 @@ export default function AdminPaymentsPage() {
             toast.success(`${r.guestName}님의 입금이 확인되어 예약이 확정되었습니다.`);
         } catch (err: any) {
             toast.error(err?.message || '확정 처리에 실패했습니다.');
+        } finally {
+            setConfirmingId(null);
+        }
+    };
+
+    const handleQuickAdditionalConfirm = async (e: React.MouseEvent, item: PaymentListItem) => {
+        e.stopPropagation();
+        const r = item.raw;
+        const addAmt = item.amount.toLocaleString();
+        const guestName = r.guestName || '예약자';
+
+        const isConfirmed = window.confirm(
+            `[추가 입금 확인]\n\n• 대상: ${guestName} 님\n• 추가 금액: +${addAmt}원\n\n위 고객의 추가 금액 입금을 확인하셨습니까?\n입금 완료 처리하며, 본 예약의 결제 금액에 정산 합산됩니다.`
+        );
+        if (!isConfirmed) return;
+
+        setConfirmingId(item.id);
+        try {
+            const res = await completeAdditionalPayment(r.id);
+            if (res.success) {
+                setSessionProcessed(prev => ({
+                    ...prev,
+                    [item.id]: { type: 'CONFIRM', timestamp: Date.now() }
+                }));
+                toast.success(`${guestName}님의 추가 입금(+${addAmt}원)이 확인되어 정상 정산되었습니다.`);
+            } else {
+                toast.error(res.error || '추가 입금 확인 처리에 실패했습니다.');
+            }
+        } catch (err: any) {
+            toast.error(err?.message || '추가 입금 확인 처리 중 오류가 발생했습니다.');
         } finally {
             setConfirmingId(null);
         }
@@ -668,11 +728,13 @@ export default function AdminPaymentsPage() {
                                             className={`hover:bg-blue-50/40 cursor-pointer transition-colors ${
                                                 item.isPartialRefund 
                                                     ? 'bg-amber-50/40 border-l-4 border-l-rose-500' 
-                                                    : isRefund 
-                                                        ? 'bg-rose-50/20' 
-                                                        : isCancelled 
-                                                            ? 'bg-stone-50/40 text-stone-400' 
-                                                            : ''
+                                                    : item.isAdditionalPayment
+                                                        ? 'bg-blue-50/30 border-l-4 border-l-blue-500'
+                                                        : isRefund 
+                                                            ? 'bg-rose-50/20' 
+                                                            : isCancelled 
+                                                                ? 'bg-stone-50/40 text-stone-400' 
+                                                                : ''
                                             }`}
                                         >
                                             {/* 1. 구분 */}
@@ -680,6 +742,10 @@ export default function AdminPaymentsPage() {
                                                 {item.isPartialRefund ? (
                                                     <span className="text-[11px] font-black text-rose-700 bg-rose-100 border border-rose-200 px-2 py-0.5 rounded-full">
                                                         일부환불
+                                                    </span>
+                                                ) : item.isAdditionalPayment ? (
+                                                    <span className="text-[11px] font-black text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-full">
+                                                        추가입금
                                                     </span>
                                                 ) : isRefund ? (
                                                     <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
@@ -698,31 +764,37 @@ export default function AdminPaymentsPage() {
 
                                             {/* 2. 상태 */}
                                             <td className="py-3 px-3">
-                                                {item.status === 'CONFIRMED' && (
+                                                {item.isAdditionalPayment ? (
+                                                    item.status === 'CONFIRMED' ? (
+                                                        <span className="text-emerald-700 font-bold text-xs flex items-center gap-0.5">
+                                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 추가입금 완료
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-amber-700 font-bold text-xs flex items-center gap-0.5">
+                                                            <Clock className="w-3 h-3 text-amber-600" /> 추가입금 대기
+                                                        </span>
+                                                    )
+                                                ) : item.status === 'CONFIRMED' ? (
                                                     <span className="text-emerald-700 font-bold text-xs flex items-center gap-0.5">
                                                         <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 결제완료
                                                     </span>
-                                                )}
-                                                {item.status === 'PENDING' && (
+                                                ) : item.status === 'PENDING' ? (
                                                     <span className="text-amber-700 font-bold text-xs flex items-center gap-0.5">
                                                         <Clock className="w-3 h-3 text-amber-600" /> 결제대기
                                                     </span>
-                                                )}
-                                                {item.status === 'REFUND_PENDING' && (
+                                                ) : item.status === 'REFUND_PENDING' ? (
                                                     <span className="text-rose-700 font-bold text-xs flex items-center gap-0.5">
                                                         <AlertCircle className="w-3 h-3 text-rose-600" /> {item.isPartialRefund ? '일부환불 대기' : '환불대기'}
                                                     </span>
-                                                )}
-                                                {item.status === 'REFUNDED' && (
+                                                ) : item.status === 'REFUNDED' ? (
                                                     <span className="text-purple-700 font-bold text-xs">
                                                         {item.isPartialRefund ? '일부환불 완료' : '환불완료'}
                                                     </span>
-                                                )}
-                                                {item.status === 'CANCELLED' && (
+                                                ) : item.status === 'CANCELLED' ? (
                                                     <span className="text-stone-400 font-medium text-xs">
                                                         취소됨
                                                     </span>
-                                                )}
+                                                ) : null}
                                             </td>
 
                                             {/* 3. 예약자 / 입금자 */}
@@ -731,6 +803,9 @@ export default function AdminPaymentsPage() {
                                                     <span>{item.guestName || '(이름없음)'}</span>
                                                     {item.isPartialRefund && (
                                                         <span className="text-[10px] text-rose-600 font-semibold">(차액)</span>
+                                                    )}
+                                                    {item.isAdditionalPayment && (
+                                                        <span className="text-[10px] text-blue-600 font-semibold">(추가입금)</span>
                                                     )}
                                                 </div>
                                                 <div className="text-[11px] text-stone-500 font-mono mt-0.5">
@@ -762,6 +837,10 @@ export default function AdminPaymentsPage() {
                                                 ) : isCancelled ? (
                                                     <span className="text-stone-400 line-through text-xs">
                                                         {item.amount.toLocaleString()}원
+                                                    </span>
+                                                ) : item.isAdditionalPayment ? (
+                                                    <span className="text-blue-700 text-xs font-black">
+                                                        +{item.amount.toLocaleString()}원
                                                     </span>
                                                 ) : (
                                                     <span className="text-stone-900 text-xs font-black">
@@ -824,6 +903,28 @@ export default function AdminPaymentsPage() {
                                                     ) : (
                                                         <span className="text-purple-700 text-[11px] font-bold px-2 py-1 bg-purple-50 rounded-md border border-purple-200">
                                                             환불완료
+                                                        </span>
+                                                    )
+                                                ) : item.isAdditionalPayment ? (
+                                                    item.status === 'PENDING' ? (
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={confirmingId === item.id}
+                                                            onClick={(e) => handleQuickAdditionalConfirm(e, item)}
+                                                            className="h-7 px-2.5 text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-2xs"
+                                                        >
+                                                            {confirmingId === item.id ? (
+                                                                <span className="flex items-center gap-1">
+                                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                                    처리중
+                                                                </span>
+                                                            ) : (
+                                                                '입금확인'
+                                                            )}
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="text-emerald-700 text-[11px] font-bold px-2 py-1 bg-emerald-50 rounded-md border border-emerald-200">
+                                                            입금완료
                                                         </span>
                                                     )
                                                 ) : item.status === 'REFUND_PENDING' ? (

@@ -285,10 +285,32 @@ export async function updateReservationDetailsAction(params: UpdateReservationDe
     let nextTotalPrice = currentRes.total_price;
     let nextRefundAmount = currentRes.refund_amount;
 
+    // 기존 guest_details 보존 및 병합
+    let nextGuestDetails = params.guestDetails 
+        ? { ...(currentRes.guest_details || {}), ...params.guestDetails }
+        : { ...(currentRes.guest_details || {}) };
+
     if (diff > 0) {
-        // 추가 금액 발생 -> 추가 입금대기(PENDING)로 전이 (캘린더 점유 정상 유지)
-        nextStatus = 'PENDING';
-        nextTotalPrice = params.newTotalPrice ?? (currentRes.total_price + diff);
+        if (currentRes.status === 'CONFIRMED') {
+            // ★ 본 예약이 이미 결제완료(CONFIRMED)인 경우:
+            // 본 예약 상태와 기존 완납 금액(total_price)은 100% 그대로 유지!
+            // 추가 금액(차액)만 guest_details.additionalPayment에 'PENDING'으로 독립 분리 적재!
+            nextStatus = 'CONFIRMED';
+            nextTotalPrice = currentRes.total_price;
+            nextGuestDetails = {
+                ...nextGuestDetails,
+                additionalPayment: {
+                    amount: diff,
+                    status: 'PENDING',
+                    createdAt: new Date().toISOString(),
+                    confirmedAt: null
+                }
+            };
+        } else {
+            // 원래 결제대기(PENDING)였던 신규 예약인 경우: 전체 금액만 갱신
+            nextStatus = 'PENDING';
+            nextTotalPrice = params.newTotalPrice ?? (currentRes.total_price + diff);
+        }
     } else if (diff < 0) {
         // 차액 환불 발생 -> 본 예약(CONFIRMED)과 사이트 점유는 100% 유지!
         // 절대 REFUND_PENDING으로 바꾸지 않고 차액만 refund_amount로 적재
@@ -308,8 +330,8 @@ export async function updateReservationDetailsAction(params: UpdateReservationDe
     if (params.familyCount !== undefined) updatePayload.family_count = params.familyCount;
     if (params.visitorCount !== undefined) updatePayload.visitor_count = params.visitorCount;
     if (params.guests !== undefined) updatePayload.guests = params.guests;
-    if (params.guestDetails !== undefined) updatePayload.guest_details = params.guestDetails;
     if (params.requests !== undefined) updatePayload.requests = params.requests;
+    updatePayload.guest_details = nextGuestDetails;
 
     if (diff > 0) {
         updatePayload.status = nextStatus;
@@ -352,6 +374,69 @@ export async function updateReservationDetailsAction(params: UpdateReservationDe
     revalidatePath('/myspace/schedule');
 
     return { success: true, reservation: updatedRes, priceDiff: diff };
+}
+
+/**
+ * 관리자 전용: 예약 정보 수정으로 발생한 '추가 입금(차액)' 완료 처리
+ * - 본 예약의 CONFIRMED 상태 100% 유지
+ * - additionalPayment.status를 'CONFIRMED'로 변경
+ * - 본 예약의 total_price에 추가 금액(amount)을 정상 합산 정산
+ */
+export async function completeAdditionalPaymentAction(reservationId: string) {
+    await assertAdmin();
+    const supabase = createAdminClient();
+
+    // 1. 현재 예약 조회
+    const { data: currentRes, error: fetchErr } = await (supabase
+        .from('reservations') as any)
+        .select('*')
+        .eq('id', reservationId)
+        .single();
+
+    if (fetchErr || !currentRes) {
+        throw new Error('예약 정보를 찾을 수 없습니다.');
+    }
+
+    const ap = currentRes.guest_details?.additionalPayment;
+    if (!ap || ap.status === 'CONFIRMED') {
+        throw new Error('처리할 추가 입금 대기 내역이 없습니다.');
+    }
+
+    const additionalAmount = Number(ap.amount) || 0;
+    const newTotalPrice = (Number(currentRes.total_price) || 0) + additionalAmount;
+
+    const updatedGuestDetails = {
+        ...(currentRes.guest_details || {}),
+        additionalPayment: {
+            ...ap,
+            status: 'CONFIRMED',
+            confirmedAt: new Date().toISOString()
+        }
+    };
+
+    const { data: updatedRes, error: updateErr } = await (supabase
+        .from('reservations') as any)
+        .update({
+            total_price: newTotalPrice,
+            guest_details: updatedGuestDetails,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', reservationId)
+        .select()
+        .single();
+
+    if (updateErr) {
+        console.error('[Action] completeAdditionalPaymentAction error:', updateErr);
+        throw new Error(updateErr.message || '추가 입금 확인 처리 실패');
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/payments');
+    revalidatePath('/admin/reservations');
+    revalidatePath('/myspace/reservations');
+    revalidatePath('/myspace/schedule');
+
+    return { success: true, reservation: updatedRes };
 }
 
 /**

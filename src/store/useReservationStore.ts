@@ -74,6 +74,7 @@ interface ReservationState {
     }) => Promise<{ success: boolean; refundRate?: number; refundAmount?: number; error?: string; message?: string }>;
     completeRefund: (reservationId: string) => Promise<{ success: boolean; error?: string; message?: string }>;
     completePartialRefund: (reservationId: string) => Promise<{ success: boolean; error?: string }>;
+    completeAdditionalPayment: (reservationId: string) => Promise<{ success: boolean; error?: string }>;
 
     // Helper to calculate price
     calculatePrice: (site: Site, checkIn: Date, checkOut: Date, familyCount: number, visitorCount: number) => PriceBreakdown;
@@ -917,6 +918,34 @@ export const useReservationStore = create<ReservationState>()(
                 } catch (err: any) {
                     console.error('[Store] completePartialRefund error:', err);
                     return { success: false, error: err.message || '일부 환불 처리 중 오류가 발생했습니다.' };
+                }
+            },
+
+            // 관리자 전용: 추가 입금(차액) 완료 처리 (본 예약 CONFIRMED 유지, 금액 합산)
+            completeAdditionalPayment: async (reservationId: string) => {
+                try {
+                    const { completeAdditionalPaymentAction } = await import('@/actions/reservation');
+                    const res = await completeAdditionalPaymentAction(reservationId);
+                    if (res.success && res.reservation) {
+                        const r = res.reservation;
+                        set((state) => ({
+                            reservations: state.reservations.map((item) =>
+                                item.id === reservationId
+                                    ? {
+                                        ...item,
+                                        totalPrice: r.total_price,
+                                        guestDetails: r.guest_details,
+                                        updatedAt: r.updated_at ? new Date(r.updated_at) : new Date()
+                                    }
+                                    : item
+                            )
+                        }));
+                        return { success: true };
+                    }
+                    return { success: false, error: '추가 입금 확인 처리에 실패했습니다.' };
+                } catch (err: any) {
+                    console.error('[Store] completeAdditionalPayment error:', err);
+                    return { success: false, error: err.message || '추가 입금 확인 처리 중 오류가 발생했습니다.' };
                 }
             },
 
