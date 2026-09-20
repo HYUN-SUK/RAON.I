@@ -232,35 +232,48 @@ export default function AdminPaymentsPage() {
 
                 return true;
             })
-            // ★ 스마트 2계층 정렬 + 세션 실시간 제자리 유지:
-            // Tier 0 (최상단 작업 구역):
-            // - 환불대기(전체 취소 및 일부 환불 대기)
-            // - 입금대기
-            // - 관리자가 이번 화면에서 방금 [환불완료] 또는 [입금확인]을 누른 건 (sessionProcessed)
-            //   -> 버튼 누르는 순간 아래로 튕겨 날아가지 않고 그 상단 위치에 그대로 고정 유지!
-            // Tier 1 (일반 타임라인 구역):
-            // - 과거에 이미 완료된 환불완료 건(8월 옛날 환불완료 등)은 신청일시 순으로 타임라인 제자리 유지!
+            // ★ 스마트 이벤트 타임라인 정렬:
+            // 1단계: 미처리 환불대기(REFUND_PENDING - 전체 취소 및 일부 차액 환불)는 관리자 긴급 조치 대상이므로 최상단 우선 노출
+            // 2단계: 나머지 모든 항목(환불완료, 결제대기, 결제완료)은 유효 기준 시각(effectiveTime) 최신순 정렬!
+            //   - 환불완료(REFUNDED): '환불 완료 처리 시각(refundedAt)' 기준!
+            //     -> 과거 최초 예약일(createdAt)로 튕겨 날아가지 않고, 방금 완료한 그 자리에 머묾!
+            //     -> 이후 새로운 예약이 들어오면(새 예약의 createdAt이 환불 시각보다 최신이므로) 새 예약이 위로 오고,
+            //        환불완료 건은 다른 결제목록들과 마찬가지로 차례대로 한 줄씩 아래로 내려감!
+            //     -> 과거 8월 옛날 환불완료 건은 8월 완료 시각이므로 저 아래 8월 타임라인에 머묾!
+            //   - 일반 결제 건(PENDING, CONFIRMED): 오직 '예약 신청일시(createdAt)' 기준!
+            //     -> 결제대기가 상단으로 붕 뜨지 않고 제 시간대에 위치!
+            //     -> [입금확인]을 눌러도 createdAt은 변하지 않으므로 행 위치가 절대 흔들리지 않고 그 자리 유지!
+            //     -> 새로운 예약이 들어오면 createdAt이 가장 최신이므로 타임라인 상단에 최신순으로 적재!
             .sort((a, b) => {
-                const isTier0 = (item: PaymentListItem) => {
-                    return item.status === 'REFUND_PENDING' || item.status === 'PENDING' || sessionProcessed[item.id] !== undefined;
-                };
+                // 1단계: 미처리 환불대기 우선 (전체 환불대기 및 일부 환불대기)
+                const aIsRefundPending = a.status === 'REFUND_PENDING';
+                const bIsRefundPending = b.status === 'REFUND_PENDING';
 
-                const aTier = isTier0(a);
-                const bTier = isTier0(b);
+                if (aIsRefundPending && !bIsRefundPending) return -1;
+                if (!aIsRefundPending && bIsRefundPending) return 1;
 
-                if (aTier && !bTier) return -1;
-                if (!aTier && bTier) return 1;
-
-                if (aTier && bTier) {
-                    // Tier 0 내부: 최근 작업 건 및 최신 변동 시각 우선 내림차순
-                    const timeA = sessionProcessed[a.id]?.timestamp ?? (a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime());
-                    const timeB = sessionProcessed[b.id]?.timestamp ?? (b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime());
+                // 둘 다 환불대기인 경우: 환불 요청 시각(updatedAt or createdAt) 최신순
+                if (aIsRefundPending && bIsRefundPending) {
+                    const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+                    const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
                     return timeB - timeA;
                 }
 
-                // Tier 1 (일반 타임라인): 예약 신청 일시(createdAt) 기준 최신순 내림차순 배치
-                const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                // 2단계: 유효 기준 시각(effectiveTime) 계산
+                const getEffectiveTime = (item: PaymentListItem) => {
+                    // 환불 완료 건: 환불 처리 시각 기준!
+                    if (item.status === 'REFUNDED') {
+                        if (sessionProcessed[item.id]?.timestamp) return sessionProcessed[item.id]!.timestamp;
+                        if (item.refundedAt) return new Date(item.refundedAt).getTime();
+                        if (item.updatedAt) return new Date(item.updatedAt).getTime();
+                    }
+                    // 일반 예약 결제 건 (PENDING, CONFIRMED, CANCELLED):
+                    // [입금확인]을 눌러도 제자리 유지를 위해 항상 createdAt 기준!
+                    return item.createdAt ? new Date(item.createdAt).getTime() : 0;
+                };
+
+                const timeA = getEffectiveTime(a);
+                const timeB = getEffectiveTime(b);
                 return timeB - timeA;
             });
     }, [allPaymentItems, activeTab, startDate, endDate, searchQuery, searchType, sessionProcessed]);
