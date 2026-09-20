@@ -155,29 +155,21 @@ export default function AdminPaymentsPage() {
 
                 return true;
             })
-            // ★ 스마트 3계층 정렬 (제자리 유지):
+            // ★ 스마트 정렬:
             // 1순위: REFUND_PENDING (환불대기 - 즉각적인 송금 조치 필요하므로 최상단 고정)
-            // 2순위: REFUNDED (환불완료 - 환불 영역 내에서 안정적으로 유지)
-            // 3순위: 일반 예약 타임라인 (PENDING 입금대기 & CONFIRMED 결제완료를 동일 타임라인 그룹으로 묶음)
-            //       -> [입금확인] 버튼 클릭 시 상태가 바뀌어도 행 위치가 아래로 밀려나지 않고 '그 자리에서' 결제완료로 전환 유지!
-            // 4순위: CANCELLED (예약 취소건)
+            // 2순위: 일반 타임라인 (입금대기 PENDING, 결제완료 CONFIRMED, 환불완료 REFUNDED, 취소 CANCELLED)
+            //       - 이미 처리 완료된 환불완료 건은 과거 신청일시(createdAt) 자리에 그대로 머물러 상단을 가리지 않음!
+            //       - [입금확인] 클릭 시: PENDING -> CONFIRMED로 상태가 바뀌어도 동일한 타임라인이므로 행 위치가 전혀 움직이지 않고 '그 자리에서' 결제완료로 유지!
+            //       - 오늘 들어온 신규 예약: 최신 신청일시를 가지므로 상단에 순서대로 배치!
             .sort((a, b) => {
-                const getStatusPriority = (status: string) => {
-                    if (status === 'REFUND_PENDING') return 1; // 환불대기 최상단
-                    if (status === 'REFUNDED') return 2;       // 환불완료
-                    if (status === 'PENDING' || status === 'CONFIRMED') return 3; // 일반 예약 (입금대기 & 입금완료 동일 그룹)
-                    if (status === 'CANCELLED') return 4;
-                    return 5;
-                };
+                const isRefundPending = (status: string) => status === 'REFUND_PENDING';
+                const aReq = isRefundPending(a.status);
+                const bReq = isRefundPending(b.status);
 
-                const priorityA = getStatusPriority(a.status);
-                const priorityB = getStatusPriority(b.status);
+                if (aReq && !bReq) return -1;
+                if (!aReq && bReq) return 1;
 
-                if (priorityA !== priorityB) {
-                    return priorityA - priorityB;
-                }
-
-                // 동일 그룹 내에서는 예약 신청 일시(createdAt) 기준 최신순 내림차순 정렬 (입금확인 시 제자리 유지)
+                // 동일 그룹 내에서는 예약 신청 일시(createdAt) 기준 최신순 내림차순 정렬 (입금확인 및 처리완료 건 제자리 유지)
                 const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                 const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
                 return timeB - timeA;
