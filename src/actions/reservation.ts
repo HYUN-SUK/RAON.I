@@ -236,6 +236,120 @@ export async function updateReservationAction(
     return { success: true };
 }
 
+export interface UpdateReservationDetailsParams {
+    id: string;
+    guestName?: string;
+    guestPhone?: string;
+    vehicleCount?: number;
+    familyCount?: number;
+    visitorCount?: number;
+    guests?: number;
+    guestDetails?: {
+        adults: number;
+        seniors?: number;
+        kids?: {
+            preschool?: number;
+            elementary?: number;
+            teen?: number;
+        };
+        hasPet?: boolean;
+    };
+    requests?: string;
+    newTotalPrice?: number;
+    priceDiff?: number;
+}
+
+/**
+ * 관리자 전용: 예약 전체 입력폼 정보(이름, 연락처, 인원, 차량, 동행자, 요청사항) 수정
+ * - 금액 변동 시 추가 입금대기(PENDING) 또는 환불대기(REFUND_PENDING) 자동 전이
+ * - 기존 AI 스마트플랜(smart_plan_data)은 100% 보존
+ */
+export async function updateReservationDetailsAction(params: UpdateReservationDetailsParams) {
+    await assertAdmin();
+    const supabase = createAdminClient();
+
+    // 1. 현재 예약 조회
+    const { data: currentRes, error: fetchErr } = await (supabase
+        .from('reservations') as any)
+        .select('*')
+        .eq('id', params.id)
+        .single();
+
+    if (fetchErr || !currentRes) {
+        throw new Error('수정할 예약 정보를 찾을 수 없습니다.');
+    }
+
+    // 2. 금액 변동 및 상태 전이 계산
+    const diff = params.priceDiff ?? 0;
+    let nextStatus = currentRes.status;
+    let nextTotalPrice = currentRes.total_price;
+    let nextRefundAmount = currentRes.refund_amount;
+
+    if (diff > 0) {
+        // 추가 금액 발생 -> 추가 입금대기(PENDING)로 전이
+        nextStatus = 'PENDING';
+        nextTotalPrice = params.newTotalPrice ?? (currentRes.total_price + diff);
+    } else if (diff < 0) {
+        // 환불 발생 -> 환불대기(REFUND_PENDING)로 전이
+        nextStatus = 'REFUND_PENDING';
+        nextRefundAmount = Math.abs(diff);
+    }
+
+    // 3. reservations 테이블 업데이트
+    const updatePayload: Record<string, any> = {
+        updated_at: new Date().toISOString()
+    };
+
+    if (params.guestName !== undefined) updatePayload.guest_name = params.guestName;
+    if (params.guestPhone !== undefined) updatePayload.guest_phone = params.guestPhone;
+    if (params.vehicleCount !== undefined) updatePayload.vehicle_count = params.vehicleCount;
+    if (params.familyCount !== undefined) updatePayload.family_count = params.familyCount;
+    if (params.visitorCount !== undefined) updatePayload.visitor_count = params.visitorCount;
+    if (params.guests !== undefined) updatePayload.guests = params.guests;
+    if (params.guestDetails !== undefined) updatePayload.guest_details = params.guestDetails;
+    if (params.requests !== undefined) updatePayload.requests = params.requests;
+
+    if (diff !== 0) {
+        updatePayload.status = nextStatus;
+        updatePayload.total_price = nextTotalPrice;
+        if (diff < 0) {
+            updatePayload.refund_amount = nextRefundAmount;
+        }
+    }
+
+    const { data: updatedRes, error: updateErr } = await (supabase
+        .from('reservations') as any)
+        .update(updatePayload)
+        .eq('id', params.id)
+        .select()
+        .single();
+
+    if (updateErr) {
+        console.error('[Action] updateReservationDetailsAction error:', updateErr);
+        throw new Error(updateErr.message || '예약 정보 수정 실패');
+    }
+
+    // 4. user_schedules 연동 동기화 (smart_plan_data는 절대 초기화하지 않고 100% 보존!)
+    if (params.guests !== undefined) {
+        await (supabase
+            .from('user_schedules') as any)
+            .update({
+                member_count: params.guests,
+                updated_at: new Date().toISOString()
+            })
+            .eq('reservation_id', params.id);
+    }
+
+    // 5. 경로 캐시 무효화
+    revalidatePath('/admin');
+    revalidatePath('/admin/payments');
+    revalidatePath('/admin/block');
+    revalidatePath('/myspace/reservations');
+    revalidatePath('/myspace/schedule');
+
+    return { success: true, reservation: updatedRes, priceDiff: diff };
+}
+
 /**
  * 사용자 예약 취소 요청 (환불 정보 및 취소 사유 저장) [v13.9.0]
  */

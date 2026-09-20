@@ -59,6 +59,7 @@ interface ReservationState {
         familyCount?: number;
         visitorCount?: number;
     }) => Promise<{ success: boolean; oldPrice: number; newPrice: number; diff: number; error?: string }>;
+    updateReservationDetails: (params: import('@/actions/reservation').UpdateReservationDetailsParams) => Promise<{ success: boolean; priceDiff?: number; error?: string }>;
     reset: () => void;
 
     // 예약 취소/환불 관련 액션
@@ -567,9 +568,12 @@ export const useReservationStore = create<ReservationState>()(
                                     guests: r.guests || (r.family_count + r.visitor_count),
                                     totalPrice: r.total_price || 0,
                                     status: r.status,
+                                    guestName: r.guest_name,
+                                    guestPhone: r.guest_phone,
                                     requests: r.requests || '',
                                     guestDetails: r.guest_details,
                                     createdAt: new Date(r.created_at),
+                                    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
                                     refundBank: r.refund_bank,
                                     refundAccount: r.refund_account,
                                     refundHolder: r.refund_holder,
@@ -608,9 +612,12 @@ export const useReservationStore = create<ReservationState>()(
                     guests: r.guests || (r.family_count + r.visitor_count),
                     totalPrice: r.total_price || 0,
                     status: r.status,
+                    guestName: r.guest_name,
+                    guestPhone: r.guest_phone,
                     requests: r.requests || '',
                     guestDetails: r.guest_details,
                     createdAt: new Date(r.created_at),
+                    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
                     // 환불 관련 필드
                     refundBank: r.refund_bank,
                     refundAccount: r.refund_account,
@@ -1028,6 +1035,41 @@ export const useReservationStore = create<ReservationState>()(
                 }));
 
                 return { success: true, oldPrice, newPrice, diff };
+            },
+
+            // 관리자 전용: 예약 전체 입력폼 수정 (이름, 연락처, 인원, 차량, 동행자, 요청사항, 금액변동 연동)
+            updateReservationDetails: async (params) => {
+                try {
+                    const { updateReservationDetailsAction } = await import('@/actions/reservation');
+                    const res = await updateReservationDetailsAction(params);
+                    if (res.success && res.reservation) {
+                        const r = res.reservation;
+                        set((state) => ({
+                            reservations: state.reservations.map((item) =>
+                                item.id === params.id ? {
+                                    ...item,
+                                    guestName: r.guest_name,
+                                    guestPhone: r.guest_phone,
+                                    familyCount: r.family_count,
+                                    visitorCount: r.visitor_count,
+                                    vehicleCount: r.vehicle_count,
+                                    guests: r.guests,
+                                    guestDetails: r.guest_details,
+                                    requests: r.requests,
+                                    status: r.status,
+                                    totalPrice: r.total_price,
+                                    refundAmount: r.refund_amount,
+                                    updatedAt: r.updated_at ? new Date(r.updated_at) : new Date()
+                                } : item
+                            )
+                        }));
+                        return { success: true, priceDiff: res.priceDiff };
+                    }
+                    return { success: false, error: '수정 결과 데이터를 받지 못했습니다.' };
+                } catch (err: any) {
+                    console.error('[Store] updateReservationDetails error:', err);
+                    return { success: false, error: err.message || '예약 상세 정보 수정 실패' };
+                }
             },
 
             reset: () => set({ selectedDateRange: { from: undefined, to: undefined }, selectedSite: null }),

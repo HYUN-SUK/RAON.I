@@ -1,12 +1,66 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-19T11:28:00+09:00  
+**작성 일시**: 2026-09-20T10:25:00+09:00  
 **기준 브랜치**: `main`  
 **빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과, TypeScript 0에러)  
 
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
+
+### 🟢 마일스톤 9.60: 관리자 예약정보 전체 항목 수정 기능 구현(3중 연동·회계 차액 전이·AI 스마트플랜 보존) 및 결제목록 스마트 3계층 정렬(제자리 유지) 완결 (2026-09-20)
+
+1. **예약자 상세화면 내 '예약정보 전체항목 수정 기능' (3중 연동)**:
+   - 대시보드(`TodayCheckInsModal`), 통합캘린더(`UnifiedReservationCalendar`), 결제목록(`payments/page.tsx`) 어디서든 예약자를 클릭하면 동일한 `AdminReservationDetailModal`이 열리고, 상단 `[✏️ 정보 수정]` 버튼으로 전체 입력폼을 수정할 수 있도록 일원화.
+   - **수정 가능 전체 항목**:
+     - 예약자 성함 (`guestName`), 연락처 (`guestPhone`), 차량 대수 (`vehicleCount`)
+     - 가족 수 (`familyCount`), 추가 방문객 수 (`visitorCount`)
+     - 숙박 동행자 세부 구성: 성인, 시니어, 청소년, 초등학생, 미취학 아동, 반려동물 동반 토글(`Switch`)
+     - 고객 요청사항 (`requests`)
+   - **실시간 요금 재산출 및 회계 자동 전이 (`priceDiff`)**:
+     - 가족 수 및 방문객 수 변경 시 `calculatePrice`를 통해 실시간으로 재계산 및 미리보기 카드 노출.
+     - `diff > 0`: `total_price` 증액 및 상태를 `PENDING`(추가 입금대기)으로 자동 전이하여 결제목록에 노출.
+     - `diff < 0`: 상태를 `REFUND_PENDING`(환불대기)으로 자동 전이 및 `refund_amount = Math.abs(diff)` 기록하여 결제목록 최상단에 노출.
+     - `diff === 0`: 기존 결제 상태 유지.
+   - **AI 스마트플랜 결과물 100% 보존**:
+     - `user_schedules.smart_plan_data`를 `null`로 초기화하지 않고 그대로 온전히 보존하며 `member_count`만 갱신. (차후 사용자가 일정/플랜 재생성을 누를 때 최신 인원으로 자연스럽게 반영).
+   - **3중 0초 동기화**:
+     - DB `reservations` 즉시 갱신 (`updateReservationDetailsAction`).
+     - 관리자 UI 전역(결제목록/대시보드/캘린더) 0초 즉시 반영 (`updateReservationDetails` 스토어 액션).
+     - 사용자 UI(`/myspace/reservations`, `/myspace/schedule`) 100% 동기화.
+
+2. **결제목록(`payments/page.tsx`) 스마트 3계층 정렬 (제자리 유지)**:
+   - **배경**: 기존 `isActionRequired` 플래그로 인해 관리자가 [입금확인]을 누르면 항목이 2~3페이지 아래로 떨어져 목록에서 사라진 것처럼 보이는 문제 발생.
+   - **개선 알고리즘**:
+     - 1순위: `REFUND_PENDING` (환불대기 - 즉각적인 송금 조치가 필요하므로 무조건 최상단 고정)
+     - 2순위: `REFUNDED` (환불완료 - 환불 영역 내에서 안정적으로 유지)
+     - 3순위: 일반 예약 타임라인 (`PENDING` 입금대기 & `CONFIRMED` 결제완료를 동일 타임라인 그룹으로 묶음)
+     - 4순위: `CANCELLED` (예약 취소건)
+     - 동일 그룹 내에서는 예약 신청 일시(`createdAt`) 기준 최신순 내림차순 정렬.
+   - **결과**: 관리자가 `PENDING` 행에서 [입금확인]을 눌러 `CONFIRMED`로 바뀌어도 행의 순서가 전혀 바뀌지 않고 **그 자리에서 [결제완료] 뱃지로 바뀌며 완벽히 유지**됨. 신규 예약은 그 위로 자연스럽게 누적.
+
+3. **TypeScript 무결성 검증**:
+   - `npx tsc --noEmit` 실행 결과 **오류 0건 (Exit Code 0)** PASS.
+
+---
+
+### 🟢 마일스톤 9.59: 11월 대규모 예약 오픈 직전(T-30) 실시간 점검, 16개 전 실전 시뮬레이션 100% 통과 및 표준 점검 가이드(SOP) 완결 (2026-09-20)
+
+1. **오픈 직전 실시간 운영 DB 및 인프라 무결성 검증 (08:35 KST)**:
+   - `system_config`: `maintenance_mode: false`, `reservation_enabled: true`, `notification_enabled: true` 정상.
+   - `IS_RESERVATION_LOCKED: false` (긴급 락 해제 상태).
+   - 실제 2026년 11월 일반 예약 건수: **0건 (완전 백지 상태 확인)**.
+   - 실제 2026년 11월 관리자 차단일 건수: **6건 정상 보존** (10월 말 연박 퇴실 4건 + 오늘 관리자 수동 등록 김성은님 2건).
+   - Edge Function `camping-reminder`: **Status 200 OK** 정상 응답 확인.
+
+2. **16개 전 실전 엣지 케이스 통합 시뮬레이션 100% 전수 PASS (`scripts/simulate-master-edge-cases.mjs`)**:
+   - **선택 A(완전 무위험 가상 격리)** 방식을 준수하여 2099년 연도 격리 및 가상 시간 주입으로 운영 DB 오염 0.00% 보장.
+   - 08:59 vs 09:00 경계 동적 마감일 계산, 모바일 0.05초 더블탭 락, 비로그인 DB 외래키 위반 0% 방어, 100:1 단일 명당 경합 배타락(소요: 854ms), 10개 사이트 50명 동시 폭격, 에어컨 기기 연쇄 배정 및 air-group 대표카드 DB 레벨 차단 연동, 환불대기(`REFUND_PENDING`) 자리 즉시 오픈, 퇴실일 Turnover 허용 및 체류일 침범 차단, 주말 잔여석 규칙 및 취소 시 실시간 차단 연동, Realtime 500ms 디바운스(부하 95% 절감), FCM 알림 비동기 격리, 시뮬레이션 후 2099년 잔여 0건 완전 클린업까지 **16/16 전 케이스 100.0% 통과**.
+
+3. **표준 사전 점검 가이드(SOP) 문서화 완결 (`docs/PRE_OPEN_INSPECTION_AND_SIMULATION_GUIDE.md`)**:
+   - 차후 다른 세션 및 매월 20일 대규모 예약 오픈 직전에 원클릭으로 점검과 시뮬레이션을 수행할 수 있도록 명령어, 16개 케이스 판정 기준, DB 컬럼 주의사항, 타임라인별 체크리스트를 표준 매뉴얼로 공식 편철.
+
+---
 
 ### 🟢 마일스톤 9.58: 캠핑 리마인더 Edge Function D-1/D-4 구버전 영구 소멸 원격 배포 및 D-0 행사 거리 소수점 1자리 정돈 완결 (2026-09-19)
 

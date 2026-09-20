@@ -235,6 +235,7 @@ export default function TodayCheckInsModal({ isOpen, onClose }: TodayCheckInsMod
                 reservation={selectedReservation}
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
+                onStatusChanged={() => fetchAllReservations()}
             />
         </>
     );

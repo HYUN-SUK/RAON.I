@@ -6,7 +6,7 @@ import {
     eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, addDays, isWithinInterval, differenceInDays, startOfDay
 } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Ban, CheckCircle, Clock, XCircle, Info, User, Phone, Search, Trash2, Edit2, Calendar, History, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ban, CheckCircle, Clock, XCircle, Info, User, Phone, Search, Trash2, Edit2, Edit3, Calendar, History, Loader2 } from 'lucide-react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { Reservation, BlockedDate } from '@/types/reservation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -21,6 +21,7 @@ import { notificationService } from '@/services/notificationService';
 import { NotificationEventType } from '@/types/notificationEvents';
 import { parseSafeDate, formatLocalDate } from '@/utils/date';
 import CancelReservationDialog from './CancelReservationDialog';
+import AdminReservationDetailModal from './AdminReservationDetailModal';
 
 export default function UnifiedReservationCalendar() {
     const {
@@ -34,6 +35,7 @@ export default function UnifiedReservationCalendar() {
 
     // Modal State
     const [viewMode, setViewMode] = useState<'BLOCK' | 'DETAIL' | 'DAILY' | 'DELETE_CONFIRM' | 'MODIFY' | 'AIRCON_DAILY' | 'CAMFIT_MONITOR' | 'ACTION_CONFIRM' | null>(null);
+    const [isAdminDetailOpen, setIsAdminDetailOpen] = useState(false);
     const [isActionSubmitting, setIsActionSubmitting] = useState(false);
     const [isSubmittingModify, setIsSubmittingModify] = useState(false);
     const [isConfirmingDeposit, setIsConfirmingDeposit] = useState(false);
@@ -250,7 +252,7 @@ export default function UnifiedReservationCalendar() {
             setSelectedReservation(status.data);
             setSelectedBlock(null);
             setShowHistory(false);
-            safeSetViewMode('DETAIL');
+            setIsAdminDetailOpen(true);
         } else if (status?.type === 'BLOCKED') {
             setSelectedBlock(status.data);
             setSelectedReservation(null);
@@ -662,6 +664,17 @@ export default function UnifiedReservationCalendar() {
                                                 )}
                                             </Button>
                                         )}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 font-bold"
+                                            onClick={() => {
+                                                setViewMode(null);
+                                                setIsAdminDetailOpen(true);
+                                            }}
+                                        >
+                                            <Edit3 className="w-4 h-4 mr-1" /> 정보 수정
+                                        </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -1300,6 +1313,34 @@ export default function UnifiedReservationCalendar() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* 통합 예약자 상세 정보 및 전체 항목 수정 모달 */}
+            <AdminReservationDetailModal
+                reservation={selectedReservation}
+                isOpen={isAdminDetailOpen}
+                onClose={() => {
+                    setIsAdminDetailOpen(false);
+                    setSelectedReservation(null);
+                }}
+                onStatusChanged={() => {
+                    reloadCalendarData();
+                }}
+                onModifySchedule={(res) => {
+                    setSelectedReservation(res);
+                    const inDate = typeof res.checkInDate === 'string'
+                        ? parseSafeDate(res.checkInDate)
+                        : new Date(res.checkInDate);
+                    const outDate = typeof res.checkOutDate === 'string'
+                        ? parseSafeDate(res.checkOutDate)
+                        : new Date(res.checkOutDate);
+                    setModifyCheckIn(inDate);
+                    const nights = Math.max(1, Math.ceil((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24)));
+                    setModifyDuration(nights.toString());
+                    setModifySiteId(res.siteId);
+                    setModifyPricePreview(null);
+                    safeSetViewMode('MODIFY');
+                }}
+            />
         </div>
     );
 }
