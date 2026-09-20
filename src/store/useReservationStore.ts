@@ -73,6 +73,7 @@ interface ReservationState {
         cancelReason?: string;
     }) => Promise<{ success: boolean; refundRate?: number; refundAmount?: number; error?: string; message?: string }>;
     completeRefund: (reservationId: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+    completePartialRefund: (reservationId: string) => Promise<{ success: boolean; error?: string }>;
 
     // Helper to calculate price
     calculatePrice: (site: Site, checkIn: Date, checkOut: Date, familyCount: number, visitorCount: number) => PriceBreakdown;
@@ -892,6 +893,33 @@ export const useReservationStore = create<ReservationState>()(
                 return result;
             },
 
+            // 관리자 전용: 일부 환불(차액) 완료 처리 (본 예약 CONFIRMED 유지, 여정 취소 안 함)
+            completePartialRefund: async (reservationId: string) => {
+                try {
+                    const { completePartialRefundAction } = await import('@/actions/reservation');
+                    const res = await completePartialRefundAction(reservationId);
+                    if (res.success && res.reservation) {
+                        const r = res.reservation;
+                        set((state) => ({
+                            reservations: state.reservations.map((item) =>
+                                item.id === reservationId
+                                    ? {
+                                        ...item,
+                                        refundedAt: r.refunded_at ? new Date(r.refunded_at) : new Date(),
+                                        updatedAt: r.updated_at ? new Date(r.updated_at) : new Date()
+                                    }
+                                    : item
+                            )
+                        }));
+                        return { success: true };
+                    }
+                    return { success: false, error: '일부 환불 처리에 실패했습니다.' };
+                } catch (err: any) {
+                    console.error('[Store] completePartialRefund error:', err);
+                    return { success: false, error: err.message || '일부 환불 처리 중 오류가 발생했습니다.' };
+                }
+            },
+
             // 예약 상태 변경 (낙관적 UI 0.01초 즉시 반영 + DB/서버액션 동기화)
             updateReservationStatus: async (id, status, cancelReason) => {
                 // 1. 낙관적 업데이트 (Optimistic Update): UI 반응을 0.01초 만에 즉시 반영
@@ -1059,6 +1087,7 @@ export const useReservationStore = create<ReservationState>()(
                                     status: r.status,
                                     totalPrice: r.total_price,
                                     refundAmount: r.refund_amount,
+                                    refundedAt: r.refunded_at ? new Date(r.refunded_at) : undefined,
                                     updatedAt: r.updated_at ? new Date(r.updated_at) : new Date()
                                 } : item
                             )

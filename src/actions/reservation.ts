@@ -286,12 +286,14 @@ export async function updateReservationDetailsAction(params: UpdateReservationDe
     let nextRefundAmount = currentRes.refund_amount;
 
     if (diff > 0) {
-        // 추가 금액 발생 -> 추가 입금대기(PENDING)로 전이
+        // 추가 금액 발생 -> 추가 입금대기(PENDING)로 전이 (캘린더 점유 정상 유지)
         nextStatus = 'PENDING';
         nextTotalPrice = params.newTotalPrice ?? (currentRes.total_price + diff);
     } else if (diff < 0) {
-        // 환불 발생 -> 환불대기(REFUND_PENDING)로 전이
-        nextStatus = 'REFUND_PENDING';
+        // 차액 환불 발생 -> 본 예약(CONFIRMED)과 사이트 점유는 100% 유지!
+        // 절대 REFUND_PENDING으로 바꾸지 않고 차액만 refund_amount로 적재
+        nextStatus = currentRes.status;
+        nextTotalPrice = params.newTotalPrice ?? (currentRes.total_price + diff);
         nextRefundAmount = Math.abs(diff);
     }
 
@@ -309,12 +311,14 @@ export async function updateReservationDetailsAction(params: UpdateReservationDe
     if (params.guestDetails !== undefined) updatePayload.guest_details = params.guestDetails;
     if (params.requests !== undefined) updatePayload.requests = params.requests;
 
-    if (diff !== 0) {
+    if (diff > 0) {
         updatePayload.status = nextStatus;
         updatePayload.total_price = nextTotalPrice;
-        if (diff < 0) {
-            updatePayload.refund_amount = nextRefundAmount;
-        }
+    } else if (diff < 0) {
+        updatePayload.status = nextStatus; // 기존 CONFIRMED 유지 (사이트 점유 보호)
+        updatePayload.total_price = nextTotalPrice;
+        updatePayload.refund_amount = nextRefundAmount;
+        updatePayload.refunded_at = null; // 일부 환불 대기 상태로 세팅
     }
 
     const { data: updatedRes, error: updateErr } = await (supabase
@@ -348,6 +352,37 @@ export async function updateReservationDetailsAction(params: UpdateReservationDe
     revalidatePath('/myspace/schedule');
 
     return { success: true, reservation: updatedRes, priceDiff: diff };
+}
+
+/**
+ * 관리자 전용: 예약 정보 수정으로 발생한 '일부 환불(차액)' 완료 처리
+ * - 본 예약의 CONFIRMED 상태 및 사이트 점유 100% 유지
+ * - 고객 여행 일정(user_schedules) 취소 없이 순수 차액 정산(refunded_at 기록)만 수행
+ */
+export async function completePartialRefundAction(reservationId: string) {
+    await assertAdmin();
+    const supabase = createAdminClient();
+
+    const { data: updatedRes, error: updateErr } = await (supabase
+        .from('reservations') as any)
+        .update({
+            refunded_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', reservationId)
+        .select()
+        .single();
+
+    if (updateErr) {
+        console.error('[Action] completePartialRefundAction error:', updateErr);
+        throw new Error(updateErr.message || '일부 환불 처리 실패');
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/payments');
+    revalidatePath('/myspace/reservations');
+
+    return { success: true, reservation: updatedRes };
 }
 
 /**
