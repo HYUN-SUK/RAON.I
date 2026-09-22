@@ -169,24 +169,35 @@ export default function InstantPlanModal({
     });
     const [regStayType, setRegStayType] = useState<'0n1d' | '1n2d' | '2n3d' | '3n4d' | 'custom'>('1n2d');
 
-    // [v14.3.0] 모바일 뒤로가기(Popstate) 가드 & 히스토리 1:1 동기화
-    const hasSubsheetHistoryPushedRef = React.useRef(false);
+    // [v14.4.0] 3단계 계층형 모바일 뒤로가기(Popstate) 가드 & 히스토리 동기화
+    // Level 1: 모달 루트 (InstantPlanModal)
+    // Level 2: 하위 시트 (대체리스트 swapCategory, 길찾기 navTargetCard)
+    // Level 3: 대체리스트 지도로 보기 (isMapModalOpen)
+    const modalHistoryPushedRef = React.useRef(false);
+    const subsheetDepthRef = React.useRef<number>(0); // 0: 없음, 1: 대체리스트/내비, 2: 지도
+    const isHandlingPopStateRef = React.useRef(false);
+    const isProgrammaticBackRef = React.useRef(false);
 
-    // 하위 시트(대체리스트, 내비, 지도) 오픈 시 가상 히스토리 등록
+    // 하위 시트(대체리스트, 내비) 오픈 시 가상 히스토리 등록 (Level 2: depth 0 -> 1)
     const pushSubsheetHistory = React.useCallback(() => {
-        if (!hasSubsheetHistoryPushedRef.current && typeof window !== 'undefined') {
-            window.history.pushState({ raonSubsheet: true }, '', window.location.href);
-            hasSubsheetHistoryPushedRef.current = true;
+        if (subsheetDepthRef.current === 0 && typeof window !== 'undefined') {
+            window.history.pushState({ raonSubsheet: 1 }, '', window.location.href);
+            subsheetDepthRef.current = 1;
         }
     }, []);
 
     // 하위 시트 닫힘 시 가상 히스토리 회수 (X버튼, 배경터치, 일정교체 시 호출)
     const closeSubsheetWithHistory = React.useCallback((callback?: () => void) => {
-        if (hasSubsheetHistoryPushedRef.current) {
-            hasSubsheetHistoryPushedRef.current = false;
-            if (typeof window !== 'undefined') {
-                window.history.back();
-            }
+        const depth = subsheetDepthRef.current;
+        if (depth > 0 && typeof window !== 'undefined') {
+            subsheetDepthRef.current = 0;
+            isProgrammaticBackRef.current = true;
+            try {
+                window.history.go(-depth);
+            } catch {}
+            setTimeout(() => {
+                isProgrammaticBackRef.current = false;
+            }, 60);
         }
         if (callback) callback();
     }, []);
@@ -201,44 +212,85 @@ export default function InstantPlanModal({
     const swapCategoryRef = React.useRef(swapCategory);
     swapCategoryRef.current = swapCategory;
 
-    // popstate 이벤트 리스너 등록: isOpen 변경 시에만 등록/해제되어 상태 변경 시 뒤로가기가 오작동하지 않음
+    // popstate 이벤트 리스너 및 모달 루트 가상 히스토리 등록
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen) {
+            // 외부 UI 터치 등으로 모달이 닫혔을 때 남아있는 가상 히스토리 안전 회수
+            if (!isHandlingPopStateRef.current && typeof window !== 'undefined') {
+                const totalToPop = (modalHistoryPushedRef.current ? 1 : 0) + subsheetDepthRef.current;
+                modalHistoryPushedRef.current = false;
+                subsheetDepthRef.current = 0;
+                if (totalToPop > 0) {
+                    isProgrammaticBackRef.current = true;
+                    try {
+                        window.history.go(-totalToPop);
+                    } catch {}
+                    setTimeout(() => {
+                        isProgrammaticBackRef.current = false;
+                    }, 60);
+                }
+            }
+            return;
+        }
+
+        // 1. 모달 루트 진입 시 가상 히스토리 등록 (Level 1)
+        if (!modalHistoryPushedRef.current && typeof window !== 'undefined') {
+            window.history.pushState({ raonModal: 'instant_plan' }, '', window.location.href);
+            modalHistoryPushedRef.current = true;
+        }
 
         const handlePopState = () => {
-            if (isMapModalOpenRef.current) {
-                setIsMapModalOpen(false);
-                hasSubsheetHistoryPushedRef.current = false;
-                if (savedSwapCategoryRef.current) {
-                    setSwapCategory(savedSwapCategoryRef.current);
-                    if (savedSwapTargetIdRef.current) {
-                        setSwapTargetId(savedSwapTargetIdRef.current);
+            // 프로그래밍 방식으로 history.back/go를 호출한 경우 popstate 내부 중복 실행 방지
+            if (isProgrammaticBackRef.current) return;
+
+            isHandlingPopStateRef.current = true;
+            try {
+                // Level 3: 지도가 열려있는 경우 -> 지도만 닫고 대체리스트 시트 복원 (depth: 2 -> 1)
+                if (isMapModalOpenRef.current) {
+                    setIsMapModalOpen(false);
+                    subsheetDepthRef.current = 1;
+                    if (savedSwapCategoryRef.current) {
+                        setSwapCategory(savedSwapCategoryRef.current);
+                        if (savedSwapTargetIdRef.current) {
+                            setSwapTargetId(savedSwapTargetIdRef.current);
+                        }
                     }
+                    return;
                 }
-                return;
-            }
-            if (navTargetCardRef.current) {
-                setNavTargetCard(null);
-                hasSubsheetHistoryPushedRef.current = false;
-                return;
-            }
-            if (swapCategoryRef.current) {
-                setSwapCategory(null);
-                setSwapTargetId(null);
-                hasSubsheetHistoryPushedRef.current = false;
-                return;
+
+                // Level 2: 길찾기 내비 시트가 열려있는 경우 -> 내비 시트만 닫기 (depth: 1 -> 0)
+                if (navTargetCardRef.current) {
+                    setNavTargetCard(null);
+                    subsheetDepthRef.current = 0;
+                    return;
+                }
+
+                // Level 2: 대체리스트 시트가 열려있는 경우 -> 대체리스트 닫고 플랜 결과화면 복귀 (depth: 1 -> 0)
+                if (swapCategoryRef.current) {
+                    setSwapCategory(null);
+                    setSwapTargetId(null);
+                    subsheetDepthRef.current = 0;
+                    return;
+                }
+
+                // Level 1: 하위 시트가 없는 모달 본체 상태 -> 모달 닫기 (홈 화면 잔류)
+                if (modalHistoryPushedRef.current) {
+                    modalHistoryPushedRef.current = false;
+                    onClose();
+                    return;
+                }
+            } finally {
+                setTimeout(() => {
+                    isHandlingPopStateRef.current = false;
+                }, 60);
             }
         };
 
         window.addEventListener('popstate', handlePopState);
         return () => {
             window.removeEventListener('popstate', handlePopState);
-            if (hasSubsheetHistoryPushedRef.current) {
-                hasSubsheetHistoryPushedRef.current = false;
-                try { window.history.back(); } catch {}
-            }
         };
-    }, [isOpen]);
+    }, [isOpen, onClose]);
 
     // [v14.3.0] 외부 링크(카카오맵, 네이버) 이동 후 복귀 시 결과 세션 자동 복원
     useEffect(() => {
@@ -462,6 +514,15 @@ export default function InstantPlanModal({
             return;
         }
 
+        // [핵심 방어 가드] 이미 유효한 여행계획이 존재하고 결과/게이트 단계이거나 생성 진행 중인 경우,
+        // 백그라운드 GPS 갱신(userLat/userLng)이나 포커스 이동으로 인한 불필요한 초기화(else 블록) 원천 차단!
+        if (planData && (step === 'RESULT' || step === 'PROFILE_GATE')) {
+            return;
+        }
+        if (step === 'GENERATING') {
+            return;
+        }
+
         if (initialMode === 'NEARBY') {
             if (nearbyRunningRef.current) return;
             nearbyRunningRef.current = true;
@@ -592,7 +653,7 @@ export default function InstantPlanModal({
             setPlanData(null);
             setSwapCategory(null);
         }
-    }, [isOpen, initialMode, todayStr, defaultSaturday, skipLocationRequest, userLat, userLng, initialDraftData]);
+    }, [isOpen, initialMode, todayStr, defaultSaturday, skipLocationRequest, userLat, userLng, initialDraftData, planData, step]);
 
     // Handle address / keyword search (Only triggered upon Enter key or [검색] button click)
     const handleSearch = async (query: string) => {
@@ -735,7 +796,7 @@ export default function InstantPlanModal({
         });
     };
 
-    // 대체리스트 지도로 보기 모달 오픈
+    // 대체리스트 지도로 보기 모달 오픈 (Level 2 -> Level 3)
     const handleOpenAlternativesMap = (currentActive: any, allOptions: any[]) => {
         savedSwapCategoryRef.current = swapCategory;
         savedSwapTargetIdRef.current = swapTargetId;
@@ -743,10 +804,19 @@ export default function InstantPlanModal({
         setMapCurrentActiveCard(currentActive);
         setMapCandidateCards(allOptions);
         setIsMapModalOpen(true);
+        // Level 3 가상 히스토리 등록 (depth: 1 -> 2)
+        if (typeof window !== 'undefined' && subsheetDepthRef.current === 1) {
+            window.history.pushState({ raonSubsheet: 2 }, '', window.location.href);
+            subsheetDepthRef.current = 2;
+        }
     };
 
-    // 지도 창에서 리스트로 복귀
+    // 지도 창에서 대체리스트로 복귀 (Level 3 -> Level 2)
     const handleSwitchToList = () => {
+        if (typeof window !== 'undefined' && subsheetDepthRef.current === 2) {
+            window.history.back(); // popstate 이벤트가 지도를 닫고 대체리스트를 안전 복원
+            return;
+        }
         setIsMapModalOpen(false);
         if (savedSwapCategoryRef.current) {
             setSwapCategory(savedSwapCategoryRef.current);
@@ -901,7 +971,11 @@ export default function InstantPlanModal({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setStep('INPUT')}
+                                onClick={() => {
+                                    try { sessionStorage.removeItem('raon_active_instant_plan'); } catch {}
+                                    setPlanData(null);
+                                    setStep('INPUT');
+                                }}
                                 className="h-8 px-2 text-xs text-stone-500 hover:text-stone-800"
                             >
                                 <RefreshCw className="w-3.5 h-3.5 mr-1" />
@@ -1663,11 +1737,7 @@ export default function InstantPlanModal({
                 {/* 3. 대화형 지도 모달 (대체리스트 지도로 보기) */}
                 <SmartPlanMapViewModal
                     isOpen={isMapModalOpen}
-                    onClose={() => closeSubsheetWithHistory(() => {
-                        setIsMapModalOpen(false);
-                        savedSwapCategoryRef.current = null;
-                        savedSwapTargetIdRef.current = null;
-                    })}
+                    onClose={handleSwitchToList}
                     mode="alternatives"
                     destination={selectedDestination ? { lat: selectedDestination.lat, lng: selectedDestination.lng } : undefined}
                     destinationName={selectedDestination?.name || '목적지'}

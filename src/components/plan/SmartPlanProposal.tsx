@@ -2365,11 +2365,15 @@ export default function SmartPlanProposal({
             {/* 6. [v14.0.0] 스마트플랜 통합 대화형 지도 모달 (대체리스트 지도 & 전체 동선 지도) */}
             <SmartPlanMapViewModal
                 isOpen={isMapModalOpen}
-                onClose={() => closeSubsheetWithHistory(() => {
-                    setIsMapModalOpen(false);
-                    savedSwapCategoryRef.current = null;
-                    savedSwapTargetIdRef.current = null;
-                })}
+                onClose={() => {
+                    if (mapModalMode === 'alternatives') {
+                        handleSwitchToList();
+                    } else {
+                        closeSubsheetWithHistory(() => {
+                            setIsMapModalOpen(false);
+                        });
+                    }
+                }}
                 mode={mapModalMode}
                 selectedRouteData={selectedRouteData}
                 origin={userOrigin || origin}
