@@ -17,13 +17,6 @@ export default function SocialLoginButtons() {
                 redirectTo: `${window.location.origin}/auth/callback`,
             };
 
-            // TWA/모바일 환경에서 카카오톡 앱 전환으로 인한 프로세스 리셋 및 PKCE 쿠키 유실 방어
-            if (provider === 'kakao') {
-                options.queryParams = {
-                    prompt: 'login', // 카카오톡 앱 점프를 방지하고 동일 브라우저/웹뷰 세션 내에서 안정적 인증 완결
-                };
-            }
-
             // 외부 창 이동 중 사용자 취소 복귀 시 무한 스피너 방지 (10초 안전 해제)
             setTimeout(() => {
                 setLoading(null);

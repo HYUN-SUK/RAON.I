@@ -145,15 +145,20 @@ export function openNavApp(
 
     const fallbackUrl = getWebFallbackUrl(app, route);
 
-    // 딥링크 실행
-    window.location.href = url;
+    // [v14.3.0] 웹 URL은 현재 RAON.I 창을 덮어쓰지 않고 새 창으로 오픈하여 여행계획 결과물 유지
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+        // 네이티브 앱 스킴(kakaomap://, tmap://, intent://) 실행
+        window.location.href = url;
 
-    // 앱이 열리지 않았을 경우를 대비한 폴백 (2초 후)
-    setTimeout(() => {
-        if (document.visibilityState === 'visible') {
-            window.open(fallbackUrl, '_blank');
-        }
-    }, 2000);
+        // 앱이 열리지 않았을 경우를 대비한 웹 폴백 (2초 후)
+        setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+            }
+        }, 2000);
+    }
 
     return url;
 }

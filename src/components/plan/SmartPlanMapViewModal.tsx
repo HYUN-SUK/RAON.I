@@ -401,15 +401,20 @@ export default function SmartPlanMapViewModal({
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="font-bold text-gray-900 text-sm truncate">{focusedCard.name}</h4>
+                                        <h4 className="font-bold text-gray-900 text-sm truncate min-w-0 flex-1">{focusedCard.name}</h4>
                                         {mode === 'alternatives' ? (
                                             focusedCard.id === currentActiveCard?.id ? (
-                                                <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                             ) : (
-                                                <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-bold">후보 추천</span>
+                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-bold">후보 추천</span>
                                             )
                                         ) : (
-                                            <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-bold">확정된 장소</span>
+                                            <span className="shrink-0 whitespace-nowrap text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-bold">확정된 장소</span>
+                                        )}
+                                        {focusedCard.distanceKm !== undefined && focusedCard.distanceKm > 0 && (
+                                            <span className="shrink-0 whitespace-nowrap text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/50">
+                                                📍 {focusedCard.distanceKm.toFixed(1)}km
+                                            </span>
                                         )}
                                     </div>
                                     {(focusedCard.metadata?.address || focusedCard.metadata?.addr || focusedCard.address) && (

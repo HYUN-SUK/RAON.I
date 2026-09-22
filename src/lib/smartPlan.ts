@@ -1243,6 +1243,12 @@ export async function generatePersonalizedSmartPlan(
                 fests[0].selectionTier = 'FEATURED';
                 fests[0].roleName = '투데이 로컬 축제';
                 featuredFestival.push(fests[0]);
+                if (fests.length > 1) {
+                    alternatives['FESTIVAL'] = fests.slice(1, 5).map(f => {
+                        f.selectionTier = 'ALTERNATIVE';
+                        return f;
+                    });
+                }
             }
         } else {
             console.warn("No reservation ID found. Track A is empty. Executing realtime fallback for essentials...");

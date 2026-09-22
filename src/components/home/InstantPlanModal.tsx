@@ -62,8 +62,15 @@ const CATEGORY_NAMES: Record<string, string> = {
     'GAS_STATION': '주유/등유/차박',
     'RESTAURANT': '현지 맛집',
     'SPOT': '주변 인생샷 명소',
-    'FESTIVAL': '로컬 축제/이벤트',
 };
+
+function calcHaversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371;
+    const f1 = lat1 * Math.PI / 180, f2 = lat2 * Math.PI / 180;
+    const df = (lat2 - lat1) * Math.PI / 180, dl = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(df / 2) * Math.sin(df / 2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 interface InstantPlanModalProps {
     isOpen: boolean;
@@ -153,6 +160,116 @@ export default function InstantPlanModal({
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const nearbyRunningRef = React.useRef(false);
 
+    // Registration dates (입실일 / 퇴실일 / 박수)
+    const [regCheckIn, setRegCheckIn] = useState<string>(todayStr);
+    const [regCheckOut, setRegCheckOut] = useState<string>(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().split('T')[0];
+    });
+    const [regStayType, setRegStayType] = useState<'0n1d' | '1n2d' | '2n3d' | '3n4d' | 'custom'>('1n2d');
+
+    // [v14.3.0] 모바일 뒤로가기(Popstate) 가드 & 히스토리 1:1 동기화
+    const hasSubsheetHistoryPushedRef = React.useRef(false);
+
+    // 하위 시트(대체리스트, 내비, 지도) 오픈 시 가상 히스토리 등록
+    const pushSubsheetHistory = React.useCallback(() => {
+        if (!hasSubsheetHistoryPushedRef.current && typeof window !== 'undefined') {
+            window.history.pushState({ raonSubsheet: true }, '');
+            hasSubsheetHistoryPushedRef.current = true;
+        }
+    }, []);
+
+    // 하위 시트 닫힘 시 가상 히스토리 회수 (X버튼, 배경터치, 일정교체 시 호출)
+    const closeSubsheetWithHistory = React.useCallback((callback?: () => void) => {
+        if (hasSubsheetHistoryPushedRef.current) {
+            hasSubsheetHistoryPushedRef.current = false;
+            if (typeof window !== 'undefined') {
+                window.history.back();
+            }
+        }
+        if (callback) callback();
+    }, []);
+
+    // popstate 이벤트 리스너 등록
+    useEffect(() => {
+        const handlePopState = () => {
+            if (isMapModalOpen) {
+                setIsMapModalOpen(false);
+                hasSubsheetHistoryPushedRef.current = false;
+                if (savedSwapCategoryRef.current) {
+                    setSwapCategory(savedSwapCategoryRef.current);
+                    if (savedSwapTargetIdRef.current) {
+                        setSwapTargetId(savedSwapTargetIdRef.current);
+                    }
+                }
+                return;
+            }
+            if (navTargetCard) {
+                setNavTargetCard(null);
+                hasSubsheetHistoryPushedRef.current = false;
+                return;
+            }
+            if (swapCategory) {
+                setSwapCategory(null);
+                setSwapTargetId(null);
+                hasSubsheetHistoryPushedRef.current = false;
+                return;
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            if (hasSubsheetHistoryPushedRef.current) {
+                hasSubsheetHistoryPushedRef.current = false;
+                try { window.history.back(); } catch {}
+            }
+        };
+    }, [isMapModalOpen, navTargetCard, swapCategory]);
+
+    // [v14.3.0] 외부 링크(카카오맵, 네이버) 이동 후 복귀 시 결과 세션 자동 복원
+    useEffect(() => {
+        if (planData && step === 'RESULT') {
+            try {
+                sessionStorage.setItem('raon_active_instant_plan', JSON.stringify({
+                    planData,
+                    selectedDestination,
+                    targetDate,
+                    regStayType,
+                    step: 'RESULT',
+                    savedAt: Date.now()
+                }));
+            } catch (e) {
+                console.warn('[InstantPlan] Failed to cache active plan:', e);
+            }
+        }
+    }, [planData, step, selectedDestination, targetDate, regStayType]);
+
+    useEffect(() => {
+        if (isOpen && !initialDraftData && !planData) {
+            try {
+                const cached = sessionStorage.getItem('raon_active_instant_plan');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (parsed && parsed.savedAt && Date.now() - parsed.savedAt < 30 * 60 * 1000) {
+                        if (parsed.planData) {
+                            setPlanData(parsed.planData);
+                            if (parsed.selectedDestination) setSelectedDestination(parsed.selectedDestination);
+                            if (parsed.targetDate) setTargetDate(parsed.targetDate);
+                            if (parsed.regStayType) setRegStayType(parsed.regStayType);
+                            setStep('RESULT');
+                        }
+                    } else {
+                        sessionStorage.removeItem('raon_active_instant_plan');
+                    }
+                }
+            } catch (e) {
+                console.warn('[InstantPlan] Restore from session failed:', e);
+            }
+        }
+    }, [isOpen, initialDraftData]);
+
     useEffect(() => {
         if (!isOpen) return;
         const checkUser = async () => {
@@ -167,14 +284,6 @@ export default function InstantPlanModal({
         checkUser();
     }, [isOpen]);
 
-    // Registration dates (입실일 / 퇴실일 / 박수)
-    const [regCheckIn, setRegCheckIn] = useState<string>(todayStr);
-    const [regCheckOut, setRegCheckOut] = useState<string>(() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 1);
-        return d.toISOString().split('T')[0];
-    });
-    const [regStayType, setRegStayType] = useState<'0n1d' | '1n2d' | '2n3d' | '3n4d' | 'custom'>('1n2d');
 
     const handleApplyStayType = (type: '0n1d' | '1n2d' | '2n3d' | '3n4d') => {
         setRegStayType(type);
@@ -567,17 +676,20 @@ export default function InstantPlanModal({
                 [category]: newAlts,
             }
         });
-        setSwapCategory(null);
-        setSwapTargetId(null);
-        savedSwapCategoryRef.current = null;
-        savedSwapTargetIdRef.current = null;
+        closeSubsheetWithHistory(() => {
+            setSwapCategory(null);
+            setSwapTargetId(null);
+            savedSwapCategoryRef.current = null;
+            savedSwapTargetIdRef.current = null;
+            setIsMapModalOpen(false);
+        });
         toast.success('일정이 교체되었습니다.');
     };
 
     const handleCardClick = (card: FactCard) => {
         const officialUrl = card.metadata?.url || card.metadata?.homepage || card.metadata?.link;
         if (officialUrl && officialUrl !== '없음') {
-            window.open(officialUrl, '_blank');
+            window.open(officialUrl, '_blank', 'noopener,noreferrer');
         } else {
             const address = card.metadata?.address || card.metadata?.addr || '';
             let sigungu = '';
@@ -589,13 +701,14 @@ export default function InstantPlanModal({
             }
             const queryStr = sigungu ? `${sigungu} ${card.name}` : card.name;
             const query = encodeURIComponent(queryStr);
-            window.open(`https://search.naver.com/search.naver?query=${query}`, '_blank');
+            window.open(`https://search.naver.com/search.naver?query=${query}`, '_blank', 'noopener,noreferrer');
         }
     };
 
     const handleNavClick = (e: React.MouseEvent, card: FactCard) => {
         e.stopPropagation();
         setNavTargetCard(card);
+        pushSubsheetHistory();
     };
 
     const handleNavChoice = (app: 'kakao' | 'tmap' | 'kakaonavi') => {
@@ -605,7 +718,9 @@ export default function InstantPlanModal({
             origin: { name: '현재 위치', lat: 0, lng: 0 },
             destination: { name, lat, lng }
         });
-        setNavTargetCard(null);
+        closeSubsheetWithHistory(() => {
+            setNavTargetCard(null);
+        });
     };
 
     // 대체리스트 지도로 보기 모달 오픈
@@ -1272,7 +1387,7 @@ export default function InstantPlanModal({
                         {/* 외부 터치 시 닫기 */}
                         <div 
                             className="absolute inset-0"
-                            onClick={() => setSwapCategory(null)}
+                            onClick={() => closeSubsheetWithHistory(() => setSwapCategory(null))}
                         />
                         <div className="relative w-full max-h-[85vh] overflow-y-auto bg-[#F7F5EF] rounded-t-3xl px-4 pb-8 z-10 shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
                             {/* 헤더 */}
@@ -1286,7 +1401,7 @@ export default function InstantPlanModal({
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => setSwapCategory(null)}
+                                    onClick={() => closeSubsheetWithHistory(() => setSwapCategory(null))}
                                     className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full active:scale-95 transition-all"
                                     aria-label="닫기"
                                 >
@@ -1339,7 +1454,7 @@ export default function InstantPlanModal({
 
                                                     return chunks.map((chunk, chunkIdx) => (
                                                         <div key={chunkIdx} className="snap-center shrink-0 w-[88vw] max-w-[420px] space-y-3">
-                                                            {chunk.map((opt, idx) => {
+                                                             {chunk.map((opt, idx) => {
                                                                 const globalIdx = chunkIdx * 3 + idx;
                                                                 const isCurrentActive = opt.id === currentActive?.id;
                                                                 return (
@@ -1351,13 +1466,31 @@ export default function InstantPlanModal({
                                                                         <CardContent className="p-3 flex items-start gap-3">
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="flex items-center gap-2 mb-1">
-                                                                                    <h4 className="font-bold text-gray-900 text-[13px] truncate">
-                                                                                        <span className="text-[10px] text-gray-400 mr-1">{globalIdx + 1}위</span>
+                                                                                    <h4 className="font-bold text-gray-900 text-[13px] truncate min-w-0 flex-1">
+                                                                                        <span className="text-[10px] text-gray-400 mr-1 shrink-0">{globalIdx + 1}위</span>
                                                                                         {opt.name}
                                                                                     </h4>
                                                                                     {isCurrentActive && (
-                                                                                        <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                                                        <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                                                                     )}
+                                                                                    {(() => {
+                                                                                        let dist = opt.distanceKm;
+                                                                                        if ((dist === undefined || dist <= 0) && opt.lat && opt.lng) {
+                                                                                            const refLat = selectedDestination?.lat || userLat;
+                                                                                            const refLng = selectedDestination?.lng || userLng;
+                                                                                            if (refLat && refLng) {
+                                                                                                dist = calcHaversineKm(refLat, refLng, opt.lat, opt.lng);
+                                                                                            }
+                                                                                        }
+                                                                                        if (dist !== undefined && dist > 0) {
+                                                                                            return (
+                                                                                                <span className="shrink-0 whitespace-nowrap text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/50">
+                                                                                                    📍 {dist.toFixed(1)}km
+                                                                                                </span>
+                                                                                            );
+                                                                                        }
+                                                                                        return null;
+                                                                                    })()}
                                                                                 </div>
                                                                                 <p className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium">{formatPlaceDetailText(opt)}</p>
                                                                                 {(() => {
@@ -1464,7 +1597,7 @@ export default function InstantPlanModal({
                         {/* 외부 터치 시 닫기 */}
                         <div 
                             className="absolute inset-0"
-                            onClick={() => setNavTargetCard(null)}
+                            onClick={() => closeSubsheetWithHistory(() => setNavTargetCard(null))}
                         />
                         <div className="relative w-full rounded-t-3xl p-6 bg-white dark:bg-zinc-900 z-10 shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
                             <div className="flex items-center justify-between mb-6">
@@ -1478,7 +1611,7 @@ export default function InstantPlanModal({
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => setNavTargetCard(null)}
+                                    onClick={() => closeSubsheetWithHistory(() => setNavTargetCard(null))}
                                     className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full active:scale-95 transition-all"
                                     aria-label="닫기"
                                 >
@@ -1518,7 +1651,11 @@ export default function InstantPlanModal({
                 {/* 3. 대화형 지도 모달 (대체리스트 지도로 보기) */}
                 <SmartPlanMapViewModal
                     isOpen={isMapModalOpen}
-                    onClose={() => setIsMapModalOpen(false)}
+                    onClose={() => closeSubsheetWithHistory(() => {
+                        setIsMapModalOpen(false);
+                        savedSwapCategoryRef.current = null;
+                        savedSwapTargetIdRef.current = null;
+                    })}
                     mode="alternatives"
                     destination={selectedDestination ? { lat: selectedDestination.lat, lng: selectedDestination.lng } : undefined}
                     destinationName={selectedDestination?.name || '목적지'}
@@ -1529,7 +1666,6 @@ export default function InstantPlanModal({
                         if (cat) {
                             handleSwapPlace(cat, newPlaceId);
                         }
-                        setIsMapModalOpen(false);
                     }}
                     onSwitchToList={handleSwitchToList}
                     renderCustomCard={(card, onCloseCard) => {
@@ -1591,6 +1727,7 @@ export default function InstantPlanModal({
                                         setIsMapModalOpen(false);
                                         setSwapCategory(cat);
                                         setSwapTargetId(card.id);
+                                        pushSubsheetHistory();
                                     }}
                                     className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#224732] hover:bg-[#224732]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#224732]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
                                     title="다른 장소로 교체"

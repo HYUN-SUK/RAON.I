@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle, Eye, EyeOff, X, Check } from 'lucide-react';
@@ -138,6 +138,75 @@ export default function SmartPlanProposal({
     const [mapCurrentActiveCard, setMapCurrentActiveCard] = useState<any>(null);
     const savedSwapCategoryRef = useRef<any>(null);
     const savedSwapTargetIdRef = useRef<string | null>(null);
+
+    // [v14.3.0] 모바일 뒤로가기(Popstate) 가드 & 히스토리 1:1 동기화
+    const hasSubsheetHistoryPushedRef = useRef(false);
+
+    // 하위 시트(대체리스트, 내비, 리포트, 지도) 오픈 시 가상 히스토리 등록
+    const pushSubsheetHistory = useCallback(() => {
+        if (!hasSubsheetHistoryPushedRef.current && typeof window !== 'undefined') {
+            window.history.pushState({ raonProposalSubsheet: true }, '');
+            hasSubsheetHistoryPushedRef.current = true;
+        }
+    }, []);
+
+    // 하위 시트 닫힘 시 가상 히스토리 회수 (닫기버튼, 배경터치, 일정교체 시 호출)
+    const closeSubsheetWithHistory = useCallback((callback?: () => void) => {
+        if (hasSubsheetHistoryPushedRef.current) {
+            hasSubsheetHistoryPushedRef.current = false;
+            if (typeof window !== 'undefined') {
+                window.history.back();
+            }
+        }
+        if (callback) callback();
+    }, []);
+
+    // popstate 이벤트 리스너 등록
+    useEffect(() => {
+        const handlePopState = () => {
+            if (isMapModalOpen) {
+                setIsMapModalOpen(false);
+                hasSubsheetHistoryPushedRef.current = false;
+                if (mapModalMode === 'alternatives' && savedSwapCategoryRef.current) {
+                    setSwapCategory(savedSwapCategoryRef.current);
+                    if (savedSwapTargetIdRef.current) {
+                        setSwapTargetId(savedSwapTargetIdRef.current);
+                    }
+                }
+                return;
+            }
+            if (reportTargetCard) {
+                setReportTargetCard(null);
+                hasSubsheetHistoryPushedRef.current = false;
+                return;
+            }
+            if (showRouteNav) {
+                setShowRouteNav(false);
+                hasSubsheetHistoryPushedRef.current = false;
+                return;
+            }
+            if (navTargetCard) {
+                setNavTargetCard(null);
+                hasSubsheetHistoryPushedRef.current = false;
+                return;
+            }
+            if (swapCategory) {
+                setSwapCategory(null);
+                setSwapTargetId(null);
+                hasSubsheetHistoryPushedRef.current = false;
+                return;
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            if (hasSubsheetHistoryPushedRef.current) {
+                hasSubsheetHistoryPushedRef.current = false;
+                try { window.history.back(); } catch {}
+            }
+        };
+    }, [isMapModalOpen, mapModalMode, reportTargetCard, showRouteNav, navTargetCard, swapCategory]);
 
     // 숨김 카드 ID 복원 및 상태 (Set)
     const initialHiddenCardIds = useMemo(() => {
@@ -531,7 +600,13 @@ export default function SmartPlanProposal({
                 };
                 updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
             }
-            setSwapCategory(null);
+            closeSubsheetWithHistory(() => {
+                setSwapCategory(null);
+                setSwapTargetId(null);
+                savedSwapCategoryRef.current = null;
+                savedSwapTargetIdRef.current = null;
+                setIsMapModalOpen(false);
+            });
         }
     };
 
@@ -613,6 +688,7 @@ export default function SmartPlanProposal({
         if (!plan) return;
         setMapModalMode('full_timeline');
         setIsMapModalOpen(true);
+        pushSubsheetHistory();
     };
 
     // [v11.9.27] 카드 클릭 시 외부 링크 또는 검색 연동
@@ -622,7 +698,7 @@ export default function SmartPlanProposal({
         }
         const officialUrl = card.metadata?.url || card.metadata?.homepage || card.metadata?.link;
         if (officialUrl && officialUrl !== '없음') {
-            window.open(officialUrl, '_blank');
+            window.open(officialUrl, '_blank', 'noopener,noreferrer');
         } else {
             const address = card.metadata?.address || card.metadata?.addr || '';
             let sigungu = '';
@@ -635,13 +711,14 @@ export default function SmartPlanProposal({
             const queryStr = sigungu ? `${sigungu} ${card.name}` : card.name;
             const query = encodeURIComponent(queryStr);
             // 1순위 네이버 검색, 2순위 구글 검색 (필요시)
-            window.open(`https://search.naver.com/search.naver?query=${query}`, '_blank');
+            window.open(`https://search.naver.com/search.naver?query=${query}`, '_blank', 'noopener,noreferrer');
         }
     };
 
     const handleNavClick = (e: React.MouseEvent, card: FactCard) => {
         e.stopPropagation();
         setNavTargetCard(card);
+        pushSubsheetHistory();
     };
 
     const handleNavChoice = (app: 'kakao' | 'tmap' | 'kakaonavi') => {
@@ -666,7 +743,9 @@ export default function SmartPlanProposal({
             stage: (navTargetCard as any).stage || 'DESTINATION',
         });
 
-        setNavTargetCard(null);
+        closeSubsheetWithHistory(() => {
+            setNavTargetCard(null);
+        });
     };
 
 
@@ -830,7 +909,7 @@ export default function SmartPlanProposal({
                         return (
                             <span
                                 key={`tag-${index}`}
-                                onClick={(e) => { e.stopPropagation(); setSwapCategory(fact.category); }}
+                                onClick={(e) => { e.stopPropagation(); setSwapCategory(fact.category); pushSubsheetHistory(); }}
                                 className="inline-flex cursor-pointer text-[#F7F5EF] font-bold bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-lg mx-1 transition-colors border-b-2 border-[#F7F5EF]/40 hover:border-[#F7F5EF]"
                             >
                                 {placeName}
@@ -926,6 +1005,7 @@ export default function SmartPlanProposal({
                                     setSwapCategory(card.category); 
                                     setSwapTargetId(card.id);
                                     setSwapPage(0); 
+                                    pushSubsheetHistory();
                                 }}
                                 className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#224732] hover:bg-[#224732]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#224732]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
                                 title="다른 장소로 교체"
@@ -1153,6 +1233,7 @@ export default function SmartPlanProposal({
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setReportTargetCard({ ...card, stage });
+                                    pushSubsheetHistory();
                                 }}
                                 className="text-[11px] text-gray-400 hover:text-amber-700 font-medium flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-amber-50"
                             >
@@ -1577,7 +1658,10 @@ export default function SmartPlanProposal({
                     {plan && selectedRouteData && (
                         <div className="mt-6 pt-6 border-t border-white/10">
                             <Button
-                                onClick={() => setShowRouteNav(true)}
+                                onClick={() => {
+                                    setShowRouteNav(true);
+                                    pushSubsheetHistory();
+                                }}
                                 className="w-full h-14 bg-white text-[#224732] hover:bg-white/90 rounded-2xl font-black text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
                             >
                                 <div className="w-8 h-8 rounded-full bg-[#224732]/10 flex items-center justify-center">
@@ -1814,8 +1898,10 @@ export default function SmartPlanProposal({
                         }
                     }
 
-                    setSwapCategory(null);
-                    setSwapPage(0);
+                    closeSubsheetWithHistory(() => {
+                        setSwapCategory(null);
+                        setSwapPage(0);
+                    });
                 }
             }}>
 
@@ -1832,6 +1918,7 @@ export default function SmartPlanProposal({
                     <div className="py-5 space-y-4">
                         {(() => {
                             if (!swapCategory) return null;
+                            const isTrackA = ['RESTAURANT', 'SPOT', 'FESTIVAL', 'MART', 'HOSPITAL', 'GAS_STATION'].includes(swapCategory);
                             const currentActive = plan.itemListElement?.find(c => c.id === swapTargetId) || 
                                                  plan.routeListElement?.find(c => c.id === swapTargetId) || 
                                                  plan.returnListElement?.find(c => c.id === swapTargetId);
@@ -1948,13 +2035,28 @@ export default function SmartPlanProposal({
                                                                 <CardContent className="p-3 flex items-start gap-3">
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center gap-2 mb-1">
-                                                                            <h4 className="font-bold text-gray-900 text-[13px] truncate">
-                                                                                <span className="text-[10px] text-gray-400 mr-1">{globalIdx + 1}위</span>
+                                                                            <h4 className="font-bold text-gray-900 text-[13px] truncate min-w-0 flex-1">
+                                                                                <span className="text-[10px] text-gray-400 mr-1 shrink-0">{globalIdx + 1}위</span>
                                                                                 {opt.name}
                                                                             </h4>
                                                                             {isCurrentActive && (
-                                                                                <span className="text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                                                             )}
+                                                                            {/* [v14.3.0] 캠핑장 주변(Track A) 카테고리만 거리 표시 (Track B는 거리 미표시 원칙 준수) */}
+                                                                            {isTrackA && (() => {
+                                                                                let dist = opt.distanceKm;
+                                                                                if ((dist === undefined || dist <= 0) && opt.lat && opt.lng && locLat && locLng) {
+                                                                                    dist = getDistHelper(locLat, locLng, opt.lat, opt.lng) / 1000;
+                                                                                }
+                                                                                if (dist !== undefined && dist > 0) {
+                                                                                    return (
+                                                                                        <span className="shrink-0 whitespace-nowrap text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/50">
+                                                                                            📍 {dist.toFixed(1)}km
+                                                                                        </span>
+                                                                                    );
+                                                                                }
+                                                                                return null;
+                                                                            })()}
                                                                         </div>
                                                                         <p className="text-[11px] text-gray-500 line-clamp-1 mb-1 font-medium">{formatPlaceDetailText(opt)}</p>
                                                                         {(() => {
@@ -2065,7 +2167,11 @@ export default function SmartPlanProposal({
                 </SheetContent>
             </Sheet>
             {/* 내비게이션 앱 선택 시트 */}
-            <Sheet open={!!navTargetCard} onOpenChange={() => setNavTargetCard(null)}>
+            <Sheet open={!!navTargetCard} onOpenChange={(open) => {
+                if (!open) {
+                    closeSubsheetWithHistory(() => setNavTargetCard(null));
+                }
+            }}>
                 <SheetContent side="bottom" className="rounded-t-3xl p-6">
                     <SheetHeader className="mb-6">
                         <SheetTitle className="text-left flex items-center gap-2">
@@ -2106,7 +2212,11 @@ export default function SmartPlanProposal({
             </Sheet>
 
             {/* [v11.9.45] 전체 경로 내비게이션 앱 선택 시트 */}
-            <Sheet open={showRouteNav} onOpenChange={setShowRouteNav}>
+            <Sheet open={showRouteNav} onOpenChange={(open) => {
+                if (!open) {
+                    closeSubsheetWithHistory(() => setShowRouteNav(false));
+                }
+            }}>
                 <SheetContent side="bottom" className="rounded-t-[32px] p-8 bg-[#F7F5EF] border-none shadow-2xl">
                     <SheetHeader className="mb-8">
                         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
@@ -2145,7 +2255,7 @@ export default function SmartPlanProposal({
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
                                 openNavApp('kakaonavi', route);
-                                setShowRouteNav(false);
+                                closeSubsheetWithHistory(() => setShowRouteNav(false));
                             }}
                         >
                             <div className="w-12 h-12 rounded-2xl bg-yellow-400 flex items-center justify-center text-white text-sm font-black shadow-sm">
@@ -2174,7 +2284,7 @@ export default function SmartPlanProposal({
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
                                 openNavApp('tmap', route);
-                                setShowRouteNav(false);
+                                closeSubsheetWithHistory(() => setShowRouteNav(false));
                             }}
                         >
                             <div className="w-12 h-12 rounded-2xl bg-[#FF4500] flex items-center justify-center text-white text-[10px] font-black shadow-sm">
@@ -2203,7 +2313,7 @@ export default function SmartPlanProposal({
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
                                 openNavApp('naver', route);
-                                setShowRouteNav(false);
+                                closeSubsheetWithHistory(() => setShowRouteNav(false));
                             }}
                         >
                             <div className="w-12 h-12 rounded-2xl bg-[#03C75A] flex items-center justify-center text-white text-xs font-black shadow-sm">
@@ -2223,7 +2333,7 @@ export default function SmartPlanProposal({
             {reportTargetCard && (
                 <FactReportSheet
                     isOpen={!!reportTargetCard}
-                    onClose={() => setReportTargetCard(null)}
+                    onClose={() => closeSubsheetWithHistory(() => setReportTargetCard(null))}
                     placeId={reportTargetCard.id}
                     placeName={reportTargetCard.name}
                     stage={reportTargetCard.stage}
@@ -2236,7 +2346,11 @@ export default function SmartPlanProposal({
             {/* 6. [v14.0.0] 스마트플랜 통합 대화형 지도 모달 (대체리스트 지도 & 전체 동선 지도) */}
             <SmartPlanMapViewModal
                 isOpen={isMapModalOpen}
-                onClose={() => setIsMapModalOpen(false)}
+                onClose={() => closeSubsheetWithHistory(() => {
+                    setIsMapModalOpen(false);
+                    savedSwapCategoryRef.current = null;
+                    savedSwapTargetIdRef.current = null;
+                })}
                 mode={mapModalMode}
                 selectedRouteData={selectedRouteData}
                 origin={userOrigin || origin}
@@ -2264,7 +2378,6 @@ export default function SmartPlanProposal({
                             if (cat) {
                                 handleSwapOptionSelected(cat, newPlaceId);
                             }
-                            setIsMapModalOpen(false);
                         }
                     });
                 }}
