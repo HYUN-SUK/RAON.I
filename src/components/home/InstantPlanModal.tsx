@@ -292,47 +292,7 @@ export default function InstantPlanModal({
         };
     }, [isOpen, onClose]);
 
-    // [v14.3.0] 외부 링크(카카오맵, 네이버) 이동 후 복귀 시 결과 세션 자동 복원
-    useEffect(() => {
-        if (planData && step === 'RESULT') {
-            try {
-                sessionStorage.setItem('raon_active_instant_plan', JSON.stringify({
-                    planData,
-                    selectedDestination,
-                    targetDate,
-                    regStayType,
-                    step: 'RESULT',
-                    savedAt: Date.now()
-                }));
-            } catch (e) {
-                console.warn('[InstantPlan] Failed to cache active plan:', e);
-            }
-        }
-    }, [planData, step, selectedDestination, targetDate, regStayType]);
 
-    useEffect(() => {
-        if (isOpen && !initialDraftData && !planData) {
-            try {
-                const cached = sessionStorage.getItem('raon_active_instant_plan');
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    if (parsed && parsed.savedAt && Date.now() - parsed.savedAt < 30 * 60 * 1000) {
-                        if (parsed.planData) {
-                            setPlanData(parsed.planData);
-                            if (parsed.selectedDestination) setSelectedDestination(parsed.selectedDestination);
-                            if (parsed.targetDate) setTargetDate(parsed.targetDate);
-                            if (parsed.regStayType) setRegStayType(parsed.regStayType);
-                            setStep('RESULT');
-                        }
-                    } else {
-                        sessionStorage.removeItem('raon_active_instant_plan');
-                    }
-                }
-            } catch (e) {
-                console.warn('[InstantPlan] Restore from session failed:', e);
-            }
-        }
-    }, [isOpen, initialDraftData]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -492,6 +452,20 @@ export default function InstantPlanModal({
     useEffect(() => {
         if (!isOpen) {
             nearbyRunningRef.current = false;
+            setPlanData(null);
+            setStep('INPUT');
+            setSearchQuery('');
+            setSelectedDestination(null);
+            setSearchResults([]);
+            setSwapCategory(null);
+            setSwapTargetId(null);
+            savedSwapCategoryRef.current = null;
+            savedSwapTargetIdRef.current = null;
+            setIsMapModalOpen(false);
+            setNavTargetCard(null);
+            try {
+                sessionStorage.removeItem('raon_active_instant_plan');
+            } catch {}
             return;
         }
 
