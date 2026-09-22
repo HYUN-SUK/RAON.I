@@ -175,7 +175,7 @@ export default function InstantPlanModal({
     // 하위 시트(대체리스트, 내비, 지도) 오픈 시 가상 히스토리 등록
     const pushSubsheetHistory = React.useCallback(() => {
         if (!hasSubsheetHistoryPushedRef.current && typeof window !== 'undefined') {
-            window.history.pushState({ raonSubsheet: true }, '');
+            window.history.pushState({ raonSubsheet: true }, '', window.location.href);
             hasSubsheetHistoryPushedRef.current = true;
         }
     }, []);
@@ -191,10 +191,22 @@ export default function InstantPlanModal({
         if (callback) callback();
     }, []);
 
-    // popstate 이벤트 리스너 등록
+    // 최신 상태를 popstate 이벤트 핸들러에서 안전하게 참조하기 위한 Refs
+    const isMapModalOpenRef = React.useRef(isMapModalOpen);
+    isMapModalOpenRef.current = isMapModalOpen;
+
+    const navTargetCardRef = React.useRef(navTargetCard);
+    navTargetCardRef.current = navTargetCard;
+
+    const swapCategoryRef = React.useRef(swapCategory);
+    swapCategoryRef.current = swapCategory;
+
+    // popstate 이벤트 리스너 등록: isOpen 변경 시에만 등록/해제되어 상태 변경 시 뒤로가기가 오작동하지 않음
     useEffect(() => {
+        if (!isOpen) return;
+
         const handlePopState = () => {
-            if (isMapModalOpen) {
+            if (isMapModalOpenRef.current) {
                 setIsMapModalOpen(false);
                 hasSubsheetHistoryPushedRef.current = false;
                 if (savedSwapCategoryRef.current) {
@@ -205,12 +217,12 @@ export default function InstantPlanModal({
                 }
                 return;
             }
-            if (navTargetCard) {
+            if (navTargetCardRef.current) {
                 setNavTargetCard(null);
                 hasSubsheetHistoryPushedRef.current = false;
                 return;
             }
-            if (swapCategory) {
+            if (swapCategoryRef.current) {
                 setSwapCategory(null);
                 setSwapTargetId(null);
                 hasSubsheetHistoryPushedRef.current = false;
@@ -226,7 +238,7 @@ export default function InstantPlanModal({
                 try { window.history.back(); } catch {}
             }
         };
-    }, [isMapModalOpen, navTargetCard, swapCategory]);
+    }, [isOpen]);
 
     // [v14.3.0] 외부 링크(카카오맵, 네이버) 이동 후 복귀 시 결과 세션 자동 복원
     useEffect(() => {

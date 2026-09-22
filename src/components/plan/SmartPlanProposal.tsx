@@ -145,7 +145,7 @@ export default function SmartPlanProposal({
     // 하위 시트(대체리스트, 내비, 리포트, 지도) 오픈 시 가상 히스토리 등록
     const pushSubsheetHistory = useCallback(() => {
         if (!hasSubsheetHistoryPushedRef.current && typeof window !== 'undefined') {
-            window.history.pushState({ raonProposalSubsheet: true }, '');
+            window.history.pushState({ raonProposalSubsheet: true }, '', window.location.href);
             hasSubsheetHistoryPushedRef.current = true;
         }
     }, []);
@@ -161,13 +161,32 @@ export default function SmartPlanProposal({
         if (callback) callback();
     }, []);
 
-    // popstate 이벤트 리스너 등록
+    // 최신 상태를 popstate 이벤트 핸들러에서 안전하게 참조하기 위한 Refs
+    const isMapModalOpenRef = useRef(isMapModalOpen);
+    isMapModalOpenRef.current = isMapModalOpen;
+
+    const mapModalModeRef = useRef(mapModalMode);
+    mapModalModeRef.current = mapModalMode;
+
+    const reportTargetCardRef = useRef(reportTargetCard);
+    reportTargetCardRef.current = reportTargetCard;
+
+    const showRouteNavRef = useRef(showRouteNav);
+    showRouteNavRef.current = showRouteNav;
+
+    const navTargetCardRef = useRef(navTargetCard);
+    navTargetCardRef.current = navTargetCard;
+
+    const swapCategoryRef = useRef(swapCategory);
+    swapCategoryRef.current = swapCategory;
+
+    // popstate 이벤트 리스너 등록: 컴포넌트 마운트 시 1회만 등록되어 상태 변경 시 뒤로가기가 오작동하지 않음
     useEffect(() => {
         const handlePopState = () => {
-            if (isMapModalOpen) {
+            if (isMapModalOpenRef.current) {
                 setIsMapModalOpen(false);
                 hasSubsheetHistoryPushedRef.current = false;
-                if (mapModalMode === 'alternatives' && savedSwapCategoryRef.current) {
+                if (mapModalModeRef.current === 'alternatives' && savedSwapCategoryRef.current) {
                     setSwapCategory(savedSwapCategoryRef.current);
                     if (savedSwapTargetIdRef.current) {
                         setSwapTargetId(savedSwapTargetIdRef.current);
@@ -175,22 +194,22 @@ export default function SmartPlanProposal({
                 }
                 return;
             }
-            if (reportTargetCard) {
+            if (reportTargetCardRef.current) {
                 setReportTargetCard(null);
                 hasSubsheetHistoryPushedRef.current = false;
                 return;
             }
-            if (showRouteNav) {
+            if (showRouteNavRef.current) {
                 setShowRouteNav(false);
                 hasSubsheetHistoryPushedRef.current = false;
                 return;
             }
-            if (navTargetCard) {
+            if (navTargetCardRef.current) {
                 setNavTargetCard(null);
                 hasSubsheetHistoryPushedRef.current = false;
                 return;
             }
-            if (swapCategory) {
+            if (swapCategoryRef.current) {
                 setSwapCategory(null);
                 setSwapTargetId(null);
                 hasSubsheetHistoryPushedRef.current = false;
@@ -206,7 +225,7 @@ export default function SmartPlanProposal({
                 try { window.history.back(); } catch {}
             }
         };
-    }, [isMapModalOpen, mapModalMode, reportTargetCard, showRouteNav, navTargetCard, swapCategory]);
+    }, []);
 
     // 숨김 카드 ID 복원 및 상태 (Set)
     const initialHiddenCardIds = useMemo(() => {
