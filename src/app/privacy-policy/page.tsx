@@ -181,11 +181,11 @@ export default function PrivacyPolicyPage() {
                         <div className="bg-[#F7F5EF] p-4 rounded-xl border border-stone-200 mt-2 space-y-2">
                             <div className="flex items-center gap-2 text-stone-700">
                                 <User className="w-4 h-4 text-[#1C4526]" />
-                                <span className="font-bold text-xs">보호책임자: 정현석 (라온아이 대표)</span>
+                                <span className="font-bold text-xs">보호책임자: 정현석 (라오아이상점 대표)</span>
                             </div>
                             <div className="flex items-center gap-2 text-stone-600">
                                 <Mail className="w-4 h-4 text-stone-500" />
-                                <span className="text-xs">이메일: a01074040108@gmail.com</span>
+                                <span className="text-xs">이메일: tootg@naver.com</span>
                             </div>
                         </div>
                     </section>

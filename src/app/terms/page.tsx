@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, FileText, MapPin, Clock, ShieldCheck, Mail, User } from 'lucide-react';
+import { ArrowLeft, FileText, MapPin, Clock, ShieldCheck, Mail, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function TermsContent() {
@@ -317,21 +317,33 @@ function TermsContent() {
                                 <p className="text-stone-600 text-xs">
                                     회사는 위치정보를 적절히 보호·관리하고 개인위치정보주체의 불만을 원활히 처리하기 위하여 다음과 같이 위치정보 관리책임자를 지정하여 운영합니다.
                                 </p>
-                                <div className="mt-2 bg-stone-50 p-3.5 rounded-xl border border-stone-200/80 text-xs text-stone-700 space-y-1.5">
+                                <div className="mt-2 bg-stone-50 p-3.5 rounded-xl border border-stone-200/80 text-xs text-stone-700 space-y-2">
                                     <p className="flex items-center gap-1.5">
-                                        <ShieldCheck size={14} className="text-[#1C4526]" />
-                                        <span><strong>상호명:</strong> 라온아이 (RAON.I)</span>
+                                        <ShieldCheck size={14} className="text-[#1C4526] shrink-0" />
+                                        <span><strong>상호명:</strong> 라오아이상점 (서비스명: 라온아이 / RAON.I)</span>
                                     </p>
                                     <p className="flex items-center gap-1.5">
-                                        <User size={14} className="text-[#1C4526]" />
-                                        <span><strong>위치정보 관리책임자:</strong> 정현석</span>
+                                        <FileText size={14} className="text-[#1C4526] shrink-0" />
+                                        <span><strong>위치기반서비스사업 신고번호:</strong> 제1605호</span>
                                     </p>
                                     <p className="flex items-center gap-1.5">
-                                        <Mail size={14} className="text-[#1C4526]" />
+                                        <Building2 size={14} className="text-[#1C4526] shrink-0" />
+                                        <span><strong>사업자등록번호:</strong> 617-50-01122</span>
+                                    </p>
+                                    <p className="flex items-center gap-1.5">
+                                        <MapPin size={14} className="text-[#1C4526] shrink-0" />
+                                        <span><strong>사업장 주소:</strong> 충청남도 예산군 응봉면 응봉서로 280, 1동 1층 (지석리)</span>
+                                    </p>
+                                    <p className="flex items-center gap-1.5">
+                                        <User size={14} className="text-[#1C4526] shrink-0" />
+                                        <span><strong>대표자 및 위치정보 관리책임자:</strong> 정현석</span>
+                                    </p>
+                                    <p className="flex items-center gap-1.5">
+                                        <Mail size={14} className="text-[#1C4526] shrink-0" />
                                         <span><strong>연락처 및 이메일:</strong> tootg@naver.com</span>
                                     </p>
-                                    <p className="text-stone-400 text-[11px] pt-1 border-t border-stone-200 mt-2">
-                                        본 약관은 2026년 9월 14일부터 적용됩니다.
+                                    <p className="text-stone-400 text-[11px] pt-1.5 border-t border-stone-200 mt-2">
+                                        본 약관은 2026년 9월 22일부터 적용됩니다.
                                     </p>
                                 </div>
                             </section>
