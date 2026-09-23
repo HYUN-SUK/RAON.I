@@ -1,6 +1,20 @@
 # Task Management
 
 ## Completed Tasks (2026-09-23)
+- [x] **마일스톤 9.67**: 홈 화면 UI 전면 개편(스크롤 제로 골든존), 탑바 '스마트 여행수첩' 2단 타이틀 안착 및 리마인더 팝업 전환 완결
+  - **탑바(TopBar) 높이 및 브랜드 타이틀 강화 (`TopBar.tsx`)**:
+    - 헤더 높이를 `h-[74px]`로 확장하여 시각적 여유(Breathing room) 확보.
+    - 중앙 로고에 큼직한 `RAON.I` (`text-[21px] font-black tracking-widest`)와 서브타이틀 `스마트 여행수첩` (`text-[13.5px] font-bold mt-1.5`) 2단 계층 구조를 안착하여 브랜드 정체성 극대화.
+  - **상단 공지·알림 바 라이트 모드 최적화 (`SlimNotice.tsx`, `NotificationBadge.tsx`)**:
+    - 히어로 사진이 제거된 밝은 배경에 맞춰 부드러운 스톤 배경과 딥그린 아이콘, 진한 텍스트의 `variant="home"` 스타일 신설.
+    - 알림이 없을 때는 공지사항 바가 전체 가로폭(`w-full`)으로 자연스럽게 확장.
+  - **리마인더 배너 ➔ 팝업 모달 전환 (`ReminderModal.tsx`, `BeginnerHome.tsx`)**:
+    - 홈 최상단 100px을 가리던 인라인 배너를 전면 제거하고 전용 팝업 모달로 분리.
+    - `[v] 오늘 하루 보지 않기` 체크박스 연동 (`raonai_hide_reminder_today` 로컬스토리지 저장), `[다음에 하기]` 및 `[✏️ 10초 기록하기]` 버튼 제공으로 유저 피로도 제로화 및 작성 전환율 극대화.
+  - **홈 화면 스크롤 제로(Zero-Scroll) 골든존 레이아웃 재배치 (`BeginnerHome.tsx`)**:
+    - 거대한 히어로 사진(210px) 및 중앙 문구를 완전 삭제.
+    - **[탑바] ➔ [공지·알림 바] ➔ [즉시여행 2종 버튼: 내 주변/목적지] ➔ [다가오는 일정 카드] ➔ [나의 전체일정] ➔ [캠핑장 소개/예약]** 순서로 전면 재배치하여, 첫 화면에서 스크롤을 내리지 않고도 핵심 액션을 즉시 터치할 수 있도록 모바일 UX 완성.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
 - [x] **마일스톤 9.66**: 다가오는 일정 뱃지 문구 깜빡임(Flicker) 완치 및 상세 화면 스마트플랜 0초 즉시 렌더링(Cache-First) 완결
   - **홈 일정 카드 상단 뱃지 깜빡임 완치 (`ScheduleHomeWidget.tsx`)**:
     - `schedules` 초기 상태를 `localStorage.getItem('user_schedules_cache')`로 즉시 동기화.

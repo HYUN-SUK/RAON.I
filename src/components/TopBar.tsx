@@ -185,7 +185,7 @@ export default function TopBar() {
     };
 
     return (
-        <header className="sticky top-0 z-[100] flex justify-between items-center px-6 h-[60px] bg-white shadow-sm">
+        <header className="sticky top-0 z-[100] flex justify-between items-center px-5 h-[74px] bg-white shadow-sm">
             {/* Level & XP */}
             <div className="flex flex-col ml-1">
                 <span className="text-[10px] text-stone-500 font-bold mb-0.5">Level {level}</span>
@@ -201,9 +201,14 @@ export default function TopBar() {
             </div>
 
             {/* Logo - Centered */}
-            <h1 className="text-lg font-bold text-text-1 tracking-widest font-sans absolute left-1/2 -translate-x-1/2">
-                RAON.I
-            </h1>
+            <div className="flex flex-col items-center justify-center absolute left-1/2 -translate-x-1/2 pointer-events-none select-none py-1">
+                <h1 className="text-[21px] sm:text-[22px] font-black text-stone-900 dark:text-stone-100 tracking-widest font-sans leading-none">
+                    RAON.I
+                </h1>
+                <span className="text-[13.5px] sm:text-[14px] font-bold text-[#224732] dark:text-emerald-400 tracking-tight mt-1.5 leading-none whitespace-nowrap">
+                    스마트 여행수첩
+                </span>
+            </div>
 
             {/* Right Side: Auth & Download Badge */}
             <div className="relative flex items-center gap-2 -mr-2">

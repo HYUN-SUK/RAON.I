@@ -44,7 +44,7 @@ import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
 import { useFabSparkle } from '@/hooks/useFabSparkle';
 import { recordSiteVisitAction } from '@/actions/analytics-logger';
-import ReminderBanner from '@/components/myspace/ReminderBanner';
+import ReminderModal from '@/components/myspace/ReminderModal';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
@@ -130,6 +130,38 @@ export default function BeginnerHome() {
 
     const [isRecordOpen, setIsRecordOpen] = useState(false);
     const { unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
+    const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+
+    // [ReminderModal] 미작성 일정 존재 시 팝업 제어 (오늘 하루 보지 않기 / 세션 닫힘 처리)
+    React.useEffect(() => {
+        if (!unwrittenScheduleDetail) return;
+        try {
+            const todayStr = format(new Date(), 'yyyy-MM-dd');
+            const hideDate = localStorage.getItem('raonai_hide_reminder_today');
+            const sessionDismissed = sessionStorage.getItem('raonai_reminder_session_dismissed');
+            if (hideDate === todayStr || sessionDismissed === 'true') {
+                return;
+            }
+            setIsReminderModalOpen(true);
+        } catch {}
+    }, [unwrittenScheduleDetail]);
+
+    const handleCloseReminderModal = useCallback((dontShowToday: boolean) => {
+        try {
+            if (dontShowToday) {
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                localStorage.setItem('raonai_hide_reminder_today', todayStr);
+            }
+            sessionStorage.setItem('raonai_reminder_session_dismissed', 'true');
+        } catch {}
+        setIsReminderModalOpen(false);
+    }, []);
+
+    const handleGoRecordFromReminder = useCallback(() => {
+        setIsReminderModalOpen(false);
+        setIsRecordOpen(true);
+    }, []);
+
     const { isMapOpen, setIsMapOpen } = useMySpaceStore();
 
     // [백그라운드 헛돌기 100% 차단] 가림 처리된 인삿말에 물려있던 DB/기상청 쿼리 중단
@@ -508,68 +540,16 @@ export default function BeginnerHome() {
             <TopBar />
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
-                {/* 미작성 일정이 있을 때 홈화면 최상단에 리마인더 배너 노출 */}
-                <AnimatePresence>
-                    {unwrittenScheduleDetail && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="px-0"
-                        >
-                            <ReminderBanner
-                                detail={unwrittenScheduleDetail}
-                                onClick={() => setIsRecordOpen(true)}
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* 1. Hero Section (슬림화 및 골든존 최적화) */}
-                <section className="relative w-full h-[26vh] min-h-[210px] flex flex-col justify-end p-4">
-                    <div className="absolute inset-0 z-0 bg-stone-300">
-                        {/* Hero Image */}
-                        <div
-                            className="w-full h-full bg-cover bg-center grayscale-[20%]"
-                            style={{ backgroundImage: config?.hero_image_url ? `url(${config.hero_image_url})` : `url('https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&w=1000&auto=format&fit=crop')` }}
-                        />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-
-                    <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-3">
-                        <SlimNotice variant="hero" />
-                        <NotificationBadge variant="hero" />
-                    </div>
-
-                    <div className="relative z-20 text-white space-y-1 mb-2 w-full text-center">
-                        {/* 골든존 확보를 위해 인사문구 숨김 처리 */}
-                        {/* 
-                        <p className="text-[#C8E6C9] font-bold text-lg mb-4 leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
-                            {recData.context ? recData.context.greeting : '반가워요, 캠퍼님'}
-                        </p>
-                        */}
-                        
-                        <span className="tracking-[0.2em] font-black text-white/90 text-[15px] block mb-2 pl-[0.2em]">
-                            나만의 스마트 여행수첩
-                        </span>
-
-                        <div className="py-0.5 w-full">
-                            <div className="w-28 h-[1.5px] bg-white/30 mx-auto my-1" />
-                            <span className="tracking-[0.4em] font-bold text-white/95 text-[24px] text-center block pl-[0.4em]">라 온 아 이</span>
-                            <div className="w-28 h-[1.5px] bg-white/30 mx-auto my-1" />
-                        </div>
-                    </div>
+                {/* 1. 상단 공지사항 & 알림 바 (히어로 사진 없이 깔끔한 위젯 바) */}
+                <section className="px-4 pt-3 pb-2 flex items-center justify-between gap-2.5">
+                    <SlimNotice variant="home" />
+                    <NotificationBadge variant="home" />
                 </section>
 
-                {/* 1. 다가오는 여행 일정 카드 (직접 노출, 다른일정추가 버튼 가림) */}
-                <section className="px-4 mt-4 mb-3">
-                    <ScheduleHomeWidget isExpanded={true} showButtons={false} />
-                </section>
-
-                {/* 2. 2열 정사각형 그리드: [내 주변 즉시여행계획 만들기] & [목적지 즉시여행계획 만들기] */}
+                {/* 2. 2열 정사각형 그리드: [내 주변 즉시 맛집, 관광지 찾기] & [목적지 즉시 여행계획 만들기] */}
                 <section className="px-4 mb-3">
                     <div className="grid grid-cols-2 gap-3">
-                        {/* 좌측: 내 주변 즉시여행계획 만들기 */}
+                        {/* 좌측: 내 주변 즉시 맛집, 관광지 찾기 */}
                         <button
                             onClick={() => setIsNearbyConfirmOpen(true)}
                             className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#F1F8F3] to-[#E5F2E8] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#224732]/25 rounded-2xl shadow-sm hover:shadow-md hover:border-[#224732]/40 active:scale-[0.98] transition-all text-left aspect-square group cursor-pointer"
@@ -592,7 +572,7 @@ export default function BeginnerHome() {
                             </div>
                         </button>
 
-                        {/* 우측: 목적지 즉시여행계획 만들기 */}
+                        {/* 우측: 목적지 즉시 여행계획 만들기 */}
                         <button
                             onClick={() => {
                                 setSelectedAnchorDest(null);
@@ -620,6 +600,11 @@ export default function BeginnerHome() {
                             </div>
                         </button>
                     </div>
+                </section>
+
+                {/* 3. 다가오는 여행 일정 카드 (직접 노출, 다른일정추가 버튼 가림) */}
+                <section className="px-4 mb-3">
+                    <ScheduleHomeWidget isExpanded={true} showButtons={false} />
                 </section>
 
                 {/* 3. 나의 전체 여행일정 바로가기 버튼 */}
@@ -834,6 +819,14 @@ export default function BeginnerHome() {
                     />
                 )
             }
+
+            {/* 미작성 일정 존재 시 팝업 모달 바인딩 */}
+            <ReminderModal
+                isOpen={isReminderModalOpen}
+                onClose={handleCloseReminderModal}
+                detail={unwrittenScheduleDetail}
+                onGoRecord={handleGoRecordFromReminder}
+            />
 
             {/* 10초 기록 팝업 시트 바인딩 */}
             <QuickRecordForm

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase-client';
 
 interface NotificationBadgeProps {
     className?: string;
-    variant?: 'floating' | 'inline' | 'hero';
+    variant?: 'floating' | 'inline' | 'hero' | 'home';
 }
 
 const NotificationBadge = memo(function NotificationBadge({ className = '', variant = 'inline' }: NotificationBadgeProps) {
@@ -37,7 +37,7 @@ const NotificationBadge = memo(function NotificationBadge({ className = '', vari
                 .eq('user_id', session.user.id);
 
             // Apply filter BEFORE order/limit
-            if (variant === 'hero') {
+            if (variant === 'hero' || variant === 'home') {
                 query = query.eq('is_read', false);
             }
 
@@ -84,11 +84,31 @@ const NotificationBadge = memo(function NotificationBadge({ className = '', vari
 
     const isLocallyRead = latestNotification && lastReadAt && new Date(latestNotification.created_at) <= new Date(lastReadAt);
 
-    if (!latestNotification || (variant === 'hero' && isLocallyRead)) return null;
+    if (!latestNotification || ((variant === 'hero' || variant === 'home') && isLocallyRead)) return null;
 
     const handleClick = () => {
         router.push('/notifications');
     };
+
+    if (variant === 'home') {
+        return (
+            <button
+                onClick={handleClick}
+                className={`flex items-center gap-1.5 px-3 py-2 bg-stone-100/90 hover:bg-stone-200/80 dark:bg-zinc-850 dark:hover:bg-zinc-800 border border-stone-200/80 dark:border-zinc-700/80 rounded-2xl text-stone-700 dark:text-stone-300 shadow-2xs active:scale-95 transition-all shrink-0 cursor-pointer ${className}`}
+            >
+                <div className="relative flex-shrink-0">
+                    <Bell className="w-3.5 h-3.5 text-[#224732] dark:text-emerald-400" />
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                </div>
+                <span className="text-xs font-bold text-stone-800 dark:text-stone-200 truncate max-w-[80px]">
+                    {latestNotification.title}
+                </span>
+                <span className="text-[9px] bg-red-500 text-white font-extrabold px-1.5 py-0.2 rounded-full shrink-0">
+                    N
+                </span>
+            </button>
+        );
+    }
 
     if (variant === 'hero') {
         return (
