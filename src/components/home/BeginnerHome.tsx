@@ -48,7 +48,6 @@ import ReminderModal from '@/components/myspace/ReminderModal';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
-import BounceDebugBanner from '@/components/common/BounceDebugBanner';
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
@@ -536,7 +535,6 @@ export default function BeginnerHome() {
 
     return (
         <div className="flex flex-col w-full min-h-screen bg-white dark:bg-black relative">
-            <BounceDebugBanner />
             <TopBar />
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">

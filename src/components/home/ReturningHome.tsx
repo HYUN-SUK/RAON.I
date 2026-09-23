@@ -30,7 +30,6 @@ import { useFabSparkle } from '@/hooks/useFabSparkle';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
-import BounceDebugBanner from '@/components/common/BounceDebugBanner';
 
 
 
@@ -210,7 +209,6 @@ export default function ReturningHome() {
 
     return (
         <div className="flex flex-col w-full min-h-screen bg-[#F7F5EF] dark:bg-black relative">
-            <BounceDebugBanner />
             {/* Global TopBar */}
             <TopBar />
 
