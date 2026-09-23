@@ -546,25 +546,25 @@ export default function BeginnerHome() {
                     <NotificationBadge variant="home" />
                 </section>
 
-                {/* 2. 2열 계획 생성 카드 그리드: [내 주변 맛집, 관광지 찾기] & [바로 여행계획 만들기] */}
+                {/* 2. 2열 계획 생성 카드 그리드: [내 주변 맛집 · 관광지 찾기] & [바로 여행계획 만들기] */}
                 <section className="px-4 mb-3">
                     <div className="grid grid-cols-2 gap-3">
-                        {/* 좌측: 내 주변 맛집, 관광지 찾기 */}
+                        {/* 좌측: 내 주변 맛집 · 관광지 찾기 */}
                         <button
                             onClick={() => setIsNearbyConfirmOpen(true)}
-                            className="flex flex-col justify-between p-3 sm:p-3.5 bg-gradient-to-br from-[#F1F8F3] to-[#E5F2E8] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#224732]/25 rounded-2xl shadow-sm hover:shadow-md hover:border-[#224732]/40 active:scale-[0.98] transition-all text-left min-h-[96px] group cursor-pointer"
+                            className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#F1F8F3] to-[#E5F2E8] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#224732]/25 rounded-2xl shadow-sm hover:shadow-md hover:border-[#224732]/40 active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
                         >
                             <div className="flex items-center justify-between w-full">
-                                <div className="w-9 h-9 rounded-xl bg-[#224732] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                                    <MapPin className="w-4.5 h-4.5 text-emerald-300" />
+                                <div className="w-10 h-10 rounded-xl bg-[#224732] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                    <MapPin className="w-5 h-5 text-emerald-300" />
                                 </div>
                                 <span className="text-[10px] bg-[#224732]/10 text-[#224732] font-black px-1.5 py-0.5 rounded-full shrink-0">
                                     실시간 GPS
                                 </span>
                             </div>
-                            <div className="mt-2 w-full overflow-hidden">
-                                <h4 className="text-[12.5px] sm:text-sm font-black text-stone-900 dark:text-stone-100 tracking-tight whitespace-nowrap truncate">
-                                    내 주변 맛집, 관광지 찾기
+                            <div className="mt-3">
+                                <h4 className="text-[16px] sm:text-lg font-black text-stone-900 dark:text-stone-100 leading-snug tracking-tight">
+                                    내 주변<br />맛집 · 관광지 찾기
                                 </h4>
                             </div>
                         </button>
@@ -577,19 +577,19 @@ export default function BeginnerHome() {
                                 setInstantPlanMode('DESTINATION');
                                 setInstantPlanOpen(true);
                             }}
-                            className="flex flex-col justify-between p-3 sm:p-3.5 bg-gradient-to-br from-[#FDF6EE] to-[#F7EBDC] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#D48A37]/30 rounded-2xl shadow-sm hover:shadow-md hover:border-[#D48A37]/50 active:scale-[0.98] transition-all text-left min-h-[96px] group cursor-pointer"
+                            className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#FDF6EE] to-[#F7EBDC] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#D48A37]/30 rounded-2xl shadow-sm hover:shadow-md hover:border-[#D48A37]/50 active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
                         >
                             <div className="flex items-center justify-between w-full">
-                                <div className="w-9 h-9 rounded-xl bg-[#D48A37] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                                    <Sparkles className="w-4.5 h-4.5 text-amber-200" />
+                                <div className="w-10 h-10 rounded-xl bg-[#D48A37] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                    <Sparkles className="w-5 h-5 text-amber-200" />
                                 </div>
                                 <span className="text-[10px] bg-[#D48A37]/15 text-[#D48A37] font-black px-1.5 py-0.5 rounded-full shrink-0">
                                     어디든 즉시
                                 </span>
                             </div>
-                            <div className="mt-2 w-full overflow-hidden">
-                                <h4 className="text-[12.5px] sm:text-sm font-black text-stone-900 dark:text-stone-100 tracking-tight whitespace-nowrap truncate">
-                                    바로 여행계획 만들기
+                            <div className="mt-3">
+                                <h4 className="text-[16px] sm:text-lg font-black text-stone-900 dark:text-stone-100 leading-snug tracking-tight">
+                                    바로<br />여행계획 만들기
                                 </h4>
                             </div>
                         </button>
@@ -985,7 +985,7 @@ export default function BeginnerHome() {
                             </AlertDialogContent>
                         </AlertDialog>
 
-                        {/* 내 주변 즉시 맛집, 관광지 찾기 확인/선택 팝업 */}
+                        {/* 내 주변 즉시 맛집 · 관광지 찾기 확인/선택 팝업 */}
                         <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
                             <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
                                 <AlertDialogHeader className="space-y-2 text-left">
@@ -993,7 +993,7 @@ export default function BeginnerHome() {
                                         <div className="p-2 bg-[#224732]/10 text-[#224732] dark:text-emerald-400 rounded-xl">
                                             <MapPin className="w-4 h-4" />
                                         </div>
-                                        내 주변 맛집, 관광지 찾기
+                                        내 주변 맛집 · 관광지 찾기
                                     </AlertDialogTitle>
                                     {/* 권한 여부에 따른 맞춤 안내 문구 */}
                                     {isLocationGranted ? (

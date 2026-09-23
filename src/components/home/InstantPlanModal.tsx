@@ -944,7 +944,7 @@ export default function InstantPlanModal({
                             </div>
                             <div>
                                 <SheetTitle className="text-base font-black text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                                    {initialMode === 'NEARBY' ? '내 주변 맛집·관광지' : '바로 여행계획 만들기'}
+                                    {initialMode === 'NEARBY' ? '내 주변 맛집 · 관광지' : '바로 여행계획 만들기'}
                                     <span className="text-[10px] bg-[#224732] text-white font-bold px-1.5 py-0.5 rounded-full">
                                         {initialMode === 'NEARBY' ? (activeFallbackNotice ? '대표 기준 위치' : '실시간 GPS') : '즉시 생성'}
                                     </span>
