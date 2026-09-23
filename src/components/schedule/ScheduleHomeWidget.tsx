@@ -557,13 +557,12 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     if (!upcomingItem) {
         return (
             <>
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-dashed border-[#224732]/30 shadow-sm flex items-center gap-3.5">
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4.5 border border-dashed border-[#224732]/30 shadow-sm flex items-center gap-3.5">
                     <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675] shrink-0">
                         <Calendar className="w-5 h-5" />
                     </div>
                     <div>
                         <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
-                        <p className="text-xs text-stone-500 dark:text-stone-400 font-medium mt-0.5">아래 즉시 여행계획으로 맞춤 일정을 만들어보세요.</p>
                     </div>
                 </div>
 
