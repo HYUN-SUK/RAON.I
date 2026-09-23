@@ -9,7 +9,7 @@
 
 - [x] **9.65 정밀/즉시 스마트플랜 지도 내 내비 바텀시트 계층형 뒤로가기 완치 & 홈 화면 다가오는 일정 0초 즉시 렌더링(SWR) 완결 (2026-09-23)** 🟢
   - [x] **지도 내 내비 바텀시트 3단계 계층형 뒤로가기 완치 (`SmartPlanProposal.tsx`, `InstantPlanModal.tsx`)**: `handlePopState`에서 상위 오버레이인 `navTargetCard`(내비 시트)를 하위 레이어인 `isMapModalOpen`(지도 모달)보다 1순위로 먼저 닫도록 판정 순서 역전 버그 완벽 수정. 단일 시트 닫기 헬퍼(`closeSingleSubsheetWithHistory`) 신설 및 적용으로 하위 대체리스트 히스토리까지 일괄 회수되어 홈으로 튕겨 나가던 결함 원천 박멸. (1차: 내비 시트 닫힘 ➔ 2차: 지도 닫히고 본문/대체리스트 복귀 ➔ 3차: 홈 화면 복귀)
-  - [x] **홈 화면 상단 다가오는 일정 0초 즉시 렌더링(0ms SWR) (`ScheduleHomeWidget.tsx`)**: 브라우저 로컬 캐시(`reservation-storage-v3`, `user_schedules_cache`)가 존재할 경우 초기 `isLoading`을 `false`로 시작하여, 화면 이동이나 뒤로가기 복귀 시 2~4초간 로딩 스피너 대기 없이 0.00초 만에 일정이 즉각 표출되도록 개선. 백그라운드 무소음 동기화(Silent Revalidation) 탑재.
+  - [x] **홈 화면 다가오는 일정 '당일 1회 주기 정밀 검증 + 당일 내 0초 즉시 렌더링' 아키텍처 구축 (`ScheduleHomeWidget.tsx`, `TopBar.tsx`)**: 날짜가 바뀐 '당일 첫 접속(또는 2주 만의 재방문)' 시에는 `last_schedule_sync_date !== todayStr`을 감지하여 `isLoading = true`로 시작, "일정을 불러오고 있습니다..." 로딩 스피너를 띄우며 DB 최신 데이터를 정밀 동기화(과거 종료 일정 노출 방어). 당일 1회 검증 완료 후에는 `isSyncedToday && hasCache` 조건으로 `isLoading = false`로 즉시 시작하여 2~4초 지연 없이 즉각 표출. 로그아웃 시 스탬프 자동 소멸.
   - [x] **빌드 검증**: `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
 
 - [x] **9.64 정밀 여행계획(SmartPlanProposal) 2단계 계층형 뒤로가기(Popstate) 가드 구축 및 페이지 이탈 완치 (2026-09-23)** 🟢

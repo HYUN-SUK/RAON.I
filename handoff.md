@@ -18,9 +18,10 @@
      - 1차 뒤로가기: 내비 바텀시트만 닫힘 (지도는 온전히 유지).
      - 2차 뒤로가기: 지도 화면 닫힘 ➔ 스마트플랜 본문(또는 대체리스트)으로 안전 복귀.
      - 3차 뒤로가기: 본문(또는 대체리스트) 닫힘 ➔ 홈 화면(또는 스마트플랜 본문) 복귀.
-2. **홈 화면 상단 다가오는 일정 0초 즉시 렌더링(0ms SWR) (`ScheduleHomeWidget.tsx`)**:
-   - 브라우저 로컬 캐시(`reservation-storage-v3`, `user_schedules_cache`)가 존재할 경우 초기 `isLoading`을 `false`로 시작하여, 화면 이동이나 뒤로가기 복귀 시 2~4초간 로딩 스피너 대기 없이 0.00초 만에 일정이 즉각 표출되도록 개선.
-   - 백그라운드에서 세션 및 서버 최신 데이터를 무소음 동기화(Silent Revalidation)하여 신선도와 체감 속도 동시 만족.
+2. **홈 화면 다가오는 일정 '당일 1회 주기 정밀 검증 + 당일 내 0초 즉시 렌더링' 아키텍처 구축 (`ScheduleHomeWidget.tsx`, `TopBar.tsx`)**:
+   - **과거 종료 일정 노출 방어**: 날짜가 바뀐 '당일 첫 접속(또는 2주 만의 재방문)' 시에는 `last_schedule_sync_date !== todayStr`을 감지하여 `isLoading = true`로 시작, "일정을 불러오고 있습니다..." 로딩 스피너를 띄우며 DB 최신 데이터를 정밀 동기화.
+   - **당일 재방문 및 화면 이동 시 0.00초 즉시 렌더링**: 당일 1회 검증 완료 후에는 `isSyncedToday && hasCache` 조건으로 `isLoading = false`로 즉시 시작하여 2~4초 지연 없이 즉각 표출.
+   - **로그아웃 안전망 (`TopBar.tsx`)**: 로그아웃 시 `last_schedule_sync_date`를 완전 소멸시켜 계정 간 데이터 격리 보장.
 3. **빌드 검증**:
    - `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
 

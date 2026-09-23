@@ -112,6 +112,7 @@ export default function TopBar() {
         try {
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('user_schedules_cache');
+                localStorage.removeItem('last_schedule_sync_date');
                 localStorage.removeItem('reservation-storage-v3');
                 localStorage.removeItem('reservation-storage-v2');
                 localStorage.removeItem('raonai_back_from_detail');

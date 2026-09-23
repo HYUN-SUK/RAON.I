@@ -115,15 +115,21 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         }
     }, [schedules, isAuthenticated]);
 
-    // 로딩 상태: 캐시(예약 또는 타캠핑장 일정)가 존재하거나 뒤로가기 복귀 시에는 0초 즉시 노출(false), 
-    // 저장된 캐시가 아예 없을 때만 첫 스켈레톤(true) 노출 후 백그라운드 Silent Revalidation 수행
+    // 로딩 상태: 오늘 날짜(YYYY-MM-DD)에 이미 최신화된 캐시가 존재하거나 뒤로가기 복귀 시에는 0초 즉시 노출(false), 
+    // 날짜가 바뀌었거나(오늘 첫 접속) 캐시가 아예 없을 때만 첫 스켈레톤(true) 노출 후 백그라운드 정밀 동기화 수행
     const [isLoading, setIsLoading] = useState(() => {
         if (isBackFromDetail) return false;
         if (typeof window === 'undefined') return true;
         try {
+            const todayStr = format(new Date(), 'yyyy-MM-dd');
+            const lastSyncDate = localStorage.getItem('last_schedule_sync_date');
+            const isSyncedToday = lastSyncDate === todayStr;
+
             const hasRes = !!(localStorage.getItem('reservation-storage-v3') || localStorage.getItem('reservation-storage-v2'));
             const hasSched = !!localStorage.getItem('user_schedules_cache');
-            if (hasRes || hasSched) return false;
+
+            // 오늘 이미 1회 이상 검증/최신화가 완료되었고 캐시가 존재하는 경우에만 0초 즉시 노출
+            if (isSyncedToday && (hasRes || hasSched)) return false;
         } catch {}
         return true;
     });
@@ -275,6 +281,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                 setSchedules(schedulesData);
                 try {
                     localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
+                    const todayStr = format(new Date(), 'yyyy-MM-dd');
+                    localStorage.setItem('last_schedule_sync_date', todayStr);
                 } catch {}
             } catch (error) {
                 console.error('Fetch error:', error);
