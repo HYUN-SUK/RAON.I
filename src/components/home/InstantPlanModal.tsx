@@ -178,12 +178,28 @@ export default function InstantPlanModal({
     const isHandlingPopStateRef = React.useRef(false);
     const isProgrammaticBackRef = React.useRef(false);
 
-    // 하위 시트(대체리스트, 내비) 오픈 시 가상 히스토리 등록 (Level 2: depth 0 -> 1)
+    // 하위 시트(대체리스트, 내비) 오픈 시 가상 히스토리 등록 (depth 1단계씩 동적 적재)
     const pushSubsheetHistory = React.useCallback(() => {
-        if (subsheetDepthRef.current === 0 && typeof window !== 'undefined') {
-            window.history.pushState({ raonSubsheet: 1 }, '', window.location.href);
-            subsheetDepthRef.current = 1;
+        if (typeof window !== 'undefined') {
+            const nextDepth = subsheetDepthRef.current + 1;
+            window.history.pushState({ raonSubsheet: nextDepth }, '', window.location.href);
+            subsheetDepthRef.current = nextDepth;
         }
+    }, []);
+
+    // 단일 하위 시트 닫힘 시 1단계 가상 히스토리만 안전 회수 (내비 시트 닫기 등)
+    const closeSingleSubsheetWithHistory = React.useCallback((callback?: () => void) => {
+        if (subsheetDepthRef.current > 0 && typeof window !== 'undefined') {
+            subsheetDepthRef.current = Math.max(0, subsheetDepthRef.current - 1);
+            isProgrammaticBackRef.current = true;
+            try {
+                window.history.back();
+            } catch {}
+            setTimeout(() => {
+                isProgrammaticBackRef.current = false;
+            }, 60);
+        }
+        if (callback) callback();
     }, []);
 
     // 하위 시트 닫힘 시 가상 히스토리 회수 (X버튼, 배경터치, 일정교체 시 호출)
@@ -245,7 +261,14 @@ export default function InstantPlanModal({
 
             isHandlingPopStateRef.current = true;
             try {
-                // Level 3: 지도가 열려있는 경우 -> 지도만 닫고 대체리스트 시트 복원 (depth: 2 -> 1)
+                // 1순위: 길찾기 내비 시트가 열려있는 경우 -> 내비 시트만 먼저 닫기 (지도가 열려있으면 지도 유지)
+                if (navTargetCardRef.current) {
+                    setNavTargetCard(null);
+                    subsheetDepthRef.current = Math.max(0, subsheetDepthRef.current - 1);
+                    return;
+                }
+
+                // 2순위: 지도가 열려있는 경우 -> 지도만 닫고 대체리스트 시트 복원 (depth: 2 -> 1)
                 if (isMapModalOpenRef.current) {
                     setIsMapModalOpen(false);
                     subsheetDepthRef.current = 1;
@@ -258,14 +281,7 @@ export default function InstantPlanModal({
                     return;
                 }
 
-                // Level 2: 길찾기 내비 시트가 열려있는 경우 -> 내비 시트만 닫기 (depth: 1 -> 0)
-                if (navTargetCardRef.current) {
-                    setNavTargetCard(null);
-                    subsheetDepthRef.current = 0;
-                    return;
-                }
-
-                // Level 2: 대체리스트 시트가 열려있는 경우 -> 대체리스트 닫고 플랜 결과화면 복귀 (depth: 1 -> 0)
+                // 3순위: 대체리스트 시트가 열려있는 경우 -> 대체리스트 닫고 플랜 결과화면 복귀 (depth: 1 -> 0)
                 if (swapCategoryRef.current) {
                     setSwapCategory(null);
                     setSwapTargetId(null);
@@ -273,7 +289,7 @@ export default function InstantPlanModal({
                     return;
                 }
 
-                // Level 1: 하위 시트가 없는 모달 본체 상태 -> 모달 닫기 (홈 화면 잔류)
+                // 4순위: 하위 시트가 없는 모달 본체 상태 -> 모달 닫기 (홈 화면 잔류)
                 if (modalHistoryPushedRef.current) {
                     modalHistoryPushedRef.current = false;
                     onClose();
@@ -765,7 +781,7 @@ export default function InstantPlanModal({
             origin: { name: '현재 위치', lat: 0, lng: 0 },
             destination: { name, lat, lng }
         });
-        closeSubsheetWithHistory(() => {
+        closeSingleSubsheetWithHistory(() => {
             setNavTargetCard(null);
         });
     };
@@ -1657,7 +1673,7 @@ export default function InstantPlanModal({
                         {/* 외부 터치 시 닫기 */}
                         <div 
                             className="absolute inset-0"
-                            onClick={() => closeSubsheetWithHistory(() => setNavTargetCard(null))}
+                            onClick={() => closeSingleSubsheetWithHistory(() => setNavTargetCard(null))}
                         />
                         <div className="relative w-full rounded-t-3xl p-6 bg-white dark:bg-zinc-900 z-10 shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
                             <div className="flex items-center justify-between mb-6">
@@ -1671,7 +1687,7 @@ export default function InstantPlanModal({
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => closeSubsheetWithHistory(() => setNavTargetCard(null))}
+                                    onClick={() => closeSingleSubsheetWithHistory(() => setNavTargetCard(null))}
                                     className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full active:scale-95 transition-all"
                                     aria-label="닫기"
                                 >

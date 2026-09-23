@@ -139,22 +139,39 @@ export default function SmartPlanProposal({
     const savedSwapCategoryRef = useRef<any>(null);
     const savedSwapTargetIdRef = useRef<string | null>(null);
 
-    // [v14.4.0] 2단계 계층형 모바일 뒤로가기(Popstate) 가드 & 히스토리 동기화
-    // Level 1: 하위 시트 (대체리스트 swapCategory, 내비 navTargetCard/showRouteNav, 신고 reportTargetCard, 전체동선지도 isMapModalOpen[full_timeline])
-    // Level 2: 대체리스트 지도로 보기 (isMapModalOpen[alternatives])
-    const subsheetDepthRef = useRef<number>(0); // 0: 본문, 1: 대체리스트/내비/전체동선지도, 2: 대체리스트 지도로 보기
+    // [v14.4.0] 다계층 모바일 뒤로가기(Popstate) 가드 & 히스토리 동기화
+    // Level 1: 하위 시트 (대체리스트 swapCategory, 본문 내비, 본문 신고, 전체동선지도 isMapModalOpen[full_timeline])
+    // Level 2: 대체리스트 지도로 보기 (isMapModalOpen[alternatives]) 또는 지도 위 내비/신고 시트
+    // Level 3: 대체리스트 지도 위 내비/신고 시트
+    const subsheetDepthRef = useRef<number>(0);
     const isHandlingPopStateRef = useRef(false);
     const isProgrammaticBackRef = useRef(false);
 
-    // 하위 시트 오픈 시 가상 히스토리 등록 (Level 1: depth 0 -> 1)
+    // 하위 시트 오픈 시 가상 히스토리 등록 (depth 1단계씩 동적 적재)
     const pushSubsheetHistory = useCallback(() => {
-        if (subsheetDepthRef.current === 0 && typeof window !== 'undefined') {
-            window.history.pushState({ raonProposalSubsheet: 1 }, '', window.location.href);
-            subsheetDepthRef.current = 1;
+        if (typeof window !== 'undefined') {
+            const nextDepth = subsheetDepthRef.current + 1;
+            window.history.pushState({ raonProposalSubsheet: nextDepth }, '', window.location.href);
+            subsheetDepthRef.current = nextDepth;
         }
     }, []);
 
-    // 하위 시트 닫힘 시 가상 히스토리 회수 (닫기버튼, 배경터치, 일정교체 시 호출)
+    // 단일 하위 시트 닫힘 시 1단계 가상 히스토리만 안전 회수 (내비 시트 닫기 등)
+    const closeSingleSubsheetWithHistory = useCallback((callback?: () => void) => {
+        if (subsheetDepthRef.current > 0 && typeof window !== 'undefined') {
+            subsheetDepthRef.current = Math.max(0, subsheetDepthRef.current - 1);
+            isProgrammaticBackRef.current = true;
+            try {
+                window.history.back();
+            } catch {}
+            setTimeout(() => {
+                isProgrammaticBackRef.current = false;
+            }, 60);
+        }
+        if (callback) callback();
+    }, []);
+
+    // 전체 하위 시트/모달 일괄 닫힘 시 전체 가상 히스토리 일괄 회수 (일정 교체 확정 시)
     const closeSubsheetWithHistory = useCallback((callback?: () => void) => {
         const depth = subsheetDepthRef.current;
         if (depth > 0 && typeof window !== 'undefined') {
@@ -197,7 +214,28 @@ export default function SmartPlanProposal({
 
             isHandlingPopStateRef.current = true;
             try {
-                // Level 2: 지도가 열려있는 경우
+                // 1순위: 신고 시트가 열려있는 경우 (최상단 시트 1차 닫기)
+                if (reportTargetCardRef.current) {
+                    setReportTargetCard(null);
+                    subsheetDepthRef.current = Math.max(0, subsheetDepthRef.current - 1);
+                    return;
+                }
+
+                // 2순위: 개별 카드 내비 시트가 열려있는 경우 (지도 위 또는 본문 위 내비 시트만 1차 닫고 지도는 유지)
+                if (navTargetCardRef.current) {
+                    setNavTargetCard(null);
+                    subsheetDepthRef.current = Math.max(0, subsheetDepthRef.current - 1);
+                    return;
+                }
+
+                // 3순위: 전체 경로 내비 시트가 열려있는 경우 (내비 시트 1차 닫기)
+                if (showRouteNavRef.current) {
+                    setShowRouteNav(false);
+                    subsheetDepthRef.current = Math.max(0, subsheetDepthRef.current - 1);
+                    return;
+                }
+
+                // 4순위: 지도가 열려있는 경우
                 if (isMapModalOpenRef.current) {
                     setIsMapModalOpen(false);
                     // alternatives 모드면 지도만 닫고 대체리스트 시트 복원 (depth: 2 -> 1)
@@ -214,28 +252,7 @@ export default function SmartPlanProposal({
                     return;
                 }
 
-                // Level 1: 신고 시트가 열려있는 경우 (depth: 1 -> 0)
-                if (reportTargetCardRef.current) {
-                    setReportTargetCard(null);
-                    subsheetDepthRef.current = 0;
-                    return;
-                }
-
-                // Level 1: 전체 경로 내비 시트가 열려있는 경우 (depth: 1 -> 0)
-                if (showRouteNavRef.current) {
-                    setShowRouteNav(false);
-                    subsheetDepthRef.current = 0;
-                    return;
-                }
-
-                // Level 1: 개별 카드 내비 시트가 열려있는 경우 (depth: 1 -> 0)
-                if (navTargetCardRef.current) {
-                    setNavTargetCard(null);
-                    subsheetDepthRef.current = 0;
-                    return;
-                }
-
-                // Level 1: 대체리스트 시트가 열려있는 경우 (depth: 1 -> 0)
+                // 5순위: 대체리스트 시트가 열려있는 경우 (depth: 1 -> 0)
                 if (swapCategoryRef.current) {
                     setSwapCategory(null);
                     setSwapTargetId(null);
@@ -806,7 +823,7 @@ export default function SmartPlanProposal({
             stage: (navTargetCard as any).stage || 'DESTINATION',
         });
 
-        closeSubsheetWithHistory(() => {
+        closeSingleSubsheetWithHistory(() => {
             setNavTargetCard(null);
         });
     };
@@ -2232,7 +2249,7 @@ export default function SmartPlanProposal({
             {/* 내비게이션 앱 선택 시트 */}
             <Sheet open={!!navTargetCard} onOpenChange={(open) => {
                 if (!open) {
-                    closeSubsheetWithHistory(() => setNavTargetCard(null));
+                    closeSingleSubsheetWithHistory(() => setNavTargetCard(null));
                 }
             }}>
                 <SheetContent side="bottom" className="rounded-t-3xl p-6">
@@ -2277,7 +2294,7 @@ export default function SmartPlanProposal({
             {/* [v11.9.45] 전체 경로 내비게이션 앱 선택 시트 */}
             <Sheet open={showRouteNav} onOpenChange={(open) => {
                 if (!open) {
-                    closeSubsheetWithHistory(() => setShowRouteNav(false));
+                    closeSingleSubsheetWithHistory(() => setShowRouteNav(false));
                 }
             }}>
                 <SheetContent side="bottom" className="rounded-t-[32px] p-8 bg-[#F7F5EF] border-none shadow-2xl">
@@ -2318,7 +2335,7 @@ export default function SmartPlanProposal({
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
                                 openNavApp('kakaonavi', route);
-                                closeSubsheetWithHistory(() => setShowRouteNav(false));
+                                closeSingleSubsheetWithHistory(() => setShowRouteNav(false));
                             }}
                         >
                             <div className="w-12 h-12 rounded-2xl bg-yellow-400 flex items-center justify-center text-white text-sm font-black shadow-sm">
@@ -2347,7 +2364,7 @@ export default function SmartPlanProposal({
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
                                 openNavApp('tmap', route);
-                                closeSubsheetWithHistory(() => setShowRouteNav(false));
+                                closeSingleSubsheetWithHistory(() => setShowRouteNav(false));
                             }}
                         >
                             <div className="w-12 h-12 rounded-2xl bg-[#FF4500] flex items-center justify-center text-white text-[10px] font-black shadow-sm">
@@ -2376,7 +2393,7 @@ export default function SmartPlanProposal({
                                     waypoints: selectedMidpoint ? [{ name: '선택한 경유지', ...selectedMidpoint }] : []
                                 };
                                 openNavApp('naver', route);
-                                closeSubsheetWithHistory(() => setShowRouteNav(false));
+                                closeSingleSubsheetWithHistory(() => setShowRouteNav(false));
                             }}
                         >
                             <div className="w-12 h-12 rounded-2xl bg-[#03C75A] flex items-center justify-center text-white text-xs font-black shadow-sm">
@@ -2396,7 +2413,7 @@ export default function SmartPlanProposal({
             {reportTargetCard && (
                 <FactReportSheet
                     isOpen={!!reportTargetCard}
-                    onClose={() => closeSubsheetWithHistory(() => setReportTargetCard(null))}
+                    onClose={() => closeSingleSubsheetWithHistory(() => setReportTargetCard(null))}
                     placeId={reportTargetCard.id}
                     placeName={reportTargetCard.name}
                     stage={reportTargetCard.stage}
@@ -2413,7 +2430,7 @@ export default function SmartPlanProposal({
                     if (mapModalMode === 'alternatives') {
                         handleSwitchToList();
                     } else {
-                        closeSubsheetWithHistory(() => {
+                        closeSingleSubsheetWithHistory(() => {
                             setIsMapModalOpen(false);
                         });
                     }

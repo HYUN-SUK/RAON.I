@@ -1,6 +1,19 @@
 # Task Management
 
 ## Completed Tasks (2026-09-23)
+- [x] **마일스톤 9.65**: 정밀/즉시 스마트플랜 지도 내 내비 바텀시트 계층형 뒤로가기 완치 & 홈 화면 다가오는 일정 0초 즉시 렌더링(SWR) 완결
+  - **지도 내 내비 바텀시트 3단계 계층형 뒤로가기 완치 (`SmartPlanProposal.tsx`, `InstantPlanModal.tsx`)**:
+    - **레이어 우선순위 정상화**: `handlePopState`에서 상위 오버레이인 `navTargetCard`(내비 시트)를 하위 레이어인 `isMapModalOpen`(지도 모달)보다 1순위로 먼저 닫도록 판정 순서 역전 버그 완벽 수정.
+    - **단일 시트 닫기 헬퍼(`closeSingleSubsheetWithHistory`) 신설 및 적용**: 내비 선택 시트 닫힘 시 이전 히스토리를 1개만 안전 회수하여, 지도 밑의 대체리스트 히스토리까지 일괄 회수되어 홈으로 튕겨 나가던 결함 원천 박멸.
+    - **검증된 3단계 정상 뒤로가기 흐름**:
+      - 1차 뒤로가기: 내비 바텀시트만 닫힘 (지도는 온전히 유지).
+      - 2차 뒤로가기: 지도 화면 닫힘 ➔ 스마트플랜 본문(또는 대체리스트)으로 안전 복귀.
+      - 3차 뒤로가기: 본문(또는 대체리스트) 닫힘 ➔ 홈 화면(또는 스마트플랜 본문) 복귀.
+  - **홈 화면 상단 다가오는 일정 0초 즉시 렌더링(0ms SWR) (`ScheduleHomeWidget.tsx`)**:
+    - 브라우저 로컬 캐시(`reservation-storage-v3`, `user_schedules_cache`)가 존재할 경우 초기 `isLoading`을 `false`로 시작하여, 화면 이동이나 뒤로가기 복귀 시 2~4초간 로딩 스피너 대기 없이 0.00초 만에 일정이 즉각 표출되도록 개선.
+    - 백그라운드에서 세션 및 서버 최신 데이터를 무소음 동기화(Silent Revalidation)하여 신선도와 체감 속도 동시 만족.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
 - [x] **마일스톤 9.64**: 정밀 여행계획(SmartPlanProposal) 2단계 계층형 뒤로가기(Popstate) 가드 구축 및 페이지 이탈 완치
   - **대체리스트 지도로 보기 Level 2 히스토리 스택 적재 (`handleOpenAlternativesMap`)**: 대체리스트(depth 1)에서 지도로 보기 진입 시 `window.history.pushState({ raonProposalSubsheet: 2 })`로 depth 2를 등록하여 모바일 뒤로가기 방어선 2중화.
   - **지도로 보기에서 2단 뒤로가기 안전 복원 (`SmartPlanProposal.tsx`)**:

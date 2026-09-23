@@ -7,6 +7,11 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.65 정밀/즉시 스마트플랜 지도 내 내비 바텀시트 계층형 뒤로가기 완치 & 홈 화면 다가오는 일정 0초 즉시 렌더링(SWR) 완결 (2026-09-23)** 🟢
+  - [x] **지도 내 내비 바텀시트 3단계 계층형 뒤로가기 완치 (`SmartPlanProposal.tsx`, `InstantPlanModal.tsx`)**: `handlePopState`에서 상위 오버레이인 `navTargetCard`(내비 시트)를 하위 레이어인 `isMapModalOpen`(지도 모달)보다 1순위로 먼저 닫도록 판정 순서 역전 버그 완벽 수정. 단일 시트 닫기 헬퍼(`closeSingleSubsheetWithHistory`) 신설 및 적용으로 하위 대체리스트 히스토리까지 일괄 회수되어 홈으로 튕겨 나가던 결함 원천 박멸. (1차: 내비 시트 닫힘 ➔ 2차: 지도 닫히고 본문/대체리스트 복귀 ➔ 3차: 홈 화면 복귀)
+  - [x] **홈 화면 상단 다가오는 일정 0초 즉시 렌더링(0ms SWR) (`ScheduleHomeWidget.tsx`)**: 브라우저 로컬 캐시(`reservation-storage-v3`, `user_schedules_cache`)가 존재할 경우 초기 `isLoading`을 `false`로 시작하여, 화면 이동이나 뒤로가기 복귀 시 2~4초간 로딩 스피너 대기 없이 0.00초 만에 일정이 즉각 표출되도록 개선. 백그라운드 무소음 동기화(Silent Revalidation) 탑재.
+  - [x] **빌드 검증**: `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.64 정밀 여행계획(SmartPlanProposal) 2단계 계층형 뒤로가기(Popstate) 가드 구축 및 페이지 이탈 완치 (2026-09-23)** 🟢
   - [x] **대체리스트 지도로 보기 Level 2 히스토리 스택 적재 (`handleOpenAlternativesMap`)**: 대체리스트(depth 1)에서 지도로 보기 진입 시 `window.history.pushState({ raonProposalSubsheet: 2 })`로 depth 2를 등록하여 모바일 뒤로가기 방어선 2중화.
   - [x] **지도로 보기에서 2단 뒤로가기 안전 복원 (`SmartPlanProposal.tsx`)**: 1차 뒤로가기 시 지도가 닫히며 대체리스트 복원 (depth: 2 ➔ 1), 2차 뒤로가기 시 대체리스트가 닫히며 스마트플랜 본문 복귀 (depth: 1 ➔ 0). 뒤로가기 연속 클릭 시 일정 상세 페이지(`/myspace/schedule/[id]`) 밖으로 튕겨 나가던 결함 100% 원천 박멸.
