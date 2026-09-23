@@ -139,24 +139,33 @@ export default function SmartPlanProposal({
     const savedSwapCategoryRef = useRef<any>(null);
     const savedSwapTargetIdRef = useRef<string | null>(null);
 
-    // [v14.3.0] 모바일 뒤로가기(Popstate) 가드 & 히스토리 1:1 동기화
-    const hasSubsheetHistoryPushedRef = useRef(false);
+    // [v14.4.0] 2단계 계층형 모바일 뒤로가기(Popstate) 가드 & 히스토리 동기화
+    // Level 1: 하위 시트 (대체리스트 swapCategory, 내비 navTargetCard/showRouteNav, 신고 reportTargetCard, 전체동선지도 isMapModalOpen[full_timeline])
+    // Level 2: 대체리스트 지도로 보기 (isMapModalOpen[alternatives])
+    const subsheetDepthRef = useRef<number>(0); // 0: 본문, 1: 대체리스트/내비/전체동선지도, 2: 대체리스트 지도로 보기
+    const isHandlingPopStateRef = useRef(false);
+    const isProgrammaticBackRef = useRef(false);
 
-    // 하위 시트(대체리스트, 내비, 리포트, 지도) 오픈 시 가상 히스토리 등록
+    // 하위 시트 오픈 시 가상 히스토리 등록 (Level 1: depth 0 -> 1)
     const pushSubsheetHistory = useCallback(() => {
-        if (!hasSubsheetHistoryPushedRef.current && typeof window !== 'undefined') {
-            window.history.pushState({ raonProposalSubsheet: true }, '', window.location.href);
-            hasSubsheetHistoryPushedRef.current = true;
+        if (subsheetDepthRef.current === 0 && typeof window !== 'undefined') {
+            window.history.pushState({ raonProposalSubsheet: 1 }, '', window.location.href);
+            subsheetDepthRef.current = 1;
         }
     }, []);
 
     // 하위 시트 닫힘 시 가상 히스토리 회수 (닫기버튼, 배경터치, 일정교체 시 호출)
     const closeSubsheetWithHistory = useCallback((callback?: () => void) => {
-        if (hasSubsheetHistoryPushedRef.current) {
-            hasSubsheetHistoryPushedRef.current = false;
-            if (typeof window !== 'undefined') {
-                window.history.back();
-            }
+        const depth = subsheetDepthRef.current;
+        if (depth > 0 && typeof window !== 'undefined') {
+            subsheetDepthRef.current = 0;
+            isProgrammaticBackRef.current = true;
+            try {
+                window.history.go(-depth);
+            } catch {}
+            setTimeout(() => {
+                isProgrammaticBackRef.current = false;
+            }, 60);
         }
         if (callback) callback();
     }, []);
@@ -183,46 +192,72 @@ export default function SmartPlanProposal({
     // popstate 이벤트 리스너 등록: 컴포넌트 마운트 시 1회만 등록되어 상태 변경 시 뒤로가기가 오작동하지 않음
     useEffect(() => {
         const handlePopState = () => {
-            if (isMapModalOpenRef.current) {
-                setIsMapModalOpen(false);
-                hasSubsheetHistoryPushedRef.current = false;
-                if (mapModalModeRef.current === 'alternatives' && savedSwapCategoryRef.current) {
-                    setSwapCategory(savedSwapCategoryRef.current);
-                    if (savedSwapTargetIdRef.current) {
-                        setSwapTargetId(savedSwapTargetIdRef.current);
+            // 프로그래밍 방식으로 history.back/go를 호출한 경우 popstate 내부 중복 실행 방지
+            if (isProgrammaticBackRef.current) return;
+
+            isHandlingPopStateRef.current = true;
+            try {
+                // Level 2: 지도가 열려있는 경우
+                if (isMapModalOpenRef.current) {
+                    setIsMapModalOpen(false);
+                    // alternatives 모드면 지도만 닫고 대체리스트 시트 복원 (depth: 2 -> 1)
+                    if (mapModalModeRef.current === 'alternatives' && savedSwapCategoryRef.current) {
+                        subsheetDepthRef.current = 1;
+                        setSwapCategory(savedSwapCategoryRef.current);
+                        if (savedSwapTargetIdRef.current) {
+                            setSwapTargetId(savedSwapTargetIdRef.current);
+                        }
+                    } else {
+                        // full_timeline 모드면 지도 닫고 본문 복귀 (depth: 1 -> 0)
+                        subsheetDepthRef.current = 0;
                     }
+                    return;
                 }
-                return;
-            }
-            if (reportTargetCardRef.current) {
-                setReportTargetCard(null);
-                hasSubsheetHistoryPushedRef.current = false;
-                return;
-            }
-            if (showRouteNavRef.current) {
-                setShowRouteNav(false);
-                hasSubsheetHistoryPushedRef.current = false;
-                return;
-            }
-            if (navTargetCardRef.current) {
-                setNavTargetCard(null);
-                hasSubsheetHistoryPushedRef.current = false;
-                return;
-            }
-            if (swapCategoryRef.current) {
-                setSwapCategory(null);
-                setSwapTargetId(null);
-                hasSubsheetHistoryPushedRef.current = false;
-                return;
+
+                // Level 1: 신고 시트가 열려있는 경우 (depth: 1 -> 0)
+                if (reportTargetCardRef.current) {
+                    setReportTargetCard(null);
+                    subsheetDepthRef.current = 0;
+                    return;
+                }
+
+                // Level 1: 전체 경로 내비 시트가 열려있는 경우 (depth: 1 -> 0)
+                if (showRouteNavRef.current) {
+                    setShowRouteNav(false);
+                    subsheetDepthRef.current = 0;
+                    return;
+                }
+
+                // Level 1: 개별 카드 내비 시트가 열려있는 경우 (depth: 1 -> 0)
+                if (navTargetCardRef.current) {
+                    setNavTargetCard(null);
+                    subsheetDepthRef.current = 0;
+                    return;
+                }
+
+                // Level 1: 대체리스트 시트가 열려있는 경우 (depth: 1 -> 0)
+                if (swapCategoryRef.current) {
+                    setSwapCategory(null);
+                    setSwapTargetId(null);
+                    subsheetDepthRef.current = 0;
+                    return;
+                }
+            } finally {
+                setTimeout(() => {
+                    isHandlingPopStateRef.current = false;
+                }, 60);
             }
         };
 
         window.addEventListener('popstate', handlePopState);
         return () => {
             window.removeEventListener('popstate', handlePopState);
-            if (hasSubsheetHistoryPushedRef.current) {
-                hasSubsheetHistoryPushedRef.current = false;
-                try { window.history.back(); } catch {}
+            const depth = subsheetDepthRef.current;
+            if (depth > 0 && typeof window !== 'undefined') {
+                subsheetDepthRef.current = 0;
+                try {
+                    window.history.go(-depth);
+                } catch {}
             }
         };
     }, []);
@@ -689,10 +724,19 @@ export default function SmartPlanProposal({
         setMapCandidateCards(allOptions);
         setMapModalMode('alternatives');
         setIsMapModalOpen(true); // 지도 화면 표출!
+        // [v14.4.0] Level 2 가상 히스토리 등록 (depth: 1 -> 2)
+        if (typeof window !== 'undefined' && subsheetDepthRef.current === 1) {
+            window.history.pushState({ raonProposalSubsheet: 2 }, '', window.location.href);
+            subsheetDepthRef.current = 2;
+        }
     };
 
     // [v14.0.0] 지도 창에서 리스트로 즉시 복귀 핸들러
     const handleSwitchToList = () => {
+        if (typeof window !== 'undefined' && subsheetDepthRef.current === 2) {
+            window.history.back(); // popstate 이벤트가 지도를 닫고 대체리스트를 안전 복원 (depth: 2 -> 1)
+            return;
+        }
         setIsMapModalOpen(false); // 지도 창 닫힘!
         if (savedSwapCategoryRef.current) {
             setSwapCategory(savedSwapCategoryRef.current); // 원래 보던 리스트 바텀시트 복구!

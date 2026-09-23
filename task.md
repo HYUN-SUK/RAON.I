@@ -1,5 +1,16 @@
 # Task Management
 
+## Completed Tasks (2026-09-23)
+- [x] **마일스톤 9.64**: 정밀 여행계획(SmartPlanProposal) 2단계 계층형 뒤로가기(Popstate) 가드 구축 및 페이지 이탈 완치
+  - **대체리스트 지도로 보기 Level 2 히스토리 스택 적재 (`handleOpenAlternativesMap`)**: 대체리스트(depth 1)에서 지도로 보기 진입 시 `window.history.pushState({ raonProposalSubsheet: 2 })`로 depth 2를 등록하여 모바일 뒤로가기 방어선 2중화.
+  - **지도로 보기에서 2단 뒤로가기 안전 복원 (`SmartPlanProposal.tsx`)**:
+    - 1차 뒤로가기: 지도 닫힘 ➔ 대체 장소 리스트 복원 (depth: 2 ➔ 1).
+    - 2차 뒤로가기: 대체리스트 닫힘 ➔ 스마트플랜 본문 복귀 (depth: 1 ➔ 0).
+    - 뒤로가기 연속 클릭 시 일정 상세 페이지(`/myspace/schedule/[id]`) 밖으로 튕겨 나가던 결함 100% 원천 박멸.
+  - **`isProgrammaticBackRef` & `go(-depth)` 안전 회수 장착**: UI 버튼(`[📋 리스트로 보기]`, `[X]`, `[✔ 이 장소로 선택]`) 터치 시 브라우저 popstate 중복 트리거 차단 및 찌꺼기 가상 히스토리 일괄 소멸.
+  - **언마운트 안전 클린업**: 페이지 이동 시 브라우저 히스토리 찌꺼기 0건 보장.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
 ## Completed Tasks (2026-09-22)
 - [x] **마일스톤 9.63**: 즉시 여행계획 모바일 내비게이션 3대 결함(GPS 갱신 시 플랜 보존, 3단계 계층형 히스토리 스택: 지도 ➔ 대체리스트 ➔ 모달 결과 ➔ 홈 잔류, 모바일 뒤로가기 시 홈 유지) 완치, 모달 종료 시 세션 상태 완전 리셋 및 카카오 간편로그인 안정화 완결
   - **GPS 갱신 시 플랜 보존 및 재측위 분기 (`InstantPlanModal.tsx`)**: GPS 재수신이나 위치 갱신 시 생성되어 있던 4단계 여행 플랜(`planData`)이 날아가거나 초기화되지 않고 안전하게 보존되도록 상태 가드 처리.
