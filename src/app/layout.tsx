@@ -7,6 +7,7 @@ import LoginRequestDialog from "@/components/auth/LoginRequestDialog";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import DeepLinkHandler from "@/components/pwa/DeepLinkHandler";
 import DiagnosticSensorActivator from "@/components/common/DiagnosticSensorActivator";
+import SystemThemeColorSync from "@/components/common/SystemThemeColorSync";
 
 const inter = Inter({ subsets: ["latin"] });
 const nanumPen = Nanum_Pen_Script({ weight: "400", subsets: ["latin"], variable: "--font-nanum-pen" });
@@ -42,10 +43,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FFFFFF" },
-    { media: "(prefers-color-scheme: dark)", color: "#18181B" },
-  ],
+  themeColor: "#FFFFFF",
 };
 
 export default function RootLayout({
@@ -55,7 +53,38 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        <meta name="theme-color" content="#FFFFFF" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  function syncSystemTheme() {
+                    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    var color = isDark ? '#18181B' : '#FFFFFF';
+                    var metas = document.querySelectorAll('meta[name="theme-color"]');
+                    if (metas.length > 0) {
+                      metas.forEach(function(m) { m.setAttribute('content', color); });
+                    } else {
+                      var m = document.createElement('meta');
+                      m.name = 'theme-color';
+                      m.content = color;
+                      document.head.appendChild(m);
+                    }
+                  }
+                  syncSystemTheme();
+                  if (window.matchMedia) {
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncSystemTheme);
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.className} ${nanumPen.variable} ${nanumMyeongjo.variable} antialiased`} suppressHydrationWarning>
+        <SystemThemeColorSync />
         <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet" />
         {children}
         <Toaster position="top-center" />
