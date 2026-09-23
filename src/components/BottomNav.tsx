@@ -57,7 +57,7 @@ export default function BottomNav() {
     }
 
     return (
-        <nav className="fixed bottom-0 w-full max-w-[430px] h-[80px] bg-white border-t border-stone-200/70 flex justify-around items-center z-50 pb-3">
+        <nav className="fixed bottom-0 w-full max-w-[430px] h-[80px] bg-white dark:bg-zinc-900 border-t border-stone-200/70 dark:border-zinc-800/80 flex justify-around items-center z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
             {tabs.map((tab) => {
                 const isActive = pathname === tab.href;
                 const badgeCount = getBadgeCount(tab.badgeTarget);
