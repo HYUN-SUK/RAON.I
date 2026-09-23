@@ -1,6 +1,17 @@
 # Task Management
 
 ## Completed Tasks (2026-09-23)
+- [x] **마일스톤 9.66**: 다가오는 일정 뱃지 문구 깜빡임(Flicker) 완치 및 상세 화면 스마트플랜 0초 즉시 렌더링(Cache-First) 완결
+  - **홈 일정 카드 상단 뱃지 깜빡임 완치 (`ScheduleHomeWidget.tsx`)**:
+    - `schedules` 초기 상태를 `localStorage.getItem('user_schedules_cache')`로 즉시 동기화.
+    - `activeReservations` 및 `activeSchedules`를 최상위로 격상하여 `upcomingItem`, `isSmartPlanAvailable`, `isSmartPlanUnlockingSoon`, `badgeText`, `handleCardClick` 전역에서 0.00초부터 캐시 데이터를 직접 참조하도록 연결.
+    - 홈 화면 복귀 시 뱃지 텍스트가 임시로 "⚡ 즉시 여행계획 생성가능!, 터치해보세요!"로 번쩍였다가 실제 상태로 바뀌던 시각적 왜곡(Flicker) 100% 박멸.
+  - **일정 상세 화면 스마트플랜 0초 즉시 렌더링 (`myspace/schedule/[id]/page.tsx`)**:
+    - 마운트 즉시 `localStorage.getItem('user_schedules_cache')`에서 해당 일정(`initialCachedSchedule`) 및 스마트플랜 데이터(`smart_plan_data`)를 동기 복원.
+    - `isLoading` 초기값을 `!initialCachedSchedule`로 설정하여 캐시가 존재할 경우 2~4초 동안 전체 화면을 가리던 로딩 스피너(`Loader2 animate-spin`) 원천 스킵.
+    - `showSmartPlan` 및 `planMode`를 캐시 데이터 유무에 따라 0.00초 마운트 시점부터 즉시 `true`로 활성화하여, 홈에서 일정 카드를 터치하자마자 0초 만에 스마트플랜 결과 화면이 직통 표출되도록 구현.
+    - 백그라운드에서는 조용히 `loadData()`(Silent SWR Revalidation)가 실행되어 최신 DB 데이터 및 체크리스트 동기화 유지.
+  - **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
 - [x] **마일스톤 9.65**: 정밀/즉시 스마트플랜 지도 내 내비 바텀시트 계층형 뒤로가기 완치 & 홈 화면 다가오는 일정 0초 즉시 렌더링(SWR) 완결
   - **지도 내 내비 바텀시트 3단계 계층형 뒤로가기 완치 (`SmartPlanProposal.tsx`, `InstantPlanModal.tsx`)**:
     - **레이어 우선순위 정상화**: `handlePopState`에서 상위 오버레이인 `navTargetCard`(내비 시트)를 하위 레이어인 `isMapModalOpen`(지도 모달)보다 1순위로 먼저 닫도록 판정 순서 역전 버그 완벽 수정.

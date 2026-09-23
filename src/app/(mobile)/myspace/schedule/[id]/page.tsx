@@ -84,15 +84,33 @@ function ScheduleDetailContent() {
             isMountedRef.current = false;
         };
     }, []);
+    // [0초 즉시 렌더링] 진입 즉시 로컬 캐시에서 해당 일정을 동기 복원하여 스피너 없이 즉시 렌더링
+    const initialCachedSchedule = useMemo<Schedule | null>(() => {
+        if (!scheduleId || typeof window === 'undefined') return null;
+        try {
+            const raw = localStorage.getItem('user_schedules_cache');
+            if (raw) {
+                const list: Schedule[] = JSON.parse(raw);
+                return list.find(s => s.id === scheduleId) || null;
+            }
+        } catch {}
+        return null;
+    }, [scheduleId]);
+
+    const initialSavedData = initialCachedSchedule?.smart_plan_data;
+    const initialIsPreview = (initialSavedData as any)?.is_preview === true;
+    const initialHasPlan = initialSavedData && (initialSavedData as any).wrapped === true && !initialIsPreview;
+    const initialMode: 'BASIC' | 'PRO' = (initialSavedData as any)?.mode === 'PRO' ? 'PRO' : 'BASIC';
+
     const [userEmail, setUserEmail] = useState<string>();
-    const [showSmartPlan, setShowSmartPlan] = useState(false);
+    const [showSmartPlan, setShowSmartPlan] = useState<boolean>(() => !!initialHasPlan);
     const [smartPlanOrigin, setSmartPlanOrigin] = useState<{ lat: number; lng: number } | undefined>();
     const [showProfileGate, setShowProfileGate] = useState(false);
     const [planKey, setPlanKey] = useState(0);
     const [isReconstructing, setIsReconstructing] = useState(false);
     // PRO 모드 상태
     const [showModeSelector, setShowModeSelector] = useState(false);
-    const [planMode, setPlanMode] = useState<'BASIC' | 'PRO'>('BASIC');
+    const [planMode, setPlanMode] = useState<'BASIC' | 'PRO'>(() => initialMode);
     const [travelType, setTravelType] = useState<'camping' | 'general'>('general');
     const isPro = useMemo(() => {
         if (userId === DEV_PRO_USER_ID) return true;
@@ -136,15 +154,15 @@ function ScheduleDetailContent() {
         };
     }, []);
 
-    const [schedule, setSchedule] = useState<Schedule | null>(null);
+    const [schedule, setSchedule] = useState<Schedule | null>(() => initialCachedSchedule);
     const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState<boolean>(() => !initialCachedSchedule);
     const [newItem, setNewItem] = useState('');
     const [isAddingItem, setIsAddingItem] = useState(false);
 
     // [Fix] Instant cache check from localStorage to present schedule within 0.001s
     useEffect(() => {
-        if (scheduleId) {
+        if (scheduleId && !schedule) {
             try {
                 const raw = localStorage.getItem('user_schedules_cache');
                 if (raw) {
@@ -152,11 +170,12 @@ function ScheduleDetailContent() {
                     const found = list.find(s => s.id === scheduleId);
                     if (found) {
                         setSchedule(found);
+                        setIsLoading(false);
                     }
                 }
             } catch {}
         }
-    }, [scheduleId]);
+    }, [scheduleId, schedule]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

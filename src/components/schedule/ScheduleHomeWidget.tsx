@@ -57,7 +57,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     const { withAuth } = useRequireAuth();
     const supabase = useMemo(() => createClient(), []);
     const { reservations, fetchMyReservations } = useReservationStore();
-    const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const [schedules, setSchedules] = useState<Schedule[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const raw = localStorage.getItem('user_schedules_cache');
+            if (raw) {
+                const list = JSON.parse(raw);
+                if (Array.isArray(list)) return list as Schedule[];
+            }
+        } catch {}
+        return [];
+    });
     const schedulesRef = useRef(schedules);
     useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
 
@@ -138,6 +148,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [dontShowToday, setDontShowToday] = useState(false);
 
+    // 활성 예약 및 일정 (로컬 캐시 동기 참조 0.00초 보장)
+    const activeReservations = useMemo<Reservation[]>(() => {
+        if (cachedReservations && cachedReservations.length > 0) return cachedReservations;
+        return isAuthenticated ? reservations : [];
+    }, [cachedReservations, reservations, isAuthenticated]);
+
+    const activeSchedules = useMemo<Schedule[]>(() => {
+        if (cachedSchedules && cachedSchedules.length > 0) return cachedSchedules;
+        return isAuthenticated ? schedules : [];
+    }, [cachedSchedules, schedules, isAuthenticated]);
+
     // 통합 일정 계산 (라온아이 예약 + 타캠핑장 일정)
     const upcomingItem = useMemo(() => {
         // [Security] 비로그인 상태가 확인되면 어떤 캐시도 노출하지 않고 즉시 null 반환
@@ -147,13 +168,6 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         today.setHours(0, 0, 0, 0);
 
         const unifiedList: UnifiedSchedule[] = [];
-
-        const activeReservations = (cachedReservations && cachedReservations.length > 0) 
-            ? cachedReservations 
-            : (isAuthenticated ? reservations : []);
-        const activeSchedules = (cachedSchedules && cachedSchedules.length > 0) 
-            ? cachedSchedules 
-            : (isAuthenticated ? schedules : []);
 
         // 라온아이 예약 필터링
         if (Array.isArray(activeReservations)) {
@@ -322,11 +336,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         let createdAtDate: Date;
         
         if (upcomingItem.type === 'reservation') {
-            const reservation = reservations.find(r => r.id === upcomingItem.id);
+            const reservation = activeReservations.find(r => r.id === upcomingItem.id);
             if (!reservation || reservation.status !== 'CONFIRMED') return false;
             createdAtDate = new Date(reservation.createdAt);
         } else {
-            const schedule = schedules.find(s => s.id === upcomingItem.id);
+            const schedule = activeSchedules.find(s => s.id === upcomingItem.id);
             if (!schedule || schedule.status !== 'scheduled') return false;
             createdAtDate = new Date(schedule.created_at);
         }
@@ -342,7 +356,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         }
 
         return new Date() >= unlockTimeByCreation;
-    }, [upcomingItem, reservations, schedules]);
+    }, [upcomingItem, activeReservations, activeSchedules]);
 
     // 스마트플랜 오픈 대기 여부 판별
     const isSmartPlanUnlockingSoon = useMemo(() => {
@@ -352,17 +366,17 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         let hasSmartPlan = false;
         
         if (upcomingItem.type === 'reservation') {
-            const reservation = reservations.find(r => r.id === upcomingItem.id);
+            const reservation = activeReservations.find(r => r.id === upcomingItem.id);
             if (!reservation || reservation.status !== 'CONFIRMED') return false;
             createdAtDate = new Date(reservation.createdAt);
             
             // 이미 생성된 일정에 smart_plan_data가 있는지 체크
-            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
+            const matchedSchedule = activeSchedules.find(s => s.reservation_id === upcomingItem.id);
             if (matchedSchedule && matchedSchedule.smart_plan_data) {
                 hasSmartPlan = true;
             }
         } else {
-            const schedule = schedules.find(s => s.id === upcomingItem.id);
+            const schedule = activeSchedules.find(s => s.id === upcomingItem.id);
             if (!schedule || schedule.status !== 'scheduled') return false;
             createdAtDate = new Date(schedule.created_at);
             hasSmartPlan = !!schedule.smart_plan_data;
@@ -379,7 +393,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         }
 
         return new Date() < unlockTimeByCreation;
-    }, [upcomingItem, reservations, schedules]);
+    }, [upcomingItem, activeReservations, activeSchedules]);
 
     // 뱃지 텍스트 결정 (스마트플랜 5단계 동적 D-Day 생명주기 뱃지 수식 - ScheduleCard와 100% 동일화)
     const badgeText = useMemo(() => {
@@ -387,10 +401,10 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         
         let smartPlanData: any = null;
         if (upcomingItem.type === 'schedule') {
-            const schedule = schedules.find(s => s.id === upcomingItem.id);
+            const schedule = activeSchedules.find(s => s.id === upcomingItem.id);
             smartPlanData = schedule?.smart_plan_data;
         } else if (upcomingItem.type === 'reservation') {
-            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
+            const matchedSchedule = activeSchedules.find(s => s.reservation_id === upcomingItem.id);
             smartPlanData = matchedSchedule?.smart_plan_data;
         }
 
@@ -433,7 +447,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
 
         // 1단계: 즉시 여행계획 생성 전 (신규 등록 직후)
         return "⚡ 즉시 여행계획 생성가능!, 터치해보세요!";
-    }, [upcomingItem, isSmartPlanAvailable, schedules, daysUntil]);
+    }, [upcomingItem, isSmartPlanAvailable, activeSchedules, daysUntil]);
 
     const handleCardClick = () => {
         withAuth(async () => {
@@ -447,7 +461,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
             }
 
             // 이미 Schedules 목록에 매핑된 일정이 존재하는 경우 비동기 서버 액션 호출 없이 0.001초 직통 이동
-            const matchedSchedule = schedules.find(s => s.reservation_id === upcomingItem.id);
+            const matchedSchedule = activeSchedules.find(s => s.reservation_id === upcomingItem.id);
             if (matchedSchedule) {
                 setIsNavigating(true);
                 router.push(`/myspace/schedule/${matchedSchedule.id}`);

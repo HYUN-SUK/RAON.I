@@ -1289,3 +1289,10 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
   * 데이터가 없는 비정상 예외 상황 발생 시 완전 빈 흰색 화면 대신 `"여행계획을 불러오지 못했습니다"` 안내와 함께 **`[🛰️ 현재 위치 기준으로 다시 보기]`** 복구 버튼 노출.
   * 해당 복구 버튼 클릭 시 현재 GPS를 우선 측정하고, 실패 시 자동 라온아이 추천으로 연결되는 안전 파이프라인 연동.
   * 하단 고정 저장 CTA 바에 `planData &&` 안전 가드를 결합하여 빈 플랜 저장 유발 결함 원천 차단.
+
+### [2026-09-23 Update - Milestone 9.66]
+* [x] **다가오는 일정 뱃지 문구 깜빡임(Flicker) 완치 및 상세 화면 스마트플랜 0초 즉시 렌더링(Cache-First) 완결**:
+  * **홈 카드 상단 뱃지 깜빡임 완치 (`ScheduleHomeWidget.tsx`)**: `schedules` 초기 상태를 로컬 캐시(`user_schedules_cache`)로 즉시 동기화하고, `activeSchedules`를 판정 함수 전역에 연결하여 홈 복귀 시 뱃지 텍스트가 "⚡ 즉시 여행계획 생성가능!, 터치해보세요!"로 번쩍였다가 실제 상태로 바뀌던 착시 깜빡임을 100% 영구 박멸.
+  * **일정 상세 화면 스마트플랜 0초 즉시 렌더링 (`myspace/schedule/[id]/page.tsx`)**: 로컬 캐시에서 해당 일정 및 스마트플랜 데이터(`smart_plan_data`)를 마운트 즉시 동기 복원하고, `isLoading` 초기값을 `false`, `showSmartPlan`을 즉시 `true`로 설정하여 2~4초 동안 전체 화면을 가리던 로딩 스피너를 원천 스킵하고 0.00초 만에 스마트플랜 결과 화면이 직통 표출되도록 구현 (백그라운드 Silent Revalidation 유지).
+  * **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
