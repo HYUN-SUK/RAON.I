@@ -23,7 +23,7 @@ export default function CommunityHeader() {
                 className="flex justify-between items-center"
             >
                 <div>
-                    <h1 className="text-2xl font-bold text-[#1C4526] mb-1">
+                    <h1 className="text-2xl font-bold text-[#1E4D2B] mb-1">
                         캠퍼들의 이야기
                     </h1>
                     <p className="text-sm text-[#4D4D4D] font-light">
@@ -34,7 +34,7 @@ export default function CommunityHeader() {
                 <Link href={activeTab === 'CONTENT' ? '/community/content/create' : `/community/write?type=${activeTab}`}>
                     <Button
                         size="sm"
-                        className="bg-[#1C4526] hover:bg-[#1C4526]/90 text-white rounded-full shadow-md px-4"
+                        className="bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-full shadow-md px-4"
                     >
                         <Plus className="w-4 h-4 mr-1" />
                         <span className="font-medium">글쓰기</span>
@@ -50,7 +50,7 @@ export default function CommunityHeader() {
                     placeholder="검색어를 입력하세요 (제목, 내용)"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-10 pr-4 rounded-xl bg-white border border-gray-200 focus:outline-none focus:border-[#1C4526] text-sm transition-all shadow-sm placeholder:text-gray-400"
+                    className="w-full h-10 pl-10 pr-4 rounded-xl bg-white border border-gray-200 focus:outline-none focus:border-[#388E5A] text-sm transition-all shadow-sm placeholder:text-gray-400"
                 />
             </div>
         </header>

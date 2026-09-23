@@ -214,14 +214,14 @@ function ScheduleContent() {
 
     if (!isMounted) {
         return (
-            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-[#224732]" />
+            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#388E5A]" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF]">
+        <div className="min-h-screen bg-[#F8FAF8]">
             {/* 헤더 */}
             <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex items-center justify-between px-4 h-14">
@@ -237,7 +237,7 @@ function ScheduleContent() {
                     <h1 className="text-lg font-semibold text-gray-900">나의 여행일정</h1>
                     <button
                         onClick={() => setIsFormOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#224732] text-white hover:bg-[#1a3626] transition-colors text-sm font-medium"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#388E5A] text-white hover:bg-[#2F774B] transition-colors text-sm font-medium"
                         aria-label="새 일정 추가"
                     >
                         <Plus className="w-4 h-4" />
@@ -254,7 +254,7 @@ function ScheduleContent() {
                             className={`
                                 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all
                                 ${activeTab === tab.key
-                                    ? 'bg-[#224732] text-white shadow-sm'
+                                    ? 'bg-[#388E5A] text-white shadow-sm'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }
                             `}
@@ -288,8 +288,8 @@ function ScheduleContent() {
                 ) : schedules.length === 0 ? (
                     // 빈 상태
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-20 h-20 rounded-full bg-[#224732]/10 flex items-center justify-center mb-4">
-                            <Tent className="w-10 h-10 text-[#224732]" />
+                        <div className="w-20 h-20 rounded-full bg-[#EDF5EE] flex items-center justify-center mb-4">
+                            <Tent className="w-10 h-10 text-[#388E5A]" />
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-1">
                             {activeTab === 'scheduled' && '예정된 캠핑이 없어요'}
@@ -305,7 +305,7 @@ function ScheduleContent() {
                         {activeTab === 'scheduled' && (
                             <Button
                                 onClick={() => setIsFormOpen(true)}
-                                className="bg-[#224732] hover:bg-[#1a3626]"
+                                className="bg-[#388E5A] hover:bg-[#2F774B] text-white"
                             >
                                 <Plus className="w-4 h-4 mr-1" />
                                 일정 등록하기
@@ -406,8 +406,8 @@ function ScheduleContent() {
 export default function SchedulePage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-[#224732]" />
+            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#388E5A]" />
             </div>
         }>
             <ScheduleContent />

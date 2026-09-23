@@ -333,14 +333,14 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
     // [v14.0.0] 카테고리별 테마 SVG 마커 핀 생성
     const getMarkerPinImage = (categoryType: string) => {
-        let fill = '#1C4526';
+        let fill = '#388E5A';
         let label = '⛺';
         switch (categoryType) {
             case 'RESTAURANT': fill = '#EA580C'; label = '🍽️'; break;
             case 'CAFE': fill = '#B45309'; label = '☕'; break;
             case 'SPOT': fill = '#059669'; label = '🏞️'; break;
             case 'FESTIVAL': fill = '#7C3AED'; label = '🎪'; break;
-            case 'CAMPGROUND': fill = '#1C4526'; label = '⛺'; break;
+            case 'CAMPGROUND': fill = '#388E5A'; label = '⛺'; break;
         }
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
             <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 24 14 24s14-13.5 14-24c0-7.732-6.268-14-14-14z" fill="${fill}" stroke="#ffffff" stroke-width="1.5"/>
@@ -545,7 +545,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             <button
                                 onClick={handleSearchExecute}
                                 disabled={isSearchLoading}
-                                className="ml-2 px-3.5 py-1.5 bg-[#224732] hover:bg-[#1a3626] text-white text-xs sm:text-sm font-semibold rounded-full shrink-0 transition-colors shadow-sm disabled:opacity-50"
+                                className="ml-2 px-3.5 py-1.5 bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs sm:text-sm font-semibold rounded-full shrink-0 transition-colors shadow-sm disabled:opacity-50"
                             >
                                 {isSearchLoading ? '검색 중...' : '검색'}
                             </button>
@@ -562,7 +562,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => setIsSearching(true)} className="w-full h-full flex items-center justify-center text-gray-600 hover:text-brand-1 bg-white hover:bg-gray-50 rounded-full transition-colors group">
+                        <button onClick={() => setIsSearching(true)} className="w-full h-full flex items-center justify-center text-gray-600 hover:text-[#388E5A] bg-white hover:bg-gray-50 rounded-full transition-colors group">
                             <div className="sr-only">검색</div>
                             <Search size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
                         </button>
@@ -588,7 +588,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                     handleSearchSelect(place);
                                 }}
                             >
-                                <MapPin size={16} className="text-brand-1 shrink-0" />
+                                <MapPin size={16} className="text-[#388E5A] shrink-0" />
                                 <div className="min-w-0">
                                     <div className="text-sm font-bold text-gray-800 truncate">{place.place_name}</div>
                                     <div className="text-xs text-gray-500 truncate">{place.road_address_name || place.address_name}</div>
@@ -620,7 +620,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             onClick={() => setSelectedCategoryFilter(tab.key as any)}
                             className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
                                 isSelected 
-                                    ? 'bg-[#1C4526] text-white shadow-xs' 
+                                    ? 'bg-[#388E5A] text-white shadow-xs' 
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                         >
@@ -635,7 +635,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             <div className="w-full h-[65vh] relative shrink-0">
                 {loading ? (
                     <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                        <Loader2 className="animate-spin text-brand-1" size={32} />
+                        <Loader2 className="animate-spin text-[#388E5A]" size={32} />
                         <span className="ml-2 text-gray-500 font-medium">지도 불러오는 중...</span>
                     </div>
                 ) : error ? (
@@ -734,7 +734,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                         {pendingPin.address && (
                                             <span className="text-xs text-gray-500 truncate mt-0.5">{pendingPin.address}</span>
                                         )}
-                                        <span className="text-xs text-brand-1 mt-1 font-medium">이곳을 추가할까요?</span>
+                                        <span className="text-xs text-[#388E5A] mt-1 font-medium">이곳을 추가할까요?</span>
                                     </div>
                                     <div className="flex gap-3 flex-shrink-0">
                                         <button
@@ -744,7 +744,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                                 e.stopPropagation();
                                                 confirmPendingPin();
                                             }}
-                                            className="p-3 bg-brand-1 text-white rounded-full hover:bg-brand-1/90 shadow-md active:scale-95 transition-transform"
+                                            className="p-3 bg-[#388E5A] text-white rounded-full hover:bg-[#2F774B] shadow-md active:scale-95 transition-transform"
                                         >
                                             <Check size={20} strokeWidth={3} />
                                         </button>
@@ -768,7 +768,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
 
                 {/* Current Location Button */}
                 <button
-                    className={`absolute bottom-4 right-4 bg-white px-4 py-2.5 rounded-full shadow-lg z-10 text-gray-700 hover:text-brand-1 active:scale-95 transition-all flex items-center gap-2 ${isLocating ? 'opacity-80 cursor-wait' : ''}`}
+                    className={`absolute bottom-4 right-4 bg-white px-4 py-2.5 rounded-full shadow-lg z-10 text-gray-700 hover:text-[#388E5A] active:scale-95 transition-all flex items-center gap-2 ${isLocating ? 'opacity-80 cursor-wait' : ''}`}
                     disabled={isLocating}
                     onClick={() => {
                         if (!mapRef.current) return;
@@ -807,7 +807,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     }}
                 >
                     {isLocating ? (
-                        <Loader2 size={18} className="animate-spin text-brand-1" />
+                        <Loader2 size={18} className="animate-spin text-[#388E5A]" />
                     ) : (
                         <Locate size={18} />
                     )}
@@ -820,10 +820,10 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 <div data-list-header className="p-4 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10 space-y-3">
                     <div className="flex justify-between items-center">
                         <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                            <Navigation size={18} className="text-brand-1" />
+                            <Navigation size={18} className="text-[#388E5A]" />
                             나의 캠핑 기록
                         </h3>
-                        <span className="text-xs font-bold text-brand-1 bg-brand-1/10 px-2.5 py-1 rounded-full">{allMarkers.length}곳 정복!</span>
+                        <span className="text-xs font-bold text-[#2D5A3C] bg-[#E9EFEA] px-2.5 py-1 rounded-full">{allMarkers.length}곳 정복!</span>
                     </div>
                     {/* 5. List Search Bar */}
                     <div className="relative">
@@ -831,7 +831,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                         <input
                             type="text"
                             placeholder="내 기록 검색 (이름, 주소, 메모)"
-                            className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-9 pr-4 text-sm focus:ring-1 focus:ring-brand-1/50 transition-all"
+                            className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-9 pr-4 text-sm focus:ring-1 focus:ring-[#388E5A]/50 transition-all"
                             value={listSearchQuery}
                             onChange={(e) => setListSearchQuery(e.target.value)}
                         />
@@ -865,12 +865,12 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                     setIsDetailOpen(true);
                                 }}
                                 className={`w-full flex items-center gap-3 p-4 border rounded-2xl shadow-sm text-left transition-all ${selectedItem?.id === item.id
-                                    ? 'bg-brand-1/5 border-brand-1 ring-1 ring-brand-1'
-                                    : 'bg-white border-gray-100 hover:border-brand-1/30 hover:shadow-md'
+                                    ? 'bg-[#388E5A]/10 border-[#388E5A] ring-1 ring-[#388E5A]'
+                                    : 'bg-white border-gray-100 hover:border-[#388E5A]/30 hover:shadow-md'
                                     }`}
                             >
                                 <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
-                                    <MapPin size={20} className="text-brand-1" />
+                                    <MapPin size={20} className="text-[#388E5A]" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">

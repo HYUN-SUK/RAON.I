@@ -74,8 +74,8 @@ export default function CheckoutPage() {
             <main className="p-5 space-y-6 max-w-[430px] mx-auto">
                 {/* 주문 상품 요약 */}
                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-2 mb-4 text-[#1C4526]">
-                        <Receipt className="w-5 h-5" />
+                    <div className="flex items-center gap-2 mb-4 text-[#1E4D2B]">
+                        <Receipt className="w-5 h-5 text-[#388E5A]" />
                         <h2 className="font-bold text-gray-900">주문 내역</h2>
                     </div>
 
@@ -94,7 +94,7 @@ export default function CheckoutPage() {
 
                     <div className="flex justify-between items-center">
                         <span className="text-gray-500 font-medium">총 결제 금액</span>
-                        <span className="text-xl font-bold text-[#1C4526]">{formatPrice(getTotalPrice())}</span>
+                        <span className="text-xl font-bold text-[#1E4D2B]">{formatPrice(getTotalPrice())}</span>
                     </div>
                 </section>
 
@@ -145,8 +145,8 @@ export default function CheckoutPage() {
                 {/* 결제 수단 */}
                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                     <h2 className="font-bold text-gray-900 mb-4">결제 수단</h2>
-                    <div className="p-4 border border-[#1C4526]/20 bg-[#1C4526]/5 rounded-xl flex flex-col items-center justify-center gap-2 text-[#1C4526] transition-all hover:bg-[#1C4526]/10 cursor-pointer">
-                        <CreditCard className="w-6 h-6 mb-1" />
+                    <div className="p-4 border border-[#388E5A]/20 bg-[#388E5A]/5 rounded-xl flex flex-col items-center justify-center gap-2 text-[#1E4D2B] transition-all hover:bg-[#388E5A]/10 cursor-pointer">
+                        <CreditCard className="w-6 h-6 mb-1 text-[#388E5A]" />
                         <span className="text-sm font-bold">신용/체크카드</span>
                     </div>
                     <p className="text-xs text-gray-400 text-center mt-3">
@@ -158,7 +158,7 @@ export default function CheckoutPage() {
             {/* 하단 결제 버튼 */}
             <div className="fixed bottom-[80px] left-0 right-0 max-w-[430px] mx-auto bg-white/90 backdrop-blur-md border-t border-gray-100 p-4 safe-area-bottom z-30">
                 <Button
-                    className="w-full h-12 text-base bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl shadow-lg shadow-[#1C4526]/20 transition-all active:scale-[0.98]"
+                    className="w-full h-12 text-base bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl shadow-lg shadow-[#388E5A]/20 transition-all active:scale-[0.98]"
                     onClick={handleOrder}
                 >
                     {formatPrice(getTotalPrice())} 결제하기

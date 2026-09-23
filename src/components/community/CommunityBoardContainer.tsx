@@ -100,7 +100,7 @@ export default function CommunityBoardContainer({ activeTab }: CommunityBoardCon
             {isInfinite ? (
                 // Infinite Scroll Loader
                 <div ref={observerTarget} className="py-6 flex justify-center w-full">
-                    {isLoading && <Loader2 className="w-6 h-6 animate-spin text-[#1C4526]" />}
+                    {isLoading && <Loader2 className="w-6 h-6 animate-spin text-[#388E5A]" />}
                     {!isLoading && !hasMore && posts.length > 0 && (
                         <span className="text-xs text-[#999]">모든 게시물을 불러왔습니다.</span>
                     )}
@@ -114,7 +114,7 @@ export default function CommunityBoardContainer({ activeTab }: CommunityBoardCon
                             key={p}
                             onClick={() => loadPosts(activeTab, p)}
                             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${page === p
-                                ? 'bg-[#1C4526] text-white'
+                                ? 'bg-[#388E5A] text-white'
                                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                                 }`}
                         >

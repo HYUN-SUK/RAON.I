@@ -97,18 +97,18 @@ export default function CancelReservationSheet({
                     </div>
 
                     {/* 환불 정보 */}
-                    <div className={`rounded-xl p-4 ${refundRate === 0 ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}>
+                    <div className={`rounded-xl p-4 ${refundRate === 0 ? "bg-red-50 border border-red-200" : "bg-[#E9EFEA] border border-[#388E5A]/30"}`}>
                         <div className="flex items-center gap-2 mb-2">
-                            <BanknoteIcon size={18} className={refundRate === 0 ? "text-red-600" : "text-green-600"} />
-                            <span className={`font-bold ${refundRate === 0 ? "text-red-700" : "text-green-700"}`}>
+                            <BanknoteIcon size={18} className={refundRate === 0 ? "text-red-600" : "text-[#388E5A]"} />
+                            <span className={`font-bold ${refundRate === 0 ? "text-red-700" : "text-[#2D5A3C]"}`}>
                                 환불 정책
                             </span>
                         </div>
                         <div className="text-sm space-y-1">
-                            <p className={refundRate === 0 ? "text-red-600" : "text-green-700"}>
+                            <p className={refundRate === 0 ? "text-red-600" : "text-[#2D5A3C]"}>
                                 환불율: <span className="font-bold">{refundRate}%</span>
                             </p>
-                            <p className={refundRate === 0 ? "text-red-600" : "text-green-700"}>
+                            <p className={refundRate === 0 ? "text-red-600" : "text-[#2D5A3C]"}>
                                 환불 예정액: <span className="font-bold">{refundAmount.toLocaleString()}원</span>
                             </p>
                         </div>
@@ -147,7 +147,7 @@ export default function CancelReservationSheet({
                                                 setBankCode(bank.code);
                                                 setShowBankDropdown(false);
                                             }}
-                                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 ${bankCode === bank.code ? "bg-brand-1/10 text-brand-1" : ""}`}
+                                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 ${bankCode === bank.code ? "bg-[#388E5A]/10 text-[#388E5A]" : ""}`}
                                         >
                                             {bank.name}
                                         </button>
@@ -165,7 +165,7 @@ export default function CancelReservationSheet({
                                     value={customBankName}
                                     onChange={(e) => setCustomBankName(e.target.value)}
                                     placeholder="예: 새마을금고 ○○지점"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-1"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A]"
                                 />
                             </div>
                         )}
@@ -179,7 +179,7 @@ export default function CancelReservationSheet({
                                 value={account}
                                 onChange={(e) => setAccount(e.target.value.replace(/[^0-9-]/g, ""))}
                                 placeholder="'-' 없이 숫자만 입력"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-1"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A]"
                             />
                         </div>
 
@@ -191,7 +191,7 @@ export default function CancelReservationSheet({
                                 value={holder}
                                 onChange={(e) => setHolder(e.target.value)}
                                 placeholder="예금주명을 입력하세요"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-brand-1"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A]"
                             />
                         </div>
                     </div>
@@ -206,8 +206,8 @@ export default function CancelReservationSheet({
                                     type="button"
                                     onClick={() => setReason(reason === r ? "" : r)}
                                     className={`px-3 py-2 text-sm rounded-full border transition-colors ${reason === r
-                                            ? "bg-brand-1 text-white border-brand-1"
-                                            : "bg-white text-text-2 border-gray-200 hover:border-brand-1"
+                                            ? "bg-[#388E5A] text-white border-[#388E5A]"
+                                            : "bg-white text-text-2 border-gray-200 hover:border-[#388E5A]"
                                         }`}
                                 >
                                     {r}

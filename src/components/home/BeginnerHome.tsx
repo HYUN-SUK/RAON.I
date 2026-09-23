@@ -296,7 +296,7 @@ export default function BeginnerHome() {
         return [
             {
                 type: 'wayfinding',
-                icon: <Navigation className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
+                icon: <Navigation className="w-5 h-5 text-[#388E5A] group-hover:text-[#1E4D2B] transition-colors mb-2" />,
                 label: "길찾기",
                 sub: "카카오/티맵",
                 title: "오시는 길",
@@ -306,7 +306,7 @@ export default function BeginnerHome() {
             },
             {
                 type: 'contact',
-                icon: <Phone className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
+                icon: <Phone className="w-5 h-5 text-[#388E5A] group-hover:text-[#1E4D2B] transition-colors mb-2" />,
                 label: "문의",
                 sub: "연락처",
                 title: "문의 하기",
@@ -316,7 +316,7 @@ export default function BeginnerHome() {
             },
             {
                 type: 'rules',
-                icon: <Clock className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
+                icon: <Clock className="w-5 h-5 text-[#388E5A] group-hover:text-[#1E4D2B] transition-colors mb-2" />,
                 label: "이용수칙, 환불규정",
                 sub: "규정 안내",
                 title: "이용수칙 및 환불규정",
@@ -326,7 +326,7 @@ export default function BeginnerHome() {
             },
             {
                 type: 'map',
-                icon: <Map className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
+                icon: <Map className="w-5 h-5 text-[#388E5A] group-hover:text-[#1E4D2B] transition-colors mb-2" />,
                 label: "시설현황",
                 sub: "배치도/사진",
                 title: "시설 현황",
@@ -336,7 +336,7 @@ export default function BeginnerHome() {
             },
             {
                 type: 'nearby',
-                icon: <Mountain className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
+                icon: <Mountain className="w-5 h-5 text-[#388E5A] group-hover:text-[#1E4D2B] transition-colors mb-2" />,
                 label: "주변 명소",
                 sub: "관광지 안내",
                 title: "주변 즐길거리",
@@ -346,7 +346,7 @@ export default function BeginnerHome() {
             },
             {
                 type: 'price',
-                icon: <Tag className="w-5 h-5 text-[#3C6E47] group-hover:text-[#1C4526] transition-colors mb-2" />,
+                icon: <Tag className="w-5 h-5 text-[#388E5A] group-hover:text-[#1E4D2B] transition-colors mb-2" />,
                 label: "가격안내",
                 sub: "요금표",
                 title: "가격 안내",
@@ -534,7 +534,7 @@ export default function BeginnerHome() {
     }
 
     return (
-        <div className="flex flex-col w-full min-h-screen bg-white dark:bg-black relative">
+        <div className="flex flex-col w-full min-h-screen bg-[#F8FAF8] dark:bg-black relative">
             <TopBar />
 
             <main className="flex-1 pb-24 overflow-y-auto scrollbar-hide">
@@ -547,16 +547,16 @@ export default function BeginnerHome() {
                 {/* 2. 2열 계획 생성 카드 그리드: [내 주변 맛집 · 관광지 찾기] & [바로 여행계획 만들기] */}
                 <section className="px-4 mb-3">
                     <div className="grid grid-cols-2 gap-3">
-                        {/* 좌측: 내 주변 맛집 · 관광지 찾기 */}
+                        {/* 좌측: 내 주변 맛집 · 관광지 찾기 (소프트 말차 세이지) */}
                         <button
                             onClick={() => setIsNearbyConfirmOpen(true)}
-                            className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#F1F8F3] to-[#E5F2E8] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#224732]/25 rounded-2xl shadow-sm hover:shadow-md hover:border-[#224732]/40 active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
+                            className="flex flex-col justify-between p-4 bg-[#D2E5D7] dark:bg-zinc-850 border-2 border-[#7CAE89] rounded-2xl shadow-xs hover:shadow-md hover:border-[#6B9E78] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
                         >
                             <div className="flex items-center justify-between w-full">
-                                <div className="w-10 h-10 rounded-xl bg-[#224732] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                                    <MapPin className="w-5 h-5 text-emerald-300" />
+                                <div className="w-9 h-9 flex items-center justify-center drop-shadow-xs group-hover:scale-105 transition-transform">
+                                    <MapPin className="w-8 h-8 text-[#4C855C] fill-[#6EB783]" />
                                 </div>
-                                <span className="text-[10px] bg-[#224732]/10 text-[#224732] font-black px-1.5 py-0.5 rounded-full shrink-0">
+                                <span className="text-[10px] bg-white/85 dark:bg-zinc-900/80 text-[#2D5A3C] font-bold px-2 py-0.5 rounded-full shadow-2xs shrink-0">
                                     실시간 GPS
                                 </span>
                             </div>
@@ -567,7 +567,7 @@ export default function BeginnerHome() {
                             </div>
                         </button>
 
-                        {/* 우측: 바로 여행계획 만들기 */}
+                        {/* 우측: 바로 여행계획 만들기 (웜 버터 아프리콧) */}
                         <button
                             onClick={() => {
                                 setSelectedAnchorDest(null);
@@ -575,13 +575,13 @@ export default function BeginnerHome() {
                                 setInstantPlanMode('DESTINATION');
                                 setInstantPlanOpen(true);
                             }}
-                            className="flex flex-col justify-between p-4 bg-gradient-to-br from-[#FDF6EE] to-[#F7EBDC] dark:from-zinc-900 dark:to-zinc-850 border-2 border-[#D48A37]/30 rounded-2xl shadow-sm hover:shadow-md hover:border-[#D48A37]/50 active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
+                            className="flex flex-col justify-between p-4 bg-[#FBE7C6] dark:bg-zinc-850 border-2 border-[#D4A359] rounded-2xl shadow-xs hover:shadow-md hover:border-[#C9944D] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
                         >
                             <div className="flex items-center justify-between w-full">
-                                <div className="w-10 h-10 rounded-xl bg-[#D48A37] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                                    <Sparkles className="w-5 h-5 text-amber-200" />
+                                <div className="w-9 h-9 flex items-center justify-center drop-shadow-xs group-hover:scale-105 transition-transform">
+                                    <Sparkles className="w-8 h-8 text-[#D9963E] fill-[#F3B863]" />
                                 </div>
-                                <span className="text-[10px] bg-[#D48A37]/15 text-[#D48A37] font-black px-1.5 py-0.5 rounded-full shrink-0">
+                                <span className="text-[10px] bg-white/85 dark:bg-zinc-900/80 text-[#8C5D1E] font-bold px-2 py-0.5 rounded-full shadow-2xs shrink-0">
                                     어디든 즉시
                                 </span>
                             </div>
@@ -606,56 +606,36 @@ export default function BeginnerHome() {
                         className="w-full flex items-center justify-between px-4 py-3.5 bg-white dark:bg-zinc-900 border border-stone-200/80 dark:border-zinc-800 rounded-2xl text-stone-800 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-zinc-850 active:scale-[0.98] shadow-xs hover:shadow-sm transition-all group cursor-pointer"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-[#224732]/10 dark:bg-emerald-950/40 flex items-center justify-center text-[#224732] dark:text-emerald-400">
+                            <div className="w-8 h-8 rounded-xl bg-[#EDF5EE] dark:bg-emerald-950/40 flex items-center justify-center text-[#388E5A] dark:text-emerald-400">
                                 <Calendar className="w-4 h-4" />
                             </div>
-                            <span className="text-sm font-bold tracking-tight text-stone-900 dark:text-stone-100">나의 전체 여행일정</span>
+                            <span className="text-sm font-bold tracking-tight text-stone-900 dark:text-stone-100">나의 전체 여행 일정</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-stone-400 font-medium">
+                        <div className="flex items-center gap-1 text-xs text-[#388E5A] font-bold">
                             <span>전체보기</span>
                             <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                         </div>
                     </button>
                 </section>
 
-                {/* 3. 소소한 챙김 (컴팩트 바) - 추후 업데이트를 위해 안보임 처리 */}
-                {/* 
-                <section className="px-4 mb-4">
-                    <button
-                        onClick={() => {
-                            setSosoCareSheetOpen(true);
-                            try { window.sessionStorage?.setItem('raonai_soso_sheet_open', 'true'); } catch {}
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-stone-50/90 dark:bg-zinc-850/80 border border-stone-200/60 dark:border-zinc-700/60 rounded-xl text-stone-600 dark:text-stone-300 text-xs font-medium hover:bg-stone-100 transition-all cursor-pointer"
-                    >
-                        <div className="flex items-center gap-2">
-                            <ChefHat className="w-4 h-4 text-[#C07865]" />
-                            <span className="font-semibold text-stone-700 dark:text-stone-300">소소한 챙김</span>
-                            <span className="text-[11px] text-stone-400">· 주간 미션, 캠핑 요리 레시피, 놀이</span>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-stone-400" />
-                    </button>
-                </section>
-                */}
-
-                {/* 4. 라온아이캠핑장 소개 · 예약하기 (가장 하단 배치) */}
+                {/* 4. 라온아이캠핑장 소개 · 예약하기 (클린 화이트 카드 + 세이지 텐트 아이콘) */}
                 <section className="px-4 mb-8">
                     <button
                         onClick={() => setIsIntroExpanded(!isIntroExpanded)}
-                        className="w-full flex items-center justify-between px-6 py-5 bg-white dark:bg-zinc-900 border-[3px] border-[#5A9E6E] rounded-2xl shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12)] hover:bg-[#F1F8F3] dark:hover:bg-zinc-800/80 active:scale-[0.99] transition-all duration-200 text-left cursor-pointer group"
+                        className="w-full flex items-center justify-between px-5 py-4.5 bg-white dark:bg-zinc-900 border border-stone-200/70 dark:border-zinc-800 rounded-2xl shadow-xs hover:shadow-sm active:scale-[0.99] transition-all text-left cursor-pointer group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-[#5A9E6E] text-white rounded-xl">
-                                <Tent className="w-6 h-6" />
+                            <div className="p-3 bg-[#E6F0E7] dark:bg-emerald-950/40 text-[#1E4D2B] dark:text-emerald-400 rounded-2xl">
+                                <Tent className="w-6 h-6 stroke-[2.2]" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-[#5A9E6E] dark:text-stone-200 tracking-tight leading-tight">
-                                    라온아이캠핑장<br />소개 · 예약하기
+                                <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-stone-100 tracking-tight leading-snug">
+                                    라온아이 캠핑장<br />소개 · 예약하기
                                 </h3>
                             </div>
                         </div>
-                        <div className={`text-[#5A9E6E] dark:text-stone-300 p-2 bg-white/60 dark:bg-zinc-950/60 rounded-full transition-transform duration-300 ${isIntroExpanded ? 'rotate-180' : 'animate-pulse'}`}>
-                            <ChevronDown className="w-5 h-5" />
+                        <div className={`text-[#388E5A] dark:text-stone-300 p-2 rounded-full transition-transform duration-300 ${isIntroExpanded ? 'rotate-180' : ''}`}>
+                            <ChevronDown className="w-5 h-5 stroke-[2.5]" />
                         </div>
                     </button>
 
@@ -696,7 +676,7 @@ export default function BeginnerHome() {
 
                             {/* 2.5 Marketing USP Banner */}
                             <div className="w-full bg-[#ECE8DF]/60 dark:bg-zinc-900/40 backdrop-blur-sm rounded-3xl p-5 border border-stone-200/40 dark:border-zinc-800 text-center space-y-2.5">
-                                <p className="text-base font-bold text-[#1C4526] dark:text-[#C3A675] leading-relaxed">
+                                <p className="text-base font-bold text-[#1E4D2B] dark:text-[#C3A675] leading-relaxed">
                                     두가족도 넉넉한 2배사이트, 깨끗한 개별욕실
                                 </p>
                                 <p className="text-sm text-stone-600 dark:text-stone-400 font-semibold">
@@ -706,10 +686,10 @@ export default function BeginnerHome() {
 
                             {/* 3. Guide Card */}
                             <div className="w-full bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-sm border border-stone-100 dark:border-zinc-800">
-                                <h3 className="text-xl font-bold text-[#1C4526] mb-4">처음 오셨나요?</h3>
+                                <h3 className="text-xl font-bold text-[#1E4D2B] mb-4">처음 오셨나요?</h3>
                                 <div className="space-y-6">
                                     <div className="flex gap-4">
-                                        <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">1</div>
+                                        <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E9EFEA] text-[#2D5A3C] font-bold">1</div>
                                         <div>
                                             <h4 className="font-semibold text-stone-900 dark:text-stone-100">예약하기</h4>
                                             <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed">
@@ -719,7 +699,7 @@ export default function BeginnerHome() {
                                         </div>
                                     </div>
                                     <div className="flex gap-4">
-                                        <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E8F5E9] text-[#1C4526] font-bold">2</div>
+                                        <div className="flex-none flex items-center justify-center w-8 h-8 rounded-full bg-[#E9EFEA] text-[#2D5A3C] font-bold">2</div>
                                         <div>
                                             <h4 className="font-semibold text-stone-900 dark:text-stone-100">입,퇴실 안내</h4>
                                             <p className="text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed break-keep">
@@ -731,7 +711,7 @@ export default function BeginnerHome() {
                                 </div>
 
                                 <Button
-                                    className="w-full mt-6 bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                                    className="w-full mt-6 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
                                     onClick={() => handleProtectedAction(() => router.push('/reservation'))}
                                 >
                                     예약 하러 가기!
@@ -844,7 +824,7 @@ export default function BeginnerHome() {
                     try { window.sessionStorage?.removeItem('raonai_soso_sheet_open'); } catch {}
                 }
             }}>
-                <SheetContent side="bottom" className="rounded-t-3xl pb-8 max-h-[90vh] overflow-y-auto bg-[#F7F5EF] dark:bg-zinc-950">
+                <SheetContent side="bottom" className="rounded-t-3xl pb-8 max-h-[90vh] overflow-y-auto bg-[#F8FAF8] dark:bg-zinc-950">
                     <SheetHeader className="mb-4">
                         <SheetTitle className="text-base font-black text-stone-900 dark:text-stone-100">🌿 소소한 챙김</SheetTitle>
                         <SheetDescription className="text-xs text-stone-500 dark:text-stone-400">
@@ -867,7 +847,7 @@ export default function BeginnerHome() {
                                     setSosoCareSheetOpen(false);
                                     handleProtectedAction(() => router.push('/recipe'));
                                 }}
-                                className="group relative w-full bg-gradient-to-r from-[#224732] to-[#1a3626] hover:from-[#1a3626] hover:to-[#0f2117] text-white rounded-2xl p-4 border border-[#224732]/30 shadow-md active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
+                                className="group relative w-full bg-gradient-to-r from-[#2F774B] to-[#1E4D2B] hover:from-[#1E4D2B] hover:to-[#0f2117] text-white rounded-2xl p-4 border border-[#388E5A]/30 shadow-md active:scale-[0.99] transition-all cursor-pointer overflow-hidden"
                             >
                                 <div className="absolute right-0 bottom-0 translate-x-2 translate-y-2 opacity-10 text-white pointer-events-none">
                                     <ChefHat className="w-24 h-24" />
@@ -943,14 +923,14 @@ export default function BeginnerHome() {
                         <AlertDialog open={isRestoreModalOpen} onOpenChange={setIsRestoreModalOpen}>
                             <AlertDialogContent className="w-[90%] max-w-[360px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
                                 <AlertDialogHeader className="space-y-2.5 text-left">
-                                    <div className="w-10 h-10 rounded-full bg-[#224732]/10 dark:bg-emerald-950/30 flex items-center justify-center text-[#224732] dark:text-emerald-400">
+                                    <div className="w-10 h-10 rounded-full bg-[#388E5A]/10 dark:bg-emerald-950/30 flex items-center justify-center text-[#388E5A] dark:text-emerald-400">
                                         <Sparkles className="w-5 h-5 animate-pulse" />
                                     </div>
                                     <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100">
                                         방금 만든 여행 일정이 있어요! ⛺
                                     </AlertDialogTitle>
                                     <AlertDialogDescription className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                                        <strong className="font-bold text-[#224732] dark:text-emerald-400">
+                                        <strong className="font-bold text-[#1E4D2B] dark:text-emerald-400">
                                             {draftToRestore?.selectedDestination?.name || '작성 중이던 여행'}
                                         </strong>
                                         {draftToRestore?.targetDate ? ` (${draftToRestore.targetDate})` : ''} 일정을 내 일정에 바로 등록하시겠습니까?
@@ -960,7 +940,7 @@ export default function BeginnerHome() {
                                     <AlertDialogCancel
                                         onClick={() => {
                                             try { window.localStorage?.removeItem('raon_draft_instant_plan'); } catch {}
-                                            setDraftToRestore(null);
+                                             setDraftToRestore(null);
                                             setIsRestoreModalOpen(false);
                                             toast.info('임시 보관된 일정을 삭제했습니다.');
                                         }}
@@ -975,7 +955,7 @@ export default function BeginnerHome() {
                                             setSelectedAnchorDest(draftToRestore?.selectedDestination || null);
                                             setInstantPlanOpen(true);
                                         }}
-                                        className="flex-1 h-11 rounded-xl bg-[#224732] hover:bg-[#1a3827] text-white text-xs font-bold shadow-md m-0"
+                                        className="flex-1 h-11 rounded-xl bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs font-bold shadow-md m-0"
                                     >
                                         확인 (일정 등록)
                                     </AlertDialogAction>
@@ -988,7 +968,7 @@ export default function BeginnerHome() {
                             <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
                                 <AlertDialogHeader className="space-y-2 text-left">
                                     <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                                        <div className="p-2 bg-[#224732]/10 text-[#224732] dark:text-emerald-400 rounded-xl">
+                                        <div className="p-2 bg-[#EDF5EE] text-[#388E5A] dark:text-emerald-400 rounded-xl">
                                             <MapPin className="w-4 h-4" />
                                         </div>
                                         내 주변 맛집 · 관광지 찾기
@@ -1024,7 +1004,7 @@ export default function BeginnerHome() {
                                                 setIsNearbyConfirmOpen(false);
                                                 handleNearbyPlanClick(false);
                                             }}
-                                            className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#224732] hover:bg-[#1a3827] shadow-sm"
+                                            className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm"
                                         >
                                             확인
                                         </AlertDialogAction>
@@ -1054,9 +1034,9 @@ export default function BeginnerHome() {
                                                 setIsNearbyConfirmOpen(false);
                                                 handleNearbyPlanClick(false);
                                             }}
-                                            className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#224732] hover:bg-[#1a3827] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                                            className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
                                         >
-                                            <MapPin className="w-3.5 h-3.5 text-emerald-300" />
+                                            <MapPin className="w-3.5 h-3.5 text-emerald-100" />
                                             <span>📍 위치 동의하고 내 주변 찾기</span>
                                         </button>
 

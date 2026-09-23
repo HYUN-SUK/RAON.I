@@ -44,7 +44,7 @@ export function PointStatusCard({ wallet, loading, variant = 'summary' }: PointS
                         <p className="text-xs font-bold text-stone-400 mb-1 tracking-wider uppercase">Level</p>
                         <div className="flex items-center justify-center gap-1">
                             <Crown className="w-5 h-5 text-amber-500 fill-amber-500" />
-                            <span className="text-2xl font-black text-[#1C4526] dark:text-green-400">{currentLevel}</span>
+                            <span className="text-2xl font-black text-[#1E4D2B] dark:text-green-400">{currentLevel}</span>
                         </div>
                     </div>
 
@@ -75,9 +75,9 @@ export function PointStatusCard({ wallet, loading, variant = 'summary' }: PointS
                         <span>Lv.{currentLevel}</span>
                         <span>{(nextLevelXp - currentXp).toLocaleString()} XP to Next</span>
                     </div>
-                    <div className="h-2.5 w-full bg-[#F5F2EB] dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-2.5 w-full bg-[#E9EFEA] dark:bg-zinc-800 rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-gradient-to-r from-[#1C4526] to-[#3C6E47] rounded-full transition-all duration-1000 ease-out"
+                            className="h-full bg-gradient-to-r from-[#1E4D2B] to-[#388E5A] rounded-full transition-all duration-1000 ease-out"
                             style={{ width: `${progress}%` }}
                         />
                     </div>
@@ -91,12 +91,12 @@ export function PointStatusCard({ wallet, loading, variant = 'summary' }: PointS
         <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-[#ECE8DF] dark:border-zinc-800 relative overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-[#1C4526] dark:text-green-400 flex items-center gap-1.5">
-                    <Star className="w-4 h-4 fill-[#1C4526] dark:fill-green-400" />
+                <h3 className="text-sm font-bold text-[#1E4D2B] dark:text-green-400 flex items-center gap-1.5">
+                    <Star className="w-4 h-4 fill-[#1E4D2B] dark:fill-green-400" />
                     나의 탐험 지수
                 </h3>
                 {/* Token Badge */}
-                <div className="flex items-center gap-1 text-xs font-bold text-[#1C4526] dark:text-green-400 bg-[#E8F5E9] dark:bg-[#1C4526]/30 px-2.5 py-1 rounded-full">
+                <div className="flex items-center gap-1 text-xs font-bold text-[#2D5A3C] dark:text-green-400 bg-[#E9EFEA] dark:bg-[#1E4D2B]/30 px-2.5 py-1 rounded-full">
                     <Zap className="w-3 h-3 fill-current" />
                     {currentToken.toLocaleString()}
                 </div>
@@ -110,9 +110,9 @@ export function PointStatusCard({ wallet, loading, variant = 'summary' }: PointS
                 </span>
             </div>
 
-            <div className="h-2 w-full bg-[#F5F2EB] dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-[#E9EFEA] dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                    className="h-full bg-gradient-to-r from-[#1C4526] to-[#3C6E47] rounded-full transition-all duration-1000 ease-out"
+                    className="h-full bg-gradient-to-r from-[#1E4D2B] to-[#388E5A] rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${progress}%` }}
                 />
             </div>

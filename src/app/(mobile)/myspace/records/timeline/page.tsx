@@ -53,7 +53,7 @@ export default function TimelineRecordsPage() {
                     <button onClick={() => router.replace('/myspace/records/seasonal')} className="p-1.5 text-stone-400 hover:text-stone-600">
                         <Grid className="w-4 h-4" />
                     </button>
-                    <button className="p-1.5 bg-white text-[#1C4526] shadow-sm rounded-md">
+                    <button className="p-1.5 bg-white text-[#388E5A] shadow-sm rounded-md">
                         <Calendar className="w-4 h-4" />
                     </button>
                 </div>
@@ -64,7 +64,7 @@ export default function TimelineRecordsPage() {
                     {records.map((record, index) => (
                         <div key={record.id} className="relative pl-8">
                             {/* Dot on Line */}
-                            <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#1C4526] border-4 border-[#F0EBE0] shadow-sm"></div>
+                            <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#388E5A] border-4 border-[#F0EBE0] shadow-sm"></div>
 
                             {/* Date Label */}
                             <div className="absolute -left-20 top-0 text-xs font-bold text-stone-500 text-right w-16">
@@ -75,7 +75,7 @@ export default function TimelineRecordsPage() {
                             <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden group hover:shadow-md transition-shadow">
                                 <div className="p-4 space-y-3">
                                     <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-[#1C4526] text-lg leading-tight">
+                                        <h3 className="font-bold text-[#1E4D2B] text-lg leading-tight">
                                             {record.campground_name}
                                         </h3>
                                         <span className="text-xs px-2 py-0.5 bg-stone-100 text-stone-500 rounded-full">

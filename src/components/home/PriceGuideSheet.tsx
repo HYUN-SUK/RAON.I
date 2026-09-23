@@ -43,7 +43,7 @@ export function PriceGuideSheet({ children, pricingText }: PriceGuideSheetProps)
             <SheetContent side="bottom" className="rounded-t-[32px] px-6 pb-10 h-[80vh] overflow-y-auto scrollbar-hide bg-stone-50 dark:bg-zinc-900">
                 <SheetHeader className="text-left mb-6 pt-6">
                     <Badge variant="outline" className="w-fit mb-2 border-[#C3A675] text-[#C3A675]">Price Decoding</Badge>
-                    <SheetTitle className="text-2xl font-bold text-[#1C4526] dark:text-[#A7F3D0] leading-snug">
+                    <SheetTitle className="text-2xl font-bold text-[#1E4D2B] dark:text-[#A7F3D0] leading-snug">
                         라온아이 이용료,<br />
                         이런 가치가 담겨있어요.
                     </SheetTitle>

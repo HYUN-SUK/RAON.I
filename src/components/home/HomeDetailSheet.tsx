@@ -115,7 +115,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                                 {/* Reason Badge */}
                                 {data.reason && (
                                     <div className="inline-flex self-start">
-                                        <Badge variant="secondary" className="bg-[#1C4526]/10 text-[#1C4526] hover:bg-[#1C4526]/20 border-none px-2 py-0.5 text-[10px] font-bold">
+                                        <Badge variant="secondary" className="bg-[#388E5A]/10 text-[#1E4D2B] hover:bg-[#388E5A]/20 border-none px-2 py-0.5 text-[10px] font-bold">
                                             ✨ {data.reason}
                                         </Badge>
                                     </div>
@@ -195,7 +195,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                                                     flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer
                                                     ${isChecked
                                                         ? 'bg-stone-50 border-stone-200 text-stone-400'
-                                                        : 'bg-white border-stone-200 hover:border-[#1C4526] text-stone-800 shadow-sm'
+                                                        : 'bg-white border-stone-200 hover:border-[#388E5A] text-stone-800 shadow-sm'
                                                     }
                                                 `}
                                                 onClick={() => toggleIngredient(i)}
@@ -209,7 +209,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                                                     </div>
                                                     <span className={isChecked ? 'line-through' : 'font-medium'}>{name}</span>
                                                 </div>
-                                                {amount && <span className={`text-sm ${isChecked ? 'text-stone-300' : 'text-[#1C4526] font-bold'}`}>{amount}</span>}
+                                                {amount && <span className={`text-sm ${isChecked ? 'text-stone-300' : 'text-[#1E4D2B] font-bold'}`}>{amount}</span>}
                                             </div>
                                         );
                                     })}
@@ -228,7 +228,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                                     {data.steps.map((step, i) => (
                                         <div key={i} className="relative flex gap-4 pb-8 last:pb-0">
                                             {/* Number Bubble */}
-                                            <div className="flex-none w-8 h-8 rounded-full bg-[#1C4526] text-white text-sm font-bold flex items-center justify-center relative z-10 ring-4 ring-white dark:ring-zinc-900">
+                                            <div className="flex-none w-8 h-8 rounded-full bg-[#388E5A] text-white text-sm font-bold flex items-center justify-center relative z-10 ring-4 ring-white dark:ring-zinc-900">
                                                 {i + 1}
                                             </div>
                                             <div className="pt-1">
@@ -276,7 +276,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                             {/* Primary Action Button */}
                             {data.actionLabel && !data.buttons && (
                                 <Button
-                                    className="w-full h-14 text-lg rounded-2xl bg-[#1C4526] hover:bg-[#14331C] text-white shadow-lg shadow-[#1C4526]/20"
+                                    className="w-full h-14 text-lg rounded-2xl bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-lg shadow-[#388E5A]/20"
                                     onClick={() => {
                                         if (data.actionLink) {
                                             if (data.actionLink.startsWith('http') || data.actionLink.startsWith('tel:') || data.actionLink.startsWith('sms:')) {
@@ -299,7 +299,7 @@ export default function HomeDetailSheet({ isOpen, onClose, data, onShuffle }: Ho
                                     key={idx}
                                     variant={btn.variant || 'default'}
                                     className={`w-full h-14 text-lg rounded-2xl ${(!btn.variant || btn.variant === 'default')
-                                        ? 'bg-[#1C4526] text-white'
+                                        ? 'bg-[#388E5A] hover:bg-[#2F774B] text-white'
                                         : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50'
                                         }`}
                                     onClick={() => {

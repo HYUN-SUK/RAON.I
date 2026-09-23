@@ -63,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
                             if (product.link) window.open(product.link, '_blank');
                         } : handleAddToCart}
                         disabled={isAdding}
-                        className={`absolute bottom-3 right-3 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[#1C4526] shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 hover:bg-[#1C4526] hover:text-white ${product.type === 'EXTERNAL' ? 'bg-purple-100/90 text-purple-900 hover:bg-purple-700' : ''}`}
+                        className={`absolute bottom-3 right-3 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-[#388E5A] shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 hover:bg-[#388E5A] hover:text-white ${product.type === 'EXTERNAL' ? 'bg-purple-100/90 text-purple-900 hover:bg-purple-700' : ''}`}
                     >
                         {isAdding ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -83,7 +83,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     </h3>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#1C4526]">{formatPrice(product.price)}</span>
+                    <span className="font-bold text-[#1E4D2B]">{formatPrice(product.price)}</span>
                     {product.type === 'EXTERNAL' && (
                         <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">EXTERNAL</Badge>
                     )}

@@ -153,7 +153,7 @@ export default function WithdrawPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] flex flex-col w-full max-w-[390px] mx-auto shadow-lg border-x border-gray-100 overflow-y-auto">
+        <div className="min-h-screen bg-[#F8FAF8] flex flex-col w-full max-w-[390px] mx-auto shadow-lg border-x border-gray-100 overflow-y-auto">
             {/* Header */}
             <div className="flex items-center px-4 h-14 bg-white border-b border-gray-100 shrink-0 sticky top-0 z-50">
                 <button 
@@ -186,7 +186,7 @@ export default function WithdrawPage() {
                         </div>
                         <Button 
                             onClick={() => router.push("/myspace/reservations")}
-                            className="w-full h-12 bg-[#224732] hover:bg-[#1C4526] text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
+                            className="w-full h-12 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
                         >
                             예약 현황 보러 가기
                         </Button>
@@ -196,7 +196,7 @@ export default function WithdrawPage() {
                 {/* 2. STATE: LOADING */}
                 {state === "LOADING" && (
                     <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
-                        <Loader2 className="w-10 h-10 text-[#224732] animate-spin" />
+                        <Loader2 className="w-10 h-10 text-[#388E5A] animate-spin" />
                         <div className="space-y-1">
                             <p className="text-sm font-bold text-stone-800">안전하게 탈퇴를 진행하고 있습니다</p>
                             <p className="text-xs text-stone-400">잠시만 기다려 주세요...</p>
@@ -267,7 +267,7 @@ export default function WithdrawPage() {
                                     type="checkbox" 
                                     checked={agreedToLoss} 
                                     onChange={(e) => setAgreedToLoss(e.target.checked)}
-                                    className="w-4 h-4 mt-0.5 accent-[#224732] rounded cursor-pointer shrink-0"
+                                    className="w-4 h-4 mt-0.5 accent-[#388E5A] rounded cursor-pointer shrink-0"
                                 />
                                 <span className="text-xs text-stone-600 font-bold leading-tight">
                                     안내사항을 모두 확인하였으며, 자산 소멸 및 데이터 익명화 처리에 동의합니다.
@@ -310,7 +310,7 @@ export default function WithdrawPage() {
                                         key={idx} 
                                         className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                                             reason === item 
-                                                ? "border-[#224732] bg-[#224732]/5 text-[#224732] font-bold" 
+                                                ? "border-[#388E5A] bg-[#388E5A]/5 text-[#1E4D2B] font-bold" 
                                                 : "border-stone-150 bg-white hover:bg-stone-50/50 text-stone-600"
                                         }`}
                                     >
@@ -320,7 +320,7 @@ export default function WithdrawPage() {
                                             value={item} 
                                             checked={reason === item}
                                             onChange={() => setReason(item)}
-                                            className="w-4 h-4 accent-[#224732] cursor-pointer shrink-0"
+                                            className="w-4 h-4 accent-[#388E5A] cursor-pointer shrink-0"
                                         />
                                         <span className="text-xs leading-none">{item}</span>
                                     </label>
@@ -332,7 +332,7 @@ export default function WithdrawPage() {
                                     value={customReason}
                                     onChange={(e) => setCustomReason(e.target.value)}
                                     placeholder="상세한 사유를 한 줄 적어주세요."
-                                    className="w-full h-24 p-3 bg-white border border-stone-200 rounded-xl text-xs text-stone-800 placeholder:text-stone-300 focus:outline-[#224732] focus:border-[#224732] transition-colors resize-none"
+                                    className="w-full h-24 p-3 bg-white border border-stone-200 rounded-xl text-xs text-stone-800 placeholder:text-stone-300 focus:outline-[#388E5A] focus:border-[#388E5A] transition-colors resize-none"
                                 />
                             )}
                         </div>
@@ -350,7 +350,7 @@ export default function WithdrawPage() {
                                 onClick={() => setState("CONFIRM")}
                                 className={`flex-grow h-12 font-bold rounded-xl active:scale-98 transition-all text-sm cursor-pointer ${
                                     reason && (reason !== "기타 (직접 입력)" || customReason.trim())
-                                        ? "bg-[#224732] hover:bg-[#1C4526] text-white shadow-md"
+                                        ? "bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-md"
                                         : "bg-stone-200 text-stone-400 border-none"
                                 }`}
                             >
@@ -380,7 +380,7 @@ export default function WithdrawPage() {
                                         placeholder="현재 비밀번호를 입력해 주세요."
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="bg-white border-stone-200 text-stone-800 h-12 rounded-xl text-sm focus:outline-[#224732]"
+                                        className="bg-white border-stone-200 text-stone-800 h-12 rounded-xl text-sm focus:outline-[#388E5A]"
                                         required
                                     />
                                     <p className="text-[10px] text-stone-400">이메일 계정 소유 확인을 위해 비밀번호가 일치해야 합니다.</p>
@@ -388,7 +388,7 @@ export default function WithdrawPage() {
                             ) : (
                                 <div className="bg-stone-50 border border-stone-150 rounded-2xl p-4 space-y-2 text-center">
                                     <p className="text-xs text-stone-600 font-bold">소셜 계정 연결 정보</p>
-                                    <p className="text-xs text-[#224732] font-black uppercase">{provider} 연동 로그인 회원</p>
+                                    <p className="text-xs text-[#1E4D2B] font-black uppercase">{provider} 연동 로그인 회원</p>
                                     <p className="text-[10px] text-stone-400">별도의 비밀번호 없이 [탈퇴 완료] 버튼을 누르면 연동 해제 및 즉시 탈퇴가 처리됩니다.</p>
                                 </div>
                             )}

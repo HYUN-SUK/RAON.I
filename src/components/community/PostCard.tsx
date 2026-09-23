@@ -73,7 +73,7 @@ export default function PostCard({ post, isAdmin = false }: PostCardProps) {
                     {/* Header / Meta - NOT in Link to allow button interaction */}
                     <div className="flex justify-between items-start mb-2">
                         {type === 'NOTICE' ? (
-                            <Badge variant="secondary" className="bg-[#1C4526] text-white hover:bg-[#1C4526]/90">
+                            <Badge variant="secondary" className="bg-[#388E5A] text-white hover:bg-[#2F774B]">
                                 공지
                             </Badge>
                         ) : type === 'QNA' ? (
@@ -82,7 +82,7 @@ export default function PostCard({ post, isAdmin = false }: PostCardProps) {
                             </Badge>
                         ) : (
                             <div className="flex items-center gap-2">
-                                {isGroup && <Badge variant="outline" className="text-[#1C4526] border-[#1C4526]">{groupName}</Badge>}
+                                {isGroup && <Badge variant="outline" className="text-[#2D5A3C] border-[#388E5A]/40">{groupName}</Badge>}
                                 <span className="text-xs text-[#999]">{safeDate}</span>
                             </div>
                         )}
@@ -179,7 +179,7 @@ export default function PostCard({ post, isAdmin = false }: PostCardProps) {
 
                             {/* Group Join / Members */}
                             {isGroup && (
-                                <div className="ml-auto flex items-center gap-1 text-xs text-[#1C4526] font-medium">
+                                <div className="ml-auto flex items-center gap-1 text-xs text-[#2D5A3C] font-medium">
                                     <Users className="w-3.5 h-3.5" />
                                     <span>함께하기</span>
                                 </div>

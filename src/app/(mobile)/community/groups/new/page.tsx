@@ -33,13 +33,13 @@ export default function CreateGroupPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF]">
+        <div className="min-h-screen bg-[#F8FAF8]">
             {/* Header */}
-            <div className="sticky top-0 bg-[#F7F5EF]/95 backdrop-blur-sm z-50 px-5 h-14 flex items-center border-b border-gray-100">
+            <div className="sticky top-0 bg-[#F8FAF8]/95 backdrop-blur-sm z-50 px-5 h-14 flex items-center border-b border-gray-100">
                 <Link href="/community" className="p-2 -ml-2">
-                    <ArrowLeft className="w-6 h-6 text-[#1C4526]" />
+                    <ArrowLeft className="w-6 h-6 text-[#1E4D2B]" />
                 </Link>
-                <h1 className="text-lg font-bold text-[#1C4526] ml-2">소모임 개설</h1>
+                <h1 className="text-lg font-bold text-[#1E4D2B] ml-2">소모임 개설</h1>
             </div>
 
             <main className="px-5 py-6">
@@ -60,7 +60,7 @@ export default function CreateGroupPage() {
                                 type="text"
                                 required
                                 placeholder="예: 매너캠핑 동호회"
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#1C4526] bg-white"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#388E5A] bg-white"
                             />
                         </div>
 
@@ -73,7 +73,7 @@ export default function CreateGroupPage() {
                                 rows={4}
                                 required
                                 placeholder="어떤 모임인지 간단히 소개해주세요."
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#1C4526] bg-white resize-none"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#388E5A] bg-white resize-none"
                             />
                         </div>
 
@@ -83,7 +83,7 @@ export default function CreateGroupPage() {
                             </label>
                             <select
                                 name="max_members"
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#1C4526] bg-white"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#388E5A] bg-white"
                             >
                                 <option value="10">10명</option>
                                 <option value="20">20명</option>
@@ -102,7 +102,7 @@ export default function CreateGroupPage() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-[#1C4526] text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[#1C4526]/20 active:scale-[0.98] transition-all"
+                        className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[#388E5A]/20 active:scale-[0.98] transition-all"
                     >
                         {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
                         개설하기

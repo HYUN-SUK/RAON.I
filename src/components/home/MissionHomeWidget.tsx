@@ -24,7 +24,7 @@ const MissionHomeWidget = memo(function MissionHomeWidget() {
     const isCompleted = userMission?.status === 'COMPLETED' || userMission?.status === 'CLAIMED';
 
     return (
-        <Card className="w-full bg-gradient-to-br from-[#1C4526] to-[#0d2112] border-none shadow-lg rounded-2xl p-5 mb-4 text-white relative overflow-hidden">
+        <Card className="w-full bg-gradient-to-br from-[#1E4D2B] to-[#14361E] border-none shadow-lg rounded-2xl p-5 mb-4 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10" />
 
             <div className="flex justify-between items-start relative z-10">

@@ -272,7 +272,7 @@ export default function NearbyDetailSheet({
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <SheetContent side="bottom" className="rounded-t-[32px] p-0 border-none h-[85vh] outline-none bg-stone-50 dark:bg-zinc-900">
                 <SheetHeader className="px-6 pt-8 pb-2">
-                    <SheetTitle className="text-2xl font-bold text-[#1C4526] dark:text-[#A7F3D0]">
+                    <SheetTitle className="text-2xl font-bold text-[#1E4D2B] dark:text-[#A7F3D0]">
                         주변 즐길거리
                     </SheetTitle>
                     <SheetDescription>
@@ -288,25 +288,25 @@ export default function NearbyDetailSheet({
                         <TabsList className="grid w-full grid-cols-4 bg-stone-200/50 dark:bg-zinc-800 p-1 rounded-2xl h-12">
                             <TabsTrigger
                                 value="leisure"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1E4D2B] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 🏕️ 레포츠 ({apiLeisure.length})
                             </TabsTrigger>
                             <TabsTrigger
                                 value="attractions"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1E4D2B] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 📍 관광지 ({apiAttractions.length})
                             </TabsTrigger>
                             <TabsTrigger
                                 value="facilities"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1E4D2B] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 🏪 편의 ({dynamicFacilities.length})
                             </TabsTrigger>
                             <TabsTrigger
                                 value="events"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1E4D2B] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 🎉 행사 ({events.length})
                             </TabsTrigger>
@@ -356,7 +356,7 @@ export default function NearbyDetailSheet({
 
                                     // Badge Text & Color based on Source
                                     let badgeText = "진행중";
-                                    let badgeClass = "bg-[#E8F5E9] text-[#1C4526]";
+                                    let badgeClass = "bg-[#E9EFEA] text-[#2D5A3C]";
 
                                     if (event.source === 'performance') {
                                         badgeText = "공연";
@@ -394,7 +394,7 @@ export default function NearbyDetailSheet({
                                                 {event.detail_url && (
                                                     <Button
                                                         variant="outline"
-                                                        className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12"
+                                                        className="flex-1 border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA] rounded-xl h-12"
                                                         onClick={() => {
                                                             window.open(event.detail_url!, '_blank');
                                                             logLbsInteraction();
@@ -407,7 +407,7 @@ export default function NearbyDetailSheet({
                                                 {/* 길찾기 버튼 */}
                                                 {event.latitude && event.longitude && (
                                                     <Button
-                                                        className={`${event.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`}
+                                                        className={`${event.detail_url ? 'flex-1' : 'w-full'} bg-[#388E5A] text-white hover:bg-[#2F774B] rounded-xl h-12`}
                                                         onClick={() => openNavigationChoice(event.latitude!, event.longitude!, event.title)}
                                                     >
                                                         <Navigation size={16} className="mr-2" />
@@ -461,7 +461,7 @@ export default function NearbyDetailSheet({
                                         </div>
                                         <div className="flex gap-2 mt-4">
                                             {item.detail_url && (
-                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => {
+                                                <Button variant="outline" className="flex-1 border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA] rounded-xl h-12" onClick={() => {
                                                     window.open(item.detail_url!, '_blank');
                                                     logLbsInteraction();
                                                 }}>
@@ -469,7 +469,7 @@ export default function NearbyDetailSheet({
                                                 </Button>
                                             )}
                                             {item.latitude && item.longitude && (
-                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => {
+                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#388E5A] text-white hover:bg-[#2F774B] rounded-xl h-12`} onClick={() => {
                                                     openNavigationChoice(item.latitude!, item.longitude!, item.title);
                                                     logLbsInteraction();
                                                 }}>
@@ -522,7 +522,7 @@ export default function NearbyDetailSheet({
                                         </div>
                                         <div className="flex gap-2 mt-4">
                                             {item.detail_url && (
-                                                <Button variant="outline" className="flex-1 border-[#1C4526] text-[#1C4526] hover:bg-[#E8F5E9] rounded-xl h-12" onClick={() => {
+                                                <Button variant="outline" className="flex-1 border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA] rounded-xl h-12" onClick={() => {
                                                     window.open(item.detail_url!, '_blank');
                                                     logLbsInteraction();
                                                 }}>
@@ -530,7 +530,7 @@ export default function NearbyDetailSheet({
                                                 </Button>
                                             )}
                                             {item.latitude && item.longitude && (
-                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#1C4526] text-white hover:bg-[#15341C] rounded-xl h-12`} onClick={() => {
+                                                <Button className={`${item.detail_url ? 'flex-1' : 'w-full'} bg-[#388E5A] text-white hover:bg-[#2F774B] rounded-xl h-12`} onClick={() => {
                                                     openNavigationChoice(item.latitude!, item.longitude!, item.title);
                                                     logLbsInteraction();
                                                 }}>

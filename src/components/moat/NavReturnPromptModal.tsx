@@ -211,7 +211,7 @@ export default function NavReturnPromptModal() {
                     <X className="w-5 h-5" />
                 </button>
 
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-[#224732] flex items-center justify-center shadow-inner">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E9EFEA] text-[#388E5A] flex items-center justify-center shadow-inner">
                     <Navigation className="w-7 h-7" />
                 </div>
 

@@ -45,7 +45,7 @@ export function ContentBoardList() {
                 <section className="px-4 pt-2">
                     <div className="flex items-center gap-2 mb-3">
                         <Flame className="w-5 h-5 text-[#C3A675]" />
-                        <h2 className="text-lg font-bold text-[#1C4526]">오늘의 모닥불</h2>
+                        <h2 className="text-lg font-bold text-[#1E4D2B]">오늘의 모닥불</h2>
                     </div>
                     <div
                         className="relative aspect-video rounded-2xl overflow-hidden shadow-md cursor-pointer group"
@@ -58,7 +58,7 @@ export function ContentBoardList() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                         <div className="absolute bottom-4 left-4 right-4 text-white">
-                            <span className="inline-block px-2 py-0.5 rounded-full bg-[#C3A675] text-[#1C4526] text-[10px] font-bold mb-2">
+                            <span className="inline-block px-2 py-0.5 rounded-full bg-[#E9EFEA] text-[#2D5A3C] text-[10px] font-bold mb-2">
                                 Editor's Pick
                             </span>
                             <h3 className="text-xl font-bold mb-1">{todaysPick.title}</h3>
@@ -69,14 +69,14 @@ export function ContentBoardList() {
             )}
 
             {/* 2. Filters */}
-            <section className="px-4 sticky top-14 z-40 bg-[#F7F5EF]/95 backdrop-blur-sm py-2 -mx-4 px-8 border-b border-[#ECE8DF] overflow-x-auto no-scrollbar">
+            <section className="px-4 sticky top-14 z-40 bg-[#F8FAF8]/95 backdrop-blur-sm py-2 -mx-4 px-8 border-b border-[#ECE8DF] overflow-x-auto no-scrollbar">
                 <div className="flex gap-2 min-w-max">
                     {['ALL', 'LIVE', 'NOVEL', 'WEBTOON', 'ESSAY'].map((t) => (
                         <button
                             key={t}
                             onClick={() => setFilter(t as any)}
                             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filter === t
-                                    ? 'bg-[#1C4526] text-white shadow-md'
+                                    ? 'bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-md'
                                     : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
                                 }`}
                         >
@@ -90,7 +90,7 @@ export function ContentBoardList() {
             <section className="px-4">
                 {loading ? (
                     <div className="flex justify-center py-20">
-                        <Loader2 className="w-8 h-8 text-[#1C4526] animate-spin" />
+                        <Loader2 className="w-8 h-8 text-[#388E5A] animate-spin" />
                     </div>
                 ) : filteredContents.length > 0 ? (
                     <div className="grid grid-cols-2 gap-4">
@@ -111,7 +111,7 @@ export function ContentBoardList() {
             {/* Floating Write Button */}
             <div className="fixed bottom-24 right-4 z-40">
                 <Button
-                    className="rounded-full w-14 h-14 bg-[#1C4526] hover:bg-[#15331d] shadow-xl flex items-center justify-center p-0"
+                    className="rounded-full w-14 h-14 bg-[#388E5A] hover:bg-[#2F774B] shadow-xl flex items-center justify-center p-0"
                     onClick={() => router.push('/community/content/create')}
                 >
                     <PenTool className="w-6 h-6 text-white" />

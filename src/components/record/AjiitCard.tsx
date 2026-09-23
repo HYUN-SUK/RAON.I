@@ -79,9 +79,9 @@ export default function AjiitCard({ record, onShare, onDownload }: AjiitCardProp
     };
 
     return (
-        <div className="bg-gradient-to-br from-[#f0f7f2] to-[#e8f5eb] rounded-2xl shadow-lg overflow-hidden max-w-sm mx-auto">
+        <div className="bg-[#F8FAF8] rounded-2xl shadow-lg overflow-hidden max-w-sm mx-auto border border-gray-100">
             {/* 헤더 */}
-            <div className="bg-[#224732] text-white px-4 py-3 flex items-center justify-between">
+            <div className="bg-[#388E5A] text-white px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span className="text-lg">🌲</span>
                     <span className="font-medium">나의 캠핑 기록</span>
@@ -92,10 +92,10 @@ export default function AjiitCard({ record, onShare, onDownload }: AjiitCardProp
 
             {/* 캠핑장 정보 */}
             {(record.campground_name || record.campground_address) && (
-                <div className="px-4 py-2 bg-white/50 border-b border-[#224732]/10">
+                <div className="px-4 py-2 bg-white/50 border-b border-[#388E5A]/15">
                     {record.campground_name && (
-                        <div className="flex items-center gap-1.5 text-[#224732]">
-                            <MapPin className="w-4 h-4" />
+                        <div className="flex items-center gap-1.5 text-[#1E4D2B]">
+                            <MapPin className="w-4 h-4 text-[#388E5A]" />
                             <span className="font-medium">{record.campground_name}</span>
                         </div>
                     )}
@@ -133,7 +133,7 @@ export default function AjiitCard({ record, onShare, onDownload }: AjiitCardProp
                     {record.tags.map((tag, idx) => (
                         <span
                             key={idx}
-                            className="px-2 py-0.5 bg-[#224732]/10 text-[#224732] rounded-full text-xs font-medium"
+                            className="px-2 py-0.5 bg-[#388E5A]/15 text-[#1E4D2B] rounded-full text-xs font-medium"
                         >
                             #{tag}
                         </span>
@@ -147,7 +147,7 @@ export default function AjiitCard({ record, onShare, onDownload }: AjiitCardProp
                     variant="outline"
                     size="sm"
                     onClick={handleShare}
-                    className="flex-1 border-[#224732] text-[#224732] hover:bg-[#224732]/10"
+                    className="flex-1 border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA]"
                 >
                     <Share2 className="w-4 h-4 mr-1.5" />
                     공유하기
@@ -157,7 +157,7 @@ export default function AjiitCard({ record, onShare, onDownload }: AjiitCardProp
                         variant="outline"
                         size="sm"
                         onClick={handleDownload}
-                        className="flex-1 border-[#224732] text-[#224732] hover:bg-[#224732]/10"
+                        className="flex-1 border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA]"
                     >
                         <Download className="w-4 h-4 mr-1.5" />
                         저장하기
@@ -166,8 +166,8 @@ export default function AjiitCard({ record, onShare, onDownload }: AjiitCardProp
             </div>
 
             {/* 푸터 */}
-            <div className="px-4 py-2 bg-[#224732]/5 text-center">
-                <p className="text-xs text-[#224732]/60">
+            <div className="px-4 py-2 bg-[#388E5A]/5 text-center">
+                <p className="text-xs text-[#1E4D2B]/60">
                     ⛺ 라온아이 캠핑 기록
                 </p>
             </div>

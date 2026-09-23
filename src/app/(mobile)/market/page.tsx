@@ -79,7 +79,7 @@ export default function MarketPage() {
         <div className="pb-24 bg-white min-h-screen">
             {/* Header */}
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-gray-100">
-                <h1 className="text-xl font-bold text-[#1C4526] font-serif">Market</h1>
+                <h1 className="text-xl font-bold text-[#1E4D2B] font-serif">Market</h1>
                 <div className="flex gap-2">
                     <button className="flex items-center gap-1 p-2 relative" onClick={openCart}>
                         <span className="text-sm font-medium text-gray-600">장바구니</span>
@@ -110,7 +110,7 @@ export default function MarketPage() {
                             }}
                             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors
                                 ${selectedCategory === cat.id
-                                    ? 'bg-[#1C4526] text-white'
+                                    ? 'bg-[#388E5A] hover:bg-[#2F774B] text-white'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                         >
                             {cat.label}

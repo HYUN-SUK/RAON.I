@@ -77,8 +77,8 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
         {
             icon: Star,
             label: "나의 탐험 지수",
-            color: "text-[#1C4526]",
-            bg: "bg-[#F5F2EB]",
+            color: "text-[#1E4D2B]",
+            bg: "bg-[#E9EFEA]",
             value: contributionCount > 0 ? `✓ 확인 ${contributionCount}곳` : "XP & Token",
             onClick: () => {
                 if (contributionCount > 0) {
@@ -91,8 +91,8 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
         {
             icon: Map,
             label: "나만의 캠핑지도",
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
+            color: "text-[#388E5A]",
+            bg: "bg-[#E9EFEA]",
             value: null,
             onClick: () => setIsMapOpen(true)
         },
@@ -140,7 +140,7 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
                         </div>
                         <span className="text-sm font-semibold text-text-2 group-hover:text-text-1 transition-colors">{item.label}</span>
                         {item.value && (
-                            <span className="text-xs font-bold text-brand-1 mt-1">{item.value}</span>
+                            <span className="text-xs font-bold text-[#388E5A] mt-1">{item.value}</span>
                         )}
                     </button>
                 ))}

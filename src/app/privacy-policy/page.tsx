@@ -9,9 +9,9 @@ export default function PrivacyPolicyPage() {
     const router = useRouter();
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] text-stone-800 antialiased">
+        <div className="min-h-screen bg-[#F8FAF8] text-stone-800 antialiased">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#1C4526] text-white py-4 px-4 shadow-md">
+            <header className="sticky top-0 z-50 bg-[#388E5A] text-white py-4 px-4 shadow-md">
                 <div className="max-w-lg mx-auto flex items-center gap-3">
                     <Button 
                         variant="ghost" 
@@ -28,7 +28,7 @@ export default function PrivacyPolicyPage() {
             {/* Content Container */}
             <main className="max-w-lg mx-auto px-5 py-8 bg-white min-h-[calc(100vh-64px)] shadow-sm border-x border-stone-100">
                 <div className="flex items-center gap-2 pb-4 mb-6 border-b border-stone-100">
-                    <ShieldCheck className="w-6 h-6 text-[#1C4526]" />
+                    <ShieldCheck className="w-6 h-6 text-[#388E5A]" />
                     <h2 className="text-xl font-extrabold text-stone-900 tracking-tight">개인정보 처리방침</h2>
                 </div>
 
@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
                 <div className="space-y-8 text-sm leading-relaxed">
                     {/* Section 1 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제1조 (개인정보의 처리 목적)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 2 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제2조 (처리하는 개인정보의 항목)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -69,7 +69,7 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 3 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제3조 (개인정보의 처리 및 보유 기간)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 4 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제4조 (개인정보의 위탁 및 국외 이전)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -118,7 +118,7 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 5 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제5조 (정보주체의 권리·의무 및 그 행사방법)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -131,7 +131,7 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 6 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제6조 (개인정보의 파기절차 및 방법)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -144,7 +144,7 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 7 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제7조 (개인정보의 안전성 확보 조치)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -158,7 +158,7 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 8 */}
                     <section className="space-y-2">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제8조 (개인정보 자동 수집 장치의 설치·운영 및 거부)
                         </h3>
                         <p className="text-stone-600 text-xs">
@@ -171,16 +171,16 @@ export default function PrivacyPolicyPage() {
 
                     {/* Section 9 */}
                     <section className="space-y-3">
-                        <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                        <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                             제9조 (개인정보 보호책임자)
                         </h3>
                         <p className="text-stone-600 text-xs">
                             서비스는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 관련 정보주체의 불만처리 및 피해구제를 위하여 아래와 같이 보호책임자를 지정하고 있습니다.
                         </p>
                         
-                        <div className="bg-[#F7F5EF] p-4 rounded-xl border border-stone-200 mt-2 space-y-2">
+                        <div className="bg-[#F8FAF8] p-4 rounded-xl border border-stone-200 mt-2 space-y-2">
                             <div className="flex items-center gap-2 text-stone-700">
-                                <User className="w-4 h-4 text-[#1C4526]" />
+                                <User className="w-4 h-4 text-[#388E5A]" />
                                 <span className="font-bold text-xs">보호책임자: 정현석 (라오아이상점 대표)</span>
                             </div>
                             <div className="flex items-center gap-2 text-stone-600">

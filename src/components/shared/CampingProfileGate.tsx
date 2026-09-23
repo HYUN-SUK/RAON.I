@@ -230,7 +230,7 @@ export default function CampingProfileGate({
     if (loading) {
         return (
             <div className={`flex items-center justify-center ${compact ? 'py-4' : 'py-8'}`}>
-                <Loader2 className="w-5 h-5 animate-spin text-[#224732]" />
+                <Loader2 className="w-5 h-5 animate-spin text-[#388E5A]" />
                 <span className="ml-2 text-sm text-gray-500">프로필 확인 중...</span>
             </div>
         );
@@ -267,13 +267,13 @@ export default function CampingProfileGate({
             <div className={`bg-white rounded-2xl ${compact ? 'p-3' : 'p-4'} shadow-sm border border-gray-100`}>
                 <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                        <Users className="w-4 h-4 text-[#224732]" />
+                        <Users className="w-4 h-4 text-[#388E5A]" />
                         {title}
                     </h4>
                     <button
                         type="button"
                         onClick={() => setIsEditing(true)}
-                        className="text-xs text-[#224732] hover:underline flex items-center gap-1"
+                        className="text-xs text-[#388E5A] hover:underline flex items-center gap-1 font-medium"
                     >
                         <Pencil className="w-3 h-3" />
                         수정
@@ -314,7 +314,7 @@ export default function CampingProfileGate({
                     className={`w-full h-10 rounded-xl text-sm font-medium ${
                         requireOrigin && !existingProfile.originLat 
                         ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                        : 'bg-[#224732] hover:bg-[#1a3626] text-white'
+                        : 'bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-sm shadow-[#388E5A]/20'
                     }`}
                 >
                     {requireOrigin && !existingProfile.originLat ? (
@@ -337,7 +337,7 @@ export default function CampingProfileGate({
     return (
         <div className={`bg-white rounded-2xl ${compact ? 'p-3' : 'p-4'} shadow-sm border border-gray-100`}>
             <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 mb-4">
-                <Users className="w-4 h-4 text-[#224732]" />
+                <Users className="w-4 h-4 text-[#388E5A]" />
                 {existingProfile ? `${title} 수정` : `${title} 입력`}
             </h4>
 
@@ -346,14 +346,14 @@ export default function CampingProfileGate({
                 {(requireOrigin || isEditing) && (
                     <div>
                         <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                            <MapPin className="w-4 h-4 text-[#224732]" />
+                            <MapPin className="w-4 h-4 text-[#388E5A]" />
                             출발 장소 {requireOrigin && <span className="text-red-400 text-xs">*필수</span>}
                         </label>
 
                         {/* 선택된 출발지 표시 */}
                         {originLabel && (
-                            <div className="flex items-center justify-between bg-[#224732]/5 rounded-lg px-3 py-2 mb-2">
-                                <span className="text-sm font-medium text-[#224732]">{originLabel}</span>
+                            <div className="flex items-center justify-between bg-[#388E5A]/10 rounded-lg px-3 py-2 mb-2">
+                                <span className="text-sm font-medium text-[#1E4D2B]">{originLabel}</span>
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -417,7 +417,7 @@ export default function CampingProfileGate({
                 {/* 인원 구성 */}
                 <div>
                     <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-3">
-                        <Users className="w-4 h-4 text-[#224732]" />
+                        <Users className="w-4 h-4 text-[#388E5A]" />
                         인원 구성
                     </label>
                     <div className="space-y-3 bg-gray-50 rounded-xl p-3">
@@ -436,7 +436,7 @@ export default function CampingProfileGate({
                         id="campingProfilePet"
                         checked={hasPet}
                         onChange={(e) => setHasPet(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-[#224732] focus:ring-[#224732] cursor-pointer"
+                        className="w-4 h-4 rounded border-gray-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
                     />
                     <label htmlFor="campingProfilePet" className="text-sm text-gray-700 cursor-pointer select-none flex items-center gap-1.5">
                         <Dog className="w-4 h-4 text-gray-500" />
@@ -472,7 +472,7 @@ export default function CampingProfileGate({
                         type="button"
                         onClick={handleSaveAndContinue}
                         disabled={saving}
-                        className={`${isEditing && existingProfile ? 'flex-1' : 'w-full'} h-10 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-medium`}
+                        className={`${isEditing && existingProfile ? 'flex-1' : 'w-full'} h-10 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl text-sm font-medium shadow-sm shadow-[#388E5A]/20`}
                     >
                         {saving ? (
                             <>

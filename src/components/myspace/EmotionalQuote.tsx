@@ -26,20 +26,20 @@ export default function EmotionalQuote({ familyType }: EmotionalQuoteProps) {
 
     return (
         <div className="mx-4 my-4">
-            <div className="relative bg-gradient-to-br from-[#F7F5EF] to-[#ECE8DF] dark:from-zinc-800 dark:to-zinc-900 rounded-2xl p-5 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm overflow-hidden">
+            <div className="relative bg-gradient-to-br from-[#F8FAF8] to-[#E9EFEA] dark:from-zinc-800 dark:to-zinc-900 rounded-2xl p-5 border border-stone-200/50 dark:border-zinc-700/50 shadow-sm overflow-hidden">
 
                 {/* Dog-ear (종이 접힘) 효과 - 오른쪽 상단 */}
                 <div
                     className="absolute top-0 right-0 w-8 h-8 pointer-events-none"
                     style={{
-                        background: 'linear-gradient(135deg, transparent 50%, #E8E4DB 50%, #DDD8CF 100%)',
+                        background: 'linear-gradient(135deg, transparent 50%, #D8E4DA 50%, #C8D8CC 100%)',
                         borderBottomLeftRadius: '8px',
                     }}
                 />
                 <div
                     className="absolute top-0 right-0 w-8 h-8 pointer-events-none"
                     style={{
-                        background: 'linear-gradient(135deg, #F7F5EF 50%, transparent 50%)',
+                        background: 'linear-gradient(135deg, #F8FAF8 50%, transparent 50%)',
                         boxShadow: '-1px 1px 2px rgba(0,0,0,0.05)',
                     }}
                 />
@@ -57,7 +57,7 @@ export default function EmotionalQuote({ familyType }: EmotionalQuoteProps) {
                 </div>
 
                 {/* Subtle Accent Line */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C3A675]/30 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#7CAE89]/40 to-transparent" />
             </div>
         </div>
     );

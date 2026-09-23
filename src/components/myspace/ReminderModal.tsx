@@ -55,10 +55,10 @@ export default function ReminderModal({ isOpen, onClose, detail, onGoRecord }: R
 
                 {/* 상단 뱃지 & 아이콘 */}
                 <div className="flex flex-col items-center text-center space-y-2 pt-2">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#224732] to-[#163022] text-white flex items-center justify-center shadow-md">
-                        <Sparkles className="w-6 h-6 text-emerald-300 animate-pulse" />
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1E4D2B] via-[#2F774B] to-[#388E5A] text-white flex items-center justify-center shadow-md">
+                        <Sparkles className="w-6 h-6 text-white animate-pulse" />
                     </div>
-                    <span className="text-[11px] font-black text-[#224732] dark:text-emerald-400 bg-[#224732]/10 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full tracking-wider">
+                    <span className="text-[11px] font-black text-[#2D5A3C] bg-[#E9EFEA] px-2.5 py-0.5 rounded-full tracking-wider">
                         추억 아카이빙
                     </span>
                     <h3 className="text-base font-black text-stone-900 dark:text-stone-100 leading-snug">
@@ -90,7 +90,7 @@ export default function ReminderModal({ isOpen, onClose, detail, onGoRecord }: R
                         id="reminderDontShowToday"
                         checked={dontShowToday}
                         onChange={(e) => setDontShowToday(e.target.checked)}
-                        className="w-4 h-4 rounded border-stone-300 text-[#224732] focus:ring-[#224732] cursor-pointer"
+                        className="w-4 h-4 rounded border-stone-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
                     />
                     <label
                         htmlFor="reminderDontShowToday"
@@ -111,7 +111,7 @@ export default function ReminderModal({ isOpen, onClose, detail, onGoRecord }: R
                     </Button>
                     <Button
                         onClick={handleConfirm}
-                        className="w-full h-11 rounded-xl bg-[#224732] hover:bg-[#1a3626] text-white text-xs font-bold shadow-md cursor-pointer active:scale-[0.98] transition-all flex items-center justify-center gap-1"
+                        className="w-full h-11 rounded-xl bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs font-bold shadow-md cursor-pointer active:scale-[0.98] transition-all flex items-center justify-center gap-1"
                     >
                         <span>10초 기록하기</span>
                         <ArrowRight className="w-3.5 h-3.5" />

@@ -162,7 +162,7 @@ export default function WishlistPage() {
                                         </p>
                                     </div>
 
-                                    <div className="flex items-center gap-1 text-xs text-brand-1 font-medium bg-brand-1/5 w-fit px-2 py-1 rounded-md">
+                                    <div className="flex items-center gap-1 text-xs text-[#2D5A3C] font-medium bg-[#E9EFEA] w-fit px-2 py-1 rounded-md">
                                         <Star className="w-3 h-3 fill-current" />
                                         <span>추천 캠핑장</span>
                                     </div>

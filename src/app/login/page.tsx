@@ -166,7 +166,7 @@ export default function LoginPage() {
 
                         <Button
                             type="submit"
-                            className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-12 sm:h-11 mt-2 text-base font-medium"
+                            className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white h-12 sm:h-11 mt-2 text-base font-medium shadow-lg shadow-[#388E5A]/20 transition-all"
                             disabled={loading}
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isSignUp ? "회원가입" : "로그인")}

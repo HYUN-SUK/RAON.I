@@ -149,13 +149,13 @@ export default function NearbySearchSheet({
                 <SheetHeader className="p-4 pb-2 border-b border-stone-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 rounded-xl">
+                            <div className="p-2 bg-[#E9EFEA] dark:bg-emerald-950 text-[#2D5A3C] dark:text-[#388E5A] rounded-xl">
                                 <MapPin className="w-5 h-5" />
                             </div>
                             <div>
                                 <SheetTitle className="text-base font-black text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                                     내 주변 5km 실시간 탐색
-                                    <span className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full">0원 랭킹</span>
+                                    <span className="text-[10px] bg-[#388E5A] text-white font-bold px-1.5 py-0.5 rounded-full">0원 랭킹</span>
                                 </SheetTitle>
                                 <p className="text-[11px] text-stone-500 font-medium mt-0.5">
                                     {locationNote || '반경 5km 우리 DB 엄선 장소'}
@@ -189,7 +189,7 @@ export default function NearbySearchSheet({
                                 onClick={() => setActiveTab(tab.id as CategoryTab)}
                                 className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                                     activeTab === tab.id
-                                        ? 'bg-[#224732] text-white shadow-sm'
+                                        ? 'bg-[#388E5A] text-white shadow-sm'
                                         : 'bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200'
                                 }`}
                             >
@@ -300,7 +300,7 @@ export default function NearbySearchSheet({
                                                     });
                                                     onClose();
                                                 }}
-                                                className="flex-1 h-8 text-xs font-bold bg-[#224732] hover:bg-[#1b3928] text-white rounded-xl gap-1"
+                                                className="flex-1 h-8 text-xs font-bold bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl gap-1"
                                             >
                                                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                                                 1초 플랜 만들기

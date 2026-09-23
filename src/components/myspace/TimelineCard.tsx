@@ -18,9 +18,9 @@ export default function TimelineCard({ item }: TimelineCardProps) {
             case 'reservation':
                 return {
                     icon: Tent,
-                    bgClass: 'bg-[#F7F5EF] dark:bg-zinc-800',
-                    borderClass: 'border-[#1C4526]/20',
-                    iconColor: 'text-[#1C4526]'
+                    bgClass: 'bg-[#F8FAF8] dark:bg-zinc-800',
+                    borderClass: 'border-[#388E5A]/25',
+                    iconColor: 'text-[#388E5A]'
                 };
             case 'photo':
                 return {
@@ -32,9 +32,9 @@ export default function TimelineCard({ item }: TimelineCardProps) {
             case 'mission':
                 return {
                     icon: Flag,
-                    bgClass: 'bg-green-50 dark:bg-green-900/10',
-                    borderClass: 'border-green-200 dark:border-green-800',
-                    iconColor: 'text-green-600'
+                    bgClass: 'bg-[#E9EFEA] dark:bg-green-900/10',
+                    borderClass: 'border-[#388E5A]/25 dark:border-green-800',
+                    iconColor: 'text-[#2D5A3C]'
                 };
             case 'record':
                 return {

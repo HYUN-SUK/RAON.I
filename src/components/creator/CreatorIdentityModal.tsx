@@ -207,7 +207,7 @@ export function CreatorIdentityModal({
                 </div>
 
                 <Button
-                    className="w-full bg-[#224732] hover:bg-[#1C3A29] text-white"
+                    className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-md shadow-[#388E5A]/20"
                     onClick={handleSubmit}
                     disabled={isSubmitting || (isAvailable === false && nickname !== initialNickname) || nickname.length < 2 || isChecking}
                 >

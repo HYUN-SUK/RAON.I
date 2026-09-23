@@ -4,13 +4,13 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Brand Colors - Refined for Premium Feel */
-  --brand-1: #1C4526;
-  /* Deep Forest */
-  --brand-2: #2D5A3A;
-  /* Rich Green */
-  --brand-gradient-start: #1C4526;
-  --brand-gradient-end: #3C6E47;
+  /* Brand Colors - Refined for Botanical Sage & Forest Feel */
+  --brand-1: #388E5A;
+  /* Botanical Sage Primary */
+  --brand-2: #2F774B;
+  /* Botanical Dark Green Hover */
+  --brand-gradient-start: #388E5A;
+  --brand-gradient-end: #2F774B;
 
   --accent-1: #C3A675;
   /* Gold/Sand */
@@ -372,7 +372,7 @@ html:has(body.image-editor-open) {
 .gold-glow-badge {
   animation: gold-glow-badge 1.8s infinite ease-in-out;
   background: linear-gradient(135deg, #C3A675 0%, #D4B886 50%, #A88B58 100%) !important;
-  color: #1C4526 !important;
+  color: #1E4D2B !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 

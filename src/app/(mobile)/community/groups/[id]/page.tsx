@@ -81,7 +81,7 @@ export default async function GroupDetailPage(props: { params: Promise<{ id: str
             <main className="px-5 py-6 space-y-8">
                 {/* Description */}
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="font-bold text-[#1C4526] mb-2">모임 소개</h2>
+                    <h2 className="font-bold text-[#1E4D2B] mb-2">모임 소개</h2>
                     <p className="text-[#4D4D4D] whitespace-pre-wrap leading-relaxed text-sm">
                         {group.description}
                     </p>
@@ -89,7 +89,7 @@ export default async function GroupDetailPage(props: { params: Promise<{ id: str
 
                 {/* Feed Section */}
                 <div>
-                    <h2 className="font-bold text-lg text-[#1C4526] mb-4 px-1">게시글</h2>
+                    <h2 className="font-bold text-lg text-[#1E4D2B] mb-4 px-1">게시글</h2>
                     <GroupFeed
                         groupId={id}
                         posts={posts}

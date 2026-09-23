@@ -19,7 +19,7 @@ export default function ContentBoard({ posts }: ContentBoardProps) {
             <div className="flex justify-end px-4 mb-4">
                 <Button
                     onClick={() => router.push('/community/content/create')}
-                    className="bg-[#1C4526] hover:bg-[#15331d] text-white rounded-full shadow-lg"
+                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-full shadow-lg"
                 >
                     <PenTool className="w-4 h-4 mr-2" />
                     콘텐츠 발행하기 (창작자 전용)

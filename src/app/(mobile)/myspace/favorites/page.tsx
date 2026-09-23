@@ -62,7 +62,7 @@ export default function MyFavoritesPage() {
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <h1 className="font-bold text-lg text-[#2C2C2C] font-serif tracking-tight flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-brand-1 fill-current" />
+                    <Heart className="w-5 h-5 text-[#388E5A] fill-current" />
                     내가 찜한 캠핑장
                 </h1>
             </header>
@@ -95,7 +95,7 @@ export default function MyFavoritesPage() {
                         </p>
                         <button
                             onClick={() => router.push('/')}
-                            className="mt-4 px-6 py-2 bg-brand-1 text-white rounded-full text-sm font-medium hover:bg-brand-2 transition-colors"
+                            className="mt-4 px-6 py-2 bg-[#388E5A] text-white rounded-full text-sm font-medium hover:bg-[#2F774B] transition-colors"
                         >
                             캠핑장 둘러보기
                         </button>

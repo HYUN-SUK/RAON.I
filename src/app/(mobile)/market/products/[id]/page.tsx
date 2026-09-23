@@ -158,7 +158,7 @@ export default function ProductDetailPage() {
 
             {/* 3. Product Info */}
             <div className="px-5 py-6 bg-white space-y-4">
-                <div className="flex items-center gap-2 text-sm text-[#1C4526] font-medium opacity-80">
+                <div className="flex items-center gap-2 text-sm text-[#388E5A] font-medium">
                     <span>{product.category}</span>
                     <ChevronRight className="w-3 h-3" />
                     <span>RAON Pick</span>
@@ -167,7 +167,7 @@ export default function ProductDetailPage() {
                 <h1 className="text-2xl font-bold text-gray-900 leading-snug">{product.name}</h1>
 
                 <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-2xl font-bold text-[#1C4526]">{formattedPrice}</span>
+                    <span className="text-2xl font-bold text-[#1E4D2B]">{formattedPrice}</span>
                     {/* Fake Discount for MVP aesthetics */}
                     <span className="text-sm text-gray-400 line-through">₩{product.price * 1.1}</span>
                     <span className="text-sm text-red-500 font-bold">10%</span>
@@ -220,7 +220,7 @@ export default function ProductDetailPage() {
 
             {/* 5. Sticky Tabs */}
             <div className="sticky top-14 z-40 bg-white border-b border-gray-100 flex text-sm font-medium text-gray-500">
-                <a href="#info" className="flex-1 py-3 text-center border-b-2 border-[#1C4526] text-[#1C4526]">상품설명</a>
+                <a href="#info" className="flex-1 py-3 text-center border-b-2 border-[#388E5A] text-[#1E4D2B] font-bold">상품설명</a>
                 <a href="#specs" className="flex-1 py-3 text-center border-b-2 border-transparent">상세정보</a>
                 <a href="#reviews" className="flex-1 py-3 text-center border-b-2 border-transparent">후기(0)</a>
                 <a href="#qna" className="flex-1 py-3 text-center border-b-2 border-transparent">문의</a>
@@ -308,7 +308,7 @@ export default function ProductDetailPage() {
                 {/* EXTERNAL 상품: 외부 링크로 이동 */}
                 {product.type === 'EXTERNAL' && product.link ? (
                     <Button
-                        className="flex-1 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl h-12 text-base font-bold flex items-center justify-center gap-2"
+                        className="flex-1 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl h-12 text-base font-bold flex items-center justify-center gap-2 shadow-sm shadow-[#388E5A]/20"
                         onClick={() => {
                             // --- [Phase 3.5] Progressive Trigger Injection: Market (Link Click) ---
                             if (product.name.includes('매트') || product.name.includes('안락함')) {
@@ -329,7 +329,7 @@ export default function ProductDetailPage() {
                     /* INTERNAL 상품: 기존 장바구니 플로우 */
                     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                         <SheetTrigger asChild>
-                            <Button className="flex-1 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl h-12 text-base font-bold">
+                            <Button className="flex-1 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl h-12 text-base font-bold shadow-sm shadow-[#388E5A]/20">
                                 구매하기
                             </Button>
                         </SheetTrigger>
@@ -355,17 +355,17 @@ export default function ProductDetailPage() {
                                 {/* Total Price */}
                                 <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                                     <span className="text-gray-500 font-medium">총 상품 금액</span>
-                                    <span className="text-xl font-bold text-[#1C4526]">
+                                    <span className="text-xl font-bold text-[#1E4D2B]">
                                         {new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(product.price * quantity)}
                                     </span>
                                 </div>
 
                                 {/* Real Action */}
                                 <div className="flex gap-3">
-                                    <Button variant="outline" className="flex-1 h-12 rounded-xl border-[#1C4526] text-[#1C4526] font-bold" onClick={handleAddToCart}>
+                                    <Button variant="outline" className="flex-1 h-12 rounded-xl border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA] font-bold" onClick={handleAddToCart}>
                                         장바구니
                                     </Button>
-                                    <Button className="flex-1 h-12 bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl font-bold" onClick={handleBuyNow}>
+                                    <Button className="flex-1 h-12 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl font-bold shadow-sm shadow-[#388E5A]/20" onClick={handleBuyNow}>
                                         바로구매
                                     </Button>
                                 </div>

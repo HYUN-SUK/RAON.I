@@ -60,20 +60,20 @@ export default function WalletPage() {
     }, [history, filter]);
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] dark:bg-black pb-20">
+        <div className="min-h-screen bg-[#F8FAF8] dark:bg-black pb-20">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#F7F5EF]/80 dark:bg-black/80 backdrop-blur-md px-4 h-14 flex items-center gap-3">
+            <header className="sticky top-0 z-50 bg-[#F8FAF8]/80 dark:bg-black/80 backdrop-blur-md px-4 h-14 flex items-center gap-3">
                 <button
                     onClick={() => router.back()}
                     className="p-2 -ml-2 text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-zinc-800 rounded-full transition-colors"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="font-bold text-lg text-[#1C4526] dark:text-green-400">나의 탐험 지수</h1>
+                <h1 className="font-bold text-lg text-[#1E4D2B] dark:text-[#388E5A]">나의 탐험 지수</h1>
             </header>
 
-            <div className="bg-[#F0FDF4] border-b border-[#DCFCE7] px-5 py-3">
-                <p className="text-xs text-[#166534] leading-relaxed">
+            <div className="bg-[#E9EFEA] border-b border-[#388E5A]/20 px-5 py-3">
+                <p className="text-xs text-[#2D5A3C] leading-relaxed">
                     💡 탐험지수인 경험치, 라온토큰은 현금성이 아닌 라온아이 어플안에서 재미, 경험 확장을 위한 수단입니다.
                 </p>
             </div>
@@ -102,7 +102,7 @@ export default function WalletPage() {
                                 className={cn(
                                     "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all",
                                     filter === tab
-                                        ? "bg-white dark:bg-zinc-600 text-[#1C4526] dark:text-white shadow-sm"
+                                        ? "bg-white dark:bg-zinc-600 text-[#1E4D2B] dark:text-white shadow-sm"
                                         : "text-stone-500 dark:text-stone-400 hover:text-stone-700"
                                 )}
                             >
@@ -128,7 +128,7 @@ export default function WalletPage() {
                                     <div className="flex items-center gap-3">
                                         <div className={cn(
                                             "w-10 h-10 rounded-full flex items-center justify-center text-lg",
-                                            item.amount > 0 ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"
+                                            item.amount > 0 ? "bg-[#E9EFEA] text-[#388E5A]" : "bg-orange-50 text-orange-600"
                                         )}>
                                             {item.amount > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                                         </div>
@@ -145,7 +145,7 @@ export default function WalletPage() {
                                     </div>
                                     <div className={cn(
                                         "text-sm font-bold font-mono",
-                                        item.amount > 0 ? "text-[#1C4526] dark:text-green-400" : "text-stone-500"
+                                        item.amount > 0 ? "text-[#388E5A] dark:text-[#388E5A]" : "text-stone-500"
                                     )}>
                                         {item.amount > 0 ? '+' : ''}{item.amount.toLocaleString()} T
                                     </div>

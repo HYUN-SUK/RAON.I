@@ -292,7 +292,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                     <h2 className="text-lg font-bold text-text-1">다가오는 일정</h2>
                     <button
                         onClick={() => router.push('/myspace/reservations')}
-                        className="text-sm text-brand-1 font-medium hover:underline"
+                        className="text-sm text-[#388E5A] font-medium hover:underline"
                     >
                         전체 내역 →
                     </button>
@@ -301,7 +301,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                     onClick={() => router.push('/reservation')}
                     className="bg-white rounded-3xl p-6 shadow-sm border border-surface-2 flex flex-col items-center justify-center gap-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
                 >
-                    <div className="p-3 bg-brand-1/10 rounded-full text-brand-1">
+                    <div className="p-3 bg-[#E9EFEA] rounded-full text-[#388E5A]">
                         <Calendar size={24} />
                     </div>
                     <div>
@@ -313,7 +313,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                 {/* 다른 여행 일정 추가 버튼 */}
                 <button
                     onClick={() => router.push('/myspace/schedule?add=external')}
-                    className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-brand-1/30 rounded-xl text-brand-1 hover:bg-brand-1/5 transition-all"
+                    className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#388E5A]/30 rounded-xl text-[#388E5A] hover:bg-[#E9EFEA] transition-all"
                 >
                     <Plus size={16} />
                     <span className="text-sm font-medium">다른 여행 일정 추가</span>
@@ -335,7 +335,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                 <h2 className="text-lg font-bold text-text-1">다가오는 일정</h2>
                 <button
                     onClick={() => router.push('/myspace/reservations')}
-                    className="text-sm text-brand-1 font-medium hover:underline"
+                    className="text-sm text-[#388E5A] font-medium hover:underline"
                 >
                     전체 내역 →
                 </button>
@@ -351,7 +351,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                         <div className="relative group cursor-pointer active:scale-[0.99] transition-transform duration-200" onClick={handleDetailClick}>
                             <div className={`absolute -inset-0.5 bg-gradient-to-r rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-500
                                 ${status === 'PENDING' ? 'from-yellow-500 to-orange-500' :
-                                    status === 'CONFIRMED' ? 'from-brand-1 to-brand-2' :
+                                    status === 'CONFIRMED' ? 'from-[#388E5A] to-[#2F774B]' :
                                         status === 'REFUND_PENDING' ? 'from-amber-600 to-orange-600' :
                                             'from-red-500 to-pink-500'}`}
                             ></div>
@@ -359,7 +359,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                             <div className="relative bg-white rounded-3xl overflow-hidden shadow-medium border border-surface-2">
                                 <div className={`p-5 relative overflow-hidden transition-colors
                                     ${status === 'PENDING' ? 'bg-yellow-500' :
-                                        status === 'CONFIRMED' ? 'bg-[#2F5233]' :
+                                        status === 'CONFIRMED' ? 'bg-[#388E5A]' :
                                             status === 'REFUND_PENDING' ? 'bg-amber-600' :
                                                 'bg-gray-600'}`}
                                 >
@@ -370,7 +370,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                             <span className="inline-flex items-center px-2.5 py-1 bg-white/20 rounded-full text-[10px] font-bold text-white backdrop-blur-sm border border-white/10">
                                                 {dDay}
                                             </span>
-                                            <span className="inline-flex items-center px-2 py-0.5 bg-brand-1/30 rounded text-[9px] font-bold text-white">
+                                            <span className="inline-flex items-center px-2 py-0.5 bg-[#388E5A]/30 rounded text-[9px] font-bold text-white">
                                                 라온아이
                                             </span>
                                         </div>
@@ -426,7 +426,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                     <div className="flex flex-col gap-3 mb-5">
                                         <div className="flex items-center gap-3 text-sm text-text-2">
                                             <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <Calendar size={16} className="text-brand-2" />
+                                                <Calendar size={16} className="text-[#388E5A]" />
                                             </div>
                                             <span className="font-medium">
                                                 {format(upcomingItem.checkIn, 'yyyy. MM. dd (eee)', { locale: ko })} - {format(upcomingItem.checkOut, 'MM. dd (eee)', { locale: ko })}
@@ -434,7 +434,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         </div>
                                         <div className="flex items-center gap-3 text-sm text-text-2">
                                             <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <User size={16} className="text-brand-2" />
+                                                <User size={16} className="text-[#388E5A]" />
                                             </div>
                                             <span className="font-medium">
                                                 가족 {familyCount}, 방문 {visitorCount}, 차량 {vehicleCount}
@@ -446,7 +446,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         <button className={`flex-1 py-3 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-1 group/btn
                                             ${status === 'PENDING' ? 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20' :
                                                 status === 'REFUND_PENDING' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' :
-                                                    status === 'CONFIRMED' ? 'bg-brand-1 hover:bg-brand-2 shadow-brand-1/20' :
+                                                    status === 'CONFIRMED' ? 'bg-[#388E5A] hover:bg-[#2F774B] shadow-[#388E5A]/20' :
                                                         'bg-gray-500 hover:bg-gray-600'}`}
                                         >
                                             상세보기
@@ -483,10 +483,10 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                             className="relative group cursor-pointer active:scale-[0.99] transition-transform duration-200"
                             onClick={() => router.push(`/myspace/schedule/${schedule.id}`)}
                         >
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#224732] to-[#3a6b4a] rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#1E4D2B] via-[#2F774B] to-[#388E5A] rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
 
                             <div className="relative bg-white rounded-3xl overflow-hidden shadow-medium border border-surface-2">
-                                <div className="p-5 relative overflow-hidden transition-colors bg-[#224732]">
+                                <div className="p-5 relative overflow-hidden transition-colors bg-gradient-to-r from-[#1E4D2B] via-[#2F774B] to-[#1E4D2B]">
                                     <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:16px_16px]"></div>
 
                                     <div className="flex justify-between items-start mb-3 relative z-10">
@@ -533,7 +533,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                     <div className="flex flex-col gap-3 mb-5">
                                         <div className="flex items-center gap-3 text-sm text-text-2">
                                             <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <Calendar size={16} className="text-[#224732]" />
+                                                <Calendar size={16} className="text-[#388E5A]" />
                                             </div>
                                             <span className="font-medium">
                                                 {format(upcomingItem.checkIn, 'yyyy. MM. dd (eee)', { locale: ko })} - {format(upcomingItem.checkOut, 'MM. dd (eee)', { locale: ko })}
@@ -541,7 +541,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         </div>
                                         <div className="flex items-center gap-3 text-sm text-text-2">
                                             <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <Clock size={16} className="text-[#224732]" />
+                                                <Clock size={16} className="text-[#388E5A]" />
                                             </div>
                                             <span className="font-medium">
                                                 {nights}박 {nights + 1}일
@@ -549,7 +549,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         </div>
                                     </div>
 
-                                    <button className="w-full py-3 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-1 group/btn bg-[#224732] hover:bg-[#1a3626] shadow-[#224732]/20">
+                                    <button className="w-full py-3 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-1 group/btn bg-[#388E5A] hover:bg-[#2F774B] shadow-[#388E5A]/20">
                                         상세보기
                                         <ChevronRight size={16} className="opacity-70 group-hover/btn:translate-x-1 transition-transform" />
                                     </button>
@@ -563,7 +563,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
             {/* 다른 여행 일정 추가 버튼 */}
             <button
                 onClick={() => router.push('/myspace/schedule?add=external')}
-                className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-brand-1/30 rounded-xl text-brand-1 hover:bg-brand-1/5 transition-all"
+                className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#388E5A]/30 rounded-xl text-[#388E5A] hover:bg-[#E9EFEA] transition-all"
             >
                 <Plus size={16} />
                 <span className="text-sm font-medium">다른 여행 일정 추가</span>

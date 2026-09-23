@@ -150,9 +150,9 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
     // ==========================================
     if (step === 'SCREEN_B') {
         return (
-            <div className="min-h-screen bg-[#F7F5EF] p-6 flex flex-col justify-between animate-fadeIn">
+            <div className="min-h-screen bg-[#F8FAF8] p-6 flex flex-col justify-between animate-fadeIn">
                 <div className="space-y-6 pt-8">
-                    <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-[#224732] flex items-center justify-center mx-auto shadow-sm">
+                    <div className="w-16 h-16 rounded-3xl bg-[#E9EFEA] text-[#388E5A] flex items-center justify-center mx-auto shadow-sm">
                         <Sparkles className="w-8 h-8" />
                     </div>
 
@@ -194,7 +194,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                     <Button
                         size="lg"
                         onClick={() => router.push('/myspace')}
-                        className="w-full py-4 bg-[#224732] hover:bg-[#1C3B29] text-white font-bold rounded-2xl shadow-md text-sm"
+                        className="w-full py-4 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold rounded-2xl shadow-md text-sm"
                     >
                         내 공간으로 이동하기
                     </Button>
@@ -305,7 +305,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                     <Button
                         size="lg"
                         onClick={() => router.push('/myspace')}
-                        className="w-full py-4 bg-[#224732] hover:bg-[#1C3B29] text-white font-bold rounded-2xl text-sm"
+                        className="w-full py-4 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold rounded-2xl text-sm"
                     >
                         완료하고 나가기
                     </Button>
@@ -318,11 +318,11 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
     // 화면 A: 좋았던 곳 내 지도에 담기 (기본)
     // ==========================================
     return (
-        <div className="min-h-screen bg-[#F7F5EF] p-5 pb-32 flex flex-col justify-between animate-fadeIn relative">
+        <div className="min-h-screen bg-[#F8FAF8] p-5 pb-32 flex flex-col justify-between animate-fadeIn relative">
             <div className="space-y-4 pt-2">
                 {/* 상단 Skip & Header */}
                 <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#224732] bg-[#224732]/10 px-2.5 py-1 rounded-full">
+                    <span className="text-xs font-bold text-[#1E4D2B] bg-[#388E5A]/15 px-2.5 py-1 rounded-full">
                         캠핑 후 가벼운 기록
                     </span>
                     <button
@@ -367,7 +367,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                                     onClick={() => handleTogglePlace(card.id)}
                                     className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all active:scale-[0.99] ${
                                         isSelected
-                                            ? 'bg-[#224732] text-white border-[#224732] shadow-sm ring-1 ring-[#224732]'
+                                            ? 'bg-[#388E5A] text-white border-[#388E5A] shadow-sm ring-1 ring-[#388E5A]'
                                             : 'bg-white text-stone-900 border-stone-200 hover:border-stone-300'
                                     }`}
                                 >
@@ -398,7 +398,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                                     </div>
 
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
-                                        isSelected ? 'bg-white text-[#224732] border-white' : 'border-stone-300 bg-stone-50'
+                                        isSelected ? 'bg-white text-[#388E5A] border-white' : 'border-stone-300 bg-stone-50'
                                     }`}>
                                         {isSelected && <Check className="w-4 h-4 font-bold" />}
                                     </div>
@@ -417,7 +417,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                     onClick={handleSubmitPicks}
                     className={`w-full h-13 font-black rounded-2xl shadow-lg text-sm transition-all flex items-center justify-center gap-2 active:scale-98 ${
                         selectedPlaceIds.length > 0
-                            ? 'bg-[#224732] hover:bg-[#1C3B29] text-white shadow-emerald-900/20'
+                            ? 'bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-[#388E5A]/20'
                             : 'bg-stone-800 hover:bg-stone-900 text-stone-100 shadow-stone-900/10'
                     }`}
                 >

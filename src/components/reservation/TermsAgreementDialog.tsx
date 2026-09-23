@@ -48,7 +48,7 @@ export default function TermsAgreementDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle className="text-lg font-bold text-[#1C4526]">
+                    <DialogTitle className="text-lg font-bold text-[#1E4D2B]">
                         이용규정 및 환불규정
                     </DialogTitle>
                     <DialogDescription className="text-sm text-gray-500">
@@ -60,7 +60,7 @@ export default function TermsAgreementDialog({
                     <div className="space-y-6 py-4">
                         {/* 이용수칙 섹션 */}
                         <div className="space-y-2">
-                            <h3 className="font-semibold text-[#1C4526] flex items-center gap-2">
+                            <h3 className="font-semibold text-[#1E4D2B] flex items-center gap-2">
                                 📋 이용수칙
                             </h3>
                             <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-line leading-relaxed">
@@ -73,7 +73,7 @@ export default function TermsAgreementDialog({
 
                         {/* 환불규정 섹션 */}
                         <div className="space-y-2">
-                            <h3 className="font-semibold text-[#1C4526] flex items-center gap-2">
+                            <h3 className="font-semibold text-[#1E4D2B] flex items-center gap-2">
                                 💰 환불규정
                             </h3>
                             <div className="bg-amber-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-line leading-relaxed">
@@ -86,7 +86,7 @@ export default function TermsAgreementDialog({
                 <DialogFooter className="pt-4 border-t">
                     <Button
                         onClick={handleAgree}
-                        className="w-full bg-[#1C4526] hover:bg-[#224732] text-white"
+                        className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white"
                     >
                         확인했습니다
                     </Button>

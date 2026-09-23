@@ -186,9 +186,9 @@ export default function SiteList() {
                         onClick={() => handleSiteClick(site)}
                         className={`
             relative overflow-hidden rounded-2xl border transition-all duration-150 group bg-white shadow-sm touch-manipulation
-            ${available ? 'cursor-pointer hover:shadow-md hover:border-[#1C4526]/30 hover:-translate-y-1 active:scale-[0.98] active:brightness-95 active:bg-stone-50/80' : 'cursor-not-allowed opacity-70'}
+            ${available ? 'cursor-pointer hover:shadow-md hover:border-[#388E5A]/40 hover:-translate-y-1 active:scale-[0.98] active:brightness-95 active:bg-stone-50/80' : 'cursor-not-allowed opacity-70'}
             ${selectedSite?.id === site.id
-                                ? 'border-[#1C4526] ring-2 ring-[#1C4526]/10'
+                                ? 'border-[#388E5A] ring-2 ring-[#388E5A]/20'
                                 : 'border-stone-100'}
           `}
                     >

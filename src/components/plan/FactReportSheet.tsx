@@ -115,7 +115,7 @@ export default function FactReportSheet({
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="bottom" className="rounded-t-3xl max-h-[80vh] overflow-y-auto bg-[#F7F5EF] px-5 pb-8">
+            <SheetContent side="bottom" className="rounded-t-3xl max-h-[80vh] overflow-y-auto bg-[#F8FAF8] px-5 pb-8">
                 <SheetHeader className="pb-3 border-b border-stone-200">
                     <SheetTitle className="text-left text-lg font-bold text-stone-900">
                         {placeName}

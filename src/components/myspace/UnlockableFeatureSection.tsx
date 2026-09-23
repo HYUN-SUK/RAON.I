@@ -39,8 +39,8 @@ export default function UnlockableFeatureSection() {
 
     const renderOptionList = (title: string, options: OptionItem[]) => (
         <div className="mb-10 last:mb-0">
-            <h4 className="text-[10px] font-bold text-[#1C4526]/70 uppercase tracking-widest mb-4 px-1 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[#1C4526] rounded-full inline-block"></span>
+            <h4 className="text-[10px] font-bold text-[#1E4D2B]/70 uppercase tracking-widest mb-4 px-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-[#1E4D2B] rounded-full inline-block"></span>
                 {title}
             </h4>
             <div className="flex gap-4 overflow-x-auto pb-6 w-full px-1 scrollbar-hide snap-x">
@@ -60,18 +60,18 @@ export default function UnlockableFeatureSection() {
                                     strokeWidth={1.5}
                                 />
                                 {/* Cost Badge (Inside) */}
-                                <div className="absolute bottom-0 inset-x-0 h-5 bg-[#F7F5EF] dark:bg-zinc-800 flex items-center justify-center border-t border-[#ECE8DF] dark:border-zinc-700">
+                                <div className="absolute bottom-0 inset-x-0 h-5 bg-[#F8FAF8] dark:bg-zinc-800 flex items-center justify-center border-t border-[#ECE8DF] dark:border-zinc-700">
                                     <span className="text-[9px] font-bold text-stone-500 dark:text-stone-400">{opt.cost} T</span>
                                 </div>
                             </div>
 
                             {/* Lock Badge (Floating) */}
-                            <div className="absolute -top-1 -right-1 bg-[#1C4526] text-white p-1 rounded-full shadow-lg border-[1.5px] border-white dark:border-black z-10">
+                            <div className="absolute -top-1 -right-1 bg-[#1E4D2B] text-white p-1 rounded-full shadow-lg border-[1.5px] border-white dark:border-black z-10">
                                 <Lock className="w-2 h-2" strokeWidth={2.5} />
                             </div>
                         </div>
 
-                        <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300 text-center leading-tight break-keep px-1 group-hover:text-[#1C4526] dark:group-hover:text-green-400 transition-colors">
+                        <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300 text-center leading-tight break-keep px-1 group-hover:text-[#388E5A] dark:group-hover:text-green-400 transition-colors">
                             {opt.name}
                         </span>
                     </button>
@@ -84,7 +84,7 @@ export default function UnlockableFeatureSection() {
         <div className="mt-8 border-t border-dashed border-[#ECE8DF] dark:border-zinc-800 pt-6">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-center gap-2 py-2 text-stone-500 hover:text-[#1C4526] dark:text-stone-400 dark:hover:text-green-400 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2 text-stone-500 hover:text-[#388E5A] dark:text-stone-400 dark:hover:text-green-400 transition-colors"
             >
                 <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 px-4 py-2 rounded-full border border-[#ECE8DF] dark:border-zinc-700 shadow-sm">
                     <span className="text-xs font-bold">보기, 편집 도구</span>

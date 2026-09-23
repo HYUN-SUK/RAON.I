@@ -51,8 +51,8 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             icon: <Tent className="text-green-600" size={28} />,
             categoryLabel: '오늘의 놀이',
             title: play.title,
-            bgColorClass: 'bg-[#F1F8E9]',
-            textColorClass: 'text-[#1C4526]',
+            bgColorClass: 'bg-[#E9EFEA]',
+            textColorClass: 'text-[#1E4D2B]',
             data: play,
             reason: reasons?.play
         });
@@ -62,7 +62,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
             icon: <Tent className="text-stone-400" size={28} />,
             categoryLabel: '오늘의 놀이',
             title: '준비 중입니다',
-            bgColorClass: 'bg-[#F1F8E9]',
+            bgColorClass: 'bg-[#E9EFEA]',
             textColorClass: 'text-stone-400',
             data: null
         });
@@ -71,7 +71,7 @@ export default function RecommendationGrid({ data, loading, onItemClick }: Recom
     return (
         <section className="px-4 mb-8">
             <div className="flex justify-between items-end mb-4 px-1">
-                <h3 className="text-xl font-bold text-[#1C4526] dark:text-[#A7F3D0]">오늘의 추천</h3>
+                <h3 className="text-xl font-bold text-[#1E4D2B] dark:text-[#388E5A]">오늘의 추천</h3>
             </div>
             {/* Grid Layout: Wide if only 1 item exists */}
             <div className="grid grid-cols-2 gap-3">

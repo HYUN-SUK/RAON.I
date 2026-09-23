@@ -191,21 +191,21 @@ export default function TopBar() {
                 <span className="text-[10px] text-stone-500 font-bold mb-0.5">Level {level}</span>
                 <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
                     <div
-                        className="h-full bg-green-600 transition-all duration-500 rounded-full"
+                        className="h-full bg-[#388E5A] transition-all duration-500 rounded-full"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
                 <span className="text-[10px] text-stone-400 font-medium leading-none">
-                    Raon Token <span className="text-orange-600 font-bold ml-0.5">{raonToken}개</span>
+                    Raon Token <span className="text-[#388E5A] font-bold ml-0.5">{raonToken}개</span>
                 </span>
             </div>
 
             {/* Logo - Centered */}
             <div className="flex flex-col items-center justify-center absolute left-1/2 -translate-x-1/2 pointer-events-none select-none py-1">
-                <h1 className="text-[21px] sm:text-[22px] font-black text-stone-900 dark:text-stone-100 tracking-widest font-sans leading-none">
+                <h1 className="text-[21px] sm:text-[22px] font-black text-[#1E4D2B] dark:text-emerald-400 tracking-widest font-sans leading-none">
                     RAON.I
                 </h1>
-                <span className="text-[13.5px] sm:text-[14px] font-bold text-[#224732] dark:text-emerald-400 tracking-tight mt-1.5 leading-none whitespace-nowrap">
+                <span className="text-[13.5px] sm:text-[14px] font-bold text-[#3A3A3A] dark:text-stone-300 tracking-tight mt-1.5 leading-none whitespace-nowrap">
                     스마트 여행수첩
                 </span>
             </div>
@@ -315,11 +315,11 @@ export default function TopBar() {
                 ) : (
                     <button
                         onClick={handleLogin}
-                        className="relative z-[101] py-2 px-3 -mr-2 flex items-center gap-1.5 rounded-full hover:bg-gray-100 transition-colors text-text-1 cursor-pointer"
+                        className="relative z-[101] py-1 px-3.5 -mr-1 flex items-center gap-1.5 rounded-full border border-[#388E5A] text-[#388E5A] hover:bg-[#388E5A]/5 transition-colors cursor-pointer bg-white"
                         aria-label="Login"
                     >
-                        <LogIn size={18} strokeWidth={1.5} />
-                        <span className="text-sm font-semibold text-stone-600">로그인</span>
+                        <LogIn size={16} strokeWidth={2} />
+                        <span className="text-sm font-bold text-[#388E5A]">로그인</span>
                     </button>
                 )}
 

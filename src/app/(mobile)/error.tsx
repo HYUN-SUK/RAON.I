@@ -31,7 +31,7 @@ export default function MobileError({
     }, [error]);
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
+        <div className="min-h-screen bg-[#F8FAF8] flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-2 animate-bounce">
                 ⚠️
             </div>
@@ -41,7 +41,7 @@ export default function MobileError({
             </p>
             <button
                 onClick={() => reset()}
-                className="bg-[#224732] text-white text-xs px-4 py-2 rounded-xl font-semibold"
+                className="bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-[#388E5A]/20 transition-all"
             >
                 다시 시도하기
             </button>

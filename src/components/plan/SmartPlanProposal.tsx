@@ -874,10 +874,10 @@ export default function SmartPlanProposal({
     if (isGenerating) {
         const isWeatherPending = liveWeather?.loading || (!liveWeather?.daily || liveWeather.daily.length === 0);
         return (
-            <div ref={generatingLoaderRef} className="w-full flex flex-col items-center justify-center p-12 space-y-5 bg-[#F7F5EF] rounded-3xl border border-dashed border-[#224732]/20 shadow-sm animate-pulse m-0">
-                <RefreshCw className="w-10 h-10 text-[#224732] animate-spin" />
+            <div ref={generatingLoaderRef} className="w-full flex flex-col items-center justify-center p-12 space-y-5 bg-[#F8FAF8] rounded-3xl border border-dashed border-[#388E5A]/20 shadow-sm animate-pulse m-0">
+                <RefreshCw className="w-10 h-10 text-[#388E5A] animate-spin" />
                 <div className="text-center space-y-2">
-                    <p className="text-sm font-bold text-[#224732]">
+                    <p className="text-sm font-bold text-[#388E5A]">
                         {isWeatherPending ? '🌤️ 최신 날씨 정보를 수신하여 조립하는 중...' : '여정에 어울리는 장소를 조립하는 중...'}
                     </p>
                     <p className="text-[11px] text-gray-500">
@@ -945,10 +945,10 @@ export default function SmartPlanProposal({
     if (!plan) {
         return (
             <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
-                <div className="bg-[#F7F5EF] rounded-2xl p-6 border border-[#224732]/20 flex flex-col items-center justify-center space-y-3 text-center shadow-sm">
-                    <RefreshCw className="w-7 h-7 text-[#224732] animate-spin" />
+                <div className="bg-[#F8FAF8] rounded-2xl p-6 border border-[#388E5A]/20 flex flex-col items-center justify-center space-y-3 text-center shadow-sm">
+                    <RefreshCw className="w-7 h-7 text-[#388E5A] animate-spin" />
                     <div className="space-y-1">
-                        <p className="text-sm font-bold text-[#224732]">
+                        <p className="text-sm font-bold text-[#388E5A]">
                             ⚡ 최적의 현지 맛집과 명소를 추천 중입니다...
                         </p>
                         <p className="text-[11px] text-gray-500 font-medium">
@@ -990,7 +990,7 @@ export default function SmartPlanProposal({
                             <span
                                 key={`tag-${index}`}
                                 onClick={(e) => { e.stopPropagation(); setSwapCategory(fact.category); pushSubsheetHistory(); }}
-                                className="inline-flex cursor-pointer text-[#F7F5EF] font-bold bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-lg mx-1 transition-colors border-b-2 border-[#F7F5EF]/40 hover:border-[#F7F5EF]"
+                                className="inline-flex cursor-pointer text-[#F8FAF8] font-bold bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-lg mx-1 transition-colors border-b-2 border-white/40 hover:border-white"
                             >
                                 {placeName}
                             </span>
@@ -1064,7 +1064,7 @@ export default function SmartPlanProposal({
         return (
             <Card
                 key={card.id}
-                className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white w-full`}
+                className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#388E5A]/30 hover:shadow-sm border-gray-100/80 bg-white w-full`}
                 onClick={() => handleCardClick(card)}
             >
                 <CardContent className="p-3">
@@ -1072,7 +1072,7 @@ export default function SmartPlanProposal({
                         {/* Left Compact Control Area (위아래 2배 확대된 넉넉한 터치 영역) */}
                         <div className="flex flex-col items-center gap-1.5 shrink-0 w-10 min-w-[40px] pt-0.5">
                             {/* Icon */}
-                            <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5 shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-[#EDF5EE] text-[#388E5A] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#388E5A]/10 shrink-0">
                                 {CATEGORY_ICONS[card.category] || '📍'}
                             </div>
                             {/* Swap Button (h-14 w-10: 세로 알약형 + 변경 라벨 + 선명한 2px 테두리) */}
@@ -1087,7 +1087,7 @@ export default function SmartPlanProposal({
                                     setSwapPage(0); 
                                     pushSubsheetHistory();
                                 }}
-                                className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#224732] hover:bg-[#224732]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#224732]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
+                                className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#388E5A] hover:bg-[#388E5A]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#388E5A]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
                                 title="다른 장소로 교체"
                             >
                                 <ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />
@@ -1109,7 +1109,7 @@ export default function SmartPlanProposal({
                         <div className="flex-1 min-w-0 pr-1">
                             <div className="flex items-center justify-between gap-1.5 mb-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-bold text-[#224732] px-1.5 py-0.5 bg-[#224732]/5 rounded-sm">
+                                    <span className="text-[10px] font-bold text-[#2D5A3C] px-1.5 py-0.5 bg-[#E9EFEA] rounded-sm">
                                         {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
                                     </span>
                                     {card.verificationStatus === 'VERIFIED' && (
@@ -1300,7 +1300,7 @@ export default function SmartPlanProposal({
                                                 options.onSelectCandidate(card.id);
                                             }
                                         }}
-                                        className="h-8 px-3.5 bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+                                        className="h-8 px-3.5 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5"
                                     >
                                         <Check className="w-3.5 h-3.5" />
                                         이 장소로 선택
@@ -1420,7 +1420,7 @@ export default function SmartPlanProposal({
         <div className="w-full max-w-2xl mx-auto space-y-6">
             {/* 단일 통합 메인 CTA 카드 (모든 상태/시기 관문) */}
             {!isPublicView && (
-                <div className="bg-gradient-to-r from-emerald-900/95 via-[#224732] to-emerald-950 text-white rounded-2xl p-4 shadow-md border border-emerald-500/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="bg-gradient-to-r from-[#2F774B] via-[#388E5A] to-[#1E4D2B] text-white rounded-2xl p-4 shadow-md border border-[#388E5A]/30 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-xl bg-white/10 text-amber-300 flex items-center justify-center shrink-0 text-xl font-black border border-white/10 shadow-inner">
                             {ctaIcon}
@@ -1498,7 +1498,7 @@ export default function SmartPlanProposal({
 
             {/* 1. Header & AI Narration Section (맛보기 상태일 때 숨김) */}
             {!isPreview && (
-                <div className="relative p-6 bg-gradient-to-br from-[#224732] via-[#1a3626] to-[#0f2117] rounded-[24px] overflow-hidden shadow-md">
+                <div className="relative p-6 bg-gradient-to-br from-[#2F774B] via-[#388E5A] to-[#1E4D2B] rounded-[24px] overflow-hidden shadow-md">
                     <div className="absolute -top-4 -right-4 p-4 opacity-10 transform rotate-12">
                         <MapIcon className="w-40 h-40 text-white" />
                     </div>
@@ -1508,8 +1508,8 @@ export default function SmartPlanProposal({
                         {isDeveloper && onReset && !showShortTermActionBanner && !showMidTermActionBanner && (
                             <div className="absolute top-6 right-6 z-30 flex items-center">
                                 {showResetConfirm ? (
-                                    <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#224732]/20 shadow-xl animate-in fade-in zoom-in duration-200">
-                                        <span className="text-[10px] font-bold text-[#224732] px-1">재구성할까요?</span>
+                                    <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-[#388E5A]/20 shadow-xl animate-in fade-in zoom-in duration-200">
+                                        <span className="text-[10px] font-bold text-[#1E4D2B] px-1">재구성할까요?</span>
                                         <button
                                             type="button"
                                             onClick={(e) => {
@@ -1520,7 +1520,7 @@ export default function SmartPlanProposal({
                                                 setSelectedRouteData(null);
                                                 onReset();
                                             }}
-                                            className="text-[10px] px-2.5 py-1.5 bg-[#224732] text-white rounded-lg font-bold hover:bg-[#1a3626]"
+                                            className="text-[10px] px-2.5 py-1.5 bg-[#388E5A] text-white rounded-lg font-bold hover:bg-[#2F774B]"
                                         >
                                             네
                                         </button>
@@ -1742,10 +1742,10 @@ export default function SmartPlanProposal({
                                     setShowRouteNav(true);
                                     pushSubsheetHistory();
                                 }}
-                                className="w-full h-14 bg-white text-[#224732] hover:bg-white/90 rounded-2xl font-black text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
+                                className="w-full h-14 bg-white text-[#1E4D2B] hover:bg-white/90 rounded-2xl font-black text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
                             >
-                                <div className="w-8 h-8 rounded-full bg-[#224732]/10 flex items-center justify-center">
-                                    <Navigation className="w-5 h-5 text-[#224732] group-hover:animate-bounce" />
+                                <div className="w-8 h-8 rounded-full bg-[#388E5A]/10 flex items-center justify-center">
+                                    <Navigation className="w-5 h-5 text-[#388E5A] group-hover:animate-bounce" />
                                 </div>
                                 여정 시작: 내비게이션 연결
                             </Button>
@@ -1765,14 +1765,14 @@ export default function SmartPlanProposal({
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full w-fit">카드를 터치해 일정을 교체하세요</span>
                 </h3>
 
-                <div className="grid grid-cols-1 gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0 w-full min-w-0">
+                <div className="grid grid-cols-1 gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#388E5A]/15 before:z-0 w-full min-w-0">
 
                     {/* Stage 1: 출발 / 맛보기 현지 맛집 */}
                     <div className="space-y-3 relative z-10 w-full">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">
+                                <div className="w-3 h-3 rounded-full border-2 border-[#388E5A] bg-white ring-4 ring-white z-10 -ml-[6px]" />
+                                <span className="text-xs font-bold text-[#1E4D2B]">
                                     {plan.is_preview ? 'Stage 1. 현지 식도락 (대표 맛집)' : 'Stage 1. 설레는 출발'}
                                 </span>
                             </div>
@@ -1797,8 +1797,8 @@ export default function SmartPlanProposal({
                         <div className="space-y-3 relative z-10 w-full min-w-0">
                             <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                    <span className="text-xs font-bold text-[#224732]">
+                                    <div className="w-3 h-3 rounded-full bg-[#388E5A] ring-4 ring-white z-10 -ml-[6px]" />
+                                    <span className="text-xs font-bold text-[#1E4D2B]">
                                         {plan.is_preview ? 'Stage 2. 여행의 쉼표 (로컬 카페)' : 'Stage 2. 여정의 즐거움 (경유지)'}
                                     </span>
                                 </div>
@@ -1811,7 +1811,7 @@ export default function SmartPlanProposal({
                                     plan.itemListElement
                                         .filter(c => c.category === 'ROUTE_CAFE')
                                         .map((card) => renderFactCard(card, '2'))
-                                ) : (
+                                 ) : (
                                     plan.routeListElement?.map((card) => renderFactCard(card, '2'))
                                 )}
                             </div>
@@ -1822,8 +1822,8 @@ export default function SmartPlanProposal({
                     <div className="space-y-3 relative z-10 w-full min-w-0">
                         <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                <span className="text-xs font-bold text-[#224732]">
+                                <div className="w-3 h-3 rounded-full bg-[#388E5A] ring-4 ring-white z-10 -ml-[6px]" />
+                                <span className="text-xs font-bold text-[#1E4D2B]">
                                     {plan.is_preview ? 'Stage 3. 목적지 힐링 명소 & 축제' : 'Stage 3. 목적지 근처 맛집/명소'}
                                 </span>
                             </div>
@@ -1894,8 +1894,8 @@ export default function SmartPlanProposal({
                         <div className="space-y-3 relative z-10 w-full min-w-0">
                             <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
-                                    <span className="text-xs font-bold text-[#224732]">Stage 5. 아쉬움을 뒤로하고 (귀갓길)</span>
+                                    <div className="w-3 h-3 rounded-full border-2 border-dashed border-[#388E5A] bg-white ring-4 ring-white z-10 -ml-[6px]" />
+                                    <span className="text-xs font-bold text-[#1E4D2B]">Stage 5. 아쉬움을 뒤로하고 (귀갓길)</span>
                                 </div>
                                 {plan.stageIntros?.['5'] && (
                                     <p className="text-[11px] text-gray-500 italic ml-[38px] leading-relaxed pr-3 whitespace-normal break-words mr-4 min-w-0">"{plan.stageIntros['5']}"</p>
@@ -1909,7 +1909,7 @@ export default function SmartPlanProposal({
                                         <div className="flex items-center gap-2.5">
                                             <span className="text-lg">🚗</span>
                                             <div>
-                                                <p className="font-bold text-[#224732]">귀갓길 쉼터 & 명소 자동 연계</p>
+                                                <p className="font-bold text-[#1E4D2B]">귀갓길 쉼터 & 명소 자동 연계</p>
                                                 <p className="text-[10px] text-stone-500 mt-0.5">내 일정 등록 후 익일 정밀 플랜 승격 시 집으로 가는 최적 코스가 배정됩니다.</p>
                                             </div>
                                         </div>
@@ -1930,9 +1930,9 @@ export default function SmartPlanProposal({
                     <div className="mt-5 px-2 w-full min-w-0">
                         <Button
                             onClick={() => handleOpenFullTimelineMap()}
-                            className="w-full h-12 bg-gradient-to-r from-[#224732] to-[#2d5d42] hover:from-[#1b3928] hover:to-[#224732] text-white font-bold text-sm rounded-2xl shadow-lg border border-emerald-400/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                            className="w-full h-12 bg-gradient-to-r from-[#388E5A] to-[#2F774B] hover:from-[#2F774B] hover:to-[#1E4D2B] text-white font-bold text-sm rounded-2xl shadow-lg border border-[#388E5A]/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                         >
-                            <MapIcon className="w-4 h-4 text-emerald-300" />
+                            <MapIcon className="w-4 h-4 text-emerald-200" />
                             <span>🗺️ 나의 최종 여행 동선 전체 지도로 보기</span>
                         </Button>
                         <p className="text-[11px] text-gray-400 text-center mt-1.5 font-medium">
@@ -1985,9 +1985,9 @@ export default function SmartPlanProposal({
                 }
             }}>
 
-                <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto bg-[#F7F5EF] px-4 pb-8">
+                <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto bg-[#F8FAF8] px-4 pb-8">
                     <SheetHeader className="pb-4 border-b border-gray-200">
-                        <SheetTitle className="text-left text-lg font-bold text-[#224732]">
+                        <SheetTitle className="text-left text-lg font-bold text-[#1E4D2B]">
                             {swapCategory ? CATEGORY_NAMES[swapCategory] : ''} 일정 교체
                         </SheetTitle>
                         <SheetDescription className="text-left text-xs text-gray-500">
@@ -2086,7 +2086,7 @@ export default function SmartPlanProposal({
                                             onClick={() => {
                                                 handleOpenAlternativesMap(currentActive, allOptions);
                                             }}
-                                            className="bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs h-8 px-3 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
+                                            className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs h-8 px-3 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
                                         >
                                             <MapIcon className="w-3.5 h-3.5 text-emerald-300" />
                                             <span>지도로 보기</span>
@@ -2102,14 +2102,14 @@ export default function SmartPlanProposal({
                                             }
                                             
                                             return chunks.map((chunk, chunkIdx) => (
-                                                <div key={chunkIdx} className="snap-center shrink-0 w-[88vw] space-y-3">
+                                                 <div key={chunkIdx} className="snap-center shrink-0 w-[88vw] space-y-3">
                                                     {chunk.map((opt, idx) => {
                                                         const globalIdx = chunkIdx * 3 + idx;
                                                         const isCurrentActive = opt.id === currentActive?.id;
                                                         return (
                                                             <Card
                                                                 key={opt.id}
-                                                                className={`transition-all border shadow-none ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] bg-[#224732]/5' : 'border-gray-100 bg-white'}`}
+                                                                className={`transition-all border shadow-none ${isCurrentActive ? 'border-[#388E5A] ring-1 ring-[#388E5A] bg-[#388E5A]/5' : 'border-gray-100 bg-white'}`}
                                                                 onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
                                                             >
                                                                 <CardContent className="p-3 flex items-start gap-3">
@@ -2120,7 +2120,7 @@ export default function SmartPlanProposal({
                                                                                 {opt.name}
                                                                             </h4>
                                                                             {isCurrentActive && (
-                                                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#388E5A] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                                                             )}
                                                                             {/* [v14.3.0] 캠핑장 주변(Track A) 카테고리만 거리 표시 (Track B는 거리 미표시 원칙 준수) */}
                                                                             {isTrackA && (() => {
@@ -2187,7 +2187,7 @@ export default function SmartPlanProposal({
                                                                             {opt.category === 'GAS_STATION' && (opt.metadata?.kerosenePrice || opt.description?.match(/등유:\s?(\d+)원/)) && (() => {
                                                                                 const price = opt.metadata?.kerosenePrice || opt.description?.match(/등유:\s?(\d+)원/)?.[1];
                                                                                 return price ? (
-                                                                                    <span className="text-[9px] bg-[#224732]/5 text-[#224732] px-1.5 py-0.5 rounded-md font-bold border border-[#224732]/10 flex items-center gap-1">
+                                                                                    <span className="text-[9px] bg-[#388E5A]/5 text-[#388E5A] px-1.5 py-0.5 rounded-md font-bold border border-[#388E5A]/10 flex items-center gap-1">
                                                                                         <span className="text-[8px] opacity-70">등유</span>
                                                                                         {Number(price).toLocaleString()}원
                                                                                     </span>
@@ -2223,7 +2223,7 @@ export default function SmartPlanProposal({
                                                                         )}
                                                                     </div>
                                                                     {!isCurrentActive && (
-                                                                        <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">변경</Button>
+                                                                        <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#388E5A]/20 text-[#388E5A] hover:bg-[#388E5A]/10">변경</Button>
                                                                     )}
                                                                 </CardContent>
                                                             </Card>
@@ -2297,11 +2297,11 @@ export default function SmartPlanProposal({
                     closeSingleSubsheetWithHistory(() => setShowRouteNav(false));
                 }
             }}>
-                <SheetContent side="bottom" className="rounded-t-[32px] p-8 bg-[#F7F5EF] border-none shadow-2xl">
+                <SheetContent side="bottom" className="rounded-t-[32px] p-8 bg-[#F8FAF8] border-none shadow-2xl">
                     <SheetHeader className="mb-8">
                         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
-                        <SheetTitle className="text-left text-2xl font-black text-[#224732] flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-[#224732]/10 text-[#224732]">
+                        <SheetTitle className="text-left text-2xl font-black text-[#1E4D2B] flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-[#388E5A]/10 text-[#388E5A]">
                                 <Navigation className="w-6 h-6" />
                             </div>
                             어떤 내비로 안내할까요?

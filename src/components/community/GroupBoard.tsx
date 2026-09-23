@@ -48,7 +48,7 @@ export default function GroupBoard({ posts }: { posts?: any }) {
             <div className="fixed bottom-32 left-0 right-0 mx-auto w-full max-w-[430px] px-5 flex justify-end z-50 pointer-events-none">
                 <Link
                     href="/community/groups/new"
-                    className="pointer-events-auto bg-[#1C4526] text-white h-12 px-6 rounded-full shadow-xl flex items-center gap-2 active:scale-95 transition-transform hover:bg-[#14331C]"
+                    className="pointer-events-auto bg-[#388E5A] hover:bg-[#2F774B] text-white h-12 px-6 rounded-full shadow-xl flex items-center gap-2 active:scale-95 transition-transform"
                 >
                     <Plus className="w-5 h-5" />
                     <span className="font-bold text-sm">소모임 만들기</span>

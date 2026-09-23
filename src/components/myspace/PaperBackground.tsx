@@ -19,7 +19,7 @@ export default function PaperBackground({ children, className = '' }: PaperBackg
             className={`relative min-h-screen ${className}`}
             style={{
                 background: `
-                    linear-gradient(180deg, #FAF8F5 0%, #F5F2ED 100%)
+                    linear-gradient(180deg, #F8FAF8 0%, #F2F5F3 100%)
                 `,
             }}
         >

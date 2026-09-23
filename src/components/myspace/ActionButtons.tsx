@@ -11,7 +11,7 @@ export default function ActionButtons() {
             {/* Primary Action: Write Log */}
             <button
                 onClick={() => router.push('/community/write?type=STORY')}
-                className="flex items-center justify-center gap-2.5 bg-brand-1 text-white py-4 rounded-2xl shadow-lg shadow-brand-1/25 hover:bg-brand-2 hover:scale-[1.02] active:scale-95 transition-all duration-300 w-full"
+                className="flex items-center justify-center gap-2.5 bg-[#388E5A] text-white py-4 rounded-2xl shadow-lg shadow-[#388E5A]/25 hover:bg-[#2F774B] hover:scale-[1.02] active:scale-95 transition-all duration-300 w-full"
             >
                 <PenTool size={18} strokeWidth={2.5} />
                 <span className="font-bold text-[15px] tracking-tight">기록 남기기</span>

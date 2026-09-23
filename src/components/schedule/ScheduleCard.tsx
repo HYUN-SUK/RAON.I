@@ -152,7 +152,7 @@ export default function ScheduleCard({
     // D-Day 배지 색상
     const getDDayColor = () => {
         if ((schedule as any).is_pending_reservation) return 'bg-yellow-500 text-white animate-pulse';
-        if (schedule.status === 'completed') return 'bg-[#224732] text-white';
+        if (schedule.status === 'completed') return 'bg-[#388E5A] text-white';
         if (schedule.status === 'cancelled') return 'bg-gray-400 text-white';
         if (daysUntil < 0) return 'bg-gray-300 text-gray-600';
         if (daysUntil === 0) return 'bg-amber-500 text-white';
@@ -185,11 +185,9 @@ export default function ScheduleCard({
             <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0 mr-2">
                     <div className="flex items-center gap-2 mb-1">
-                        {schedule.source === 'raonai' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#224732]/10 text-[#224732]">
-                                라온아이
-                            </span>
-                        )}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#E9EFEA] text-[#2D5A3C]">
+                            {schedule.source === 'raonai' ? '라온아이' : '타캠핑장'}
+                        </span>
                         {ddayText && (
                             <span className={cn(
                                 "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold",
@@ -225,7 +223,7 @@ export default function ScheduleCard({
                         {onComplete && schedule.status === 'scheduled' && daysUntil <= 0 && (
                             <DropdownMenuItem
                                 onClick={(e) => { e.stopPropagation(); onComplete(schedule.id); }}
-                                className="gap-2 text-[#224732]"
+                                className="gap-2 text-[#388E5A]"
                             >
                                 <CheckCircle className="w-4 h-4" />
                                 완료하기
@@ -269,7 +267,7 @@ export default function ScheduleCard({
             {/* 일정 정보 */}
             <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5 text-gray-700">
-                    <Calendar className="w-4 h-4 text-[#224732]" />
+                    <Calendar className="w-4 h-4 text-[#388E5A]" />
                     <span>
                         {dateRangeText}
                     </span>
@@ -305,11 +303,11 @@ export default function ScheduleCard({
                         <div />
                     )}
                     {onClick && !(schedule as any).is_pending_reservation && (
-                        <span className="text-sm text-[#224732] font-semibold flex items-center gap-1 group">
-                            <span className="inline-block animate-bounce text-xs">👆</span>
+                        <div className="flex items-center gap-1 text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] px-3.5 py-1.5 rounded-full shadow-xs active:scale-95 transition-all group">
+                            <span className="text-xs">👆</span>
                             <span>상세보기</span>
-                            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                        </span>
+                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 stroke-[2.5]" />
+                        </div>
                     )}
                 </div>
             )}

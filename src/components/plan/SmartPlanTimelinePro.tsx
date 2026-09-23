@@ -60,7 +60,7 @@ const BLOCK_COLORS: Record<TimelineBlock['type'], string> = {
     meal: 'bg-orange-50 border-orange-200 text-orange-700',
     activity: 'bg-emerald-50 border-emerald-200 text-emerald-700',
     cafe: 'bg-amber-50 border-amber-200 text-amber-700',
-    rest: 'bg-[#224732]/5 border-[#224732]/20 text-[#224732]',
+    rest: 'bg-[#388E5A]/10 border-[#388E5A]/20 text-[#388E5A]',
     setup: 'bg-purple-50 border-purple-200 text-purple-700',
     free: 'bg-gray-50 border-gray-200 text-gray-600',
 };
@@ -278,7 +278,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
         <div className="flex flex-col gap-0">
             {/* Header */}
             <div className="text-center mb-4">
-                <p className="text-xs font-bold text-[#224732]/60 tracking-wider uppercase">
+                <p className="text-xs font-bold text-[#388E5A] tracking-wider uppercase">
                     ⚡ LIVE Timeline
                 </p>
                 {plan.narration && (
@@ -294,7 +294,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                     {/* Day Header */}
                     <button
                         onClick={() => setExpandedDay(expandedDay === dayData.day ? 0 : dayData.day)}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-[#224732] rounded-xl text-white"
+                        className="w-full flex items-center justify-between px-4 py-3 bg-[#388E5A] rounded-xl text-white"
                     >
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-black">Day {dayData.day}</span>
@@ -319,7 +319,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                 transition={{ duration: 0.3 }}
                                 className="overflow-hidden"
                             >
-                                <div className="relative ml-6 border-l-2 border-dashed border-[#224732]/15 pl-5 pt-3 pb-2">
+                                <div className="relative ml-6 border-l-2 border-dashed border-[#388E5A]/20 pl-5 pt-3 pb-2">
                                     {dayData.blocks.map((block, idx) => {
                                         if (block.hidden) {
                                             return (
@@ -356,7 +356,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                         return (
                                             <div key={block.id} className="relative mb-4">
                                                 {/* Timeline Dot */}
-                                                <div className="absolute -left-[27px] top-3 w-3 h-3 rounded-full bg-[#224732] border-2 border-white shadow-sm" />
+                                                <div className="absolute -left-[27px] top-3 w-3 h-3 rounded-full bg-[#388E5A] border-2 border-white shadow-sm" />
 
                                                 {/* Travel Indicator */}
                                                 {block.travel_mins > 0 && idx > 0 && (
@@ -377,7 +377,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                                                     setEditMin(parseInt(block.time.split(':')[1]));
                                                                     setEditTimeBlock(block);
                                                                 }}
-                                                                className="text-xs font-mono font-bold text-gray-400 hover:text-[#224732] transition-colors min-w-[40px]"
+                                                                className="text-xs font-mono font-bold text-gray-400 hover:text-[#388E5A] transition-colors min-w-[40px]"
                                                             >
                                                                 {block.time}
                                                             </button>
@@ -388,7 +388,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                                             <Button
                                                                 size="sm"
                                                                 onClick={() => handleStartNow(block, dayData.day)}
-                                                                className="h-7 text-[10px] px-2.5 bg-[#224732] hover:bg-[#1a3626] text-white font-bold rounded-md shadow-sm active:scale-95 transition-all"
+                                                                className="h-7 text-[10px] px-2.5 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold rounded-md shadow-sm active:scale-95 transition-all"
                                                             >
                                                                 🚀 지금출발
                                                             </Button>
@@ -482,7 +482,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                                         <Button
                                                             size="sm"
                                                             onClick={() => handleDepartTo(block, dayData.day)}
-                                                            className="flex-1 h-9 bg-[#224732] hover:bg-[#1a3626] text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-all"
+                                                            className="flex-1 h-9 bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-all"
                                                         >
                                                             <Navigation className="w-3 h-3 mr-1" />
                                                             {block.title.length > 6 ? block.title.slice(0, 6) + '…' : block.title}으로 출발
@@ -540,7 +540,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                             <p className="text-xs font-bold text-gray-900 truncate">{card.name}</p>
                                             <p className="text-[10px] text-gray-400 mt-0.5 truncate">{formatPlaceDetailText(card)}</p>
                                             {!!(card.distanceKm && card.distanceKm > 0) && (
-                                                <p className="text-[10px] text-[#224732] font-bold mt-1">
+                                                <p className="text-[10px] text-[#388E5A] font-bold mt-1">
                                                     <MapPin className="w-2.5 h-2.5 inline mr-0.5" />{card.distanceKm.toFixed(1)}km
                                                 </p>
                                             )}
@@ -574,7 +574,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                             <button
                                 key={nav.key}
                                 onClick={() => handleNavChoice(nav.key)}
-                                className="flex items-center gap-2 p-4 rounded-xl border border-gray-100 hover:border-[#224732]/30 hover:bg-[#224732]/5 transition-all active:scale-95"
+                                className="flex items-center gap-2 p-4 rounded-xl border border-gray-100 hover:border-[#388E5A]/30 hover:bg-[#388E5A]/5 transition-all active:scale-95"
                             >
                                 <span className="text-xl">{nav.emoji}</span>
                                 <span className="text-sm font-bold text-gray-900">{nav.label}</span>
@@ -600,7 +600,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                             <button onClick={() => setEditHour(h => Math.min(23, h + 1))} className="p-2 text-gray-400 hover:text-gray-700">
                                 <ChevronUp className="w-6 h-6" />
                             </button>
-                            <span className="text-4xl font-black text-[#224732] w-16 text-center">{editHour.toString().padStart(2, '0')}</span>
+                            <span className="text-4xl font-black text-[#388E5A] w-16 text-center">{editHour.toString().padStart(2, '0')}</span>
                             <button onClick={() => setEditHour(h => Math.max(0, h - 1))} className="p-2 text-gray-400 hover:text-gray-700">
                                 <ChevronDown className="w-6 h-6" />
                             </button>
@@ -610,7 +610,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                             <button onClick={() => setEditMin(m => (m + 10) % 60)} className="p-2 text-gray-400 hover:text-gray-700">
                                 <ChevronUp className="w-6 h-6" />
                             </button>
-                            <span className="text-4xl font-black text-[#224732] w-16 text-center">{editMin.toString().padStart(2, '0')}</span>
+                            <span className="text-4xl font-black text-[#388E5A] w-16 text-center">{editMin.toString().padStart(2, '0')}</span>
                             <button onClick={() => setEditMin(m => (m - 10 + 60) % 60)} className="p-2 text-gray-400 hover:text-gray-700">
                                 <ChevronDown className="w-6 h-6" />
                             </button>
@@ -618,7 +618,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                     </div>
                     <Button
                         onClick={handleTimeEdit}
-                        className="w-full h-12 bg-[#224732] hover:bg-[#1a3626] text-white font-bold rounded-xl active:scale-[0.98]"
+                        className="w-full h-12 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold rounded-xl active:scale-[0.98]"
                     >
                         이 시간으로 변경
                     </Button>
@@ -646,7 +646,7 @@ export default function SmartPlanTimelinePro({ plan, accommodationCoord, onPlanU
                                 <button
                                     key={card.id}
                                     onClick={() => handleSwap(swapBlock, card, swapBlock.day)}
-                                    className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-[#224732]/30 hover:bg-[#224732]/5 transition-all active:scale-[0.98]"
+                                    className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-[#388E5A]/30 hover:bg-[#388E5A]/5 transition-all active:scale-[0.98]"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex-1 min-w-0">

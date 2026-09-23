@@ -64,10 +64,10 @@ export default function GroupMemberList({ groupId, members, currentUserId, child
                     {children}
                 </div>
             </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl p-0 bg-[#F7F5EF] max-w-[430px] mx-auto left-0 right-0">
+            <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl p-0 bg-[#F8FAF8] max-w-[430px] mx-auto left-0 right-0">
                 <div className="p-6 h-full flex flex-col">
                     <SheetHeader className="mb-6 text-left">
-                        <SheetTitle className="text-[#1C4526] text-xl font-bold">멤버 목록</SheetTitle>
+                        <SheetTitle className="text-[#1E4D2B] text-xl font-bold">멤버 목록</SheetTitle>
                         <SheetDescription>
                             함께하는 멤버 {members.length}명
                         </SheetDescription>
@@ -83,7 +83,7 @@ export default function GroupMemberList({ groupId, members, currentUserId, child
                                     <div className="flex items-center gap-3">
                                         <Avatar className="h-10 w-10 border border-gray-100">
                                             <AvatarImage src={member.user?.avatar_url} />
-                                            <AvatarFallback className="bg-[#1C4526]/10 text-[#1C4526]">
+                                            <AvatarFallback className="bg-[#E9EFEA] text-[#388E5A]">
                                                 {member.user?.display_name?.[0] || 'U'}
                                             </AvatarFallback>
                                         </Avatar>
@@ -98,7 +98,7 @@ export default function GroupMemberList({ groupId, members, currentUserId, child
                                                     </span>
                                                 )}
                                                 {isMe && (
-                                                    <span className="text-[10px] bg-[#1C4526] text-white px-1.5 py-0.5 rounded-full font-medium">
+                                                    <span className="text-[10px] bg-[#388E5A] text-white px-1.5 py-0.5 rounded-full font-medium">
                                                         나
                                                     </span>
                                                 )}

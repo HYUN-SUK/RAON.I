@@ -870,7 +870,7 @@ export default function PlayExplorerPage() {
                         
                         <Button
                             onClick={() => setRecommendedPlays([])}
-                            className="mt-5 w-full bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl py-3 font-bold text-xs"
+                            className="mt-5 w-full bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl py-3 font-bold text-xs shadow-md shadow-[#388E5A]/20"
                         >
                             닫기
                         </Button>

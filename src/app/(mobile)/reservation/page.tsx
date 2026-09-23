@@ -214,24 +214,24 @@ export default function ReservationPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1C4526]"></div>
+            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#388E5A]"></div>
             </div>
         );
     }
 
     if (!isAllowed) {
         return (
-            <div className="min-h-screen bg-[#F7F5EF]">
+            <div className="min-h-screen bg-[#F8FAF8]">
                 <ReservationLockModal isOpen={showLockModal} onClose={closeLockModal} />
             </div>
         );
     }
 
     return (
-        <main className="min-h-screen bg-[#F7F5EF] pb-32">
+        <main className="min-h-screen bg-[#F8FAF8] pb-32">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#F7F5EF]/80 backdrop-blur-md border-b border-stone-200 px-4 h-16 flex items-center gap-3">
+            <header className="sticky top-0 z-50 bg-[#F8FAF8]/90 backdrop-blur-md border-b border-stone-200/80 px-4 h-16 flex items-center gap-3">
                 <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-stone-100">
                     <ArrowLeft className="w-5 h-5 text-stone-700" />
                 </Button>
@@ -240,10 +240,10 @@ export default function ReservationPage() {
 
 
             {/* SSOT 5.10.3 Open Day Banner */}
-            <div className={`text-white px-5 py-4 shadow-md transition-colors ${isClosed ? 'bg-stone-600' : 'bg-[#1C4526]'}`}>
+            <div className={`text-white px-5 py-4 shadow-md transition-colors ${isClosed ? 'bg-stone-600' : 'bg-gradient-to-r from-[#1E4D2B] via-[#2F774B] to-[#1E4D2B]'}`}>
                 <div className="flex items-start gap-4 max-w-lg mx-auto">
                     <div className="mt-1 p-2 bg-white/10 rounded-full">
-                        {isClosed ? <Lock className="w-5 h-5 text-stone-300" /> : <Megaphone className="w-5 h-5 text-[#C3A675] animate-pulse" />}
+                        {isClosed ? <Lock className="w-5 h-5 text-stone-300" /> : <Megaphone className="w-5 h-5 text-amber-300 animate-pulse" />}
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -255,7 +255,7 @@ export default function ReservationPage() {
                             </h2>
                             {/* D-Day Badge */}
                             {!isOpen && !isClosed && dDayBadge && (
-                                <span className="bg-[#C3A675] text-[#1C4526] text-xs font-bold px-2 py-0.5 rounded-full animate-bounce">
+                                <span className="bg-[#E9EFEA] text-[#2D5A3C] text-xs font-bold px-2 py-0.5 rounded-full border border-[#388E5A]/30 animate-bounce">
                                     {dDayBadge}
                                 </span>
                             )}
@@ -291,7 +291,7 @@ export default function ReservationPage() {
             <div className="p-5 space-y-8 max-w-lg mx-auto">
                 <section>
                     <div className="flex items-center gap-2 mb-3 px-1">
-                        <span className="w-1 h-5 bg-[#1C4526] rounded-full"></span>
+                        <span className="w-1 h-5 bg-[#388E5A] rounded-full"></span>
                         <h2 className="text-lg font-bold text-stone-800">날짜 선택</h2>
                     </div>
                     <DateRangePicker />
@@ -299,7 +299,7 @@ export default function ReservationPage() {
 
                 <section className={`transition-all duration-300 ${isBlocked || !isOpen ? 'opacity-60 grayscale pointer-events-none' : 'opacity-100'}`}>
                     <div className="flex items-center gap-2 mb-3 px-1">
-                        <span className="w-1 h-5 bg-[#C3A675] rounded-full"></span>
+                        <span className="w-1 h-5 bg-[#388E5A] rounded-full"></span>
                         <h2 className="text-lg font-bold text-stone-800">사이트 선택</h2>
                     </div>
 
@@ -312,7 +312,7 @@ export default function ReservationPage() {
                             {/* 빈자리 알림 안내 */}
                             {selectedDateRange.from && (
                                 <div className="pt-4 border-t border-stone-100">
-                                    <div className="flex items-center justify-center gap-2 mb-2 text-brand-1">
+                                    <div className="flex items-center justify-center gap-2 mb-2 text-[#388E5A]">
                                         <Bell className="w-4 h-4" />
                                         <span className="font-medium text-sm">빈자리 알림</span>
                                     </div>

@@ -24,8 +24,8 @@ export function CartDrawer() {
             <SheetContent className="w-full sm:max-w-md flex flex-col h-full bg-white p-0">
                 <SheetHeader className="px-5 py-4 border-b border-gray-100 flex-shrink-0">
                     <SheetTitle className="text-left flex items-center gap-2">
-                        <ShoppingBag className="w-5 h-5" />
-                        장바구니 <span className="text-[#1C4526] font-bold">{items.length}</span>
+                        <ShoppingBag className="w-5 h-5 text-[#388E5A]" />
+                        장바구니 <span className="text-[#388E5A] font-bold">{items.length}</span>
                     </SheetTitle>
                 </SheetHeader>
 
@@ -94,10 +94,10 @@ export function CartDrawer() {
                     <div className="p-5 border-t border-gray-100 bg-white safe-area-bottom">
                         <div className="flex justify-between items-center mb-4">
                             <span className="text-sm text-gray-500">총 결제 금액</span>
-                            <span className="text-lg font-bold text-[#1C4526]">{formatPrice(getTotalPrice())}</span>
+                            <span className="text-lg font-bold text-[#1E4D2B]">{formatPrice(getTotalPrice())}</span>
                         </div>
                         <Button
-                            className="w-full h-12 bg-[#1C4526] hover:bg-[#16331F] text-white text-base rounded-xl font-medium"
+                            className="w-full h-12 bg-[#388E5A] hover:bg-[#2F774B] text-white text-base rounded-xl font-medium shadow-sm shadow-[#388E5A]/20"
                             onClick={handleCheckout}
                         >
                             주문하기

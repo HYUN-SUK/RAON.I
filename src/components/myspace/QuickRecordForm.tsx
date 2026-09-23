@@ -418,8 +418,8 @@ export default function QuickRecordForm({
                     }}
                 >
                     <SheetHeader className="pb-3 border-b border-gray-100">
-                        <SheetTitle className="flex items-center gap-2 text-[#224732]">
-                            <Sparkles className="w-5 h-5" />
+                        <SheetTitle className="flex items-center gap-2 text-[#1E4D2B]">
+                            <Sparkles className="w-5 h-5 text-[#388E5A]" />
                             10초 기록
                         </SheetTitle>
                     </SheetHeader>
@@ -427,7 +427,7 @@ export default function QuickRecordForm({
                     {showSuccess ? (
                         /* 기록 완료 후 아카이브 락인(Lock-in) 루프 성공 화면 */
                         <div className="py-8 text-center space-y-5 animate-in fade-in duration-300">
-                            <div className="w-16 h-16 bg-[#224732]/10 text-[#224732] rounded-full flex items-center justify-center mx-auto mb-2">
+                            <div className="w-16 h-16 bg-[#388E5A]/10 text-[#388E5A] rounded-full flex items-center justify-center mx-auto mb-2">
                                 <Sparkles className="w-8 h-8 animate-bounce" />
                             </div>
                             <div>
@@ -490,7 +490,7 @@ export default function QuickRecordForm({
                                         useMySpaceStore.getState().setIsMapOpen(true);
                                         handleClose();
                                     }}
-                                    className="w-full bg-[#224732] hover:bg-[#1a3626] text-white font-bold h-12 rounded-xl shadow-lg transition-transform active:scale-98"
+                                    className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold h-12 rounded-xl shadow-lg transition-transform active:scale-98"
                                 >
                                     ⛺ 내 캠핑 지도에서 핀 확인하기
                                 </Button>
@@ -535,7 +535,7 @@ export default function QuickRecordForm({
                                         <Input
                                             value={name}
                                             placeholder="캠핑장 검색"
-                                            className="bg-white h-8 text-xs font-semibold text-[#224732] cursor-pointer hover:bg-stone-50"
+                                            className="bg-white h-8 text-xs font-semibold text-[#1E4D2B] cursor-pointer hover:bg-stone-50"
                                             readOnly
                                             onClick={() => setIsMapOpen(true)}
                                         />
@@ -579,12 +579,12 @@ export default function QuickRecordForm({
                                         className={cn(
                                             "flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 transition-all active:scale-[0.98] text-left w-full h-[76px]",
                                             !isPublic
-                                                ? "border-[#224732] bg-[#224732]/5 text-[#224732] font-bold"
+                                                ? "border-[#388E5A] bg-[#388E5A]/5 text-[#1E4D2B] font-bold"
                                                 : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                                         )}
                                     >
                                         <div className="flex items-center gap-1.5 mb-1">
-                                            <Lock className={cn("w-4 h-4", !isPublic ? "text-[#224732]" : "text-stone-400")} />
+                                            <Lock className={cn("w-4 h-4", !isPublic ? "text-[#388E5A]" : "text-stone-400")} />
                                             <span className="text-xs">나만 보기</span>
                                         </div>
                                         <p className="text-[9px] font-normal leading-tight text-stone-400 dark:text-stone-500 text-center">
@@ -599,12 +599,12 @@ export default function QuickRecordForm({
                                         className={cn(
                                             "flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 transition-all active:scale-[0.98] text-left w-full h-[76px]",
                                             isPublic
-                                                ? "border-[#224732] bg-[#224732]/5 text-[#224732] font-bold"
+                                                ? "border-[#388E5A] bg-[#388E5A]/5 text-[#1E4D2B] font-bold"
                                                 : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                                         )}
                                     >
                                         <div className="flex items-center gap-1.5 mb-1">
-                                            <Globe className={cn("w-4 h-4", isPublic ? "text-[#224732]" : "text-stone-400")} />
+                                            <Globe className={cn("w-4 h-4", isPublic ? "text-[#388E5A]" : "text-stone-400")} />
                                             <span className="text-xs">전체 공개</span>
                                         </div>
                                         <p className="text-[9px] font-normal leading-tight text-stone-400 dark:text-stone-500 text-center">
@@ -628,12 +628,12 @@ export default function QuickRecordForm({
                                                 className={cn(
                                                     "flex flex-col items-center justify-center flex-1 py-2 px-1 rounded-lg transition-all active:scale-95",
                                                     isSelected 
-                                                        ? "bg-white shadow-sm border border-[#224732] scale-105" 
+                                                        ? "bg-white shadow-sm border border-[#388E5A] scale-105" 
                                                         : "hover:bg-white/50 border border-transparent"
                                                 )}
                                             >
                                                 <span className="text-xl mb-0.5">{level.emoji}</span>
-                                                <span className={cn("text-[9px] font-medium whitespace-nowrap scale-95 origin-center", isSelected ? "text-[#224732] font-bold" : "text-gray-400")}>
+                                                <span className={cn("text-[9px] font-medium whitespace-nowrap scale-95 origin-center", isSelected ? "text-[#1E4D2B] font-bold" : "text-gray-400")}>
                                                     {level.label}
                                                 </span>
                                             </button>
@@ -664,7 +664,7 @@ export default function QuickRecordForm({
                                                             className={cn(
                                                                 'px-2 py-0.5 rounded-full text-xs font-medium transition-all scale-95 origin-left',
                                                                 isSelected
-                                                                    ? 'bg-[#224732] text-white'
+                                                                    ? 'bg-[#388E5A] text-white'
                                                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                             )}
                                                         >
@@ -705,7 +705,7 @@ export default function QuickRecordForm({
                                             <button
                                                 type="button"
                                                 onClick={() => setIsEditorOpen(true)}
-                                                className="w-8 h-8 flex items-center justify-center bg-[#224732] rounded-full hover:bg-[#1a3626] transition-colors shadow-lg"
+                                                className="w-8 h-8 flex items-center justify-center bg-[#388E5A] rounded-full hover:bg-[#2F774B] transition-colors shadow-lg"
                                                 disabled={isUploading}
                                                 aria-label="사진 편집"
                                             >
@@ -726,7 +726,7 @@ export default function QuickRecordForm({
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="w-full h-20 border border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-[#224732] hover:bg-[#224732]/5 transition-colors"
+                                        className="w-full h-20 border border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-[#388E5A] hover:bg-[#388E5A]/5 transition-colors"
                                     >
                                         <Camera className="w-5 h-5 text-gray-400" />
                                         <span className="text-xs text-gray-500">사진 추가하기</span>
@@ -743,7 +743,7 @@ export default function QuickRecordForm({
                                         setContent(e.target.value.slice(0, MAX_CONTENT_LENGTH));
                                     }}
                                     placeholder="캠핑 경험을 자유롭게 적어주세요..."
-                                    className="min-h-[80px] resize-none border-gray-200 focus:border-[#224732] focus:ring-[#224732] text-sm leading-relaxed"
+                                    className="min-h-[80px] resize-none border-gray-200 focus:border-[#388E5A] focus:ring-[#388E5A] text-sm leading-relaxed"
                                 />
                                 <div className="text-right text-[10px] text-gray-400">
                                     {content.length}/{MAX_CONTENT_LENGTH}
@@ -754,7 +754,7 @@ export default function QuickRecordForm({
                             <Button
                                 onClick={handleSubmit}
                                 disabled={isSubmitting || isUploading}
-                                className="w-full bg-[#224732] hover:bg-[#1a3626] text-white h-11 text-base font-bold rounded-xl"
+                                className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white h-11 text-base font-bold rounded-xl"
                             >
                                 {isSubmitting ? (
                                     <Loader2 className="w-5 h-5 animate-spin mr-2" />

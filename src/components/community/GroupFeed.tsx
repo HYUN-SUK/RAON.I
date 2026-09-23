@@ -43,17 +43,17 @@ export default function GroupFeed({ groupId, posts, currentUserId, isMember }: P
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex gap-3">
                         <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-[#1C4526]/5 text-[#1C4526]">나</AvatarFallback>
+                            <AvatarFallback className="bg-[#E9EFEA] text-[#388E5A]">나</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 space-y-3">
                             <Textarea
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 placeholder="멤버들과 이야기를 나눠보세요..."
-                                className="min-h-[80px] bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#1C4526]/20 resize-none rounded-xl text-sm"
+                                className="min-h-[80px] bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#388E5A]/20 resize-none rounded-xl text-sm"
                             />
                             <div className="flex justify-between items-center">
-                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-[#1C4526]" disabled>
+                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-[#388E5A]" disabled>
                                     <ImageIcon className="w-4 h-4 mr-2" />
                                     사진
                                 </Button>
@@ -61,7 +61,7 @@ export default function GroupFeed({ groupId, posts, currentUserId, isMember }: P
                                     onClick={handleSubmit}
                                     disabled={!content.trim() || isPending}
                                     size="sm"
-                                    className="bg-[#1C4526] hover:bg-[#15341d] text-white rounded-lg px-4"
+                                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-lg px-4"
                                 >
                                     {isPending ? '등록 중...' : <><Send className="w-3.5 h-3.5 mr-2" /> 등록</>}
                                 </Button>
@@ -85,7 +85,7 @@ export default function GroupFeed({ groupId, posts, currentUserId, isMember }: P
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex items-center gap-3">
                                         <Avatar className="h-9 w-9 border border-gray-100">
-                                            <AvatarFallback className="bg-[#1C4526]/5 text-[#1C4526]">
+                                            <AvatarFallback className="bg-[#E9EFEA] text-[#388E5A]">
                                                 {post.author_name[0]}
                                             </AvatarFallback>
                                         </Avatar>
@@ -118,7 +118,7 @@ export default function GroupFeed({ groupId, posts, currentUserId, isMember }: P
                                 />
                                 <Link
                                     href={`/community/${post.id}`}
-                                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1C4526] transition-colors"
+                                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#388E5A] transition-colors"
                                 >
                                     <MessageCircle className="w-4 h-4" />
                                     {post.comment_count}

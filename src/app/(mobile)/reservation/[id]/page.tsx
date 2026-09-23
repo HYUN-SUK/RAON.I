@@ -65,7 +65,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                 <div className="bg-[#1a1a1a]/80 backdrop-blur-xl border border-white/10 rounded-t-3xl p-6 shadow-2xl">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <span className="text-sm text-[#2F5233] font-bold tracking-wider bg-[#2F5233]/10 px-2 py-1 rounded-md border border-[#2F5233]/20">
+                            <span className="text-sm text-[#388E5A] font-bold tracking-wider bg-[#388E5A]/20 px-2.5 py-1 rounded-md border border-[#388E5A]/30">
                                 {site.type}
                             </span>
                             <h1 className="text-3xl font-bold mt-2">{site.name}</h1>

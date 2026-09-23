@@ -49,7 +49,7 @@ export default function GroupJoinButton({ groupId, isJoined }: Props) {
         <button
             onClick={handleJoin}
             disabled={isPending}
-            className="flex-1 bg-[#1C4526] text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
+            className="flex-1 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
         >
             {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
             가입하기

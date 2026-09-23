@@ -121,7 +121,7 @@ export default function HeroSection({ isLoading = false, emberStats = null }: He
 
     if (isLoading) {
         return (
-            <div className="relative w-full h-[55vh] min-h-[400px] rounded-b-[40px] shadow-medium z-10 bg-[#EFECE5] dark:bg-stone-800 animate-pulse flex flex-col justify-between p-6">
+            <div className="relative w-full h-[55vh] min-h-[400px] rounded-b-[40px] shadow-medium z-10 bg-[#E9EFEA] dark:bg-stone-800 animate-pulse flex flex-col justify-between p-6">
                 <div className="flex justify-end pt-8">
                     <div className="flex flex-col gap-2 items-end">
                         <div className="w-32 h-8 bg-stone-300/40 dark:bg-stone-700/40 rounded-full" />
@@ -172,7 +172,7 @@ export default function HeroSection({ isLoading = false, emberStats = null }: He
                                 }}
                                 className="glass-panel px-4 py-2 rounded-full flex items-center gap-2 text-white/90 hover:bg-white/20 active:scale-95 transition-all shadow-lg animate-float"
                             >
-                                <div className="p-1 bg-brand-1 rounded-full">
+                                <div className="p-1 bg-[#388E5A] rounded-full">
                                     <Flag size={12} className="text-white" fill="currentColor" />
                                 </div>
                                 <span className="text-xs font-medium">

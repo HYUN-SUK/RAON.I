@@ -89,7 +89,7 @@ export default function MyGroupsWidget({ isLoading = false }: MyGroupsWidgetProp
         <div className="mt-6 mb-2">
             <div className="flex justify-between items-center px-7 mb-3">
                 <h2 className="text-lg font-bold text-[#1A1A1A]">내 소모임</h2>
-                <Link href="/community?tab=GROUP" className="text-xs text-gray-400 hover:text-[#1C4526] flex items-center">
+                <Link href="/community?tab=GROUP" className="text-xs text-gray-400 hover:text-[#388E5A] flex items-center">
                     더보기 <ChevronRight className="w-3 h-3" />
                 </Link>
             </div>
@@ -97,8 +97,8 @@ export default function MyGroupsWidget({ isLoading = false }: MyGroupsWidgetProp
             <div className="flex gap-4 overflow-x-auto px-7 pb-4 scrollbar-hide">
                 {/* Create New / Search Entry Point */}
                 <Link href="/community?tab=GROUP" className="flex flex-col items-center gap-2 min-w-[70px]">
-                    <div className="w-[60px] h-[60px] rounded-full bg-[#1C4526]/5 flex items-center justify-center border border-[#1C4526]/10">
-                        <PlusCircle className="w-6 h-6 text-[#1C4526]" />
+                    <div className="w-[60px] h-[60px] rounded-full bg-[#E9EFEA] flex items-center justify-center border border-[#388E5A]/20">
+                        <PlusCircle className="w-6 h-6 text-[#388E5A]" />
                     </div>
                     <span className="text-xs text-gray-500 font-medium truncate w-full text-center">모임 찾기</span>
                 </Link>
@@ -111,7 +111,7 @@ export default function MyGroupsWidget({ isLoading = false }: MyGroupsWidgetProp
                     >
                         <Avatar className="w-[60px] h-[60px] border-2 border-white shadow-sm">
                             <AvatarImage src={item.group.image_url || undefined} className="object-cover" />
-                            <AvatarFallback className="bg-[#1C4526] text-white text-lg font-bold">
+                            <AvatarFallback className="bg-[#388E5A] text-white text-lg font-bold">
                                 {item.group.name[0]}
                             </AvatarFallback>
                         </Avatar>

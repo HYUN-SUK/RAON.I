@@ -29,7 +29,7 @@ const STATUS_CONFIG: Record<ReservationStatus, { label: string; color: string; i
     REFUND_PENDING: { label: "환불 대기", color: "text-orange-700", icon: BanknoteIcon, bgColor: "bg-orange-50 border-orange-200" },
     REFUNDED: { label: "환불 완료", color: "text-blue-700", icon: CheckCircle2, bgColor: "bg-blue-50 border-blue-200" },
     CANCELLED: { label: "취소됨", color: "text-gray-500", icon: XCircle, bgColor: "bg-gray-50 border-gray-200" },
-    COMPLETED: { label: "이용 완료", color: "text-brand-1", icon: CheckCircle2, bgColor: "bg-brand-1/10 border-brand-1/20" },
+    COMPLETED: { label: "이용 완료", color: "text-[#2D5A3C]", icon: CheckCircle2, bgColor: "bg-[#E9EFEA] border-[#388E5A]/25" },
     "NO-SHOW": { label: "노쇼", color: "text-red-700", icon: AlertCircle, bgColor: "bg-red-50 border-red-200" },
 };
 
@@ -165,7 +165,7 @@ export default function MyReservationsPage() {
                     <div className={`flex items-center gap-2 ${config.color}`}>
                         <StatusIcon size={16} />
                         <span className="text-sm font-bold">{config.label}</span>
-                        <span className="ml-1 text-xs bg-brand-1/20 text-brand-1 px-1.5 py-0.5 rounded font-medium">라온아이</span>
+                        <span className="ml-1 text-xs bg-[#E9EFEA] text-[#2D5A3C] px-1.5 py-0.5 rounded font-medium">라온아이</span>
                         {/* D-Day 배지: 예정된 예약에 표시 */}
                         {!isPast && (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED') && (() => {
                             const checkInDate = new Date(reservation.checkInDate);
@@ -173,7 +173,7 @@ export default function MyReservationsPage() {
                             const daysUntil = differenceInDays(checkInDate, today);
                             const dDayText = daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`;
                             return (
-                                <span className="ml-auto text-xs font-bold bg-brand-1 text-white px-2 py-0.5 rounded-full">
+                                <span className="ml-auto text-xs font-bold bg-[#388E5A] text-white px-2 py-0.5 rounded-full">
                                     {dDayText}
                                 </span>
                             );
@@ -277,7 +277,7 @@ export default function MyReservationsPage() {
                 ? { label: '취소', color: 'text-gray-500', bg: 'bg-gray-50 border-gray-200' }
                 : isPast
                     ? { label: '완료', color: 'text-green-700', bg: 'bg-green-50 border-green-200' }
-                    : { label: daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`, color: 'text-[#224732]', bg: 'bg-[#224732]/5 border-[#224732]/20' };
+                    : { label: daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`, color: 'text-[#1E4D2B]', bg: 'bg-[#E9EFEA] border-[#388E5A]/20' };
 
         return (
             <div
@@ -290,7 +290,7 @@ export default function MyReservationsPage() {
                     <div className={`flex items-center gap-2 ${statusConfig.color}`}>
                         <Tent size={16} />
                         <span className="text-sm font-bold">{statusConfig.label}</span>
-                        <span className="ml-1 text-xs bg-[#224732]/20 text-[#224732] px-1.5 py-0.5 rounded font-medium">타캠핑장</span>
+                        <span className="ml-1 text-xs bg-[#E9EFEA] text-[#2D5A3C] px-1.5 py-0.5 rounded font-medium">타캠핑장</span>
                     </div>
                     <span className="text-xs text-text-2">
                         {format(new Date(schedule.created_at), "yyyy.MM.dd")}
@@ -360,7 +360,7 @@ export default function MyReservationsPage() {
                         <p className="text-sm">첫 번째 캠핑을 예약해보세요!</p>
                         <button
                             onClick={() => router.push("/reservation")}
-                            className="mt-6 px-6 py-3 bg-brand-1 text-white rounded-xl font-medium"
+                            className="mt-6 px-6 py-3 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl font-medium transition-colors"
                         >
                             예약하러 가기
                         </button>

@@ -36,15 +36,15 @@ export default function MealRecommendationWidget({
     return (
         <div className={cn("space-y-3", className)}>
             <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-lg font-bold text-[#1C4526]">
-                    <Utensils className="w-5 h-5" />
+                <h3 className="flex items-center gap-2 text-lg font-bold text-[#1E4D2B]">
+                    <Utensils className="w-5 h-5 text-[#388E5A]" />
                     추천 캠핑 요리
                 </h3>
                 {onRefresh && (
                     <button
                         onClick={onRefresh}
                         disabled={isLoading}
-                        className="flex items-center gap-1 text-xs text-stone-500 hover:text-[#1C4526] transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1 text-xs text-stone-500 hover:text-[#388E5A] transition-colors disabled:opacity-50"
                     >
                         <RotateCw className={cn("w-3.5 h-3.5", isLoading && "animate-spin")} />
                         다른 메뉴
@@ -53,7 +53,7 @@ export default function MealRecommendationWidget({
             </div>
 
             {rationale && (
-                <div className="bg-[#224732]/5 p-3 rounded-lg text-sm text-[#224732] leading-relaxed break-keep">
+                <div className="bg-[#E9EFEA] p-3 rounded-lg text-sm text-[#2D5A3C] leading-relaxed break-keep">
                     💡 {rationale}
                 </div>
             )}

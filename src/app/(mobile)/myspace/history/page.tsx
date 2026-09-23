@@ -62,9 +62,9 @@ export default function MySpaceHistoryPage() {
     const hasMore = visibleCount < filteredItems.length;
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] dark:bg-black pb-24">
+        <div className="min-h-screen bg-[#F8FAF8] dark:bg-black pb-24">
             {/* Top Bar */}
-            <header className="sticky top-0 z-50 bg-[#F7F5EF]/80 dark:bg-black/80 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 h-14 flex items-center gap-3">
+            <header className="sticky top-0 z-50 bg-[#F8FAF8]/80 dark:bg-black/80 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 h-14 flex items-center gap-3">
                 <Button variant="ghost" size="icon" onClick={() => router.push('/myspace')} className="-ml-2">
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
@@ -84,7 +84,7 @@ export default function MySpaceHistoryPage() {
                         placeholder="기록 검색 (제목, 내용)"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#1C4526]/20 transition-all placeholder:text-stone-400"
+                        className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#388E5A]/20 focus:border-[#388E5A] transition-all placeholder:text-stone-400"
                     />
                 </div>
 
@@ -111,7 +111,7 @@ export default function MySpaceHistoryPage() {
                     <div className="space-y-8">
                         {Object.entries(groupedItems).map(([month, items]) => (
                             <div key={month}>
-                                <h2 className="text-xl font-bold text-[#1C4526] dark:text-green-400 mb-4 px-2 sticky top-16 z-10 py-1 drop-shadow-sm">
+                                <h2 className="text-xl font-bold text-[#1E4D2B] dark:text-[#388E5A] mb-4 px-2 sticky top-16 z-10 py-1 drop-shadow-sm">
                                     {month}
                                 </h2>
                                 <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-sm border border-stone-100 dark:border-zinc-800">

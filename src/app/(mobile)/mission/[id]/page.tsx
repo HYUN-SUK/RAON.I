@@ -213,7 +213,7 @@ export default function MissionDetailPage() {
             <main className="p-5">
                 <div className="flex flex-col gap-1 mb-6">
                     <div className="flex items-center gap-2 mb-2">
-                        <Badge className="bg-[#1C4526] hover:bg-[#1C4526] text-white">Weekly</Badge>
+                        <Badge className="bg-[#388E5A] hover:bg-[#2F774B] text-white">Weekly</Badge>
                         <span className="text-xs text-stone-500" suppressHydrationWarning>
                             ~ {format(endDate, 'M월 d일', { locale: ko })}까지
                         </span>
@@ -279,18 +279,18 @@ export default function MissionDetailPage() {
                     </div>
                 ) : !isJoined ? (
                     <Button
-                        className="w-full h-14 text-lg font-bold bg-[#1C4526] hover:bg-[#224732] text-white rounded-xl shadow-lg shadow-[#1C4526]/20 transition-all hover:scale-[1.02]"
+                        className="w-full h-14 text-lg font-bold bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl shadow-lg shadow-[#388E5A]/20 transition-all hover:scale-[1.02]"
                         onClick={handleJoin}
                     >
                         미션 도전하기
                     </Button>
                 ) : (
                     <div className="space-y-4">
-                        <div className="bg-[#1C4526]/10 p-4 rounded-xl flex items-start gap-3 border border-[#1C4526]/20">
+                        <div className="bg-[#388E5A]/10 p-4 rounded-xl flex items-start gap-3 border border-[#388E5A]/20">
                             <span className="text-2xl">🔥</span>
                             <div>
-                                <h4 className="font-bold text-[#1C4526] dark:text-[#3E614B] text-sm">미션 진행 중!</h4>
-                                <p className="text-xs text-[#1C4526] dark:text-[#3E614B] mt-1">
+                                <h4 className="font-bold text-[#1E4D2B] dark:text-[#388E5A] text-sm">미션 진행 중!</h4>
+                                <p className="text-xs text-[#2F774B] dark:text-[#388E5A] mt-1">
                                     오늘의 소감 한 줄과 함께 사진을 올려주세요.
                                 </p>
                             </div>
@@ -302,13 +302,13 @@ export default function MissionDetailPage() {
                                 <label className="text-xs font-bold text-stone-500">오늘의 힐링 한 줄 소감</label>
                                 <button
                                     onClick={handleRefreshPhrase}
-                                    className="text-[10px] text-[#1C4526] hover:text-[#224732] font-semibold flex items-center gap-1 active:scale-95 transition-transform"
+                                    className="text-[10px] text-[#388E5A] hover:text-[#2F774B] font-semibold flex items-center gap-1 active:scale-95 transition-transform"
                                 >
                                     <RefreshCw className="w-3 h-3" /> 다른 문구 추천받기
                                 </button>
                             </div>
                             <textarea
-                                className="w-full min-h-[70px] p-3 bg-[#F7F5EF] dark:bg-zinc-800 text-stone-800 dark:text-stone-100 rounded-lg text-sm border-none focus:ring-1 focus:ring-[#1C4526] resize-none outline-none leading-relaxed"
+                                className="w-full min-h-[70px] p-3 bg-[#F8FAF8] dark:bg-zinc-800 text-stone-800 dark:text-stone-100 rounded-lg text-sm border-none focus:ring-1 focus:ring-[#388E5A] resize-none outline-none leading-relaxed"
                                 placeholder="오늘의 느낌을 적어보세요..."
                                 value={healingPhrase}
                                 onChange={(e) => setHealingPhrase(e.target.value)}
@@ -370,7 +370,7 @@ export default function MissionDetailPage() {
                     </div>
                     <h3 className="font-bold text-stone-800 dark:text-stone-100 text-base mb-1.5">오늘 이 미션을 함께한 캠퍼들</h3>
                     <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed max-w-[280px] mx-auto">
-                        오늘 이 미션을 완료한 캠퍼가 벌써 <span className="text-[#1C4526] dark:text-[#3E614B] font-bold text-sm">{completedCount}명</span>이에요. 각자의 아늑한 공간에서 따뜻하게 같은 계절의 찰나를 수집하고 있습니다.
+                        오늘 이 미션을 완료한 캠퍼가 벌써 <span className="text-[#1E4D2B] dark:text-[#388E5A] font-bold text-sm">{completedCount}명</span>이에요. 각자의 아늑한 공간에서 따뜻하게 같은 계절의 찰나를 수집하고 있습니다.
                     </p>
                 </div>
             </main>

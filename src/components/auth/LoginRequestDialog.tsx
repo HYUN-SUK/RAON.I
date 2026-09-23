@@ -36,7 +36,7 @@ export default function LoginRequestDialog() {
                 <DialogFooter className="mt-4 sm:justify-center">
                     <Button
                         onClick={handleLogin}
-                        className="w-full h-12 text-lg font-semibold bg-[#1C4526] hover:bg-[#224732]"
+                        className="w-full h-12 text-lg font-semibold bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl shadow-lg shadow-[#388E5A]/20 transition-all"
                     >
                         로그인 하러 가기
                     </Button>

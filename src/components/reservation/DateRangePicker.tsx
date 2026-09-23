@@ -139,12 +139,12 @@ export default function DateRangePicker() {
         <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4">
             <div className="flex items-center justify-between mb-2 pb-2 border-b border-stone-100">
                 <div className="flex items-center gap-2 text-stone-700">
-                    <CalendarIcon className="w-5 h-5 text-[#2F5233]" />
+                    <CalendarIcon className="w-5 h-5 text-[#388E5A]" />
                     <span className="font-medium">일정 선택</span>
                 </div>
                 <button
                     onClick={() => setDateRange({ from: undefined, to: undefined })}
-                    className="text-xs text-stone-400 hover:text-[#1C4526] flex items-center gap-1 px-2 py-1 rounded-md hover:bg-stone-50 transition-colors"
+                    className="text-xs text-stone-400 hover:text-[#388E5A] flex items-center gap-1 px-2 py-1 rounded-md hover:bg-stone-50 transition-colors"
                 >
                     <RefreshCw className="w-3 h-3" />
                     초기화
@@ -155,16 +155,16 @@ export default function DateRangePicker() {
                 {`
                     .rdp { margin: 0; }
                     .rdp-day_selected, .rdp-day_selected:hover { 
-                        background-color: #1C4526 !important; 
+                        background-color: #388E5A !important; 
                         color: white !important;
                     }
                     .rdp-day_today { 
                         font-weight: bold; 
-                        color: #1C4526;
+                        color: #1E4D2B;
                     }
                     .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { 
-                        background-color: #F7F5EF !important;
-                        color: #1C4526 !important;
+                        background-color: #E9EFEA !important;
+                        color: #1E4D2B !important;
                     }
                     .rdp-day_holiday {
                         color: #ef4444 !important;
@@ -194,7 +194,7 @@ export default function DateRangePicker() {
                     <div className="mt-4 space-y-2 text-center">
                         {isFridayOneNight && (
                             isWithinDN ? (
-                                <p className="text-xs text-brand-1 font-bold animate-pulse p-2 bg-brand-1/5 rounded-lg">
+                                <p className="text-xs text-[#2D5A3C] font-bold animate-pulse p-2 bg-[#E9EFEA] border border-[#388E5A]/20 rounded-lg">
                                     ✅ 임박 예약(D-{D_N_DAYS})으로 주말 1박 가능!
                                 </p>
                             ) : (isEndCap || isStartCap) ? (
@@ -232,7 +232,7 @@ export default function DateRangePicker() {
                     day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full transition-colors text-stone-700",
                     day_outside: "text-stone-300 opacity-50",
                     day_disabled: "text-stone-200 opacity-30",
-                    day_range_middle: "aria-selected:bg-[#1C4526]/10 aria-selected:text-[#1C4526]",
+                    day_range_middle: "aria-selected:bg-[#388E5A]/15 aria-selected:text-[#1E4D2B]",
                     day_hidden: "invisible",
                 }}
             />
@@ -240,14 +240,14 @@ export default function DateRangePicker() {
             <div className="mt-4 p-3 bg-stone-50 rounded-xl text-sm text-stone-600 flex justify-between items-center border border-stone-100">
                 <div className="text-center w-1/2">
                     <p className="text-[10px] text-stone-400 mb-0.5">체크인</p>
-                    <p className="font-semibold text-[#1C4526]">
+                    <p className="font-semibold text-[#1E4D2B]">
                         {selected.from ? format(selected.from, 'yyyy.MM.dd') : '-'}
                     </p>
                 </div>
                 <div className="h-8 w-[1px] bg-stone-200"></div>
                 <div className="text-center w-1/2">
                     <p className="text-[10px] text-stone-400 mb-0.5">체크아웃</p>
-                    <p className="font-semibold text-[#1C4526]">
+                    <p className="font-semibold text-[#1E4D2B]">
                         {selected.to ? format(selected.to, 'yyyy.MM.dd') : '-'}
                     </p>
                 </div>

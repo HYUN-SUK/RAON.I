@@ -241,7 +241,7 @@ export function ContentWriteForm() {
 
             {/* Type Specific Inputs */}
             <div className="px-1 border-t pt-6 border-gray-100">
-                <h3 className="text-sm font-semibold mb-4 flex items-center text-[#224732]">
+                <h3 className="text-sm font-semibold mb-4 flex items-center text-[#1E4D2B]">
                     {getTypeIcon(type)} 상세 내용 입력
                 </h3>
 
@@ -318,7 +318,7 @@ export function ContentWriteForm() {
             {/* Submit Button */}
             <div className="pt-4">
                 <Button
-                    className="w-full bg-[#224732] hover:bg-[#1a3826] text-white py-6 text-lg font-medium shadow-lg"
+                    className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white py-6 text-lg font-medium shadow-lg shadow-[#388E5A]/20"
                     onClick={handleSubmit}
                     disabled={loading}
                 >

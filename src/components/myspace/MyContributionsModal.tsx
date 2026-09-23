@@ -86,10 +86,10 @@ export default function MyContributionsModal({ isOpen, onClose, userId }: MyCont
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="bottom" className="rounded-t-3xl max-h-[80vh] overflow-y-auto bg-[#F7F5EF] px-5 pb-8">
+            <SheetContent side="bottom" className="rounded-t-3xl max-h-[80vh] overflow-y-auto bg-[#F8FAF8] px-5 pb-8">
                 <SheetHeader className="pb-3 border-b border-stone-200">
                     <div className="flex items-center gap-2">
-                        <Badge className="bg-emerald-900 text-emerald-200 border-none text-[10px]">
+                        <Badge className="bg-[#1E4D2B] text-white border-none text-[10px]">
                             나의 기여
                         </Badge>
                     </div>

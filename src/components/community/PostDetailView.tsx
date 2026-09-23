@@ -87,12 +87,12 @@ export default function PostDetailView() {
 
     if (loading) return (
         <div className="flex justify-center items-center min-h-screen">
-            <Loader2 className="w-8 h-8 animate-spin text-[#1C4526]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#388E5A]" />
         </div>
     );
 
     if (error || !post) return (
-        <div className="flex flex-col justify-center items-center min-h-screen p-5 text-center bg-[#F7F5EF]">
+        <div className="flex flex-col justify-center items-center min-h-screen p-5 text-center bg-[#F8FAF8]">
             <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center mb-4">
                 <Trash2 className="w-8 h-8 text-stone-400" />
             </div>
@@ -104,7 +104,7 @@ export default function PostDetailView() {
             </p>
             <Button
                 onClick={() => router.back()}
-                className="bg-[#1C4526] hover:bg-[#15341d] text-white"
+                className="bg-[#388E5A] hover:bg-[#2F774B] text-white"
             >
                 돌아가기
             </Button>
@@ -118,7 +118,7 @@ export default function PostDetailView() {
 
     if (isForbidden) {
         return (
-            <div className="flex flex-col justify-center items-center min-h-screen p-5 text-center bg-[#F7F5EF]">
+            <div className="flex flex-col justify-center items-center min-h-screen p-5 text-center bg-[#F8FAF8]">
                 <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center mb-4">
                     <Trash2 className="w-8 h-8 text-stone-400" />
                 </div>
@@ -128,7 +128,7 @@ export default function PostDetailView() {
                 </p>
                 <Button
                     onClick={() => router.back()}
-                    className="bg-[#1C4526] hover:bg-[#15341d] text-white"
+                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white"
                 >
                     돌아가기
                 </Button>
@@ -194,7 +194,7 @@ export default function PostDetailView() {
                 <div className="flex items-center gap-2 mb-3">
                     <Badge className={
                         post.type === 'NOTICE' ? 'bg-[#E35935] hover:bg-[#E35935]' :
-                            post.groupId ? 'bg-[#1C4526] text-white hover:bg-[#15341d]' :
+                            post.groupId ? 'bg-[#388E5A] text-white hover:bg-[#2F774B]' :
                                 'bg-[#F7F5EF] text-[#5C4033] hover:bg-[#F0EFE9]'
                     }>
                         {post.groupId ? '소모임' : post.type}

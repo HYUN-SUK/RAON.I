@@ -46,7 +46,7 @@ export const ReviewWriteSheet: React.FC<ReviewWriteSheetProps> = ({ productId, o
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-[20px] h-[80vh] flex flex-col p-6">
                 <SheetHeader className="mb-6">
-                    <SheetTitle className="text-left text-xl font-bold text-[var(--color-brand-1)]">
+                    <SheetTitle className="text-left text-xl font-bold text-[#1E4D2B]">
                         리뷰 작성
                     </SheetTitle>
                 </SheetHeader>
@@ -54,7 +54,7 @@ export const ReviewWriteSheet: React.FC<ReviewWriteSheetProps> = ({ productId, o
                 <div className="flex flex-col gap-6 flex-1 overflow-y-auto">
                     {/* Rating */}
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-[var(--color-text-1)]">별점</label>
+                        <label className="text-sm font-semibold text-gray-800">별점</label>
                         <div className="flex gap-2">
                             {Array.from({ length: 5 }).map((_, i) => (
                                 <button
@@ -66,7 +66,7 @@ export const ReviewWriteSheet: React.FC<ReviewWriteSheetProps> = ({ productId, o
                                     <Star
                                         size={32}
                                         className={`${i < rating
-                                                ? "fill-[var(--color-accent-1)] text-[var(--color-accent-1)]"
+                                                ? "fill-amber-400 text-amber-400"
                                                 : "text-gray-300 stroke-gray-300"
                                             }`}
                                     />
@@ -77,10 +77,10 @@ export const ReviewWriteSheet: React.FC<ReviewWriteSheetProps> = ({ productId, o
 
                     {/* Content */}
                     <div className="flex flex-col gap-2 flex-1">
-                        <label className="text-sm font-semibold text-[var(--color-text-1)]">내용</label>
+                        <label className="text-sm font-semibold text-gray-800">내용</label>
                         <Textarea
                             placeholder="사용 경험을 솔직하게 들려주세요."
-                            className="flex-1 resize-none bg-[var(--color-surface-1)] border-none focus:ring-1 focus:ring-[var(--color-brand-2)]"
+                            className="flex-1 resize-none bg-[#F8FAF8] border border-gray-200 focus:ring-1 focus:ring-[#388E5A]"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                         />
@@ -90,10 +90,10 @@ export const ReviewWriteSheet: React.FC<ReviewWriteSheetProps> = ({ productId, o
                     <div>
                         <Button
                             variant="outline"
-                            className="w-full h-12 border-dashed border-2 flex gap-2 text-[var(--color-text-2)]"
+                            className="w-full h-12 border-dashed border-2 flex gap-2 text-gray-600 hover:bg-[#E9EFEA]"
                             onClick={() => alert('사진 업로드 기능은 준비 중입니다.')}
                         >
-                            <Camera size={20} />
+                            <Camera size={20} className="text-[#388E5A]" />
                             <span>사진 추가하기</span>
                         </Button>
                     </div>
@@ -101,7 +101,7 @@ export const ReviewWriteSheet: React.FC<ReviewWriteSheetProps> = ({ productId, o
 
                 <div className="mt-4 pb-4">
                     <Button
-                        className="w-full h-14 text-lg font-bold bg-[var(--color-brand-1)] hover:bg-[var(--color-brand-2)] text-white rounded-xl"
+                        className="w-full h-14 text-lg font-bold bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl shadow-lg shadow-[#388E5A]/20"
                         onClick={handleSubmit}
                         disabled={isLoading || !content.trim()}
                     >

@@ -388,7 +388,7 @@ export default function CommunityWriteForm() {
                     <div className="p-3 bg-[#FDFBF7] border border-[#ECE8DF] rounded-lg text-xs text-stone-600 leading-relaxed flex items-center gap-2">
                         <span className="text-lg">🔒</span>
                         <div>
-                            <span className="font-bold text-[#1C4526]">기본 비공개</span>로 설정되며 작성자만 볼 수 있습니다.<br />
+                            <span className="font-bold text-[#1E4D2B]">기본 비공개</span>로 설정되며 작성자만 볼 수 있습니다.<br />
                             전체 공개 시 이야기 게시판에 게시됩니다.
                         </div>
                     </div>
@@ -398,7 +398,7 @@ export default function CommunityWriteForm() {
                     <div className="p-3 bg-[#FDFBF7] border border-[#ECE8DF] rounded-lg text-xs text-stone-600 leading-relaxed flex items-center gap-2">
                         <span className="text-lg">🔒</span>
                         <div>
-                            후기 글이 <span className="font-bold text-[#1C4526]">비공개</span>로 작성됩니다.<br />
+                            후기 글이 <span className="font-bold text-[#1E4D2B]">비공개</span>로 작성됩니다.<br />
                             비공개 후기는 <span className="font-bold text-stone-800">작성자 본인만</span> 조회할 수 있습니다.
                         </div>
                     </div>
@@ -408,7 +408,7 @@ export default function CommunityWriteForm() {
                     <div className="p-3 bg-[#FDFBF7] border border-[#ECE8DF] rounded-lg text-xs text-stone-600 leading-relaxed flex items-center gap-2">
                         <span className="text-lg">🔒</span>
                         <div>
-                            질문, 오류신고 글이 <span className="font-bold text-[#1C4526]">비공개</span>로 작성됩니다.<br />
+                            질문, 오류신고 글이 <span className="font-bold text-[#1E4D2B]">비공개</span>로 작성됩니다.<br />
                             비공개 글은 <span className="font-bold text-stone-800">작성자와 관리자만</span> 조회할 수 있습니다.
                         </div>
                     </div>
@@ -474,7 +474,7 @@ export default function CommunityWriteForm() {
                                     onClick={() => handleEditClick(index)}
                                     className="absolute inset-0 bg-black/25 flex items-center justify-center cursor-pointer transition-colors hover:bg-black/35 z-10"
                                 >
-                                    <div className="flex items-center gap-1.5 bg-[#1C4526] text-white text-sm font-bold px-3.5 py-1.5 rounded-full shadow-lg ring-2 ring-emerald-300/80 animate-pulse backdrop-blur-sm">
+                                    <div className="flex items-center gap-1.5 bg-[#388E5A] text-white text-sm font-bold px-3.5 py-1.5 rounded-full shadow-lg ring-2 ring-emerald-300/80 animate-pulse backdrop-blur-sm">
                                         <Pencil size={15} className="w-4 h-4 text-emerald-200" />
                                         <span>편집</span>
                                         <Sparkles size={13} className="w-3.5 h-3.5 text-yellow-300" />
@@ -497,7 +497,7 @@ export default function CommunityWriteForm() {
                         className="hidden"
                         onChange={handleFileSelect}
                     />
-                    <div className="w-8 h-8 rounded-full bg-[#F7F5EF] flex items-center justify-center text-[#1C4526]">
+                    <div className="w-8 h-8 rounded-full bg-[#E9EFEA] flex items-center justify-center text-[#388E5A]">
                         <Camera className="w-5 h-5" />
                     </div>
                     <span className="text-sm font-medium text-[#4D4D4D]">{selectedFiles.length}/5</span>
@@ -506,7 +506,7 @@ export default function CommunityWriteForm() {
                 <Button
                     onClick={handleSubmit}
                     disabled={isLoading || !title.trim() || !content.trim()}
-                    className="bg-[#1C4526] hover:bg-[#1C4526]/90 text-white rounded-full px-6 text-md font-bold shadow-lg"
+                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-full px-6 text-md font-bold shadow-lg"
                 >
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '올리기'}
                 </Button>

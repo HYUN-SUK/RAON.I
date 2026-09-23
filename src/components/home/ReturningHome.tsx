@@ -231,7 +231,7 @@ export default function ReturningHome() {
                 </AnimatePresence>
 
                 {/* 1. Personalized Hero Panel */}
-                <section className="w-full bg-[#1C4526] text-white pt-16 pb-18 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
+                <section className="w-full bg-[#1E4D2B] text-white pt-16 pb-18 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
                     {/* Background Image Overlay */}
                     <div className="absolute inset-0 z-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center" />
 
@@ -284,9 +284,9 @@ export default function ReturningHome() {
 
                             {/* Zero-click Smart Re-booking (Roadmap v3) */}
                             {lastReservation ? (
-                                <div className="mb-4 bg-[#F7F5EF] dark:bg-zinc-800 rounded-xl p-4 border border-[#1C4526]/10">
+                                <div className="mb-4 bg-[#F8FAF8] dark:bg-zinc-800 rounded-xl p-4 border border-[#388E5A]/15">
                                     <Button
-                                        className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
+                                        className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white h-10 text-xs font-semibold rounded-lg shadow-md shadow-[#388E5A]/20 transition-all active:scale-[0.96] duration-200"
                                         onClick={() => {
                                             initRebook(
                                                 lastReservation.siteId,
@@ -306,10 +306,10 @@ export default function ReturningHome() {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="mb-4 bg-[#F7F5EF] dark:bg-zinc-800 rounded-xl p-4 border border-[#1C4526]/10">
+                                <div className="mb-4 bg-[#F8FAF8] dark:bg-zinc-800 rounded-xl p-4 border border-[#388E5A]/15">
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
-                                            <Badge className="bg-[#1C4526] text-white hover:bg-[#1C4526] mb-1.5 px-2 py-0.5 text-[10px]">새 예약</Badge>
+                                            <Badge className="bg-[#388E5A] text-white hover:bg-[#2F774B] mb-1.5 px-2 py-0.5 text-[10px]">새 예약</Badge>
                                             <p className="font-bold text-stone-800 dark:text-stone-100 text-sm">새로운 예약 시작하기</p>
                                             <p className="text-xs text-stone-500 mt-0.5">원하는 날짜와 사이트를 선택해보세요.</p>
                                         </div>
@@ -318,7 +318,7 @@ export default function ReturningHome() {
                                         </div>
                                     </div>
                                     <Button
-                                        className="w-full bg-[#1C4526] hover:bg-[#224732] text-white h-10 text-xs font-semibold rounded-lg shadow-md transition-all active:scale-[0.96] duration-200"
+                                        className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white h-10 text-xs font-semibold rounded-lg shadow-md shadow-[#388E5A]/20 transition-all active:scale-[0.96] duration-200"
                                         onClick={() => router.push('/reservation')}
                                     >
                                         예약하러 가기

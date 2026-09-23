@@ -88,7 +88,7 @@ export const OrderList: React.FC = () => {
                                     {otherCount > 0 ? `외 ${otherCount}건` : `${firstItem?.quantity || 1}개`}
                                 </p>
                                 <div className="mt-2 text-right">
-                                    <span className="font-bold text-[var(--color-brand-1)]">
+                                    <span className="font-bold text-[#1E4D2B]">
                                         {new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(order.total_price)}
                                     </span>
                                 </div>

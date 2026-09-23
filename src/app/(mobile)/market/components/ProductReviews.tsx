@@ -125,13 +125,13 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-semibold text-[#224732]">구매 후기 ({reviews.length})</h3>
+                    <h3 className="text-lg font-semibold text-[#1E4D2B]">구매 후기 ({reviews.length})</h3>
                     <p className="text-sm text-gray-500">실제 구매하신 분들의 생생한 후기입니다.</p>
                 </div>
                 {user && (
                     <Dialog open={isWriting} onOpenChange={setIsWriting}>
                         <DialogTrigger asChild>
-                            <Button className="bg-[#224732] hover:bg-[#1a3826] text-white">
+                            <Button className="bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-sm shadow-[#388E5A]/20">
                                 리뷰 쓰기
                             </Button>
                         </DialogTrigger>
@@ -163,7 +163,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
 
                                 <Textarea
                                     placeholder="상품에 대한 솔직한 이야기를 들려주세요. (최소 10자 이상)"
-                                    className="min-h-[120px] resize-none focus-visible:ring-[#224732]"
+                                    className="min-h-[120px] resize-none focus-visible:ring-[#388E5A]"
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
                                 />
@@ -184,7 +184,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                             <DialogFooter>
                                 <Button
                                     type="button"
-                                    className="w-full bg-[#224732] hover:bg-[#1a3826]"
+                                    className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-md shadow-[#388E5A]/20"
                                     onClick={handleSubmit}
                                     disabled={isSubmitting || content.trim().length < 10}
                                 >

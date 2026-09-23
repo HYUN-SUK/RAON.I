@@ -156,7 +156,7 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
                 size="sm"
                 onClick={handleRegister}
                 disabled={loading}
-                className="gap-1.5 bg-[#1C4526] text-white shadow-md hover:bg-[#153d1f] hover:shadow-lg transition-all duration-300 animate-pulse hover:animate-none text-xs px-3 py-1.5"
+                className="gap-1.5 bg-[#388E5A] text-white shadow-md hover:bg-[#2F774B] hover:shadow-lg transition-all duration-300 animate-pulse hover:animate-none text-xs px-3 py-1.5"
             >
                 {loading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

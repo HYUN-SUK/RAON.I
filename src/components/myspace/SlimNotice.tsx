@@ -47,11 +47,11 @@ export default function SlimNotice() {
                 onClick={() => router.push('/community?tab=NOTICE')}
                 className="glass-panel flex items-center gap-3 px-5 py-3 rounded-2xl cursor-pointer hover:bg-white/90 active:scale-95 transition-all duration-200"
             >
-                <div className="p-1.5 bg-brand-1/10 rounded-full">
-                    <Megaphone size={14} className="text-brand-1" fill="currentColor" />
+                <div className="p-1.5 bg-[#E9EFEA] rounded-full">
+                    <Megaphone size={14} className="text-[#388E5A]" fill="currentColor" />
                 </div>
                 <span className="text-xs font-medium text-text-1 truncate tracking-tight">
-                    <span className="font-bold text-brand-1 mr-1">공지</span>
+                    <span className="font-bold text-[#388E5A] mr-1">공지</span>
                     {notice.title}
                 </span>
             </div>

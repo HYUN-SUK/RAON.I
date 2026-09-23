@@ -169,7 +169,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                                         type="date"
                                         value={visitedDate}
                                         onChange={(e) => setVisitedDate(e.target.value)}
-                                        className="bg-gray-50 border border-gray-200 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-brand-1"
+                                        className="bg-gray-50 border border-gray-200 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-[#388E5A]"
                                     />
                                 ) : (
                                     <span>{visitedDate && !isNaN(new Date(visitedDate).getTime()) ? new Date(visitedDate).toLocaleDateString() : '날짜 미입력'}</span>
@@ -183,7 +183,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                                         value={address}
                                         onChange={(e) => setAddress(e.target.value)}
                                         placeholder="주소 입력"
-                                        className="bg-gray-50 border border-gray-200 rounded px-2 py-0.5 text-xs w-full focus:outline-none focus:border-brand-1"
+                                        className="bg-gray-50 border border-gray-200 rounded px-2 py-0.5 text-xs w-full focus:outline-none focus:border-[#388E5A]"
                                     />
                                 ) : (
                                     <span>{address || '주소 미입력'}</span>
@@ -259,13 +259,13 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                                 value={memo}
                                 onChange={(e) => setMemo(e.target.value)}
                                 placeholder="이곳에서의 추억을 기록해보세요..."
-                                className="w-full h-40 p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-2/20 bg-gray-50 resize-none text-sm leading-relaxed"
+                                className="w-full h-40 p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#388E5A]/20 bg-gray-50 resize-none text-sm leading-relaxed"
                             />
                         </div>
                     ) : (
                         <div className="prose prose-sm max-w-none text-gray-800 leading-relaxed whitespace-pre-line font-light">
                             <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                                <span className="w-1 h-4 bg-brand-1 rounded-full"></span> 나만의 기록
+                                <span className="w-1 h-4 bg-[#388E5A] rounded-full"></span> 나만의 기록
                             </h3>
                             {memo ? memo : <span className="text-gray-400 italic">작성된 기록이 없습니다.</span>}
                         </div>
@@ -275,13 +275,13 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                 {/* Photos Section */}
                 <div className="mb-8">
                     <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                        <Camera size={16} className="text-brand-1" /> 갤러리
+                        <Camera size={16} className="text-[#388E5A]" /> 갤러리
                     </h3>
 
                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                         {/* Add Photo Button (Edit Mode Only) */}
                         {isEditing && (
-                            <label className="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-brand-1/50 hover:text-brand-1 transition-all cursor-pointer active:scale-95">
+                            <label className="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-[#388E5A]/50 hover:text-[#388E5A] transition-all cursor-pointer active:scale-95">
                                 <Camera size={24} className="mb-1" />
                                 <span className="text-[10px] font-medium">사진 추가</span>
                                 <input
@@ -359,7 +359,7 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                     <button
                         id="save-map-item-button"
                         onClick={handleSave}
-                        className="flex-1 py-3.5 rounded-xl font-bold bg-brand-1 text-white shadow-lg shadow-brand-1/30 active:scale-95 transition-transform"
+                        className="flex-1 py-3.5 rounded-xl font-bold bg-[#388E5A] text-white shadow-lg shadow-[#388E5A]/30 hover:bg-[#2F774B] active:scale-95 transition-transform"
                     >
                         저장하기
                     </button>

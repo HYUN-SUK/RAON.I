@@ -16,7 +16,7 @@ interface RouteSelectorProps {
 }
 
 const ROUTE_LABELS = [
-    { label: '추천 경로 1', keyword: 'Best 추천', color: '#224732', bg: 'bg-[#224732]/10' },
+    { label: '추천 경로 1', keyword: 'Best 추천', color: '#388E5A', bg: 'bg-[#388E5A]/10' },
     { label: '추천 경로 2', keyword: '대안 경로', color: '#3B82F6', bg: 'bg-blue-50' },
     { label: '추천 경로 3', keyword: '여유 경로', color: '#10B981', bg: 'bg-emerald-50' }
 ];
@@ -133,13 +133,13 @@ export default function RouteSelector({ origin, destination, destinationName, on
 
     if (loading || isFetchingRoutes) {
         return (
-            <div className="w-full h-[500px] flex flex-col items-center justify-center space-y-5 bg-white rounded-3xl border border-dashed border-[#224732]/20">
+            <div className="w-full h-[500px] flex flex-col items-center justify-center space-y-5 bg-white rounded-3xl border border-dashed border-[#388E5A]/20">
                 <div className="relative">
-                    <div className="w-12 h-12 border-4 border-[#224732]/10 rounded-full" />
-                    <div className="absolute top-0 left-0 w-12 h-12 border-4 border-[#224732] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-12 h-12 border-4 border-[#388E5A]/10 rounded-full" />
+                    <div className="absolute top-0 left-0 w-12 h-12 border-4 border-[#388E5A] border-t-transparent rounded-full animate-spin" />
                 </div>
                 <div className="text-center px-6">
-                    <p className="text-sm font-bold text-[#224732]">최적의 여행 경로를 탐색 중입니다</p>
+                    <p className="text-sm font-bold text-[#388E5A]">최적의 여행 경로를 탐색 중입니다</p>
                     <p className="text-[11px] text-gray-400 mt-1">카카오 추천 경로와 대안을 분석하고 있어요.</p>
                 </div>
             </div>
@@ -171,7 +171,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
             {/* Header */}
             <div className="p-4 bg-white/95 backdrop-blur-md border-b border-gray-50 flex flex-col gap-1">
                 <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                    <Navigation className="w-5 h-5 text-[#224732]" />
+                    <Navigation className="w-5 h-5 text-[#388E5A]" />
                     여행 여정 선택
                 </h3>
 
@@ -219,7 +219,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
                     </button>
                     
                     <div className="text-center flex-1">
-                        <span className={`text-[10px] font-black px-3 py-1 rounded-full ${currentLabel.bg} text-[#224732] uppercase`}>
+                        <span className={`text-[10px] font-black px-3 py-1 rounded-full ${currentLabel.bg} text-[#1E4D2B] uppercase`}>
                             {currentLabel.keyword}
                         </span>
                         <div className="flex items-center gap-2 mt-1 justify-center">
@@ -271,7 +271,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
                         {routes.map((_, i) => (
                             <div 
                                 key={i} 
-                                className={`h-1.5 rounded-full transition-all duration-300 ${i === selectedIndex ? 'w-8 bg-[#224732]' : 'w-2 bg-gray-200'}`} 
+                                className={`h-1.5 rounded-full transition-all duration-300 ${i === selectedIndex ? 'w-8 bg-[#388E5A]' : 'w-2 bg-gray-200'}`} 
                             />
                         ))}
                     </div>
@@ -280,7 +280,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
                 {/* Confirm Button */}
                 <Button 
                     onClick={handleConfirm}
-                    className={`w-full h-14 rounded-2xl bg-[#224732] hover:bg-[#1a3626] text-white font-black text-lg shadow-lg active:scale-95 transition-all ${routes.length === 1 ? 'mt-2' : ''}`}
+                    className={`w-full h-14 rounded-2xl bg-[#388E5A] hover:bg-[#2F774B] text-white font-black text-lg shadow-lg active:scale-95 transition-all ${routes.length === 1 ? 'mt-2' : ''}`}
                 >
                     이 경로로 스마트플랜 생성
                 </Button>

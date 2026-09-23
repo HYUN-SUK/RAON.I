@@ -52,7 +52,7 @@ export default function FacilityDetailSheet({
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <SheetContent side="bottom" className="rounded-t-[32px] p-0 border-none h-[85vh] outline-none bg-stone-50 dark:bg-zinc-900">
                 <SheetHeader className="px-6 pt-8 pb-2">
-                    <SheetTitle className="text-2xl font-bold text-[#1C4526] dark:text-[#A7F3D0]">
+                    <SheetTitle className="text-2xl font-bold text-[#1E4D2B] dark:text-[#A7F3D0]">
                         시설 현황
                     </SheetTitle>
                     <SheetDescription>
@@ -65,21 +65,21 @@ export default function FacilityDetailSheet({
                         <TabsList className="grid w-full grid-cols-3 bg-stone-200/50 dark:bg-zinc-800 p-1 rounded-2xl h-12">
                             <TabsTrigger
                                 value="info"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1E4D2B] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 <Map className="w-4 h-4 mr-2" />
                                 배치/설명
                             </TabsTrigger>
                             <TabsTrigger
                                 value="bathroom"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1E4D2B] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 <Bath className="w-4 h-4 mr-2" />
                                 욕실/개수대
                             </TabsTrigger>
                             <TabsTrigger
                                 value="site"
-                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1C4526] data-[state=active]:shadow-sm font-bold text-xs"
+                                className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:text-[#1E4D2B] data-[state=active]:shadow-sm font-bold text-xs"
                             >
                                 <Warehouse className="w-4 h-4 mr-2" />
                                 사이트 전경

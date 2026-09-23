@@ -236,8 +236,8 @@ export default function SmartPlanMapViewModal({
             >
                 {loading ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 z-20 space-y-3">
-                        <div className="w-9 h-9 border-4 border-[#224732]/20 border-t-[#224732] rounded-full animate-spin" />
-                        <p className="text-xs font-bold text-[#224732]">카카오 정밀 지도를 로딩 중입니다...</p>
+                        <div className="w-9 h-9 border-4 border-[#388E5A]/20 border-t-[#388E5A] rounded-full animate-spin" />
+                        <p className="text-xs font-bold text-[#388E5A]">카카오 정밀 지도를 로딩 중입니다...</p>
                     </div>
                 ) : (
                     <Map
@@ -251,7 +251,7 @@ export default function SmartPlanMapViewModal({
                             <Polyline
                                 path={baseRoutePath}
                                 strokeWeight={6}
-                                strokeColor="#224732"
+                                strokeColor="#388E5A"
                                 strokeOpacity={0.7}
                                 strokeStyle="solid"
                             />
@@ -274,11 +274,11 @@ export default function SmartPlanMapViewModal({
                         {destination && destination.lat && destination.lng && (
                             <CustomOverlayMap position={destination} xAnchor={0.5} yAnchor={1.0}>
                                 <div className="flex flex-col items-center">
-                                    <div className="px-2.5 py-1 bg-[#224732] text-white text-[11px] font-black rounded-full shadow-lg border-2 border-emerald-300 flex items-center gap-1">
+                                    <div className="px-2.5 py-1 bg-[#388E5A] text-white text-[11px] font-black rounded-full shadow-lg border-2 border-emerald-300 flex items-center gap-1">
                                         <span>🚩</span>
                                         <span>{destinationName}</span>
                                     </div>
-                                    <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 border-t-[#224732] mx-auto" />
+                                    <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 border-t-[#388E5A] mx-auto" />
                                 </div>
                             </CustomOverlayMap>
                         )}
@@ -311,7 +311,7 @@ export default function SmartPlanMapViewModal({
                                             isFocused
                                                 ? 'bg-amber-500 text-white border-white ring-4 ring-amber-400/40'
                                                 : isCurrentActive
-                                                    ? 'bg-[#224732] text-white border-emerald-300'
+                                                    ? 'bg-[#388E5A] text-white border-emerald-300'
                                                     : 'bg-white text-gray-900 border-gray-200'
                                         }`}>
                                             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
@@ -328,7 +328,7 @@ export default function SmartPlanMapViewModal({
                                         {/* 말풍선 꼬리: 하단 끝이 좌표에 100% 자석 고정 */}
                                         <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 mx-auto"
                                             style={{
-                                                borderTopColor: isFocused ? '#f59e0b' : (isCurrentActive ? '#224732' : '#ffffff')
+                                                borderTopColor: isFocused ? '#f59e0b' : (isCurrentActive ? '#388E5A' : '#ffffff')
                                             }}
                                         />
                                     </div>
@@ -362,10 +362,10 @@ export default function SmartPlanMapViewModal({
                                         <div className={`px-2.5 py-1 rounded-xl shadow-xl flex items-center gap-1.5 border-2 text-[11px] font-black whitespace-nowrap ${
                                             isFocused
                                                 ? 'bg-amber-500 text-white border-white ring-4 ring-amber-400/40'
-                                                : 'bg-[#224732] text-white border-emerald-300'
+                                                : 'bg-[#388E5A] text-white border-emerald-300'
                                         }`}>
                                             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
-                                                isFocused ? 'bg-white/20 text-white' : 'bg-white text-[#224732]'
+                                                isFocused ? 'bg-white/20 text-white' : 'bg-white text-[#388E5A]'
                                             }`}>
                                                 {orderNum}
                                             </span>
@@ -374,7 +374,7 @@ export default function SmartPlanMapViewModal({
                                         </div>
                                         <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 mx-auto"
                                             style={{
-                                                borderTopColor: isFocused ? '#f59e0b' : '#224732'
+                                                borderTopColor: isFocused ? '#f59e0b' : '#388E5A'
                                             }}
                                         />
                                     </div>
@@ -386,14 +386,14 @@ export default function SmartPlanMapViewModal({
 
                 {/* 지도 안내 뱃지 */}
                 <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-md border border-gray-200 text-[10px] text-gray-700 font-bold flex items-center gap-1.5 z-10 pointer-events-none">
-                    <MapPin className="w-3 h-3 text-[#224732]" />
+                    <MapPin className="w-3 h-3 text-[#388E5A]" />
                     <span>마커 터치 시 아래에 상세 장소 카드가 나타납니다</span>
                 </div>
             </div>
 
             {/* 하단 인터랙션 영역: 마커를 터치했을 때만 슬라이드로 쏙 등장, 닫기 버튼 또는 마커 재터치 시 완전히 숨겨져 지도가 100% 확장됨 */}
             {focusedCard && (
-                <div className="bg-[#F7F5EF] p-2.5 pb-8 shrink-0 shadow-2xl border-t border-gray-200 z-10 animate-in slide-in-from-bottom-2 duration-200 max-h-[52vh] overflow-y-auto">
+                <div className="bg-[#F8FAF8] p-2.5 pb-8 shrink-0 shadow-2xl border-t border-gray-200 z-10 animate-in slide-in-from-bottom-2 duration-200 max-h-[52vh] overflow-y-auto">
                     {renderCustomCard ? (
                         renderCustomCard(focusedCard, () => setFocusedCardId(null))
                     ) : (
@@ -404,7 +404,7 @@ export default function SmartPlanMapViewModal({
                                         <h4 className="font-bold text-gray-900 text-sm truncate min-w-0 flex-1">{focusedCard.name}</h4>
                                         {mode === 'alternatives' ? (
                                             focusedCard.id === currentActiveCard?.id ? (
-                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#388E5A] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                             ) : (
                                                 <span className="shrink-0 whitespace-nowrap text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-bold">후보 추천</span>
                                             )
@@ -453,7 +453,7 @@ export default function SmartPlanMapViewModal({
                                                 }
                                                 onClose();
                                             }}
-                                            className="bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs h-9 px-3 rounded-xl shadow-md active:scale-95 transition-all"
+                                            className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs h-9 px-3 rounded-xl shadow-md active:scale-95 transition-all"
                                         >
                                             <Check className="w-3.5 h-3.5 mr-1" />
                                             이 장소로 선택

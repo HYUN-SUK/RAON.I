@@ -105,9 +105,9 @@ function MyRecordsContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] pb-24">
+        <div className="min-h-screen bg-[#F8FAF8] pb-24">
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-[#F7F5EF]/90 backdrop-blur-md border-b border-stone-200/50 px-4 h-14 flex items-center justify-between">
+            <header className="sticky top-0 z-40 bg-[#F8FAF8]/90 backdrop-blur-md border-b border-stone-200/50 px-4 h-14 flex items-center justify-between">
                 <button
                     onClick={() => router.back()}
                     className="p-2 -ml-2 rounded-full hover:bg-stone-200/50 transition-colors"
@@ -156,7 +156,7 @@ function MyRecordsContent() {
                             placeholder="글 제목, 내용으로 검색..."
                             value={searchKeyword}
                             onChange={handleSearchChange}
-                            className="pl-9 bg-white border-stone-200 text-xs rounded-xl h-10 shadow-none focus-visible:ring-1 focus-visible:ring-stone-400"
+                            className="pl-9 bg-white border-stone-200 text-xs rounded-xl h-10 shadow-none focus-visible:ring-1 focus-visible:ring-[#388E5A]/50"
                         />
                     </div>
                 )}
@@ -166,7 +166,7 @@ function MyRecordsContent() {
                     <div className="space-y-3">
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center py-20 text-stone-400 space-y-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-[#224732]" />
+                                <Loader2 className="w-6 h-6 animate-spin text-[#388E5A]" />
                                 <span className="text-xs">내 글을 불러오는 중...</span>
                             </div>
                         ) : posts.length > 0 ? (
@@ -202,7 +202,7 @@ function MyRecordsContent() {
                     <div className="space-y-3">
                         {isLoadingRecords ? (
                             <div className="flex flex-col items-center justify-center py-20 text-stone-400 space-y-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-[#224732]" />
+                                <Loader2 className="w-6 h-6 animate-spin text-[#388E5A]" />
                                 <span className="text-xs">10초 기록을 불러오는 중...</span>
                             </div>
                         ) : campingRecords.length > 0 ? (
@@ -234,8 +234,8 @@ function MyRecordsContent() {
 export default function MyRecordsPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />
+            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#388E5A] animate-spin" />
             </div>
         }>
             <MyRecordsContent />

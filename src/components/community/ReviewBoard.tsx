@@ -49,11 +49,11 @@ export default function ReviewBoard({ posts, isAdmin }: BoardProps & { isAdmin: 
                     className={cn(
                         "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all",
                         activeTab === 'RAONAI'
-                            ? "bg-white text-[#224732] shadow-sm"
+                            ? "bg-white text-[#1E4D2B] shadow-sm font-bold"
                             : "text-stone-500 hover:text-stone-700"
                     )}
                 >
-                    <Tent className="w-4 h-4" />
+                    <Tent className="w-4 h-4 text-[#388E5A]" />
                     라온아이 후기
                 </button>
                 <button
@@ -61,11 +61,11 @@ export default function ReviewBoard({ posts, isAdmin }: BoardProps & { isAdmin: 
                     className={cn(
                         "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all",
                         activeTab === 'CAMPER'
-                            ? "bg-white text-[#224732] shadow-sm"
+                            ? "bg-white text-[#1E4D2B] shadow-sm font-bold"
                             : "text-stone-500 hover:text-stone-700"
                     )}
                 >
-                    <MapPin className="w-4 h-4" />
+                    <MapPin className="w-4 h-4 text-[#388E5A]" />
                     캠퍼 후기
                 </button>
             </div>
@@ -73,7 +73,7 @@ export default function ReviewBoard({ posts, isAdmin }: BoardProps & { isAdmin: 
             {/* 컨텐츠 영역 */}
             {isLoading ? (
                 <div className="py-20 flex justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#224732]" />
+                    <Loader2 className="w-8 h-8 animate-spin text-[#388E5A]" />
                 </div>
             ) : (
                 <div className="space-y-6">

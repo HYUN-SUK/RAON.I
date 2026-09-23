@@ -246,20 +246,20 @@ export default function RecipeDetailSheet({ isOpen, onClose, initialData, recipe
                                                         flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer
                                                         ${isChecked
                                                             ? 'bg-gray-50 border-gray-200 text-gray-400'
-                                                            : 'bg-white border-gray-200 hover:border-[#1C4526] text-gray-800'
+                                                            : 'bg-white border-gray-200 hover:border-[#388E5A] text-gray-800'
                                                         }
                                                     `}
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <div className={`
                                                             w-5 h-5 rounded-full border flex items-center justify-center transition-colors
-                                                            ${isChecked ? 'bg-gray-300 border-gray-300' : 'border-gray-300'}
+                                                            ${isChecked ? 'bg-[#388E5A] border-[#388E5A]' : 'border-gray-300'}
                                                         `}>
                                                             {isChecked && <Check size={12} className="text-white" />}
                                                         </div>
                                                         <span className={isChecked ? 'line-through' : 'font-medium'}>{name}</span>
                                                     </div>
-                                                    {amount && <span className={`text-sm ${isChecked ? 'text-gray-300' : 'text-[#1C4526] font-bold'}`}>{amount}</span>}
+                                                    {amount && <span className={`text-sm ${isChecked ? 'text-gray-300' : 'text-[#1E4D2B] font-bold'}`}>{amount}</span>}
                                                 </div>
                                             );
                                         })}
@@ -275,7 +275,7 @@ export default function RecipeDetailSheet({ isOpen, onClose, initialData, recipe
                                         <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-gray-100" />
                                         {data.steps.map((step, i) => (
                                             <div key={i} className="relative flex gap-4 pb-8 last:pb-0">
-                                                <div className="flex-none w-8 h-8 rounded-full bg-[#1C4526] text-white text-sm font-bold flex items-center justify-center relative z-10 ring-4 ring-white">
+                                                <div className="flex-none w-8 h-8 rounded-full bg-[#388E5A] text-white text-sm font-bold flex items-center justify-center relative z-10 ring-4 ring-white shadow-sm">
                                                     {i + 1}
                                                 </div>
                                                 <div className="pt-1">

@@ -27,9 +27,9 @@ function TermsContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] text-stone-800 antialiased">
+        <div className="min-h-screen bg-[#F8FAF8] text-stone-800 antialiased">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#1C4526] text-white py-4 px-4 shadow-md">
+            <header className="sticky top-0 z-50 bg-[#388E5A] text-white py-4 px-4 shadow-md">
                 <div className="max-w-lg mx-auto flex items-center gap-3">
                     <Button 
                         variant="ghost" 
@@ -51,22 +51,22 @@ function TermsContent() {
                         onClick={() => handleTabChange('service')}
                         className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                             activeTab === 'service'
-                                ? 'bg-white text-[#1C4526] shadow-sm font-extrabold'
+                                ? 'bg-white text-[#1E4D2B] shadow-sm font-extrabold'
                                 : 'text-stone-500 hover:text-stone-700'
                         }`}
                     >
-                        <FileText size={14} className={activeTab === 'service' ? 'text-[#1C4526]' : 'text-stone-400'} />
+                        <FileText size={14} className={activeTab === 'service' ? 'text-[#388E5A]' : 'text-stone-400'} />
                         <span>서비스 이용약관</span>
                     </button>
                     <button
                         onClick={() => handleTabChange('lbs')}
                         className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                             activeTab === 'lbs'
-                                ? 'bg-white text-[#1C4526] shadow-sm font-extrabold'
+                                ? 'bg-white text-[#1E4D2B] shadow-sm font-extrabold'
                                 : 'text-stone-500 hover:text-stone-700'
                         }`}
                     >
-                        <MapPin size={14} className={activeTab === 'lbs' ? 'text-[#1C4526]' : 'text-stone-400'} />
+                        <MapPin size={14} className={activeTab === 'lbs' ? 'text-[#388E5A]' : 'text-stone-400'} />
                         <span>위치기반서비스 이용약관</span>
                     </button>
                 </div>
@@ -75,7 +75,7 @@ function TermsContent() {
                 {activeTab === 'service' && (
                     <div>
                         <div className="flex items-center gap-2 pb-4 mb-6 border-b border-stone-100">
-                            <FileText className="w-6 h-6 text-[#1C4526]" />
+                            <FileText className="w-6 h-6 text-[#388E5A]" />
                             <h2 className="text-xl font-extrabold text-stone-900 tracking-tight">서비스 이용약관</h2>
                         </div>
 
@@ -86,7 +86,7 @@ function TermsContent() {
                         <div className="space-y-8 text-sm leading-relaxed">
                             {/* Section 1 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제1조 (약관의 효력 및 변경)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -99,7 +99,7 @@ function TermsContent() {
 
                             {/* Section 2 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제2조 (예약 신청 및 자동 취소 규정)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -118,7 +118,7 @@ function TermsContent() {
 
                             {/* Section 3 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제3조 (환불 규정 및 수수료)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -168,7 +168,7 @@ function TermsContent() {
 
                             {/* Section 4 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제4조 (캠핑장 이용 안전 수칙)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -184,7 +184,7 @@ function TermsContent() {
 
                             {/* Section 5 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제5조 (면책 조항)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -202,7 +202,7 @@ function TermsContent() {
                 {activeTab === 'lbs' && (
                     <div>
                         <div className="flex items-center gap-2 pb-4 mb-6 border-b border-stone-100">
-                            <MapPin className="w-6 h-6 text-[#1C4526]" />
+                            <MapPin className="w-6 h-6 text-[#388E5A]" />
                             <h2 className="text-xl font-extrabold text-stone-900 tracking-tight">위치기반서비스 이용약관</h2>
                         </div>
 
@@ -213,7 +213,7 @@ function TermsContent() {
                         <div className="space-y-8 text-sm leading-relaxed">
                             {/* Section 1 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제1조 (목적)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -223,7 +223,7 @@ function TermsContent() {
 
                             {/* Section 2 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제2조 (약관 외 준칙)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -233,7 +233,7 @@ function TermsContent() {
 
                             {/* Section 3 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제3조 (서비스의 내용 및 요금)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -252,7 +252,7 @@ function TermsContent() {
 
                             {/* Section 4 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제4조 (개인위치정보의 수집·이용 및 파기)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -265,7 +265,7 @@ function TermsContent() {
 
                             {/* Section 5 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제5조 (개인위치정보주체의 권리)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -288,7 +288,7 @@ function TermsContent() {
 
                             {/* Section 6 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제6조 (위치정보 이용·제공사실 확인자료의 보유)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -298,7 +298,7 @@ function TermsContent() {
 
                             {/* Section 7 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제7조 (손해배상 및 분쟁조정)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -311,7 +311,7 @@ function TermsContent() {
 
                             {/* Section 8 */}
                             <section className="space-y-2">
-                                <h3 className="font-bold text-base text-[#1C4526] border-l-3 border-[#1C4526] pl-2.5">
+                                <h3 className="font-bold text-base text-[#1E4D2B] border-l-3 border-[#388E5A] pl-2.5">
                                     제8조 (사업자 정보 및 위치정보 관리책임자)
                                 </h3>
                                 <p className="text-stone-600 text-xs">
@@ -319,27 +319,27 @@ function TermsContent() {
                                 </p>
                                 <div className="mt-2 bg-stone-50 p-3.5 rounded-xl border border-stone-200/80 text-xs text-stone-700 space-y-2">
                                     <p className="flex items-center gap-1.5">
-                                        <ShieldCheck size={14} className="text-[#1C4526] shrink-0" />
+                                        <ShieldCheck size={14} className="text-[#388E5A] shrink-0" />
                                         <span><strong>상호명:</strong> 라오아이상점 (서비스명: 라온아이 / RAON.I)</span>
                                     </p>
                                     <p className="flex items-center gap-1.5">
-                                        <FileText size={14} className="text-[#1C4526] shrink-0" />
+                                        <FileText size={14} className="text-[#388E5A] shrink-0" />
                                         <span><strong>위치기반서비스사업 신고번호:</strong> 제1605호</span>
                                     </p>
                                     <p className="flex items-center gap-1.5">
-                                        <Building2 size={14} className="text-[#1C4526] shrink-0" />
+                                        <Building2 size={14} className="text-[#388E5A] shrink-0" />
                                         <span><strong>사업자등록번호:</strong> 617-50-01122</span>
                                     </p>
                                     <p className="flex items-center gap-1.5">
-                                        <MapPin size={14} className="text-[#1C4526] shrink-0" />
+                                        <MapPin size={14} className="text-[#388E5A] shrink-0" />
                                         <span><strong>사업장 주소:</strong> 충청남도 예산군 응봉면 응봉서로 280, 1동 1층 (지석리)</span>
                                     </p>
                                     <p className="flex items-center gap-1.5">
-                                        <User size={14} className="text-[#1C4526] shrink-0" />
+                                        <User size={14} className="text-[#388E5A] shrink-0" />
                                         <span><strong>대표자 및 위치정보 관리책임자:</strong> 정현석</span>
                                     </p>
                                     <p className="flex items-center gap-1.5">
-                                        <Mail size={14} className="text-[#1C4526] shrink-0" />
+                                        <Mail size={14} className="text-[#388E5A] shrink-0" />
                                         <span><strong>연락처 및 이메일:</strong> tootg@naver.com</span>
                                     </p>
                                     <p className="text-stone-400 text-[11px] pt-1.5 border-t border-stone-200 mt-2">
@@ -358,8 +358,8 @@ function TermsContent() {
 export default function TermsPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1C4526]"></div>
+            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#388E5A]"></div>
             </div>
         }>
             <TermsContent />

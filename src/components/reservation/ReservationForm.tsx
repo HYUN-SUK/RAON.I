@@ -399,7 +399,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                                         ${!opt.available 
                                             ? 'bg-red-950/20 text-red-400/60 border-red-900/30 cursor-not-allowed opacity-30 line-through' 
                                             : selectedAirId === opt.id
-                                                ? 'bg-[#2F5233] text-white border-[#2F5233] ring-2 ring-[#2F5233]/30 shadow-md'
+                                                ? 'bg-[#388E5A] text-white border-[#388E5A] ring-2 ring-[#388E5A]/30 shadow-md'
                                                 : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20 active:scale-[0.97]'
                                         }
                                     `}
@@ -425,7 +425,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
                             placeholder="홍길동"
                         />
                     </div>
@@ -436,7 +436,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                             value={phone}
                             onChange={handlePhoneChange}
                             required
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
                             placeholder="010-1234-5678"
                             maxLength={13}
                         />
@@ -450,7 +450,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         <select
                             value={familyCount}
                             onChange={(e) => setFamilyCount(parseInt(e.target.value))}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
                         >
                             {[1, 2].map(n => <option key={n} value={n} className="text-black">{n}가족</option>)}
                         </select>
@@ -466,7 +466,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                             min={0}
                             value={visitorCount}
                             onChange={(e) => setVisitorCount(parseInt(e.target.value) || 0)}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
                         />
                         {visitorCount > 0 && <p className="text-xs text-yellow-400 mt-1">+10,000원/인 (성인 방문객)</p>}
                     </div>
@@ -475,7 +475,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         <select
                             value={vehicleCount}
                             onChange={(e) => setVehicleCount(parseInt(e.target.value))}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2F5233]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
                         >
                             {[1, 2, 3, 4].map(n => <option key={n} value={n} className="text-black">{n}대</option>)}
                         </select>
@@ -535,7 +535,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                             id="hasPet"
                             checked={hasPet}
                             onChange={(e) => setHasPet(e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-300 text-[#2F5233] focus:ring-[#2F5233] cursor-pointer"
+                            className="w-4 h-4 rounded border-gray-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
                         />
                         <label htmlFor="hasPet" className="text-sm text-white/80 cursor-pointer select-none">
                             🐾 반려견과 함께 방문합니다. <span className="text-xs text-white/50 ml-1">(현재 사이트 규정에 따름)</span>
@@ -549,7 +549,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     <textarea
                         value={requests}
                         onChange={(e) => setRequests(e.target.value)}
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#2F5233] h-20 resize-none"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#388E5A] h-20 resize-none"
                         placeholder="관리자에게 전달할 내용이 있다면 적어주세요."
                     />
                 </div>
@@ -570,7 +570,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                                 setAgreed(false);
                             }
                         }}
-                        className="w-4 h-4 rounded border-gray-300 text-[#2F5233] focus:ring-[#2F5233] cursor-pointer"
+                        className="w-4 h-4 rounded border-gray-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
                     />
                     <span
                         className="text-sm text-white/80 cursor-pointer select-none"
@@ -625,7 +625,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     <button
                         type="submit"
                         disabled={isSubmitting || !fromDate || !toDate || fromDate.getTime() === toDate.getTime() || !agreed}
-                        className="w-full bg-[#2F5233] hover:bg-[#233e26] text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
+                        className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
                     >
                         {isSubmitting ? (
                             <>

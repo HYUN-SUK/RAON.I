@@ -97,8 +97,8 @@ export default function RecordTools() {
 
     const renderOptionList = (title: string, options: OptionItem[]) => (
         <div className="mb-8 last:mb-0">
-            <h4 className="text-[10px] font-bold text-[#1C4526]/70 uppercase tracking-widest mb-4 px-1 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[#1C4526] rounded-full inline-block"></span>
+            <h4 className="text-[10px] font-bold text-[#1E4D2B]/70 uppercase tracking-widest mb-4 px-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-[#1E4D2B] rounded-full inline-block"></span>
                 {title}
             </h4>
             <div className="flex gap-4 overflow-x-auto pb-4 w-full px-1 scrollbar-hide snap-x">
@@ -116,7 +116,7 @@ export default function RecordTools() {
                                 <div className={cn(
                                     "w-14 h-14 rounded-2xl border flex items-center justify-center relative overflow-hidden transition-all duration-300",
                                     isUnlocked
-                                        ? "bg-[#1C4526]/5 border-[#1C4526]/20 shadow-none"
+                                        ? "bg-[#388E5A]/10 border-[#388E5A]/25 shadow-none"
                                         : "bg-white dark:bg-zinc-900 border-[#ECE8DF] dark:border-zinc-700 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]"
                                 )}>
                                     <div className={cn(
@@ -128,7 +128,7 @@ export default function RecordTools() {
                                         size={20}
                                         className={cn(
                                             "transition-all duration-300",
-                                            isUnlocked ? "text-[#1C4526] scale-100" : cn(opt.color, "group-hover:scale-110")
+                                            isUnlocked ? "text-[#388E5A] scale-100" : cn(opt.color, "group-hover:scale-110")
                                         )}
                                         strokeWidth={1.5}
                                     />
@@ -137,8 +137,8 @@ export default function RecordTools() {
                                     <div className={cn(
                                         "absolute bottom-0 inset-x-0 h-4 flex items-center justify-center border-t transition-colors",
                                         isUnlocked
-                                            ? "bg-[#1C4526] border-[#1C4526]"
-                                            : "bg-[#F7F5EF] dark:bg-zinc-800 border-[#ECE8DF] dark:border-zinc-700"
+                                            ? "bg-[#388E5A] border-[#388E5A]"
+                                            : "bg-[#F8FAF8] dark:bg-zinc-800 border-[#ECE8DF] dark:border-zinc-700"
                                     )}>
                                         {isUnlocked ? (
                                             <CheckCircle2 className="w-2.5 h-2.5 text-white" />
@@ -150,7 +150,7 @@ export default function RecordTools() {
 
                                 {/* Lock Badge (Only if locked) */}
                                 {!isUnlocked && (
-                                    <div className="absolute -top-1 -right-1 bg-[#1C4526] text-white p-0.5 rounded-full shadow-lg border-[1.5px] border-white dark:border-black z-10">
+                                    <div className="absolute -top-1 -right-1 bg-[#1E4D2B] text-white p-0.5 rounded-full shadow-lg border-[1.5px] border-white dark:border-black z-10">
                                         <Lock className="w-2 h-2" strokeWidth={2.5} />
                                     </div>
                                 )}
@@ -158,7 +158,7 @@ export default function RecordTools() {
 
                             <span className={cn(
                                 "text-[10px] font-semibold text-center leading-tight break-keep px-1 transition-colors",
-                                isUnlocked ? "text-[#1C4526]" : "text-stone-600 dark:text-stone-300 group-hover:text-[#1C4526]"
+                                isUnlocked ? "text-[#1E4D2B]" : "text-stone-600 dark:text-stone-300 group-hover:text-[#388E5A]"
                             )}>
                                 {opt.name}
                             </span>
@@ -181,7 +181,7 @@ export default function RecordTools() {
                 </div>
                 {/* User Token Peek */}
                 {userTokens !== null && (
-                    <div className="absolute right-4 text-[10px] text-[#1C4526] font-bold bg-[#1C4526]/5 px-2 py-1 rounded-full border border-[#1C4526]/10">
+                    <div className="absolute right-4 text-[10px] text-[#2D5A3C] font-bold bg-[#E9EFEA] px-2 py-1 rounded-full border border-[#388E5A]/20">
                         {userTokens} T
                     </div>
                 )}

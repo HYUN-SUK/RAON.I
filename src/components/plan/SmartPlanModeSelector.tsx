@@ -40,7 +40,7 @@ export default function SmartPlanModeSelector({ onSelect }: SmartPlanModeSelecto
         >
             {/* Header */}
             <div className="text-center mb-1">
-                <p className="text-xs font-bold text-[#224732]/60 tracking-wider uppercase">Smart Plan LIVE</p>
+                <p className="text-xs font-bold text-[#1E4D2B]/80 tracking-wider uppercase">Smart Plan LIVE</p>
                 <h3 className="text-lg font-black text-gray-900 mt-1">여행 스타일을 선택하세요</h3>
                 <p className="text-xs text-gray-400 mt-1">선택에 따라 AI가 맞춤 타임라인을 생성합니다</p>
             </div>
@@ -56,7 +56,7 @@ export default function SmartPlanModeSelector({ onSelect }: SmartPlanModeSelecto
                             onClick={() => setSelected(mode.key)}
                             className={`relative w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 ${
                                 isSelected
-                                    ? 'border-[#224732] bg-[#224732]/5 shadow-lg shadow-[#224732]/10'
+                                    ? 'border-[#388E5A] bg-[#388E5A]/5 shadow-lg shadow-[#388E5A]/10'
                                     : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
                             }`}
                         >
@@ -65,7 +65,7 @@ export default function SmartPlanModeSelector({ onSelect }: SmartPlanModeSelecto
                                 <motion.div
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
-                                    className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#224732] flex items-center justify-center"
+                                    className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#388E5A] flex items-center justify-center"
                                 >
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                                 </motion.div>
@@ -74,14 +74,14 @@ export default function SmartPlanModeSelector({ onSelect }: SmartPlanModeSelecto
                             <div className="flex items-start gap-4">
                                 {/* Icon */}
                                 <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-2xl ${
-                                    isSelected ? 'bg-[#224732]/10' : 'bg-gray-50'
+                                    isSelected ? 'bg-[#388E5A]/10' : 'bg-gray-50'
                                 }`}>
                                     {mode.emoji}
                                 </div>
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                    <h4 className={`text-base font-black ${isSelected ? 'text-[#224732]' : 'text-gray-900'}`}>
+                                    <h4 className={`text-base font-black ${isSelected ? 'text-[#1E4D2B]' : 'text-gray-900'}`}>
                                         {mode.title}
                                     </h4>
                                     <p className="text-xs text-gray-500 mt-1 whitespace-pre-line leading-relaxed">
@@ -94,7 +94,7 @@ export default function SmartPlanModeSelector({ onSelect }: SmartPlanModeSelecto
                                                 key={tag}
                                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                                     isSelected
-                                                        ? 'bg-[#224732]/10 text-[#224732]'
+                                                        ? 'bg-[#388E5A]/10 text-[#388E5A]'
                                                         : 'bg-gray-100 text-gray-500'
                                                 }`}
                                             >
@@ -115,7 +115,7 @@ export default function SmartPlanModeSelector({ onSelect }: SmartPlanModeSelecto
                 onClick={() => selected && onSelect(selected)}
                 className={`w-full h-14 rounded-2xl text-base font-black transition-all ${
                     selected
-                        ? 'bg-[#224732] hover:bg-[#1a3626] text-white shadow-lg shadow-[#224732]/25 active:scale-[0.98]'
+                        ? 'bg-[#388E5A] hover:bg-[#2F774B] text-white shadow-lg shadow-[#388E5A]/25 active:scale-[0.98]'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
             >

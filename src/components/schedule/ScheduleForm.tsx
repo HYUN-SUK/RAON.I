@@ -123,18 +123,18 @@ export default function ScheduleForm({
                     {/* 여행지 이름 - 클릭하면 바로 지도 검색 열림 */}
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                            <Tent className="w-4 h-4 text-[#224732]" />
+                            <Tent className="w-4 h-4 text-[#388E5A]" />
                             여행지 이름
                         </label>
                         <button
                             type="button"
                             onClick={() => setIsMapOpen(true)}
-                            className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:border-[#224732] hover:bg-gray-50 transition-colors text-left"
+                            className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:border-[#388E5A] hover:bg-gray-50 transition-colors text-left"
                         >
                             <span className={formData.campgroundName ? 'text-gray-900' : 'text-gray-400'}>
                                 {formData.campgroundName || '지도에서 여행지 검색하기'}
                             </span>
-                            <Search className="w-5 h-5 text-[#224732]" />
+                            <Search className="w-5 h-5 text-[#388E5A]" />
                         </button>
                         {formData.campgroundAddress && (
                             <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
@@ -147,7 +147,7 @@ export default function ScheduleForm({
                     {/* 주소 */}
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                            <MapPin className="w-4 h-4 text-[#224732]" />
+                            <MapPin className="w-4 h-4 text-[#388E5A]" />
                             주소 (선택)
                         </label>
                         <Input
@@ -162,7 +162,7 @@ export default function ScheduleForm({
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Calendar className="w-4 h-4 text-[#224732]" />
+                                <Calendar className="w-4 h-4 text-[#388E5A]" />
                                 입실일
                             </label>
                             <Input
@@ -191,7 +191,7 @@ export default function ScheduleForm({
                     {/* 메모 */}
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                            <FileText className="w-4 h-4 text-[#224732]" />
+                            <FileText className="w-4 h-4 text-[#388E5A]" />
                             메모 (선택)
                         </label>
                         <Textarea
@@ -219,7 +219,7 @@ export default function ScheduleForm({
                         )}
                         <Button
                             type="submit"
-                            className="flex-1 bg-[#224732] hover:bg-[#1a3626]"
+                            className="flex-1 bg-[#388E5A] hover:bg-[#2F774B] text-white"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? (
@@ -258,7 +258,7 @@ export default function ScheduleForm({
                                 setSuccessScheduleId(null);
                                 onSuccess?.(id);
                             }}
-                            className="mt-6 w-full bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl py-3 font-bold text-xs"
+                            className="mt-6 w-full bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl py-3 font-bold text-xs"
                         >
                             확인
                         </Button>

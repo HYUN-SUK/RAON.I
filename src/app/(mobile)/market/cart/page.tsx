@@ -69,7 +69,7 @@ export default function CartPage() {
                         <p>장바구니가 비어있습니다.</p>
                         <Button
                             variant="outline"
-                            className="mt-4 border-[#1C4526] text-[#1C4526]"
+                            className="mt-4 border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA]"
                             onClick={() => router.push('/market')}
                         >쇼핑하러 가기</Button>
                     </div>
@@ -80,10 +80,10 @@ export default function CartPage() {
                 <div className="fixed bottom-[80px] left-0 right-0 max-w-[430px] mx-auto bg-white border-t border-gray-100 p-4 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
                     <div className="flex justify-between mb-4 text-sm">
                         <span className="text-gray-500">총 결제 금액</span>
-                        <span className="font-bold text-xl text-[#1C4526]">{formatPrice(getTotalPrice())}</span>
+                        <span className="font-bold text-xl text-[#1E4D2B]">{formatPrice(getTotalPrice())}</span>
                     </div>
                     <Button
-                        className="w-full h-12 text-base bg-[#1C4526] hover:bg-[#16331F] text-white rounded-xl"
+                        className="w-full h-12 text-base bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl"
                         onClick={() => router.push('/market/checkout')}
                     >
                         주문하기

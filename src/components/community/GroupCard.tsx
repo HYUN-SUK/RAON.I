@@ -41,7 +41,7 @@ export default function GroupCard({ group }: GroupProps) {
 
                 {/* Content */}
                 <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="text-[17px] font-bold text-[#1C4526] mb-1 line-clamp-1">
+                    <h3 className="text-[17px] font-bold text-[#1E4D2B] mb-1 line-clamp-1">
                         {group.name}
                     </h3>
                     <p className="text-sm text-[#666] line-clamp-2 mt-1">

@@ -90,7 +90,7 @@ export default function NotificationsPage() {
 
             <main className="px-4 py-6 space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                    <Bell className="w-5 h-5 text-[#1C4526]" />
+                    <Bell className="w-5 h-5 text-[#388E5A]" />
                     <p className="text-sm text-stone-600 dark:text-stone-400">
                         최근 알림 20건을 확인하실 수 있습니다.
                     </p>
@@ -140,7 +140,7 @@ export default function NotificationsPage() {
                                 className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 relative overflow-hidden active:scale-[0.98] transition-transform duration-200 cursor-pointer"
                             >
                                 {/* Paper/Note Texture Effect (Optional) */}
-                                <div className="absolute top-0 left-0 w-1 h-full bg-[#1C4526] opacity-80" />
+                                <div className="absolute top-0 left-0 w-1 h-full bg-[#388E5A] opacity-90" />
 
                                 <div className="flex items-start gap-4">
                                     <div className="mt-1 flex-shrink-0">
@@ -161,7 +161,7 @@ export default function NotificationsPage() {
                                                     {format(new Date(noti.created_at), 'MM.dd HH:mm', { locale: ko })}
                                                 </span>
                                                 {targetLink && (
-                                                    <span className="text-[10px] text-[#1C4526] mt-1 font-medium bg-green-50 px-1.5 py-0.5 rounded-md">
+                                                    <span className="text-[10px] text-[#1E4D2B] mt-1 font-medium bg-[#E9EFEA] px-1.5 py-0.5 rounded-md">
                                                         바로가기 Available
                                                     </span>
                                                 )}

@@ -32,10 +32,10 @@ export default function ReminderBanner({ detail, onClick }: ReminderBannerProps)
         : `${startDateFormatted} ~ ${endDateFormatted}`;
 
     return (
-        <div className="mx-4 mt-4 mb-2 p-4 bg-gradient-to-br from-[#224732]/5 to-[#224732]/10 border border-[#224732]/15 rounded-2xl shadow-sm flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="mx-4 mt-4 mb-2 p-4 bg-gradient-to-br from-[#388E5A]/10 to-[#388E5A]/15 border border-[#388E5A]/25 rounded-2xl shadow-sm flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#224732] tracking-wider uppercase">
-                    <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#1E4D2B] tracking-wider uppercase">
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse text-[#388E5A]" />
                     <span>추억 아카이빙</span>
                 </div>
                 <h4 className="text-sm font-extrabold text-stone-900 truncate">
@@ -50,7 +50,7 @@ export default function ReminderBanner({ detail, onClick }: ReminderBannerProps)
             </div>
             <Button
                 onClick={onClick}
-                className="bg-[#224732] hover:bg-[#1a3626] text-white text-xs font-bold px-3 py-2 h-auto rounded-xl flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition-all"
+                className="bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs font-bold px-3 py-2 h-auto rounded-xl flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition-all"
             >
                 <span>10초 기록</span>
                 <ArrowRight className="w-3.5 h-3.5" />

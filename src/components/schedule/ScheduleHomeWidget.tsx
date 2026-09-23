@@ -34,6 +34,7 @@ interface UnifiedSchedule {
     source?: 'raonai' | 'external';
     siteId?: string;
     status?: 'PENDING' | 'CONFIRMED'; // 예약 상태 (입금대기/확정)
+    category?: string;
 }
 
 interface ScheduleHomeWidgetProps {
@@ -537,8 +538,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     // 로딩 (새로고침 / 첫 진입 데이터 조회 중)
     if (isLoading) {
         return (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-[#224732]/20 shadow-sm flex items-center gap-3.5 animate-pulse">
-                <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675] shrink-0">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-[#388E5A]/20 shadow-sm flex items-center gap-3.5 animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-[#388E5A]/10 flex items-center justify-center text-[#388E5A] dark:text-emerald-400 shrink-0">
                     <Loader2 className="w-5 h-5 animate-spin" />
                 </div>
                 <div className="space-y-0.5">
@@ -557,12 +558,12 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     if (!upcomingItem) {
         return (
             <>
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4.5 border border-dashed border-[#224732]/30 shadow-sm flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#224732]/10 flex items-center justify-center text-[#224732] dark:text-[#C3A675] shrink-0">
-                        <Calendar className="w-5 h-5" />
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4.5 border-2 border-dashed border-[#A7CCA8] shadow-xs flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#EDF5EE] flex items-center justify-center text-[#388E5A] dark:text-emerald-400 shrink-0">
+                        <Calendar className="w-5 h-5 stroke-[2.2]" />
                     </div>
                     <div>
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
+                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">다가오는 여행 일정이 없습니다</h4>
                     </div>
                 </div>
 
@@ -571,7 +572,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                         {!hideOtherScheduleButton && (
                             <button
                                 onClick={handleExternalScheduleClick}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.98] transition-all duration-200"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.98] transition-all duration-200"
                             >
                                 <Plus className="w-4 h-4" />
                                 <span>다른 여행 일정추가</span>
@@ -579,9 +580,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                         )}
                         <button
                             onClick={() => withAuth(() => router.push('/myspace/schedule'))}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
                         >
-                            <Calendar className="w-4 h-4 text-[#C3A675]" />
+                            <Calendar className="w-4 h-4 text-emerald-200" />
                             <span>{scheduleButtonText}</span>
                         </button>
                     </div>
@@ -591,7 +592,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                 <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                     <AlertDialogContent className="w-[90%] max-w-[340px] rounded-3xl p-6">
                         <AlertDialogHeader className="space-y-2">
-                            <AlertDialogTitle className="text-center text-lg font-bold text-[#224732] dark:text-[#C3A675]">
+                            <AlertDialogTitle className="text-center text-lg font-bold text-[#388E5A] dark:text-emerald-400">
                                 📢 안내
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-center text-sm text-stone-600 dark:text-stone-300 font-medium break-keep leading-relaxed pt-1">
@@ -606,7 +607,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                                 id="dontShowToday"
                                 checked={dontShowToday}
                                 onChange={(e) => setDontShowToday(e.target.checked)}
-                                className="w-4 h-4 rounded border-stone-300 text-[#224732] focus:ring-[#224732] cursor-pointer"
+                                className="w-4 h-4 rounded border-stone-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
                             />
                             <label htmlFor="dontShowToday" className="text-xs text-stone-500 dark:text-stone-400 font-semibold cursor-pointer select-none">
                                 오늘 하루 보지 않기
@@ -616,7 +617,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                         <AlertDialogFooter className="mt-5 flex flex-row justify-center gap-2 sm:justify-center">
                             <AlertDialogAction
                                 onClick={handleConfirmExternalAlert}
-                                className="bg-[#224732] hover:bg-[#1a3626] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
+                                className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
                             >
                                 확인
                             </AlertDialogAction>
@@ -640,7 +641,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         ? 'from-yellow-500 to-orange-500'
         : isRaonai
             ? 'from-brand-1 to-brand-2'
-            : 'from-[#224732] to-[#1a3626]';
+            : 'from-[#388E5A] to-[#2F774B]';
 
     // 캠핑 기간의 날짜 리스트 생성 헬퍼
     const getDatesInRange = (startDate: Date, endDate: Date) => {
@@ -676,80 +677,71 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
 
     return (
         <div className="space-y-3">
-            {/* 다가오는 캠핑 카드 */}
+            {/* 다가오는 캠핑 카드 (화이트 카드 + 보태니컬 그린 테두리) */}
             <div
                 onClick={handleCardClick}
                 className="cursor-pointer"
             >
-                <div className={`bg-gradient-to-br ${bgGradient} rounded-2xl p-4 text-white hover:shadow-lg transition-all relative overflow-hidden`}>
+                <div className="bg-white dark:bg-zinc-900 border-2 border-[#388E5A] rounded-2xl p-4.5 text-stone-900 dark:text-stone-100 shadow-xs hover:shadow-md transition-all relative overflow-hidden">
                     {isNavigating && (
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#388E5A]"></div>
                         </div>
                     )}
 
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                                {isRaonai ? <MapPin className="w-4 h-4" /> : <Tent className="w-4 h-4" />}
+                            <div className="w-8 h-8 rounded-full bg-[#388E5A] text-white flex items-center justify-center shadow-xs">
+                                {isRaonai ? <Tent className="w-4 h-4 stroke-[2.2]" /> : <Tent className="w-4 h-4 stroke-[2.2]" />}
                             </div>
-                            <div>
-                                <span className="text-sm font-medium opacity-90">
-                                    {isPending ? '입금대기' : isCampingNow ? '현재 여행 진행 중' : '다가오는 여행'}
-                                </span>
-                                <span className="ml-2 text-xs bg-white/20 px-1.5 py-0.5 rounded">
-                                    {isRaonai ? '라온아이' : '타캠핑장'}
-                                </span>
-                            </div>
+                            <span className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                                {isPending ? '입금대기' : isCampingNow ? '현재 여행 진행 중' : '다가오는 여행'}
+                            </span>
+                            <span className="text-[11px] bg-[#E9EFEA] text-[#2D5A3C] font-bold px-2 py-0.5 rounded-md">
+                                {isRaonai ? '라온아이' : '타캠핑장'}
+                            </span>
                         </div>
                         <div className="text-right">
                             <span className={cn(
-                                "inline-block px-2.5 py-1 rounded-full text-xs font-black",
+                                "inline-block px-3 py-1 rounded-full text-xs font-black shadow-xs",
                                 isCampingNow
-                                    ? "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse border border-orange-200/40"
+                                    ? "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse"
                                     : daysUntil === 0
                                         ? "bg-amber-400 text-amber-900"
-                                        : "bg-white/20 text-white"
+                                        : "bg-[#388E5A] text-white"
                             )}>
                                 {isCampingNow ? '✨ 힐링 중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 mb-2 min-w-0">
-                        <h3 className="text-lg font-bold truncate">
+                    <div className="mb-2 min-w-0">
+                        <h3 className="text-xl sm:text-[22px] font-black text-[#1E4D2B] dark:text-stone-100 tracking-tight leading-tight truncate">
                             {upcomingItem.name}
                         </h3>
                     </div>
 
                     {badgeText && (
-                        <div className={cn(
-                            "text-[11px] font-black px-2.5 py-1.5 rounded-lg w-fit mb-2.5 flex items-center gap-1.5 shadow-sm",
-                            badgeText.includes('완료')
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : badgeText.includes('정밀') || badgeText.includes('업데이트')
-                                    ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
-                                    : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                        )}>
+                        <div className="text-xs font-bold px-2.5 py-1 rounded-lg w-fit mb-3 flex items-center gap-1.5 bg-[#FEF5D9] text-[#7A5B00] border border-[#FBE39D]/70 shadow-2xs">
                             {badgeText}
                         </div>
                     )}
 
-                    <div className="flex items-center justify-between text-sm mt-1">
-                        <div className="flex items-center gap-3 opacity-90">
-                            <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {format(upcomingItem.checkIn, 'M.d(EEE)', { locale: ko })}
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {nights}박
+                    <div className="flex items-center justify-between text-xs sm:text-sm mt-1 gap-2">
+                        <div className="flex items-center gap-1.5 text-stone-800 dark:text-stone-200 font-bold truncate">
+                            <Calendar className="w-4 h-4 text-stone-700 dark:text-stone-300 stroke-[2.2] shrink-0" />
+                            <span className="truncate">
+                                {safeCheckIn && safeCheckOut ? (
+                                    `${format(safeCheckIn, 'yyyy.MM.dd(EEE)', { locale: ko })} - ${format(safeCheckOut, 'MM.dd(EEE)', { locale: ko })} · ${nights}박 ${nights + 1}일`
+                                ) : (
+                                    `${format(upcomingItem.checkIn, 'yyyy.MM.dd(EEE)', { locale: ko })} · ${nights}박`
+                                )}
                             </span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs font-bold text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-full border border-white/25 transition-all shadow-xs group">
-                            <span className="inline-block animate-bounce text-xs">👆</span>
+                        <div className="flex items-center gap-1 text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] px-3.5 py-1.5 rounded-full shadow-xs active:scale-95 transition-all shrink-0 group">
+                            <span className="text-xs">👆</span>
                             <span>상세보기</span>
-                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 stroke-[2.5]" />
                         </div>
                     </div>
                 </div>
@@ -761,7 +753,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                     {!hideOtherScheduleButton && (
                         <button
                             onClick={handleExternalScheduleClick}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#224732]/30 rounded-xl text-[#224732] hover:bg-[#224732]/5 transition-all active:scale-[0.98] duration-200"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#388E5A]/30 rounded-xl text-[#388E5A] hover:bg-[#388E5A]/5 transition-all active:scale-[0.98] duration-200"
                         >
                             <Plus className="w-4 h-4" />
                             <span className="text-sm font-semibold">다른 여행 일정추가</span>
@@ -769,9 +761,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                     )}
                     <button
                         onClick={() => withAuth(() => router.push('/myspace/schedule'))}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#224732] hover:bg-[#1a3626] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-200"
                     >
-                        <Calendar className="w-4 h-4 text-[#C3A675]" />
+                        <Calendar className="w-4 h-4 text-emerald-200" />
                         <span>{scheduleButtonText}</span>
                     </button>
                 </div>
@@ -781,7 +773,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                 <AlertDialogContent className="w-[90%] max-w-[340px] rounded-3xl p-6">
                     <AlertDialogHeader className="space-y-2">
-                        <AlertDialogTitle className="text-center text-lg font-bold text-[#224732] dark:text-[#C3A675]">
+                        <AlertDialogTitle className="text-center text-lg font-bold text-[#388E5A] dark:text-emerald-400">
                             📢 안내
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-center text-sm text-stone-600 dark:text-stone-300 font-medium break-keep leading-relaxed pt-1">
@@ -796,7 +788,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                             id="dontShowToday"
                             checked={dontShowToday}
                             onChange={(e) => setDontShowToday(e.target.checked)}
-                            className="w-4 h-4 rounded border-stone-300 text-[#224732] focus:ring-[#224732] cursor-pointer"
+                            className="w-4 h-4 rounded border-stone-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
                         />
                         <label htmlFor="dontShowToday" className="text-xs text-stone-500 dark:text-stone-400 font-semibold cursor-pointer select-none">
                             오늘 하루 보지 않기
@@ -806,7 +798,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                     <AlertDialogFooter className="mt-5 flex flex-row justify-center gap-2 sm:justify-center">
                         <AlertDialogAction
                             onClick={handleConfirmExternalAlert}
-                            className="bg-[#224732] hover:bg-[#1a3626] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
+                            className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
                         >
                             확인
                         </AlertDialogAction>

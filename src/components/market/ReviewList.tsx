@@ -33,7 +33,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({ productId }) => {
                 </div>
 
                 <ReviewWriteSheet productId={productId}>
-                    <Button variant="ghost" size="sm" className="text-[var(--color-brand-2)] font-medium gap-1">
+                    <Button variant="ghost" size="sm" className="text-[#388E5A] hover:text-[#2F774B] hover:bg-[#E9EFEA] font-medium gap-1">
                         <PenLine size={16} />
                         쓰기
                     </Button>

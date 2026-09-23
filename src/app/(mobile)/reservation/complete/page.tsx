@@ -105,7 +105,7 @@ export default function ReservationCompletePage() {
                 <div className="bg-[#1E1E1E] rounded-2xl p-6 border border-white/10 shadow-xl">
                     <div className="flex items-center gap-3 mb-4">
                         {status === 'PENDING' && <Clock className="w-6 h-6 text-yellow-500" />}
-                        {status === 'CONFIRMED' && <CheckCircle2 className="w-6 h-6 text-[#2F5233]" />}
+                        {status === 'CONFIRMED' && <CheckCircle2 className="w-6 h-6 text-[#388E5A]" />}
                         {status === 'CANCELLED' && <AlertCircle className="w-6 h-6 text-red-500" />}
                         <span className="text-lg font-bold">
                             {status === 'PENDING' && '입금 대기 중'}
@@ -153,8 +153,8 @@ export default function ReservationCompletePage() {
 
                     {/* Confirmed State: Rules */}
                     {status === 'CONFIRMED' && (
-                        <div className="bg-[#2F5233]/20 border border-[#2F5233]/50 rounded-xl p-4 mb-4">
-                            <h3 className="font-bold text-[#2F5233] mb-2">이용 안내</h3>
+                        <div className="bg-[#388E5A]/20 border border-[#388E5A]/50 rounded-xl p-4 mb-4">
+                            <h3 className="font-bold text-[#388E5A] mb-2">이용 안내</h3>
                             <ul className="text-sm text-white/80 space-y-1 list-disc list-inside">
                                 <li>입실 시간: 14:00</li>
                                 <li>퇴실 시간: 12:00</li>
@@ -187,7 +187,7 @@ export default function ReservationCompletePage() {
                     </button>
                     <button
                         onClick={() => router.push('/myspace')}
-                        className="flex-1 bg-[#2F5233] hover:bg-[#233e26] text-white py-4 rounded-xl font-bold transition-colors"
+                        className="flex-1 bg-[#388E5A] hover:bg-[#2F774B] text-white py-4 rounded-xl font-bold transition-colors"
                     >
                         내 수첩으로 가기
                     </button>
@@ -210,7 +210,7 @@ export default function ReservationCompletePage() {
                         </p>
                         <button
                             onClick={() => setShowGuideModal(false)}
-                            className="mt-6 w-full bg-[#2F5233] hover:bg-[#233e26] text-white rounded-xl py-3 font-bold text-xs transition-colors"
+                            className="mt-6 w-full bg-[#388E5A] hover:bg-[#2F774B] text-white rounded-xl py-3 font-bold text-xs transition-colors"
                         >
                             확인
                         </button>

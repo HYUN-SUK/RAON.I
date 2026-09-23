@@ -96,7 +96,7 @@ export default function AlbumModal({ isOpen, onClose }: AlbumModalProps) {
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="이날의 분위기, 즐거웠던 일들을 기록해보세요."
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-2 min-h-[100px] resize-none text-sm"
+                            className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#388E5A] min-h-[100px] resize-none text-sm"
                         />
                     </div>
 
@@ -111,7 +111,7 @@ export default function AlbumModal({ isOpen, onClose }: AlbumModalProps) {
                         <button
                             onClick={handleSave}
                             disabled={!newImage}
-                            className={`flex-1 py-3 px-4 rounded-xl font-medium text-white transition-colors ${newImage ? 'bg-brand-1 hover:bg-brand-2' : 'bg-gray-300 cursor-not-allowed'
+                            className={`flex-1 py-3 px-4 rounded-xl font-medium text-white transition-colors ${newImage ? 'bg-[#388E5A] hover:bg-[#2F774B]' : 'bg-gray-300 cursor-not-allowed'
                                 }`}
                         >
                             기록 저장
@@ -157,7 +157,7 @@ export default function AlbumModal({ isOpen, onClose }: AlbumModalProps) {
 
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="w-full py-4 rounded-xl border-2 border-dashed border-brand-2/30 text-brand-2 font-medium hover:bg-brand-2/5 transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-4 rounded-xl border-2 border-dashed border-[#388E5A]/30 text-[#2D5A3C] font-medium hover:bg-[#E9EFEA]/50 transition-colors flex items-center justify-center gap-2"
                     >
                         <Plus size={20} />
                         <span>추억 추가하기</span>

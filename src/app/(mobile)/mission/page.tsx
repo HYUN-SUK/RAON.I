@@ -63,7 +63,7 @@ export default function MissionListPage() {
                     <button
                         onClick={() => setSortBy('newest')}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${sortBy === 'newest'
-                                ? 'bg-[#1C4526] text-white'
+                                ? 'bg-[#388E5A] text-white shadow-sm shadow-[#388E5A]/20'
                                 : 'bg-white text-stone-500 border border-stone-200 dark:bg-zinc-900 dark:border-zinc-800'
                             }`}
                     >
@@ -72,7 +72,7 @@ export default function MissionListPage() {
                     <button
                         onClick={() => setSortBy('trending')}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${sortBy === 'trending'
-                                ? 'bg-[#1C4526] text-white'
+                                ? 'bg-[#388E5A] text-white shadow-sm shadow-[#388E5A]/20'
                                 : 'bg-white text-stone-500 border border-stone-200 dark:bg-zinc-900 dark:border-zinc-800'
                             }`}
                     >
@@ -99,7 +99,7 @@ export default function MissionListPage() {
                                     <div className={`p-5 ${isExpired ? 'bg-stone-100 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}>
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex items-center gap-2">
-                                                <Badge variant={isExpired ? "secondary" : "default"} className={isExpired ? "" : "bg-[#1C4526]"}>
+                                                <Badge variant={isExpired ? "secondary" : "default"} className={isExpired ? "" : "bg-[#388E5A] text-white"}>
                                                     {isExpired ? '마감됨' : '진행중'}
                                                 </Badge>
                                                 {sortBy === 'trending' && mission.participant_count !== undefined && (
@@ -130,7 +130,7 @@ export default function MissionListPage() {
                                                     {mission.reward_point} 토큰
                                                 </span>
                                             </div>
-                                            <Button variant="ghost" size="sm" className="h-8 pr-0 hover:bg-transparent hover:text-[#1C4526]">
+                                            <Button variant="ghost" size="sm" className="h-8 pr-0 hover:bg-transparent hover:text-[#388E5A]">
                                                 자세히보기 <ChevronRight className="w-4 h-4 ml-1" />
                                             </Button>
                                         </div>

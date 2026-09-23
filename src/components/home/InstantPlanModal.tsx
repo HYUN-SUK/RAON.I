@@ -939,13 +939,13 @@ export default function InstantPlanModal({
                 <SheetHeader className="p-4 pb-3 border-b border-stone-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="p-2 bg-[#224732]/10 text-[#224732] dark:text-emerald-400 rounded-xl">
+                            <div className="p-2 bg-[#388E5A]/10 text-[#388E5A] dark:text-[#388E5A] rounded-xl">
                                 <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
                                 <SheetTitle className="text-base font-black text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                                     {initialMode === 'NEARBY' ? '내 주변 맛집 · 관광지' : '바로 여행계획 만들기'}
-                                    <span className="text-[10px] bg-[#224732] text-white font-bold px-1.5 py-0.5 rounded-full">
+                                    <span className="text-[10px] bg-[#388E5A] text-white font-bold px-1.5 py-0.5 rounded-full">
                                         {initialMode === 'NEARBY' ? (activeFallbackNotice ? '대표 기준 위치' : '실시간 GPS') : '즉시 생성'}
                                     </span>
                                 </SheetTitle>
@@ -1011,7 +1011,7 @@ export default function InstantPlanModal({
                                         type="button"
                                         onClick={() => handleSearch(searchQuery)}
                                         disabled={isSearching || !searchQuery.trim()}
-                                        className="h-12 px-4 rounded-xl bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs shrink-0 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        className="h-12 px-4 rounded-xl bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs shrink-0 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                     >
                                         {isSearching ? (
                                             <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -1092,7 +1092,7 @@ export default function InstantPlanModal({
                             {generatingStage === 'LOCATING' ? (
                                 <>
                                     <div className="relative">
-                                        <div className="w-16 h-16 rounded-full border-4 border-emerald-200 border-t-[#224732] animate-spin" />
+                                        <div className="w-16 h-16 rounded-full border-4 border-[#388E5A]/20 border-t-[#388E5A] animate-spin" />
                                         <MapPin className="w-6 h-6 text-emerald-600 absolute inset-0 m-auto animate-bounce" />
                                     </div>
                                     <div className="space-y-1.5 px-4">
@@ -1160,13 +1160,13 @@ export default function InstantPlanModal({
                             )}
 
                             {/* 감성 타임라인 리스트 (Stage 1 ~ 4) */}
-                            <div className="grid grid-cols-1 gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#224732]/10 before:z-0 w-full min-w-0">
+                            <div className="grid grid-cols-1 gap-8 relative before:absolute before:inset-0 before:left-[10px] md:before:left-[10px] before:w-0.5 before:bg-[#388E5A]/20 before:z-0 w-full min-w-0">
                                 {/* Stage 1: 현지 식도락 (대표 맛집) */}
                                 <div className="space-y-3 relative z-10 w-full">
                                     <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full border-2 border-[#224732] bg-white ring-4 ring-white z-10 -ml-[6px]" />
-                                            <span className="text-xs font-bold text-[#224732]">
+                                            <div className="w-3 h-3 rounded-full border-2 border-[#388E5A] bg-white ring-4 ring-white z-10 -ml-[6px]" />
+                                            <span className="text-xs font-bold text-[#1E4D2B]">
                                                 Stage 1. 현지 식도락 (대표 맛집)
                                             </span>
                                         </div>
@@ -1185,8 +1185,8 @@ export default function InstantPlanModal({
                                 <div className="space-y-3 relative z-10 w-full min-w-0">
                                     <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                            <span className="text-xs font-bold text-[#224732]">
+                                            <div className="w-3 h-3 rounded-full bg-[#388E5A] ring-4 ring-white z-10 -ml-[6px]" />
+                                            <span className="text-xs font-bold text-[#1E4D2B]">
                                                 Stage 2. 여행의 쉼표 (로컬 카페)
                                             </span>
                                         </div>
@@ -1205,8 +1205,8 @@ export default function InstantPlanModal({
                                 <div className="space-y-3 relative z-10 w-full min-w-0">
                                     <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-[#224732] ring-4 ring-white z-10 -ml-[6px]" />
-                                            <span className="text-xs font-bold text-[#224732]">
+                                            <div className="w-3 h-3 rounded-full bg-[#388E5A] ring-4 ring-white z-10 -ml-[6px]" />
+                                            <span className="text-xs font-bold text-[#1E4D2B]">
                                                 Stage 3. 목적지 힐링 명소 & 축제
                                             </span>
                                             {planData.itemListElement.some(c => c.category === 'FESTIVAL') && (
@@ -1281,7 +1281,7 @@ export default function InstantPlanModal({
                             </div>
                             <Button
                                 onClick={handleRetryGps}
-                                className="mt-2 h-11 px-5 bg-[#224732] hover:bg-[#1a3827] text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
+                                className="mt-2 h-11 px-5 bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
                             >
                                 <MapPin className="w-4 h-4 text-emerald-300" />
                                 <span>🛰️ 현재 위치 기준으로 다시 보기</span>
@@ -1293,13 +1293,13 @@ export default function InstantPlanModal({
                     {step === 'PROFILE_GATE' && (
                         <div className="space-y-4 py-2">
                             {/* 1. 여행 기간 (입실일 · 퇴실일) 설정 카드 */}
-                            <div className="p-4 bg-white dark:bg-zinc-900 border border-emerald-200/90 dark:border-emerald-900/60 rounded-2xl shadow-xs space-y-3">
+                            <div className="p-4 bg-white dark:bg-zinc-900 border border-[#388E5A]/20 dark:border-emerald-900/60 rounded-2xl shadow-xs space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-xs font-bold text-[#224732] dark:text-emerald-400 flex items-center gap-1.5">
+                                    <h4 className="text-xs font-bold text-[#1E4D2B] dark:text-[#388E5A] flex items-center gap-1.5">
                                         <Calendar className="w-4 h-4" />
                                         여행 기간 (입실일 · 퇴실일)
                                     </h4>
-                                    <span className="text-[11px] font-black text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                                    <span className="text-[11px] font-black text-[#2D5A3C] dark:text-[#388E5A] bg-[#E9EFEA] dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-[#388E5A]/30">
                                         {calculatedNights === 0 ? '당일치기 (0박 1일)' : `${calculatedNights}박 ${calculatedNights + 1}일`}
                                     </span>
                                 </div>
@@ -1319,7 +1319,7 @@ export default function InstantPlanModal({
                                             className={cn(
                                                 "flex-1 py-1.5 text-xs font-bold rounded-xl transition-all border",
                                                 regStayType === chip.id
-                                                    ? "bg-[#224732] text-white border-[#224732] shadow-xs"
+                                                    ? "bg-[#388E5A] text-white border-[#388E5A] shadow-xs"
                                                     : "bg-stone-50 dark:bg-zinc-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100"
                                             )}
                                         >
@@ -1465,11 +1465,11 @@ export default function InstantPlanModal({
                             className="absolute inset-0"
                             onClick={() => closeSubsheetWithHistory(() => setSwapCategory(null))}
                         />
-                        <div className="relative w-full max-h-[85vh] overflow-y-auto bg-[#F7F5EF] rounded-t-3xl px-4 pb-8 z-10 shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
+                        <div className="relative w-full max-h-[85vh] overflow-y-auto bg-[#F8FAF8] rounded-t-3xl px-4 pb-8 z-10 shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
                             {/* 헤더 */}
                             <div className="flex items-center justify-between pb-4 pt-4 border-b border-gray-200">
                                 <div>
-                                    <h3 className="text-left text-lg font-bold text-[#224732]">
+                                    <h3 className="text-left text-lg font-bold text-[#1E4D2B]">
                                         {CATEGORY_NAMES[swapCategory] || '일정'} 교체
                                     </h3>
                                     <p className="text-left text-xs text-gray-500 mt-0.5">
@@ -1513,7 +1513,7 @@ export default function InstantPlanModal({
                                                     onClick={() => {
                                                         handleOpenAlternativesMap(currentActive, allOptions);
                                                     }}
-                                                    className="bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs h-8 px-3 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                                                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs h-8 px-3 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                                                 >
                                                     <MapIcon className="w-3.5 h-3.5 text-emerald-300" />
                                                     <span>지도로 보기</span>
@@ -1536,7 +1536,7 @@ export default function InstantPlanModal({
                                                                 return (
                                                                     <Card
                                                                         key={opt.id}
-                                                                        className={`transition-all border shadow-none cursor-pointer ${isCurrentActive ? 'border-[#224732] ring-1 ring-[#224732] bg-[#224732]/5' : 'border-gray-100 bg-white'}`}
+                                                                        className={`transition-all border shadow-none cursor-pointer ${isCurrentActive ? 'border-[#388E5A] ring-1 ring-[#388E5A] bg-[#388E5A]/5' : 'border-gray-100 bg-white'}`}
                                                                         onClick={() => handleSwapPlace(swapCategory!, opt.id)}
                                                                     >
                                                                         <CardContent className="p-3 flex items-start gap-3">
@@ -1547,7 +1547,7 @@ export default function InstantPlanModal({
                                                                                         {opt.name}
                                                                                     </h4>
                                                                                     {isCurrentActive && (
-                                                                                        <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#224732] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
+                                                                                        <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#388E5A] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                                                                     )}
                                                                                     {(() => {
                                                                                         let dist = opt.distanceKm;
@@ -1642,7 +1642,7 @@ export default function InstantPlanModal({
                                                                                 )}
                                                                             </div>
                                                                             {!isCurrentActive && (
-                                                                                <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#224732]/20 text-[#224732] hover:bg-[#224732]/10">변경</Button>
+                                                                                <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#388E5A]/30 text-[#388E5A] hover:bg-[#388E5A]/10">변경</Button>
                                                                             )}
                                                                         </CardContent>
                                                                     </Card>
@@ -1778,7 +1778,7 @@ export default function InstantPlanModal({
         return (
             <Card
                 key={card.id}
-                className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#224732]/30 hover:shadow-sm border-gray-100/80 bg-white dark:bg-zinc-900 w-full`}
+                className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#388E5A]/40 hover:shadow-sm border-gray-100/80 bg-white dark:bg-zinc-900 w-full`}
                 onClick={() => handleCardClick(card)}
             >
                 <CardContent className="p-3">
@@ -1786,7 +1786,7 @@ export default function InstantPlanModal({
                         {/* Left Compact Control Area (위아래 확대된 넉넉한 터치 영역) */}
                         <div className="flex flex-col items-center gap-1.5 shrink-0 w-10 min-w-[40px] pt-0.5">
                             {/* Icon */}
-                            <div className="w-10 h-10 rounded-xl bg-[#F7F5EF] text-[#224732] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#224732]/5 shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-[#F8FAF8] text-[#1E4D2B] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#388E5A]/15 shrink-0">
                                 {CATEGORY_ICONS[card.category] || '📍'}
                             </div>
                             {/* Swap Button (h-14 w-10: 세로 알약형 + 변경 라벨 + 선명한 2px 테두리) */}
@@ -1801,7 +1801,7 @@ export default function InstantPlanModal({
                                         setSwapTargetId(card.id);
                                         pushSubsheetHistory();
                                     }}
-                                    className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#224732] hover:bg-[#224732]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#224732]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
+                                    className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#388E5A] hover:bg-[#388E5A]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#388E5A]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
                                     title="다른 장소로 교체"
                                 >
                                     <ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />
@@ -1824,7 +1824,7 @@ export default function InstantPlanModal({
                         <div className="flex-1 min-w-0 pr-1">
                             <div className="flex items-center justify-between gap-1.5 mb-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-bold text-[#224732] px-1.5 py-0.5 bg-[#224732]/5 rounded-sm">
+                                    <span className="text-[10px] font-bold text-[#1E4D2B] px-1.5 py-0.5 bg-[#388E5A]/10 rounded-sm">
                                         {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
                                     </span>
                                     {card.verificationStatus === 'VERIFIED' && (
@@ -2004,7 +2004,7 @@ export default function InstantPlanModal({
                                                     options.onSelectCandidate(card.id);
                                                 }
                                             }}
-                                            className="h-8 px-3.5 bg-[#224732] hover:bg-[#1a3827] text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+                                            className="h-8 px-3.5 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5"
                                         >
                                             <Check className="w-3.5 h-3.5" />
                                             이 장소로 선택

@@ -37,9 +37,9 @@ export default function MySpaceAlbumPage() {
     }, [album, activeFilter]);
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF] dark:bg-black pb-24">
+        <div className="min-h-screen bg-[#F8FAF8] dark:bg-black pb-24">
             {/* Top Bar */}
-            <header className="sticky top-0 z-50 bg-[#F7F5EF]/80 dark:bg-black/80 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 h-14 flex items-center gap-3">
+            <header className="sticky top-0 z-50 bg-[#F8FAF8]/80 dark:bg-black/80 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 h-14 flex items-center gap-3">
                 <Button variant="ghost" size="icon" onClick={() => router.push('/myspace')} className="-ml-2">
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
@@ -63,7 +63,7 @@ export default function MySpaceAlbumPage() {
                                 className={cn(
                                     "rounded-full h-8 text-xs font-medium px-4",
                                     activeFilter === filter
-                                        ? "bg-[#1C4526] hover:bg-[#15341d] text-white"
+                                        ? "bg-[#388E5A] hover:bg-[#2F774B] text-white"
                                         : "bg-white border-stone-200 text-stone-600"
                                 )}
                             >
@@ -92,7 +92,7 @@ export default function MySpaceAlbumPage() {
                         <p className="text-sm">게시글이나 미션 인증에서 사진을 업로드하면<br />이곳에 자동으로 모아집니다!</p>
                         <Button
                             variant="outline"
-                            className="mt-4 text-[#1C4526] border-[#1C4526]"
+                            className="mt-4 text-[#2D5A3C] border-[#388E5A]/40 hover:bg-[#E9EFEA]"
                             onClick={() => router.push('/community/write?type=STORY')}
                         >
                             첫 기록 남기기

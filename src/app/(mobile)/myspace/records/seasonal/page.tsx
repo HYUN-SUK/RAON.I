@@ -68,7 +68,7 @@ export default function SeasonalRecordsPage() {
                     <button onClick={() => router.replace('/myspace/records')} className="p-1.5 text-stone-400 hover:text-stone-600">
                         <List className="w-4 h-4" />
                     </button>
-                    <button className="p-1.5 bg-white text-[#1C4526] shadow-sm rounded-md">
+                    <button className="p-1.5 bg-white text-[#388E5A] shadow-sm rounded-md">
                         <Grid className="w-4 h-4" />
                     </button>
                     <button onClick={() => router.replace('/myspace/records/timeline')} className="p-1.5 text-stone-400 hover:text-stone-600">

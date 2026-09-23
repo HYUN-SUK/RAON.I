@@ -142,7 +142,7 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
 
 
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center bg-[#F7F5EF]"><Loader2 className="animate-spin text-[#1C4526]" /></div>;
+        return <div className="min-h-screen flex items-center justify-center bg-[#F8FAF8]"><Loader2 className="animate-spin text-[#388E5A]" /></div>;
     }
 
     if (!content) return null;
@@ -178,8 +178,8 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
 
                     {/* NOVEL/ESSAY: Text Viewer */}
                     {(content.type === 'NOVEL' || content.type === 'ESSAY') && viewingEpisode.body_ref?.text && (
-                        <div className="bg-[#F7F5EF] w-full min-h-full p-8 pt-20 max-w-2xl mx-auto text-gray-800 leading-relaxed text-lg font-serif">
-                            <h1 className="text-2xl font-bold mb-8 text-[#1C4526]">{viewingEpisode.title}</h1>
+                        <div className="bg-[#F8FAF8] w-full min-h-full p-8 pt-20 max-w-2xl mx-auto text-gray-800 leading-relaxed text-lg font-serif">
+                            <h1 className="text-2xl font-bold mb-8 text-[#1E4D2B]">{viewingEpisode.title}</h1>
                             <div className="whitespace-pre-wrap">
                                 {viewingEpisode.body_ref.text}
                             </div>
@@ -211,12 +211,12 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
 
     // --- Series Info Mode ---
     return (
-        <div className="min-h-screen bg-[#F7F5EF] pb-10">
+        <div className="min-h-screen bg-[#F8FAF8] pb-10">
 
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-[#F7F5EF]/80 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#ECE8DF]">
+            <header className="sticky top-0 z-40 bg-[#F8FAF8]/80 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#ECE8DF]">
                 <button onClick={() => router.back()} className="p-2 -ml-2">
-                    <ArrowLeft className="w-6 h-6 text-[#1C4526]" />
+                    <ArrowLeft className="w-6 h-6 text-[#1E4D2B]" />
                 </button>
                 <div className="flex gap-2">
                     <button className="p-2"><Share2 className="w-5 h-5 text-gray-600" /></button>
@@ -232,10 +232,10 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
                     className="object-cover"
                     unoptimized
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#F7F5EF] via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAF8] via-transparent to-transparent" />
 
                 <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <Badge className="bg-[#1C4526] text-white hover:bg-[#1C4526] mb-3">{content.type}</Badge>
+                    <Badge className="bg-[#388E5A] text-white hover:bg-[#2F774B] mb-3">{content.type}</Badge>
                     <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2 shadow-sm">{content.title}</h1>
                     <div className="flex items-center gap-2">
                         <Avatar className="w-6 h-6 border bg-white">
@@ -253,13 +253,13 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
             {/* Description */}
             <div className="px-6 py-4">
                 <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{content.description}</p>
-                <div className="flex gap-2 mt-4 text-[#1C4526]">
+                <div className="flex gap-2 mt-4 text-[#1E4D2B]">
                     <Button
                         size="sm"
                         variant={currentUserId === content.creator_id ? "outline" : (isFollowing ? "secondary" : "outline")}
                         className={cn("rounded-full transition-all",
                             currentUserId === content.creator_id ? "opacity-50 cursor-not-allowed border-gray-200 text-gray-400" :
-                                (isFollowing ? "bg-gray-100 text-gray-600" : "border-[#1C4526] text-[#1C4526]")
+                                (isFollowing ? "bg-gray-100 text-gray-600" : "border-[#388E5A] text-[#388E5A] hover:bg-[#E9EFEA]")
                         )}
                         onClick={handleToggleFollow}
                         disabled={currentUserId === content.creator_id}
@@ -292,7 +292,7 @@ export function ContentDetailView({ contentId }: ContentDetailViewProps) {
                         <div
                             key={ep.id}
                             onClick={() => handleEpisodeClick(ep)}
-                            className="flex gap-4 p-3 rounded-xl bg-white active:bg-gray-50 border border-transparent active:border-[#1C4526]/50 transition-all cursor-pointer shadow-sm"
+                            className="flex gap-4 p-3 rounded-xl bg-white active:bg-gray-50 border border-transparent active:border-[#388E5A]/50 transition-all cursor-pointer shadow-sm"
                         >
                             <div className="relative w-24 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                                 {(ep.thumbnail_url || content.cover_image_url) ? (

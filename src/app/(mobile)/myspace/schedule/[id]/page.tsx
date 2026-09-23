@@ -582,8 +582,8 @@ function ScheduleDetailContent() {
     // 로딩 상태 (Route Param Gate: params.id가 준비 완료될 때까지 안전 대기 고정)
     if (!isMounted || isLoading || isUserLoading || !scheduleId || scheduleId === 'undefined') {
         return (
-            <div className="min-h-screen bg-[#F7F5EF] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />
+            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#388E5A] animate-spin" />
             </div>
         );
     }
@@ -591,8 +591,8 @@ function ScheduleDetailContent() {
     // 일정 없음 (자동 퇴장 트리거 전면 제거 & 뷰포트 고정)
     if (!schedule) {
         return (
-            <div className="min-h-screen bg-[#F7F5EF] flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-[#224732]/10 flex items-center justify-center text-[#224732] mb-2">
+            <div className="min-h-screen bg-[#F8FAF8] flex flex-col items-center justify-center p-6 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-[#EDF5EE] flex items-center justify-center text-[#388E5A] mb-2">
                     <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
                 <h3 className="text-base font-bold text-gray-800">일정 정보를 준비 중입니다</h3>
@@ -602,7 +602,7 @@ function ScheduleDetailContent() {
                 <div className="flex gap-2 pt-2">
                     <Button 
                         onClick={() => loadData()} 
-                        className="bg-[#224732] hover:bg-[#1a3626] text-white px-5 py-2 rounded-xl text-xs font-semibold"
+                        className="bg-[#388E5A] hover:bg-[#2F774B] text-white px-5 py-2 rounded-xl text-xs font-semibold"
                     >
                         다시 불러오기
                     </Button>
@@ -622,7 +622,7 @@ function ScheduleDetailContent() {
 
 
     return (
-        <div className="min-h-screen bg-[#F7F5EF]">
+        <div className="min-h-screen bg-[#F8FAF8]">
             {/* 헤더 (옵션 B: 상단 카드 완전 제거 및 헤더 바 일체형 흡수) */}
             <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-xs">
                 <div className="flex items-center justify-between px-3 py-2.5 min-h-[58px]">
@@ -643,17 +643,15 @@ function ScheduleDetailContent() {
 
                     <div className="flex-1 min-w-0 px-2 text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                            {schedule.source === 'raonai' && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#224732]/10 text-[#224732]">
-                                    라온아이
-                                </span>
-                            )}
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E9EFEA] text-[#2D5A3C]">
+                                {schedule.source === 'raonai' ? '라온아이' : '타캠핑장'}
+                            </span>
                             <h1 className="text-base font-bold text-gray-900 truncate">
                                 {schedule.campground_name}
                             </h1>
                         </div>
                         <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500 font-medium truncate mt-0.5">
-                            <span className="font-bold text-[#224732] bg-[#224732]/10 px-1.5 py-0.2 rounded text-[10px]">
+                            <span className="font-bold text-[#388E5A] bg-[#EDF5EE] px-1.5 py-0.2 rounded text-[10px]">
                                 {schedule.status === 'completed'
                                     ? '완료된 여행'
                                     : daysUntil === 0
@@ -882,7 +880,7 @@ function ScheduleDetailContent() {
                 {schedule.memo && (
                     <div className="bg-white rounded-2xl p-4 shadow-sm">
                         <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-[#224732]" />
+                            <FileText className="w-5 h-5 text-[#388E5A]" />
                             메모
                         </h3>
                         <p className="text-gray-700 whitespace-pre-wrap">{schedule.memo}</p>
@@ -893,7 +891,7 @@ function ScheduleDetailContent() {
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <CheckSquare className="w-5 h-5 text-[#224732]" />
+                            <CheckSquare className="w-5 h-5 text-[#388E5A]" />
                             준비물 체크리스트
                         </h3>
                         {checklist.length > 0 && (
@@ -917,7 +915,7 @@ function ScheduleDetailContent() {
                             size="icon"
                             onClick={handleAddItem}
                             disabled={!newItem.trim() || isAddingItem}
-                            className="bg-[#224732] hover:bg-[#1a3626]"
+                            className="bg-[#388E5A] hover:bg-[#2F774B]"
                         >
                             {isAddingItem ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -944,7 +942,7 @@ function ScheduleDetailContent() {
                                         className="flex-shrink-0"
                                     >
                                         {item.is_checked ? (
-                                            <Check className="w-5 h-5 text-[#224732]" />
+                                            <Check className="w-5 h-5 text-[#388E5A]" />
                                         ) : (
                                             <Circle className="w-5 h-5 text-gray-300" />
                                         )}
@@ -987,7 +985,7 @@ function ScheduleDetailContent() {
                 <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
                     <SheetHeader className="pb-4 border-b border-gray-100">
                         <SheetTitle className="flex items-center gap-2">
-                            <Pencil className="w-5 h-5 text-[#224732]" />
+                            <Pencil className="w-5 h-5 text-[#388E5A]" />
                             일정 수정
                         </SheetTitle>
                     </SheetHeader>
@@ -1042,7 +1040,7 @@ function ScheduleDetailContent() {
                             </Button>
                             <Button
                                 onClick={handleUpdate}
-                                className="flex-1 bg-[#224732] hover:bg-[#1a3626]"
+                                className="flex-1 bg-[#388E5A] hover:bg-[#2F774B] text-white"
                                 disabled={isUpdating || !editForm.campground_name.trim()}
                             >
                                 {isUpdating ? (
@@ -1088,8 +1086,8 @@ function ScheduleDetailContent() {
 export default function ScheduleDetailPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#F7F5EF] flex flex-col items-center justify-center space-y-3 font-sans">
-                <Loader2 className="w-8 h-8 text-[#224732] animate-spin" />
+            <div className="min-h-screen bg-[#F8FAF8] flex flex-col items-center justify-center space-y-3 font-sans">
+                <Loader2 className="w-8 h-8 text-[#388E5A] animate-spin" />
                 <span className="text-xs text-stone-500 font-medium">일정을 상세히 불러오는 중...</span>
             </div>
         }>
