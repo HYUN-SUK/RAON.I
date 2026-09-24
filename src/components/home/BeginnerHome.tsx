@@ -173,6 +173,7 @@ export default function BeginnerHome() {
         fetchMyReservations();
         requestPermission();
         refresh();
+        router.prefetch('/myspace/schedule');
 
         // [방문자 카운팅] 세션당 1회 초경량 PV/UV 비동기 기록
         try {

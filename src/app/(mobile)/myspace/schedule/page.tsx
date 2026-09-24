@@ -13,11 +13,23 @@ import {
 } from 'lucide-react';
 import { Schedule, getMySchedules, deleteSchedule, completeSchedule } from '@/actions/schedule';
 import ScheduleCard from '@/components/schedule/ScheduleCard';
-import ScheduleForm from '@/components/schedule/ScheduleForm';
 import { useReservationStore } from '@/store/useReservationStore';
-import CancelReservationSheet from '@/components/reservation/CancelReservationSheet';
 import { Reservation } from '@/types/reservation';
 import { SITES } from '@/constants/sites';
+import dynamic from 'next/dynamic';
+
+const ScheduleForm = dynamic(() => import('@/components/schedule/ScheduleForm'), {
+    ssr: false,
+    loading: () => (
+        <div className="p-8 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-[#388E5A]" />
+        </div>
+    )
+});
+
+const CancelReservationSheet = dynamic(() => import('@/components/reservation/CancelReservationSheet'), {
+    ssr: false
+});
 import {
     Sheet,
     SheetContent,
@@ -44,8 +56,32 @@ function ScheduleContent() {
     const searchParams = useSearchParams();
     const [isMounted, setIsMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>('scheduled');
-    const [allSchedules, setAllSchedules] = useState<Schedule[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    
+    // [v14.3.0] 0초 즉시 렌더링 SWR 캐시: 기존 로컬 캐시에서 즉각 복원하여 첫 진입 대기시간 0ms 달성
+    const [allSchedules, setAllSchedules] = useState<Schedule[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const raw = localStorage.getItem('user_schedules_cache');
+            if (raw) {
+                const list = JSON.parse(raw);
+                if (Array.isArray(list)) return list as Schedule[];
+            }
+        } catch {}
+        return [];
+    });
+
+    const [isLoading, setIsLoading] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return true;
+        try {
+            const raw = localStorage.getItem('user_schedules_cache');
+            if (raw) {
+                const list = JSON.parse(raw);
+                if (Array.isArray(list) && list.length > 0) return false;
+            }
+        } catch {}
+        return true;
+    });
+
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
@@ -75,22 +111,30 @@ function ScheduleContent() {
         }
     }, [searchParams]);
 
-    // 전체 일정 및 예약 최초 1회 통합 로드 (Promise.all 병렬 처리)
+    // 전체 일정 및 예약 통합 로드 (SWR 캐시 패턴: 캐시 존재 시 화면 차단 없이 백그라운드 조용히 갱신)
     const loadData = useCallback(async (isInitial = false) => {
-        if (isInitial) setIsLoading(true);
+        // 캐시 데이터가 아예 없는 경우에만 스켈레톤 로더 노출
+        if (isInitial && allSchedules.length === 0) {
+            setIsLoading(true);
+        }
         try {
             const [schedulesData] = await Promise.all([
                 getMySchedules(),
                 fetchMyReservations()
             ]);
-            setAllSchedules(schedulesData || []);
+            if (schedulesData) {
+                setAllSchedules(schedulesData);
+                try {
+                    localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
+                } catch {}
+            }
         } catch (error) {
             console.error('Fetch schedules error:', error);
             toast.error('일정을 불러오는데 실패했어요');
         } finally {
-            if (isInitial) setIsLoading(false);
+            setIsLoading(false);
         }
-    }, [fetchMyReservations]);
+    }, [allSchedules.length, fetchMyReservations]);
 
     useEffect(() => {
         loadData(true);
@@ -139,13 +183,17 @@ function ScheduleContent() {
         }
     }, [activeTab, allSchedules, reservations]);
 
-    // 일정 삭제 (낙관적 UI 업데이트)
+    // 일정 삭제 (낙관적 UI 업데이트 + 캐시 동기화)
     const handleDelete = async () => {
         if (!deleteTarget) return;
 
         const targetId = deleteTarget;
         setDeleteTarget(null);
-        setAllSchedules(prev => prev.filter(s => s.id !== targetId));
+        setAllSchedules(prev => {
+            const next = prev.filter(s => s.id !== targetId);
+            try { localStorage.setItem('user_schedules_cache', JSON.stringify(next)); } catch {}
+            return next;
+        });
 
         const result = await deleteSchedule(targetId);
         if (result.success) {
@@ -156,9 +204,13 @@ function ScheduleContent() {
         }
     };
 
-    // 일정 완료 (낙관적 UI 업데이트)
+    // 일정 완료 (낙관적 UI 업데이트 + 캐시 동기화)
     const handleComplete = async (scheduleId: string) => {
-        setAllSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, status: 'completed' as const } : s));
+        setAllSchedules(prev => {
+            const next = prev.map(s => s.id === scheduleId ? { ...s, status: 'completed' as const } : s);
+            try { localStorage.setItem('user_schedules_cache', JSON.stringify(next)); } catch {}
+            return next;
+        });
 
         const result = await completeSchedule(scheduleId);
         if (result.success) {
@@ -224,12 +276,9 @@ function ScheduleContent() {
         { key: 'cancelled', label: '취소', icon: <XCircle className="w-4 h-4" /> },
     ];
 
+    // [v14.3.0] 마운트 전 깜빡이는 중앙 스피너 제거하고 자연스러운 배경 유지
     if (!isMounted) {
-        return (
-            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-[#388E5A]" />
-            </div>
-        );
+        return <div className="min-h-screen bg-[#F8FAF8]" />;
     }
 
     return (

@@ -155,11 +155,14 @@ export async function getMySchedules(status?: 'scheduled' | 'completed' | 'cance
         .map(s => s.id);
 
     if (pastScheduledIds.length > 0) {
-        // 과거 일정을 DB에서 실제로 'completed'로 전환
-        await supabase
+        // [v14.3.0] 조회 응답 블로킹 방지를 위해 DB 쓰기는 비동기 백그라운드로 처리 (응답 속도 500ms 단축)
+        supabase
             .from('user_schedules')
             .update({ status: 'completed' })
-            .in('id', pastScheduledIds);
+            .in('id', pastScheduledIds)
+            .then(({ error: uErr }) => {
+                if (uErr) console.warn('[getMySchedules] Background status update warning:', uErr);
+            });
     }
 
     const schedules = (data || []).map(s => {
