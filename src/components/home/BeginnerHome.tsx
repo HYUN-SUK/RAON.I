@@ -561,7 +561,7 @@ export default function BeginnerHome() {
                                 </span>
                             </div>
                             <div className="mt-3">
-                                <h4 className="text-[15px] sm:text-[16.5px] font-bold text-stone-900 dark:text-stone-100 leading-snug tracking-tight">
+                                <h4 className="text-[15px] sm:text-[16.5px] font-bold text-[#1A3822] dark:text-[#A7D7B5] leading-snug tracking-tight">
                                     내 주변<br />맛집 · 관광지 찾기
                                 </h4>
                             </div>
@@ -586,7 +586,7 @@ export default function BeginnerHome() {
                                 </span>
                             </div>
                             <div className="mt-3">
-                                <h4 className="text-[15px] sm:text-[16.5px] font-bold text-stone-900 dark:text-stone-100 leading-snug tracking-tight">
+                                <h4 className="text-[15px] sm:text-[16.5px] font-bold text-[#5E3B05] dark:text-[#F3D4A0] leading-snug tracking-tight">
                                     바로<br />여행계획 만들기
                                 </h4>
                             </div>
@@ -629,7 +629,7 @@ export default function BeginnerHome() {
                                 <Tent className="w-6 h-6 stroke-[2.2]" />
                             </div>
                             <div>
-                                <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-stone-100 tracking-tight leading-snug">
+                                <h3 className="text-base sm:text-lg font-black text-[#1E4D2B] dark:text-emerald-400 tracking-tight leading-snug">
                                     라온아이 캠핑장<br />소개 · 예약하기
                                 </h3>
                             </div>

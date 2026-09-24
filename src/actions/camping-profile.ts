@@ -149,45 +149,53 @@ export async function searchAddressAction(query: string): Promise<{ label: strin
 
     const results: { label: string; address?: string; lat: number; lng: number }[] = [];
     const seen = new Set<string>();
-    const queryEncoded = encodeURIComponent(trimmed);
 
-    // 1. 1차: 카카오 키워드 & 주소 검색
+    // 0. 입력어 정규화: 붙여쓴 도로명+숫자 자동 공백 분리 (예: '화악지암길448' -> '화악지암길 448', '지암길448' -> '지암길 448')
+    const normalized = trimmed.replace(/([가-힣]+)(\d+)/g, '$1 $2').trim();
+    const queriesToTry = Array.from(new Set([trimmed, normalized]));
+
+    // 1. 1차: 카카오 키워드 & 주소 동시 검색 (원본 및 정규화 쿼리)
     if (kakaoKey) {
         try {
             const headers = { Authorization: `KakaoAK ${kakaoKey}` };
-            const keywordPromise = fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
-            const addressPromise = fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${queryEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
+            for (const q of queriesToTry) {
+                const qEncoded = encodeURIComponent(q);
+                const keywordPromise = fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${qEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
+                const addressPromise = fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${qEncoded}&size=5`, { headers, next: { revalidate: 3600 } }).then(r => r.ok ? r.json() : { documents: [] });
 
-            const [keywordData, addressData] = await Promise.all([keywordPromise, addressPromise]);
+                const [keywordData, addressData] = await Promise.all([keywordPromise, addressPromise]);
 
-            // 키워드 결과 먼저 추가 (장소명 + 도로명/지번 주소)
-            for (const doc of (keywordData.documents || [])) {
-                const label = doc.place_name || doc.address_name;
-                const address = doc.road_address_name || doc.address_name || '';
-                if (label && !seen.has(label)) {
-                    seen.add(label);
-                    results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                // 키워드 결과 먼저 추가 (장소명 + 도로명/지번 주소)
+                for (const doc of (keywordData.documents || [])) {
+                    const label = doc.place_name || doc.address_name;
+                    const address = doc.road_address_name || doc.address_name || '';
+                    if (label && !seen.has(label)) {
+                        seen.add(label);
+                        results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                    }
                 }
-            }
 
-            // 주소 결과 추가
-            for (const doc of (addressData.documents || [])) {
-                const label = doc.address_name;
-                const address = doc.road_address?.address_name || doc.address_name || '';
-                if (label && !seen.has(label)) {
-                    seen.add(label);
-                    results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                // 주소 결과 추가
+                for (const doc of (addressData.documents || [])) {
+                    const label = doc.address_name;
+                    const address = doc.road_address?.address_name || doc.address_name || '';
+                    if (label && !seen.has(label)) {
+                        seen.add(label);
+                        results.push({ label, address, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
+                    }
                 }
+
+                if (results.length > 0) break;
             }
         } catch (err) {
             console.warn('[CampingProfile] Kakao search failed:', err);
         }
     }
 
-    // 2. 2차: 카카오 결과가 0건일 때 네이버 로컬 검색 Fallback (카카오 형태소 버그 및 색인 누락 완벽 보완)
+    // 2. 2차: 카카오 결과가 0건일 때 네이버 로컬 검색 Fallback
     if (results.length === 0 && naverId && naverSecret) {
         try {
-            const naverRes = await fetch(`https://openapi.naver.com/v1/search/local.json?query=${queryEncoded}&display=5`, {
+            const naverRes = await fetch(`https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(normalized)}&display=5`, {
                 headers: {
                     'X-Naver-Client-Id': naverId,
                     'X-Naver-Client-Secret': naverSecret,
@@ -214,6 +222,61 @@ export async function searchAddressAction(query: string): Promise<{ label: strin
             }
         } catch (nErr) {
             console.warn('[CampingProfile] Naver search fallback failed:', nErr);
+        }
+    }
+
+    // 3. 3차: '지암길 448' 등 도로명 접두사가 누락된 부분 주소 검색 Fallback (0원 무료 Naver Web + 카카오 Geocoder)
+    if (results.length === 0 && naverId && naverSecret && kakaoKey) {
+        try {
+            const webRes = await fetch(`https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(normalized)}&display=5`, {
+                headers: {
+                    'X-Naver-Client-Id': naverId,
+                    'X-Naver-Client-Secret': naverSecret,
+                }
+            });
+
+            if (webRes.ok) {
+                const webData: any = await webRes.json();
+                const addressCandidates: string[] = [];
+                // 정규식: 한국 행정구역 + 도로명 + 건물번호 추출 (예: '강원특별자치도 춘천시 사북면 화악지암길 448')
+                const addrRegex = /(([가-힣]+(?:도|시|군|구|읍|면)\s*)+[가-힣0-9·]+(?:로|길)\s*\d+(?:-\d+)?)/g;
+
+                for (const item of (webData.items || [])) {
+                    // HTML 태그 제거 시 공백을 주지 않아야 단어가 깨지지 않음
+                    const text = `${item.title || ''} ${item.description || ''}`.replace(/<[^>]+>/g, '');
+                    let match: RegExpExecArray | null;
+                    while ((match = addrRegex.exec(text)) !== null) {
+                        const candidate = match[1].trim();
+                        if (!addressCandidates.includes(candidate)) {
+                            addressCandidates.push(candidate);
+                        }
+                    }
+                }
+
+                // 추출된 정식 도로명 주소를 카카오 무료 지오코더(일 30만건 무료)로 좌표 변환
+                for (const cand of addressCandidates.slice(0, 3)) {
+                    const cRes = await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(cand)}&size=1`, {
+                        headers: { Authorization: `KakaoAK ${kakaoKey}` }
+                    }).then(r => r.ok ? r.json() : { documents: [] });
+
+                    if (cRes.documents && cRes.documents.length > 0) {
+                        const doc = cRes.documents[0];
+                        const label = doc.road_address?.address_name || doc.address_name;
+                        const address = doc.road_address?.address_name || doc.address_name;
+                        if (label && !seen.has(label)) {
+                            seen.add(label);
+                            results.push({
+                                label,
+                                address,
+                                lat: parseFloat(doc.y),
+                                lng: parseFloat(doc.x)
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (wErr) {
+            console.warn('[CampingProfile] Naver Web address resolution fallback failed:', wErr);
         }
     }
 

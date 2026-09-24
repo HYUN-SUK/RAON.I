@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useMySpaceStore, MapItem } from '@/store/useMySpaceStore';
 import { getMyRecords, CampingRecord } from '@/actions/record'; // Import added
+import { searchAddressAction } from '@/actions/camping-profile';
 import { SITES } from '@/constants/sites';
 import { Modal } from '@/components/ui/Modal';
 import { MapPin, Search, Plus, Loader2, Navigation, Check, X, Locate } from 'lucide-react';
@@ -267,8 +268,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     }, [isOpen, reservations, mapItems, addMapItem, updateMapItem]);
 
 
-    // 3. Search Logic (Kakao Places - Manual Search)
-    const handleSearchExecute = () => {
+    // 3. Search Logic (Unified Address + Places Search via Server Action & Fallback)
+    const handleSearchExecute = async () => {
         const query = searchInputRef.current?.value.trim() || '';
         if (!query) {
             toast.info('검색어를 입력해주세요.');
@@ -283,24 +284,63 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         lastSearchTimeRef.current = now;
 
         setSearchQuery(query);
-
-        if (!window.kakao || !window.kakao.maps.services) {
-            setSearchResults([]);
-            return;
-        }
-
         setIsSearchLoading(true);
-        const ps = new window.kakao.maps.services.Places();
 
-        ps.keywordSearch(query, (data: any[], status: any) => {
-            setIsSearchLoading(false);
-            if (status === window.kakao.maps.services.Status.OK) {
-                setSearchResults(data);
+        try {
+            // 1. 서버 액션 호출 (카카오 장소/주소 + 네이버 로컬 + 네이버 웹 부분주소 Fallback 완벽 지원)
+            const serverResults = await searchAddressAction(query);
+            if (serverResults && serverResults.length > 0) {
+                const mapped = serverResults.map((item, idx) => ({
+                    id: `search-${idx}-${Date.now()}`,
+                    place_name: item.label,
+                    road_address_name: item.address || '',
+                    address_name: item.address || '',
+                    x: String(item.lng),
+                    y: String(item.lat),
+                    lat: item.lat,
+                    lng: item.lng
+                }));
+                setSearchResults(mapped);
+                setIsSearchLoading(false);
+                return;
+            }
+
+            // 2. 서버 액션 0건 시 브라우저 Kakao SDK Places 보조 검색
+            if (window.kakao && window.kakao.maps?.services) {
+                const ps = new window.kakao.maps.services.Places();
+                ps.keywordSearch(query, (data: any[], status: any) => {
+                    setIsSearchLoading(false);
+                    if (status === window.kakao.maps.services.Status.OK) {
+                        setSearchResults(data);
+                    } else {
+                        setSearchResults([]);
+                        toast.info('검색 결과가 없습니다. 다른 키워드로 시도해보세요.');
+                    }
+                });
             } else {
                 setSearchResults([]);
+                setIsSearchLoading(false);
                 toast.info('검색 결과가 없습니다. 다른 키워드로 시도해보세요.');
             }
-        });
+        } catch (err) {
+            console.warn('[MyMapModal] Server search error, fallback to Kakao SDK:', err);
+            if (window.kakao && window.kakao.maps?.services) {
+                const ps = new window.kakao.maps.services.Places();
+                ps.keywordSearch(query, (data: any[], status: any) => {
+                    setIsSearchLoading(false);
+                    if (status === window.kakao.maps.services.Status.OK) {
+                        setSearchResults(data);
+                    } else {
+                        setSearchResults([]);
+                        toast.info('검색 결과가 없습니다. 다른 키워드로 시도해보세요.');
+                    }
+                });
+            } else {
+                setIsSearchLoading(false);
+                setSearchResults([]);
+                toast.info('검색 중 오류가 발생했습니다.');
+            }
+        }
     };
 
 
@@ -380,15 +420,15 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     // --- Handlers ---
 
     const handleSearchSelect = (place: any) => {
-        const lat = parseFloat(place.y);
-        const lng = parseFloat(place.x);
+        const lat = typeof place.lat === 'number' ? place.lat : parseFloat(place.y);
+        const lng = typeof place.lng === 'number' ? place.lng : parseFloat(place.x);
 
         // Show "Add this location?" pin FIRST before changing center
         const pinData = {
             lat,
             lng,
-            name: place.place_name,
-            address: place.road_address_name || place.address_name || '주소 정보 없음'
+            name: place.place_name || place.label || '선택한 장소',
+            address: place.road_address_name || place.address_name || place.address || '주소 정보 없음'
         };
         setPendingPin(pinData);
 
@@ -529,7 +569,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             <input
                                 ref={searchInputRef}
                                 type="text"
-                                placeholder="캠핑장 이름 검색..."
+                                placeholder="장소명 또는 주소 검색 (예: 화악지암길448)..."
                                 className="flex-1 bg-transparent border-none text-base focus:ring-0 outline-none placeholder:text-gray-400 min-w-0"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -590,8 +630,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                             >
                                 <MapPin size={16} className="text-[#388E5A] shrink-0" />
                                 <div className="min-w-0">
-                                    <div className="text-sm font-bold text-gray-800 truncate">{place.place_name}</div>
-                                    <div className="text-xs text-gray-500 truncate">{place.road_address_name || place.address_name}</div>
+                                    <div className="text-sm font-bold text-gray-800 truncate">{place.place_name || place.label}</div>
+                                    <div className="text-xs text-gray-500 truncate">{place.road_address_name || place.address_name || place.address}</div>
                                 </div>
                             </button>
                         )) : (
