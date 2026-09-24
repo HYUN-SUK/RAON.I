@@ -18,7 +18,6 @@ import MyMapModal from "@/components/myspace/MyMapModal";
 import { PenLine } from "lucide-react";
 import { useFabSparkle } from "@/hooks/useFabSparkle";
 import { cn } from "@/lib/utils";
-import ReminderBanner from "@/components/myspace/ReminderBanner";
 import { createClient } from "@/lib/supabase-client";
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 
@@ -114,11 +113,6 @@ export default function MySpacePage() {
             {/* 2. Hero Section (POV & Widgets) */}
             <HeroSection isLoading={pageLoading} emberStats={emberStats} />
 
-            {/* 미작성 일정 기록 독려 배너 */}
-            <ReminderBanner
-                detail={unwrittenScheduleDetail}
-                onClick={handleRecordClick}
-            />
 
             {/* 3. Action Buttons */}
             <ActionButtons />

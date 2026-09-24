@@ -727,15 +727,15 @@ export default function BeginnerHome() {
 
 
 
-            {/* [백그라운드 헛돌기 차단] 미사용 시트 바인딩 주석 처리 */}
-            {/*
+            {/* 홈 아코디언 칩 전용 안내 시트 (길찾기, 문의, 이용수칙, 환불규정) */}
             <HomeDetailSheet
                 isOpen={detailSheetOpen}
                 onClose={() => setDetailSheetOpen(false)}
                 data={detailData}
-                onShuffle={shuffle}
             />
 
+            {/* [백그라운드 헛돌기 차단] 미사용 레시피 및 날씨 시트 계속 주석 유지 */}
+            {/*
             <RecipeDetailSheet
                 isOpen={recipeSheetOpen}
                 onClose={() => setRecipeSheetOpen(false)}

@@ -47,20 +47,51 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
     const [pendingDetailOpen, setPendingDetailOpen] = useState(false);
     const [selectedPending, setSelectedPending] = useState<Reservation | null>(null);
 
-    // 타캠핑장 일정 상태
-    const [schedules, setSchedules] = useState<Schedule[]>([]);
+    // [0초 즉시 렌더링] 로컬 캐시 초기화
+    const [cachedSchedules] = useState<Schedule[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const raw = localStorage.getItem('user_schedules_cache');
+            if (raw) return JSON.parse(raw);
+        } catch {}
+        return [];
+    });
 
-    // 타캠핑장 일정 불러오기
+    // 오늘 동기화 완료 여부 판정
+    const isSyncedToday = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        try {
+            const todayStr = format(new Date(), 'yyyy-MM-dd');
+            const lastSyncDate = localStorage.getItem('last_schedule_sync_date');
+            return lastSyncDate === todayStr;
+        } catch {
+            return false;
+        }
+    }, []);
+
+    // 타캠핑장 일정 상태 (캐시가 있으면 즉시 캐시로 시작하여 깜빡임 차단)
+    const [schedules, setSchedules] = useState<Schedule[]>(cachedSchedules);
+
+    // 타캠핑장 일정 백그라운드 무음 동기화
     useEffect(() => {
+        let isMounted = true;
         const loadSchedules = async () => {
             try {
                 const data = await getMySchedules();
-                setSchedules(data);
+                if (isMounted) {
+                    setSchedules(data);
+                    try {
+                        localStorage.setItem('user_schedules_cache', JSON.stringify(data));
+                        const todayStr = format(new Date(), 'yyyy-MM-dd');
+                        localStorage.setItem('last_schedule_sync_date', todayStr);
+                    } catch {}
+                }
             } catch (error) {
                 console.error('Failed to load schedules:', error);
             }
         };
         loadSchedules();
+        return () => { isMounted = false; };
     }, []);
 
     // 오늘 기준
@@ -273,7 +304,10 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
         setPendingDetailOpen(true);
     };
 
-    if (isLoading) {
+    // 오늘 이미 동기화되었고 캐시된 일정이나 예약이 있는 경우, 부모의 isLoading 중에도 스켈레톤 깜빡임 없이 즉시 카드 렌더링
+    const shouldShowSkeleton = isLoading && (!isSyncedToday || (reservations.length === 0 && schedules.length === 0));
+
+    if (shouldShowSkeleton) {
         return (
             <div className="px-6 pb-6 mt-4 animate-pulse">
                 <div className="flex justify-between items-center mb-4">

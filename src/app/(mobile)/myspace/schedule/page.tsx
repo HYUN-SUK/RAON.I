@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Plus,
@@ -44,7 +44,7 @@ function ScheduleContent() {
     const searchParams = useSearchParams();
     const [isMounted, setIsMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>('scheduled');
-    const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const [allSchedules, setAllSchedules] = useState<Schedule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -75,84 +75,97 @@ function ScheduleContent() {
         }
     }, [searchParams]);
 
-    // 일정 조회
-    const fetchSchedules = async () => {
-        setIsLoading(true);
+    // 전체 일정 및 예약 최초 1회 통합 로드 (Promise.all 병렬 처리)
+    const loadData = useCallback(async (isInitial = false) => {
+        if (isInitial) setIsLoading(true);
         try {
-            const data = await getMySchedules(activeTab);
-            
-            if (activeTab === 'scheduled') {
-                const todayStr = new Date().toISOString().split('T')[0];
-                
-                // 최신 예약을 한 번 더 로드하여 안전하게 확보
-                const latestReservations = await fetchMyReservations();
-                
-                // PENDING 상태인 예약들을 Schedule 포맷으로 변환
-                const pendingReservations = latestReservations
-                    .filter(r => r.status === 'PENDING' && new Date(r.checkOutDate) >= new Date(todayStr))
-                    .map(r => {
-                        const siteName = SITES.find(s => s.id === r.siteId)?.name || r.siteId;
-                        return {
-                            id: r.id,
-                            reservation_id: r.id,
-                            user_id: r.userId,
-                            campground_name: `라온아이 (${siteName})`,
-                            campground_address: r.siteId,
-                            check_in: r.checkInDate instanceof Date ? r.checkInDate.toISOString() : r.checkInDate,
-                            check_out: r.checkOutDate instanceof Date ? r.checkOutDate.toISOString() : r.checkOutDate,
-                            memo: r.requests || '',
-                            status: 'scheduled' as const,
-                            source: 'raonai' as const,
-                            created_at: r.createdAt ? (r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt) : new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                            is_pending_reservation: true // 가상 플래그
-                        };
-                    });
-
-                // 데이터 병합
-                const combined = [...pendingReservations, ...data];
-                
-                // 날짜 정렬 (체크인 빠른 순)
-                combined.sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
-                setSchedules(combined as any);
-            } else {
-                setSchedules(data);
-            }
+            const [schedulesData] = await Promise.all([
+                getMySchedules(),
+                fetchMyReservations()
+            ]);
+            setAllSchedules(schedulesData || []);
         } catch (error) {
             console.error('Fetch schedules error:', error);
             toast.error('일정을 불러오는데 실패했어요');
         } finally {
-            setIsLoading(false);
+            if (isInitial) setIsLoading(false);
         }
-    };
+    }, [fetchMyReservations]);
 
     useEffect(() => {
-        fetchSchedules();
-        fetchMyReservations();
-    }, [activeTab]);
+        loadData(true);
+    }, [loadData]);
 
-    // 일정 삭제
+    // [v12.0.0] 탭 전환 시 네트워크 재호출 없이 0ms 즉시 메모리 필터링 (스피너 깜빡임 100% 제거)
+    const schedules = useMemo(() => {
+        if (activeTab === 'scheduled') {
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            // PENDING 상태인 예약들을 Schedule 포맷으로 변환
+            const pendingReservations = reservations
+                .filter(r => r.status === 'PENDING' && new Date(r.checkOutDate) >= new Date(todayStr))
+                .map(r => {
+                    const siteName = SITES.find(s => s.id === r.siteId)?.name || r.siteId;
+                    return {
+                        id: r.id,
+                        reservation_id: r.id,
+                        user_id: r.userId,
+                        campground_name: `라온아이 (${siteName})`,
+                        campground_address: r.siteId,
+                        check_in: r.checkInDate instanceof Date ? r.checkInDate.toISOString() : r.checkInDate,
+                        check_out: r.checkOutDate instanceof Date ? r.checkOutDate.toISOString() : r.checkOutDate,
+                        memo: r.requests || '',
+                        status: 'scheduled' as const,
+                        source: 'raonai' as const,
+                        created_at: r.createdAt ? (r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt) : new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_pending_reservation: true // 가상 플래그
+                    };
+                });
+
+            const scheduledList = allSchedules.filter(s => s.status === 'scheduled');
+            const combined = [...pendingReservations, ...scheduledList];
+            // 날짜 정렬 (체크인 빠른 순)
+            combined.sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
+            return combined as Schedule[];
+        } else if (activeTab === 'completed') {
+            const list = allSchedules.filter(s => s.status === 'completed');
+            list.sort((a, b) => new Date(b.check_in).getTime() - new Date(a.check_in).getTime());
+            return list;
+        } else {
+            const list = allSchedules.filter(s => s.status === 'cancelled');
+            list.sort((a, b) => new Date(b.check_in).getTime() - new Date(a.check_in).getTime());
+            return list;
+        }
+    }, [activeTab, allSchedules, reservations]);
+
+    // 일정 삭제 (낙관적 UI 업데이트)
     const handleDelete = async () => {
         if (!deleteTarget) return;
 
-        const result = await deleteSchedule(deleteTarget);
+        const targetId = deleteTarget;
+        setDeleteTarget(null);
+        setAllSchedules(prev => prev.filter(s => s.id !== targetId));
+
+        const result = await deleteSchedule(targetId);
         if (result.success) {
             toast.success('일정이 삭제되었어요');
-            setSchedules(prev => prev.filter(s => s.id !== deleteTarget));
         } else {
             toast.error(result.error || '삭제에 실패했어요');
+            loadData(false);
         }
-        setDeleteTarget(null);
     };
 
-    // 일정 완료
+    // 일정 완료 (낙관적 UI 업데이트)
     const handleComplete = async (scheduleId: string) => {
+        setAllSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, status: 'completed' as const } : s));
+
         const result = await completeSchedule(scheduleId);
         if (result.success) {
             toast.success('캠핑 완료! 🏕️');
-            setSchedules(prev => prev.filter(s => s.id !== scheduleId));
         } else {
             toast.error(result.error || '처리에 실패했어요');
+            loadData(false);
         }
     };
 
@@ -168,7 +181,7 @@ function ScheduleContent() {
     // 일정 등록 성공
     const handleFormSuccess = () => {
         setIsFormOpen(false);
-        fetchSchedules();
+        loadData(false);
     };
 
     // 취소 요청 핸들러
@@ -197,8 +210,7 @@ function ScheduleContent() {
             toast.success('예약이 취소되었어요');
             setPendingCancelConfirmOpen(false);
             setCancelTarget(null);
-            fetchSchedules();
-            fetchMyReservations();
+            loadData(false);
         } catch {
             toast.error('취소 처리에 실패했어요');
         } finally {
@@ -394,8 +406,7 @@ function ScheduleContent() {
                     onComplete={() => {
                         setCancelSheetOpen(false);
                         setCancelTarget(null);
-                        fetchSchedules();
-                        fetchMyReservations();
+                        loadData(false);
                     }}
                 />
             )}

@@ -80,13 +80,7 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
             color: "text-[#1E4D2B]",
             bg: "bg-[#E9EFEA]",
             value: contributionCount > 0 ? `✓ 확인 ${contributionCount}곳` : "XP & Token",
-            onClick: () => {
-                if (contributionCount > 0) {
-                    setIsContributionOpen(true);
-                } else {
-                    router.push('/myspace/wallet');
-                }
-            }
+            onClick: () => router.push('/myspace/wallet')
         },
         {
             icon: Map,
