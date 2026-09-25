@@ -8,13 +8,11 @@ import SlimNotice from '@/components/home/SlimNotice';
 import { PriceGuideSheet } from '@/components/home/PriceGuideSheet';
 import MissionHomeWidget from '@/components/home/MissionHomeWidget';
 import HomeDetailSheet, { HomeDetailData } from '@/components/home/HomeDetailSheet';
-import WeatherDetailSheet from '@/components/home/WeatherDetailSheet';
 import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
-import RecipeDetailSheet, { RecipeData } from '@/components/common/RecipeDetailSheet';
 import InstantPlanModal from '@/components/home/InstantPlanModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
     AlertDialog,
@@ -34,7 +32,6 @@ import { format } from 'date-fns';
 import { toast } from "sonner";
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useLBS } from '@/hooks/useLBS';
-import { usePersonalizedRecommendation } from '@/hooks/usePersonalizedRecommendation';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePushNotification } from '@/hooks/usePushNotification';
@@ -271,12 +268,7 @@ export default function BeginnerHome() {
 
     // Bottom Sheet State
     const [detailSheetOpen, setDetailSheetOpen] = useState(false);
-    const [weatherSheetOpen, setWeatherSheetOpen] = useState(false);
     const [detailData, setDetailData] = useState<HomeDetailData | null>(null);
-
-    // Recipe Sheet State
-    const [recipeSheetOpen, setRecipeSheetOpen] = useState(false);
-    const [recipeData, setRecipeData] = useState<RecipeData | null>(null);
 
     // Nearby LBS Sheet State (Real-time Events)
     const [nearbySheetOpen, setNearbySheetOpen] = useState(false);
@@ -480,24 +472,9 @@ export default function BeginnerHome() {
                 return;
             }
 
-            // Cooking Category -> RecipeDetailSheet
+            // Cooking Category -> Navigate to /recipe
             if (item.category === 'cooking') {
-                // Map RecommendationItem to RecipeData
-                setRecipeData({
-                    id: (item as unknown as { id?: string }).id || 'unknown',
-                    title: item.title,
-                    description: item.description || undefined,
-                    category: 'cooking',
-                    image_url: item.image_url || undefined,
-                    ingredients: item.ingredients as unknown as string[],
-                    steps: (item.process_steps as unknown as string[]) || (item.steps as unknown as string[]),
-                    tips: item.tips || undefined,
-                    time_required: item.time_required || undefined,
-                    difficulty: item.difficulty || undefined,
-                    servings: item.servings || undefined,
-                    calories: item.calories || undefined,
-                });
-                setRecipeSheetOpen(true);
+                router.push('/recipe');
                 return;
             }
 
@@ -735,24 +712,6 @@ export default function BeginnerHome() {
                 data={detailData}
             />
 
-            {/* [백그라운드 헛돌기 차단] 미사용 레시피 및 날씨 시트 계속 주석 유지 */}
-            {/*
-            <RecipeDetailSheet
-                isOpen={recipeSheetOpen}
-                onClose={() => setRecipeSheetOpen(false)}
-                initialData={recipeData}
-            />
-
-            {
-                weather && (
-                    <WeatherDetailSheet
-                        isOpen={weatherSheetOpen}
-                        onClose={() => setWeatherSheetOpen(false)}
-                        weather={weather}
-                    />
-                )
-            }
-            */}
 
             {/* Live LBS Events Sheet */}
             <NearbyDetailSheet

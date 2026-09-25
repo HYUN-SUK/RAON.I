@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useReservationStore } from '@/store/useReservationStore';
 import { useMySpaceStore, MapItem } from '@/store/useMySpaceStore';
-import { getMyRecords, CampingRecord } from '@/actions/record'; // Import added
+import { getMyRecords } from '@/actions/record';
 import { searchAddressAction } from '@/actions/camping-profile';
 import { SITES } from '@/constants/sites';
 import { Modal } from '@/components/ui/Modal';
@@ -14,9 +14,6 @@ import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } fro
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useModalBackHandler } from '@/hooks/useModalBackHandler';
 import { toast } from 'sonner';
-
-
-import VerificationPromptModal from '@/components/moat/VerificationPromptModal';
 
 // Kakao Maps SDK Type Augmentation for TypeScript
 declare global {
