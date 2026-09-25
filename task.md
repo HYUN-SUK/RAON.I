@@ -1,5 +1,16 @@
 # Task Management
 
+## Completed Tasks (2026-09-25)
+- [x] **마일스톤 9.69**: 장소 카드 [ ⇄ 변경 ] 에메랄드 테마 통일 및 대체리스트 [🗺️ 지도로 한눈에 비교] 라이브 핑 버튼 고도화 완결
+  - **장소 카드 [ ⇄ 변경 ] 버튼 컬러 아이덴티티 통일 (`InstantPlanModal.tsx`, `SmartPlanProposal.tsx`)**:
+    - 기존 칙칙한 무채색(Stone-300) 테두리 대신 산뜻한 포레스트 에메랄드 테두리(`border-2 border-emerald-400 bg-emerald-50 text-emerald-800`)를 전체 장소카드에 균일 적용하여 시각적 과밀(Clutter) 없이 "누를 수 있는 액션 버튼"임을 직관화.
+    - 과도한 텍스트 바나 펄스 링/뱃지 배제로 SSOT v9의 핵심 원칙인 담백함(Clarity)과 카드 본문 가독성 100% 보존.
+  - **대체리스트 [🗺️ 지도로 한눈에 비교] 버튼 시인성 혁신 (`InstantPlanModal.tsx`, `SmartPlanProposal.tsx`)**:
+    - 단순 "지도로 보기"에서 "🗺️ 지도로 한눈에 비교"로 직관적인 가치 제안 카피라이팅 전환.
+    - 버튼 좌측에 은은하게 깜빡이는 초미니 라이브 펄스 링(`animate-ping bg-emerald-300`) 장착으로 시선 집중.
+    - `shrink-0` 및 `whitespace-nowrap`을 적용하여 360px 모바일 화면에서도 1줄 정렬 무결성 확보.
+  - **빌드 검증**: `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 ## Completed Tasks (2026-09-24)
 - [x] **마일스톤 9.68**: 주소·부분주소 무료 통합 검색 고도화 및 나의 전체 여행일정 첫 진입 0초 즉시 렌더링(SWR) 완결
   - **주소 및 부분주소 무료 통합 검색 (`searchAddressAction`, `MyMapModal.tsx`)**:

@@ -1513,10 +1513,14 @@ export default function InstantPlanModal({
                                                     onClick={() => {
                                                         handleOpenAlternativesMap(currentActive, allOptions);
                                                     }}
-                                                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs h-8 px-3 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                                                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-black text-xs h-8 px-2.5 rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap"
+                                                    title="후보 장소들의 위치와 동선을 지도에서 한눈에 비교"
                                                 >
-                                                    <MapIcon className="w-3.5 h-3.5 text-emerald-300" />
-                                                    <span>지도로 보기</span>
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                                    </span>
+                                                    <span>🗺️ 지도로 한눈에 비교</span>
                                                 </Button>
                                             </div>
 
@@ -1789,7 +1793,7 @@ export default function InstantPlanModal({
                             <div className="w-10 h-10 rounded-xl bg-[#F8FAF8] text-[#1E4D2B] flex items-center justify-center shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.03)] text-lg border border-[#388E5A]/15 shrink-0">
                                 {CATEGORY_ICONS[card.category] || '📍'}
                             </div>
-                            {/* Swap Button (h-14 w-10: 세로 알약형 + 변경 라벨 + 선명한 2px 테두리) */}
+                            {/* Swap Button (h-14 w-10: 세로 알약형 + 변경 라벨 + 선명한 2px 에메랄드 테두리) */}
                             {allowSwap && !options?.isAlternativeMapMode && (
                                 <Button
                                     size="icon"
@@ -1801,10 +1805,10 @@ export default function InstantPlanModal({
                                         setSwapTargetId(card.id);
                                         pushSubsheetHistory();
                                     }}
-                                    className="h-14 w-10 rounded-2xl bg-stone-50 dark:bg-zinc-800 text-stone-700 dark:text-stone-200 hover:text-[#388E5A] hover:bg-[#388E5A]/10 border-2 border-stone-300 dark:border-zinc-600 hover:border-[#388E5A]/60 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
+                                    className="h-14 w-10 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 hover:text-emerald-900 hover:bg-emerald-100 border-2 border-emerald-400/90 dark:border-emerald-600 hover:border-emerald-500 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 shadow-xs cursor-pointer"
                                     title="다른 장소로 교체"
                                 >
-                                    <ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />
+                                    <ArrowRightLeft className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                                     <span className="text-[9px] font-black tracking-tighter leading-none select-none">변경</span>
                                 </Button>
                             )}
