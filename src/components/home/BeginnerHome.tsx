@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { Navigation, Phone, Map, Mountain, Tag, Tent, Clock, ChefHat, ChevronRight, ChevronDown, Calendar, Sparkles, MapPin } from 'lucide-react';
+import { Navigation, Phone, Map, Mountain, Tag, Tent, Clock, ChefHat, ChevronRight, ChevronDown, Calendar, Sparkles, MapPin, ExternalLink, Search } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import NotificationBadge from '@/components/common/NotificationBadge';
 import SlimNotice from '@/components/home/SlimNotice';
@@ -45,6 +45,9 @@ import ReminderModal from '@/components/myspace/ReminderModal';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
+
+// [v14.4.0] 구글 앱 심사 기간 동안 '내 주변 찾기' 일시 제한 안내 팝업 플래그 (배포 완료 시 false 전환)
+const IS_GPS_NOTICE_ACTIVE = true;
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
@@ -925,104 +928,195 @@ export default function BeginnerHome() {
 
                         {/* 내 주변 즉시 맛집 · 관광지 찾기 확인/선택 팝업 */}
                         <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
-                            <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
-                                <AlertDialogHeader className="space-y-2 text-left">
-                                    <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                                        <div className="p-2 bg-[#EDF5EE] text-[#388E5A] dark:text-emerald-400 rounded-xl">
-                                            <MapPin className="w-4 h-4" />
-                                        </div>
-                                        내 주변 맛집 · 관광지 찾기
-                                    </AlertDialogTitle>
-                                    {/* 권한 여부에 따른 맞춤 안내 문구 */}
-                                    {isLocationGranted ? (
-                                        <AlertDialogDescription className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed font-medium">
-                                            현재 계신 위치(실시간 GPS)를 기반으로 내 주변 5km 검증된 맛집·카페·관광지·편의시설을 즉시 찾아드릴까요?
-                                        </AlertDialogDescription>
-                                    ) : (
-                                        <div className="space-y-2.5 text-left">
-                                            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
-                                                현재 계신 위치(실시간 GPS)를 기반으로 내 주변 5km 검증된 맛집·카페·관광지를 즉시 찾아드릴까요?
-                                            </p>
-                                            <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/60 leading-relaxed font-medium">
-                                                💡 <strong>위치 정보(GPS) 권한을 허용</strong>하시면 현재 계신 곳 주변으로 맞춤 추천되며, 미동의 시 대표 기준 위치(라온아이 캠핑장)로 추천됩니다.
+                            {IS_GPS_NOTICE_ACTIVE ? (
+                                <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
+                                    <AlertDialogHeader className="space-y-2 text-left">
+                                        <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                                            <div className="p-2 bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 rounded-xl">
+                                                <Sparkles className="w-4 h-4" />
                                             </div>
-                                        </div>
-                                    )}
-                                </AlertDialogHeader>
+                                            <span>⚡ '내 주변 찾기' 일시 제한 안내</span>
+                                        </AlertDialogTitle>
+                                        <div className="space-y-3 text-left pt-1">
+                                            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
+                                                구글 앱 업데이트 심사 중으로 인해, <strong className="text-amber-700 dark:text-amber-300 font-bold">앱 내 '실시간 GPS 탐색'이 일시적으로 제한</strong>되고 있습니다.
+                                            </p>
 
-                                {/* 권한 여부에 따른 푸터 버튼 분기 */}
-                                {isLocationGranted ? (
-                                    <AlertDialogFooter className="flex flex-row items-center justify-end gap-2 mt-4">
-                                        <AlertDialogCancel 
-                                            onClick={() => setIsNearbyConfirmOpen(false)}
-                                            className="flex-1 h-10 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100 dark:hover:bg-zinc-800 mt-0"
-                                        >
-                                            아니오
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                            onClick={() => {
-                                                setIsNearbyConfirmOpen(false);
-                                                handleNearbyPlanClick(false);
-                                            }}
-                                            className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm"
-                                        >
-                                            확인
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                ) : (
+                                            <div className="p-3 bg-stone-50 dark:bg-zinc-800/80 rounded-2xl border border-stone-200/80 dark:border-zinc-700/80 space-y-2 text-[11.5px] leading-relaxed">
+                                                <div className="flex items-start gap-1.5">
+                                                    <span className="shrink-0 text-emerald-600 font-bold">🌐</span>
+                                                    <p className="text-stone-700 dark:text-stone-200">
+                                                        <strong>지금 내 위치로 찾기:</strong> 일반 인터넷(크롬/사파리) 브라우저로 접속하시면 즉시 정상 이용 가능합니다.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start gap-1.5">
+                                                    <span className="shrink-0 text-amber-600 font-bold">📍</span>
+                                                    <p className="text-stone-700 dark:text-stone-200">
+                                                        <strong>원하는 지역으로 찾기:</strong> 지역명을 직접 입력하여 주변 명소를 찾아보세요.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <p className="text-[11px] text-stone-400 dark:text-stone-500 leading-normal">
+                                                곧 업데이트가 완료되어 정상 서비스될 예정입니다. 불편을 드려 죄송합니다.
+                                            </p>
+                                        </div>
+                                    </AlertDialogHeader>
+
                                     <div className="flex flex-col gap-2 mt-4">
-                                        {/* 1. [위치 동의하고 내 주변 찾기] - User Gesture 직결 브라우저 Geolocation 호출 & 동의 복구 */}
+                                        {/* 1. [웹 브라우저에서 내 위치 찾기] */}
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                try {
-                                                    localStorage.setItem('raon_location_granted', 'true');
-                                                } catch {}
-                                                if (typeof window !== 'undefined' && navigator.geolocation) {
-                                                    try {
-                                                        navigator.geolocation.getCurrentPosition(
-                                                            (pos) => {
-                                                                setNearbyCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                                                            },
-                                                            (err) => {
-                                                                console.warn("User gesture geolocation trigger error:", err);
-                                                            },
-                                                            { timeout: 4000, enableHighAccuracy: true, maximumAge: 0 }
-                                                        );
-                                                    } catch {}
-                                                }
                                                 setIsNearbyConfirmOpen(false);
-                                                handleNearbyPlanClick(false);
+                                                if (typeof window !== 'undefined') {
+                                                    window.open('https://raon-i.co.kr', '_blank');
+                                                }
                                             }}
-                                            className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                                            className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
                                         >
-                                            <MapPin className="w-3.5 h-3.5 text-emerald-100" />
-                                            <span>📍 위치 동의하고 내 주변 찾기</span>
+                                            <ExternalLink className="w-3.5 h-3.5 text-emerald-100" />
+                                            <span>🌐 웹 브라우저에서 내 위치 찾기</span>
                                         </button>
 
-                                        {/* 2. [동의 없이 시작 (라온아이 기준)] */}
+                                        {/* 2. [원하는 지역명으로 찾기] */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsNearbyConfirmOpen(false);
+                                                setSelectedAnchorDest(null);
+                                                setNearbyFallbackNotice(null);
+                                                setInstantPlanMode('DESTINATION');
+                                                setInstantPlanOpen(true);
+                                            }}
+                                            className="w-full h-10 rounded-xl text-xs font-bold text-[#8C5D1E] dark:text-[#F3D4A0] bg-[#FBE7C6] dark:bg-zinc-850 hover:bg-[#F5DACB] border border-[#D4A359]/60 dark:border-zinc-700 shadow-2xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                                        >
+                                            <Search className="w-3.5 h-3.5 text-[#8C5D1E] dark:text-[#F3D4A0]" />
+                                            <span>🔍 원하는 지역명으로 찾기</span>
+                                        </button>
+
+                                        {/* 3. [라온아이 기준으로 계속하기] */}
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 setIsNearbyConfirmOpen(false);
                                                 handleNearbyPlanClick(true);
                                             }}
-                                            className="w-full h-10 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98]"
+                                            className="w-full h-10 rounded-xl text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98] cursor-pointer"
                                         >
-                                            🏕️ 동의 없이 시작 (라온아이 기준)
+                                            🏕️ 라온아이 기준으로 계속하기
                                         </button>
 
-                                        {/* 3. [닫기] */}
+                                        {/* 4. [닫기] */}
                                         <button
                                             type="button"
                                             onClick={() => setIsNearbyConfirmOpen(false)}
-                                            className="w-full py-1.5 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium transition-colors"
+                                            className="w-full py-1.5 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium transition-colors cursor-pointer"
                                         >
                                             닫기
                                         </button>
                                     </div>
-                                )}
-                            </AlertDialogContent>
+                                </AlertDialogContent>
+                            ) : (
+                                <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
+                                    <AlertDialogHeader className="space-y-2 text-left">
+                                        <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                                            <div className="p-2 bg-[#EDF5EE] text-[#388E5A] dark:text-emerald-400 rounded-xl">
+                                                <MapPin className="w-4 h-4" />
+                                            </div>
+                                            내 주변 맛집 · 관광지 찾기
+                                        </AlertDialogTitle>
+                                        {/* 권한 여부에 따른 맞춤 안내 문구 */}
+                                        {isLocationGranted ? (
+                                            <AlertDialogDescription className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed font-medium">
+                                                현재 계신 위치(실시간 GPS)를 기반으로 내 주변 5km 검증된 맛집·카페·관광지·편의시설을 즉시 찾아드릴까요?
+                                            </AlertDialogDescription>
+                                        ) : (
+                                            <div className="space-y-2.5 text-left">
+                                                <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
+                                                    현재 계신 위치(실시간 GPS)를 기반으로 내 주변 5km 검증된 맛집·카페·관광지를 즉시 찾아드릴까요?
+                                                </p>
+                                                <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/60 leading-relaxed font-medium">
+                                                    💡 <strong>위치 정보(GPS) 권한을 허용</strong>하시면 현재 계신 곳 주변으로 맞춤 추천되며, 미동의 시 대표 기준 위치(라온아이 캠핑장)로 추천됩니다.
+                                                </div>
+                                            </div>
+                                        )}
+                                    </AlertDialogHeader>
+
+                                    {/* 권한 여부에 따른 푸터 버튼 분기 */}
+                                    {isLocationGranted ? (
+                                        <AlertDialogFooter className="flex flex-row items-center justify-end gap-2 mt-4">
+                                            <AlertDialogCancel 
+                                                onClick={() => setIsNearbyConfirmOpen(false)}
+                                                className="flex-1 h-10 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100 dark:hover:bg-zinc-800 mt-0"
+                                            >
+                                                아니오
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={() => {
+                                                    setIsNearbyConfirmOpen(false);
+                                                    handleNearbyPlanClick(false);
+                                                }}
+                                                className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm"
+                                            >
+                                                확인
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    ) : (
+                                        <div className="flex flex-col gap-2 mt-4">
+                                            {/* 1. [위치 동의하고 내 주변 찾기] - User Gesture 직결 브라우저 Geolocation 호출 & 동의 복구 */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    try {
+                                                        localStorage.setItem('raon_location_granted', 'true');
+                                                    } catch {}
+                                                    if (typeof window !== 'undefined' && navigator.geolocation) {
+                                                        try {
+                                                            navigator.geolocation.getCurrentPosition(
+                                                                (pos) => {
+                                                                    setNearbyCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                                                                },
+                                                                (err) => {
+                                                                    console.warn("User gesture geolocation trigger error:", err);
+                                                                },
+                                                                { timeout: 4000, enableHighAccuracy: true, maximumAge: 0 }
+                                                            );
+                                                        } catch {}
+                                                    }
+                                                    setIsNearbyConfirmOpen(false);
+                                                    handleNearbyPlanClick(false);
+                                                }}
+                                                className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                                            >
+                                                <MapPin className="w-3.5 h-3.5 text-emerald-100" />
+                                                <span>📍 위치 동의하고 내 주변 찾기</span>
+                                            </button>
+
+                                            {/* 2. [동의 없이 시작 (라온아이 기준)] */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsNearbyConfirmOpen(false);
+                                                    handleNearbyPlanClick(true);
+                                                }}
+                                                className="w-full h-10 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98]"
+                                            >
+                                                🏕️ 동의 없이 시작 (라온아이 기준)
+                                            </button>
+
+                                            {/* 3. [닫기] */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsNearbyConfirmOpen(false)}
+                                                className="w-full py-1.5 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium transition-colors"
+                                            >
+                                                닫기
+                                            </button>
+                                        </div>
+                                    )}
+                                </AlertDialogContent>
+                            )}
                         </AlertDialog>
                     </>
                 );
