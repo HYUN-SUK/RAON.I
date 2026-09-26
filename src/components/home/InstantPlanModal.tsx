@@ -177,6 +177,7 @@ export default function InstantPlanModal({
     const subsheetDepthRef = React.useRef<number>(0); // 0: 없음, 1: 대체리스트/내비, 2: 지도
     const isHandlingPopStateRef = React.useRef(false);
     const isProgrammaticBackRef = React.useRef(false);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     // 하위 시트(대체리스트, 내비) 오픈 시 가상 히스토리 등록 (depth 1단계씩 동적 적재)
     const pushSubsheetHistory = React.useCallback(() => {
@@ -645,6 +646,25 @@ export default function InstantPlanModal({
         }
     }, [isOpen, initialMode, todayStr, defaultSaturday, skipLocationRequest, userLat, userLng, initialDraftData, planData, step]);
 
+    // [UI/UX] 모달 오픈 시 또는 INPUT 스텝 전환 시 본문 스크롤을 항상 최상단으로 강제 초기화하여
+    // 상단 헤더 및 목적지 검색창이 모바일 화면 최상단에 안정적으로 100% 노출되도록 보장
+    useEffect(() => {
+        if (isOpen && step === 'INPUT') {
+            const resetScroll = () => {
+                if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+                }
+            };
+            resetScroll();
+            const timer1 = setTimeout(resetScroll, 50);
+            const timer2 = setTimeout(resetScroll, 150);
+            return () => {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+            };
+        }
+    }, [isOpen, step]);
+
     // Handle address / keyword search (Only triggered upon Enter key or [검색] button click)
     const handleSearch = async (query: string) => {
         const trimmed = query.trim();
@@ -934,7 +954,11 @@ export default function InstantPlanModal({
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="bottom" className="max-w-[430px] mx-auto left-0 right-0 rounded-t-3xl max-h-[92vh] h-[92vh] flex flex-col p-0 bg-stone-50 dark:bg-zinc-950 overflow-hidden">
+            <SheetContent
+                side="bottom"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                className="max-w-[430px] mx-auto left-0 right-0 rounded-t-3xl max-h-[92vh] max-h-[92dvh] h-[92vh] h-[92dvh] flex flex-col p-0 bg-stone-50 dark:bg-zinc-950 overflow-hidden"
+            >
                 {/* 상단 헤더 */}
                 <SheetHeader className="p-4 pb-3 border-b border-stone-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
                     <div className="flex items-center justify-between">
@@ -976,7 +1000,7 @@ export default function InstantPlanModal({
                 </SheetHeader>
 
                 {/* 본문 영역 */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4">
                     {/* 1. 입력 단계 (INPUT) */}
                     {step === 'INPUT' && (
                         <div className="space-y-5 py-2">
@@ -996,6 +1020,12 @@ export default function InstantPlanModal({
                                                 if (!e.target.value.trim()) {
                                                     setSearchResults([]);
                                                 }
+                                            }}
+                                            onFocus={() => {
+                                                // 모바일 가상 키보드가 올라올 때도 상단 헤더 및 검색창이 가려지지 않고 최상단에 안정적으로 유지되도록 스크롤 앵커링
+                                                setTimeout(() => {
+                                                    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                                                }, 100);
                                             }}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
