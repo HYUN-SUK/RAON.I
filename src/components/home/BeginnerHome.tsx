@@ -938,7 +938,7 @@ export default function BeginnerHome() {
                                             <div className="p-2 bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 rounded-xl">
                                                 <Sparkles className="w-4 h-4" />
                                             </div>
-                                            <span>⚡ '내 주변 찾기' 일시 안내</span>
+                                            <span>⚡ '내 주변 찾기' 일시 제한 안내</span>
                                         </AlertDialogTitle>
                                         <div className="space-y-3 text-left pt-1">
                                             <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
