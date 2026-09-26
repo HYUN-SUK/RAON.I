@@ -45,6 +45,7 @@ import ReminderModal from '@/components/myspace/ReminderModal';
 import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
+import { useAppStandaloneDetector } from '@/hooks/useAppStandaloneDetector';
 
 // [v14.4.0] 구글 앱 심사 기간 동안 '내 주변 찾기' 일시 제한 안내 팝업 플래그 (배포 완료 시 false 전환)
 const IS_GPS_NOTICE_ACTIVE = true;
@@ -94,6 +95,7 @@ export default function BeginnerHome() {
     const router = useRouter();
     const { config } = useSiteConfig(); // Dynamic Config
     const lbs = useLBS(); // Real-time Location
+    const { isAppUser } = useAppStandaloneDetector();
 
     const [isMounted, setIsMounted] = useState(false);
 
@@ -861,6 +863,7 @@ export default function BeginnerHome() {
                 const isLocationGranted = !isAppLocationDisabled && (lbs.permissionStatus === 'granted' || (!lbs.usingDefault && !lbs.isLoading));
                 const actualUserLat = (!isAppLocationDisabled && !lbs.usingDefault && !lbs.isLoading) ? lbs.location?.latitude : undefined;
                 const actualUserLng = (!isAppLocationDisabled && !lbs.usingDefault && !lbs.isLoading) ? lbs.location?.longitude : undefined;
+                const showGpsNotice = IS_GPS_NOTICE_ACTIVE && isAppUser;
 
                 return (
                     <>
@@ -903,7 +906,7 @@ export default function BeginnerHome() {
                                     <AlertDialogCancel
                                         onClick={() => {
                                             try { window.localStorage?.removeItem('raon_draft_instant_plan'); } catch {}
-                                             setDraftToRestore(null);
+                                            setDraftToRestore(null);
                                             setIsRestoreModalOpen(false);
                                             toast.info('임시 보관된 일정을 삭제했습니다.');
                                         }}
@@ -928,58 +931,43 @@ export default function BeginnerHome() {
 
                         {/* 내 주변 즉시 맛집 · 관광지 찾기 확인/선택 팝업 */}
                         <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
-                            {IS_GPS_NOTICE_ACTIVE ? (
+                            {showGpsNotice ? (
                                 <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
                                     <AlertDialogHeader className="space-y-2 text-left">
                                         <AlertDialogTitle className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                                             <div className="p-2 bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 rounded-xl">
                                                 <Sparkles className="w-4 h-4" />
                                             </div>
-                                            <span>⚡ '내 주변 찾기' 일시 제한 안내</span>
+                                            <span>⚡ '내 주변 찾기' 일시 안내</span>
                                         </AlertDialogTitle>
                                         <div className="space-y-3 text-left pt-1">
                                             <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
-                                                구글 앱 업데이트 심사 중으로 인해, <strong className="text-amber-700 dark:text-amber-300 font-bold">앱 내 '실시간 GPS 탐색'이 일시적으로 제한</strong>되고 있습니다.
+                                                구글 앱 업데이트 심사 중으로 인해, 앱 내 '실시간 GPS 탐색' 대신 <strong className="text-emerald-700 dark:text-emerald-400 font-bold">지역 검색</strong>을 이용하시면 바로 주변 맛집·명소를 추천받으실 수 있습니다.
                                             </p>
 
                                             <div className="p-3 bg-stone-50 dark:bg-zinc-800/80 rounded-2xl border border-stone-200/80 dark:border-zinc-700/80 space-y-2 text-[11.5px] leading-relaxed">
                                                 <div className="flex items-start gap-1.5">
-                                                    <span className="shrink-0 text-emerald-600 font-bold">🌐</span>
+                                                    <span className="shrink-0 text-emerald-600 font-bold">🔍</span>
                                                     <p className="text-stone-700 dark:text-stone-200">
-                                                        <strong>지금 내 위치로 찾기:</strong> 일반 인터넷(크롬/사파리) 브라우저로 접속하시면 즉시 정상 이용 가능합니다.
+                                                        <strong>원하는 지역명 검색:</strong> 가평, 강릉, 제주시 등 원하는 지역명을 입력하면 1초 만에 최적 코스를 만듭니다.
                                                     </p>
                                                 </div>
                                                 <div className="flex items-start gap-1.5">
-                                                    <span className="shrink-0 text-amber-600 font-bold">📍</span>
+                                                    <span className="shrink-0 text-[#8C5D1E] font-bold">🏕️</span>
                                                     <p className="text-stone-700 dark:text-stone-200">
-                                                        <strong>원하는 지역으로 찾기:</strong> 지역명을 직접 입력하여 주변 명소를 찾아보세요.
+                                                        <strong>라온아이 기준 탐색:</strong> 캠핑장 주변 명소를 바로 탐색합니다.
                                                     </p>
                                                 </div>
                                             </div>
 
                                             <p className="text-[11px] text-stone-400 dark:text-stone-500 leading-normal">
-                                                곧 업데이트가 완료되어 정상 서비스될 예정입니다. 불편을 드려 죄송합니다.
+                                                곧 업데이트가 완료되어 실시간 GPS 기능이 정상화됩니다.
                                             </p>
                                         </div>
                                     </AlertDialogHeader>
 
                                     <div className="flex flex-col gap-2 mt-4">
-                                        {/* 1. [웹 브라우저에서 내 위치 찾기] */}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setIsNearbyConfirmOpen(false);
-                                                if (typeof window !== 'undefined') {
-                                                    window.open('https://raon-i.co.kr', '_blank');
-                                                }
-                                            }}
-                                            className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
-                                        >
-                                            <ExternalLink className="w-3.5 h-3.5 text-emerald-100" />
-                                            <span>🌐 웹 브라우저에서 내 위치 찾기</span>
-                                        </button>
-
-                                        {/* 2. [원하는 지역명으로 찾기] */}
+                                        {/* 1. [원하는 지역명으로 찾기] - 메인 추천 1순위 */}
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -989,22 +977,45 @@ export default function BeginnerHome() {
                                                 setInstantPlanMode('DESTINATION');
                                                 setInstantPlanOpen(true);
                                             }}
-                                            className="w-full h-10 rounded-xl text-xs font-bold text-[#8C5D1E] dark:text-[#F3D4A0] bg-[#FBE7C6] dark:bg-zinc-850 hover:bg-[#F5DACB] border border-[#D4A359]/60 dark:border-zinc-700 shadow-2xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                                            className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
                                         >
-                                            <Search className="w-3.5 h-3.5 text-[#8C5D1E] dark:text-[#F3D4A0]" />
-                                            <span>🔍 원하는 지역명으로 찾기</span>
+                                            <Search className="w-4 h-4 text-emerald-100" />
+                                            <span>🔍 원하는 지역명으로 찾기 (추천)</span>
                                         </button>
 
-                                        {/* 3. [라온아이 기준으로 계속하기] */}
+                                        {/* 2. [라온아이 캠핑장 주변 보기] */}
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 setIsNearbyConfirmOpen(false);
                                                 handleNearbyPlanClick(true);
                                             }}
-                                            className="w-full h-10 rounded-xl text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98] cursor-pointer"
+                                            className="w-full h-10 rounded-xl text-xs font-bold text-[#8C5D1E] dark:text-[#F3D4A0] bg-[#FBE7C6] dark:bg-zinc-850 hover:bg-[#F5DACB] border border-[#D4A359]/60 dark:border-zinc-700 shadow-2xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
-                                            🏕️ 라온아이 기준으로 계속하기
+                                            <span>🏕️ 라온아이 캠핑장 주변 보기</span>
+                                        </button>
+
+                                        {/* 3. [외부 크롬 브라우저에서 열기] - 안드로이드 인텐트 호출 + 클립보드 복사 백업 */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsNearbyConfirmOpen(false);
+                                                try {
+                                                    navigator.clipboard.writeText('https://raon-i.co.kr');
+                                                } catch {}
+                                                toast.success("웹 주소(raon-i.co.kr)가 복사되었습니다.");
+                                                if (typeof window !== 'undefined') {
+                                                    if (/Android/i.test(navigator.userAgent)) {
+                                                        window.location.href = "intent://raon-i.co.kr#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.android.chrome;end";
+                                                    } else {
+                                                        window.open('https://raon-i.co.kr', '_blank');
+                                                    }
+                                                }
+                                            }}
+                                            className="w-full h-9 rounded-xl text-[11px] font-medium text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                                        >
+                                            <ExternalLink className="w-3.5 h-3.5 text-stone-400" />
+                                            <span>🌐 외부 브라우저(크롬)에서 열기</span>
                                         </button>
 
                                         {/* 4. [닫기] */}
