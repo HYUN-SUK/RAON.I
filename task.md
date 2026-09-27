@@ -1,5 +1,17 @@
 # Task Management
 
+## Completed Tasks (2026-09-27)
+- [x] **마일스톤 9.73**: [내 주변 찾기] 팝업 '히스토리 바통 터치(ReplaceState)' 뒤로가기 가드 & 알림 뱃지 영구 읽음 완결
+  - **[내 주변 찾기] 팝업 모바일 뒤로가기 가드 및 히스토리 바통 터치 (`BeginnerHome.tsx`, `InstantPlanModal.tsx`)**:
+    - 팝업 오픈 시 `window.history.pushState({ raonPopup: 'nearby_confirm' })` 가상 히스토리 적재.
+    - 스마트폰 뒤로가기 시 `popstate` 감지로 팝업만 조용히 닫힘 처리하여 홈 화면 잔류 보장.
+    - 다음 모달 진행 시 `window.history.replaceState({ raonModal: 'instant_plan' })`를 적용하여 `history.back()`과의 비동기 경합(Race Condition) 0% 차단 및 이전 결과 잔존 버그 완벽 박멸.
+  - **알림 뱃지 영구 읽음 처리 및 재로그인 재발 완치 (`notification.ts`, `notifications/page.tsx`, `NotificationBadge.tsx`)**:
+    - `notifications` 테이블에 본인 알림 `UPDATE` 허용 RLS 정책 추가 (`20260927000000_fix_notifications_update_rls.sql`).
+    - `markAllNotificationsAsReadAction()` Server Action 신설로 DB의 `is_read = true` 저장 100% 보장.
+    - 사용자 ID 기반 `localStorage` 타임스탬프 이중 검증으로, 재로그인 시에도 확인했던 알림이 뱃지로 다시 뜨는 현상 완벽 방어.
+  - **무결성 검증**: `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 ## Completed Tasks (2026-09-26)
 - [x] **마일스톤 9.72**: [바로 여행계획 만들기] 모바일 모달 오픈 시 상단 헤더 및 목적지 검색창 최우선 노출 및 가상 키보드 밀림 방어 완결
   - **Radix UI Sheet 자동 포커스 차단 (`onOpenAutoFocus={(e) => e.preventDefault()}`)**:

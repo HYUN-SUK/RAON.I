@@ -252,8 +252,13 @@ export default function InstantPlanModal({
 
         // 1. 모달 루트 진입 시 가상 히스토리 등록 (Level 1)
         if (!modalHistoryPushedRef.current && typeof window !== 'undefined') {
-            window.history.pushState({ raonModal: 'instant_plan' }, '', window.location.href);
-            modalHistoryPushedRef.current = true;
+            // 만약 이전 팝업에서 replaceState로 이미 raonModal 히스토리를 승계받았다면 중복 pushState 방지
+            if (window.history.state?.raonModal === 'instant_plan') {
+                modalHistoryPushedRef.current = true;
+            } else {
+                window.history.pushState({ raonModal: 'instant_plan' }, '', window.location.href);
+                modalHistoryPushedRef.current = true;
+            }
         }
 
         const handlePopState = () => {

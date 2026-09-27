@@ -1,6 +1,6 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-26T22:58:00+09:00  
+**작성 일시**: 2026-09-27T11:07:00+09:00  
 **기준 브랜치**: `main`  
 **빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과, TypeScript 0에러)  
 **실서버 배포**: Vercel 프로덕션 배포 대기 (`https://raon-ai.com`)  
@@ -8,6 +8,24 @@
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
+
+### 🟢 마일스톤 9.73: [내 주변 찾기] 팝업 '히스토리 바통 터치(ReplaceState)' 뒤로가기 가드 & 알림 뱃지 영구 읽음 완결 (2026-09-27)
+
+1. **[내 주변 찾기] 팝업 모바일 뒤로가기 가드 및 히스토리 바통 터치 (`BeginnerHome.tsx`, `InstantPlanModal.tsx`)**:
+   - **팝업 오픈 가상 히스토리 적재**: [내 주변 맛집 · 관광지 찾기] 팝업 오픈 시 `window.history.pushState({ raonPopup: 'nearby_confirm' })`를 적재하여 안드로이드 하드웨어/제스처 뒤로가기 시 팝업만 조용히 닫히고 홈에 안전하게 머무르도록 방어.
+   - **UI 닫힘 회수**: [아니오], [닫기], 외부 배경 탭 시 `history.back()`을 실행하여 1스택 안전 회수.
+   - **히스토리 바통 터치(Handoff) 패턴 적용**: [확인 / 동의하고 찾기] 터치 시 `history.back()`을 비동기로 부르지 않고 `window.history.replaceState({ raonModal: 'instant_plan' })`로 다음 모달에 가상 히스토리 슬롯을 승계하여, `popstate` 충돌 및 이전 플랜 잔존 결함을 100% 원천 차단.
+
+2. **알림 뱃지 영구 읽음 처리 및 재로그인 재발 완치 (`notification.ts`, `notifications/page.tsx`, `NotificationBadge.tsx`)**:
+   - **DB RLS 정책 추가 (`supabase/migrations/20260927000000_fix_notifications_update_rls.sql`)**: `notifications` 테이블에 본인 알림 `UPDATE` 허용 RLS 정책을 신설하여 DB 차단 문제 해소.
+   - **Server Action 신설 (`markAllNotificationsAsReadAction`)**: 사용자 인증 세션 및 Service Role Admin Fallback 2중 안전망으로 Supabase DB의 `is_read = true` 저장을 100% 보장.
+   - **영구 캐시 동기화 (`localStorage`)**: 알림 내역 확인 시 사용자 고유 키(`raon_last_read_notifications_${userId}`)에 확인 타임스탬프를 기록하고 `NotificationBadge`에서 이중 대조하여, 로그아웃 후 재로그인 시에도 확인했던 알림이 뱃지로 다시 뜨는 현상 완벽 박멸.
+
+3. **코드 무결성 및 빌드 검증**:
+   - `npx tsc --noEmit` 에러 0건 통과.
+   - Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
+---
 
 ### 🟢 마일스톤 9.72: [바로 여행계획 만들기] 모바일 모달 오픈 시 상단 헤더 및 목적지 검색창 최우선 노출 및 가상 키보드 밀림 방어 완결 (2026-09-26)
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Navigation, Phone, Map, Mountain, Tag, Tent, Clock, ChefHat, ChevronRight, ChevronDown, Calendar, Sparkles, MapPin, ExternalLink, Search } from 'lucide-react';
@@ -127,6 +127,62 @@ export default function BeginnerHome() {
         setNearbyFallbackNotice(null);
         setSkipLocationRequest(skipLocation);
         setInstantPlanOpen(true);
+    }, []);
+
+    // [마일스톤 9.73] 내 주변 확인 팝업 모바일 뒤로가기(Popstate) 가드 & 히스토리 바통 터치
+    const nearbyConfirmPushedRef = React.useRef(false);
+    const isNearbyProgrammaticBackRef = React.useRef(false);
+
+    // 팝업 열림 시 가상 히스토리 적재
+    const openNearbyConfirm = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            window.history.pushState({ raonPopup: 'nearby_confirm' }, '', window.location.href);
+            nearbyConfirmPushedRef.current = true;
+        }
+        setIsNearbyConfirmOpen(true);
+    }, []);
+
+    // UI 버튼([아니오], [닫기], 배경 터치)으로 닫힐 때 가상 히스토리 안전 회수
+    const closeNearbyConfirmWithHistory = useCallback(() => {
+        setIsNearbyConfirmOpen(false);
+        if (nearbyConfirmPushedRef.current && typeof window !== 'undefined') {
+            nearbyConfirmPushedRef.current = false;
+            isNearbyProgrammaticBackRef.current = true;
+            try {
+                window.history.back();
+            } catch {}
+            setTimeout(() => {
+                isNearbyProgrammaticBackRef.current = false;
+            }, 60);
+        }
+    }, []);
+
+    // 다음 모달([확인], [동의하고 내 주변 찾기], [라온아이 기준 찾기]) 진행 시 replaceState로 히스토리 바통 터치
+    const proceedToInstantPlanFromNearby = useCallback((skipLocation: boolean = false) => {
+        setIsNearbyConfirmOpen(false);
+        if (nearbyConfirmPushedRef.current && typeof window !== 'undefined') {
+            nearbyConfirmPushedRef.current = false;
+            try {
+                window.history.replaceState({ raonModal: 'instant_plan' }, '', window.location.href);
+            } catch {}
+        }
+        handleNearbyPlanClick(skipLocation);
+    }, [handleNearbyPlanClick]);
+
+    // 스마트폰 하드웨어/제스처 뒤로가기 터치 시 확인 팝업만 조용히 닫고 홈 유지
+    useEffect(() => {
+        const handlePopState = () => {
+            if (isNearbyProgrammaticBackRef.current) return;
+            if (nearbyConfirmPushedRef.current) {
+                nearbyConfirmPushedRef.current = false;
+                setIsNearbyConfirmOpen(false);
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
     }, []);
 
     const [isRecordOpen, setIsRecordOpen] = useState(false);
@@ -532,7 +588,7 @@ export default function BeginnerHome() {
                     <div className="grid grid-cols-2 gap-3">
                         {/* 좌측: 내 주변 맛집 · 관광지 찾기 (소프트 말차 세이지) */}
                         <button
-                            onClick={() => setIsNearbyConfirmOpen(true)}
+                            onClick={openNearbyConfirm}
                             className="flex flex-col justify-between p-4 bg-[#D2E5D7] dark:bg-zinc-850 border-2 border-[#7CAE89] rounded-2xl shadow-xs hover:shadow-md hover:border-[#6B9E78] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
                         >
                             <div className="flex items-center justify-between w-full">
@@ -929,8 +985,8 @@ export default function BeginnerHome() {
                             </AlertDialogContent>
                         </AlertDialog>
 
-                        {/* 내 주변 즉시 맛집 · 관광지 찾기 확인/선택 팝업 */}
-                        <AlertDialog open={isNearbyConfirmOpen} onOpenChange={setIsNearbyConfirmOpen}>
+                        {/* 내 주변 즉시 맛집 · 관광지 찾기 확인/선택 팝업 (모바일 뒤로가기 안전 닫힘 연동) */}
+                        <AlertDialog open={isNearbyConfirmOpen} onOpenChange={(open) => { if (!open) closeNearbyConfirmWithHistory(); }}>
                             {showGpsNotice ? (
                                 <AlertDialogContent className="w-[90%] max-w-[380px] rounded-3xl p-5 border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
                                     <AlertDialogHeader className="space-y-2 text-left">
@@ -971,7 +1027,7 @@ export default function BeginnerHome() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                setIsNearbyConfirmOpen(false);
+                                                closeNearbyConfirmWithHistory();
                                                 setSelectedAnchorDest(null);
                                                 setNearbyFallbackNotice(null);
                                                 setInstantPlanMode('DESTINATION');
@@ -986,10 +1042,7 @@ export default function BeginnerHome() {
                                         {/* 2. [라온아이 캠핑장 주변 보기] */}
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setIsNearbyConfirmOpen(false);
-                                                handleNearbyPlanClick(true);
-                                            }}
+                                            onClick={() => proceedToInstantPlanFromNearby(true)}
                                             className="w-full h-10 rounded-xl text-xs font-bold text-[#8C5D1E] dark:text-[#F3D4A0] bg-[#FBE7C6] dark:bg-zinc-850 hover:bg-[#F5DACB] border border-[#D4A359]/60 dark:border-zinc-700 shadow-2xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
                                             <span>🏕️ 라온아이 캠핑장 주변 보기</span>
@@ -999,7 +1052,7 @@ export default function BeginnerHome() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                setIsNearbyConfirmOpen(false);
+                                                closeNearbyConfirmWithHistory();
                                                 try {
                                                     navigator.clipboard.writeText('https://raon-i.co.kr');
                                                 } catch {}
@@ -1021,7 +1074,7 @@ export default function BeginnerHome() {
                                         {/* 4. [닫기] */}
                                         <button
                                             type="button"
-                                            onClick={() => setIsNearbyConfirmOpen(false)}
+                                            onClick={closeNearbyConfirmWithHistory}
                                             className="w-full py-1.5 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium transition-colors cursor-pointer"
                                         >
                                             닫기
@@ -1058,16 +1111,13 @@ export default function BeginnerHome() {
                                     {isLocationGranted ? (
                                         <AlertDialogFooter className="flex flex-row items-center justify-end gap-2 mt-4">
                                             <AlertDialogCancel 
-                                                onClick={() => setIsNearbyConfirmOpen(false)}
+                                                onClick={closeNearbyConfirmWithHistory}
                                                 className="flex-1 h-10 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-300 border-stone-200 dark:border-zinc-700 hover:bg-stone-100 dark:hover:bg-zinc-800 mt-0"
                                             >
                                                 아니오
                                             </AlertDialogCancel>
                                             <AlertDialogAction
-                                                onClick={() => {
-                                                    setIsNearbyConfirmOpen(false);
-                                                    handleNearbyPlanClick(false);
-                                                }}
+                                                onClick={() => proceedToInstantPlanFromNearby(false)}
                                                 className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm"
                                             >
                                                 확인
@@ -1095,8 +1145,7 @@ export default function BeginnerHome() {
                                                             );
                                                         } catch {}
                                                     }
-                                                    setIsNearbyConfirmOpen(false);
-                                                    handleNearbyPlanClick(false);
+                                                    proceedToInstantPlanFromNearby(false);
                                                 }}
                                                 className="w-full h-11 rounded-xl text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
                                             >
@@ -1107,10 +1156,7 @@ export default function BeginnerHome() {
                                             {/* 2. [동의 없이 시작 (라온아이 기준)] */}
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    setIsNearbyConfirmOpen(false);
-                                                    handleNearbyPlanClick(true);
-                                                }}
+                                                onClick={() => proceedToInstantPlanFromNearby(true)}
                                                 className="w-full h-10 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 transition-all active:scale-[0.98]"
                                             >
                                                 🏕️ 동의 없이 시작 (라온아이 기준)
@@ -1119,7 +1165,7 @@ export default function BeginnerHome() {
                                             {/* 3. [닫기] */}
                                             <button
                                                 type="button"
-                                                onClick={() => setIsNearbyConfirmOpen(false)}
+                                                onClick={closeNearbyConfirmWithHistory}
                                                 className="w-full py-1.5 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium transition-colors"
                                             >
                                                 닫기

@@ -27,7 +27,11 @@ const NotificationBadge = memo(function NotificationBadge({ className = '', vari
 
             if (typeof window !== 'undefined') {
                 let stored: string | null = null;
-                try { stored = window.sessionStorage?.getItem('last_read_notifications_at'); } catch {}
+                try {
+                    const sessionStored = window.sessionStorage?.getItem('last_read_notifications_at');
+                    const localStored = window.localStorage?.getItem(`raon_last_read_notifications_${session.user.id}`);
+                    stored = sessionStored || localStored || null;
+                } catch {}
                 setLastReadAt(stored);
             }
 

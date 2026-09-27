@@ -7,6 +7,17 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.73 [내 주변 찾기] 팝업 '히스토리 바통 터치(ReplaceState)' 뒤로가기 가드 & 알림 뱃지 영구 읽음 완결 (2026-09-27)** 🟢
+  - [x] **[내 주변 찾기] 팝업 모바일 뒤로가기 가드 및 히스토리 바통 터치 (`BeginnerHome.tsx`, `InstantPlanModal.tsx`)**:
+    - 팝업 오픈 시 `window.history.pushState({ raonPopup: 'nearby_confirm' })` 가상 히스토리 적재.
+    - 스마트폰 뒤로가기 시 `popstate` 감지로 팝업만 조용히 닫힘 처리하여 홈 화면 잔류 보장.
+    - 다음 모달 진행 시 `window.history.replaceState({ raonModal: 'instant_plan' })`를 적용하여 `history.back()`과의 비동기 경합(Race Condition) 0% 차단 및 이전 결과 잔존 버그 완벽 박멸.
+  - [x] **알림 뱃지 영구 읽음 처리 및 재로그인 재발 완치 (`notification.ts`, `notifications/page.tsx`, `NotificationBadge.tsx`)**:
+    - `notifications` 테이블에 본인 알림 `UPDATE` 허용 RLS 정책 추가 (`20260927000000_fix_notifications_update_rls.sql`).
+    - `markAllNotificationsAsReadAction()` Server Action 신설로 DB의 `is_read = true` 저장 100% 보장.
+    - 사용자 ID 기반 `localStorage` 타임스탬프 이중 검증으로, 재로그인 시에도 확인했던 알림이 뱃지로 다시 뜨는 현상 완벽 방어.
+  - [x] **빌드 검증**: `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.72 [바로 여행계획 만들기] 모바일 모달 오픈 시 상단 헤더 및 목적지 검색창 최우선 노출 및 가상 키보드 밀림 방어 완결 (2026-09-26)** 🟢
   - [x] **Radix UI Sheet 자동 포커스 차단 (`onOpenAutoFocus={(e) => e.preventDefault()}`)**: 모달 진입 시 브라우저/라이브러리가 검색창이나 하단 컨트롤에 강제로 포커스를 부여하여 가상 키보드가 불필요하게 팝업되고 화면을 가리던 현상 원천 방어. 유저가 직접 입력창을 터치하기 전까지는 모달 전체가 깨끗하고 안정감 있게 최상단부터 노출되도록 보장.
   - [x] **모바일 동적 뷰포트(`dvh`) 높이 최적화 (`InstantPlanModal.tsx`)**: `SheetContent` 클래스에 `max-h-[92vh] max-h-[92dvh] h-[92vh] h-[92dvh]`를 동시 적용하여, 가상 키보드가 팝업되더라도 뷰포트 높이에 유연하게 반응하여 헤더가 화면 위로 밀려나지 않도록 방어.

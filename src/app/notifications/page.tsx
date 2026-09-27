@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
+import { markAllNotificationsAsReadAction } from '@/actions/notification';
 import TopBar from '@/components/TopBar';
 import { ChevronLeft, Bell, Clock, Calendar, MessageSquare, Info } from 'lucide-react';
 import { format } from 'date-fns';
@@ -45,23 +46,16 @@ export default function NotificationsPage() {
             } else {
                 setNotifications(data || []);
 
-                // Save the latest notification timestamp to sessionStorage to clear badge instantly
-                if (data && data.length > 0) {
-                    try { window.sessionStorage?.setItem('last_read_notifications_at', data[0].created_at); } catch {}
-                } else {
-                    try { window.sessionStorage?.setItem('last_read_notifications_at', new Date().toISOString()); } catch {}
-                }
+                // [마일스톤 9.73] 알림 확인 즉시 sessionStorage 및 사용자별 localStorage에 영구 기록
+                const latestTime = (data && data.length > 0) ? data[0].created_at : new Date().toISOString();
+                try { window.sessionStorage?.setItem('last_read_notifications_at', latestTime); } catch {}
+                try { window.localStorage?.setItem(`raon_last_read_notifications_${session.user.id}`, latestTime); } catch {}
 
-                // Mark ALL notifications as read (Await to ensure DB consistency before render finish)
+                // [마일스톤 9.73] Server Action을 통해 Supabase DB의 is_read = true 영구 저장 보장
                 try {
-                    const { error: readErr } = await supabase
-                        .from('notifications')
-                        .update({ is_read: true })
-                        .eq('user_id', session.user.id)
-                        .eq('is_read', false);
-                    if (readErr) console.error('Failed to mark all read:', readErr);
+                    await markAllNotificationsAsReadAction();
                 } catch (e) {
-                    console.error('Error marking read:', e);
+                    console.error('Error marking read via action:', e);
                 }
             }
             setLoading(false);
