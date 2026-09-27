@@ -48,7 +48,7 @@ import { useMySpaceStore } from '@/store/useMySpaceStore';
 import { useAppStandaloneDetector } from '@/hooks/useAppStandaloneDetector';
 
 // [v14.4.0] 구글 앱 심사 기간 동안 '내 주변 찾기' 일시 제한 안내 팝업 플래그 (배포 완료 시 false 전환)
-const IS_GPS_NOTICE_ACTIVE = true;
+const IS_GPS_NOTICE_ACTIVE = false;
 
 // Type Definitions from DB
 type NearbyEvent = Database['public']['Tables']['nearby_events']['Row'];
