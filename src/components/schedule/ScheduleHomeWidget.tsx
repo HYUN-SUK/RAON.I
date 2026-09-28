@@ -39,7 +39,7 @@ interface UnifiedSchedule {
     checkOut: Date;
     source?: 'raonai' | 'external';
     siteId?: string;
-    status?: 'PENDING' | 'CONFIRMED'; // 예약 상태 (입금대기/확정)
+    status?: 'PENDING' | 'CONFIRMED' | 'REFUND_PENDING'; // 예약 상태 (입금대기/확정/환불대기)
     category?: string;
 }
 
@@ -188,7 +188,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                     const checkOutZero = new Date(checkOut);
                     checkOutZero.setHours(0, 0, 0, 0);
 
-                    if (checkOutZero >= today && (r.status === 'PENDING' || r.status === 'CONFIRMED')) {
+                    if (checkOutZero >= today && (r.status === 'PENDING' || r.status === 'CONFIRMED' || r.status === 'REFUND_PENDING')) {
                         const site = SITES.find(s => s.id === r.siteId);
                         unifiedList.push({
                             type: 'reservation',
@@ -197,18 +197,25 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                             checkIn,
                             checkOut,
                             siteId: r.siteId,
-                            status: r.status as 'PENDING' | 'CONFIRMED'
+                            status: r.status as 'PENDING' | 'CONFIRMED' | 'REFUND_PENDING'
                         });
                     }
                 } catch {}
             });
         }
 
-        // 타캠핑장 일정 필터링
+        // 타캠핑장 일정 필터링 (라온아이 예약과 연동된 일정 또는 raonai 소스는 중복 제외)
         if (Array.isArray(activeSchedules)) {
             activeSchedules.forEach(s => {
                 try {
                     if (!s || !s.check_in || !s.check_out) return;
+                    if (s.reservation_id && Array.isArray(activeReservations) && activeReservations.some(r => r.id === s.reservation_id)) {
+                        return;
+                    }
+                    if (s.source === 'raonai') {
+                        return;
+                    }
+
                     const checkIn = parseISO(s.check_in);
                     const checkOut = parseISO(s.check_out);
                     if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return;
@@ -461,8 +468,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
             if (!upcomingItem || isNavigating) return;
             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
 
-            // 라온아이 입금대기 상태면 예약 완료/확인 페이지로 (스케줄 생성 X)
-            if (upcomingItem.type === 'reservation' && upcomingItem.status === 'PENDING') {
+            // 라온아이 입금대기 또는 취소/환불대기 상태면 예약 목록 페이지로 (스케줄 생성 X)
+            if (upcomingItem.type === 'reservation' && (upcomingItem.status === 'PENDING' || upcomingItem.status === 'REFUND_PENDING')) {
                 router.push('/myspace/reservations');
                 return;
             }
@@ -690,9 +697,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     const nights = differenceInDays(upcomingItem.checkOut, upcomingItem.checkIn);
 
     // 라온아이 예약 여부
-    const isRaonai = upcomingItem.type === 'reservation';
+    const isRaonai = upcomingItem.type === 'reservation' || upcomingItem.source === 'raonai';
     // 입금대기 여부
     const isPending = upcomingItem.status === 'PENDING';
+    // 취소/환불대기 여부
+    const isRefundPending = upcomingItem.status === 'REFUND_PENDING';
 
     // 배경색 구분 (입금대기는 황색 계열)
     const bgGradient = isPending
@@ -753,7 +762,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                                 {isRaonai ? <Tent className="w-4 h-4 stroke-[2.2]" /> : <Tent className="w-4 h-4 stroke-[2.2]" />}
                             </div>
                             <span className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                                {isPending ? '입금대기' : isCampingNow ? '현재 여행 진행 중' : '다가오는 여행'}
+                                {isRefundPending ? '취소/환불 대기' : isPending ? '입금대기' : isCampingNow ? '현재 여행 진행 중' : '다가오는 여행'}
                             </span>
                             <span className="text-[11px] bg-[#E9EFEA] text-[#2D5A3C] font-bold px-2 py-0.5 rounded-md">
                                 {isRaonai ? '라온아이' : '타캠핑장'}
@@ -762,13 +771,15 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                         <div className="text-right">
                             <span className={cn(
                                 "inline-block px-3 py-1 rounded-full text-xs font-black shadow-xs",
-                                isCampingNow
-                                    ? "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse"
-                                    : daysUntil === 0
-                                        ? "bg-amber-400 text-amber-900"
-                                        : "bg-[#388E5A] text-white"
+                                isRefundPending
+                                    ? "bg-amber-500 text-white"
+                                    : isCampingNow
+                                        ? "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse"
+                                        : daysUntil === 0
+                                            ? "bg-amber-400 text-amber-900"
+                                            : "bg-[#388E5A] text-white"
                             )}>
-                                {isCampingNow ? '✨ 힐링 중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
+                                {isRefundPending ? '취소 접수' : isCampingNow ? '✨ 힐링 중~' : daysUntil === 0 ? 'D-Day!' : `D-${daysUntil}`}
                             </span>
                         </div>
                     </div>
@@ -790,11 +801,16 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                         </div>
                     </div>
 
-                    {badgeText && (
+                    {isRefundPending ? (
+                        <div className="text-xs font-bold px-2.5 py-1.5 rounded-lg w-full mb-3 flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800/60 shadow-2xs">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>⏳ 관리자 환불 확인 중입니다</span>
+                        </div>
+                    ) : badgeText ? (
                         <div className="text-xs font-bold px-2.5 py-1 rounded-lg w-fit mb-3 flex items-center gap-1.5 bg-[#FEF5D9] text-[#7A5B00] border border-[#FBE39D]/70 shadow-2xs">
                             {badgeText}
                         </div>
-                    )}
+                    ) : null}
 
                     {/* 카드 하단 액션 바: 취소 버튼(좌, 라온아이 예약인 경우) + 상세보기(우) */}
                     <div className="flex items-center justify-between text-xs sm:text-sm mt-1 gap-2">
@@ -811,6 +827,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                                     <span>취소요청</span>
                                 )}
                             </button>
+                        ) : isRefundPending ? (
+                            <span className="flex items-center gap-1 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 px-3 py-1.5 rounded-full shadow-2xs shrink-0 cursor-default">
+                                <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400 animate-pulse" />
+                                <span>취소 요청중</span>
+                            </span>
                         ) : (
                             <div />
                         )}

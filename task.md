@@ -1,6 +1,19 @@
 # Task Management
 
 ## Completed Tasks (2026-09-28)
+- [x] **마일스톤 9.75**: 다가오는 일정 카드 취소(환불 대기) 상태 UI 고도화 완결
+  - **'타캠핑장' 오인 노출 원천 차단 (`ScheduleHomeWidget.tsx`)**:
+    - `upcomingItem` 탐색 시 라온아이 예약 활성 목록에 `r.status === 'REFUND_PENDING'`을 공식 포함.
+    - `activeSchedules`에서 `reservation_id`가 매칭되거나 `s.source === 'raonai'`인 스케줄 레코드는 중복 노출되지 않도록 스킵하여, 환불 대기 중 라온아이 일정이 타캠핑장으로 둔갑하는 버그 완벽 박멸.
+  - **상단 헤더 & 상태 뱃지 변경**:
+    - 카드 상단 헤더 타이틀을 `isRefundPending`일 때 `"취소/환불 대기"`로 명확히 표시.
+    - 우측 D-Day 뱃지 대신 주황색 알약형 **`[ 취소 접수 ]`** 뱃지 노출.
+  - **중앙 안내 배너 및 하단 액션 바**:
+    - 중앙 배너: **`[ ⏳ 관리자 환불 확인 중입니다 ]`** (주황빛 소프트 배너) 표기.
+    - 하단 좌측 액션 바: 기존 `[취소요청]` 버튼 자리에 **`[ ⏳ 취소 요청중 ]`** (펄스 애니메이션 포함) 정적 알약 뱃지 노출.
+  - **카드 터치 보호**:
+    - 취소/환불 대기 상태 카드를 터치할 경우 비동기 스케줄 동기화를 타지 않고 **`내수첩 > 나의 예약 내역(/myspace/reservations)`**으로 안전 이동.
+  - **무결성 검증**: `npx.cmd tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
 - [x] **마일스톤 9.74**: 관리자 환불완료 Server Action 전환(Web Locks 데드락 완치) 및 홈 다가오는 일정 카드 취소 버튼 탑재 완결
   - **관리자 환불완료 Server Action 전환 (`reservation.ts`, `useReservationStore.ts`)**:
     - 브라우저 Supabase 클라이언트의 Web Locks / JWT 만료 데드락을 원천 차단하기 위해 `completeRefundAction` Server Action 신설.
