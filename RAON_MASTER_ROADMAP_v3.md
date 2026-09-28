@@ -7,6 +7,17 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.76 주간 전국 축제 자동화 누락 긴급 복구(242건 적재) 및 관리자 수동 갱신 버튼·2중 스케줄 안전망 구축 완결 (2026-09-28)** 🟢
+  - [x] **긴급 복구 및 최신화 (`scripts/sync-festivals-trigger.mjs`)**:
+    - GitHub Actions 스케줄러 큐 드롭으로 오늘 미실행된 축제 동기화 엔진 즉시 가동.
+    - TourAPI를 통해 전국 축제 242건 마스터 DB `master_places`에 격리 적재 및 `automation_logs` SUCCESS 기록 완결 (소요시간 3.6초).
+  - [x] **관리자 전용 즉시 동기화 Server Action & UI 버튼 탑재 (`admin-automation.ts`, `admin/automation/logs/page.tsx`)**:
+    - `triggerWeeklyFestivalSyncAction` Server Action 신설 (관리자 권한 검증 + TourAPI 수집 + 200개 청크 분할 Upsert + 17개 시도별 통계 집계).
+    - 관리자 라이브 모니터 상단 헤더에 `[ 🎪 축제 즉시 갱신 ]` 원클릭 버튼 탑재로 향후 언제든 수동 갱신 가능.
+  - [x] **GitHub Actions 2중 스케줄 안전망 분산 (`.github/workflows/weekly-festival-sync.yml`)**:
+    - 월요일 00:00 UTC 전 세계 피크 타임 혼잡을 피하기 위해 1차: 월요일 07:43 KST (일요일 22:43 UTC) + 2차 백업: 월요일 09:43 KST (월요일 00:43 UTC) 2중 스케줄러 구축.
+  - [x] **빌드 검증**: `npx tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 - [x] **9.75 다가오는 일정 카드 취소(환불 대기) 상태 UI 고도화 완결 (2026-09-28)** 🟢
   - [x] **'타캠핑장' 오인 노출 원천 차단 (`ScheduleHomeWidget.tsx`)**:
     - `upcomingItem` 탐색 시 라온아이 예약 활성 목록에 `r.status === 'REFUND_PENDING'`을 공식 포함.

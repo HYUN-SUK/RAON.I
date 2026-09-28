@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { triggerWeeklyFestivalSyncAction } from '@/actions/admin-automation';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { 
@@ -81,6 +82,7 @@ export default function AutomationLogsPage() {
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingHealth, setCheckingHealth] = useState(false);
+  const [syncingFestival, setSyncingFestival] = useState(false);
   const [localApiStatus, setLocalApiStatus] = useState<ApiStatus[]>(INITIAL_API_LIST);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
@@ -138,6 +140,26 @@ export default function AutomationLogsPage() {
       alert('API 점검 요청에 실패했습니다.');
     } finally {
       setCheckingHealth(false);
+    }
+  };
+
+  const handleSyncFestivals = async () => {
+    if (syncingFestival) return;
+    if (!confirm('한국관광공사 TourAPI를 조회하여 전국 축제 정보를 지금 즉시 최신화하시겠습니까?')) return;
+    setSyncingFestival(true);
+    try {
+      const res = await triggerWeeklyFestivalSyncAction();
+      if (res.success) {
+        alert(`전국 축제 정보 ${res.insertedCount || 0}건이 성공적으로 최신화되었습니다! (소요시간: ${res.durationMs || 0}ms)`);
+        await fetchLogs();
+      } else {
+        alert(res.error || '축제 동기화에 실패했습니다.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('축제 동기화 요청 중 오류가 발생했습니다.');
+    } finally {
+      setSyncingFestival(false);
     }
   };
 
@@ -830,6 +852,18 @@ export default function AutomationLogsPage() {
           >
             {checkingHealth ? <RefreshCw className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 animate-spin" /> : <Wifi className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 group-hover:animate-bounce" />}
             전계통 실시간 점검
+          </button>
+          <button 
+            onClick={handleSyncFestivals}
+            disabled={syncingFestival}
+            className="px-4 md:px-6 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm md:text-base font-black transition-all flex items-center justify-center shadow-xl disabled:opacity-50 active:scale-95 group"
+          >
+            {syncingFestival ? (
+              <RefreshCw className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 animate-spin" />
+            ) : (
+              <Ticket className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 group-hover:rotate-12 transition-transform" />
+            )}
+            축제 즉시 갱신
           </button>
           <button 
             onClick={fetchLogs}

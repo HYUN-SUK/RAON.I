@@ -2,8 +2,9 @@ name: RAONAI Weekly Festival Precision Sync
 
 on:
   schedule:
-    # 매주 월요일 09:13 KST 실행 (UTC 월요일 00:13)
-    - cron: '13 0 * * 1'
+    # [2중 스케줄 분산] 1차: 월요일 07:43 KST (UTC 일요일 22:43, 피크 회피) + 2차 백업: 월요일 09:43 KST (UTC 월요일 00:43)
+    - cron: '43 22 * * 0'
+    - cron: '43 0 * * 1'
   workflow_dispatch: # 수동 트리거 허용
 
 jobs:
