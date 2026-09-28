@@ -858,40 +858,28 @@ export const useReservationStore = create<ReservationState>()(
                 };
             },
 
-            // 관리자 환불 완료 처리
+            // 관리자 환불 완료 처리 [마일스톤 9.74: Server Action 전환으로 Web Locks 데드락 완치]
             completeRefund: async (reservationId) => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
+                try {
+                    const { completeRefundAction } = await import('@/actions/reservation');
+                    const res = await completeRefundAction(reservationId);
 
-                const { data, error } = await supabase.rpc('complete_reservation_refund', {
-                    p_reservation_id: reservationId
-                });
-
-                if (error) {
-                    return { success: false, error: 'RPC_ERROR', message: error.message };
-                }
-
-                const result = data as { success: boolean; error?: string; message?: string };
-
-                if (result.success) {
-                    set((state) => ({
-                        reservations: state.reservations.map((res) =>
-                            res.id === reservationId
-                                ? { ...res, status: 'REFUNDED' as const, refundedAt: new Date() }
-                                : res
-                        )
-                    }));
-
-                    // [v11.9.108] 환불 완료 성공 시 연동된 일정 상태도 함께 취소('cancelled') 상태로 업데이트
-                    try {
-                        const { cancelScheduleByReservation } = await import('@/actions/schedule');
-                        await cancelScheduleByReservation(reservationId);
-                    } catch (schedErr) {
-                        console.error('[completeRefund] Cancel schedule trigger failed:', schedErr);
+                    if (res.success) {
+                        set((state) => ({
+                            reservations: state.reservations.map((res) =>
+                                res.id === reservationId
+                                    ? { ...res, status: 'REFUNDED' as const, refundedAt: new Date(), updatedAt: new Date() }
+                                    : res
+                            )
+                        }));
+                        return { success: true, message: res.message || '환불이 완료 처리되었습니다.' };
                     }
-                }
 
-                return result;
+                    return { success: false, error: res.error || '환불 처리에 실패했습니다.', message: res.error };
+                } catch (err: any) {
+                    console.error('[Store] completeRefund error:', err);
+                    return { success: false, error: err?.message || '환불 처리 중 오류가 발생했습니다.', message: err?.message };
+                }
             },
 
             // 관리자 전용: 일부 환불(차액) 완료 처리 (본 예약 CONFIRMED 유지, 여정 취소 안 함)

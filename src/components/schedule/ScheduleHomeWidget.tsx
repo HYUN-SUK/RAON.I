@@ -13,9 +13,11 @@ import { SITES } from '@/constants/sites';
 import { useWeather } from '@/hooks/useWeather';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { toast } from 'sonner';
+import dynamic from 'next/dynamic';
 import {
     AlertDialog,
     AlertDialogAction,
+    AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
     AlertDialogFooter,
@@ -23,6 +25,10 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { createClient } from '@/lib/supabase-client';
+
+const CancelReservationSheet = dynamic(() => import('@/components/reservation/CancelReservationSheet'), {
+    ssr: false
+});
 
 // 통합 일정 타입 (라온아이 예약 또는 타캠핑장 일정)
 interface UnifiedSchedule {
@@ -57,7 +63,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     const router = useRouter();
     const { withAuth } = useRequireAuth();
     const supabase = useMemo(() => createClient(), []);
-    const { reservations, fetchMyReservations } = useReservationStore();
+    const { reservations, fetchMyReservations, updateReservationStatus } = useReservationStore();
     const [schedules, setSchedules] = useState<Schedule[]>(() => {
         if (typeof window === 'undefined') return [];
         try {
@@ -504,6 +510,58 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         });
     };
 
+    // 취소 대상 라온아이 예약 객체
+    const selectedReservationForCancel = useMemo(() => {
+        if (!upcomingItem || upcomingItem.type !== 'reservation') return null;
+        return activeReservations.find(r => r.id === upcomingItem.id) || null;
+    }, [upcomingItem, activeReservations]);
+
+    // 취소 관련 상태
+    const [cancelSheetOpen, setCancelSheetOpen] = useState(false);
+    const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+    const [isDirectCancelling, setIsDirectCancelling] = useState(false);
+
+    // 취소 버튼 클릭 핸들러 (카드 클릭 간섭 원천 차단)
+    const handleCancelClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!selectedReservationForCancel) return;
+
+        if (selectedReservationForCancel.status === 'PENDING') {
+            setCancelConfirmOpen(true);
+        } else if (selectedReservationForCancel.status === 'CONFIRMED') {
+            setCancelSheetOpen(true);
+        }
+    };
+
+    // 입금대기 예약 즉시 취소 핸들러
+    const handleDirectCancel = async () => {
+        if (!selectedReservationForCancel) return;
+        setIsDirectCancelling(true);
+        try {
+            await updateReservationStatus(selectedReservationForCancel.id, 'CANCELLED');
+            toast.success('예약이 정상적으로 취소되었습니다.');
+            setCancelConfirmOpen(false);
+            await fetchMyReservations();
+            const latest = await getMySchedules();
+            setSchedules(latest);
+        } catch (err: any) {
+            toast.error(err?.message || '예약 취소에 실패했습니다.');
+        } finally {
+            setIsDirectCancelling(false);
+        }
+    };
+
+    // 예약확정 취소(환불 요청) 완료 핸들러
+    const handleCancelComplete = async () => {
+        setCancelSheetOpen(false);
+        toast.success('예약 취소(환불 요청)가 정상 접수되었습니다.');
+        try {
+            await fetchMyReservations();
+            const latest = await getMySchedules();
+            setSchedules(latest);
+        } catch {}
+    };
+
     const handleExternalScheduleClick = () => {
         withAuth(() => {
             if (!isComponentMounted.current) return;
@@ -715,21 +773,13 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                         </div>
                     </div>
 
-                    <div className="mb-2 min-w-0">
-                        <h3 className="text-xl sm:text-[22px] font-black text-[#1E4D2B] dark:text-stone-100 tracking-tight leading-tight truncate">
+                    {/* 상단 사이트명(좌) 및 일자 표기(우) */}
+                    <div className="flex items-center justify-between gap-2 mb-2 min-w-0">
+                        <h3 className="text-xl sm:text-[22px] font-black text-[#1E4D2B] dark:text-stone-100 tracking-tight leading-tight truncate shrink">
                             {upcomingItem.name}
                         </h3>
-                    </div>
-
-                    {badgeText && (
-                        <div className="text-xs font-bold px-2.5 py-1 rounded-lg w-fit mb-3 flex items-center gap-1.5 bg-[#FEF5D9] text-[#7A5B00] border border-[#FBE39D]/70 shadow-2xs">
-                            {badgeText}
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between text-xs sm:text-sm mt-1 gap-2">
-                        <div className="flex items-center gap-1.5 text-stone-800 dark:text-stone-200 font-bold truncate">
-                            <Calendar className="w-4 h-4 text-stone-700 dark:text-stone-300 stroke-[2.2] shrink-0" />
+                        <div className="flex items-center gap-1 text-[11.5px] sm:text-xs text-stone-700 dark:text-stone-300 font-bold shrink-0">
+                            <Calendar className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400 stroke-[2.2] shrink-0" />
                             <span className="truncate">
                                 {safeCheckIn && safeCheckOut ? (
                                     `${format(safeCheckIn, 'yyyy.MM.dd(EEE)', { locale: ko })} - ${format(safeCheckOut, 'MM.dd(EEE)', { locale: ko })} · ${nights}박 ${nights + 1}일`
@@ -738,6 +788,32 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                                 )}
                             </span>
                         </div>
+                    </div>
+
+                    {badgeText && (
+                        <div className="text-xs font-bold px-2.5 py-1 rounded-lg w-fit mb-3 flex items-center gap-1.5 bg-[#FEF5D9] text-[#7A5B00] border border-[#FBE39D]/70 shadow-2xs">
+                            {badgeText}
+                        </div>
+                    )}
+
+                    {/* 카드 하단 액션 바: 취소 버튼(좌, 라온아이 예약인 경우) + 상세보기(우) */}
+                    <div className="flex items-center justify-between text-xs sm:text-sm mt-1 gap-2">
+                        {isRaonai && selectedReservationForCancel && (selectedReservationForCancel.status === 'PENDING' || selectedReservationForCancel.status === 'CONFIRMED') ? (
+                            <button
+                                type="button"
+                                onClick={handleCancelClick}
+                                disabled={isDirectCancelling}
+                                className="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 border border-red-200 dark:border-red-900/50 px-3 py-1.5 rounded-full shadow-2xs active:scale-95 transition-all shrink-0 disabled:opacity-50"
+                            >
+                                {isDirectCancelling ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                    <span>취소요청</span>
+                                )}
+                            </button>
+                        ) : (
+                            <div />
+                        )}
                         <div className="flex items-center gap-1 text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] px-3.5 py-1.5 rounded-full shadow-xs active:scale-95 transition-all shrink-0 group">
                             <span className="text-xs">👆</span>
                             <span>상세보기</span>
@@ -801,6 +877,45 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                             className="bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold px-8 rounded-xl h-10 w-full active:scale-[0.97] transition-all"
                         >
                             확인
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* 확정 예약 취소요청 바텀시트 */}
+            {selectedReservationForCancel && selectedReservationForCancel.status === 'CONFIRMED' && (
+                <CancelReservationSheet
+                    open={cancelSheetOpen}
+                    onOpenChange={setCancelSheetOpen}
+                    reservation={selectedReservationForCancel}
+                    onComplete={handleCancelComplete}
+                />
+            )}
+
+            {/* 입금대기 예약 취소 확인 다이얼로그 */}
+            <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+                <AlertDialogContent className="w-[90%] max-w-[340px] rounded-3xl p-6">
+                    <AlertDialogHeader className="space-y-2">
+                        <AlertDialogTitle className="text-center text-lg font-bold text-stone-900 dark:text-stone-100">
+                            예약을 취소하시겠습니까?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-sm text-stone-600 dark:text-stone-300 font-medium break-keep leading-relaxed pt-1">
+                            아직 입금 전인 예약으로, 취소하시면 즉시 예약이 취소됩니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-5 flex flex-row justify-center gap-2 sm:justify-center">
+                        <AlertDialogCancel
+                            disabled={isDirectCancelling}
+                            className="rounded-xl h-10 w-full"
+                        >
+                            돌아가기
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDirectCancel}
+                            disabled={isDirectCancelling}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl h-10 w-full active:scale-[0.97] transition-all"
+                        >
+                            {isDirectCancelling ? '취소 중...' : '예약 취소'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

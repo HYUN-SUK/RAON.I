@@ -471,6 +471,67 @@ export async function completePartialRefundAction(reservationId: string) {
 }
 
 /**
+ * 관리자 전용: 환불 완료 처리 (전액 환불 / 예약 취소 확정) [마일스톤 9.74]
+ * - 브라우저 세션/Web Locks 데드락을 원천 차단하기 위해 Server Action(createAdminClient)으로 격리 실행
+ * - reservations 테이블: status = 'REFUNDED', refunded_at = NOW(), updated_at = NOW()
+ * - user_schedules 테이블: 연동 일정 상태를 'cancelled'로 즉시 동기화 및 후보 데이터(smart_plan_candidates) 청소
+ * - Next.js 캐시 무효화 및 8초 Fail-Safe 타임아웃 가드 적용
+ */
+export async function completeRefundAction(reservationId: string): Promise<{ success: boolean; error?: string; message?: string; reservation?: any }> {
+    await assertAdmin();
+    const supabase = createAdminClient();
+
+    // 8초 타임아웃 레이스 프로미스
+    const timeoutPromise = new Promise<{ success: boolean; error: string }>((_, reject) => {
+        setTimeout(() => reject(new Error('환불 처리 요청 시간이 초과되었습니다 (8초). 다시 시도해주세요.')), 8000);
+    });
+
+    const executionPromise = (async () => {
+        // 1. reservations 테이블 업데이트
+        const { data: updatedRes, error: updateErr } = await (supabase
+            .from('reservations') as any)
+            .update({
+                status: 'REFUNDED',
+                refunded_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', reservationId)
+            .select()
+            .single();
+
+        if (updateErr) {
+            console.error('[Action] completeRefundAction error:', updateErr);
+            return { success: false, error: updateErr.message || '환불 처리 DB 오류' };
+        }
+
+        // 2. 연동된 일정(user_schedules) 취소 및 AI 후보 데이터 청소
+        try {
+            const { cancelScheduleByReservation } = await import('./schedule');
+            await cancelScheduleByReservation(reservationId);
+        } catch (schedErr) {
+            console.error('[Action] completeRefundAction - cancelScheduleByReservation error:', schedErr);
+        }
+
+        // 3. 캐시 경로 무효화
+        revalidatePath('/admin');
+        revalidatePath('/admin/payments');
+        revalidatePath('/admin/reservations');
+        revalidatePath('/myspace/schedule');
+        revalidatePath('/myspace/reservations');
+
+        return { success: true, message: '환불이 완료 처리되었습니다.', reservation: updatedRes };
+    })();
+
+    try {
+        const result = await Promise.race([executionPromise, timeoutPromise]);
+        return result as any;
+    } catch (err: any) {
+        console.error('[Action] completeRefundAction timeout or unhandled error:', err);
+        return { success: false, error: err.message || '환불 처리 중 오류가 발생했습니다.' };
+    }
+}
+
+/**
  * 사용자 예약 취소 요청 (환불 정보 및 취소 사유 저장) [v13.9.0]
  */
 export async function requestReservationCancelAction(params: {

@@ -1,5 +1,19 @@
 # Task Management
 
+## Completed Tasks (2026-09-28)
+- [x] **마일스톤 9.74**: 관리자 환불완료 Server Action 전환(Web Locks 데드락 완치) 및 홈 다가오는 일정 카드 취소 버튼 탑재 완결
+  - **관리자 환불완료 Server Action 전환 (`reservation.ts`, `useReservationStore.ts`)**:
+    - 브라우저 Supabase 클라이언트의 Web Locks / JWT 만료 데드락을 원천 차단하기 위해 `completeRefundAction` Server Action 신설.
+    - 슈퍼 관리자 Service Role(`createAdminClient()`)을 사용하여 `reservations`의 `status = 'REFUNDED'`, `refunded_at = NOW()` 및 연동된 `user_schedules`의 `status = 'cancelled'`, AI 후보 데이터 정리를 원자적(Atomic)으로 일괄 수행.
+    - 8초 Fail-Safe 타임아웃 가드 적용으로 무한 대기 스피너 결함 완벽 박멸.
+    - `AdminPaymentsPage`, `AdminReservationDetailModal`, `ReservationCard` 3대 관리자 화면 전반의 환불완료 신뢰성 100% 확보.
+  - **홈 다가오는 일정 카드 일자 표기 위치 이동 & 취소 버튼 신설 (`ScheduleHomeWidget.tsx`)**:
+    - 사이트명(`upcomingItem.name`) 우측에 체크인-체크아웃 일자(`yyyy.MM.dd(EEE) - MM.dd(EEE) · N박 N일`)를 나란히 재배치하여 모바일 360px에서도 단정한 레이아웃 완성.
+    - 하단 좌측에 `[취소요청]` 버튼을 신설하고, `e.stopPropagation()`을 적용하여 카드 전체 터치(상세보기 이동)와의 간섭 원천 차단.
+    - 입금대기(`PENDING`): 즉시 취소 확인 다이얼로그(`AlertDialog`) ➔ `updateReservationStatus`로 즉시 취소.
+    - 예약확정(`CONFIRMED`): 동적 로드된 `CancelReservationSheet`를 오픈하여 환불 계좌 입력 및 규정에 따른 취소 접수(`REFUND_PENDING`) 연동.
+  - **무결성 검증**: `npx.cmd tsc --noEmit` 에러 0건 통과 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+
 ## Completed Tasks (2026-09-27)
 - [x] **마일스톤 9.73**: [내 주변 찾기] 팝업 '히스토리 바통 터치(ReplaceState)' 뒤로가기 가드 & 알림 뱃지 영구 읽음 완결
   - **[내 주변 찾기] 팝업 모바일 뒤로가기 가드 및 히스토리 바통 터치 (`BeginnerHome.tsx`, `InstantPlanModal.tsx`)**:
