@@ -57,7 +57,7 @@ export default function BottomNav() {
     }
 
     return (
-        <nav className="fixed bottom-0 w-full max-w-[430px] h-[80px] bg-white dark:bg-zinc-900 border-t border-stone-200/70 dark:border-zinc-800/80 flex justify-around items-center z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+        <nav className="fixed bottom-0 w-full max-w-[430px] h-[80px] bg-white border-t border-[#EAEFEA] flex justify-around items-center z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
             {tabs.map((tab) => {
                 const isActive = pathname === tab.href;
                 const badgeCount = getBadgeCount(tab.badgeTarget);
@@ -68,19 +68,19 @@ export default function BottomNav() {
                         key={tab.name}
                         onClick={() => handleNavigation(tab)}
                         className={`relative flex flex-col items-center justify-center w-full h-full gap-1 rounded-xl transition-all duration-100 active:scale-95 ${
-                            isActive ? "text-[#388E5A]" : "text-stone-800 dark:text-stone-200"
+                            isActive ? "text-[#2E7D47]" : "text-[#7A8B7E]"
                         }`}
                     >
                         {/* 아이콘 + 초록색 New 배지 */}
                         <div className="relative flex items-center justify-center">
-                            <tab.icon size={24} strokeWidth={isActive ? 2.5 : 1.8} className={isActive ? "text-[#388E5A]" : "text-stone-800 dark:text-stone-200"} />
+                            <tab.icon size={23} strokeWidth={isActive ? 2.5 : 1.8} className={isActive ? "text-[#2E7D47]" : "text-[#7A8B7E]"} />
                             {hasBadge && (
-                                <span className="absolute -top-2.5 -right-3.5 bg-[#388E5A] text-white text-[9.5px] font-black px-1.5 py-[0.5px] rounded-full leading-tight shadow-xs scale-90">
+                                <span className="absolute -top-2.5 -right-3.5 bg-[#2E7D47] text-white text-[9.5px] font-black px-1.5 py-[0.5px] rounded-full leading-tight shadow-2xs scale-90">
                                     New
                                 </span>
                             )}
                         </div>
-                        <span className={`text-[11px] ${isActive ? "font-bold text-[#388E5A]" : "font-semibold text-stone-700 dark:text-stone-300"}`}>
+                        <span className={`text-[11px] ${isActive ? "font-black text-[#2E7D47]" : "font-semibold text-[#7A8B7E]"}`}>
                             {tab.name}
                         </span>
                     </button>

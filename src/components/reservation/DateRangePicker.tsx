@@ -136,17 +136,19 @@ export default function DateRangePicker() {
 
 
     return (
-        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4">
-            <div className="flex items-center justify-between mb-2 pb-2 border-b border-stone-100">
-                <div className="flex items-center gap-2 text-stone-700">
-                    <CalendarIcon className="w-5 h-5 text-[#388E5A]" />
-                    <span className="font-medium">일정 선택</span>
+        <div className="bg-white rounded-3xl border border-[#EAEFEA] shadow-xs p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#F0F4F1]">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#E8F2EA] flex items-center justify-center">
+                        <CalendarIcon className="w-4 h-4 text-[#2E7D47]" />
+                    </div>
+                    <span className="font-black text-base text-[#1E4D2B]">일정 선택</span>
                 </div>
                 <button
                     onClick={() => setDateRange({ from: undefined, to: undefined })}
-                    className="text-xs text-stone-400 hover:text-[#388E5A] flex items-center gap-1 px-2 py-1 rounded-md hover:bg-stone-50 transition-colors"
+                    className="text-xs font-bold text-[#556B5C] bg-[#EFF3F0] hover:bg-[#E2EAE4] transition-colors px-3 py-1.5 rounded-full flex items-center gap-1.5"
                 >
-                    <RefreshCw className="w-3 h-3" />
+                    <RefreshCw className="w-3 h-3 text-[#556B5C]" />
                     초기화
                 </button>
             </div>
@@ -155,26 +157,24 @@ export default function DateRangePicker() {
                 {`
                     .rdp { margin: 0; }
                     .rdp-day_selected, .rdp-day_selected:hover { 
-                        background-color: #388E5A !important; 
-                        color: white !important;
+                        background-color: #2E7D47 !important; 
+                        color: #ffffff !important;
+                        font-weight: 700 !important;
                     }
                     .rdp-day_today { 
-                        font-weight: bold; 
+                        font-weight: 800; 
                         color: #1E4D2B;
                     }
                     .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { 
-                        background-color: #E9EFEA !important;
+                        background-color: #E8F2EA !important;
                         color: #1E4D2B !important;
                     }
                     .rdp-day_holiday {
-                        color: #ef4444 !important;
-                        font-weight: bold;
+                        color: #E06B62 !important;
+                        font-weight: 700;
                     }
                 `}
             </style>
-
-
-
 
             <DayPicker
                 mode="range"
@@ -189,28 +189,28 @@ export default function DateRangePicker() {
                     { after: activeConfig.closeAt }
                 ]}
                 modifiers={{ holiday: isDateHoliday }}
-                modifiersClassNames={{ holiday: "!text-red-500 !font-bold" }}
+                modifiersClassNames={{ holiday: "!text-[#E06B62] !font-bold" }}
                 footer={
                     <div className="mt-4 space-y-2 text-center">
                         {isFridayOneNight && (
                             isWithinDN ? (
-                                <p className="text-xs text-[#2D5A3C] font-bold animate-pulse p-2 bg-[#E9EFEA] border border-[#388E5A]/20 rounded-lg">
+                                <p className="text-xs text-[#1E4D2B] font-bold animate-pulse p-2.5 bg-[#E8F2EA] border border-[#68A678]/40 rounded-xl">
                                     ✅ 임박 예약(D-{D_N_DAYS})으로 주말 1박 가능!
                                 </p>
                             ) : (isEndCap || isStartCap) ? (
-                                <p className="text-xs text-blue-600 font-bold animate-pulse p-2 bg-blue-50 rounded-lg">
+                                <p className="text-xs text-[#1E4D2B] font-bold animate-pulse p-2.5 bg-[#E8F2EA] border border-[#68A678]/40 rounded-xl">
                                     ✅ 잔여석(자투리) 찬스로 1박 가능!
                                 </p>
                             ) : (
-                                <div className="p-2 bg-red-50 border border-red-100 rounded-lg">
-                                    <p className="text-xs text-red-500 font-bold leading-relaxed break-keep">
+                                <div className="p-2.5 bg-[#FFF5F5] border border-[#FAD2D2] rounded-xl">
+                                    <p className="text-xs text-[#E06B62] font-bold leading-relaxed break-keep">
                                         주말예약(금,토,일)은 2박부터 가능합니다. 다만 토요일이 예약된 사이트는 금요일 1박이 가능하며, 금요일이 예약된 사이트는 토요일 1박도 가능합니다.
                                     </p>
                                 </div>
                             )
                         )}
                         {!isFridayOneNight && (
-                            <p className="text-[10px] text-stone-400">
+                            <p className="text-[11px] text-[#7A8B7E] font-medium">
                                 * {activeConfig.seasonName} (~{format(activeConfig.closeAt, 'MM.dd')})
                             </p>
                         )}
@@ -220,34 +220,34 @@ export default function DateRangePicker() {
                 classNames={{
                     months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 justify-center",
                     month: "space-y-4",
-                    caption: "flex justify-center pt-1 relative items-center text-stone-800",
-                    caption_label: "text-sm font-bold",
+                    caption: "flex justify-center pt-1 pb-2 relative items-center text-[#1E4D2B]",
+                    caption_label: "text-base font-black text-[#1E4D2B]",
                     nav: "space-x-1 flex items-center",
-                    nav_button: "h-7 w-7 bg-transparent hover:bg-stone-100 rounded-full flex items-center justify-center transition-colors text-stone-600",
+                    nav_button: "h-8 w-8 bg-[#E8F2EA] hover:bg-[#DDF0E4] rounded-xl flex items-center justify-center transition-colors text-[#2E7D47]",
                     table: "w-full border-collapse space-y-1",
                     head_row: "flex justify-center",
-                    head_cell: "text-stone-400 rounded-md w-9 font-normal text-[0.8rem]",
+                    head_cell: "text-[#7A8B7E] rounded-md w-9 font-bold text-xs",
                     row: "flex w-full mt-2 justify-center",
                     cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full transition-colors text-stone-700",
-                    day_outside: "text-stone-300 opacity-50",
-                    day_disabled: "text-stone-200 opacity-30",
-                    day_range_middle: "aria-selected:bg-[#388E5A]/15 aria-selected:text-[#1E4D2B]",
+                    day: "h-9 w-9 p-0 font-bold aria-selected:opacity-100 rounded-full transition-colors text-[#112918]",
+                    day_outside: "text-[#C2CDC5] opacity-60 font-normal",
+                    day_disabled: "text-[#D5DDD6] opacity-40 font-normal",
+                    day_range_middle: "aria-selected:bg-[#E8F2EA] aria-selected:text-[#1E4D2B]",
                     day_hidden: "invisible",
                 }}
             />
 
-            <div className="mt-4 p-3 bg-stone-50 rounded-xl text-sm text-stone-600 flex justify-between items-center border border-stone-100">
+            <div className="mt-4 p-4 bg-[#F8FAF8] rounded-2xl text-sm flex justify-between items-center border border-[#E8EEE9]">
                 <div className="text-center w-1/2">
-                    <p className="text-[10px] text-stone-400 mb-0.5">체크인</p>
-                    <p className="font-semibold text-[#1E4D2B]">
+                    <p className="text-xs text-[#7A8B7E] font-medium mb-1">체크인</p>
+                    <p className="font-black text-lg text-[#1E4D2B]">
                         {selected.from ? format(selected.from, 'yyyy.MM.dd') : '-'}
                     </p>
                 </div>
-                <div className="h-8 w-[1px] bg-stone-200"></div>
+                <div className="h-9 w-[1px] bg-[#E8EEE9]"></div>
                 <div className="text-center w-1/2">
-                    <p className="text-[10px] text-stone-400 mb-0.5">체크아웃</p>
-                    <p className="font-semibold text-[#1E4D2B]">
+                    <p className="text-xs text-[#7A8B7E] font-medium mb-1">체크아웃</p>
+                    <p className="font-black text-lg text-[#1E4D2B]">
                         {selected.to ? format(selected.to, 'yyyy.MM.dd') : '-'}
                     </p>
                 </div>

@@ -229,78 +229,87 @@ export default function ReservationPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[#F8FAF8] pb-32">
+        <main className="min-h-screen bg-[#F4F8F5] pb-32">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#F8FAF8]/90 backdrop-blur-md border-b border-stone-200/80 px-4 h-16 flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-stone-100">
-                    <ArrowLeft className="w-5 h-5 text-stone-700" />
+            <header className="sticky top-0 z-50 bg-[#F4F8F5]/90 backdrop-blur-md px-4 h-16 flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-[#E8F0EA]">
+                    <ArrowLeft className="w-5 h-5 text-[#1E4D2B]" />
                 </Button>
-                <h1 className="font-bold text-lg text-stone-800">예약하기</h1>
+                <h1 className="font-bold text-xl text-[#1E4D2B]">예약하기</h1>
             </header>
 
-
-            {/* SSOT 5.10.3 Open Day Banner */}
-            <div className={`text-white px-5 py-4 shadow-md transition-colors ${isClosed ? 'bg-stone-600' : 'bg-gradient-to-r from-[#1E4D2B] via-[#2F774B] to-[#1E4D2B]'}`}>
-                <div className="flex items-start gap-4 max-w-lg mx-auto">
-                    <div className="mt-1 p-2 bg-white/10 rounded-full">
-                        {isClosed ? <Lock className="w-5 h-5 text-stone-300" /> : <Megaphone className="w-5 h-5 text-amber-300 animate-pulse" />}
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h2 className="font-bold text-lg text-white">
-                                {isClosed
-                                    ? activeConfig.closedTitle
-                                    : (isOpen ? "예약 가능" : activeConfig.preOpenTitle)
-                                }
-                            </h2>
-                            {/* D-Day Badge */}
-                            {!isOpen && !isClosed && dDayBadge && (
-                                <span className="bg-[#E9EFEA] text-[#2D5A3C] text-xs font-bold px-2 py-0.5 rounded-full border border-[#388E5A]/30 animate-bounce">
-                                    {dDayBadge}
-                                </span>
+            <div className="p-5 pt-2 space-y-6 max-w-lg mx-auto">
+                {/* 📢 시안 100% 일치: 예약 가능 독립 라운드 카드 배너 */}
+                <div className={`p-4 sm:p-5 rounded-3xl transition-colors border-2 ${
+                    isClosed 
+                        ? 'bg-stone-200 border-stone-400 text-stone-700' 
+                        : 'bg-[#DDF0E4] border-[#68A678] text-[#194D33] shadow-2xs'
+                }`}>
+                    <div className="flex items-center gap-3.5">
+                        <div className="p-2.5 bg-white rounded-full shadow-2xs shrink-0">
+                            {isClosed ? (
+                                <Lock className="w-5 h-5 text-stone-600" />
+                            ) : (
+                                <Megaphone className="w-5 h-5 text-[#2E7D47]" />
                             )}
                         </div>
-                        <p className="text-sm text-white/80 leading-relaxed whitespace-pre-line">
-                            {isClosed
-                                ? activeConfig.closedMessage
-                                : (isOpen
-                                    ? `${format(activeConfig.closeAt, 'MM월 dd일')}까지 예약 가능합니다.\n${
-                                    // Next Season Logic for Monthly (오픈일 지나면 다음 달로 자동 롤오버)
-                                    openDayRule?.repeat_rule === 'MONTHLY'
-                                        ? (() => {
-                                            const triggerDay = openDayRule?.automation_config?.triggerDay || 1;
-                                            const today = new Date();
-                                            const year = today.getFullYear();
-                                            const month = today.getMonth();
-                                            const targetMonth = today.getDate() <= triggerDay ? month : month + 1;
-                                            const openDate = startOfDay(new Date(year, targetMonth, triggerDay));
-                                            return `(다음시즌 오픈일 ${format(openDate, 'MM월 dd일')})`;
-                                        })()
-                                        : activeConfig.nextSeasonOpenAt
-                                            ? `(다음시즌 오픈일 ${format(activeConfig.nextSeasonOpenAt, 'MM월 dd일')})`
-                                            : ''
-                                    }`
-                                    : `${activeConfig.preOpenMessage}\n오픈: ${activeConfig.openAt.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}`
-                                )
-                            }
-                        </p>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                                <h2 className="font-bold text-base text-[#194D33]">
+                                    {isClosed
+                                        ? activeConfig.closedTitle
+                                        : (isOpen ? "예약 가능" : activeConfig.preOpenTitle)
+                                    }
+                                </h2>
+                                {/* D-Day Badge */}
+                                {!isOpen && !isClosed && dDayBadge && (
+                                    <span className="bg-[#E9EFEA] text-[#2D5A3C] text-[11px] font-bold px-2 py-0.5 rounded-full border border-[#388E5A]/30 animate-bounce">
+                                        {dDayBadge}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-[#335C43] font-medium leading-relaxed whitespace-pre-line">
+                                {isClosed
+                                    ? activeConfig.closedMessage
+                                    : (isOpen
+                                        ? `${format(activeConfig.closeAt, 'MM월 dd일')}까지 예약 가능합니다.\n${
+                                        // Next Season Logic for Monthly (오픈일 지나면 다음 달로 자동 롤오버)
+                                        openDayRule?.repeat_rule === 'MONTHLY'
+                                            ? (() => {
+                                                const triggerDay = openDayRule?.automation_config?.triggerDay || 1;
+                                                const today = new Date();
+                                                const year = today.getFullYear();
+                                                const month = today.getMonth();
+                                                const targetMonth = today.getDate() <= triggerDay ? month : month + 1;
+                                                const openDate = startOfDay(new Date(year, targetMonth, triggerDay));
+                                                return `(다음시즌 오픈일 ${format(openDate, 'MM월 dd일')})`;
+                                            })()
+                                            : activeConfig.nextSeasonOpenAt
+                                                ? `(다음시즌 오픈일 ${format(activeConfig.nextSeasonOpenAt, 'MM월 dd일')})`
+                                                : ''
+                                        }`
+                                        : `${activeConfig.preOpenMessage}\n오픈: ${activeConfig.openAt.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}`
+                                    )
+                                }
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="p-5 space-y-8 max-w-lg mx-auto">
+                {/* 섹션 1: 날짜 선택 */}
                 <section>
                     <div className="flex items-center gap-2 mb-3 px-1">
-                        <span className="w-1 h-5 bg-[#388E5A] rounded-full"></span>
-                        <h2 className="text-lg font-bold text-stone-800">날짜 선택</h2>
+                        <span className="w-1.5 h-4.5 bg-[#1E4D2B] rounded-full"></span>
+                        <h2 className="text-lg font-black text-[#1E4D2B] tracking-tight">날짜 선택</h2>
                     </div>
                     <DateRangePicker />
                 </section>
 
+                {/* 섹션 2: 사이트 선택 */}
                 <section className={`transition-all duration-300 ${isBlocked || !isOpen ? 'opacity-60 grayscale pointer-events-none' : 'opacity-100'}`}>
                     <div className="flex items-center gap-2 mb-3 px-1">
-                        <span className="w-1 h-5 bg-[#388E5A] rounded-full"></span>
-                        <h2 className="text-lg font-bold text-stone-800">사이트 선택</h2>
+                        <span className="w-1.5 h-4.5 bg-[#1E4D2B] rounded-full"></span>
+                        <h2 className="text-lg font-black text-[#1E4D2B] tracking-tight">사이트 선택</h2>
                     </div>
 
                     {(isBlocked || allSitesBooked) ? (

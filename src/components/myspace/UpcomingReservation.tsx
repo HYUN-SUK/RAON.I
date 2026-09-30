@@ -323,34 +323,34 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
         return (
             <div className="px-6 pb-6 mt-4">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-text-1">다가오는 일정</h2>
+                    <h2 className="text-lg font-black text-[#1E4D2B]">다가오는 일정</h2>
                     <button
                         onClick={() => router.push('/myspace/reservations')}
-                        className="text-sm text-[#388E5A] font-medium hover:underline"
+                        className="text-xs font-bold text-[#2E7D47] hover:underline"
                     >
                         전체 내역 →
                     </button>
                 </div>
                 <div
                     onClick={() => router.push('/reservation')}
-                    className="bg-white rounded-3xl p-6 shadow-sm border border-surface-2 flex flex-col items-center justify-center gap-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="bg-white rounded-3xl p-6 shadow-xs border border-[#EAEFEA] flex flex-col items-center justify-center gap-3 text-center cursor-pointer hover:bg-[#F4F8F5] transition-colors"
                 >
-                    <div className="p-3 bg-[#E9EFEA] rounded-full text-[#388E5A]">
+                    <div className="p-3 bg-[#E1EFE4] rounded-2xl text-[#2E7D47]">
                         <Calendar size={24} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-text-1">다가오는 일정이 없어요</h3>
-                        <p className="text-sm text-text-2">새로운 캠핑을 떠나보세요!</p>
+                        <h3 className="font-black text-base text-[#1E4D2B]">다가오는 일정이 없어요</h3>
+                        <p className="text-xs text-[#7A8B7E] mt-0.5">새로운 캠핑을 떠나보세요!</p>
                     </div>
                 </div>
 
                 {/* 다른 여행 일정 추가 버튼 */}
                 <button
                     onClick={() => router.push('/myspace/schedule?add=external')}
-                    className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#388E5A]/30 rounded-xl text-[#388E5A] hover:bg-[#E9EFEA] transition-all"
+                    className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3.5 bg-[#F4F8F5] border border-dashed border-[#2E7D47]/40 rounded-2xl text-[#2E7D47] font-bold text-sm hover:bg-[#E8F2EA] transition-all"
                 >
                     <Plus size={16} />
-                    <span className="text-sm font-medium">다른 여행 일정 추가</span>
+                    <span>다른 여행 일정 추가</span>
                 </button>
             </div>
         );
@@ -366,10 +366,10 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
         <div className="px-6 pb-6 mt-4">
             {/* Title with Link */}
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-text-1">다가오는 일정</h2>
+                <h2 className="text-lg font-black text-[#1E4D2B]">다가오는 일정</h2>
                 <button
                     onClick={() => router.push('/myspace/reservations')}
-                    className="text-sm text-[#388E5A] font-medium hover:underline"
+                    className="text-xs font-bold text-[#2E7D47] hover:underline"
                 >
                     전체 내역 →
                 </button>
@@ -383,92 +383,76 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                     const { status, siteId, familyCount, visitorCount, vehicleCount, totalPrice } = reservation;
                     return (
                         <div className="relative group cursor-pointer active:scale-[0.99] transition-transform duration-200" onClick={handleDetailClick}>
-                            <div className={`absolute -inset-0.5 bg-gradient-to-r rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-500
-                                ${status === 'PENDING' ? 'from-yellow-500 to-orange-500' :
-                                    status === 'CONFIRMED' ? 'from-[#388E5A] to-[#2F774B]' :
-                                        status === 'REFUND_PENDING' ? 'from-amber-600 to-orange-600' :
-                                            'from-red-500 to-pink-500'}`}
-                            ></div>
-
-                            <div className="relative bg-white rounded-3xl overflow-hidden shadow-medium border border-surface-2">
-                                <div className={`p-5 relative overflow-hidden transition-colors
-                                    ${status === 'PENDING' ? 'bg-yellow-500' :
-                                        status === 'CONFIRMED' ? 'bg-[#388E5A]' :
-                                            status === 'REFUND_PENDING' ? 'bg-amber-600' :
-                                                'bg-gray-600'}`}
-                                >
-                                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:16px_16px]"></div>
-
-                                    <div className="flex justify-between items-start mb-3 relative z-10">
+                            <div className="relative bg-white rounded-3xl overflow-hidden shadow-xs border-2 border-[#68A678]">
+                                <div className="p-5">
+                                    <div className="flex justify-between items-center mb-3">
                                         <div className="flex items-center gap-2">
-                                            <span className="inline-flex items-center px-2.5 py-1 bg-white/20 rounded-full text-[10px] font-bold text-white backdrop-blur-sm border border-white/10">
+                                            <span className="inline-flex items-center px-2.5 py-1 bg-[#FFF9EE] text-[#8C632B] border border-[#FBE3B5] rounded-full text-xs font-black shadow-2xs">
                                                 {dDay}
                                             </span>
-                                            <span className="inline-flex items-center px-2 py-0.5 bg-[#388E5A]/30 rounded text-[9px] font-bold text-white">
+                                            <span className="inline-flex items-center px-2 py-0.5 bg-[#E1EFE4] rounded-md text-[11px] font-bold text-[#2E7D47]">
                                                 라온아이
                                             </span>
                                         </div>
-                                        <span className="flex items-center gap-1 text-xs font-medium text-white/90 tracking-wide">
-                                            {status === 'PENDING' && <><Clock size={12} /> 입금 대기</>}
-                                            {status === 'REFUND_PENDING' && <><Clock size={12} /> 취소/환불 대기</>}
+                                        <span className="flex items-center gap-1 text-xs font-bold tracking-wide">
+                                            {status === 'PENDING' && <span className="text-[#C28238] flex items-center gap-1"><Clock size={12} /> 입금 대기</span>}
+                                            {status === 'REFUND_PENDING' && <span className="text-[#C28238] flex items-center gap-1"><Clock size={12} /> 취소/환불 대기</span>}
                                             {status === 'CONFIRMED' && (
                                                 diffDays <= 0 ? (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse border border-orange-200/40">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-xs animate-pulse">
                                                         ✨ 힐링중 | 현재 여행 진행중
                                                     </span>
                                                 ) : (
-                                                    <><CheckCircle2 size={12} /> 예약 확정</>
+                                                    <span className="text-[#2E7D47] flex items-center gap-1"><CheckCircle2 size={13} /> 예약 확정</span>
                                                 )
                                             )}
-                                            {status === 'CANCELLED' && <><AlertCircle size={12} /> 취소됨</>}
+                                            {status === 'CANCELLED' && <span className="text-[#E06B62] flex items-center gap-1"><AlertCircle size={12} /> 취소됨</span>}
                                         </span>
                                     </div>
 
                                     <div className="flex items-center justify-between gap-3 mb-1 min-w-0">
-                                        <h3 className="text-xl font-bold text-white tracking-tight truncate">
+                                        <h3 className="text-xl font-black text-[#1E4D2B] tracking-tight truncate">
                                             {SITES.find(s => s.id === siteId)?.name || siteId}
                                         </h3>
                                         {isSmartPlanAvailable && (
-                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[15px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[13px] font-black gold-glow-badge shadow-xs transition-all duration-300 animate-pulse">
                                                 {badgeText}
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center text-white/70 text-sm">
-                                        <MapPin size={14} className="mr-1" />
+                                    <div className="flex items-center text-[#7A8B7E] text-xs font-medium mb-4">
+                                        <MapPin size={13} className="mr-1 text-[#2E7D47]" />
                                         {siteId}
                                     </div>
-                                </div>
 
-                                <div className="p-5 bg-surface-1">
                                     {status === 'PENDING' && (
-                                        <div className="mb-5 p-4 bg-yellow-50 rounded-2xl border border-yellow-100">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-bold text-yellow-800">입금 계좌 ({bankName})</span>
-                                                <button onClick={handleCopyAccount} className="text-xs text-yellow-700 underline flex items-center gap-1 hover:text-yellow-900">
+                                        <div className="mb-4 p-4 bg-[#FFF9EE] rounded-2xl border border-[#FBE3B5]">
+                                            <div className="flex justify-between items-center mb-1.5">
+                                                <span className="text-xs font-bold text-[#8C632B]">입금 계좌 ({bankName})</span>
+                                                <button onClick={handleCopyAccount} className="text-xs text-[#8C632B] font-bold underline flex items-center gap-1">
                                                     {copied ? "복사완료!" : "계좌 복사"} <Copy size={10} />
                                                 </button>
                                             </div>
-                                            <p className="text-lg font-bold text-yellow-900 tracking-wider">{bankAccount}</p>
-                                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-yellow-200/50">
-                                                <span className="text-[10px] text-yellow-700">입금액</span>
-                                                <span className="text-sm font-bold text-yellow-900">{totalPrice?.toLocaleString()}원</span>
+                                            <p className="text-base font-black text-[#8C632B] tracking-wider">{bankAccount}</p>
+                                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#FBE3B5]/60">
+                                                <span className="text-xs text-[#8C632B]">입금액</span>
+                                                <span className="text-sm font-black text-[#8C632B]">{totalPrice?.toLocaleString()}원</span>
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="flex flex-col gap-3 mb-5">
-                                        <div className="flex items-center gap-3 text-sm text-text-2">
-                                            <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <Calendar size={16} className="text-[#388E5A]" />
+                                    <div className="flex flex-col gap-2.5 mb-5 p-3.5 bg-[#F8FAF8] rounded-2xl border border-[#E8EEE9]">
+                                        <div className="flex items-center gap-2.5 text-xs text-[#1E4D2B]">
+                                            <div className="p-1.5 bg-[#E1EFE4] rounded-lg">
+                                                <Calendar size={14} className="text-[#2E7D47]" />
                                             </div>
-                                            <span className="font-medium">
+                                            <span className="font-bold">
                                                 {format(upcomingItem.checkIn, 'yyyy. MM. dd (eee)', { locale: ko })} - {format(upcomingItem.checkOut, 'MM. dd (eee)', { locale: ko })}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-sm text-text-2">
-                                            <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <User size={16} className="text-[#388E5A]" />
+                                        <div className="flex items-center gap-2.5 text-xs text-[#556B5C]">
+                                            <div className="p-1.5 bg-[#E1EFE4] rounded-lg">
+                                                <User size={14} className="text-[#2E7D47]" />
                                             </div>
                                             <span className="font-medium">
                                                 가족 {familyCount}, 방문 {visitorCount}, 차량 {vehicleCount}
@@ -476,22 +460,17 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-3">
-                                        <button className={`flex-1 py-3 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-1 group/btn
-                                            ${status === 'PENDING' ? 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20' :
-                                                status === 'REFUND_PENDING' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' :
-                                                    status === 'CONFIRMED' ? 'bg-[#388E5A] hover:bg-[#2F774B] shadow-[#388E5A]/20' :
-                                                        'bg-gray-500 hover:bg-gray-600'}`}
-                                        >
+                                    <div className="flex gap-2.5">
+                                        <button className="flex-1 py-3.5 bg-[#2E7D47] hover:bg-[#236739] text-white rounded-2xl text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-1 group/btn">
                                             상세보기
-                                            <ChevronRight size={16} className="opacity-70 group-hover/btn:translate-x-1 transition-transform" />
+                                            <ChevronRight size={16} className="opacity-80 group-hover/btn:translate-x-1 transition-transform" />
                                         </button>
 
                                         {(status === 'PENDING' || status === 'CONFIRMED') && (
                                             <button
                                                 onClick={handleCancelClick}
                                                 disabled={directCancelling}
-                                                className="py-3 px-4 text-red-600 bg-red-50 rounded-xl text-sm font-medium border border-red-100 hover:bg-red-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                                className="py-3.5 px-4 text-[#E06B62] bg-[#FFF5F5] rounded-2xl text-sm font-bold border border-[#FAD2D2] hover:bg-[#FFEBEB] transition-colors flex items-center gap-1 disabled:opacity-50"
                                             >
                                                 {directCancelling ? (
                                                     <Loader2 size={16} className="animate-spin" />
@@ -517,65 +496,59 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                             className="relative group cursor-pointer active:scale-[0.99] transition-transform duration-200"
                             onClick={() => router.push(`/myspace/schedule/${schedule.id}`)}
                         >
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#1E4D2B] via-[#2F774B] to-[#388E5A] rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
-
-                            <div className="relative bg-white rounded-3xl overflow-hidden shadow-medium border border-surface-2">
-                                <div className="p-5 relative overflow-hidden transition-colors bg-gradient-to-r from-[#1E4D2B] via-[#2F774B] to-[#1E4D2B]">
-                                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:16px_16px]"></div>
-
-                                    <div className="flex justify-between items-start mb-3 relative z-10">
+                            <div className="relative bg-white rounded-3xl overflow-hidden shadow-xs border-2 border-[#68A678]">
+                                <div className="p-5">
+                                    <div className="flex justify-between items-center mb-3">
                                         <div className="flex items-center gap-2">
-                                            <span className="inline-flex items-center px-2.5 py-1 bg-white/20 rounded-full text-[10px] font-bold text-white backdrop-blur-sm border border-white/10">
+                                            <span className="inline-flex items-center px-2.5 py-1 bg-[#FFF9EE] text-[#8C632B] border border-[#FBE3B5] rounded-full text-xs font-black shadow-2xs">
                                                 {dDay}
                                             </span>
-                                            <span className="inline-flex items-center px-2 py-0.5 bg-white/20 rounded text-[9px] font-bold text-white">
+                                            <span className="inline-flex items-center px-2 py-0.5 bg-[#E1EFE4] rounded-md text-[11px] font-bold text-[#2E7D47]">
                                                 타캠핑장
                                             </span>
                                         </div>
-                                        <span className="flex items-center gap-1 text-xs font-medium tracking-wide">
+                                        <span className="flex items-center gap-1 text-xs font-bold tracking-wide">
                                             {diffDays <= 0 ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-[0_2px_10px_rgba(249,115,22,0.4)] animate-pulse border border-orange-200/40">
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white font-black text-[11px] shadow-xs animate-pulse">
                                                     ✨ 힐링중 | 현재 여행 진행중
                                                 </span>
                                             ) : (
-                                                <span className="text-white/90 font-medium flex items-center gap-1">
-                                                    <Tent size={12} /> 예정된 일정
+                                                <span className="text-[#2E7D47] font-bold flex items-center gap-1">
+                                                    <Tent size={13} /> 예정된 일정
                                                 </span>
                                             )}
                                         </span>
                                     </div>
 
                                     <div className="flex items-center justify-between gap-3 mb-1 min-w-0">
-                                        <h3 className="text-xl font-bold text-white tracking-tight truncate">
+                                        <h3 className="text-xl font-black text-[#1E4D2B] tracking-tight truncate">
                                             {schedule.campground_name}
                                         </h3>
                                         {isSmartPlanAvailable && (
-                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[15px] font-black gold-glow-badge shadow-md transition-all duration-300 animate-pulse">
+                                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-[13px] font-black gold-glow-badge shadow-xs transition-all duration-300 animate-pulse">
                                                 {badgeText}
                                             </span>
                                         )}
                                     </div>
                                     {schedule.campground_address && (
-                                        <div className="flex items-center text-white/70 text-sm">
-                                            <MapPin size={14} className="mr-1" />
+                                        <div className="flex items-center text-[#7A8B7E] text-xs font-medium mb-4">
+                                            <MapPin size={13} className="mr-1 text-[#2E7D47]" />
                                             {schedule.campground_address}
                                         </div>
                                     )}
-                                </div>
 
-                                <div className="p-5 bg-surface-1">
-                                    <div className="flex flex-col gap-3 mb-5">
-                                        <div className="flex items-center gap-3 text-sm text-text-2">
-                                            <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <Calendar size={16} className="text-[#388E5A]" />
+                                    <div className="flex flex-col gap-2.5 mb-5 p-3.5 bg-[#F8FAF8] rounded-2xl border border-[#E8EEE9]">
+                                        <div className="flex items-center gap-2.5 text-xs text-[#1E4D2B]">
+                                            <div className="p-1.5 bg-[#E1EFE4] rounded-lg">
+                                                <Calendar size={14} className="text-[#2E7D47]" />
                                             </div>
-                                            <span className="font-medium">
+                                            <span className="font-bold">
                                                 {format(upcomingItem.checkIn, 'yyyy. MM. dd (eee)', { locale: ko })} - {format(upcomingItem.checkOut, 'MM. dd (eee)', { locale: ko })}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-sm text-text-2">
-                                            <div className="p-2 bg-white rounded-full shadow-sm">
-                                                <Clock size={16} className="text-[#388E5A]" />
+                                        <div className="flex items-center gap-2.5 text-xs text-[#556B5C]">
+                                            <div className="p-1.5 bg-[#E1EFE4] rounded-lg">
+                                                <Clock size={14} className="text-[#2E7D47]" />
                                             </div>
                                             <span className="font-medium">
                                                 {nights}박 {nights + 1}일
@@ -583,9 +556,9 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
                                         </div>
                                     </div>
 
-                                    <button className="w-full py-3 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-1 group/btn bg-[#388E5A] hover:bg-[#2F774B] shadow-[#388E5A]/20">
+                                    <button className="w-full py-3.5 bg-[#2E7D47] hover:bg-[#236739] text-white rounded-2xl text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-1 group/btn">
                                         상세보기
-                                        <ChevronRight size={16} className="opacity-70 group-hover/btn:translate-x-1 transition-transform" />
+                                        <ChevronRight size={16} className="opacity-80 group-hover/btn:translate-x-1 transition-transform" />
                                     </button>
                                 </div>
                             </div>
@@ -597,10 +570,10 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
             {/* 다른 여행 일정 추가 버튼 */}
             <button
                 onClick={() => router.push('/myspace/schedule?add=external')}
-                className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-[#388E5A]/30 rounded-xl text-[#388E5A] hover:bg-[#E9EFEA] transition-all"
+                className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3.5 bg-[#F4F8F5] border border-dashed border-[#2E7D47]/40 rounded-2xl text-[#2E7D47] font-bold text-sm hover:bg-[#E8F2EA] transition-all"
             >
                 <Plus size={16} />
-                <span className="text-sm font-medium">다른 여행 일정 추가</span>
+                <span>다른 여행 일정 추가</span>
             </button>
 
             {/* 입금 대기 리스트 */}

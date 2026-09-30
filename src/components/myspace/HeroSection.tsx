@@ -170,12 +170,12 @@ export default function HeroSection({ isLoading = false, emberStats = null }: He
                                     e.stopPropagation();
                                     router.push(`/mission/${currentMission.id}`);
                                 }}
-                                className="glass-panel px-4 py-2 rounded-full flex items-center gap-2 text-white/90 hover:bg-white/20 active:scale-95 transition-all shadow-lg animate-float"
+                                className="bg-[#2E7D47]/90 text-white backdrop-blur-md border border-white/25 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-[#2E7D47] active:scale-95 transition-all shadow-md animate-float"
                             >
-                                <div className="p-1 bg-[#388E5A] rounded-full">
+                                <div className="p-1 bg-white/20 rounded-full">
                                     <Flag size={12} className="text-white" fill="currentColor" />
                                 </div>
-                                <span className="text-xs font-medium">
+                                <span className="text-xs font-bold">
                                     이번 주: {currentMission.title.length > 8 ? currentMission.title.substring(0, 8) + '...' : currentMission.title}
                                 </span>
                             </button>
@@ -187,10 +187,10 @@ export default function HeroSection({ isLoading = false, emberStats = null }: He
                                 e.stopPropagation();
                                 router.push('/myspace/embers');
                             }}
-                            className="glass-panel px-4 py-2 rounded-full flex items-center gap-2 text-white/90 hover:bg-white/20 active:scale-95 transition-all shadow-lg"
+                            className="bg-[#FFF9EE]/95 text-[#8C632B] border border-[#FBE3B5] backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2 hover:bg-[#FFF9EE] active:scale-95 transition-all shadow-md"
                         >
-                            <Flame size={16} className="text-orange-400" />
-                            <span className="text-xs font-medium">
+                            <Flame size={15} className="text-[#C28238]" fill="currentColor" />
+                            <span className="text-xs font-bold">
                                 받은 불씨 {emberStats?.received_count ?? 0}개
                             </span>
                         </button>
@@ -209,10 +209,10 @@ export default function HeroSection({ isLoading = false, emberStats = null }: He
                     <button
                         onClick={handleCameraClick}
                         disabled={isUploading}
-                        className="glass-button p-3 rounded-full text-white hover:bg-white/20 active:scale-95 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-white/85 backdrop-blur-md p-2.5 rounded-full text-[#1E4D2B] hover:bg-white active:scale-95 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                     >
-                        <Camera size={20} strokeWidth={1.5} />
-                        <span className="text-sm font-medium w-0 overflow-hidden group-hover:w-16 transition-all duration-300 whitespace-nowrap">
+                        <Camera size={18} strokeWidth={2} />
+                        <span className="text-xs font-bold w-0 overflow-hidden group-hover:w-16 transition-all duration-300 whitespace-nowrap">
                             {isUploading ? '업로드...' : '사진 변경'}
                         </span>
                     </button>

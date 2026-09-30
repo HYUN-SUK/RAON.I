@@ -136,21 +136,21 @@ const NotificationBadge = memo(function NotificationBadge({ className = '', vari
     return (
         <button
             onClick={handleClick}
-            className={`flex items-center gap-2 w-full mx-auto max-w-sm bg-stone-100 dark:bg-zinc-800 border border-stone-200 dark:border-zinc-700 rounded-lg p-3 my-2 shadow-sm hover:bg-stone-200 dark:hover:bg-zinc-700 transition-colors ${className}`}
+            className={`flex items-center gap-3 w-full mx-auto max-w-sm bg-white border border-[#EAEFEA] rounded-2xl p-3.5 my-2 shadow-xs hover:border-[#68A678] hover:bg-[#F4F8F5]/60 transition-all ${className}`}
         >
-            <div className="bg-white dark:bg-black p-1.5 rounded-full border border-stone-200 dark:border-zinc-700 relative">
-                <Bell className="w-4 h-4 text-[#C3A675]" />
+            <div className="bg-[#E1EFE4] p-2 rounded-xl relative flex-shrink-0">
+                <Bell className="w-4 h-4 text-[#2E7D47]" />
                 {(!latestNotification.is_read && !isLocallyRead) && (
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-bounce" />
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-[#E06B62] rounded-full animate-bounce" />
                 )}
             </div>
             <div className="text-left flex-1 min-w-0">
-                <p className="text-xs text-stone-500 dark:text-stone-400 font-bold mb-0.5">알림 내역 확인</p>
-                <p className="text-sm text-stone-800 dark:text-stone-200 truncate font-medium">
+                <p className="text-xs text-[#7A8B7E] font-bold mb-0.5">알림 내역 확인</p>
+                <p className="text-sm text-[#1E4D2B] truncate font-black">
                     {latestNotification.title}
                 </p>
             </div>
-            <span className="text-xs text-stone-400 whitespace-nowrap px-2 py-1 bg-white dark:bg-black rounded border border-stone-200 dark:border-zinc-700">
+            <span className="text-xs text-[#2E7D47] font-bold whitespace-nowrap px-2.5 py-1 bg-[#F4F8F5] rounded-lg border border-[#B3C9B8]">
                 이동
             </span>
         </button>

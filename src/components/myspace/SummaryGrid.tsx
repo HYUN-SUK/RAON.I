@@ -61,32 +61,32 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
         {
             icon: ImageIcon,
             label: "내 앨범",
-            color: "text-rose-600",
-            bg: "bg-rose-50",
+            color: "text-[#C28238]",
+            bg: "bg-[#FDF3E5]",
             value: null,
             onClick: () => router.push('/myspace/album')
         },
         {
             icon: History,
             label: "내 히스토리",
-            color: "text-purple-600",
-            bg: "bg-purple-50",
+            color: "text-[#3D7A52]",
+            bg: "bg-[#E1EFE4]",
             value: `${historyCount}회`,
             onClick: () => router.push('/myspace/history')
         },
         {
             icon: Star,
             label: "나의 탐험 지수",
-            color: "text-[#1E4D2B]",
-            bg: "bg-[#E9EFEA]",
+            color: "text-[#3D7A52]",
+            bg: "bg-[#E1EFE4]",
             value: contributionCount > 0 ? `✓ 확인 ${contributionCount}곳` : "XP & Token",
             onClick: () => router.push('/myspace/wallet')
         },
         {
             icon: Map,
             label: "나만의 캠핑지도",
-            color: "text-[#388E5A]",
-            bg: "bg-[#E9EFEA]",
+            color: "text-[#C28238]",
+            bg: "bg-[#FDF3E5]",
             value: null,
             onClick: () => setIsMapOpen(true)
         },
@@ -109,7 +109,7 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
                         key={item.label}
                         onClick={item.onClick}
                         style={{ transform: `rotate(${cardStyles[index].rotate})` }}
-                        className="group relative flex flex-col items-center justify-center p-5 pt-8 bg-white rounded-3xl shadow-soft border border-transparent hover:border-surface-2 hover:shadow-medium active:scale-95 transition-all duration-300 hover:rotate-0 hover:-translate-y-1"
+                        className="group relative flex flex-col items-center justify-center p-5 pt-8 bg-white rounded-3xl shadow-xs border border-[#EAEFEA] hover:border-[#68A678] hover:shadow-md active:scale-95 transition-all duration-300 hover:rotate-0 hover:-translate-y-0.5"
                     >
                         {/* 테이프 효과 - 상단 중앙 */}
                         <div
@@ -120,21 +120,21 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
                             }}
                         >
                             <div
-                                className="w-14 h-5 rounded-sm opacity-60"
+                                className="w-14 h-5 rounded-xs opacity-75"
                                 style={{
-                                    background: 'linear-gradient(180deg, rgba(255,248,220,0.9) 0%, rgba(245,222,179,0.7) 100%)',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                    background: 'linear-gradient(180deg, rgba(247,235,212,0.95) 0%, rgba(238,217,185,0.8) 100%)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                                     border: '1px solid rgba(210,180,140,0.3)',
                                 }}
                             />
                         </div>
 
-                        <div className={`p-3.5 rounded-2xl ${item.bg} ${item.color} mb-3 transition-transform group-hover:scale-110 duration-300`}>
-                            <item.icon size={22} strokeWidth={2} />
+                        <div className={`p-3.5 rounded-2xl ${item.bg} ${item.color} mb-2.5 transition-transform group-hover:scale-105 duration-200`}>
+                            <item.icon size={22} strokeWidth={2.2} />
                         </div>
-                        <span className="text-sm font-semibold text-text-2 group-hover:text-text-1 transition-colors">{item.label}</span>
+                        <span className="text-sm font-bold text-[#1E4D2B] transition-colors">{item.label}</span>
                         {item.value && (
-                            <span className="text-xs font-bold text-[#388E5A] mt-1">{item.value}</span>
+                            <span className="text-xs font-black text-[#2E7D47] mt-1">{item.value}</span>
                         )}
                     </button>
                 ))}

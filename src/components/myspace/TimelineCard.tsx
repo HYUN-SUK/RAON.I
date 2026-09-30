@@ -82,36 +82,36 @@ export default function TimelineCard({ item }: TimelineCardProps) {
     };
 
     return (
-        <div className={`relative pl-8 pb-8 group`}>
+        <div className={`relative pl-8 pb-7 group`}>
             {/* Timeline Line & Dot */}
-            <div className="absolute left-[11px] top-8 bottom-0 w-[2px] bg-stone-200 dark:bg-zinc-700 group-last:hidden" />
-            <div className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center bg-white dark:bg-zinc-900 border-2 ${styles.borderClass} z-10`}>
-                <Icon className={`w-3 h-3 ${styles.iconColor}`} />
+            <div className="absolute left-[11px] top-7 bottom-0 w-[2px] bg-[#DCE6DE] group-last:hidden" />
+            <div className="absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center bg-[#FDF3E5] border-2 border-[#D9A766] z-10 shadow-2xs">
+                <Icon className="w-3 h-3 text-[#A66E26]" />
             </div>
 
             {/* Content Card */}
             <div
                 onClick={handleCardClick}
-                className={`rounded-xl p-4 border ${styles.borderClass} ${styles.bgClass} shadow-sm transition-transform active:scale-[0.99] cursor-pointer`}
+                className="rounded-2xl p-4 border border-[#EAEFEA] bg-white shadow-xs hover:border-[#68A678] hover:shadow-sm transition-all active:scale-[0.99] cursor-pointer"
             >
                 <div className="flex justify-between items-start mb-2">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1.5">
                             {item.type === 'mission' && (
-                                <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                <Badge variant="secondary" className="text-[11px] font-bold h-5 px-2 bg-[#E1EFE4] text-[#2E7D47] border-none rounded-md">
                                     +{item.missionPoints} P
                                 </Badge>
                             )}
-                            <span className="text-xs text-stone-400 font-medium">{timeString}</span>
+                            <span className="text-xs text-[#7A8B7E] font-medium">{timeString}</span>
                         </div>
-                        <h4 className="font-bold text-stone-800 dark:text-stone-100 text-sm md:text-base">
+                        <h4 className="font-black text-[#1E4D2B] text-sm md:text-base tracking-tight">
                             {item.title}
                         </h4>
                     </div>
                 </div>
 
                 {item.content && (
-                    <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3 line-clamp-2">
+                    <p className="text-xs text-[#556B5C] leading-relaxed mb-3 line-clamp-2 font-normal">
                         {item.content}
                     </p>
                 )}
@@ -120,13 +120,13 @@ export default function TimelineCard({ item }: TimelineCardProps) {
                 {item.images && item.images.length > 0 && (
                     <div className="grid grid-cols-2 gap-2 mt-2">
                         {item.images.slice(0, 2).map((img, idx) => (
-                            <div key={idx} className="relative aspect-video rounded-lg overflow-hidden bg-stone-200 border border-stone-100">
+                            <div key={idx} className="relative aspect-video rounded-xl overflow-hidden bg-stone-100 border border-[#EAEFEA]">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={img} alt="timeline-img" className="object-cover w-full h-full" />
                             </div>
                         ))}
                         {item.images.length > 2 && (
-                            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                            <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-xs text-white text-xs px-2 py-0.5 rounded-full font-bold">
                                 +{item.images.length - 2}
                             </div>
                         )}

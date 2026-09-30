@@ -40,9 +40,9 @@ export default function MyTimeline({ isLoading = false }: MyTimelineProps) {
 
     return (
         <section className="px-6 pb-20">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-[#C3A675]" />
+            <div className="flex justify-between items-center mb-5">
+                <h3 className="text-lg font-black text-[#1E4D2B] flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#2E7D47]" />
                     나의 캠핑 로그
                 </h3>
             </div>

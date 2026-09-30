@@ -11,7 +11,7 @@ export default function ActionButtons() {
             {/* Primary Action: Write Log */}
             <button
                 onClick={() => router.push('/community/write?type=STORY')}
-                className="flex items-center justify-center gap-2.5 bg-[#388E5A] text-white py-4 rounded-2xl shadow-lg shadow-[#388E5A]/25 hover:bg-[#2F774B] hover:scale-[1.02] active:scale-95 transition-all duration-300 w-full"
+                className="flex items-center justify-center gap-2.5 bg-[#2E7D47] text-white py-4 rounded-2xl shadow-sm hover:bg-[#236739] hover:scale-[1.01] active:scale-95 transition-all duration-200 w-full"
             >
                 <PenTool size={18} strokeWidth={2.5} />
                 <span className="font-bold text-[15px] tracking-tight">기록 남기기</span>
@@ -20,9 +20,9 @@ export default function ActionButtons() {
             {/* Secondary Action: View My Records */}
             <button
                 onClick={() => router.push('/myspace/records')}
-                className="flex items-center justify-center gap-2.5 bg-white text-text-1 border border-surface-2 py-4 px-6 rounded-2xl shadow-soft hover:bg-surface-1 hover:border-surface-2 hover:shadow-medium active:scale-95 transition-all duration-300 w-full"
+                className="flex items-center justify-center gap-2.5 bg-white text-[#1E4D2B] border border-[#2E7D47]/30 py-4 px-6 rounded-2xl shadow-xs hover:bg-[#F4F8F5] active:scale-95 transition-all duration-200 w-full font-bold"
             >
-                <Book size={18} strokeWidth={2.5} />
+                <Book size={18} strokeWidth={2.5} className="text-[#2E7D47]" />
                 <span className="font-bold text-[15px] tracking-tight">내 기록 보기</span>
             </button>
         </div>
