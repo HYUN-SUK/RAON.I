@@ -859,8 +859,14 @@ export default function InstantPlanModal({
             }
         }
         toast.info('10분 이내에 로그인하시면 방금 만든 일정을 바로 등록하실 수 있어요!', { duration: 5000 });
-        onClose(); // 모달 시트 깔끔히 닫기 (화면 겹침 및 뒤편 잔류 방지)
-        router.push('/login');
+
+        // [중요] 모달 닫힘(!isOpen) 시 가상 히스토리 회수(window.history.go(-1))가
+        // /login 네비게이션을 취소시키고 홈 화면에 머물게 하는 문제 원천 차단
+        modalHistoryPushedRef.current = false;
+        subsheetDepthRef.current = 0;
+
+        onClose(); // 모달 시트 깔끔히 닫기
+        router.replace('/login');
     };
 
     // Proceed to Save Schedule (Check user session & profile)
