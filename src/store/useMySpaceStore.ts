@@ -91,7 +91,8 @@ export interface MySpaceState {
     // 타임라인 (Timeline)
     timelineItems: TimelineItem[];
     isTimelineLoading: boolean;
-    fetchTimeline: (userId?: string) => void;
+    isTimelineLoaded: boolean;
+    fetchTimeline: (userId?: string) => Promise<void>;
     fetchAlbum: () => void;
     fetchProfile: (userId?: string) => Promise<void>;
     setHeroImage: (url: string) => void;
@@ -193,12 +194,16 @@ export const useMySpaceStore = create<MySpaceState>()(
             // 타임라인 초기값 및 액션 (Mock Data)
             timelineItems: [],
             isTimelineLoading: false,
+            isTimelineLoaded: false,
             fetchTimeline: async (userId) => {
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
                 const targetUserId = userId || user?.id;
 
-                if (!targetUserId) return;
+                if (!targetUserId) {
+                    set({ isTimelineLoading: false, isTimelineLoaded: true });
+                    return;
+                }
 
                 set({ isTimelineLoading: true });
 
@@ -274,11 +279,10 @@ export const useMySpaceStore = create<MySpaceState>()(
                         new Date(b.date).getTime() - new Date(a.date).getTime()
                     );
 
-                    set({ timelineItems: allItems });
+                    set({ timelineItems: allItems, isTimelineLoading: false, isTimelineLoaded: true });
                 } catch (err) {
                     console.error('[fetchTimeline] 병렬 조회 실패:', err);
-                } finally {
-                    set({ isTimelineLoading: false });
+                    set({ isTimelineLoading: false, isTimelineLoaded: true });
                 }
             },
             fetchAlbum: async () => {
@@ -373,12 +377,19 @@ export const useMySpaceStore = create<MySpaceState>()(
                 album: [],
                 mapItems: [],
                 timelineItems: [],
+                isTimelineLoading: false,
+                isTimelineLoaded: false,
                 isMapOpen: false,
                 targetLocation: null,
             }),
         }),
         {
             name: 'myspace-storage',
+            partialize: (state) => {
+                // 실시간 로딩 플래그는 로컬스토리지 영구 캐시에서 제외하여 매 진입 시 정확한 로딩 보장
+                const { isTimelineLoading, isTimelineLoaded, ...persisted } = state;
+                return persisted;
+            },
         }
     )
 );

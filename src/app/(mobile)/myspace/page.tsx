@@ -52,11 +52,12 @@ export default function MySpacePage() {
                 return;
             }
 
-            // [v11.9.106 - 1단계: 즉시 로드 0.2초] 프로필, 예약, 미션 먼저 렌더링
-            const [_prof, _res, _mis, _sp, profileRes] = await Promise.all([
+            // [v14.2.5] 1단계: 프로필, 예약, 미션, 타임라인을 병렬 조회하여 첫 진입 즉시 로딩 가동 & 빠른 완성
+            const [_prof, _res, _mis, _tl, _sp, profileRes] = await Promise.all([
                 useMySpaceStore.getState().fetchProfile(user.id),
                 useReservationStore.getState().fetchMyReservations(),
                 useMissionStore.getState().fetchCurrentMission(),
+                useMySpaceStore.getState().fetchTimeline(user.id),
                 refresh(),
                 supabase.from('profiles').select('family_type').eq('id', user.id).maybeSingle()
             ]);
@@ -65,21 +66,18 @@ export default function MySpacePage() {
                 setFamilyType(profileRes.data.family_type);
             }
 
-            // 0.2초 만에 사용자 화면 1차 완성
+            // 사용자 화면 1차 완성
             setPageLoading(false);
 
-            // [v11.9.106 - 2단계: 지연 백그라운드 로드] 중량 데이터(타임라인, 엠버 통계) 비동기 연결
-            Promise.all([
-                useMySpaceStore.getState().fetchTimeline(user.id),
-                supabase.rpc('get_my_ember_stats')
-            ]).then(([_tl, emberRes]) => {
+            // [v14.2.5 - 2단계: 백그라운드 엠버 통계 동기화]
+            Promise.resolve(supabase.rpc('get_my_ember_stats')).then((emberRes) => {
                 if (emberRes?.data && emberRes.data.success) {
                     setEmberStats({
                         received_count: emberRes.data.received_count,
                         sent_count: emberRes.data.sent_count
                     });
                 }
-            }).catch(e => console.warn('[MySpace] Background data fetch warning:', e));
+            }).catch((e: unknown) => console.warn('[MySpace] Background ember stats fetch warning:', e));
 
         } catch (error) {
             console.error("Failed to fetch MySpace data:", error);
