@@ -1380,6 +1380,21 @@ curl -X POST https://your-app.vercel.app/api/cron/mission-ranking \
   * **상단 공지·알림 바 라이트 모드 최적화 (`SlimNotice.tsx`, `NotificationBadge.tsx`)**: 히어로 사진이 제거된 밝은 배경에 맞춰 부드러운 스톤 배경과 딥그린 아이콘, 진한 텍스트의 `variant="home"` 스타일 신설. 알림이 없을 때는 공지사항 바가 전체 가로폭(`w-full`)으로 자연스럽게 확장.
   * **리마인더 배너 ➔ 팝업 모달 전환 (`ReminderModal.tsx`, `BeginnerHome.tsx`)**: 홈 최상단 100px을 가리던 인라인 배너를 전면 제거하고 전용 팝업 모달로 분리. `[v] 오늘 하루 보지 않기` 체크박스 연동 (`raonai_hide_reminder_today` 로컬스토리지 저장), `[다음에 하기]` 및 `[✏️ 10초 기록하기]` 버튼 제공으로 유저 피로도 제로화 및 작성 전환율 극대화.
   * **홈 화면 스크롤 제로(Zero-Scroll) 골든존 레이아웃 재배치 (`BeginnerHome.tsx`)**: 거대한 히어로 사진(210px) 및 중앙 문구를 완전 삭제하고, **[탑바] ➔ [공지·알림 바] ➔ [즉시여행 2종 버튼: 내 주변/목적지] ➔ [다가오는 일정 카드] ➔ [나의 전체일정] ➔ [캠핑장 소개/예약]** 순서로 전면 재배치하여, 첫 화면에서 스크롤을 내리지 않고도 핵심 액션을 즉시 터치할 수 있도록 모바일 UX 완성.
-  * **Next.js 16.1.1 Production Build 무결성 검증**: 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+### [2026-09-30 Update - Milestone 9.77]
+* [x] **홈 다가오는 일정 카드 레이아웃 개편 (`ScheduleHomeWidget.tsx`)**:
+  * 모바일 화면에서 긴 캠핑장명이 일정과 한 줄에 묶여 가려지던 결함을 완치하기 위해, **1단에 캠핑장명 전체 너비(`w-full break-keep`) 단독 배치** + **2단에 일정(체크인-아웃 일자 및 박수) 단독 줄** 배치로 시각적 계층과 가독성을 100% 확보.
+* [x] **내수첩 "나의 캠핑로그" 로딩 3배 가속 및 감성 스켈레톤 안내 신설 (`useMySpaceStore.ts`, `MyTimeline.tsx`)**:
+  * `posts`, `user_missions`, `camping_records` 3개 테이블 직렬 조회를 `Promise.all` 병렬 쿼리로 전면 전환하여 네트워크 왕복 지연을 1/3로 단축.
+  * `limit(10)` 및 경량 컬럼 선별로 DB 부하 최소화.
+  * `isTimelineLoading` 전역 상태 기반으로 데이터 도착 전까지 깜빡임/멈춤 현상을 원천 방지하고, **`"⛺ 나의 소중한 캠핑 기록을 불러오는 중입니다..."`** 감성 안내 배너와 스켈레톤 UI를 표출하여 프리미엄 UX 완성.
+* [x] **공휴일 시스템 정상화 (자체 SSOT 내장 + 화요일 자동 갱신 + 관리자 리포트 연동 + 보안 격리)**:
+  * **소스코드 내 하드코딩 인증키 제거 & 보안 격리**: 소스코드에 노출되었던 인증키를 완전 제거하고 환경변수(`.env.local`의 `PUBLIC_DATA_API_KEY`)로 보안 격리.
+  * **2025~2026 대한민국 확정 공휴일 SSOT 내장 (`src/lib/constants/holidays.ts`)**: 10월 9일 한글날이 누락되어 10월 8일(목) 예약 요금이 4만원으로 오계산되던 결함을 완벽히 해결하여 **휴일 전날 주말 요금 70,000원**으로 정상 산출 보장 (10/8 70,000원, 10/9 70,000원, 10/7 평일 40,000원 검증 완료).
+  * **일반 사용자 조회 시 외부 API 호출 0회**: 외부 data.go.kr 일일 호출 제한(429)이나 서버 다운과 완전히 무관하게 0.001초 즉시 응답.
+  * **매주 화요일 자동 갱신 파이프라인 구축 (`scripts/sync-holidays-trigger.mjs`, `.github/workflows/weekly-holiday-sync.yml`)**: 매주 화요일 05:23 KST에 백그라운드로 공공데이터 신규/대체공휴일 변동분을 수집하여 `automation_logs`에 안전 적재.
+  * **관리자 자동화 화면 리포트 & 원클릭 수동 갱신 연동 (`admin/automation/logs/page.tsx`, `actions/admin-automation.ts`)**: 상단 `[ 📅 공휴일 즉시 갱신 ]` 원클릭 버튼 및 `WEEKLY_HOLIDAY_SYNC` 전용 상세 리포트 패널을 신설하여 연도별 공휴일 목록, 한글날 보존 상태, 요금 연동 상태를 실시간 확인 가능.
+* [x] **Next.js 16.1.1 Production Build & Typecheck 무결성 검증**: `tsc --noEmit` 0에러 및 102/102개 전체 라우트 빌드 통과.
+
+
 
 

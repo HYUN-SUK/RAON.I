@@ -1,0 +1,30 @@
+name: RAONAI Weekly Holiday Precision Sync
+
+on:
+  schedule:
+    # 매주 화요일 05:23 KST (UTC 월요일 20:23, 트래픽 한산한 새벽 분산 실행)
+    - cron: '23 20 * * 1'
+  workflow_dispatch: # 관리자 수동 트리거 허용
+
+jobs:
+  sync-holidays:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci --omit=dev
+
+      - name: Run Weekly Holiday Sync Engine
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUBLIC_DATA_API_KEY: ${{ secrets.PUBLIC_DATA_API_KEY }}
+        run: node scripts/sync-holidays-trigger.mjs

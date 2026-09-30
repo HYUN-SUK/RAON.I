@@ -1,80 +1,62 @@
 import { NextResponse } from 'next/server';
+import { STATIC_HOLIDAY_DATES, STATIC_HOLIDAYS_SET } from '@/lib/constants/holidays';
+import { supabase } from '@/lib/supabase';
 
-const SERVICE_KEY = '03e41a022f4e6033f803beff860f41460f071cc9482e2532db99c142505f9df2';
-
-interface HolidayItem {
-    dateKind: string;
-    dateName: string;
-    isHoliday: string;
-    locdate: number;
-    seq: string;
-}
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-    // Fetch 2025 and 2026
-    const years = [2025, 2026];
-    const holidays = new Set<string>();
-
     try {
-        for (const year of years) {
-            // Official API Endpoint: getRestDeInfo
-            const url = `http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo?solYear=${year}&ServiceKey=${SERVICE_KEY}&numOfRows=100&_type=json`;
+        const holidaysSet = new Set<string>(STATIC_HOLIDAY_DATES);
 
-            try {
-                const res = await fetch(url);
-                if (!res.ok) {
-                    console.error(`Failed to fetch ${year}:`, res.status, res.statusText);
-                    continue;
+        // [v14.1.5] DB automation_logs에 주간 동기화(WEEKLY_HOLIDAY_SYNC)로 적재된 신규/대체공휴일이 있다면 병합
+        try {
+            const { data: latestSync } = await supabase
+                .from('automation_logs')
+                .select('api_status')
+                .eq('job_name', 'WEEKLY_HOLIDAY_SYNC')
+                .eq('status', 'SUCCESS')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (latestSync) {
+                const dynamicHolidays = Array.isArray(latestSync.api_status) 
+                    ? (latestSync.api_status as any)[0]?.holidays 
+                    : null;
+
+                if (Array.isArray(dynamicHolidays)) {
+                    dynamicHolidays.forEach((d: string) => {
+                        if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                            holidaysSet.add(d);
+                        }
+                    });
                 }
-
-                const text = await res.text();
-                // Basic JSON parsing (API returns JSON string if _type=json is honored, sometimes it wraps in XML if error, but user confirmed JSON works)
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    console.error('Failed to parse JSON response:', text.substring(0, 100));
-                    continue;
-                }
-
-                const items = data.response?.body?.items?.item;
-                if (!items) continue;
-
-                const holidayList: HolidayItem[] = Array.isArray(items) ? items : [items];
-
-                holidayList.forEach((item) => {
-                    if (item.isHoliday === 'Y') {
-                        // locdate is number like 20260302 -> Convert to 2026-03-02
-                        const str = String(item.locdate);
-                        const formatted = `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`;
-                        holidays.add(formatted);
-                    }
-                });
-
-            } catch (innerError) {
-                console.error(`Error processing year ${year}:`, innerError);
             }
+        } catch (dbErr) {
+            // DB 조회 실패 시에도 정적 SSOT(10/9 한글날 포함)로 100% 정상 작동 유지
+            console.warn('[Holidays API] DB sync log fallback to static SSOT:', dbErr);
         }
 
-        // Manual Injection of Substitute Holidays (2025-2026)
-        // These are added to ensure they exist even if the API misses them or fails.
-        const ADDITIONAL_HOLIDAYS = [
-            '2025-03-03', // Substitute for Samiljeol (Mar 1 Sat)
-            '2025-05-06', // Substitute for Buddha\'s Birthday (May 5 Mon overlap handling)
-            '2025-10-08', // Substitute for Chuseok (Oct 5 Sun)
-            '2026-03-02', // Substitute for Samiljeol (Mar 1 Sun)
-            '2026-05-25', // Substitute for Buddha\'s Birthday (May 24 Sun)
-            '2026-08-17', // Substitute for Liberation Day (Aug 15 Sat)
-            '2026-10-05', // Substitute for National Foundation Day (Oct 3 Sat)
-        ];
+        const uniqueHolidays = Array.from(holidaysSet).sort();
 
-        ADDITIONAL_HOLIDAYS.forEach(date => holidays.add(date));
-
-        const uniqueHolidays = Array.from(holidays).sort();
-
-        return NextResponse.json({ holidays: uniqueHolidays });
+        return NextResponse.json(
+            { 
+                holidays: uniqueHolidays,
+                total: uniqueHolidays.length,
+                source: 'SSOT_AND_WEEKLY_SYNC'
+            },
+            {
+                headers: {
+                    'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800'
+                }
+            }
+        );
     } catch (e) {
-        console.error('Failed to fetch holidays handler:', e);
-        return NextResponse.json({ error: 'Failed to fetch holidays' }, { status: 500 });
+        console.error('Failed to get holidays handler:', e);
+        // 장애 발생 시에도 절대 빈 배열을 주지 않고 SSOT 보장
+        return NextResponse.json(
+            { holidays: STATIC_HOLIDAY_DATES, total: STATIC_HOLIDAY_DATES.length, source: 'SSOT_STATIC_FALLBACK' },
+            { status: 200 }
+        );
     }
 }

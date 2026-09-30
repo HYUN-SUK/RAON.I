@@ -784,14 +784,14 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                         </div>
                     </div>
 
-                    {/* 상단 사이트명(좌) 및 일자 표기(우) */}
-                    <div className="flex items-center justify-between gap-2 mb-2 min-w-0">
-                        <h3 className="text-xl sm:text-[22px] font-black text-[#1E4D2B] dark:text-stone-100 tracking-tight leading-tight truncate shrink">
+                    {/* 상단 사이트명(1단) 및 바로 아래 일자 표기(2단) */}
+                    <div className="mb-2.5">
+                        <h3 className="text-xl sm:text-[22px] font-black text-[#1E4D2B] dark:text-stone-100 tracking-tight leading-tight w-full break-keep mb-1.5">
                             {upcomingItem.name}
                         </h3>
-                        <div className="flex items-center gap-1 text-[11.5px] sm:text-xs text-stone-700 dark:text-stone-300 font-bold shrink-0">
+                        <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-stone-700 dark:text-stone-300 font-bold">
                             <Calendar className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400 stroke-[2.2] shrink-0" />
-                            <span className="truncate">
+                            <span>
                                 {safeCheckIn && safeCheckOut ? (
                                     `${format(safeCheckIn, 'yyyy.MM.dd(EEE)', { locale: ko })} - ${format(safeCheckOut, 'MM.dd(EEE)', { locale: ko })} · ${nights}박 ${nights + 1}일`
                                 ) : (
