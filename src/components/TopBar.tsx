@@ -116,6 +116,13 @@ export default function TopBar() {
                 localStorage.removeItem('reservation-storage-v3');
                 localStorage.removeItem('reservation-storage-v2');
                 localStorage.removeItem('raonai_back_from_detail');
+                // sb-* 및 auth-token 관련 로컬스토리지 잔여 키 일괄 정리
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('sb-') || key.includes('auth-token'))) {
+                        localStorage.removeItem(key);
+                    }
+                }
                 try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
                 useReservationStore.getState().reset?.();
                 useReservationStore.setState({
