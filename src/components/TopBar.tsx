@@ -210,16 +210,17 @@ export default function TopBar() {
 
     const handleLogout = async () => {
         try {
-            await supabase.auth.signOut();
+            const signOutPromise = supabase.auth.signOut();
+            const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 1500));
+            await Promise.race([signOutPromise, timeoutPromise]);
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
             clearUserAuthCaches();
             toast.success('로그아웃 되었습니다.');
             setIsLoggedIn(false);
             setUserInfo(null);
             reset(); // Reset global store state
-            window.location.href = '/';
-        } catch (error) {
-            console.error('Logout error:', error);
-            clearUserAuthCaches();
             window.location.href = '/';
         }
     };
