@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { triggerWeeklyFestivalSyncAction, triggerWeeklyHolidaySyncAction } from '@/actions/admin-automation';
+import { getHolidayName, HOLIDAY_NAME_MAP } from '@/lib/constants/holidays';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { 
@@ -667,8 +668,9 @@ export default function AutomationLogsPage() {
       if (log.job_name === 'WEEKLY_HOLIDAY_SYNC') {
         const statusItem = Array.isArray(log.api_status) ? (log.api_status as any)[0] : null;
         const holidays: string[] = statusItem?.holidays || [];
-        const h2025 = holidays.filter(h => h.startsWith('2025-'));
-        const h2026 = holidays.filter(h => h.startsWith('2026-'));
+        const holidayNamesMap: Record<string, string> = statusItem?.holiday_names || {};
+        const currentYearStr = new Date().getFullYear().toString();
+        const years = Array.from(new Set(holidays.map(h => h.slice(0, 4)))).sort();
 
         return (
           <div className="p-10 bg-gray-50/50 rounded-[3rem] mt-2 mx-6 mb-8 border-4 border-dashed border-gray-100 shadow-inner">
@@ -678,10 +680,10 @@ export default function AutomationLogsPage() {
               </h4>
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1.5 bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-xl border border-emerald-200">
-                  ✨ 10/9 한글날 정상 보존
+                  ✨ 법정 공휴일 및 대체공휴일 전수 연동
                 </span>
                 <div className="px-4 py-2 bg-emerald-600 text-white text-[11px] font-black rounded-2xl shadow-lg">
-                  총 공휴일: {log.processed_count}건
+                  총 공휴일: {log.processed_count}건 ({years.join(', ')}년)
                 </div>
               </div>
             </div>
@@ -703,14 +705,14 @@ export default function AutomationLogsPage() {
                 )}
               </div>
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 text-center">
-                <p className="text-[10px] font-black text-gray-400 uppercase mb-1">2026년 공휴일</p>
-                <p className="text-2xl font-black text-emerald-600">{h2026.length}일</p>
-                <p className="text-[10px] font-bold text-emerald-600 mt-1">한글날(10/9) 완벽 탑재</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase mb-1">동적 관리 범위</p>
+                <p className="text-2xl font-black text-emerald-600">{years.length}개년</p>
+                <p className="text-[10px] font-bold text-emerald-600 mt-1">{years.length > 0 ? `${years[0]}~${years[years.length - 1]}년 자동관리` : '자동 산출'}</p>
               </div>
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 text-center">
-                <p className="text-[10px] font-black text-gray-400 uppercase mb-1">10/8 요금 연동</p>
-                <p className="text-2xl font-black text-blue-600">70,000원</p>
-                <p className="text-[10px] font-bold text-blue-600 mt-1">휴일 전날 주말요금 정상</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase mb-1">전체 등록 공휴일</p>
+                <p className="text-2xl font-black text-blue-600">{holidays.length}일</p>
+                <p className="text-[10px] font-bold text-blue-600 mt-1">설/추석/국경일/대체공휴일</p>
               </div>
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 text-center">
                 <p className="text-[10px] font-black text-gray-400 uppercase mb-1">일반 유저 API 호출</p>
@@ -719,56 +721,56 @@ export default function AutomationLogsPage() {
               </div>
             </div>
 
-            {/* 연도별 공휴일 태그 그리드 */}
+            {/* 연도별 공휴일 태그 그리드 (동적 렌더링) */}
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                <h5 className="text-xs font-black text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> 2026년 대한민국 공휴일 캘린더 ({h2026.length}일)
-                </h5>
-                <div className="flex flex-wrap gap-2">
-                  {h2026.map((date) => {
-                    const isHangul = date === '2026-10-09';
-                    const isSubstitute = ['2026-03-02', '2026-05-25', '2026-08-17', '2026-10-05'].includes(date);
-                    return (
-                      <span
-                        key={date}
-                        className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                          isHangul
-                            ? 'bg-rose-50 text-rose-700 border-rose-200 ring-2 ring-rose-300 font-black'
-                            : isSubstitute
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-gray-50 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {isHangul ? '⭐ ' : ''}{date} {isHangul ? '(한글날)' : isSubstitute ? '(대체공휴일)' : ''}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
+              {years.map((yr) => {
+                const yrHolidays = holidays.filter(h => h.startsWith(`${yr}-`));
+                const isCurrentYear = yr === currentYearStr;
+                const isFutureYear = yr > currentYearStr;
 
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                <h5 className="text-xs font-black text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> 2025년 대한민국 공휴일 캘린더 ({h2025.length}일)
-                </h5>
-                <div className="flex flex-wrap gap-2">
-                  {h2025.map((date) => {
-                    const isSubstitute = ['2025-03-03', '2025-05-06', '2025-10-08'].includes(date);
-                    return (
-                      <span
-                        key={date}
-                        className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold border ${
-                          isSubstitute
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-gray-50 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {date} {isSubstitute ? '(대체공휴일)' : ''}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
+                return (
+                  <div key={yr} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                    <h5 className="text-xs font-black text-gray-700 uppercase tracking-wider mb-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${isCurrentYear ? 'bg-emerald-500 ring-2 ring-emerald-200' : isFutureYear ? 'bg-indigo-500' : 'bg-blue-500'}`} />
+                        <span>{yr}년 대한민국 공휴일 캘린더 ({yrHolidays.length}일)</span>
+                        {isCurrentYear && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            현재 운영 연도
+                          </span>
+                        )}
+                        {isFutureYear && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            차기 시즌 대비 자동 탑재
+                          </span>
+                        )}
+                      </div>
+                    </h5>
+                    <div className="flex flex-wrap gap-2">
+                      {yrHolidays.map((date) => {
+                        const holidayName = holidayNamesMap[date] || getHolidayName(date);
+                        const isTraditional = holidayName?.includes('설날') || holidayName?.includes('추석');
+                        const isSubstitute = holidayName?.includes('대체');
+
+                        return (
+                          <span
+                            key={date}
+                            className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                              isTraditional
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black'
+                                : isSubstitute
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-gray-50 text-gray-700 border-gray-200'
+                            }`}
+                          >
+                            {isTraditional ? '🌕 ' : ''}{date} {holidayName ? `(${holidayName})` : ''}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="mt-8 flex items-center justify-between px-2">

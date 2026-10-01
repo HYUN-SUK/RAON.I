@@ -266,27 +266,20 @@ export async function triggerWeeklyHolidaySyncAction(): Promise<{
     const supabase = createAdminClient();
     const apiKey = process.env.PUBLIC_DATA_API_KEY;
 
-    // 대한민국 2025~2026 확정 법정 공휴일 SSOT (10월 9일 한글날 및 주요 대체공휴일 포함)
-    const STATIC_HOLIDAYS = [
-      '2025-01-01', '2025-01-28', '2025-01-29', '2025-01-30',
-      '2025-03-01', '2025-03-03', '2025-05-05', '2025-05-06',
-      '2025-06-06', '2025-08-15', '2025-10-03', '2025-10-05',
-      '2025-10-06', '2025-10-07', '2025-10-08', '2025-10-09',
-      '2025-12-25',
-      '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18',
-      '2026-03-01', '2026-03-02', '2026-05-05', '2026-05-24',
-      '2026-05-25', '2026-06-06', '2026-08-15', '2026-08-17',
-      '2026-09-24', '2026-09-25', '2026-09-26', '2026-10-03',
-      '2026-10-05', '2026-10-09', '2026-12-25'
-    ];
+    // 대한민국 확정 법정 공휴일 SSOT (holidays.ts와 단일 출처 통합)
+    const { STATIC_HOLIDAY_DATES, HOLIDAY_NAME_MAP } = await import('@/lib/constants/holidays');
 
-    const holidaysSet = new Set<string>(STATIC_HOLIDAYS);
+    const holidaysSet = new Set<string>(STATIC_HOLIDAY_DATES);
+    const holidayNamesMap: Record<string, string> = { ...HOLIDAY_NAME_MAP };
     let apiSuccessCount = 0;
     const apiFetchedHolidays: string[] = [];
     const apiHttpErrors: string[] = [];
 
+    // [동적 연도 산출] 현재 연도 기준 전년도·올해·내년·내후년 (총 4개년) 자동 계산
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+
     if (apiKey) {
-      const years = [2025, 2026];
       for (const year of years) {
         try {
           const url = `http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo?solYear=${year}&ServiceKey=${apiKey}&numOfRows=100&_type=json`;
@@ -305,6 +298,9 @@ export async function triggerWeeklyHolidaySyncAction(): Promise<{
                     const formatted = `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`;
                     holidaysSet.add(formatted);
                     apiFetchedHolidays.push(formatted);
+                    if (item.dateName) {
+                      holidayNamesMap[formatted] = String(item.dateName);
+                    }
                   }
                 });
                 apiSuccessCount++;
@@ -325,7 +321,6 @@ export async function triggerWeeklyHolidaySyncAction(): Promise<{
 
     const sortedHolidays = Array.from(holidaysSet).sort();
     const durationMs = Date.now() - startTime;
-    const hasHangulDay = holidaysSet.has('2026-10-09');
     const isApiFailed = apiHttpErrors.length > 0 && apiSuccessCount === 0;
 
     const apiStatus = [
@@ -338,16 +333,16 @@ export async function triggerWeeklyHolidaySyncAction(): Promise<{
         total_count: sortedHolidays.length,
         api_fetched: apiFetchedHolidays.length,
         checked_at: new Date().toISOString(),
-        hangul_day_included: hasHangulDay,
         ssot_shield_active: isApiFailed,
-        holidays: sortedHolidays
+        holidays: sortedHolidays,
+        holiday_names: holidayNamesMap
       }
     ];
 
     const logStatus = isApiFailed ? 'PARTIAL_FAIL' : 'SUCCESS';
     const logMessage = isApiFailed
-      ? `⚠️ 공공데이터 호출 한도 초과(${apiHttpErrors.join(', ')}) 감지 ➔ 자체 정적 SSOT로 총 ${sortedHolidays.length}개 공휴일(10/9 한글날 포함) 100% 안전 방어 유지!`
-      : `주간 공휴일 동기화 완료: 외부 수신 ${apiFetchedHolidays.length}건 + SSOT 병합 ➔ 총 ${sortedHolidays.length}개 공휴일 정상 유지.`;
+      ? `⚠️ 공공데이터 호출 한도 초과(${apiHttpErrors.join(', ')}) 감지 ➔ 자체 정적 SSOT로 총 ${sortedHolidays.length}개 공휴일 4개년 안전 방어 유지!`
+      : `주간 공휴일 동기화 완료: 4개년(${years.join(', ')}) 외부 수신 ${apiFetchedHolidays.length}건 + SSOT 병합 ➔ 총 ${sortedHolidays.length}개 공휴일 정상 유지.`;
 
     await (supabase.from('automation_logs') as any).insert({
       job_name: 'WEEKLY_HOLIDAY_SYNC',

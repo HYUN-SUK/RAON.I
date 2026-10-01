@@ -36,10 +36,13 @@ export const OFFICIAL_HOLIDAYS_SSOT: HolidayDefinition[] = [
     { date: '2026-02-18', name: '설날 다음날' },
     { date: '2026-03-01', name: '삼일절' },
     { date: '2026-03-02', name: '삼일절 대체공휴일', isSubstitute: true },
+    { date: '2026-05-01', name: '근로자의 날' },
     { date: '2026-05-05', name: '어린이날' },
     { date: '2026-05-24', name: '부처님오신날' },
     { date: '2026-05-25', name: '부처님오신날 대체공휴일', isSubstitute: true },
+    { date: '2026-06-03', name: '전국동시지방선거' },
     { date: '2026-06-06', name: '현충일' },
+    { date: '2026-07-17', name: '제헌절' },
     { date: '2026-08-15', name: '광복절' },
     { date: '2026-08-17', name: '광복절 대체공휴일', isSubstitute: true },
     { date: '2026-09-24', name: '추석 전날' },
@@ -48,8 +51,44 @@ export const OFFICIAL_HOLIDAYS_SSOT: HolidayDefinition[] = [
     { date: '2026-10-03', name: '개천절' },
     { date: '2026-10-05', name: '개천절 대체공휴일', isSubstitute: true },
     { date: '2026-10-09', name: '한글날' }, // ⭐ 10월 9일 한글날 (10/8 휴일전날 요금 7만원 적용의 핵심 SSOT)
-    { date: '2026-12-25', name: '성탄절' }
+    { date: '2026-12-25', name: '성탄절' },
+
+    // === 2027년 확정 공휴일 (24일) ===
+    { date: '2027-01-01', name: '신정' },
+    { date: '2027-02-06', name: '설날 전날' },
+    { date: '2027-02-07', name: '설날' },
+    { date: '2027-02-08', name: '설날 다음날' },
+    { date: '2027-02-09', name: '설날 대체공휴일', isSubstitute: true },
+    { date: '2027-03-01', name: '삼일절' },
+    { date: '2027-05-01', name: '근로자의 날' },
+    { date: '2027-05-03', name: '근로자의 날 대체공휴일', isSubstitute: true },
+    { date: '2027-05-05', name: '어린이날' },
+    { date: '2027-05-13', name: '부처님오신날' },
+    { date: '2027-06-06', name: '현충일' },
+    { date: '2027-07-17', name: '제헌절' },
+    { date: '2027-07-19', name: '제헌절 대체공휴일', isSubstitute: true },
+    { date: '2027-08-15', name: '광복절' },
+    { date: '2027-08-16', name: '광복절 대체공휴일', isSubstitute: true },
+    { date: '2027-09-14', name: '추석 전날' },
+    { date: '2027-09-15', name: '추석' },
+    { date: '2027-09-16', name: '추석 다음날' },
+    { date: '2027-10-03', name: '개천절' },
+    { date: '2027-10-04', name: '개천절 대체공휴일', isSubstitute: true },
+    { date: '2027-10-09', name: '한글날' },
+    { date: '2027-10-11', name: '한글날 대체공휴일', isSubstitute: true },
+    { date: '2027-12-25', name: '성탄절' },
+    { date: '2027-12-27', name: '성탄절 대체공휴일', isSubstitute: true },
 ];
 
 export const STATIC_HOLIDAY_DATES: string[] = OFFICIAL_HOLIDAYS_SSOT.map(h => h.date).sort();
 export const STATIC_HOLIDAYS_SET = new Set<string>(STATIC_HOLIDAY_DATES);
+
+// 날짜별 공휴일 명칭 빠른 조회를 위한 SSOT 맵
+export const HOLIDAY_NAME_MAP: Record<string, string> = OFFICIAL_HOLIDAYS_SSOT.reduce((acc, cur) => {
+    acc[cur.date] = cur.name;
+    return acc;
+}, {} as Record<string, string>);
+
+export function getHolidayName(dateStr: string): string | undefined {
+    return HOLIDAY_NAME_MAP[dateStr];
+}

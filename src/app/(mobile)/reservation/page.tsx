@@ -282,10 +282,10 @@ export default function ReservationPage() {
                                                 const month = today.getMonth();
                                                 const targetMonth = today.getDate() <= triggerDay ? month : month + 1;
                                                 const openDate = startOfDay(new Date(year, targetMonth, triggerDay));
-                                                return `(다음시즌 오픈일 ${format(openDate, 'MM월 dd일')})`;
+                                                return `(다음시즌 오픈일 ${format(openDate, 'MM월 dd일')} 오전 9:00시)`;
                                             })()
                                             : activeConfig.nextSeasonOpenAt
-                                                ? `(다음시즌 오픈일 ${format(activeConfig.nextSeasonOpenAt, 'MM월 dd일')})`
+                                                ? `(다음시즌 오픈일 ${format(activeConfig.nextSeasonOpenAt, 'MM월 dd일')} 오전 9:00시)`
                                                 : ''
                                         }`
                                         : `${activeConfig.preOpenMessage}\n오픈: ${activeConfig.openAt.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}`

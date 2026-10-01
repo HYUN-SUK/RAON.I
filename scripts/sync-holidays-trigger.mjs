@@ -13,34 +13,89 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 대한민국 2025~2026 확정 법정 공휴일 SSOT (10월 9일 한글날 및 주요 대체공휴일 완벽 탑재)
+// 대한민국 확정 법정 공휴일 SSOT (명칭 매핑 포함)
 const STATIC_HOLIDAYS_SSOT = [
     // 2025년
-    '2025-01-01', '2025-01-28', '2025-01-29', '2025-01-30',
-    '2025-03-01', '2025-03-03', '2025-05-05', '2025-05-06',
-    '2025-06-06', '2025-08-15', '2025-10-03', '2025-10-05',
-    '2025-10-06', '2025-10-07', '2025-10-08', '2025-10-09',
-    '2025-12-25',
+    { date: '2025-01-01', name: '신정' },
+    { date: '2025-01-28', name: '설날 전날' },
+    { date: '2025-01-29', name: '설날' },
+    { date: '2025-01-30', name: '설날 다음날' },
+    { date: '2025-03-01', name: '삼일절' },
+    { date: '2025-03-03', name: '삼일절 대체공휴일' },
+    { date: '2025-05-05', name: '어린이날' },
+    { date: '2025-05-06', name: '부처님오신날 대체공휴일' },
+    { date: '2025-06-06', name: '현충일' },
+    { date: '2025-08-15', name: '광복절' },
+    { date: '2025-10-03', name: '개천절' },
+    { date: '2025-10-05', name: '추석 전날' },
+    { date: '2025-10-06', name: '추석' },
+    { date: '2025-10-07', name: '추석 다음날' },
+    { date: '2025-10-08', name: '추석 대체공휴일' },
+    { date: '2025-10-09', name: '한글날' },
+    { date: '2025-12-25', name: '성탄절' },
     // 2026년
-    '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18',
-    '2026-03-01', '2026-03-02', '2026-05-05', '2026-05-24',
-    '2026-05-25', '2026-06-06', '2026-08-15', '2026-08-17',
-    '2026-09-24', '2026-09-25', '2026-09-26', '2026-10-03',
-    '2026-10-05', '2026-10-09', '2026-12-25'
+    { date: '2026-01-01', name: '신정' },
+    { date: '2026-02-16', name: '설날 전날' },
+    { date: '2026-02-17', name: '설날' },
+    { date: '2026-02-18', name: '설날 다음날' },
+    { date: '2026-03-01', name: '삼일절' },
+    { date: '2026-03-02', name: '삼일절 대체공휴일' },
+    { date: '2026-05-05', name: '어린이날' },
+    { date: '2026-05-24', name: '부처님오신날' },
+    { date: '2026-05-25', name: '부처님오신날 대체공휴일' },
+    { date: '2026-06-06', name: '현충일' },
+    { date: '2026-08-15', name: '광복절' },
+    { date: '2026-08-17', name: '광복절 대체공휴일' },
+    { date: '2026-09-24', name: '추석 전날' },
+    { date: '2026-09-25', name: '추석' },
+    { date: '2026-09-26', name: '추석 다음날' },
+    { date: '2026-10-03', name: '개천절' },
+    { date: '2026-10-05', name: '개천절 대체공휴일' },
+    { date: '2026-10-09', name: '한글날' },
+    { date: '2026-12-25', name: '성탄절' },
+    // 2027년
+    { date: '2027-01-01', name: '신정' },
+    { date: '2027-02-06', name: '설날 전날' },
+    { date: '2027-02-07', name: '설날' },
+    { date: '2027-02-08', name: '설날 다음날' },
+    { date: '2027-02-09', name: '설날 대체공휴일' },
+    { date: '2027-03-01', name: '삼일절' },
+    { date: '2027-05-05', name: '어린이날' },
+    { date: '2027-05-13', name: '부처님오신날' },
+    { date: '2027-06-06', name: '현충일' },
+    { date: '2027-06-07', name: '현충일 대체공휴일' },
+    { date: '2027-08-15', name: '광복절' },
+    { date: '2027-08-16', name: '광복절 대체공휴일' },
+    { date: '2027-09-14', name: '추석 전날' },
+    { date: '2027-09-15', name: '추석' },
+    { date: '2027-09-16', name: '추석 다음날' },
+    { date: '2027-10-03', name: '개천절' },
+    { date: '2027-10-04', name: '개천절 대체공휴일' },
+    { date: '2027-10-09', name: '한글날' },
+    { date: '2027-10-11', name: '한글날 대체공휴일' },
+    { date: '2027-12-25', name: '성탄절' },
+    { date: '2027-12-27', name: '성탄절 대체공휴일' }
 ];
+
+const STATIC_HOLIDAY_NAMES = STATIC_HOLIDAYS_SSOT.reduce((acc, cur) => {
+    acc[cur.date] = cur.name;
+    return acc;
+}, {});
 
 async function syncHolidays() {
     const startTime = Date.now();
-    console.log('🚀 [WEEKLY_HOLIDAY_SYNC] 매주 화요일 공휴일 자동 갱신 시작...');
+    const currentYear = new Date().getFullYear();
+    const targetYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+    console.log(`🚀 [WEEKLY_HOLIDAY_SYNC] 매주 화요일 공휴일 자동 갱신 시작 (수집범위: ${targetYears.join(', ')}년)...`);
 
-    const holidaysSet = new Set(STATIC_HOLIDAYS_SSOT);
+    const holidaysSet = new Set(STATIC_HOLIDAYS_SSOT.map(h => h.date));
+    const holidayNamesMap = { ...STATIC_HOLIDAY_NAMES };
     let apiSuccessCount = 0;
     let apiFetchedHolidays = [];
     const apiHttpErrors = [];
 
     if (apiKey) {
-        const years = [2025, 2026];
-        for (const year of years) {
+        for (const year of targetYears) {
             try {
                 const url = `http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo?solYear=${year}&ServiceKey=${apiKey}&numOfRows=100&_type=json`;
                 const res = await fetch(url, { headers: { 'User-Agent': 'RAONAI-Engine/1.0' } });
@@ -57,6 +112,9 @@ async function syncHolidays() {
                                     const str = String(item.locdate);
                                     const formatted = `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`;
                                     holidaysSet.add(formatted);
+                                    if (item.dateName) {
+                                        holidayNamesMap[formatted] = item.dateName;
+                                    }
                                     apiFetchedHolidays.push(formatted);
                                 }
                             });
@@ -81,10 +139,9 @@ async function syncHolidays() {
 
     const sortedHolidays = Array.from(holidaysSet).sort();
     const durationMs = Date.now() - startTime;
-    const hasHangulDay = holidaysSet.has('2026-10-09');
     const isApiFailed = apiHttpErrors.length > 0 && apiSuccessCount === 0;
 
-    console.log(`✅ [WEEKLY_HOLIDAY_SYNC] 총 ${sortedHolidays.length}개 공휴일 확보 (한글날 2026-10-09 포함 여부: ${hasHangulDay ? '포함됨' : '누락'})`);
+    console.log(`✅ [WEEKLY_HOLIDAY_SYNC] 총 ${sortedHolidays.length}개 공휴일 확보`);
     if (isApiFailed) {
         console.log(`🛡️ [SSOT 방어 발동] 외부 API 호출 실패(${apiHttpErrors.join(', ')}) ➔ 자체 정적 SSOT로 공휴일 캘린더 완벽 방어!`);
     }
@@ -99,16 +156,16 @@ async function syncHolidays() {
             total_count: sortedHolidays.length,
             api_fetched: apiFetchedHolidays.length,
             checked_at: new Date().toISOString(),
-            hangul_day_included: hasHangulDay,
             ssot_shield_active: isApiFailed,
-            holidays: sortedHolidays
+            holidays: sortedHolidays,
+            holiday_names: holidayNamesMap
         }
     ];
 
     const logStatus = isApiFailed ? 'PARTIAL_FAIL' : 'SUCCESS';
     const logMessage = isApiFailed
         ? `⚠️ 공공데이터 호출 한도 초과(${apiHttpErrors.join(', ')}) 감지 ➔ 자체 정적 SSOT로 총 ${sortedHolidays.length}개 공휴일(10/9 한글날 포함) 100% 안전 방어 유지!`
-        : `주간 공휴일 동기화 완료: 외부 수신 ${apiFetchedHolidays.length}건 + SSOT 병합 ➔ 총 ${sortedHolidays.length}개 공휴일 정상 유지.`;
+        : `주간 공휴일 동기화 완료: ${targetYears.join(', ')}년 외부 수신 ${apiFetchedHolidays.length}건 + SSOT 병합 ➔ 총 ${sortedHolidays.length}개 공휴일 정상 유지.`;
 
     // automation_logs 기록
     const { error: insertError } = await supabase.from('automation_logs').insert({
