@@ -12,23 +12,24 @@ export function useRequireAuth() {
     const withAuth = async (action: () => void | Promise<void>) => {
         const supabase = createClient();
 
-        // [Fast-Path] 로컬스토리지에 실제로 만료되지 않은 유효한 세션 토큰이 있는지 정밀 검사
+        // [Fast-Path 1] 로컬스토리지 토큰 정밀 검사
         let hasValidStorageToken = false;
         try {
             if (typeof window !== 'undefined') {
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && key.includes('auth-token')) {
+                    if (key && (key.includes('auth-token') || key.startsWith('sb-'))) {
                         const raw = localStorage.getItem(key);
                         if (raw) {
-                            const parsed = JSON.parse(raw);
-                            const token = parsed?.access_token || parsed?.currentSession?.access_token;
-                            const expiresAt = parsed?.expires_at || parsed?.currentSession?.expires_at; // 초 단위 타임스탬프
-                            // 실제 access_token이 존재하고 만료 시간이 현재보다 미래인 경우에만 유효한 토큰으로 인정
-                            if (token && typeof expiresAt === 'number' && expiresAt * 1000 > Date.now()) {
-                                hasValidStorageToken = true;
-                                break;
-                            }
+                            try {
+                                const parsed = JSON.parse(raw);
+                                const token = parsed?.access_token || parsed?.currentSession?.access_token;
+                                const expiresAt = parsed?.expires_at || parsed?.currentSession?.expires_at;
+                                if (token && typeof expiresAt === 'number' && expiresAt * 1000 > Date.now()) {
+                                    hasValidStorageToken = true;
+                                    break;
+                                }
+                            } catch {}
                         }
                     }
                 }
@@ -37,20 +38,30 @@ export function useRequireAuth() {
             hasValidStorageToken = false;
         }
 
-        // 실제로 만료되지 않은 토큰이 스토리지에 존재하는 경우 지연 없이 즉시 실행
         if (hasValidStorageToken) {
             await action();
             return;
         }
 
-        // 스토리지에 없거나 만료된 경우 Supabase Auth 서버 세션 정밀 조회
+        // [Fast-Path 2] @supabase/ssr 쿠키 및 토큰 부재 시 0ms 즉시 안내 다이얼로그 노출 (불필요한 대기 원천 차단)
+        const hasCookieToken = typeof document !== 'undefined' && document.cookie.includes('sb-');
+        if (!hasCookieToken && !hasValidStorageToken) {
+            open();
+            return;
+        }
+
+        // 쿠키 또는 스토리지에 토큰이 존재하는 경우 Supabase Auth 세션 정밀 조회 (2.5초 타임아웃 페일세이프로 먹통 완벽 방어)
         try {
-            const { data: { session }, error } = await supabase.auth.getSession();
+            const sessionPromise = supabase.auth.getSession();
+            const timeoutPromise = new Promise<{ data: { session: null }; error: Error }>((resolve) =>
+                setTimeout(() => resolve({ data: { session: null }, error: new Error('AUTH_TIMEOUT') }), 2500)
+            );
+            const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
 
             if (!error && session?.user) {
                 await action();
             } else {
-                open(); // 세션 없음/만료/파기 시 안전하게 전역 로그인 안내 다이얼로그 표시
+                open(); // 세션 없음/만료/타임아웃 시 안전하게 전역 로그인 안내 다이얼로그 표시
             }
         } catch (e) {
             console.warn('[useRequireAuth] Auth session check failed. Prompting login:', e);

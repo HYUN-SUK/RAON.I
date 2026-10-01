@@ -68,44 +68,52 @@ export default function TopBar() {
     const { progress } = getLevelInfo(xp);
 
     const checkUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        const user = session?.user;
-        setIsLoggedIn(!!session);
+        try {
+            const sessionPromise = supabase.auth.getSession();
+            const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+                setTimeout(() => resolve({ data: { session: null } }), 3000)
+            );
+            const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+            const user = session?.user;
+            setIsLoggedIn(!!session);
 
-        if (user) {
-            // Set User Info
-            setUserInfo({
-                nickname: user.user_metadata.full_name || user.user_metadata.name || user.email?.split('@')[0] || 'Camper',
-                avatarUrl: user.user_metadata.avatar_url || user.user_metadata.picture
-            });
+            if (user) {
+                // Set User Info
+                setUserInfo({
+                    nickname: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Camper',
+                    avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture
+                });
 
-            // 1. Try Grant Login Reward
-            try {
-                const reward = await pointService.grantAction(user.id, 'LOGIN');
-                if (reward.success) {
-                    toast.success("매일 로그인 보상! 경험치 +10xp, 라온토큰 +1개 획득 🎁");
-                }
+                // 1. Try Grant Login Reward
+                try {
+                    const reward = await pointService.grantAction(user.id, 'LOGIN');
+                    if (reward.success) {
+                        toast.success("매일 로그인 보상! 경험치 +10xp, 라온토큰 +1개 획득 🎁");
+                    }
 
-                // 2. Refresh Wallet
-                const wallet = await pointService.getWallet(user.id);
-                if (wallet) {
-                    setWallet(wallet.xp, wallet.level, wallet.raonToken);
+                    // 2. Refresh Wallet
+                    const wallet = await pointService.getWallet(user.id);
+                    if (wallet) {
+                        setWallet(wallet.xp, wallet.level, wallet.raonToken);
+                    }
+                    // 3. 첫 로그인 시 권한 플로우 시작
+                    if (isFirstLoginPrompt()) {
+                        markFirstLoginPrompted();
+                        // 약간의 딜레이 후 플로우 시작 (로그인 성공 토스트 확인 후)
+                        setTimeout(() => {
+                            startFlow();
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error("Login reward/sync failed:", error);
                 }
-                // 3. 첫 로그인 시 권한 플로우 시작
-                if (isFirstLoginPrompt()) {
-                    markFirstLoginPrompted();
-                    // 약간의 딜레이 후 플로우 시작 (로그인 성공 토스트 확인 후)
-                    setTimeout(() => {
-                        startFlow();
-                    }, 2000);
-                }
-            } catch (error) {
-                console.error("Login reward/sync failed:", error);
+            } else {
+                setUserInfo(null);
+                try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
+                reset();
             }
-        } else {
-            setUserInfo(null);
-            try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
-            reset();
+        } catch (e) {
+            console.error("checkUser error:", e);
         }
     };
 
@@ -141,11 +149,39 @@ export default function TopBar() {
     useEffect(() => {
         checkUser();
 
-        // 실시간 세션 변경 감지 리스너 구독 (명시적 SIGNED_OUT 일 때만 상태 초기화)
+        // 실시간 세션 변경 감지 리스너 구독 (SDK 표준: 세션 인자 직접 활용 및 부가 비동기 격리)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session)) {
                 setIsLoggedIn(true);
-                checkUser();
+                const user = session?.user;
+                if (user) {
+                    setUserInfo({
+                        nickname: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Camper',
+                        avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture
+                    });
+
+                    // SDK 이벤트 루프 차단을 방지하기 위해 보상 및 지갑 갱신을 비동기 큐로 분리
+                    setTimeout(async () => {
+                        try {
+                            const reward = await pointService.grantAction(user.id, 'LOGIN');
+                            if (reward.success) {
+                                toast.success("매일 로그인 보상! 경험치 +10xp, 라온토큰 +1개 획득 🎁");
+                            }
+                            const wallet = await pointService.getWallet(user.id);
+                            if (wallet) {
+                                setWallet(wallet.xp, wallet.level, wallet.raonToken);
+                            }
+                            if (isFirstLoginPrompt()) {
+                                markFirstLoginPrompted();
+                                setTimeout(() => {
+                                    startFlow();
+                                }, 2000);
+                            }
+                        } catch (err) {
+                            console.error("Login reward/sync failed:", err);
+                        }
+                    }, 0);
+                }
             } else if (event === 'SIGNED_OUT') {
                 setIsLoggedIn(false);
                 setUserInfo(null);

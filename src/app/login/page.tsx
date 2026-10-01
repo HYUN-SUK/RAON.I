@@ -71,9 +71,6 @@ export default function LoginPage() {
                 toast.success("가입 확인 메일을 발송했습니다.", { duration: 4000 });
                 setIsSignUp(false); // Switch to login mode
             } else {
-                // [Fix] 기존 잔여 토큰 충돌 방지를 위한 로컬 세션 정리
-                await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) {
                     if (error.message.includes("Invalid login credentials")) {
@@ -90,7 +87,8 @@ export default function LoginPage() {
                 const nextUrl = typeof window !== 'undefined'
                     ? (new URLSearchParams(window.location.search).get('next') || '/')
                     : '/';
-                window.location.href = nextUrl;
+                router.replace(nextUrl);
+                router.refresh();
             }
         } catch (error) {
             const errMessage = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";

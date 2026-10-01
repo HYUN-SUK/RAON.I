@@ -323,13 +323,33 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
 
         checkAuthAndFetch();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!isSubscribed) return;
             if (event === 'SIGNED_OUT' || !session) {
                 setIsAuthenticated(false);
                 setSchedules([]);
                 setIsLoading(false);
-            } else if (event === 'SIGNED_IN' || session) {
+            } else if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
+                setIsAuthenticated(true);
+                // 로그인 감지 즉시 내 예약 및 일정 데이터 자동 재조회
+                try {
+                    await fetchMyReservations();
+                    const schedulesData = await getMySchedules('scheduled');
+                    if (!isSubscribed) return;
+                    setSchedules(schedulesData);
+                    try {
+                        localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
+                        const todayStr = format(new Date(), 'yyyy-MM-dd');
+                        localStorage.setItem('last_schedule_sync_date', todayStr);
+                    } catch {}
+                } catch (error) {
+                    console.error('[ScheduleHomeWidget] Error fetching on auth change:', error);
+                } finally {
+                    if (isSubscribed) {
+                        setIsLoading(false);
+                    }
+                }
+            } else if (session) {
                 setIsAuthenticated(true);
             }
         });
