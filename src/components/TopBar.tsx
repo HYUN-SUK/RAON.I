@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase-client";
 import { LogOut, LogIn, Settings, User, Bell, FileText, Download, Sparkles, MapPin } from "lucide-react";
@@ -38,6 +38,7 @@ const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=kr.co.raon
 export default function TopBar() {
     const { level, xp, raonToken, setWallet, reset } = useMySpaceStore();
     const router = useRouter();
+    const pathname = usePathname();
     const { requestPermission } = usePushNotification();
     const supabase = createClient();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -160,6 +161,12 @@ export default function TopBar() {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // 페이지 경로 전환 시 최신 로그인 세션 즉시 동기화 (캐시 지연 및 레이스 컨디션 완벽 방어)
+    useEffect(() => {
+        checkUser();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname]);
 
     const handleLogin = () => {
         router.push('/login');

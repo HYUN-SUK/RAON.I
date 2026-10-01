@@ -87,8 +87,10 @@ export default function LoginPage() {
                     throw error;
                 }
                 toast.success("로그인 성공", { description: "라온아이에 오신 것을 환영합니다." });
-                router.push("/");
-                router.refresh();
+                const nextUrl = typeof window !== 'undefined'
+                    ? (new URLSearchParams(window.location.search).get('next') || '/')
+                    : '/';
+                window.location.href = nextUrl;
             }
         } catch (error) {
             const errMessage = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
