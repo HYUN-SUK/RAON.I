@@ -7,6 +7,14 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.81 로그인 보상 다중 팝업 완치, 지도 UI 상태 스토리지 격리 및 모바일 3단계 뒤로가기(Popstate) 가드 완결 (2026-10-02)** 🟢
+  - [x] **로그인 보상 다중 팝업 원천 차단 (`TopBar.tsx`)**: `checkUser()`와 `onAuthStateChange`의 경합 상태를 `loginRewardProcessedRef` 동기 락으로 차단하여 최초 1회만 보상/토스트 노출 보장.
+  - [x] **지도 UI 상태 로컬스토리지 영구 저장 배제 (`useMySpaceStore.ts`)**: `isMapOpen`, `targetLocation`, `optimisticRecordPin`을 `partialize`에서 제외하여 새로고침/페이지 이동 시 지도가 제멋대로 열리던 버그 근본 박멸.
+  - [x] **내수첩 내 중복 2중 모달 렌더링 제거 (`SummaryGrid.tsx`)**: 중복 `<MyMapModal>`을 삭제하고 `myspace/page.tsx`에서 단일 렌더링하도록 일원화.
+  - [x] **모바일 3단계 뒤로가기(`popstate`) 가드 장착 (`MyMapModal.tsx`)**: 스마트폰 뒤로가기 시 상세시트 ➔ 검색창 ➔ 지도본체 순차 닫힘 및 추가 `history.back()` 호출 금지로 내수첩 화면 100% 안전 잔류 보장.
+  - [x] **홈 화면 10초 기록 연동 경험 보존 (`BeginnerHome.tsx`, `ReturningHome.tsx`)**: 홈 화면의 `MyMapModal` 바인딩을 온전히 유지하여 기록 완료 후 핀 확인 팝업 기능 100% 보존.
+  - [x] **빌드 무결성 검증**: `npx tsc --noEmit` 에러 0건 통과, `npm run build` 103/103 전체 라우트 100% 통과.
+
 - [x] **9.80 모바일 인증 Web Locks 데드락 완치, 로그아웃 페일세이프 및 Vercel 트래픽 최적화(무료 쿼터 복귀 대책) 완결 (2026-10-02)** 🟢
   - [x] **모바일 웹뷰 Web Locks 데드락 완치 (`supabase-client.ts`, `login/page.tsx`, `TopBar.tsx`, `useRequireAuth.ts`)**:
     - 안드로이드 크롬 TWA 웹뷰에서 `navigator.locks` 큐가 꼬여 `getSession()`, `signOut()`, 이메일 로그인이 무한 대기(스피너/먹통)에 빠지던 버그를 `lockNoOp` 주입으로 원천 박멸.

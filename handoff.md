@@ -1,13 +1,36 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-10-02T14:55:00+09:00  
+**작성 일시**: 2026-10-02T16:00:00+09:00  
 **기준 브랜치**: `main`  
-**빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, ESLint 0에러)  
+**빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, ESLint 0에러, 103/103 빌드 100% 통과)  
 **실서버 배포**: Vercel 프로덕션 배포 완료 (`https://raon-ai.com`, Pro 플랜 임시 가동 중 ➔ 무료 복귀 대기)  
 
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
+
+### 🟢 마일스톤 9.81: 로그인 보상 다중 팝업 완치, 지도 UI 상태 스토리지 격리 및 모바일 3단계 뒤로가기(Popstate) 가드 완결 (2026-10-02)
+
+1. **로그인 보상 다중 팝업 원천 차단 (`src/components/TopBar.tsx`)**:
+   - `checkUser()`와 `onAuthStateChange` 리스너가 마운트 시 거의 동시에 `grantAction('LOGIN')`을 호출하여 토스트가 2~3개 연달아 뜨던 비동기 경합 상태(Race Condition)를 `loginRewardProcessedRef` 동기 락으로 원천 차단.
+   - 단일 헬퍼 `handleDailyLoginReward`로 통합하여 동일 마운트 주기 내 단 1회만 실행 보장. 로그아웃 시 락을 리셋하여 계정 전환 완벽 지원.
+
+2. **지도 UI 상태 로컬스토리지 영구 저장 배제 (`src/store/useMySpaceStore.ts`)**:
+   - `useMySpaceStore`의 `partialize` 옵션에서 일시적 UI 상태인 `isMapOpen`, `targetLocation`, `optimisticRecordPin`을 로컬스토리지(`myspace-storage`) 영구 캐시에서 완전 제외.
+   - 새로고침이나 타 화면 이동 시 지도가 제멋대로 튀어나오던 과거의 근본 원인을 영구 박멸하고, 실제 사용자 데이터(앨범, 타임라인, 레벨, 토큰 등)는 100% 안전 보존.
+
+3. **내수첩 내 중복 2중 모달 렌더링 제거 (`src/components/myspace/SummaryGrid.tsx`)**:
+   - 자식 컴포넌트인 `SummaryGrid.tsx`의 중복 `<MyMapModal>`을 삭제하고, 최상위 `myspace/page.tsx`에서 단 1장만 깔끔하게 띄우도록 일원화.
+
+4. **모바일 3단계 뒤로가기(`popstate`) 가드 장착 (`src/components/myspace/MyMapModal.tsx`)**:
+   - 과거 7월 30일(커밋 `09de3787`) `cleanup` 내 무조건 `history.back()` 호출로 발생했던 Next.js 라우터 충돌(Page Bounce)을 방어하기 위해 최신 마일스톤 9.73 표준 패턴 적용:
+     - 모달 오픈 시 단 1회 `pushState({ raonModal: 'my_map' })`.
+     - 스마트폰 하드웨어 뒤로가기 터치 시: 상세시트 ➔ 검색창 ➔ 지도본체 순차 닫힘 및 추가 `history.back()` 절대 호출 금지로 **내수첩(`/myspace`) 화면 100% 안전 잔류**.
+     - 좌측 상단 `<-` 버튼 터치 시: 프로그래밍 플래그(`isProgrammaticBackRef`)를 세워 가상 히스토리 1개만 안전 회수.
+     - `cleanup` 시 `history.back()`을 절대 부르지 않아 라우터 충돌 0% 보장.
+
+5. **홈 화면 10초 기록 연동 경험 보존 (`BeginnerHome.tsx`, `ReturningHome.tsx`)**:
+   - 홈 화면의 `MyMapModal` 바인딩을 온전히 유지하여, 10초 기록 완료 후 "핀 확인하기" 클릭 시 지도 팝업 기능을 100% 보존.
 
 ### 🟢 마일스톤 9.80: 모바일 인증 Web Locks 데드락 완치, 로그아웃 페일세이프 및 Vercel 트래픽 최적화(무료 쿼터 복귀 대책) 완결 (2026-10-02)
 
@@ -44,6 +67,8 @@
 | **`lockNoOp` 주입** | `src/lib/supabase-client.ts` | 모바일 크롬 WebView/TWA 환경에서 브라우저 Web Locks API 큐가 동기화 지연/데드락을 일으켜 인증 함수가 무한 대기에 빠지는 문제를 우회 (단일 인앱 환경에서 100% 안전). |
 | **`window.location.replace`** | `src/app/login/page.tsx` | 카카오 OAuth 리다이렉트와 동일하게 브라우저 런타임을 완전히 새로고침하여 진입함으로써, Supabase 싱글톤 메모리 상태 찌꺼기와 lock 잔여물이 홈 화면으로 이어지지 않도록 보장. 뒤로가기 시 로그인 화면 재진입 방지. |
 | **로그아웃 1.5초 타임아웃 레이스** | `src/components/TopBar.tsx` | `signOut()`이 네트워크 지연이나 락 이슈로 멈추더라도 1.5초 후 `finally` 블록에서 무조건 캐시를 비우고 세션을 리셋하여 홈으로 튕겨 나가도록 강제 탈출 안전망 구축. |
+| **로그인 보상 1회 동기 락** | `src/components/TopBar.tsx` | `checkUser()`와 `onAuthStateChange`의 동시 호출로 인한 경합 상태(Race Condition)를 `loginRewardProcessedRef`로 차단하여 보상 및 토스트의 2~3회 중복 발생 완치. |
+| **지도 상태 스토리지 제외 & Popstate 가드** | `useMySpaceStore.ts`, `MyMapModal.tsx` | `isMapOpen`을 `localStorage`에서 제외하여 어디서든 지도가 튀어나오는 버그를 차단하고, `cleanup` 내 `history.back()`을 배제한 무충돌 가상 히스토리로 핸드폰 뒤로가기 시 로그인 역주행 완벽 방어. |
 | **AI 검색 봇 vs 수집 봇 분리** | `src/app/robots.ts` | 단순 대량 스크레이퍼(`Bytespider`, `CCBot`, `ClaudeBot` 등)는 차단하여 트래픽을 방어하고, 사용자의 질문에 답하는 실시간 검색/추천 봇(`OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`)은 공식 허용하여 SEO 및 AI 추천 유입 극대화. |
 | **정적 캐시 범위 한정** | `next.config.ts` | 1년 장기 캐시를 오직 `/icons/`, `/images/`로만 한정하여, 실시간 업데이트가 필요한 `firebase-messaging-sw.js`(푸시 알림) 및 `manifest.json`, `.well-known/assetlinks.json`의 캐시 오염을 원천 차단. |
 
