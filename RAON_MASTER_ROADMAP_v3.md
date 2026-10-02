@@ -7,6 +7,20 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.80 모바일 인증 Web Locks 데드락 완치, 로그아웃 페일세이프 및 Vercel 트래픽 최적화(무료 쿼터 복귀 대책) 완결 (2026-10-02)** 🟢
+  - [x] **모바일 웹뷰 Web Locks 데드락 완치 (`supabase-client.ts`, `login/page.tsx`, `TopBar.tsx`, `useRequireAuth.ts`)**:
+    - 안드로이드 크롬 TWA 웹뷰에서 `navigator.locks` 큐가 꼬여 `getSession()`, `signOut()`, 이메일 로그인이 무한 대기(스피너/먹통)에 빠지던 버그를 `lockNoOp` 주입으로 원천 박멸.
+    - `login/page.tsx`: 불필요한 사전 `signOut` 제거 및 `window.location.replace` 하드 런타임 리로드로 카카오와 동일한 클린 세션 안착 보장.
+    - `TopBar.tsx`: `onAuthStateChange` 이벤트 루프 내 `getSession()` 중복 호출 제거, 세션 직접 참조, 포인트/지갑 비동기 분리. `handleLogout`에 1.5초 타임아웃 레이스 및 `finally` 강제 캐시/스토리지 정리 장착으로 로그아웃 먹통 100% 원천 차단.
+    - `useRequireAuth.ts`: 쿠키 기반 빠른 인증 판별 및 2.5초 타임아웃 가드로 예약/내수첩 탭 터치 먹통 완치.
+    - `ScheduleHomeWidget.tsx`: `SIGNED_IN` 시 `fetchMyReservations()` 및 `getMySchedules()` 즉각 재조회 연결로 '풍성채 캠핑장' 다가오는 일정 즉시 노출.
+  - [x] **Vercel 트래픽 다이어트 및 영구 무료(Hobby) 플랜 복귀 준비 (`robots.ts`, `next.config.ts`, `VERCEL_TRAFFIC_OPTIMIZATION.md`)**:
+    - Vercel CDN 요청 300만 회 초과(Hobby 100만 한도 초과)로 인한 일시정지 사태 원인 규명 (실제 사용자 트래픽 9.4% vs 악성 봇 무차별 정적 수집).
+    - `src/app/robots.ts` 신규 생성: `Bytespider`, `PetalBot`, `CCBot` 등 트래픽 약탈 봇 전면 차단 / 네이버, 구글, 카카오톡 및 **AI 검색 봇(`OAI-SearchBot`, `ChatGPT-User`, `Claude-SearchBot`, `Claude-User`, `PerplexityBot`)** 100% 정상 허용.
+    - `next.config.ts`: 이미지 캐시 기간 30일(`minimumCacheTTL: 2592000`) 연장 및 AVIF/WebP 고효율 압축 활성화, `/icons/`, `/images/` 정적 파일 브라우저 1년 캐싱 적용.
+    - `VERCEL_TRAFFIC_OPTIMIZATION.md`: 트래픽 최적화 배경, 상세 내역, 일일 지표 점검 기준 및 무료 플랜 복귀 액션 플랜을 영구 문서화.
+  - [x] **빌드 및 린트 검증**: `npx tsc --noEmit` 에러 0건 통과, ESLint 0건 통과, Git 커밋/푸시 완료 (`f3c64e0`).
+
 - [x] **9.76 주간 전국 축제 자동화 누락 긴급 복구(242건 적재) 및 관리자 수동 갱신 버튼·2중 스케줄 안전망 구축 완결 (2026-09-28)** 🟢
   - [x] **긴급 복구 및 최신화 (`scripts/sync-festivals-trigger.mjs`)**:
     - GitHub Actions 스케줄러 큐 드롭으로 오늘 미실행된 축제 동기화 엔진 즉시 가동.

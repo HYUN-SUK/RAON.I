@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
-    const router = useRouter();
     const supabase = createClient();
 
     const [email, setEmail] = useState("");

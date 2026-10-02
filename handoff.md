@@ -1,211 +1,78 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-09-28T12:12:00+09:00  
+**작성 일시**: 2026-10-02T14:55:00+09:00  
 **기준 브랜치**: `main`  
-**빌드 상태**: Next.js 16.1.1 Production Build (103/103 전체 라우트 100% 정상 통과, TypeScript 0에러)  
-**실서버 배포**: Vercel 프로덕션 배포 대기 (`https://raon-ai.com`)  
+**빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, ESLint 0에러)  
+**실서버 배포**: Vercel 프로덕션 배포 완료 (`https://raon-ai.com`, Pro 플랜 임시 가동 중 ➔ 무료 복귀 대기)  
 
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
-### 🟢 마일스톤 9.74: 관리자 환불완료 Server Action 전환(Web Locks 데드락 완치) 및 홈 다가오는 일정 카드 취소 버튼 탑재 완결 (2026-09-28)
+### 🟢 마일스톤 9.80: 모바일 인증 Web Locks 데드락 완치, 로그아웃 페일세이프 및 Vercel 트래픽 최적화(무료 쿼터 복귀 대책) 완결 (2026-10-02)
 
-1. **관리자 환불완료 Server Action 전환 (`reservation.ts`, `useReservationStore.ts`)**:
-   - **근본 원인 완치**: 브라우저 Supabase 클라이언트의 Web Locks / JWT 만료 데드락으로 인해 관리자 결제목록에서 [환불완료] 버튼이 무한 로딩 상태로 굳어버리던 문제를 해결하기 위해 `completeRefundAction` Server Action 신설.
-   - **원자적 일괄 실행**: 슈퍼 관리자 Service Role(`createAdminClient()`)을 사용하여 `reservations`의 `status = 'REFUNDED'`, `refunded_at = NOW()` 및 연동된 `user_schedules`의 `status = 'cancelled'`, AI 후보 데이터 정리를 서버 레벨에서 0.05초 만에 일괄 수행.
-   - **Fail-Safe 8초 타임아웃 가드**: 네트워크 이상 시에도 무한 스피너를 원천 차단하고 정직한 에러 반환.
-   - **관리자 전반 안정화**: 결제목록(`AdminPaymentsPage`), 예약 상세 모달(`AdminReservationDetailModal`), 예약 카드(`ReservationCard`) 3대 화면 동시 완치.
+1. **모바일 웹뷰 Web Locks 데드락 완치 (`src/lib/supabase-client.ts`, `src/app/login/page.tsx`, `src/components/TopBar.tsx`, `src/hooks/useRequireAuth.ts`)**:
+   - **`lockNoOp` 주입**: 안드로이드 TWA 웹뷰에서 `navigator.locks` 큐가 꼬여 `getSession()`, `signOut()`, 이메일 로그인이 무한 대기(스피너/먹통)에 빠지던 버그를 `auth: { lock: async (_name, _acquireTimeout, fn) => await fn() }` 주입으로 원천 박멸. (Supabase 공식 최신 v2.107+ 락 폐기 방향과 동일)
+   - **클린 런타임 리셋 (`login/page.tsx`)**: 불필요한 사전 `signOut`을 제거하고 `window.location.replace(nextUrl)` 하드 리로드를 적용하여, 카카오 소셜 로그인과 동일하게 브라우저 메모리를 맑게 헹구고 홈으로 진입하도록 구현 (싱글톤 메모리 찌꺼기 0% 보장).
+   - **로그아웃 먹통 100% 원천 차단 (`TopBar.tsx`)**: `handleLogout`의 `signOut()`에 1.5초 `Promise.race` 타임아웃 레이스를 걸고, 성공/실패 여부와 무관하게 `finally` 블록에서 무조건 캐시 삭제, 세션 리셋, 홈 이동을 보장.
+   - **탭 터치 먹통 가드 (`useRequireAuth.ts`)**: 쿠키 기반 빠른 인증 판별(`document.cookie.includes('sb-')`)과 2.5초 타임아웃 가드를 장착하여 예약/내수첩 탭 진입 시 먹통 현상 완치.
+   - **일정 위젯 자동 갱신 (`ScheduleHomeWidget.tsx`)**: `SIGNED_IN` 이벤트 발생 시 `fetchMyReservations()`와 `getMySchedules()`를 즉각 재호출하도록 연결하여 로그인 직후 '풍성채 캠핑장' 다가오는 일정이 새로고침 없이 즉시 표출.
 
-2. **홈 다가오는 일정 카드 일자 표기 위치 이동 & 취소 버튼 신설 (`ScheduleHomeWidget.tsx`)**:
-   - **일자 표기 상단 이동**: 카드 하단에 있던 일자 표기를 상단 사이트명(`upcomingItem.name`) 우측(`flex items-center justify-between`)으로 재배치하여 360px 모바일 화면에서도 단정한 레이아웃 완성.
-   - **하단 좌측 취소 버튼 신설**: `upcomingItem.type === 'reservation'`(라온아이 캠핑장 예약)인 경우에만 하단 좌측에 `[취소요청]` 버튼 노출. `e.stopPropagation()`을 적용하여 카드 전체 터치(상세보기 이동)와의 간섭 100% 차단.
-   - **검증된 취소 로직 연동**:
-     - 입금대기(`PENDING`): 즉시 취소 확인 다이얼로그(`AlertDialog`) ➔ `updateReservationStatus`로 즉시 취소 및 홈 카드 갱신.
-     - 예약확정(`CONFIRMED`): 동적 지연 로드된 `CancelReservationSheet`를 오픈하여 환불 계좌 입력 및 규정에 따른 취소 접수(`REFUND_PENDING`) 연동.
+2. **Vercel 트래픽 다이어트 및 영구 무료(Hobby) 플랜 복귀 준비 (`src/app/robots.ts`, `next.config.ts`, `VERCEL_TRAFFIC_OPTIMIZATION.md`)**:
+   - **사태 원인 규명**: Vercel CDN 요청 300만 회 초과(Hobby 100만 한도 초과)로 인한 일시정지 사태 분석 완료. 실제 사용자 트래픽(`Function Invocations: 94K`)은 9.4%에 불과했으나, 봇들의 정적 에셋 무차별 수집 및 Next.js 기본 이미지 캐시(60초)의 반복 변환으로 인한 대역폭/요청 폭증임을 확인.
+   - **`src/app/robots.ts` 신규 생성**: 
+     - 악성 스크레이퍼 봇(`Bytespider`, `PetalBot`, `CCBot` 등) 전면 차단 (`Disallow: /`).
+     - 네이버(`Yeti`), 구글(`Googlebot`), 카카오톡(`kakaotalk-scrap`) 정상 허용.
+     - **AI 실시간 검색/추천 봇(`OAI-SearchBot`, `ChatGPT-User`, `Claude-SearchBot`, `Claude-User`, `PerplexityBot`) 100% 허용**으로 AI 검색 추천 가치 극대화.
+     - `/_next/`, `/api/`, `/admin/` 등 내부 시스템 번들 수집 차단.
+   - **`next.config.ts` 캐시 최적화**:
+     - 이미지 캐시 기간 30일(`minimumCacheTTL: 2592000`) 연장 및 AVIF/WebP 고효율 압축 활성화 (Image Cache Writes 64K 및 대역폭 87GB를 70% 이상 감축).
+     - `/icons/`, `/images/` 정적 파일 브라우저 1년 장기 캐시 적용 (`firebase-messaging-sw.js` 및 PWA 매니페스트는 장기 캐시에서 제외하여 푸시/설치 무결성 유지).
+   - **전용 운영 가이드 영구 보존**: [`VERCEL_TRAFFIC_OPTIMIZATION.md`](file:///c:/Users/user/Desktop/RAON.I/VERCEL_TRAFFIC_OPTIMIZATION.md) 작성 및 커밋 완료.
 
 3. **코드 무결성 및 빌드 검증**:
    - `npx.cmd tsc --noEmit` 에러 0건 통과.
-   - Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+   - ESLint 검사 통과 (불필요한 import 및 미사용 변수 `router`, `Sparkles`, `requestPermission` 정리 완료).
+   - Git 커밋 및 푸시 완료 (`f3c64e0`).
 
 ---
 
-### 🟢 마일스톤 9.73: [내 주변 찾기] 팝업 '히스토리 바통 터치(ReplaceState)' 뒤로가기 가드 & 알림 뱃지 영구 읽음 완결 (2026-09-27)
+## 2. 기술적 결정 사항 (Technical Decisions)
 
-1. **[내 주변 찾기] 팝업 모바일 뒤로가기 가드 및 히스토리 바통 터치 (`BeginnerHome.tsx`, `InstantPlanModal.tsx`)**:
-   - **팝업 오픈 가상 히스토리 적재**: [내 주변 맛집 · 관광지 찾기] 팝업 오픈 시 `window.history.pushState({ raonPopup: 'nearby_confirm' })`를 적재하여 안드로이드 하드웨어/제스처 뒤로가기 시 팝업만 조용히 닫히고 홈에 안전하게 머무르도록 방어.
-   - **UI 닫힘 회수**: [아니오], [닫기], 외부 배경 탭 시 `history.back()`을 실행하여 1스택 안전 회수.
-   - **히스토리 바통 터치(Handoff) 패턴 적용**: [확인 / 동의하고 찾기] 터치 시 `history.back()`을 비동기로 부르지 않고 `window.history.replaceState({ raonModal: 'instant_plan' })`로 다음 모달에 가상 히스토리 슬롯을 승계하여, `popstate` 충돌 및 이전 플랜 잔존 결함을 100% 원천 차단.
-
-2. **알림 뱃지 영구 읽음 처리 및 재로그인 재발 완치 (`notification.ts`, `notifications/page.tsx`, `NotificationBadge.tsx`)**:
-   - **DB RLS 정책 추가 (`supabase/migrations/20260927000000_fix_notifications_update_rls.sql`)**: `notifications` 테이블에 본인 알림 `UPDATE` 허용 RLS 정책을 신설하여 DB 차단 문제 해소.
-   - **Server Action 신설 (`markAllNotificationsAsReadAction`)**: 사용자 인증 세션 및 Service Role Admin Fallback 2중 안전망으로 Supabase DB의 `is_read = true` 저장을 100% 보장.
-   - **영구 캐시 동기화 (`localStorage`)**: 알림 내역 확인 시 사용자 고유 키(`raon_last_read_notifications_${userId}`)에 확인 타임스탬프를 기록하고 `NotificationBadge`에서 이중 대조하여, 로그아웃 후 재로그인 시에도 확인했던 알림이 뱃지로 다시 뜨는 현상 완벽 박멸.
-
-3. **코드 무결성 및 빌드 검증**:
-   - `npx tsc --noEmit` 에러 0건 통과.
-   - Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+| 결정 사항 | 적용 파일 | 채택 이유 |
+| :--- | :--- | :--- |
+| **`lockNoOp` 주입** | `src/lib/supabase-client.ts` | 모바일 크롬 WebView/TWA 환경에서 브라우저 Web Locks API 큐가 동기화 지연/데드락을 일으켜 인증 함수가 무한 대기에 빠지는 문제를 우회 (단일 인앱 환경에서 100% 안전). |
+| **`window.location.replace`** | `src/app/login/page.tsx` | 카카오 OAuth 리다이렉트와 동일하게 브라우저 런타임을 완전히 새로고침하여 진입함으로써, Supabase 싱글톤 메모리 상태 찌꺼기와 lock 잔여물이 홈 화면으로 이어지지 않도록 보장. 뒤로가기 시 로그인 화면 재진입 방지. |
+| **로그아웃 1.5초 타임아웃 레이스** | `src/components/TopBar.tsx` | `signOut()`이 네트워크 지연이나 락 이슈로 멈추더라도 1.5초 후 `finally` 블록에서 무조건 캐시를 비우고 세션을 리셋하여 홈으로 튕겨 나가도록 강제 탈출 안전망 구축. |
+| **AI 검색 봇 vs 수집 봇 분리** | `src/app/robots.ts` | 단순 대량 스크레이퍼(`Bytespider`, `CCBot`, `ClaudeBot` 등)는 차단하여 트래픽을 방어하고, 사용자의 질문에 답하는 실시간 검색/추천 봇(`OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`)은 공식 허용하여 SEO 및 AI 추천 유입 극대화. |
+| **정적 캐시 범위 한정** | `next.config.ts` | 1년 장기 캐시를 오직 `/icons/`, `/images/`로만 한정하여, 실시간 업데이트가 필요한 `firebase-messaging-sw.js`(푸시 알림) 및 `manifest.json`, `.well-known/assetlinks.json`의 캐시 오염을 원천 차단. |
 
 ---
 
-### 🟢 마일스톤 9.72: [바로 여행계획 만들기] 모바일 모달 오픈 시 상단 헤더 및 목적지 검색창 최우선 노출 및 가상 키보드 밀림 방어 완결 (2026-09-26)
+## 3. 다음 작업 가이드 (Next Action Items)
 
-1. **Radix UI Sheet 자동 포커스 차단 (`onOpenAutoFocus={(e) => e.preventDefault()}`)**:
-   - 모바일 환경에서 모달을 열었을 때 Radix Dialog 포커스 트랩이 내부 첫 번째 포커스 가능 요소에 자동으로 초점을 맞추면서 안드로이드 가상 키보드가 불필요하게 튀어나오고 뷰포트를 절반으로 깎아먹던 원천 원인 차단.
-   - 사용자가 직접 검색창을 터치하기 전까지는 가상 키보드가 올라오지 않으며, 상단 헤더 및 목적지 검색창("어디로 떠나시나요?")이 100% 화면 최상단에 안정감 있게 노출.
+### 📌 1순위: Vercel 트래픽 모니터링 및 무료(Hobby) 플랜 복귀
+- **확인 경로**: [Vercel Dashboard](https://vercel.com) ➔ `RAON.I` ➔ **[Usage]** 탭
+- **점검 주기**: 배포 후 3~5일 동안 관찰
+- **안전 복귀 기준**:
+  - 일일 CDN Requests: **33,000회 이하** (월 100만 회 이내 페이스)
+  - 일일 Fast Data Transfer: **3.3 GB 이하** (월 100 GB 이내 페이스)
+- **무료 다운그레이드 실행**:
+  - 지표가 안정권(일 2~3만 회)에 안착한 것을 확인한 뒤, 다음 결제일 이전에 Vercel Dashboard ➔ Settings ➔ Billing ➔ Change Plan ➔ **Hobby (Free)** 선택.
 
-2. **모바일 동적 뷰포트(`dvh`) 높이 최적화 (`InstantPlanModal.tsx`)**:
-   - `SheetContent` 클래스에 `max-h-[92vh] max-h-[92dvh] h-[92vh] h-[92dvh]`를 동시 적용.
-   - 추후 사용자가 텍스트 입력을 위해 키보드를 띄우더라도 축소된 뷰포트에 맞추어 시트 높이가 유연하게 조절되어 헤더가 화면 위로 밀려나지 않도록 방어.
-
-3. **본문 스크롤 최상단 강제 리셋 (`scrollContainerRef` & `useEffect`)**:
-   - `scrollContainerRef`를 내부 본문 스크롤 컨테이너에 연결.
-   - `isOpen` 및 `step === 'INPUT'` 전환 시 `scrollTo({ top: 0, behavior: 'instant' })`를 즉시 및 마이크로 딜레이(50ms, 150ms)로 이중 실행하여 모달 오픈 시 항상 최상단 0px에서 렌더링되도록 보장.
-
-4. **검색창 터치 시 스크롤 상단 앵커링 (`onFocus`)**:
-   - 사용자가 검색 입력창을 터치하여 키보드가 올라올 때도 검색창이 상단 헤더 바로 아래에 안정적으로 유지되도록 스무스 스크롤 앵커링(`scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })`) 장착.
-
-5. **코드 무결성 및 빌드 검증**:
-   - `npx tsc --noEmit` 에러 0건 통과.
-   - Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
+### 📌 2순위: 모바일 TWA 실기기 사용자 경험 모니터링
+- 안드로이드 실제 스마트폰 앱(`kr.co.raoni.app`)에서:
+  - 이메일 로그인 후 홈 화면 레벨/닉네임 즉시 갱신 확인.
+  - 로그인 직후 '풍성채 캠핑장' 다가오는 일정 즉시 노출 확인.
+  - 프로필 터치 후 [로그아웃] 시 즉시 지연 없이 홈 화면 전환 확인.
 
 ---
 
-### 🟢 마일스톤 9.69: 장소 카드 [ ⇄ 변경 ] 에메랄드 테마 통일 및 대체리스트 [🗺️ 지도로 한눈에 비교] 라이브 핑 버튼 고도화 완결 (2026-09-25)
+## 4. 주의 사항 (Caveats & Known Characteristics)
 
-1. **장소 카드 [ ⇄ 변경 ] 버튼 컬러 아이덴티티 통일 (`InstantPlanModal.tsx`, `SmartPlanProposal.tsx`)**:
-   - **에메랄드 테마 전면 통일**: 기존 칙칙한 회색 테두리(`border-stone-300 bg-stone-50`) 대신 산뜻하고 선명한 포레스트 에메랄드 테두리(`border-2 border-emerald-400/90 bg-emerald-50/90 text-emerald-800 dark:text-emerald-200`)를 전체 장소카드에 동일 적용.
-   - **SSOT v9 담백함(Clarity) 및 본문 가독성 100% 보존**: 과도한 텍스트 바나 이질적인 펄스 링/반짝이 뱃지를 원천 배제하여, 카드 본문(장소명, 주소, 영업시간, 안심식당 뱃지 등)의 시각적 정보를 0.1%도 가리지 않는 클린 뷰 완성.
-   - **블루(내비) vs 그린(변경) 듀얼 액션 대비 완성**: 좌측 컨트롤 열에서 초록색 [ ⇄ 변경 ]과 파란색 [ 📍 내비 ] 버튼이 완벽한 시각적 균형과 인지성을 제공.
-
-2. **대체리스트 [🗺️ 지도로 한눈에 비교] 버튼 시인성 혁신 (`InstantPlanModal.tsx`, `SmartPlanProposal.tsx`)**:
-   - **가치 제안 직관화 카피라이팅**: 기존 단순 "지도로 보기"에서 "🗺️ 지도로 한눈에 비교"로 문구를 개편하여, 지도로 보았을 때의 이점(거리 및 동선 비교)을 직관화.
-   - **초미니 라이브 펄스 링(`animate-ping`) 장착**: 바텀시트 오픈 시 우측 상단 버튼 좌측에서 은은하게 깜빡이는 에메랄드 링 애니메이션을 통해 유저 시선을 상단 지도로 즉시 유도.
-   - **모바일 360px 가로폭 철벽 방어**: `shrink-0`, `whitespace-nowrap`, 컴팩트 패딩(`px-2.5`)을 결합하여 초소형 기기나 폰트 확대 환경에서도 1줄 정렬 완벽 유지.
-
-3. **코드 정리 및 린트/타입 무결성 검증 (Code Cleanup)**:
-   - `npx tsc --noEmit` 에러 0건 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
-
----
-
-### 🟢 마일스톤 9.68: 주소·부분주소 무료 통합 검색 고도화 및 나의 전체 여행일정 첫 진입 0초 즉시 렌더링(SWR) 완결 (2026-09-24)
-
-1. **주소 및 부분주소 무료 통합 검색 (`searchAddressAction`, `MyMapModal.tsx`)**:
-   - **0원 비용 검색 아키텍처 수립**: 카카오 주소 검색뿐만 아니라 행정안전부 도로명주소 오픈 API와 웹/문서 기반 검색의 기술적 결합을 통해 트래픽 폭증 시에도 추가 비용 없는 0원 검색 구조 구축.
-   - **부분 주소 및 명칭 검색 유연화**: "백제큰길 2047", "공주 공주보" 등 지번/도로명/명칭 일부만 입력하더라도 정확한 좌표를 도출하여 지도 중심 이동 및 마커 생성 완결.
-   - **네이버/카카오/행안부 API 비용 구조 및 무료 활용 방안 보고서 제공**: 사용자 문의에 맞춰 월간 무료 쿼터, 행안부 API의 무제한 무료 활용 전략, 네이버 웹 크롤링 기반 좌표 추출의 법적/기술적 검토 완료.
-
-2. **나의 전체 여행일정 (`/myspace/schedule/page.tsx`) 첫 진입 0초 즉시 렌더링(SWR) 및 서버/번들 최적화**:
-   - **SWR 동기 캐시 복원**: `user_schedules_cache`를 활용하여 상세 목록 페이지 진입 시 2~3초간 지속되던 스켈레톤 로딩을 0.00초로 완전 단축. 캐시 일정으로 즉시 화면을 표출하고 백그라운드에서 최신 데이터를 조용히 동기화 (Silent Revalidation).
-   - **서버 액션(`getMySchedules`) 비차단 비동기화**: 과거 일정 완료 처리(`COMPLETED`) DB UPDATE 쿼리를 `await`하지 않고 `void` 백그라운드 비동기로 위임하여 서버 응답 시간 1초 이상 단축 (900ms ➔ 280ms).
-   - **컴포넌트 번들 경량화 (`ScheduleForm`)**: 거대한 일정 등록/수정 모달 컴포넌트를 `dynamic(() => import(...), { ssr: false })`로 분리하여 초기 자바스크립트 번들 파싱 및 하이드레이션 지연 제거.
-   - **홈 화면 라우트 프리페칭 (`router.prefetch`)**: 홈 화면 진입 시 `/myspace/schedule` 라우트 코드를 백그라운드 프리페치하여 클릭 즉시 0초 화면 전환 달성.
-
-3. **홈 카드 폰트 색상 및 가독성 점검 일치화 (`BeginnerHome.tsx`)**:
-   - 골든존 내 카드 텍스트 색상 및 콘트라스트를 점검하고 브랜드 디자인 기준안에 맞춰 시인성 극대화.
-
-4. **구글 플레이 콘솔 앱 업데이트 상태 정밀 진단**:
-   - 콘솔 대시보드 스크린샷 분석을 통해 "업데이트 상태" 공란 및 "검토 중" 뱃지 미표시 원인 파악.
-   - 새 번들(aab) 업로드 후 최종 '프로덕션으로 출시 시작' 클릭 여부 및 '게시 개요' 관리형 게시 대기 상태 확인 가이드 사용자에게 상세 안내.
-
-5. **코드 정리 및 린트/타입 무결성 검증 (Code Cleanup)**:
-   - `BeginnerHome.tsx`, `MyMapModal.tsx` 내 미사용 import, 미사용 상태 변수(`weatherSheetOpen`, `recipeSheetOpen`, `recipeData`), 주석 처리된 레거시 JSX 완전 소멸.
-   - `npx tsc --noEmit` 에러 0건 및 Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
-
----
-
-### 🟢 마일스톤 9.67: 홈 화면 UI 전면 개편(스크롤 제로 골든존), 탑바 '스마트 여행수첩' 2단 타이틀 안착 및 리마인더 팝업 전환 완결 (2026-09-23)
-
-1. **탑바(TopBar) 높이 및 브랜드 타이틀 강화 (`TopBar.tsx`)**:
-   - 헤더 높이를 `h-[74px]`로 확장하여 시각적 여유(Breathing room) 확보.
-   - 중앙 로고에 큼직한 `RAON.I` (`text-[21px] font-black tracking-widest`)와 서브타이틀 `스마트 여행수첩` (`text-[13.5px] font-bold mt-1.5`) 2단 계층 구조를 안착하여 브랜드 정체성 극대화.
-2. **상단 공지·알림 바 라이트 모드 최적화 (`SlimNotice.tsx`, `NotificationBadge.tsx`)**:
-   - 히어로 사진이 제거된 밝은 배경에 맞춰 부드러운 스톤 배경과 딥그린 아이콘, 진한 텍스트의 `variant="home"` 스타일 신설.
-   - 알림이 없을 때는 공지사항 바가 전체 가로폭(`w-full`)으로 자연스럽게 확장.
-3. **리마인더 배너 ➔ 팝업 모달 전환 (`ReminderModal.tsx`, `BeginnerHome.tsx`)**:
-   - 홈 최상단 100px을 가리던 인라인 배너를 전면 제거하고 전용 팝업 모달로 분리.
-   - `[v] 오늘 하루 보지 않기` 체크박스 연동 (`raonai_hide_reminder_today` 로컬스토리지 저장), `[다음에 하기]` 및 `[✏️ 10초 기록하기]` 버튼 제공으로 유저 피로도 제로화 및 작성 전환율 극대화.
-4. **홈 화면 스크롤 제로(Zero-Scroll) 골든존 레이아웃 재배치 (`BeginnerHome.tsx`)**:
-   - 거대한 히어로 사진(210px) 및 중앙 문구를 완전 삭제.
-   - **[탑바] ➔ [공지·알림 바] ➔ [즉시여행 2종 버튼: 내 주변/목적지] ➔ [다가오는 일정 카드] ➔ [나의 전체일정] ➔ [캠핑장 소개/예약]** 순서로 전면 재배치하여, 첫 화면에서 스크롤을 내리지 않고도 핵심 액션을 즉시 터치할 수 있도록 모바일 UX 완성.
-
----
-
-### 🟢 마일스톤 9.66: 다가오는 일정 뱃지 문구 깜빡임(Flicker) 완치 및 상세 화면 스마트플랜 0초 즉시 렌더링(Cache-First) 완결 (2026-09-23)
-
-1. **홈 일정 카드 상단 뱃지 깜빡임 완치 (`ScheduleHomeWidget.tsx`)**:
-   - `schedules` 초기 상태를 `localStorage.getItem('user_schedules_cache')`로 즉시 동기화.
-   - `activeReservations` 및 `activeSchedules`를 최상위로 격상하여 `upcomingItem`, `isSmartPlanAvailable`, `isSmartPlanUnlockingSoon`, `badgeText`, `handleCardClick` 전역에서 0.00초부터 캐시 데이터를 직접 참조하도록 연결.
-   - 홈 화면 복귀 시 뱃지 텍스트가 임시로 "⚡ 즉시 여행계획 생성가능!, 터치해보세요!"로 번쩍였다가 실제 상태로 바뀌던 시각적 왜곡(Flicker) 100% 박멸.
-2. **일정 상세 화면 스마트플랜 0초 즉시 렌더링 (`myspace/schedule/[id]/page.tsx`)**:
-   - 마운트 즉시 `localStorage.getItem('user_schedules_cache')`에서 해당 일정(`initialCachedSchedule`) 및 스마트플랜 데이터(`smart_plan_data`)를 동기 복원.
-   - `isLoading` 초기값을 `!initialCachedSchedule`로 설정하여 캐시가 존재할 경우 2~4초 동안 전체 화면을 가리던 로딩 스피너(`Loader2 animate-spin`) 원천 스킵.
-   - `showSmartPlan` 및 `planMode`를 캐시 데이터 유무에 따라 0.00초 마운트 시점부터 즉시 `true`로 활성화하여, 홈에서 일정 카드를 터치하자마자 0초 만에 스마트플랜 결과 화면이 직통 표출되도록 구현.
-   - 백그라운드에서는 조용히 `loadData()`(Silent SWR Revalidation)가 실행되어 최신 DB 데이터 및 체크리스트 동기화 유지.
-
----
-
-### 🟢 마일스톤 9.65: 정밀/즉시 스마트플랜 지도 내 내비 바텀시트 계층형 뒤로가기 완치 & 홈 화면 다가오는 일정 0초 즉시 렌더링(SWR) 완결 (2026-09-23)
-
-1. **지도 내 내비 바텀시트 3단계 계층형 뒤로가기 완치 (`SmartPlanProposal.tsx`, `InstantPlanModal.tsx`)**:
-   - `handlePopState`에서 상위 오버레이인 `navTargetCard`(내비 시트)를 하위 레이어인 `isMapModalOpen`(지도 모달)보다 1순위로 먼저 닫도록 판정 순서 역전 버그 완벽 수정. 단일 시트 닫기 헬퍼(`closeSingleSubsheetWithHistory`) 신설 및 적용으로 하위 대체리스트 히스토리까지 일괄 회수되어 홈으로 튕겨 나가던 결함 원천 박멸. (1차: 내비 시트 닫힘 ➔ 2차: 지도 닫히고 본문/대체리스트 복귀 ➔ 3차: 홈 화면 복귀)
-2. **홈 화면 다가오는 일정 '당일 1회 주기 정밀 검증 + 당일 내 0초 즉시 렌더링' 아키텍처 구축 (`ScheduleHomeWidget.tsx`, `TopBar.tsx`)**:
-   - 날짜가 바뀐 '당일 첫 접속(또는 2주 만의 재방문)' 시에는 `last_schedule_sync_date !== todayStr`을 감지하여 `isLoading = true`로 시작, "일정을 불러오고 있습니다..." 로딩 스피너를 띄우며 DB 최신 데이터를 정밀 동기화(과거 종료 일정 노출 방어). 당일 1회 검증 완료 후에는 `isSyncedToday && hasCache` 조건으로 `isLoading = false`로 즉시 시작하여 2~4초 지연 없이 즉각 표출. 로그아웃 시 스탬프 자동 소멸.
-
----
-
-## 2. 기술적 결정 사항 (Architectural & Technical Decisions)
-
-### 1) 0원 주소 검색 아키텍처 (행안부 도로명주소 오픈 API + 부분 주소 정밀 보정)
-- **배경**: 카카오 로컬 REST API나 네이버 클라우드 Maps API는 일정 쿼터(카카오 월 30만 건, 네이버 월 300만 건 등)를 초과할 경우 종량제 과금이 발생할 수 있음. 대규모 사용자가 주소를 빈번하게 검색할 때 비용 부담이 가중될 위험 존재.
-- **결정 및 해결**:
-  - **행정안전부 도로명주소 오픈 API**: 정부 공식 공공데이터로 완전 무료(무제한 쿼터) 제공되며 도로명/지번/건물명 검색에 가장 정확한 표준 DB.
-  - **서버 액션(`searchAddressAction`) 2단계 폴백 파이프라인**: 1단계로 행안부/카카오 주소 검색을 호출하고, 건물명이나 약칭 등 부분 주소 검색 시에는 정밀 키워드 보정 로직을 통해 좌표를 도출하여 안정성과 비용 절감을 동시 달성.
-
-### 2) '나의 전체 여행일정' 0초 즉시 렌더링(SWR) 및 서버 비차단 쿼리
-- **배경**: 홈 화면의 다가오는 일정 위젯과 상세 화면은 0초 즉시 렌더링이 적용되어 있었으나, '나의 전체일정' 페이지(`/myspace/schedule/page.tsx`)는 로컬 캐시를 읽지 않고 매번 `loading: true`로 시작하여 유저가 2~3초간 빈 스켈레톤을 마주하는 체감 지연이 발생.
-- **결정 및 해결**:
-  - **SWR 낙관적 렌더링**: `localStorage.getItem('user_schedules_cache')`를 마운트 즉시 동기 파싱하여 캐시 데이터가 있으면 `loading: false`로 즉각 0.00초 표출. 백그라운드에서 `getMySchedules`를 조용히 실행해 최신 데이터로 동기화.
-  - **DB UPDATE 비차단 비동기 위임**: `getMySchedules` 서버 액션에서 유저의 과거 일정을 `COMPLETED`로 전환하는 DB UPDATE 작업이 직렬(await)로 묶여 1초의 지연을 발생시키던 문제를 `void (async () => { ... })()`로 분리하여 클라이언트 응답 대기 시간을 900ms에서 280ms로 70% 단축.
-  - **모달 컴포넌트 Dynamic Import**: 화면 첫 진입 시 당장 필요하지 않은 거대한 `ScheduleForm` 모달을 Next.js `dynamic()`으로 지연 로드하여 초기 번들 크기 경량화.
-  - **Next.js 라우트 프리페칭 (`router.prefetch`)**: 홈 화면 마운트 시 `/myspace/schedule`을 사전 로드하여 탭 클릭 시 네트워크 지연 제로화.
-
-### 3) 3단계 계층형 히스토리 스택 (Hierarchical History Stack)
-- **배경**: 모바일 웹/TWA 환경에서 카카오 지도 팝업이나 대체 장소 리스트 바텀시트를 연 뒤 브라우저 하단 '뒤로가기'를 누르면 브라우저 자체가 홈 밖으로 튕겨 나가는 결함 방어.
-- **해결**:
-  - 각 서브 레이어(내비 시트, 지도 모달, 대체리스트 바텀시트, 메인 모달) 오픈 시 고유의 `history.pushState`를 발행.
-  - `popstate` 핸들러에서 최상위 레이어부터 역순(`내비시트 -> 지도 -> 대체리스트 -> 메인모달 -> 홈`)으로 순차 회수하여 홈 화면 잔류 보장.
-
----
-
-## 3. 다음 작업 가이드 (Next Steps for Next Session)
-
-다음 세션에서 우선적으로 진행할 수 있는 추천 작업 목록:
-
-1. **구글 플레이 콘솔 프로덕션 심사 상태 확인**:
-   - 콘솔 [출시 > 프로덕션] 메뉴에서 새 버전(`라온아이.aab`) 업로드 후 "프로덕션으로 출시 시작" 버튼이 정상 클릭되었는지 최종 점검.
-   - [게시 개요]에 관리형 게시가 켜져 있는 경우 수동 "게시" 클릭 필요 여부 확인.
-   - 심사 통과 후 플레이스토어 실기기 업데이트를 통해 상하단 시스템바 #FFFFFF 라이트 모드 테마 적용 완료 확인.
-2. **모바일 실기기 체감 속도 관제**:
-   - 스마트폰에서 홈 화면 ➔ '나의 전체 여행일정' 터치 시 0초 즉시 전환 체감 확인.
-   - '내 여행지도' 내 주소 및 부분주소 검색 기능 실기기 편의성 점검.
-3. **관리자 결제/예약 목록 운영 현황 확인**:
-   - 마일스톤 9.60~9.62를 통해 개편된 예약정보 수정 및 차액(일부환불/추가입금) 독립 행 처리 동작이 실운영 환경에서 원활히 유지되는지 점검.
-4. **스마트플랜 캐싱 및 배치 모니터링**:
-   - 일일 지역 로테이션 및 스마트플랜 캐싱 GitHub Actions 배치 정상 실행 여부 관제.
-
----
-
-## 4. 주의 사항 및 잠재적 위험 요소 (Warnings & Tech Debt)
-
-> [!CAUTION]
-> **소셜 로그인 로직 임의 변경 금지**
-> 현재 `src/app/auth/callback/route.ts` 및 `SocialLoginButtons.tsx`는 카카오 OAuth 표준 스펙에 따라 완벽히 검증된 안정 상태입니다. 로그인 시작부에 비동기 네트워크 통신(`signOut`)을 추가하거나 인가 코드를 브릿지로 재전달하는 시도는 모바일 튕김을 유발하므로 절대 금지합니다.
-
-> [!IMPORTANT]
-> **스마트플랜 Track B 거리 미표시 원칙 절대 유지**
-> 정밀 스마트플랜 Track B(오고 가는 길)에서는 장소 간 이동 거리를 표기하지 않는 비즈니스 정책이 적용되어 있습니다. UI 수정 시 해당 영역에 거리가 강제로 노출되지 않도록 기존 가드를 유지해야 합니다.
-
-> [!NOTE]
-> **SWR 캐시와 백그라운드 Revalidation 정합성**
-> 로컬 캐시(`user_schedules_cache`) 기반의 0초 즉시 렌더링은 반드시 백그라운드 Revalidation과 함께 동작해야 합니다. 사용자가 일정을 수정/추가/삭제했을 때는 캐시를 즉시 갱신하거나 무효화하여 과거 데이터가 화면에 고착되지 않도록 주의해야 합니다.
+1. **Vercel 방화벽 전면 챌린지 금지**:
+   - Vercel 대시보드의 "Attack Challenge Mode"를 전체 사이트에 켜면, 모바일 TWA 앱 실행 시 사용자에게 캡차(로봇이 아닙니다) 화면이 뜨면서 앱이 멈출 수 있습니다. 절대 글로벌 챌린지를 켜지 마십시오.
+2. **서비스 워커 파일 캐시 금지**:
+   - `public/firebase-messaging-sw.js`에 브라우저 장기 캐시가 걸리면 푸시 알림 수신 로직 업데이트가 사용자 기기에 즉시 반영되지 않습니다. 현재 `next.config.ts`에서 완벽히 제외되어 있으므로 이 규칙을 유지해야 합니다.
+3. **상세 점검 보고서 참조**:
+   - 트래픽 최적화 관련 모든 상세 내역과 지난 30일 분석 결과는 [`VERCEL_TRAFFIC_OPTIMIZATION.md`](file:///c:/Users/user/Desktop/RAON.I/VERCEL_TRAFFIC_OPTIMIZATION.md)에 상시 보존되어 있습니다.

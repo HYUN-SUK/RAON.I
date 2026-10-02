@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase-client";
-import { LogOut, LogIn, Settings, User, Bell, FileText, Download, Sparkles, MapPin } from "lucide-react";
+import { LogOut, LogIn, Settings, User, Bell, FileText, Download, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { pointService } from "@/services/pointService";
 import { getLevelInfo } from "@/config/pointPolicy";
@@ -20,7 +20,6 @@ import { Switch } from "@/components/ui/switch";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";
-import { usePushNotification } from "@/hooks/usePushNotification";
 import { usePermissionFlow } from "@/hooks/usePermissionFlow";
 import { useAppStandaloneDetector } from "@/hooks/useAppStandaloneDetector";
 import LocationPermissionPrompt from "@/components/permission/LocationPermissionPrompt";
@@ -39,7 +38,6 @@ export default function TopBar() {
     const { level, xp, raonToken, setWallet, reset } = useMySpaceStore();
     const router = useRouter();
     const pathname = usePathname();
-    const { requestPermission } = usePushNotification();
     const supabase = createClient();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -230,7 +228,7 @@ export default function TopBar() {
         try {
             // 모바일 안드로이드 intent 마켓 주소 시도 후 플레이 스토어 웹 마켓 주소 이동
             window.location.href = PLAY_STORE_URL;
-        } catch (e) {
+        } catch {
             window.open(PLAY_STORE_URL, '_blank');
         }
     };
