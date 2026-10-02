@@ -36,6 +36,8 @@
   * `Yeti`: 네이버 검색 및 **네이버 클로바X(Clova) AI 추천**
   * `OAI-SearchBot`: **OpenAI SearchGPT & 챗GPT 실시간 검색 봇**
   * `ChatGPT-User`: 챗GPT 사용자가 라온아이 링크 요청 시 실시간 탐색
+  * `Claude-SearchBot`: **앤트로픽 클로드(Claude) 공식 실시간 검색/추천 봇**
+  * `Claude-User`: 클로드 사용자가 라온아이 질문 시 실시간 방문 봇
   * `PerplexityBot`: 전 세계 1위 AI 검색엔진 **퍼플렉시티** 추천 보장
   * `kakaotalk-scrap`: 카카오톡 채팅방 링크 공유 시 썸네일/미리보기 보장
   * `facebookexternalhit`: SNS 링크 미리보기 보장
