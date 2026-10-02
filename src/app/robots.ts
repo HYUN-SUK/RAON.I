@@ -4,37 +4,39 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        // 트래픽 과다 소진 악성/수집 봇 전면 차단
+        // 1. 트래픽 과다 소진 악성/무차별 데이터 수집 봇 전면 차단
         userAgent: [
-          'Bytespider',
-          'PetalBot',
-          'AhrefsBot',
+          'Bytespider', // 틱톡/바이트댄스 무차별 긁어가기 (1위)
+          'PetalBot',   // 화웨이 스크레이퍼
+          'AhrefsBot',  // 해외 유료 SEO 스크레이퍼
           'SemrushBot',
           'MJ12bot',
           'DotBot',
           'BLEXBot',
-          'GPTBot',
-          'ClaudeBot',
-          'CCBot',
-          'cohere-ai',
+          'CCBot',      // Common Crawl 대량 데이터 수집기
+          'cohere-ai',  // 코히어 단순 학습 크롤러
           'YandexBot',
         ],
         disallow: ['/'],
       },
       {
-        // 국내 주요 검색 엔진 및 SNS 미리보기 정상 허용
+        // 2. 포털 검색 엔진 & AI 실시간 검색/추천 봇 & SNS 미리보기 100% 허용
+        // (손님이 ChatGPT, Gemini, 네이버, 구글, 퍼플렉시티에 라온아이를 물어봤을 때 정확히 추천하도록 보장)
         userAgent: [
-          'Googlebot',
-          'Yeti',
-          'Daumoa',
-          'kakaotalk-scrap',
-          'facebookexternalhit',
+          'Googlebot',            // 구글 검색 & 구글 제미나이(Gemini) AI 검색
+          'Yeti',                 // 네이버 검색 & 네이버 클로바X(Clova) AI 추천
+          'Daumoa',               // 다음/카카오 검색
+          'OAI-SearchBot',        // OpenAI SearchGPT & 챗GPT 실시간 검색 봇
+          'ChatGPT-User',         // 챗GPT 사용자가 링크 요청 시 탐색 봇
+          'PerplexityBot',        // 전 세계 1위 AI 검색엔진 퍼플렉시티
+          'kakaotalk-scrap',      // 카카오톡 채팅방 링크 공유 시 썸네일/미리보기
+          'facebookexternalhit',  // SNS 링크 미리보기
         ],
         allow: ['/'],
         disallow: ['/api/', '/admin/', '/_next/', '/auth/'],
       },
       {
-        // 일반 검색 봇: 공개 페이지만 허용하고 내부 API/번들 수집 차단
+        // 3. 일반 검색 봇: 공개 페이지만 허용하고 내부 API/시스템 번들 수집 차단
         userAgent: '*',
         allow: ['/'],
         disallow: ['/api/', '/admin/', '/_next/', '/auth/'],
