@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react';
 
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon, History, Map, Star, Heart, CheckCircle2 } from "lucide-react";
+import { Image as ImageIcon, History, Map, Star } from "lucide-react";
 
 import { useMySpaceStore } from "@/store/useMySpaceStore";
 import { useReservationStore } from "@/store/useReservationStore";
 import { createClient } from '@/lib/supabase-client';
-import MyMapModal from './MyMapModal';
 import MyContributionsModal from './MyContributionsModal';
 
 interface SummaryGridProps {
@@ -17,7 +16,7 @@ interface SummaryGridProps {
 
 export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
     const router = useRouter();
-    const { timelineItems, isMapOpen, setIsMapOpen } = useMySpaceStore();
+    const { timelineItems, setIsMapOpen } = useMySpaceStore();
     const { reservations } = useReservationStore();
     const [contributionCount, setContributionCount] = useState<number>(0);
     const [isContributionOpen, setIsContributionOpen] = useState<boolean>(false);
@@ -141,7 +140,6 @@ export default function SummaryGrid({ isLoading = false }: SummaryGridProps) {
             </div>
 
             {/* Modals */}
-            <MyMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
             <MyContributionsModal isOpen={isContributionOpen} onClose={() => setIsContributionOpen(false)} />
         </>
     );

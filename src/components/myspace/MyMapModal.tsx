@@ -12,7 +12,6 @@ import PlaceDetailSheet from './PlaceDetailSheet';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
-import { useModalBackHandler } from '@/hooks/useModalBackHandler';
 import { toast } from 'sonner';
 
 // Kakao Maps SDK Type Augmentation for TypeScript
@@ -55,20 +54,6 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     } = useMySpaceStore();
     const { config } = useSiteConfig();
 
-    // 모달 닫기 핸들러 (10초 기록 연계 진입 시에만 전역 피드백 팝업 트리거)
-    const handleCloseWithPrompt = () => {
-        if (mode === 'view' && pendingVerificationScheduleId) {
-            const schedId = pendingVerificationScheduleId;
-            setPendingVerificationScheduleId(null); // 1회성 소멸
-            openVerificationPrompt(schedId); // 전역 팝업 오픈!
-        }
-        onClose();
-    };
-
-    // [v11.9.108] 나만의 캠핑지도 모달 뒤로가기 닫힘 처리
-    useModalBackHandler(isOpen, handleCloseWithPrompt, 'myMapModal');
-
-
     // UI States
     const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -83,6 +68,115 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     const [isSearchLoading, setIsSearchLoading] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]); // Kakao Places result
     const [visibleCount, setVisibleCount] = useState(10); // Pagination for list
+
+    // 모달 닫기 핸들러 (10초 기록 연계 진입 시에만 전역 피드백 팝업 트리거)
+    const handleCloseWithPrompt = () => {
+        if (mode === 'view' && pendingVerificationScheduleId) {
+            const schedId = pendingVerificationScheduleId;
+            setPendingVerificationScheduleId(null); // 1회성 소멸
+            openVerificationPrompt(schedId); // 전역 팝업 오픈!
+        }
+        onClose();
+    };
+
+    // 모바일 3단계 뒤로가기(Popstate) 가드 & 히스토리 동기화 Refs
+    const isHandlingPopStateRef = useRef(false);
+    const isProgrammaticBackRef = useRef(false);
+    const modalHistoryPushedRef = useRef(false);
+    const isDetailOpenRef = useRef(isDetailOpen);
+    const isSearchingRef = useRef(isSearching);
+    isDetailOpenRef.current = isDetailOpen;
+    isSearchingRef.current = isSearching;
+
+    const handleCloseWithPromptRef = useRef(handleCloseWithPrompt);
+    handleCloseWithPromptRef.current = handleCloseWithPrompt;
+
+    // [v14.4.1] 모바일 3단계 뒤로가기 가드 & 브라우저 히스토리 스택 제어
+    useEffect(() => {
+        if (!isOpen) {
+            // 외부 UI 터치 등으로 모달이 닫혔을 때 잔여 가상 히스토리 안전 회수
+            if (modalHistoryPushedRef.current && !isHandlingPopStateRef.current && typeof window !== 'undefined') {
+                modalHistoryPushedRef.current = false;
+                isProgrammaticBackRef.current = true;
+                try {
+                    window.history.back();
+                } catch {}
+                setTimeout(() => {
+                    isProgrammaticBackRef.current = false;
+                }, 60);
+            }
+            return;
+        }
+
+        // 1. 모달 루트 진입 시 가상 히스토리 등록 (단 1회)
+        if (!modalHistoryPushedRef.current && typeof window !== 'undefined') {
+            if (window.history.state?.raonModal === 'my_map') {
+                modalHistoryPushedRef.current = true;
+            } else {
+                window.history.pushState({ raonModal: 'my_map' }, '', window.location.href);
+                modalHistoryPushedRef.current = true;
+            }
+        }
+
+        // 2. 스마트폰 하드웨어 뒤로가기(popstate) 이벤트 리스너
+        const handlePopState = () => {
+            if (isProgrammaticBackRef.current) return;
+
+            isHandlingPopStateRef.current = true;
+            try {
+                // 1순위: 장소 상세 바텀시트가 열려있으면 시트만 닫기 (지도는 온전히 유지)
+                if (isDetailOpenRef.current) {
+                    setIsDetailOpen(false);
+                    // 시트 닫힘 후 가상 히스토리 재보충하여 모달 닫힘과 분리
+                    if (typeof window !== 'undefined') {
+                        window.history.pushState({ raonModal: 'my_map' }, '', window.location.href);
+                    }
+                    return;
+                }
+
+                // 2순위: 검색창이 열려있으면 검색창만 닫기 (지도는 온전히 유지)
+                if (isSearchingRef.current) {
+                    setIsSearching(false);
+                    if (typeof window !== 'undefined') {
+                        window.history.pushState({ raonModal: 'my_map' }, '', window.location.href);
+                    }
+                    return;
+                }
+
+                // 3순위: 지도 본체 상태 -> 모달 닫기 (내수첩 화면 안전 잔류, 추가 history.back 절대 금지)
+                if (modalHistoryPushedRef.current) {
+                    modalHistoryPushedRef.current = false;
+                    handleCloseWithPromptRef.current();
+                    return;
+                }
+            } finally {
+                setTimeout(() => {
+                    isHandlingPopStateRef.current = false;
+                }, 60);
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            // cleanup 내 무조건 history.back() 호출은 라우터 충돌의 원인이므로 절대 하지 않음
+        };
+    }, [isOpen]);
+
+    // 좌측 상단 뒤로가기(<-) 버튼 클릭 시 호출되는 프로그래밍 닫기 핸들러
+    const handleProgrammaticClose = () => {
+        if (modalHistoryPushedRef.current && typeof window !== 'undefined') {
+            modalHistoryPushedRef.current = false;
+            isProgrammaticBackRef.current = true;
+            try {
+                window.history.back();
+            } catch {}
+            setTimeout(() => {
+                isProgrammaticBackRef.current = false;
+            }, 60);
+        }
+        handleCloseWithPrompt();
+    };
 
     // Auto-activate search mode when modal opens (for schedule mode or autoSearch)
     useEffect(() => {
@@ -551,7 +645,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
     return (
         <Modal
             isOpen={isOpen}
-            onClose={handleCloseWithPrompt}
+            onClose={handleProgrammaticClose}
             title={mode === 'schedule' ? '캠핑장 찾기' : '나만의 캠핑 지도'}
             fullScreen={true}
             className="flex flex-col bg-slate-50 overflow-y-auto"

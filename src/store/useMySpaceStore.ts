@@ -386,8 +386,19 @@ export const useMySpaceStore = create<MySpaceState>()(
         {
             name: 'myspace-storage',
             partialize: (state) => {
-                // 실시간 로딩 플래그는 로컬스토리지 영구 캐시에서 제외하여 매 진입 시 정확한 로딩 보장
-                const { isTimelineLoading, isTimelineLoaded, ...persisted } = state;
+                // 실시간 로딩 플래그 및 일시적 UI 모달 상태는 로컬스토리지 영구 캐시에서 제외하여 
+                // 새로고침이나 타 페이지 이동 후 복귀 시 지도가 제멋대로 열리는 현상 원천 차단
+                const { 
+                    isTimelineLoading: _isTimelineLoading, 
+                    isTimelineLoaded: _isTimelineLoaded, 
+                    isMapOpen: _isMapOpen, 
+                    targetLocation: _targetLocation, 
+                    optimisticRecordPin: _optimisticRecordPin, 
+                    pendingVerificationScheduleId: _pendingVerificationScheduleId, 
+                    isVerificationPromptOpen: _isVerificationPromptOpen, 
+                    verificationPromptScheduleId: _verificationPromptScheduleId, 
+                    ...persisted 
+                } = state;
                 return persisted;
             },
         }

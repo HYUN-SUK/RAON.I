@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase-client";
@@ -65,6 +65,37 @@ export default function TopBar() {
     // Dynamic Level Progress
     const { progress } = getLevelInfo(xp);
 
+    // 당일 로그인 보상 및 지갑 갱신 중복 호출 방지 락
+    const loginRewardProcessedRef = useRef<string | null>(null);
+
+    const handleDailyLoginReward = async (user: { id: string }) => {
+        if (!user?.id || loginRewardProcessedRef.current === user.id) return;
+        loginRewardProcessedRef.current = user.id;
+
+        try {
+            const reward = await pointService.grantAction(user.id, 'LOGIN');
+            if (reward.success) {
+                toast.success("매일 로그인 보상! 경험치 +10xp, 라온토큰 +1개 획득 🎁");
+            }
+
+            // 지갑 갱신
+            const wallet = await pointService.getWallet(user.id);
+            if (wallet) {
+                setWallet(wallet.xp, wallet.level, wallet.raonToken);
+            }
+
+            // 첫 로그인 시 권한 플로우 시작
+            if (isFirstLoginPrompt()) {
+                markFirstLoginPrompted();
+                setTimeout(() => {
+                    startFlow();
+                }, 2000);
+            }
+        } catch (error) {
+            console.error("Login reward/sync failed:", error);
+        }
+    };
+
     const checkUser = async () => {
         try {
             const sessionPromise = supabase.auth.getSession();
@@ -82,29 +113,8 @@ export default function TopBar() {
                     avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture
                 });
 
-                // 1. Try Grant Login Reward
-                try {
-                    const reward = await pointService.grantAction(user.id, 'LOGIN');
-                    if (reward.success) {
-                        toast.success("매일 로그인 보상! 경험치 +10xp, 라온토큰 +1개 획득 🎁");
-                    }
-
-                    // 2. Refresh Wallet
-                    const wallet = await pointService.getWallet(user.id);
-                    if (wallet) {
-                        setWallet(wallet.xp, wallet.level, wallet.raonToken);
-                    }
-                    // 3. 첫 로그인 시 권한 플로우 시작
-                    if (isFirstLoginPrompt()) {
-                        markFirstLoginPrompted();
-                        // 약간의 딜레이 후 플로우 시작 (로그인 성공 토스트 확인 후)
-                        setTimeout(() => {
-                            startFlow();
-                        }, 2000);
-                    }
-                } catch (error) {
-                    console.error("Login reward/sync failed:", error);
-                }
+                // 로그인 보상 및 동기화 1회 안전 실행
+                handleDailyLoginReward(user);
             } else {
                 setUserInfo(null);
                 try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
@@ -117,6 +127,7 @@ export default function TopBar() {
 
     const clearUserAuthCaches = () => {
         try {
+            loginRewardProcessedRef.current = null;
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('user_schedules_cache');
                 localStorage.removeItem('last_schedule_sync_date');
@@ -158,29 +169,13 @@ export default function TopBar() {
                         avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture
                     });
 
-                    // SDK 이벤트 루프 차단을 방지하기 위해 보상 및 지갑 갱신을 비동기 큐로 분리
-                    setTimeout(async () => {
-                        try {
-                            const reward = await pointService.grantAction(user.id, 'LOGIN');
-                            if (reward.success) {
-                                toast.success("매일 로그인 보상! 경험치 +10xp, 라온토큰 +1개 획득 🎁");
-                            }
-                            const wallet = await pointService.getWallet(user.id);
-                            if (wallet) {
-                                setWallet(wallet.xp, wallet.level, wallet.raonToken);
-                            }
-                            if (isFirstLoginPrompt()) {
-                                markFirstLoginPrompted();
-                                setTimeout(() => {
-                                    startFlow();
-                                }, 2000);
-                            }
-                        } catch (err) {
-                            console.error("Login reward/sync failed:", err);
-                        }
+                    // SDK 이벤트 루프 차단을 방지하기 위해 보상 및 지갑 갱신을 비동기 큐로 분리 (1회 락 보장)
+                    setTimeout(() => {
+                        handleDailyLoginReward(user);
                     }, 0);
                 }
             } else if (event === 'SIGNED_OUT') {
+                loginRewardProcessedRef.current = null;
                 setIsLoggedIn(false);
                 setUserInfo(null);
                 clearUserAuthCaches();
