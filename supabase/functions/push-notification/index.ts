@@ -153,13 +153,26 @@ serve(async (req) => {
                     : undefined
                 );
 
-                // [FIX] 최고 우선순위(Urgency: high, android.priority: high) 주입으로 안드로이드 절전 모드 즉각 탈출 보장
+                // [FIX] 최고 우선순위 및 네이티브 BigPicture 스타일 (당근마켓 스타일 펼침 이미지 및 썸네일)
                 const message = {
                     message: {
                         token: t.token,
+                        notification: {
+                            title: String(title),
+                            body: String(body),
+                            image: heroImage
+                        },
                         data: stringData,
                         android: {
-                            priority: "high" // 안드로이드 Doze Mode 즉각 탈출 및 헤드업 배너 활성화
+                            priority: "high", // 안드로이드 Doze Mode 즉각 탈출 및 헤드업 배너 활성화
+                            notification: {
+                                channel_id: "raon_notifications",
+                                image: heroImage,
+                                icon: "ic_launcher",
+                                color: "#22C55E",
+                                default_vibrate_timings: true,
+                                notification_priority: "PRIORITY_HIGH"
+                            }
                         },
                         webpush: {
                             headers: {

@@ -579,19 +579,40 @@ async function sendBulkPush(notifications: any[]) {
                 console.log(`[Push] Sending to ${tokens.length} tokens for user ${notif.user_id}...`);
 
                 const results = await Promise.all(tokens.map(async (t: any) => {
+                    const heroImage = notif.data?.hero_image || "https://raon-i.co.kr/images/reminder_hero.png";
+                    const linkUrl = notif.data?.link || "/notifications";
+
                     const message = {
                         message: {
                             token: t.token,
-                            notification: { title: notif.title, body: notif.body },
+                            notification: { 
+                                title: notif.title, 
+                                body: notif.body,
+                                image: heroImage
+                            },
                             data: {
                                 title: notif.title,
                                 body: notif.body,
-                                link: notif.data.link,
+                                link: linkUrl,
                                 ...notif.data
                             },
+                            android: {
+                                priority: "high",
+                                notification: {
+                                    channel_id: "raon_notifications",
+                                    image: heroImage,
+                                    icon: "ic_launcher",
+                                    color: "#22C55E",
+                                    default_vibrate_timings: true,
+                                    notification_priority: "PRIORITY_HIGH"
+                                }
+                            },
                             webpush: {
+                                notification: {
+                                    image: heroImage
+                                },
                                 fcm_options: {
-                                    link: notif.data.link
+                                    link: linkUrl
                                 }
                             }
                         }
