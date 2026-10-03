@@ -15,8 +15,10 @@ export enum NotificationEventType {
     DEPOSIT_CONFIRMED = 'deposit_confirmed',
     UPCOMING_STAY_D1 = 'upcoming_stay_d1',
     UPCOMING_STAY_D4 = 'upcoming_stay_d4',
+    UPCOMING_STAY_D5 = 'upcoming_stay_d5',
     UPCOMING_STAY_D7 = 'upcoming_stay_d7',
     UPCOMING_STAY_TODAY = 'upcoming_stay_today',
+    SMART_PLAN_NEXT_DAY = 'smart_plan_next_day', // 예약 다음날 스마트플랜 작성/업데이트 알림
 
     // 빈자리 알림 (사용자 명시적 요청, 푸시 허용)
     WAITLIST_SLOT_OPENED = 'waitlist_slot_opened',
@@ -194,6 +196,17 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
 
 {{siteName}} 여행 준비는 잘 되어가시나요? 체크리스트를 확인해보세요.`,
     },
+    [NotificationEventType.UPCOMING_STAY_D5]: {
+        type: NotificationEventType.UPCOMING_STAY_D5,
+        requires_push: true,
+        quiet_hours_override: true,
+        fallback_badge: true,
+        badge_target: 'reservation',
+        title_template: '캠핑이 5일 남았어요! 🎒',
+        body_template: `[⚡ 오늘 09:00부터 최신 정밀 스마트플랜으로 업데이트할 수 있어요!]
+
+{{siteName}} 여행 준비는 잘 되어가시나요? 체크리스트와 맞춤 일정을 확인해보세요.`,
+    },
     [NotificationEventType.UPCOMING_STAY_D7]: {
         type: NotificationEventType.UPCOMING_STAY_D7,
         requires_push: true,
@@ -205,12 +218,22 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
 
 {{siteName}} 여행 준비는 잘 되어가시나요? 체크리스트와 맞춤 일정을 확인해보세요.`,
     },
+    // 예약 다음날 스마트플랜 작성/업데이트 알림 (언제나 푸시 발송 - quiet_hours_override: true)
+    [NotificationEventType.SMART_PLAN_NEXT_DAY]: {
+        type: NotificationEventType.SMART_PLAN_NEXT_DAY,
+        requires_push: true,
+        quiet_hours_override: true,
+        fallback_badge: true,
+        badge_target: 'reservation',
+        title_template: '🧭 나만의 정밀 스마트플랜을 완성해보세요!',
+        body_template: '정밀 스마트플랜을 업데이트할 수 있어요! 일정카드에 들어가 여행계획을 업데이트해보세요!',
+    },
 
-    // ===== 빈자리 알림 (사용자 요청, 푸시 O) =====
+    // ===== 빈자리 알림 (사용자 요청, 푸시 O, 조용시간 예외 통과) =====
     [NotificationEventType.WAITLIST_SLOT_OPENED]: {
         type: NotificationEventType.WAITLIST_SLOT_OPENED,
         requires_push: true,
-        quiet_hours_override: false, // 빈자리는 조용시간에 배지로 대체
+        quiet_hours_override: true, // 빈자리는 24시간 언제나 즉시 푸시 알림 발송
         fallback_badge: true,
         badge_target: 'reservation',
         title_template: '빈자리 알림',

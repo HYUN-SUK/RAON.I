@@ -95,62 +95,63 @@ async function getScoredGearRecommendations(
 }
 
 // ==========================================
-// TOURISM API / EVENT DISCOVERY
+// MASTER PLACES DB EVENT DISCOVERY (PostGIS RPC)
 // ==========================================
 async function getNearbyEvents(lat: number, lng: number, radiusKm: number = 30, tripStart?: string, tripEnd?: string): Promise<any[]> {
-    if (!TOUR_KEY) return [];
-
     try {
         const today = new Date();
         const kstDate = new Date(today.getTime() + 9 * 3600000);
         const todayStr = kstDate.toISOString().split('T')[0].replace(/-/g, '');
-        const startStr = tripStart ? tripStart.replace(/-/g, '') : '';
-        const endStr = tripEnd ? tripEnd.replace(/-/g, '') : '';
+        const startStr = tripStart ? tripStart.replace(/-/g, '') : todayStr;
+        const endStr = tripEnd ? tripEnd.replace(/-/g, '') : startStr;
 
-        const { data: cacheHit } = await supabase
-            .from('nearby_cache')
-            .select('data')
-            .eq('region_code', 'ALL')
-            .eq('base_date', todayStr)
-            .single();
+        // 1. 라온아이 마스터 DB(master_places)에서 반경 30km 내 FESTIVAL 조회 (PostGIS RPC)
+        const { data: places, error } = await supabase.rpc('get_master_places_in_radius_v2', {
+            target_lat: lat,
+            target_lng: lng,
+            radius_meters: radiusKm * 1000,
+            p_category: 'FESTIVAL',
+            limit_count: 20,
+            p_include_closed: false
+        });
 
-        let allEvents: any[] = [];
-        if (cacheHit?.data && Array.isArray(cacheHit.data)) {
-            allEvents = cacheHit.data;
-        } else {
-            const apiUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${TOUR_KEY}&MobileOS=ETC&MobileApp=RAONI&_type=json&numOfRows=1000&arrange=A&eventStartDate=${todayStr}`;
-            const res = await fetch(apiUrl);
-            const json = await res.json();
-            const items = json?.response?.body?.items?.item;
-            const itemList = Array.isArray(items) ? items : (items ? [items] : []);
-
-            allEvents = itemList.map((item: any) => ({
-                title: item.title,
-                addr: item.addr1,
-                lat: parseFloat(item.mapy),
-                lng: parseFloat(item.mapx),
-                startDate: item.eventstartdate,
-                endDate: item.eventenddate
-            }));
-
-            supabase.from('nearby_cache').upsert({ region_code: 'ALL', base_date: todayStr, data: allEvents }).then();
+        if (error) {
+            console.warn('[Master Places RPC Warning]', error.message);
+            return [];
         }
 
-        return allEvents.map(e => {
-            const dist = calculateDistance(lat, lng, e.lat, e.lng);
-            return { ...e, dist };
-        }).filter(e => {
-            const isWithinRadius = e.dist <= radiusKm;
-            if (!isWithinRadius) return false;
+        if (!places || !Array.isArray(places) || places.length === 0) return [];
 
-            if (startStr && endStr && e.startDate && e.endDate) {
-                return !(e.endDate < startStr || e.startDate > endStr);
-            }
-            return true;
-        }).sort((a, b) => a.dist - b.dist);
+        // 2. 날짜 교차 검증: 여행 기간(check_in ~ check_out) 내 진행 중인 행사만 엄격 필터링
+        const activeEvents = places
+            .map((p: any) => {
+                const raw = p.raw_data || {};
+                const startDate = String(raw.event_start_date || '');
+                const endDate = String(raw.event_end_date || '');
+                const dist = p.distance_meters ? p.distance_meters / 1000 : calculateDistance(lat, lng, p.lat, p.lng);
+                return {
+                    title: p.name,
+                    addr: p.address,
+                    lat: p.lat,
+                    lng: p.lng,
+                    dist,
+                    startDate,
+                    endDate
+                };
+            })
+            .filter((e: any) => {
+                if (e.dist > radiusKm) return false;
+                if (e.startDate && e.endDate && startStr && endStr) {
+                    return !(e.endDate < startStr || e.startDate > endStr);
+                }
+                return true;
+            })
+            .sort((a: any, b: any) => a.dist - b.dist);
+
+        return activeEvents;
 
     } catch (err) {
-        console.error("[Events] Error:", err);
+        console.error("[Events Master DB] Error:", err);
         return [];
     }
 }
@@ -655,22 +656,37 @@ serve(async (req: any) => {
         const kst = new Date(now.getTime() + 9 * 3600000);
         const today = kst.toISOString().split('T')[0];
 
-        const d7Date = new Date(kst); d7Date.setDate(d7Date.getDate() + 7);
-        const d7 = d7Date.toISOString().split('T')[0];
+        const d5Date = new Date(kst); d5Date.setDate(d5Date.getDate() + 5);
+        const d5 = d5Date.toISOString().split('T')[0];
 
         const yesterdayDate = new Date(kst); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
         const yesterday = yesterdayDate.toISOString().split('T')[0];
+        const yesterdayStart = `${yesterday}T00:00:00+09:00`;
+        const yesterdayEnd = `${yesterday}T23:59:59+09:00`;
 
-        const { data: schedules, error } = await supabase
+        const { data: schedulesRaw, error } = await supabase
             .from('user_schedules')
             .select('*')
             .eq('status', 'scheduled')
-            .or(`check_in.in.(${today},${d7}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
+            .or(`check_in.in.(${today},${d5}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
 
         if (error) throw error;
-        console.log(`[Query] Found ${schedules?.length || 0} schedules`);
+        const schedules = schedulesRaw || [];
+        console.log(`[Query] Found ${schedules.length} D-Day/checkout schedules`);
 
-        if (!schedules || schedules.length === 0) {
+        // 어제 생성된 일정 조회 (예약 다음날 스마트플랜 업데이트 알림 대상)
+        const { data: createdYesterdayRaw, error: yesterdayErr } = await supabase
+            .from('user_schedules')
+            .select('*')
+            .eq('status', 'scheduled')
+            .gte('created_at', yesterdayStart)
+            .lte('created_at', yesterdayEnd);
+
+        if (yesterdayErr) console.warn('[Query] Yesterday schedules warning:', yesterdayErr.message);
+        const createdYesterdaySchedules = createdYesterdayRaw || [];
+        console.log(`[Query] Found ${createdYesterdaySchedules.length} schedules created yesterday`);
+
+        if (schedules.length === 0 && createdYesterdaySchedules.length === 0) {
             return new Response(JSON.stringify({ success: true, message: "No schedules found" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
@@ -832,8 +848,8 @@ serve(async (req: any) => {
                 });
                 updateIds.d0.push(s.id);
             }
-            // D-7: 7-Day Weekly Weather & Precision Smart Plan Notice (D-7 단일화)
-            else if (s.check_in === d7 && !s.notification_d4_sent) {
+            // D-5: 5-Day Weekly Weather & Precision Smart Plan Notice (D-5 단일화)
+            else if (s.check_in === d5 && !s.notification_d4_sent) {
                 const gears = await getScoredGearRecommendations(primaryForecast, 2);
                 let tip = '평범한 날씨네요! 가볍게 떠나보세요.';
 
@@ -848,16 +864,55 @@ serve(async (req: any) => {
                 notifications.push({
                     user_id: s.user_id,
                     category: 'reservation',
-                    event_type: 'upcoming_stay_d7',
-                    title: `🎒 캠핑이 7일 남았어요! (주간 날씨 & 스마트플랜 오픈)`,
+                    event_type: 'upcoming_stay_d5',
+                    title: `🎒 캠핑이 5일 남았어요! (주간 날씨 & 스마트플랜 오픈)`,
                     body: `[⚡ 오늘 09:00부터 최신 정밀 스마트플랜으로 업데이트할 수 있어요!]\n\n📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
                     data: { 
                         link: `/myspace/schedule/${s.id}?tab=checklist`,
                         hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
                     },
+                    quiet_hours_override: true, // 8시~9시 크론 언제나 즉시 발송 보장
                     status: 'queued'
                 });
                 updateIds.d4.push(s.id);
+            }
+        }
+
+        // ==========================================
+        // 4. 예약 다음날 스마트플랜 업데이트 알림 (어제 생성된 일정)
+        // ==========================================
+        if (createdYesterdaySchedules.length > 0) {
+            const yesterdayScheduleIds = createdYesterdaySchedules.map((s: any) => s.id);
+            const { data: alreadySentNotifs } = await supabase
+                .from('notifications')
+                .select('related_id')
+                .eq('event_type', 'smart_plan_next_day')
+                .in('related_id', yesterdayScheduleIds);
+
+            const sentSet = new Set((alreadySentNotifs || []).map((n: any) => n.related_id));
+
+            for (const s of createdYesterdaySchedules) {
+                if (s.status === 'cancelled') continue;
+                if (sentSet.has(s.id)) continue;
+                // 당일 입실(D-0)이거나 D-5인 경우 해당 정밀 리마인더가 우선 발송되므로 제외 (알림 중복 도배 방지)
+                if (s.check_in === today || s.check_in === d5 || s.check_in < today) continue;
+
+                const displayName = s.source === 'raonai' ? `라온아이 캠핑장 (${s.campground_name})` : (s.campground_name || '캠핑장');
+
+                notifications.push({
+                    user_id: s.user_id,
+                    category: 'reservation',
+                    event_type: 'smart_plan_next_day',
+                    related_id: s.id,
+                    title: `🧭 나만의 정밀 스마트플랜을 완성해보세요!`,
+                    body: `정밀 스마트플랜을 업데이트할 수 있어요! 일정카드에 들어가 여행계획을 업데이트해보세요!`,
+                    data: {
+                        link: `/myspace/schedule/${s.id}`,
+                        campground_name: displayName
+                    },
+                    quiet_hours_override: true, // 8시~9시 크론 시간대 무관하게 언제나 즉시 푸시 발송 보장
+                    status: 'queued'
+                });
             }
         }
 
