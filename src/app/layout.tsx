@@ -8,6 +8,7 @@ import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import DeepLinkHandler from "@/components/pwa/DeepLinkHandler";
 import DiagnosticSensorActivator from "@/components/common/DiagnosticSensorActivator";
 import SystemThemeColorSync from "@/components/common/SystemThemeColorSync";
+import NativeAppBridge from "@/components/common/NativeAppBridge";
 
 const inter = Inter({ subsets: ["latin"] });
 const nanumPen = Nanum_Pen_Script({ weight: "400", subsets: ["latin"], variable: "--font-nanum-pen" });
@@ -94,6 +95,7 @@ export default function RootLayout({
         </Suspense>
         <ServiceWorkerRegister />
         <DiagnosticSensorActivator />
+        <NativeAppBridge />
       </body>
     </html>
   );

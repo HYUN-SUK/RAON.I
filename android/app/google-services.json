@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "202794116394",
+    "project_id": "raon-i-push",
+    "storage_bucket": "raon-i-push.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:202794116394:android:24c0a214f09c488f332a53",
+        "android_client_info": {
+          "package_name": "kr.co.raoni.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhW3dMgXqS-0SOURGK-GTnAzEmPGEBb6U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
