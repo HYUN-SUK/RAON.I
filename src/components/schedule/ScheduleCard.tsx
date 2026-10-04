@@ -92,8 +92,8 @@ export default function ScheduleCard({
             return schedule.smart_plan_data ? '✨ 스마트플랜 완료' : '🏕️ 캠핑 완료';
         }
 
-        // 취소된 일정: 뱃지 숨김
-        if (schedule.status === 'cancelled') {
+        // 취소된 일정 또는 입금 대기 예약: 뱃지 숨김
+        if (schedule.status === 'cancelled' || (schedule as any).is_pending_reservation) {
             return null;
         }
 

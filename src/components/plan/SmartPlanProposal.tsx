@@ -50,6 +50,8 @@ interface SmartPlanProposalProps {
     isPublicView?: boolean;
     /** 상단 날씨 카드 실시간 수신 데이터 (Silent Sync 연동용) */
     liveWeather?: any;
+    /** 일정 생성일 (정밀 스마트플랜 언락 계산용) */
+    createdAt?: Date | string;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -95,7 +97,8 @@ export default function SmartPlanProposal({
     mode = 'BASIC',
     travelType = 'general',
     isPublicView = false,
-    liveWeather
+    liveWeather,
+    createdAt
 }: SmartPlanProposalProps) {
     // [v11.9.52] DB 영구 저장 데이터 복구 로직 (Wrapped Structure 대응)
     const isWrapped = initialPlan?.wrapped === true;
@@ -1334,6 +1337,27 @@ export default function SmartPlanProposal({
     const now = new Date();
     const isAfter9AM = now.getHours() >= 9;
 
+    // 스마트플랜 언락 여부 판별 (ScheduleHomeWidget과 100% 동일화: 등록일 기준 익일 오전 9시 이후는 시간대 무관 영구 활성화)
+    const isScheduleUnlocked = useMemo(() => {
+        const dateSource = createdAt || (initialPlan as any)?.created_at || (initialPlan as any)?.timestamp;
+        if (!dateSource) {
+            return now.getHours() >= 9;
+        }
+
+        const createdDate = new Date(dateSource);
+        if (isNaN(createdDate.getTime())) return now.getHours() >= 9;
+
+        const unlockTime = new Date(createdDate);
+        if (createdDate.getHours() < 5) {
+            unlockTime.setHours(9, 0, 0, 0);
+        } else {
+            unlockTime.setDate(unlockTime.getDate() + 1);
+            unlockTime.setHours(9, 0, 0, 0);
+        }
+
+        return new Date() >= unlockTime;
+    }, [createdAt, initialPlan]);
+
     // CTA 버튼 상태 및 메시지 동적 계산 (단일 CTA 원칙 & 시기별 1회 락 정책)
     let ctaButtonText = '✨ 정밀 스마트플랜 생성하기';
     let ctaSubtext = '💡 더욱더 풍부한 정밀 플랜을 만나보세요.';
@@ -1341,7 +1365,7 @@ export default function SmartPlanProposal({
     let ctaIcon = '✨';
 
     if (isPreview) {
-        if (!isCached || !isAfter9AM) {
+        if (!isCached || !isScheduleUnlocked) {
             isCtaDisabled = true;
             ctaButtonText = '✨ 정밀 스마트플랜 생성하기';
             ctaSubtext = '⏳ 최적의 정보 수집을 위해 오전 9시부터 정밀 스마트플랜 생성이 가능합니다.';

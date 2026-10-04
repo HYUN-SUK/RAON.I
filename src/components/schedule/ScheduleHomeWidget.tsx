@@ -432,6 +432,11 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     // 뱃지 텍스트 결정 (스마트플랜 5단계 동적 D-Day 생명주기 뱃지 수식 - ScheduleCard와 100% 동일화)
     const badgeText = useMemo(() => {
         if (!upcomingItem) return '';
+
+        // [v14.5.0] 결제 대기(PENDING) 또는 환불 대기(REFUND_PENDING) 상태에서는 여행계획 생성 유도 배지를 완전히 숨김
+        if (upcomingItem.type === 'reservation' && (upcomingItem.status === 'PENDING' || upcomingItem.status === 'REFUND_PENDING')) {
+            return null;
+        }
         
         let smartPlanData: any = null;
         if (upcomingItem.type === 'schedule') {

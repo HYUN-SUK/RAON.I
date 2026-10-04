@@ -849,6 +849,7 @@ function ScheduleDetailContent() {
                                 userId={userId}
                                 userEmail={userEmail}
                                 liveWeather={weather}
+                                createdAt={schedule.created_at}
                                 location={{
                                     lat: schedule.campground_lat || 36.67,
                                     lng: schedule.campground_lng || 126.84
