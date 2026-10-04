@@ -185,13 +185,25 @@ export function usePermissionFlow() {
             }
         };
 
+        const handleConsentChange = () => {
+            if (typeof window === 'undefined') return;
+            const isLocOff = localStorage.getItem(STORAGE_KEYS.LOCATION_GRANTED) === 'false';
+            const isPushOff = localStorage.getItem(STORAGE_KEYS.PUSH_GRANTED) === 'false';
+            setLocationGranted(!isLocOff);
+            setPushGranted(!isPushOff);
+        };
+
         window.addEventListener('focus', handleVisibilityOrFocus);
         document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+        window.addEventListener('storage', handleConsentChange);
+        window.addEventListener('raon_consent_changed', handleConsentChange);
 
         return () => {
             isCancelled = true;
             window.removeEventListener('focus', handleVisibilityOrFocus);
             document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+            window.removeEventListener('storage', handleConsentChange);
+            window.removeEventListener('raon_consent_changed', handleConsentChange);
         };
     }, [supabase, saveConsentToServer]);
 
