@@ -230,33 +230,34 @@ export default function TopBar() {
     };
 
     return (
-        <header className="sticky top-0 z-[100] flex justify-between items-center px-5 h-[74px] bg-white shadow-sm">
-            {/* Level & XP */}
-            <div className="flex flex-col ml-1">
-                <span className="text-[10px] text-stone-500 font-bold mb-0.5">Level {level}</span>
-                <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
-                    <div
-                        className="h-full bg-[#388E5A] transition-all duration-500 rounded-full"
-                        style={{ width: `${progress}%` }}
-                    />
+        <header className="sticky top-0 z-[100] w-full bg-white shadow-sm">
+            <div className="relative flex justify-between items-center px-5 h-[74px] max-w-[430px] mx-auto">
+                {/* Level & XP */}
+                <div className="flex flex-col ml-1">
+                    <span className="text-[10px] text-stone-500 font-bold mb-0.5">Level {level}</span>
+                    <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
+                        <div
+                            className="h-full bg-[#388E5A] transition-all duration-500 rounded-full"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                    <span className="text-[10px] text-stone-400 font-medium leading-none">
+                        Raon Token <span className="text-[#388E5A] font-bold ml-0.5">{raonToken}개</span>
+                    </span>
                 </div>
-                <span className="text-[10px] text-stone-400 font-medium leading-none">
-                    Raon Token <span className="text-[#388E5A] font-bold ml-0.5">{raonToken}개</span>
-                </span>
-            </div>
 
-            {/* Logo - Centered */}
-            <div className="flex flex-col items-center justify-center absolute left-1/2 -translate-x-1/2 pointer-events-none select-none py-1">
-                <h1 className="text-[21px] sm:text-[22px] font-black text-[#1E4D2B] dark:text-emerald-400 tracking-widest font-sans leading-none">
-                    RAON.I
-                </h1>
-                <span className="text-[13.5px] sm:text-[14px] font-bold text-[#3A3A3A] dark:text-stone-300 tracking-tight mt-1.5 leading-none whitespace-nowrap">
-                    스마트 여행수첩
-                </span>
-            </div>
+                {/* Logo - Centered */}
+                <div className="flex flex-col items-center justify-center absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 pointer-events-none select-none py-1">
+                    <h1 className="text-[21px] sm:text-[22px] font-black text-[#1E4D2B] dark:text-emerald-400 tracking-widest font-sans leading-none">
+                        RAON.I
+                    </h1>
+                    <span className="text-[13.5px] sm:text-[14px] font-bold text-[#3A3A3A] dark:text-stone-300 tracking-tight mt-1.5 leading-none whitespace-nowrap">
+                        스마트 여행수첩
+                    </span>
+                </div>
 
-            {/* Right Side: Auth & Download Badge */}
-            <div className="relative flex items-center gap-2 -mr-2">
+                {/* Right Side: Auth & Download Badge */}
+                <div className="relative flex items-center gap-2 -mr-2">
                 {/* Auth Action Icon */}
                 {isLoggedIn ? (
                     <DropdownMenu>
@@ -381,6 +382,7 @@ export default function TopBar() {
                         </button>
                     </div>
                 )}
+            </div>
             </div>
 
             {/* Permission Flow Prompts */}

@@ -18,6 +18,9 @@ export default function NativeAppBridge() {
                 const { Capacitor } = await import('@capacitor/core');
                 if (!Capacitor.isNativePlatform()) return;
 
+                // 캐패시터 정식 네이티브 앱 환경 표시 (CSS Safe Area 격리용)
+                document.documentElement.classList.add('is-native-app');
+
                 const { App } = await import('@capacitor/app');
                 const { PushNotifications } = await import('@capacitor/push-notifications');
 

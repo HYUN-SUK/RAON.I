@@ -61,6 +61,9 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
+                  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+                    document.documentElement.classList.add('is-native-app');
+                  }
                   function syncSystemTheme() {
                     var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
                     var color = isDark ? '#18181B' : '#FFFFFF';

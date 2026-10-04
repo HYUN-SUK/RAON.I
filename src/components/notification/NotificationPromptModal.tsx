@@ -57,10 +57,10 @@ export default function NotificationPromptModal() {
 
         if (isNative) {
             try {
-                // 3. [상황 ③ 판별] 네이티브 앱 버전 확인 (versionCode 7 미만인 구버전)
+                // 3. [상황 ③ 판별] 네이티브 앱 버전 확인 (versionCode 9 미만인 구버전 대상 업데이트 권유)
                 const appInfo = await App.getInfo().catch(() => null);
                 const buildVersion = appInfo ? parseInt(appInfo.build, 10) : NaN;
-                if (!isNaN(buildVersion) && buildVersion < 7) {
+                if (!isNaN(buildVersion) && buildVersion < 9) {
                     setModalType('need_update');
                     setIsOpen(true);
                     return;

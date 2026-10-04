@@ -104,7 +104,7 @@ export default function MySpacePage() {
     };
 
     return (
-        <PaperBackground className="w-full pb-32">
+        <PaperBackground className="w-full pb-40">
             {/* 1. Top Bar (Static) */}
             <TopBar />
 
@@ -140,7 +140,7 @@ export default function MySpacePage() {
             <button
                 onClick={handleRecordClick}
                 className={cn(
-                    "fixed bottom-24 right-4 z-40 h-12 px-4 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg flex items-center gap-1.5 transition-all",
+                    "fixed bottom-[calc(96px+var(--sab,0px))] right-4 z-40 h-12 px-4 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg flex items-center gap-1.5 transition-all",
                     "hover:from-amber-600 hover:to-orange-600 active:scale-95",
                     shouldSparkle && "animate-pulse ring-4 ring-orange-500/30"
                 )}

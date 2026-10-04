@@ -109,7 +109,7 @@ export function ContentBoardList() {
             </section>
 
             {/* Floating Write Button */}
-            <div className="fixed bottom-24 right-4 z-40">
+            <div className="fixed bottom-[calc(96px+var(--sab,0px))] right-4 z-40">
                 <Button
                     className="rounded-full w-14 h-14 bg-[#388E5A] hover:bg-[#2F774B] shadow-xl flex items-center justify-center p-0"
                     onClick={() => router.push('/community/content/create')}

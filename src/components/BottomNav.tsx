@@ -57,7 +57,10 @@ export default function BottomNav() {
     }
 
     return (
-        <nav className="fixed bottom-0 w-full max-w-[430px] h-[80px] bg-white border-t border-[#EAEFEA] flex justify-around items-center z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+        <nav 
+            style={{ backgroundColor: '#ffffff' }}
+            className="fixed bottom-0 w-full max-w-[430px] min-h-[80px] h-[calc(80px+var(--sab,0px))] bg-white dark:bg-zinc-900 border-t border-[#EAEFEA] dark:border-zinc-800 flex justify-around items-center z-50 pb-[calc(0.75rem+var(--sab,0px))]"
+        >
             {tabs.map((tab) => {
                 const isActive = pathname === tab.href;
                 const badgeCount = getBadgeCount(tab.badgeTarget);

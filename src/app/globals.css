@@ -396,3 +396,30 @@ body.admin-body {
 .animate-shimmer-wave {
   animation: shimmerWave 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+/* ==========================================================================
+   Capacitor Android Native App Safe Area Isolation
+   - 일반 PC/모바일 웹 브라우저: --sat / --sab = 0px (디자인 100% 보존)
+   - 오직 is-native-app(캐패시터 정식 앱): 카메라 펀치홀 및 하단 소프트키 안전 영역 자동 확보
+   ========================================================================== */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+html.is-native-app {
+  --sat: max(env(safe-area-inset-top, 0px), 28px);
+  --sab: max(env(safe-area-inset-bottom, 0px), 16px);
+}
+
+/* 안드로이드 네이티브 앱에서 상단 sticky 헤더가 상태표시줄/카메라 렌즈 아래로 자연스럽게 오도록 패딩 보정 */
+html.is-native-app header.sticky.top-0 {
+  padding-top: var(--sat) !important;
+  box-sizing: content-box;
+}
+
+/* 안드로이드 네이티브 앱에서 하단 내비게이션 바 안전 영역 및 불투명 순백색 배경 보장 */
+html.is-native-app nav.fixed.bottom-0 {
+  padding-bottom: calc(0.5rem + var(--sab)) !important;
+  background-color: #ffffff !important;
+}
