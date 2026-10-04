@@ -27,15 +27,26 @@ export default function NotificationPromptModal() {
     const checkNotificationStatus = useCallback(async () => {
         if (typeof window === 'undefined') return;
 
-        // 1. "오늘 하루 보지 않기" 쿨다운 확인
-        try {
-            const dismissedUntil = localStorage.getItem(DISMISS_KEY);
-            if (dismissedUntil && Date.now() < parseInt(dismissedUntil, 10)) {
-                return;
-            }
-        } catch {}
-
         const isNative = Capacitor.isNativePlatform();
+
+        // 1. [최우선 판별: 네이티브 앱 버전 확인]
+        // 구버전(versionCode 9 미만 또는 1.0.9 미만)인 경우 쿨다운과 무관하게 100% 무조건 업데이트 팝업 노출!
+        if (isNative) {
+            try {
+                const appInfo = await App.getInfo().catch(() => null);
+                const buildVersion = appInfo ? parseInt(appInfo.build, 10) : NaN;
+                const isOldBuild = !isNaN(buildVersion) && buildVersion < 9;
+                const isOldVersion = appInfo?.version ? (appInfo.version !== '1.0.9' && !appInfo.version.startsWith('1.0.9')) : false;
+
+                if (isOldBuild || isOldVersion) {
+                    setModalType('need_update');
+                    setIsOpen(true);
+                    return;
+                }
+            } catch (verErr) {
+                console.warn('[NotificationModal] Version check warning:', verErr);
+            }
+        }
 
         // 2. [구버전 TWA 앱 감지]
         // 독립 실행형(display-mode: standalone / android-app / WebView)으로 실행 중이지만
@@ -49,23 +60,21 @@ export default function NotificationPromptModal() {
         );
 
         if (!isNative && isStandalone) {
-            // [상황 ③] 구버전 TWA 앱 실행 중 -> 최신 버전(v1.0.7) 업데이트 권유 팝업 노출!
             setModalType('need_update');
             setIsOpen(true);
             return;
         }
 
+        // 3. 최신 버전 사용자 대상: 알림 수신 동의 "오늘 하루 보지 않기" 쿨다운 확인
+        try {
+            const dismissedUntil = localStorage.getItem(DISMISS_KEY);
+            if (dismissedUntil && Date.now() < parseInt(dismissedUntil, 10)) {
+                return;
+            }
+        } catch {}
+
         if (isNative) {
             try {
-                // 3. [상황 ③ 판별] 네이티브 앱 버전 확인 (versionCode 9 미만인 구버전 대상 업데이트 권유)
-                const appInfo = await App.getInfo().catch(() => null);
-                const buildVersion = appInfo ? parseInt(appInfo.build, 10) : NaN;
-                if (!isNaN(buildVersion) && buildVersion < 9) {
-                    setModalType('need_update');
-                    setIsOpen(true);
-                    return;
-                }
-
                 // 4. 네이티브 알림 권한 상태 확인
                 const permStatus = await PushNotifications.checkPermissions();
                 const inAppConsent = localStorage.getItem('raon_push_granted') !== 'false';
