@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get("code");
     const next = requestUrl.searchParams.get("next") ?? "/";
+    const ticket = requestUrl.searchParams.get("ticket");
+    const source = requestUrl.searchParams.get("source");
 
     // 1. 프로덕션 환경 HTTPS 보장 및 원본 오리진 식별 (Vercel 리버스 프록시 대응)
     const isLocal = process.env.NODE_ENV === 'development';
@@ -45,108 +48,122 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
-    // 2. 최종 리다이렉트 응답 객체 생성 (쿠키 주입 대상)
-    const redirectResponse = NextResponse.redirect(redirectUrl);
-
-    // 3. @supabase/ssr v0.8.0 표준 getAll/setAll 쿠키 관리자 (청킹 및 Secure 보장)
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return request.cookies.getAll();
-                },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => {
-                        redirectResponse.cookies.set(name, value, {
-                            ...options,
-                            path: '/',
-                            sameSite: 'lax',
-                            secure: !isLocal,
-                        });
-                    });
-                },
-            },
-        }
-    );
-
-    const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
-    const session = exchangeData?.session;
-
-    if (error) {
-        console.error('[AuthCallback] Code exchange failed:', error.message);
-        const loginUrl = new URL("/login", redirectOrigin);
-        loginUrl.searchParams.set("error", "oauth_failed");
-        return NextResponse.redirect(loginUrl);
-    }
-
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            // 프로필 존재 여부 확인
-            const { data: existingProfile } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('id', user.id)
-                .single();
-
-            if (!existingProfile) {
-                const email = user.email || null;
-                if (email) {
-                    const { data: isEligible, error: checkError } = await supabase.rpc('check_signup_eligibility', { p_email: email });
-                    if (!checkError && isEligible === false) {
-                        await supabase.auth.signOut();
-                        const loginUrl = new URL("/login", redirectOrigin);
-                        loginUrl.searchParams.set("error", "withdrawn");
-                        const logoutResponse = NextResponse.redirect(loginUrl);
-                        
-                        redirectResponse.cookies.getAll().forEach((c) => {
-                            logoutResponse.cookies.set(c.name, c.value, c as any);
-                        });
-                        return logoutResponse;
-                    }
-                }
-
-                const nickname = user.user_metadata.full_name || user.user_metadata.name || user.user_metadata.nickname || (email ? email.split('@')[0] : 'Camper');
-                const avatarUrl = user.user_metadata.avatar_url || user.user_metadata.picture;
-
-                await supabase.from('profiles').insert({
-                    id: user.id,
-                    email: email,
-                    nickname: nickname,
-                    avatar_url: avatarUrl,
-                    role: 'user',
-                    created_at: new Date().toISOString(),
-                });
-            }
-        }
-
-    // [신규 기능] 네이티브 앱에서 시작된 소셜 로그인인 경우: 1회용 티켓 저장 및 앱 0초 자동 복귀
-    const ticket = requestUrl.searchParams.get("ticket");
-    const source = requestUrl.searchParams.get("source");
-
-    if (source === 'native_app' && ticket && session) {
+    // =========================================================================
+    // [핵심 분기] 스마트폰 네이티브 앱(v1.0.7)에서 호출된 소셜 로그인인 경우
+    // 외부 브라우저(삼성 인터넷) 쿠키 격리로 인한 세션 교환 실패를 원천 차단하고
+    // 앱이 사전 등록한 PKCE verifier와 조합하여 직통 교환 후 앱으로 자동 복귀
+    // =========================================================================
+    if (source === 'native_app' && ticket) {
         try {
-            const { createClient: createAdminClient } = await import('@supabase/supabase-js');
             const adminClient = createAdminClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.SUPABASE_SERVICE_ROLE_KEY!
             );
 
-            await adminClient.from('automation_logs').insert({
-                job_name: 'auth_bridge_' + ticket,
-                status: 'ready',
-                api_status: {
-                    access_token: session.access_token,
-                    refresh_token: session.refresh_token,
-                    user_id: session.user.id
-                },
-                created_at: new Date().toISOString()
-            });
-        } catch (ticketErr) {
-            console.error('[AuthCallback] Failed to record bridge ticket:', ticketErr);
+            const jobName = 'auth_bridge_' + ticket;
+
+            // 1. 앱에서 사전에 등록해둔 티켓 데이터 조회
+            const { data: ticketRow } = await adminClient
+                .from('automation_logs')
+                .select('api_status')
+                .eq('job_name', jobName)
+                .maybeSingle();
+
+            const verifier = ticketRow?.api_status?.verifier;
+            let sessionData: any = null;
+
+            if (verifier) {
+                // 2. Supabase 토큰 엔드포인트와 직통 PKCE 세션 교환
+                try {
+                    const tokenRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                        },
+                        body: JSON.stringify({
+                            auth_code: code,
+                            code_verifier: verifier,
+                        }),
+                    });
+
+                    if (tokenRes.ok) {
+                        sessionData = await tokenRes.json();
+                    } else {
+                        const errBody = await tokenRes.text();
+                        console.warn('[AuthCallback Native] Direct PKCE exchange response:', errBody);
+                    }
+                } catch (tokenErr) {
+                    console.error('[AuthCallback Native] Direct PKCE exchange network error:', tokenErr);
+                }
+            }
+
+            if (sessionData && sessionData.access_token) {
+                const user = sessionData.user;
+                if (user) {
+                    // 탈퇴 30일 재가입 제한 점검
+                    const email = user.email || null;
+                    if (email) {
+                        const { data: isEligible } = await adminClient.rpc('check_signup_eligibility', { p_email: email });
+                        if (isEligible === false) {
+                            await adminClient.from('automation_logs').delete().eq('job_name', jobName);
+                            const loginUrl = new URL("/login", redirectOrigin);
+                            loginUrl.searchParams.set("error", "withdrawn");
+                            return NextResponse.redirect(loginUrl);
+                        }
+                    }
+
+                    // 프로필 자동 생성
+                    const { data: existingProfile } = await adminClient
+                        .from('profiles')
+                        .select('id')
+                        .eq('id', user.id)
+                        .maybeSingle();
+
+                    if (!existingProfile) {
+                        const nickname = user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.nickname || (email ? email.split('@')[0] : 'Camper');
+                        const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+
+                        await adminClient.from('profiles').insert({
+                            id: user.id,
+                            email: email,
+                            nickname: nickname,
+                            avatar_url: avatarUrl,
+                            role: 'user',
+                            created_at: new Date().toISOString(),
+                        });
+                    }
+                }
+
+                // 티켓에 정식 세션 저장 (ready)
+                await adminClient.from('automation_logs').delete().eq('job_name', jobName);
+                await adminClient.from('automation_logs').insert({
+                    job_name: jobName,
+                    status: 'ready',
+                    api_status: {
+                        access_token: sessionData.access_token,
+                        refresh_token: sessionData.refresh_token,
+                        user_id: sessionData.user?.id
+                    },
+                    created_at: new Date().toISOString()
+                });
+            } else {
+                // 직통 교환이 불가했던 경우, auth_code를 티켓에 실어 앱 클라이언트가 직접 교환하도록 안전망 제공
+                await adminClient.from('automation_logs').delete().eq('job_name', jobName);
+                await adminClient.from('automation_logs').insert({
+                    job_name: jobName,
+                    status: 'ready',
+                    api_status: {
+                        auth_code: code
+                    },
+                    created_at: new Date().toISOString()
+                });
+            }
+        } catch (bridgeErr) {
+            console.error('[AuthCallback Native] Bridge error:', bridgeErr);
         }
 
+        // 라온아이 앱으로 자동 복귀시키는 응답 HTML
         const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -183,18 +200,87 @@ export async function GET(request: NextRequest) {
 </body>
 </html>`;
 
-        const bridgeResponse = new NextResponse(html, {
+        return new NextResponse(html, {
             status: 200,
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
             }
         });
+    }
 
-        redirectResponse.cookies.getAll().forEach((c) => {
-            bridgeResponse.cookies.set(c.name, c.value, c as any);
-        });
+    // =========================================================================
+    // [표준 웹 로그인] PC 또는 모바일 일반 브라우저에서 진행된 표준 OAuth 플로우
+    // =========================================================================
+    const redirectResponse = NextResponse.redirect(redirectUrl);
 
-        return bridgeResponse;
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll();
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        redirectResponse.cookies.set(name, value, {
+                            ...options,
+                            path: '/',
+                            sameSite: 'lax',
+                            secure: !isLocal,
+                        });
+                    });
+                },
+            },
+        }
+    );
+
+    const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+        console.error('[AuthCallback Web] Code exchange failed:', error.message);
+        const loginUrl = new URL("/login", redirectOrigin);
+        loginUrl.searchParams.set("error", "oauth_failed");
+        return NextResponse.redirect(loginUrl);
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', user.id)
+            .single();
+
+        if (!existingProfile) {
+            const email = user.email || null;
+            if (email) {
+                const { data: isEligible, error: checkError } = await supabase.rpc('check_signup_eligibility', { p_email: email });
+                if (!checkError && isEligible === false) {
+                    await supabase.auth.signOut();
+                    const loginUrl = new URL("/login", redirectOrigin);
+                    loginUrl.searchParams.set("error", "withdrawn");
+                    const logoutResponse = NextResponse.redirect(loginUrl);
+                    
+                    redirectResponse.cookies.getAll().forEach((c) => {
+                        logoutResponse.cookies.set(c.name, c.value, c as any);
+                    });
+                    return logoutResponse;
+                }
+            }
+
+            const nickname = user.user_metadata.full_name || user.user_metadata.name || user.user_metadata.nickname || (email ? email.split('@')[0] : 'Camper');
+            const avatarUrl = user.user_metadata.avatar_url || user.user_metadata.picture;
+
+            await supabase.from('profiles').insert({
+                id: user.id,
+                email: email,
+                nickname: nickname,
+                avatar_url: avatarUrl,
+                role: 'user',
+                created_at: new Date().toISOString(),
+            });
+        }
     }
 
     return redirectResponse;
