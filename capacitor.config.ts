@@ -13,9 +13,12 @@ const config: CapacitorConfig = {
       '*.supabase.co',
       '*.kakao.com',
       '*.kakaocdn.net',
+      '*.daum.net',
+      '*.daumcdn.net',
       'accounts.google.com',
       '*.google.com',
-      '*.gstatic.com'
+      '*.gstatic.com',
+      '*.googleusercontent.com'
     ]
   },
   plugins: {
