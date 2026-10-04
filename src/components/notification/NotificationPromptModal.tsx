@@ -37,18 +37,36 @@ export default function NotificationPromptModal() {
 
         const isNative = Capacitor.isNativePlatform();
 
+        // 2. [구버전 TWA 앱 감지]
+        // 독립 실행형(display-mode: standalone / android-app / WebView)으로 실행 중이지만
+        // 캐패시터 네이티브 브릿지(Capacitor.isNativePlatform())가 없는 경우 -> 100% 구버전(v4) TWA 앱!
+        const isStandalone = (
+            window.matchMedia('(display-mode: standalone)').matches ||
+            window.matchMedia('(display-mode: fullscreen)').matches ||
+            (window.navigator as any).standalone === true ||
+            document.referrer?.includes('android-app://') ||
+            /wv|WebView/i.test(navigator.userAgent)
+        );
+
+        if (!isNative && isStandalone) {
+            // [상황 ③] 구버전 TWA 앱 실행 중 -> 최신 버전(v1.0.7) 업데이트 권유 팝업 노출!
+            setModalType('need_update');
+            setIsOpen(true);
+            return;
+        }
+
         if (isNative) {
             try {
-                // 2. [상황 ③ 판별] 네이티브 앱 버전 확인 (versionCode 7 미만인 구버전)
-                const appInfo = await App.getInfo();
-                const buildVersion = parseInt(appInfo.build, 10);
-                if (buildVersion < 7) {
+                // 3. [상황 ③ 판별] 네이티브 앱 버전 확인 (versionCode 7 미만인 구버전)
+                const appInfo = await App.getInfo().catch(() => null);
+                const buildVersion = appInfo ? parseInt(appInfo.build, 10) : NaN;
+                if (!isNaN(buildVersion) && buildVersion < 7) {
                     setModalType('need_update');
                     setIsOpen(true);
                     return;
                 }
 
-                // 3. 네이티브 알림 권한 상태 확인
+                // 4. 네이티브 알림 권한 상태 확인
                 const permStatus = await PushNotifications.checkPermissions();
                 const inAppConsent = localStorage.getItem('raon_push_granted') !== 'false';
 
@@ -82,7 +100,7 @@ export default function NotificationPromptModal() {
                 console.warn('[NotificationModal] Native status check failed:', err);
             }
         } else {
-            // 웹 브라우저 환경
+            // 웹 브라우저 환경 (PC / 모바일 웹 브라우저)
             if (typeof Notification !== 'undefined') {
                 const inAppConsent = localStorage.getItem('raon_push_granted') !== 'false';
                 if (Notification.permission === 'granted') {
@@ -94,17 +112,17 @@ export default function NotificationPromptModal() {
                     setIsOpen(false);
                     return;
                 }
-                setModalType('need_permission');
+                setModalType(Notification.permission === 'denied' ? 'os_blocked' : 'need_permission');
                 setIsOpen(true);
             }
         }
     }, []);
 
     useEffect(() => {
-        // 앱 진입 1.2초 후 자연스럽게 확인
+        // 앱 진입 400ms 후 빠르게 확인 (하이드레이션 직후 즉시 실행)
         const timer = setTimeout(() => {
             checkNotificationStatus();
-        }, 1200);
+        }, 400);
 
         // 사용자가 설정창이나 스토어에 갔다가 앱으로 복귀했을 때 즉시 재점검
         const handleVisibilityOrFocus = () => {
@@ -168,14 +186,18 @@ export default function NotificationPromptModal() {
         }
 
         if (modalType === 'os_blocked') {
-            // [상황 ①] 스마트폰 [애플리케이션 정보 > 알림] 설정창으로 1초 직행
-            toast.info('스마트폰 알림 설정 화면으로 이동합니다. 알림 스위치를 켜주세요! 🔔');
-            try {
-                window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=kr.co.raoni.app;S.app_package=kr.co.raoni.app;end';
-            } catch {
+            // [상황 ①] 스마트폰 [애플리케이션 정보 > 알림] 설정창으로 직행
+            if (isNative || (typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent))) {
+                toast.info('스마트폰 알림 설정 화면으로 이동합니다. 알림 스위치를 켜주세요! 🔔');
                 try {
-                    window.location.href = 'intent:package:kr.co.raoni.app#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;category=android.intent.category.DEFAULT;end';
-                } catch {}
+                    window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=kr.co.raoni.app;S.app_package=kr.co.raoni.app;end';
+                } catch {
+                    try {
+                        window.location.href = 'intent:package:kr.co.raoni.app#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;category=android.intent.category.DEFAULT;end';
+                    } catch {}
+                }
+            } else {
+                toast.info('브라우저 주소창 좌측의 설정(자물쇠) 아이콘에서 알림을 허용해 주세요! 🔔');
             }
             setIsProcessing(false);
             return;
