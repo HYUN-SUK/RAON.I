@@ -8,7 +8,15 @@ const config: CapacitorConfig = {
     // 실시간 Vercel 배포 자동 반영: 앱 재배포 없이 웹 갱신 시 실시간 동기화
     url: 'https://raon-i.co.kr',
     cleartext: false,
-    androidScheme: 'https'
+    androidScheme: 'https',
+    allowNavigation: [
+      '*.supabase.co',
+      '*.kakao.com',
+      '*.kakaocdn.net',
+      'accounts.google.com',
+      '*.google.com',
+      '*.gstatic.com'
+    ]
   },
   plugins: {
     PushNotifications: {

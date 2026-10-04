@@ -164,6 +164,9 @@ export async function GET(request: NextRequest) {
         }
 
         // 라온아이 앱으로 자동 복귀시키는 응답 HTML
+        const deepLink = `raoni://auth?ticket=${encodeURIComponent(ticket)}`;
+        const intentLink = `intent://auth?ticket=${encodeURIComponent(ticket)}#Intent;scheme=raoni;package=kr.co.raoni.app;end`;
+
         const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -186,16 +189,18 @@ export async function GET(request: NextRequest) {
         <div class="icon-box">🏕️</div>
         <h2>로그인이 완료되었습니다!</h2>
         <p>라온아이 앱으로 자동 전환됩니다.<br>잠시만 기다려 주세요.</p>
-        <a id="appBtn" class="btn" href="intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=kr.co.raoni.app;end">
+        <a id="appBtn" class="btn" href="${deepLink}">
             라온아이 앱으로 돌아가기
         </a>
         <div class="hint">자동으로 열리지 않으면 위 버튼을 눌러주세요</div>
     </div>
     <script>
-        const appIntent = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=kr.co.raoni.app;end";
         setTimeout(() => {
-            window.location.href = appIntent;
+            window.location.href = "${deepLink}";
         }, 150);
+        setTimeout(() => {
+            window.location.href = "${intentLink}";
+        }, 500);
     </script>
 </body>
 </html>`;
