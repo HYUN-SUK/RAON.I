@@ -289,12 +289,12 @@ export default function NotificationPromptModal() {
                 {/* 타이틀 및 헤드라인 */}
                 <div className="space-y-1.5">
                     <h3 className="text-xl font-bold text-stone-900 dark:text-stone-100 leading-snug">
-                        {modalType === 'need_update' && '최신 버전 업데이트 안내 🚀'}
+                        {modalType === 'need_update' && '최신 버전(v1.0.9) 업데이트 안내 🚀'}
                         {modalType === 'os_blocked' && '스마트폰 알림이 꺼져 있어요! ⚠️'}
                         {modalType === 'need_permission' && '라온아이 필수 알림을 켜두세요! 🔔'}
                     </h3>
                     <p className="text-xs text-stone-500 dark:text-stone-400 font-medium leading-relaxed">
-                        {modalType === 'need_update' && '결제 마감 및 빈자리 취소석 알림을 위해 앱을 최신 버전으로 업데이트해 주세요.'}
+                        {modalType === 'need_update' && '원터치 간편 로그인과 화면 여백 최적화가 적용된 최신 정식 버전으로 업데이트해 주세요.'}
                         {modalType === 'os_blocked' && '앱 자체 알림은 켜져 있으나, 스마트폰 설정에서 알림이 차단되어 있습니다.'}
                         {modalType === 'need_permission' && '알림을 꺼두시면 중요한 결제 마감 및 취소석 혜택을 놓치실 수 있습니다.'}
                     </p>
@@ -307,8 +307,12 @@ export default function NotificationPromptModal() {
                             <CreditCard className="w-4 h-4" />
                         </div>
                         <div>
-                            <div className="text-xs font-bold text-stone-800 dark:text-stone-200">결제 기한 안내 (예약 취소 방지)</div>
-                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">입금 마감(6시간) 임박 시 자동 알림으로 예약 안전 보장</div>
+                            <div className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                                {modalType === 'need_update' ? '원터치 간편 로그인 지원' : '결제 기한 안내 (예약 취소 방지)'}
+                            </div>
+                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">
+                                {modalType === 'need_update' ? '외부 브라우저 이탈 없이 앱 안에서 즉시 카카오/구글 로그인' : '입금 마감(6시간) 임박 시 자동 알림으로 예약 안전 보장'}
+                            </div>
                         </div>
                     </div>
 
@@ -317,8 +321,12 @@ export default function NotificationPromptModal() {
                             <Tent className="w-4 h-4" />
                         </div>
                         <div>
-                            <div className="text-xs font-bold text-stone-800 dark:text-stone-200">실시간 빈자리 취소석 오픈 알림</div>
-                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">마감된 인기 사이트에 취소석 발생 시 즉시 안내</div>
+                            <div className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                                {modalType === 'need_update' ? '상하단 화면 최적화 & 당겨서 새로고침' : '실시간 빈자리 취소석 오픈 알림'}
+                            </div>
+                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">
+                                {modalType === 'need_update' ? '카메라 렌즈 간섭 해소 및 화면을 당겨서 1초 새로고침 탑재' : '마감된 인기 사이트에 취소석 발생 시 즉시 안내'}
+                            </div>
                         </div>
                     </div>
 
@@ -327,8 +335,12 @@ export default function NotificationPromptModal() {
                             <Compass className="w-4 h-4" />
                         </div>
                         <div>
-                            <div className="text-xs font-bold text-stone-800 dark:text-stone-200">스마트 여행플랜 & 기상 알림</div>
-                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">입실 5일 전 맞춤 날씨, 필수 준비물, 주변 행사 안내</div>
+                            <div className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                                {modalType === 'need_update' ? '안정적인 실시간 알림 보장' : '스마트 여행플랜 & 기상 알림'}
+                            </div>
+                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">
+                                {modalType === 'need_update' ? '결제 마감 안내 및 빈자리 취소석 알림 완벽 동기화' : '입실 5일 전 맞춤 날씨, 필수 준비물, 주변 행사 안내'}
+                            </div>
                         </div>
                     </div>
                 </div>
