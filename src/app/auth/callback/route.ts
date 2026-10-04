@@ -71,7 +71,8 @@ export async function GET(request: NextRequest) {
         }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
+    const session = exchangeData?.session;
 
     if (error) {
         console.error('[AuthCallback] Code exchange failed:', error.message);
@@ -119,6 +120,82 @@ export async function GET(request: NextRequest) {
                 });
             }
         }
+
+    // [신규 기능] 네이티브 앱에서 시작된 소셜 로그인인 경우: 1회용 티켓 저장 및 앱 0초 자동 복귀
+    const ticket = requestUrl.searchParams.get("ticket");
+    const source = requestUrl.searchParams.get("source");
+
+    if (source === 'native_app' && ticket && session) {
+        try {
+            const { createClient: createAdminClient } = await import('@supabase/supabase-js');
+            const adminClient = createAdminClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY!
+            );
+
+            await adminClient.from('automation_logs').insert({
+                job_name: 'auth_bridge_' + ticket,
+                status: 'ready',
+                api_status: {
+                    access_token: session.access_token,
+                    refresh_token: session.refresh_token,
+                    user_id: session.user.id
+                },
+                created_at: new Date().toISOString()
+            });
+        } catch (ticketErr) {
+            console.error('[AuthCallback] Failed to record bridge ticket:', ticketErr);
+        }
+
+        const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>로그인 완료 - 라온아이</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", Roboto, sans-serif; background: #0F1713; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 24px; box-sizing: border-box; }
+        .card { background: #1B2620; border-radius: 28px; padding: 36px 24px; max-width: 360px; width: 100%; border: 1px solid #2B3A31; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); }
+        .icon-box { width: 72px; height: 72px; margin: 0 auto 20px; background: rgba(34, 197, 94, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; border: 1px solid rgba(34, 197, 94, 0.3); }
+        h2 { margin: 0 0 10px; font-size: 21px; font-weight: 800; color: #F1F5F9; letter-spacing: -0.02em; }
+        p { margin: 0 0 28px; font-size: 14px; color: #94A3B8; line-height: 1.6; }
+        .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 16px; background: #22C55E; color: #0F1713; text-decoration: none; border-radius: 18px; font-weight: 800; font-size: 16px; box-sizing: border-box; transition: transform 0.1s ease; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4); cursor: pointer; }
+        .btn:active { transform: scale(0.98); }
+        .hint { margin-top: 14px; font-size: 12px; color: #64748B; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon-box">🏕️</div>
+        <h2>로그인이 완료되었습니다!</h2>
+        <p>라온아이 앱으로 자동 전환됩니다.<br>잠시만 기다려 주세요.</p>
+        <a id="appBtn" class="btn" href="intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=kr.co.raoni.app;end">
+            라온아이 앱으로 돌아가기
+        </a>
+        <div class="hint">자동으로 열리지 않으면 위 버튼을 눌러주세요</div>
+    </div>
+    <script>
+        const appIntent = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=kr.co.raoni.app;end";
+        setTimeout(() => {
+            window.location.href = appIntent;
+        }, 150);
+    </script>
+</body>
+</html>`;
+
+        const bridgeResponse = new NextResponse(html, {
+            status: 200,
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+            }
+        });
+
+        redirectResponse.cookies.getAll().forEach((c) => {
+            bridgeResponse.cookies.set(c.name, c.value, c as any);
+        });
+
+        return bridgeResponse;
+    }
 
     return redirectResponse;
 }

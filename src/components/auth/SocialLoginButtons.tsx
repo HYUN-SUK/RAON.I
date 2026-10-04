@@ -1,26 +1,118 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase-client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Capacitor } from "@capacitor/core";
 
 export default function SocialLoginButtons() {
     const supabase = createClient();
     const [loading, setLoading] = useState<string | null>(null);
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const isHandlingSuccessRef = useRef(false);
+
+    const cleanupPoll = useCallback(() => {
+        if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+        }
+        setLoading(null);
+    }, []);
+
+    const pollForSession = useCallback((ticketId: string) => {
+        setLoading('kakao');
+
+        const startTime = Date.now();
+        const maxWaitTime = 120000; // 2분 타임아웃
+
+        const checkBridge = async () => {
+            if (isHandlingSuccessRef.current) return;
+            if (Date.now() - startTime > maxWaitTime) {
+                cleanupPoll();
+                try { localStorage.removeItem('raon_pending_auth_ticket'); } catch {}
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/auth/bridge?ticket=${encodeURIComponent(ticketId)}`, {
+                    cache: 'no-store'
+                });
+                const data = await res.json();
+
+                if (data.success && data.session && !isHandlingSuccessRef.current) {
+                    isHandlingSuccessRef.current = true;
+                    cleanupPoll();
+                    try { localStorage.removeItem('raon_pending_auth_ticket'); } catch {}
+
+                    toast.success("로그인 성공! 라온아이에 오신 것을 환영합니다 🏕️");
+
+                    // 1. 수파베이스 세션 클라이언트에 안전 안착
+                    await supabase.auth.setSession({
+                        access_token: data.session.access_token,
+                        refresh_token: data.session.refresh_token,
+                    });
+
+                    // 2. 홈 화면으로 0초 리다이렉트
+                    window.location.replace('/');
+                }
+            } catch (err) {
+                console.warn('[SocialLogin] Polling check error:', err);
+            }
+        };
+
+        // 1.5초 주기 안전 폴링
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = setInterval(checkBridge, 1500);
+
+        // 사용자가 스마트폰 브라우저에서 인증 후 앱으로 화면 복귀(포커스)했을 때 즉시 0초 체크
+        const handleFocus = () => {
+            checkBridge();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleFocus);
+
+        // 즉시 1회 체크
+        checkBridge();
+    }, [cleanupPoll, supabase]);
+
+    // 앱 마운트 시 대기 중인 티켓이 있으면 즉시 감시 가동 (앱 재진입 대응)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const pendingTicket = localStorage.getItem('raon_pending_auth_ticket');
+            if (pendingTicket && Capacitor.isNativePlatform()) {
+                pollForSession(pendingTicket);
+            }
+        } catch {}
+
+        return () => {
+            cleanupPoll();
+        };
+    }, [pollForSession, cleanupPoll]);
 
     const handleSocialLogin = async (provider: 'kakao' | 'google') => {
         setLoading(provider);
         try {
-            const options: any = {
-                redirectTo: `${window.location.origin}/auth/callback`,
-            };
+            const isNative = Capacitor.isNativePlatform();
+            let redirectUrl = `${window.location.origin}/auth/callback`;
 
-            // 외부 창 이동 중 사용자 취소 복귀 시 무한 스피너 방지 (10초 안전 해제)
-            setTimeout(() => {
-                setLoading(null);
-            }, 10000);
+            if (isNative) {
+                const ticketId = 'ticket_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+                try {
+                    localStorage.setItem('raon_pending_auth_ticket', ticketId);
+                } catch {}
+                redirectUrl = `${window.location.origin}/auth/callback?ticket=${ticketId}&source=native_app`;
+
+                // 백그라운드 폴링 및 포커스 감지 즉시 활성화
+                pollForSession(ticketId);
+            }
+
+            const options: any = {
+                redirectTo: redirectUrl,
+            };
 
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: provider as any,
@@ -30,6 +122,7 @@ export default function SocialLoginButtons() {
         } catch (error: any) {
             toast.error("로그인 실패", { description: error.message });
             setLoading(null);
+            cleanupPoll();
         }
     };
 
