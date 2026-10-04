@@ -3,6 +3,23 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
+function getAdminClient() {
+    const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.RAON_SERVICE_ROLE_KEY;
+    if (!adminKey) {
+        throw new Error("SUPABASE_SERVICE_ROLE_KEY is missing in environment variables");
+    }
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        adminKey,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        }
+    );
+}
+
 /**
  * [POST] 앱에서 소셜 로그인 시작 전 티켓 및 PKCE code_verifier 사전 등록
  */
@@ -15,27 +32,32 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "INVALID_TICKET" }, { status: 400 });
         }
 
-        const adminClient = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-
+        const adminClient = getAdminClient();
         const jobName = 'auth_bridge_' + ticket;
 
         // 기존 동일 티켓 잔여물이 있으면 정리 후 삽입
         await adminClient.from('automation_logs').delete().eq('job_name', jobName);
 
-        await adminClient.from('automation_logs').insert({
+        const { error: insertErr } = await adminClient.from('automation_logs').insert({
             job_name: jobName,
             status: 'init',
             api_status: { verifier: verifier || null },
             created_at: new Date().toISOString()
         });
 
+        if (insertErr) {
+            console.error('[AuthBridge POST] DB insert error:', insertErr);
+            return NextResponse.json({ success: false, error: insertErr.message }, { status: 500 });
+        }
+
         return NextResponse.json({ success: true });
     } catch (err: any) {
         console.error('[AuthBridge POST] Error registering ticket:', err);
-        return NextResponse.json({ success: false, error: "SERVER_ERROR" }, { status: 500 });
+        return NextResponse.json({ 
+            success: false, 
+            error: "SERVER_ERROR", 
+            message: err?.message || String(err) 
+        }, { status: 500 });
     }
 }
 
@@ -51,11 +73,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const adminClient = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-
+        const adminClient = getAdminClient();
         const jobName = 'auth_bridge_' + ticket;
 
         // 1. 티켓 조회
@@ -102,6 +120,10 @@ export async function GET(request: NextRequest) {
         });
     } catch (err: any) {
         console.error('[AuthBridge GET] Error retrieving ticket session:', err);
-        return NextResponse.json({ success: false, error: "SERVER_ERROR" }, { status: 500 });
+        return NextResponse.json({ 
+            success: false, 
+            error: "SERVER_ERROR", 
+            message: err?.message || String(err) 
+        }, { status: 500 });
     }
 }

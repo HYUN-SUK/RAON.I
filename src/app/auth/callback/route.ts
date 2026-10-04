@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         try {
             const adminClient = createAdminClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!
+                process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.RAON_SERVICE_ROLE_KEY!
             );
 
             const jobName = 'auth_bridge_' + ticket;
