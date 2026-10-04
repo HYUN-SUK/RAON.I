@@ -163,44 +163,28 @@ export async function GET(request: NextRequest) {
             console.error('[AuthCallback Native] Bridge error:', bridgeErr);
         }
 
-        // 라온아이 앱으로 자동 복귀시키는 응답 HTML
-        const deepLink = `raoni://auth?ticket=${encodeURIComponent(ticket)}`;
-        const intentLink = `intent://auth?ticket=${encodeURIComponent(ticket)}#Intent;scheme=raoni;package=kr.co.raoni.app;end`;
-
+        // 라온아이 메인 홈으로 0초 즉시 직행 응답 (중간 멈춤 카드 화면 완전 제거)
         const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>로그인 완료 - 라온아이</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", Roboto, sans-serif; background: #0F1713; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 24px; box-sizing: border-box; }
-        .card { background: #1B2620; border-radius: 28px; padding: 36px 24px; max-width: 360px; width: 100%; border: 1px solid #2B3A31; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); }
-        .icon-box { width: 72px; height: 72px; margin: 0 auto 20px; background: rgba(34, 197, 94, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; border: 1px solid rgba(34, 197, 94, 0.3); }
-        h2 { margin: 0 0 10px; font-size: 21px; font-weight: 800; color: #F1F5F9; letter-spacing: -0.02em; }
-        p { margin: 0 0 28px; font-size: 14px; color: #94A3B8; line-height: 1.6; }
-        .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 16px; background: #22C55E; color: #0F1713; text-decoration: none; border-radius: 18px; font-weight: 800; font-size: 16px; box-sizing: border-box; transition: transform 0.1s ease; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4); cursor: pointer; }
-        .btn:active { transform: scale(0.98); }
-        .hint { margin-top: 14px; font-size: 12px; color: #64748B; }
-    </style>
+    <title>로그인 성공 - 라온아이</title>
 </head>
-<body>
-    <div class="card">
-        <div class="icon-box">🏕️</div>
-        <h2>로그인이 완료되었습니다!</h2>
-        <p>라온아이 앱으로 자동 전환됩니다.<br>잠시만 기다려 주세요.</p>
-        <a id="appBtn" class="btn" href="${deepLink}">
-            라온아이 앱으로 돌아가기
-        </a>
-        <div class="hint">자동으로 열리지 않으면 위 버튼을 눌러주세요</div>
+<body style="background:#0F1713;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;color:#fff;">
+    <div style="text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;">🏕️</div>
+        <div style="font-size:16px;font-weight:bold;color:#22C55E;">로그인 성공! 이동 중입니다...</div>
     </div>
     <script>
-        setTimeout(() => {
-            window.location.href = "${deepLink}";
-        }, 150);
-        setTimeout(() => {
-            window.location.href = "${intentLink}";
-        }, 500);
+        // 1. 앱 내부 웹뷰 및 브라우저 공통: 0.1초 만에 메인 홈으로 직행
+        setTimeout(function() {
+            try {
+                window.location.replace('/');
+            } catch(e) {
+                window.location.href = '/';
+            }
+        }, 80);
     </script>
 </body>
 </html>`;

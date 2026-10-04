@@ -112,71 +112,14 @@ export default function SocialLoginButtons() {
     const handleSocialLogin = async (provider: 'kakao' | 'google') => {
         setLoading(provider);
         try {
-            const isNative = Capacitor.isNativePlatform();
-            let redirectUrl = `${window.location.origin}/auth/callback`;
+            const redirectUrl = `${window.location.origin}/auth/callback`;
 
-            if (isNative) {
-                const ticketId = 'ticket_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
-                try {
-                    localStorage.setItem('raon_pending_auth_ticket', ticketId);
-                } catch {}
-                redirectUrl = `${window.location.origin}/auth/callback?ticket=${ticketId}&source=native_app`;
-
-                // 1. PKCE verifier 및 OAuth URL 획득 (skipBrowserRedirect: true)
-                const { data: oAuthData, error: oAuthErr } = await supabase.auth.signInWithOAuth({
-                    provider: provider as any,
-                    options: {
-                        redirectTo: redirectUrl,
-                        skipBrowserRedirect: true,
-                    },
-                });
-
-                if (oAuthErr || !oAuthData?.url) {
-                    throw oAuthErr || new Error("인증 주소 생성에 실패했습니다.");
-                }
-
-                // 2. document.cookie에서 생성된 PKCE code_verifier 추출
-                let verifier: string | null = null;
-                try {
-                    const cookies = document.cookie.split(';');
-                    for (const c of cookies) {
-                        const [name, val] = c.trim().split('=');
-                        if (name && name.endsWith('-code-verifier')) {
-                            verifier = decodeURIComponent(val);
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[SocialLogin] Failed to read verifier cookie:', e);
-                }
-
-                // 3. 브릿지 서버에 티켓과 verifier 사전 안전 등록 (POST)
-                try {
-                    await fetch('/api/auth/bridge', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ticket: ticketId, verifier })
-                    });
-                } catch (postErr) {
-                    console.warn('[SocialLogin] Failed to pre-register ticket:', postErr);
-                }
-
-                // 4. 백그라운드 폴링 및 화면 복귀 감지 즉시 활성화
-                pollForSession(ticketId);
-
-                // 5. 외부 브라우저(삼성 인터넷) 실행 -> Android Capacitor Bridge가 외부 브라우저 호출
-                window.location.href = oAuthData.url;
-                return;
-            }
-
-            // 웹 표준 로그인
-            const options: any = {
-                redirectTo: redirectUrl,
-            };
-
+            // 표준 Supabase OAuth 직통 호출 (웹/앱 통일)
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: provider as any,
-                options,
+                options: {
+                    redirectTo: redirectUrl,
+                },
             });
             if (error) throw error;
         } catch (error: any) {

@@ -85,9 +85,19 @@ export default function NativeAppBridge() {
                     }
                 });
 
+                // 4. 앱 복귀 시 (2차 인증 문자/카카오톡 확인 후 복귀) 네트워크 소켓 즉시 활성화 리스너
+                const appStateChangeHandler = await App.addListener('appStateChange', ({ isActive }) => {
+                    if (isActive && typeof window !== 'undefined') {
+                        try {
+                            window.dispatchEvent(new Event('online'));
+                        } catch (e) {}
+                    }
+                });
+
                 cleanup = () => {
                     backHandler.remove();
                     urlOpenHandler.remove();
+                    appStateChangeHandler.remove();
                 };
             } catch (err) {
                 console.warn('[Native Bridge] Error initializing native listeners:', err);
