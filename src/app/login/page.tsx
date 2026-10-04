@@ -29,9 +29,10 @@ export default function LoginPage() {
                 });
                 // Clear query parameters to prevent duplicate toasts on refresh
                 window.history.replaceState({}, document.title, window.location.pathname);
-            } else if (params.get("error") === "oauth_failed") {
-                toast.error("로그인 미완료", { 
-                    description: "인증 세션이 연결되지 않았습니다. 다시 한 번 시도해 주세요." 
+            } else if (params.get("error") === "oauth_failed" || params.get("error") === "no_code") {
+                toast.error("카카오 로그인 미완료", { 
+                    description: "인증 세션이 연결되지 않았습니다. '카카오로 3초만에 시작하기'를 다시 한 번 눌러주세요.",
+                    duration: 5000
                 });
                 window.history.replaceState({}, document.title, window.location.pathname);
             }

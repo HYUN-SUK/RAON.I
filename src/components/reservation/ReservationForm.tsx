@@ -20,13 +20,41 @@ interface ReservationFormProps {
     site: Site;
 }
 
+// [0초 즉시 채우기] 이전 예약 정보 로컬 캐시 동기 추출 헬퍼 (첫 프레임 0.000초 렌더링)
+const getCachedGuestInfo = () => {
+    if (typeof window === 'undefined') return { name: '', phone: '' };
+    try {
+        const cached = localStorage.getItem('raon_cached_guest_info');
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            return {
+                name: parsed.guestName || parsed.name || '',
+                phone: parsed.guestPhone || parsed.phone || ''
+            };
+        }
+        // Fallback: Zustand 영구 저장소('reservation-storage-v3') 조회
+        const rawStore = localStorage.getItem('reservation-storage-v3');
+        if (rawStore) {
+            const parsedStore = JSON.parse(rawStore);
+            const contact = parsedStore?.state?.userContactInfo;
+            if (contact) {
+                return {
+                    name: contact.guestName || '',
+                    phone: contact.guestPhone || ''
+                };
+            }
+        }
+    } catch {}
+    return { name: '', phone: '' };
+};
+
 export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     const { isLoading: isGuardLoading, isAllowed: isGuardAllowed, showLockModal, closeLockModal } = useReservationGuard();
     // Use calculatePrice instead of calculateTotalPrice
     const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations, blockedDates, fetchBlockedDates, fetchSites } = useReservationStore();
-    const [name, setName] = useState('');
-    const [phone, setPhone] = useState('');
+    const [name, setName] = useState(() => getCachedGuestInfo().name);
+    const [phone, setPhone] = useState(() => getCachedGuestInfo().phone);
     const [familyCount, setFamilyCount] = useState(1);
     const [visitorCount, setVisitorCount] = useState(0);
     const [vehicleCount, setVehicleCount] = useState(1);
@@ -57,6 +85,9 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         fetchSiteConfig();
         fetchBlockedDates(); // 관리자 차단일 데이터 동기화
         fetchSites(); // 개별 에어컨 기기 최신 목록 동기화
+
+        // [0초 즉시 완성] 연락처 정보 병렬 즉시 로드 (await Waterfall 병목 해소)
+        fetchUserContactInfo();
 
         const loadInitialData = async () => {
             // 0. 2차 실시간 예약 가능 여부 검증 (Double Guard - 가상 대표 카드는 우회)
@@ -114,10 +145,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 console.error('[ReservationForm] Profile load failed', err);
             }
 
-            // 2. 예약자 기본 연락처 정보 로드
-            fetchUserContactInfo();
-
-            // 3. 재예약(Re-book) 데이터가 있으면 특정 필드 덮어쓰기 (성함, 연락처 등)
+            // 2. 재예약(Re-book) 데이터가 있으면 특정 필드 덮어쓰기 (성함, 연락처 등)
             if (rebookData) {
                 setFamilyCount(rebookData.familyCount);
                 setVisitorCount(rebookData.visitorCount);
@@ -147,11 +175,20 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         };
     }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo, fetchBlockedDates, fetchSites]);
 
-    // userContactInfo가 로드되면 폼에 적용 (이미 입력된 값이 없을 때만)
+    // userContactInfo가 로드되면 폼에 적용 및 로컬 캐시 갱신
     useEffect(() => {
         if (!rebookData && userContactInfo) {
-            if (!name && userContactInfo.guestName) setName(name => name || userContactInfo.guestName);
-            if (!phone && userContactInfo.guestPhone) setPhone(phone => phone || userContactInfo.guestPhone);
+            if (!name && userContactInfo.guestName) setName(userContactInfo.guestName);
+            if (!phone && userContactInfo.guestPhone) setPhone(userContactInfo.guestPhone);
+            // 다음번 0.000초 즉시 완성을 위한 로컬 캐시 영구화
+            if (typeof window !== 'undefined' && userContactInfo.guestName && userContactInfo.guestPhone) {
+                try {
+                    localStorage.setItem('raon_cached_guest_info', JSON.stringify({
+                        guestName: userContactInfo.guestName,
+                        guestPhone: userContactInfo.guestPhone
+                    }));
+                } catch {}
+            }
         }
     }, [userContactInfo, rebookData]);
 
@@ -287,6 +324,16 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             });
 
             if (result.success) {
+                // [0초 즉시 완성 보장] 방금 완료된 예약자 정보 로컬 캐시 즉시 저장
+                if (typeof window !== 'undefined' && name && phone) {
+                    try {
+                        localStorage.setItem('raon_cached_guest_info', JSON.stringify({
+                            guestName: name,
+                            guestPhone: phone
+                        }));
+                    } catch {}
+                }
+
                 // 캠핑 프로필 동기화 (Awaited for stability) — 인원 구성 정보 업데이트
                 try {
                     await saveCampingProfile({

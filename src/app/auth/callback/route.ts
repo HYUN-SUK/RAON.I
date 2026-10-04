@@ -20,46 +20,65 @@ export async function GET(request: NextRequest) {
         redirectOrigin = requestUrl.origin.replace(/^http:/, 'https:');
     }
 
+    const errorParam = requestUrl.searchParams.get("error");
+    const errorDescription = requestUrl.searchParams.get("error_description");
+
     const redirectUrl = new URL(next, redirectOrigin);
     if (!isLocal && redirectUrl.protocol === 'http:') {
         redirectUrl.protocol = 'https:';
     }
 
+    // [보완 1] 소셜 로그인 제공자(카카오 등)에서 에러를 반환한 경우 로그인 페이지로 안전 복귀
+    if (errorParam) {
+        console.error('[AuthCallback] Provider returned error:', errorParam, errorDescription);
+        const loginUrl = new URL("/login", redirectOrigin);
+        loginUrl.searchParams.set("error", "oauth_failed");
+        if (errorDescription) loginUrl.searchParams.set("details", errorDescription);
+        return NextResponse.redirect(loginUrl);
+    }
+
+    // [보완 2] 인가 코드(code)가 누락된 경우 게스트 홈으로 튕기지 않고 로그인 페이지로 안전 복귀
+    if (!code) {
+        console.warn('[AuthCallback] No authorization code found in callback URL');
+        const loginUrl = new URL("/login", redirectOrigin);
+        loginUrl.searchParams.set("error", "no_code");
+        return NextResponse.redirect(loginUrl);
+    }
+
     // 2. 최종 리다이렉트 응답 객체 생성 (쿠키 주입 대상)
     const redirectResponse = NextResponse.redirect(redirectUrl);
 
-    if (code) {
-        // 3. @supabase/ssr v0.8.0 표준 getAll/setAll 쿠키 관리자 (청킹 및 Secure 보장)
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    getAll() {
-                        return request.cookies.getAll();
-                    },
-                    setAll(cookiesToSet) {
-                        cookiesToSet.forEach(({ name, value, options }) => {
-                            redirectResponse.cookies.set(name, value, {
-                                ...options,
-                                path: '/',
-                                sameSite: 'lax',
-                                secure: !isLocal,
-                            });
-                        });
-                    },
+    // 3. @supabase/ssr v0.8.0 표준 getAll/setAll 쿠키 관리자 (청킹 및 Secure 보장)
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll();
                 },
-            }
-        );
-
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (error) {
-            console.error('[AuthCallback] Code exchange failed:', error.message);
-            const loginUrl = new URL("/login", redirectOrigin);
-            loginUrl.searchParams.set("error", "oauth_failed");
-            return NextResponse.redirect(loginUrl);
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        redirectResponse.cookies.set(name, value, {
+                            ...options,
+                            path: '/',
+                            sameSite: 'lax',
+                            secure: !isLocal,
+                        });
+                    });
+                },
+            },
         }
+    );
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+        console.error('[AuthCallback] Code exchange failed:', error.message);
+        const loginUrl = new URL("/login", redirectOrigin);
+        loginUrl.searchParams.set("error", "oauth_failed");
+        return NextResponse.redirect(loginUrl);
+    }
 
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -100,7 +119,6 @@ export async function GET(request: NextRequest) {
                 });
             }
         }
-    }
 
     return redirectResponse;
 }
