@@ -370,7 +370,7 @@ export default function TopBar() {
                 )}
 
                 {/* 미설치 웹 유저 전용: 로그인 바로 아래에 달린 주황색 반짝임 다운로드 버튼 (앱 설치자는 감춤) */}
-                {isMounted && !isAppUser && (
+                {isMounted && !isAppUser && (typeof window === 'undefined' || !document.documentElement.classList.contains('is-native-app')) && (
                     <div className="absolute top-[42px] right-1 z-[110] animate-fade-in pointer-events-auto">
                         <button
                             onClick={handleDownloadClick}

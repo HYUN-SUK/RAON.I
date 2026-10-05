@@ -189,19 +189,7 @@ export default function BeginnerHome() {
     const { unwrittenScheduleIds, unwrittenScheduleDetail, refresh } = useFabSparkle();
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
 
-    // [ReminderModal] 미작성 일정 존재 시 팝업 제어 (오늘 하루 보지 않기 / 세션 닫힘 처리)
-    React.useEffect(() => {
-        if (!unwrittenScheduleDetail) return;
-        try {
-            const todayStr = format(new Date(), 'yyyy-MM-dd');
-            const hideDate = localStorage.getItem('raonai_hide_reminder_today');
-            const sessionDismissed = sessionStorage.getItem('raonai_reminder_session_dismissed');
-            if (hideDate === todayStr || sessionDismissed === 'true') {
-                return;
-            }
-            setIsReminderModalOpen(true);
-        } catch {}
-    }, [unwrittenScheduleDetail]);
+    // [ReminderModal] 제어 핸들러 (실제 오픈 트리거는 하단 모든 모달 상태 선언 후 안전 가드와 함께 동작)
 
     const handleCloseReminderModal = useCallback((dontShowToday: boolean) => {
         try {
@@ -342,6 +330,28 @@ export default function BeginnerHome() {
 
     // Facility Detail Sheet State
     const [facilitySheetOpen, setFacilitySheetOpen] = useState(false);
+
+    // [v14.4.2] 현재 화면에 상세 안내/검색/작성 시트 또는 모달이 하나라도 열려있는지 여부
+    const hasAnyActiveModal = detailSheetOpen || nearbySheetOpen || facilitySheetOpen || sosoCareSheetOpen || isRecordOpen || isMapOpen || instantPlanOpen || isRestoreModalOpen;
+
+    // [ReminderModal] 미작성 일정 존재 시 팝업 제어
+    // - 다른 모달/시트가 열려있을 때(상세 화면 조회 중)는 절대 오픈 금지하여 홈화면 강제 튕김 방지
+    // - 오직 홈 화면 최상위 메인 뷰포트에 안정적으로 머물러 있을 때만 400ms 완충 후 1회성 오픈
+    React.useEffect(() => {
+        if (!unwrittenScheduleDetail || hasAnyActiveModal) return;
+        try {
+            const todayStr = format(new Date(), 'yyyy-MM-dd');
+            const hideDate = localStorage.getItem('raonai_hide_reminder_today');
+            const sessionDismissed = sessionStorage.getItem('raonai_reminder_session_dismissed');
+            if (hideDate === todayStr || sessionDismissed === 'true') {
+                return;
+            }
+            const timer = setTimeout(() => {
+                setIsReminderModalOpen(true);
+            }, 400);
+            return () => clearTimeout(timer);
+        } catch {}
+    }, [unwrittenScheduleDetail, hasAnyActiveModal]);
 
     // Dynamic Chip Data
     const chips = useMemo(() => {

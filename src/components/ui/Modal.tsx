@@ -40,16 +40,20 @@ export function Modal({ isOpen, onClose, title, children, className, fullScreen 
         <div className="fixed inset-0 z-[10000] flex justify-center bg-gray-100/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="w-full max-w-md h-full bg-white shadow-2xl overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-10 duration-200">
                 {/* Full Screen Header */}
-                <div className="flex items-center p-4 border-b border-gray-100 shrink-0 bg-white">
+                <header
+                    style={{ paddingTop: 'calc(0.75rem + var(--sat, 0px))' }}
+                    className="flex items-center px-4 pb-3 border-b border-gray-100 shrink-0 bg-white"
+                >
                     <button
                         onClick={onClose}
                         className="p-2 mr-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                        aria-label="닫기"
                     >
                         {/* Back Arrow Style for Full Screen */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
                     </button>
                     <h3 className="text-lg font-bold text-gray-900 flex-1 text-center pr-8">{title}</h3>
-                </div>
+                </header>
 
                 {/* Full Screen Content */}
                 <div className={cn("flex-1 overflow-hidden relative flex flex-col", className)}>
