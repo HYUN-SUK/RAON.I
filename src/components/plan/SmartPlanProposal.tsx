@@ -392,6 +392,30 @@ export default function SmartPlanProposal({
     const currentWeatherWindow = initialPlan?.weather_window || (initialPlan?.ai_plan?.weather_window);
     const showShortTermRegen = isWithinD3 && initialPlan && currentWeatherWindow !== 'SHORT' && onReset && !hasTriggeredRegen;
 
+    const now = new Date();
+    const isAfter9AM = now.getHours() >= 9;
+
+    // [v14.5.2] 스마트플랜 언락 여부 판별 Hook을 최상단으로 이동 (Early Return 뒤 Hook 호출로 인한 React Error #310 원천 차단)
+    const isScheduleUnlocked = useMemo(() => {
+        const dateSource = createdAt || (initialPlan as any)?.created_at || (initialPlan as any)?.timestamp;
+        if (!dateSource) {
+            return now.getHours() >= 9;
+        }
+
+        const createdDate = new Date(dateSource);
+        if (isNaN(createdDate.getTime())) return now.getHours() >= 9;
+
+        const unlockTime = new Date(createdDate);
+        if (createdDate.getHours() < 5) {
+            unlockTime.setHours(9, 0, 0, 0);
+        } else {
+            unlockTime.setDate(unlockTime.getDate() + 1);
+            unlockTime.setHours(9, 0, 0, 0);
+        }
+
+        return new Date() >= unlockTime;
+    }, [createdAt, initialPlan]);
+
     // 1. Get User's Current Location (Origin) — 프로필에서 origin이 제공되면 생략
     useEffect(() => {
         if (origin) {
@@ -1368,29 +1392,6 @@ export default function SmartPlanProposal({
 
     const weatherWindow = (plan as any)?.weather_window || (initialPlan as any)?.weather_window || (initialPlan as any)?.ai_plan?.weather_window || 'NONE';
 
-    const now = new Date();
-    const isAfter9AM = now.getHours() >= 9;
-
-    // 스마트플랜 언락 여부 판별 (ScheduleHomeWidget과 100% 동일화: 등록일 기준 익일 오전 9시 이후는 시간대 무관 영구 활성화)
-    const isScheduleUnlocked = useMemo(() => {
-        const dateSource = createdAt || (initialPlan as any)?.created_at || (initialPlan as any)?.timestamp;
-        if (!dateSource) {
-            return now.getHours() >= 9;
-        }
-
-        const createdDate = new Date(dateSource);
-        if (isNaN(createdDate.getTime())) return now.getHours() >= 9;
-
-        const unlockTime = new Date(createdDate);
-        if (createdDate.getHours() < 5) {
-            unlockTime.setHours(9, 0, 0, 0);
-        } else {
-            unlockTime.setDate(unlockTime.getDate() + 1);
-            unlockTime.setHours(9, 0, 0, 0);
-        }
-
-        return new Date() >= unlockTime;
-    }, [createdAt, initialPlan]);
 
     // CTA 버튼 상태 및 메시지 동적 계산 (단일 CTA 원칙 & 시기별 1회 락 정책)
     let ctaButtonText = '✨ 정밀 스마트플랜 생성하기';
