@@ -14,6 +14,9 @@ export function useRequireAuth() {
 
         // [Fast-Path 1] 로컬스토리지 토큰 정밀 검사
         let hasValidStorageToken = false;
+        let hasRefreshToken = false;
+        let hasStoredUser = false;
+
         try {
             if (typeof window !== 'undefined') {
                 for (let i = 0; i < localStorage.length; i++) {
@@ -24,7 +27,13 @@ export function useRequireAuth() {
                             try {
                                 const parsed = JSON.parse(raw);
                                 const token = parsed?.access_token || parsed?.currentSession?.access_token;
+                                const refreshToken = parsed?.refresh_token || parsed?.currentSession?.refresh_token;
+                                const user = parsed?.user || parsed?.currentSession?.user;
                                 const expiresAt = parsed?.expires_at || parsed?.currentSession?.expires_at;
+
+                                if (refreshToken) hasRefreshToken = true;
+                                if (user?.id) hasStoredUser = true;
+
                                 if (token && typeof expiresAt === 'number' && expiresAt * 1000 > Date.now()) {
                                     hasValidStorageToken = true;
                                     break;
@@ -38,34 +47,45 @@ export function useRequireAuth() {
             hasValidStorageToken = false;
         }
 
+        // 1. 유효한 access_token이 있으면 0ms 즉시 통과
         if (hasValidStorageToken) {
             await action();
             return;
         }
 
-        // [Fast-Path 2] @supabase/ssr 쿠키 및 토큰 부재 시 0ms 즉시 안내 다이얼로그 노출 (불필요한 대기 원천 차단)
+        // [Fast-Path 2] 토큰도, 리프레시 토큰도, 쿠키도 아예 없는 명백한 비로그인 상태일 때만 0ms 즉시 로그인 팝업 노출
         const hasCookieToken = typeof document !== 'undefined' && document.cookie.includes('sb-');
-        if (!hasCookieToken && !hasValidStorageToken) {
+        if (!hasCookieToken && !hasValidStorageToken && !hasRefreshToken && !hasStoredUser) {
             open();
             return;
         }
 
-        // 쿠키 또는 스토리지에 토큰이 존재하는 경우 Supabase Auth 세션 정밀 조회 (2.5초 타임아웃 페일세이프로 먹통 완벽 방어)
+        // 2. 만료된 access_token이지만 refresh_token/쿠키가 있는 경우 (1시간 주기 만료)
+        // 백그라운드 Silent Token Refresh 대기 (5초 넉넉한 타임아웃)
         try {
             const sessionPromise = supabase.auth.getSession();
             const timeoutPromise = new Promise<{ data: { session: null }; error: Error }>((resolve) =>
-                setTimeout(() => resolve({ data: { session: null }, error: new Error('AUTH_TIMEOUT') }), 2500)
+                setTimeout(() => resolve({ data: { session: null }, error: new Error('AUTH_TIMEOUT') }), 5000)
             );
             const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
 
             if (!error && session?.user) {
                 await action();
+            } else if (hasRefreshToken || hasStoredUser) {
+                // 일시적인 네트워크 지연으로 getSession이 타임아웃되었더라도,
+                // 이미 기기에 로그인 인증 정보(리프레시 토큰/유저)가 확실히 남아있다면 사용자 차단 팝업을 띄우지 않고 진입 허용
+                console.warn('[useRequireAuth] Session refresh pending, allowing action on cached credentials');
+                await action();
             } else {
-                open(); // 세션 없음/만료/타임아웃 시 안전하게 전역 로그인 안내 다이얼로그 표시
+                open(); // 세션 없음/만료 시 안전하게 전역 로그인 안내 다이얼로그 표시
             }
         } catch (e) {
-            console.warn('[useRequireAuth] Auth session check failed. Prompting login:', e);
-            open(); // 네트워크 에러나 세션 조회 실패 시에도 무반응 먹통을 방지하고 로그인 모달 오픈
+            console.warn('[useRequireAuth] Auth session check failed:', e);
+            if (hasRefreshToken || hasStoredUser) {
+                await action();
+            } else {
+                open();
+            }
         }
     };
 

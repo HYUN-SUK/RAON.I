@@ -284,7 +284,7 @@ function ScheduleContent() {
     return (
         <div className="min-h-screen bg-[#F8FAF8]">
             {/* 헤더 */}
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+            <header className="sticky top-0 z-10 bg-white border-b border-gray-100 pt-[var(--sat,0px)]">
                 <div className="flex items-center justify-between px-4 h-14">
                     <button
                         onClick={() => {
@@ -325,7 +325,7 @@ function ScheduleContent() {
                         </button>
                     ))}
                 </div>
-            </div>
+            </header>
 
             {/* 컨텐츠 */}
             <div className="p-4">

@@ -494,9 +494,15 @@ export default function SmartPlanProposal({
                         weather_window: calculatedWeatherWindow,
                         updated_at: new Date().toISOString()
                     };
-                    updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
+                    try {
+                        await updateSmartPlanData(scheduleId, wrappedData);
+                    } catch (saveErr) {
+                        console.error('[SmartPlanProposal] Failed to save smart plan to DB:', saveErr);
+                    }
                 }
-                if (onGenerated) onGenerated();
+                if (onGenerated) {
+                    await onGenerated();
+                }
             } catch (error) {
                 console.error("Failed to fetch smart plan:", error);
                 toast.error("플랜 생성에 실패했습니다. 다시 시도해 주세요.");
@@ -965,7 +971,7 @@ export default function SmartPlanProposal({
     }
 
     const swapOptions = swapCategory ? [
-        (plan.itemListElement.find(c => c.category === swapCategory) || plan.routeListElement?.find(c => c.category === swapCategory) || plan.returnListElement?.find(c => c.category === swapCategory))!, // Current Active
+        ((plan.itemListElement || []).find(c => c.category === swapCategory) || (plan.routeListElement || []).find(c => c.category === swapCategory) || (plan.returnListElement || []).find(c => c.category === swapCategory))!, // Current Active
         ...(plan.alternatives?.[swapCategory] || []) // 2 Alternatives
     ] : [];
 
@@ -985,8 +991,8 @@ export default function SmartPlanProposal({
                     const factId = parts[0];
                     const placeName = parts[1];
 
-                    const fact = plan.itemListElement.find(f => f.id === factId) ||
-                        plan.routeListElement?.find(f => f.id === factId) ||
+                    const fact = (plan.itemListElement || []).find(f => f.id === factId) ||
+                        (plan.routeListElement || []).find(f => f.id === factId) ||
                         Object.values(plan.alternatives || {}).flat().find(f => f.id === factId);
 
                     if (fact) {
@@ -1767,12 +1773,12 @@ export default function SmartPlanProposal({
                                     setShowRouteNav(true);
                                     pushSubsheetHistory();
                                 }}
-                                className="w-full h-14 bg-white text-[#1E4D2B] hover:bg-white/90 rounded-2xl font-black text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
+                                className="w-full min-h-[54px] h-auto py-3.5 px-4 bg-white text-[#1E4D2B] hover:bg-white/90 rounded-2xl font-black text-base sm:text-lg shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all group leading-tight text-center"
                             >
-                                <div className="w-8 h-8 rounded-full bg-[#388E5A]/10 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-[#388E5A]/10 flex items-center justify-center shrink-0">
                                     <Navigation className="w-5 h-5 text-[#388E5A] group-hover:animate-bounce" />
                                 </div>
-                                여정 시작: 내비게이션 연결
+                                <span className="break-keep">여정 시작: 내비게이션 연결</span>
                             </Button>
                             <p className="text-[10px] text-white/50 text-center mt-3 font-medium">
                                 선택하신 {Math.floor(selectedRouteData.summary.duration / 60)}분 경로로 안내를 시작합니다.

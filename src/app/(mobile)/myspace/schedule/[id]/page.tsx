@@ -119,7 +119,34 @@ function ScheduleDetailContent() {
     }, [userId, userEmail]);
 
     const [isUserLoading, setIsUserLoading] = useState(true);
-    const [isCached, setIsCached] = useState(false);
+    // [0초 즉시 활성화] 등록 익일 오전 9시가 지났거나 이미 캐싱이 확인된 일정은 0초 즉시 true로 시작하여 버튼 지연 완전 해소
+    const [isCached, setIsCached] = useState<boolean>(() => {
+        if (typeof window === 'undefined' || !scheduleId) return false;
+        try {
+            // 1. 이미 캐싱 확인 이력이 저장되어 있으면 0초 즉시 true
+            if (localStorage.getItem(`candidate_cached_${scheduleId}`) === 'true') {
+                return true;
+            }
+            // 2. 등록 익일 오전 9시가 이미 지났고 initialCachedSchedule이 존재하면 새벽 캐싱 완료 간주 0초 즉시 true
+            const createdSource = initialCachedSchedule?.created_at;
+            if (createdSource) {
+                const createdDate = new Date(createdSource);
+                if (!isNaN(createdDate.getTime())) {
+                    const unlockTime = new Date(createdDate);
+                    if (createdDate.getHours() < 5) {
+                        unlockTime.setHours(9, 0, 0, 0);
+                    } else {
+                        unlockTime.setDate(unlockTime.getDate() + 1);
+                        unlockTime.setHours(9, 0, 0, 0);
+                    }
+                    if (new Date() >= unlockTime) {
+                        return true;
+                    }
+                }
+            }
+        } catch {}
+        return false;
+    });
 
     // [v11.9.105] 진입 시 라우터 캐시 무효화로 인한 홈 화면 튕김 부작용 제거
 
@@ -437,6 +464,11 @@ function ScheduleDetailContent() {
                     const isCachedResult = await checkCandidateCacheAction(scheduleId);
                     if (isMountedRef.current) {
                         setIsCached(isCachedResult);
+                        try {
+                            if (isCachedResult) {
+                                localStorage.setItem(`candidate_cached_${scheduleId}`, 'true');
+                            }
+                        } catch {}
                     }
                 } catch (e) {
                     console.error('[ScheduleDetail] Check candidate cache error:', e);
@@ -624,7 +656,7 @@ function ScheduleDetailContent() {
     return (
         <div className="min-h-screen bg-[#F8FAF8]">
             {/* 헤더 (옵션 B: 상단 카드 완전 제거 및 헤더 바 일체형 흡수) */}
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-xs">
+            <header className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-xs pt-[var(--sat,0px)]">
                 <div className="flex items-center justify-between px-3 py-2.5 min-h-[58px]">
                     <button
                         onClick={() => {
@@ -687,7 +719,7 @@ function ScheduleDetailContent() {
                         <div className="w-10 shrink-0" />
                     )}
                 </div>
-            </div>
+            </header>
 
             <div className="p-4 space-y-4">
                 {/* 주소 표시 (상세 주소가 등록되어 있고 목적지명과 다를 때 슬림하게 노출) */}

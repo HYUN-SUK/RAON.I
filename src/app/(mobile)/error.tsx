@@ -21,13 +21,6 @@ export default function MobileError({
             stackTrace: error?.stack || error?.digest || ''
         });
 
-        // 즉시 홈화면으로 리다이렉트 (안전한 복구)
-        if (typeof window !== 'undefined') {
-            const timer = setTimeout(() => {
-                window.location.replace('/');
-            }, 100);
-            return () => clearTimeout(timer);
-        }
     }, [error]);
 
     return (
@@ -35,16 +28,25 @@ export default function MobileError({
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-2 animate-bounce">
                 ⚠️
             </div>
-            <h3 className="text-base font-bold text-gray-800">페이지 로딩 중 오류가 발생했습니다.</h3>
+            <h3 className="text-base font-bold text-gray-800">일시적인 오류가 발생했습니다</h3>
             <p className="text-xs text-gray-500 max-w-xs leading-relaxed">
-                안전한 복구를 위해 홈화면으로 이동하고 있습니다.
+                네트워크 연결이나 화면 준비 중 일시적인 지연이 발생했습니다.<br />
+                아래 버튼을 눌러 다시 시도해 주세요.
             </p>
-            <button
-                onClick={() => reset()}
-                className="bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-[#388E5A]/20 transition-all"
-            >
-                다시 시도하기
-            </button>
+            <div className="flex gap-2.5 pt-2">
+                <button
+                    onClick={() => reset()}
+                    className="bg-[#388E5A] hover:bg-[#2F774B] text-white text-xs px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-[#388E5A]/20 transition-all active:scale-95"
+                >
+                    다시 시도하기
+                </button>
+                <button
+                    onClick={() => { window.location.href = '/'; }}
+                    className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs px-5 py-2.5 rounded-xl font-semibold shadow-xs transition-all active:scale-95"
+                >
+                    홈으로 이동
+                </button>
+            </div>
         </div>
     );
 }
