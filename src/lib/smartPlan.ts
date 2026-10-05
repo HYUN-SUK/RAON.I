@@ -674,19 +674,20 @@ async function fetchMidpointTrackB(midpoint: {lat: number, lng: number}, weather
         if (foundAny) break; // 식당/명소는 발견 즉시 중단
     }
 
-    // 2. 카페 별도 검색 (키워드 기반, 최대 30km 확장)
+    // 2. 카페 별도 검색 (키워드 기반, 고속도로/경유지 기준 최대 15km로 최적화)
     const cafeRegex = /카페|커피|베이커리|빵집|디저트|로스터리|cafe|coffee|bakery|dessert/i;
-    for (const radius of searchRadii) {
+    const cafeRadii = [5000, 10000, 15000]; // 최대 15km로 단축하여 불필요한 원거리 쿼리 차단
+    for (const radius of cafeRadii) {
         const { data: cafeData } = await supabase.rpc('get_master_places_in_radius_v2', {
             target_lat: midpoint.lat,
             target_lng: midpoint.lng,
             radius_meters: radius,
-            limit_count: 500, // [v11.9.26] 대폭 상향하여 카페 누락 방지
+            limit_count: 150, // 500 -> 150 경량화로 쿼리 속도 대폭 개선
             p_category: 'RESTAURANT'
         });
 
         if (cafeData && cafeData.length > 0) {
-            // [v11.9.26] 이름 또는 설명에 카페 키워드가 있는 것들만 선별
+            // 이름 또는 설명에 카페 키워드가 있는 것들만 선별
             const filtered = cafeData.filter((item: any) => 
                 cafeRegex.test(item.name || '') || cafeRegex.test(item.description || '') || item.category === 'CAFE'
             );
@@ -1035,7 +1036,9 @@ export async function generatePersonalizedSmartPlan(
                 if (hasValidPrefetched) {
                     w = prefetchedWeather;
                 } else {
-                    w = await getForecast(location.lat, location.lng, startStrDash);
+                    const weatherPromise = getForecast(location.lat, location.lng, startStrDash);
+                    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+                    w = await Promise.race([weatherPromise, timeoutPromise]);
                 }
                 if (w && w.daily && Array.isArray(w.daily)) {
                     const weatherList: string[] = [];
@@ -1146,48 +1149,57 @@ export async function generatePersonalizedSmartPlan(
             console.error("[SmartPlan] Weather Fetch Failed:", e);
         }
 
-        // 3. Track B (Midpoint / Day 1)
+        // 3 & 4. Track A (목적지 54개 캐시) & Track B (경유지 마스터 DB) 병렬 동시 조회
         const routeFacts: FactCard[] = [];
         const alternatives: Record<string, FactCard[]> = {};
-
-        if (origin || predefinedMidpoint) {
-            const midpoint = predefinedMidpoint || (origin ? await getMidpointOnRoad(origin, location) : null);
-            if (midpoint) {
-
-                const trackBFacts = await fetchMidpointTrackB(midpoint, weatherSummary, isWinter, persona);
-                ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
-                    let catFacts = trackBFacts.filter(f => f.category === cat);
-                    
-                    // [v11.9.30] 우천 시 실내 장소(카페, 박물관 등) 가중치 +20점 부여
-                    if (isRainy && cat === 'ROUTE_SPOT') {
-                        catFacts = catFacts.map(f => {
-                            const desc = f.description || '';
-                            const isIndoor = desc.includes('박물관') || desc.includes('전시') || desc.includes('미술관') || desc.includes('실내');
-                            return { ...f, trustScore: isIndoor ? f.trustScore + 20 : f.trustScore };
-                        });
-                    }
-                    
-                    catFacts.sort((a, b) => b.trustScore - a.trustScore);
-                    if (catFacts.length > 0) {
-                        catFacts[0].selectionTier = 'PRIMARY';
-                        catFacts[0].roleName = cat === 'ROUTE_CAFE' ? '여행의 쉼표, 카페' : 
-                                               cat === 'ROUTE_RESTAURANT' ? '가는 길 식사' : '가벼운 나들이';
-                        routeFacts.push(catFacts[0]);
-                        // [v11.9.25] 카페 12개, 식당/명소 15개 제공
-                        const maxAlts = cat === 'ROUTE_CAFE' ? 12 : 15;
-                        alternatives[cat] = catFacts.slice(1, maxAlts).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
-                    }
-                });
-            }
-        }
-
-        // 4. Track A (Destination / Day 2, 3)
         const activeFacts: FactCard[] = [];
         const featuredFestival: FactCard[] = [];
-        
-        if (reservationId) {
-            const trackAFacts = await fetchCachedTrackA(reservationId, weatherSummary, isWinter, persona);
-            
+
+        // Track A 비동기 작업 즉시 시작 (캐시 54개 후보군 + 마스터 플레이스 병렬 패치)
+        const trackAPromise = reservationId
+            ? fetchCachedTrackA(reservationId, weatherSummary, isWinter, persona)
+            : Promise.resolve<FactCard[]>([]);
+
+        // Track B 비동기 작업 즉시 시작 (경유지 마스터 DB 공간 쿼리)
+        const trackBPromise = (async () => {
+            if (!origin && !predefinedMidpoint) return [];
+            const midpoint = predefinedMidpoint || (origin ? await getMidpointOnRoad(origin, location) : null);
+            if (!midpoint) return [];
+            return await fetchMidpointTrackB(midpoint, weatherSummary, isWinter, persona);
+        })();
+
+        // 동시 병렬 대기 (직렬 Waterfall 제거 -> 소요 시간 대폭 단축)
+        const [trackAFacts, trackBFacts] = await Promise.all([trackAPromise, trackBPromise]);
+
+        // Track B 후처리 (식당, 카페, 명소 대안 슬롯 구성)
+        if (trackBFacts.length > 0) {
+            ['ROUTE_RESTAURANT', 'ROUTE_CAFE', 'ROUTE_SPOT'].forEach(cat => {
+                let catFacts = trackBFacts.filter(f => f.category === cat);
+                
+                // [v11.9.30] 우천 시 실내 장소(카페, 박물관 등) 가중치 +20점 부여
+                if (isRainy && cat === 'ROUTE_SPOT') {
+                    catFacts = catFacts.map(f => {
+                        const desc = f.description || '';
+                        const isIndoor = desc.includes('박물관') || desc.includes('전시') || desc.includes('미술관') || desc.includes('실내');
+                        return { ...f, trustScore: isIndoor ? f.trustScore + 20 : f.trustScore };
+                    });
+                }
+                
+                catFacts.sort((a, b) => b.trustScore - a.trustScore);
+                if (catFacts.length > 0) {
+                    catFacts[0].selectionTier = 'PRIMARY';
+                    catFacts[0].roleName = cat === 'ROUTE_CAFE' ? '여행의 쉼표, 카페' : 
+                                           cat === 'ROUTE_RESTAURANT' ? '가는 길 식사' : '가벼운 나들이';
+                    routeFacts.push(catFacts[0]);
+                    // [v11.9.25] 카페 12개, 식당/명소 15개 제공
+                    const maxAlts = cat === 'ROUTE_CAFE' ? 12 : 15;
+                    alternatives[cat] = catFacts.slice(1, maxAlts).map(f => { f.selectionTier = 'ALTERNATIVE'; return f; });
+                }
+            });
+        }
+
+        // Track A 후처리 (병원, 마트, 식당, 주유소, 명소, 축제 대안 슬롯 구성)
+        if (reservationId && trackAFacts.length > 0) {
             ['HOSPITAL', 'MART', 'RESTAURANT', 'GAS_STATION', 'SPOT'].forEach(cat => {
                 let catFacts = trackAFacts.filter(f => f.category === cat);
                 
@@ -1250,7 +1262,7 @@ export async function generatePersonalizedSmartPlan(
                     });
                 }
             }
-        } else {
+        } else if (!reservationId) {
             console.warn("No reservation ID found. Track A is empty. Executing realtime fallback for essentials...");
             // 예약 매칭에 실패한 경우, 캠핑장 위치(location) 반경 20km 이내의 마트, 병원, 주유소, 식당, 명소를 실시간 룩업하여 적재
             try {

@@ -449,10 +449,14 @@ export default function SmartPlanProposal({
 
         async function fetchPlan() {
             setIsGenerating(true);
+            const abortController = new AbortController();
+            const timeoutId = setTimeout(() => abortController.abort(), 25000);
+
             try {
                 const res = await fetch('/api/smart-plan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    signal: abortController.signal,
                     body: JSON.stringify({
                         userId,
                         location: { lat: locLat, lng: locLng },
@@ -466,6 +470,8 @@ export default function SmartPlanProposal({
                         prefetchedWeather: liveWeather
                     })
                 });
+                clearTimeout(timeoutId);
+
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
                 const generatedPlan = await res.json();
 
@@ -503,11 +509,28 @@ export default function SmartPlanProposal({
                 if (onGenerated) {
                     await onGenerated();
                 }
-            } catch (error) {
+            } catch (error: any) {
+                clearTimeout(timeoutId);
                 console.error("Failed to fetch smart plan:", error);
+
+                // [v14.5.0] Graceful Fallback: 이전 플랜이 있으면 안전하게 복구하여 화면 튕김 방지
+                if (initialPlan) {
+                    const isWrapped = initialPlan?.wrapped === true;
+                    const fallbackAiPlan = isWrapped ? initialPlan.ai_plan : initialPlan;
+                    if (fallbackAiPlan) {
+                        if (initialPlan?.mode === 'PRO') {
+                            setProPlan(fallbackAiPlan);
+                        } else {
+                            setPlan(fallbackAiPlan);
+                        }
+                        toast.info("네트워크가 지연되어 기존 플랜으로 유지됩니다.");
+                        return;
+                    }
+                }
                 toast.error("플랜 생성에 실패했습니다. 다시 시도해 주세요.");
                 setSelectedMidpoint(null);
             } finally {
+                clearTimeout(timeoutId);
                 setIsGenerating(false);
             }
         }
