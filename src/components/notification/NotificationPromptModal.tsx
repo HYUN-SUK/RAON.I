@@ -133,18 +133,24 @@ export default function NotificationPromptModal() {
             checkNotificationStatus();
         }, 400);
 
-        // 사용자가 설정창이나 스토어에 갔다가 앱으로 복귀했을 때 즉시 재점검
-        const handleVisibilityOrFocus = () => {
-            checkNotificationStatus();
+        // 사용자가 스마트폰 OS 설정창에 갔다가 앱으로 복귀했을 때만 재점검 (키보드 팝업 시 window focus 간섭 차단)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                if (document.activeElement) {
+                    const tag = document.activeElement.tagName.toUpperCase();
+                    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+                        return; // 키보드 타이핑 중에는 알림 팝업 차단
+                    }
+                }
+                checkNotificationStatus();
+            }
         };
 
-        window.addEventListener('focus', handleVisibilityOrFocus);
-        document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             clearTimeout(timer);
-            window.removeEventListener('focus', handleVisibilityOrFocus);
-            document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [checkNotificationStatus]);
 

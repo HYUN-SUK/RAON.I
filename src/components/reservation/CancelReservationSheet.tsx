@@ -197,7 +197,9 @@ export default function CancelReservationSheet({
                                 value={holder}
                                 onChange={(e) => setHolder(e.target.value)}
                                 placeholder="예금주명을 입력하세요"
-                                autoComplete="name"
+                                autoComplete="off"
+                                data-form-type="other"
+                                data-lpignore="true"
                                 autoCorrect="off"
                                 spellCheck="false"
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A] text-base"
