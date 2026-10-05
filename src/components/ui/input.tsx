@@ -32,6 +32,63 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         // Expose ref to parent
         React.useImperativeHandle(forwardedRef, () => innerRef.current as HTMLInputElement);
 
+        // 브라우저 네이티브 DOM 레벨 이벤트 직결:
+        // 리액트 가상 이벤트(SyntheticEvent)의 한글 조합 지연 및 억제를 100% 우회하여
+        // 삼성 천지인 키보드가 조합 중이더라도 자판을 누르는 0.001초 즉시 부모 상태와 버튼을 활성화
+        React.useEffect(() => {
+            const input = innerRef.current;
+            if (!input) return;
+
+            const emitChange = () => {
+                const targetVal = input.value;
+                if (lastEmittedValueRef.current === targetVal) return;
+                lastEmittedValueRef.current = targetVal;
+
+                if (onChange) {
+                    const syntheticEvent = {
+                        target: input,
+                        currentTarget: input,
+                        preventDefault: () => {},
+                        stopPropagation: () => {},
+                        persist: () => {},
+                        nativeEvent: new Event('input'),
+                        type: 'change',
+                    } as unknown as React.ChangeEvent<HTMLInputElement>;
+                    onChange(syntheticEvent);
+                }
+            };
+
+            const handleNativeInput = () => {
+                emitChange();
+            };
+
+            const handleNativeCompositionStart = () => {
+                isComposingRef.current = true;
+            };
+
+            const handleNativeCompositionUpdate = () => {
+                isComposingRef.current = true;
+                emitChange();
+            };
+
+            const handleNativeCompositionEnd = () => {
+                isComposingRef.current = false;
+                emitChange();
+            };
+
+            input.addEventListener('input', handleNativeInput);
+            input.addEventListener('compositionstart', handleNativeCompositionStart);
+            input.addEventListener('compositionupdate', handleNativeCompositionUpdate);
+            input.addEventListener('compositionend', handleNativeCompositionEnd);
+
+            return () => {
+                input.removeEventListener('input', handleNativeInput);
+                input.removeEventListener('compositionstart', handleNativeCompositionStart);
+                input.removeEventListener('compositionupdate', handleNativeCompositionUpdate);
+                input.removeEventListener('compositionend', handleNativeCompositionEnd);
+            };
+        }, [onChange]);
+
         // 부모 컴포넌트의 value prop 변경 시 DOM 동기화
         // 핵심 원칙:
         // 1. 한글 자모 조합 중(isComposing)일 때는 React가 DOM의 value를 절대 덮어쓰지 않아
@@ -77,7 +134,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             const targetVal = e.currentTarget.value;
             lastEmittedValueRef.current = targetVal;
             onCompositionEnd?.(e);
-            // 조합 완료 시 최종 텍스트를 확실하게 부모 onChange로 전달
             if (onChange) {
                 onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
             }
@@ -87,8 +143,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             const targetVal = (e.target as HTMLInputElement).value;
             lastEmittedValueRef.current = targetVal;
             onInput?.(e);
-            // 안드로이드 삼성 키보드/웹뷰: 조합 중에도 매 음절마다 부모 상태를 즉각 동기화하여
-            // '취소 요청하기' 등의 버튼 활성화(0ms)가 지연 없이 즉각 반응하도록 보장
             if (onChange) {
                 onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
             }
@@ -105,7 +159,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             const targetVal = e.target.value;
             lastEmittedValueRef.current = targetVal;
             onBlur?.(e);
-            // 포커스를 잃을 때(외부 취소사유 버튼 터치 등) 최종 DOM 값을 부모에 확실히 동기화
+            // 포커스를 잃을 때 최종 DOM 값을 부모에 확실히 동기화
             if (onChange) {
                 onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
             }
@@ -113,7 +167,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             const targetVal = e.target.value;
-            // handleInput에서 이미 부모에게 동일한 값을 전달했다면 중복 호출 방지
             if (lastEmittedValueRef.current === targetVal) {
                 return;
             }

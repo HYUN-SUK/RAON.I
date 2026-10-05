@@ -164,7 +164,10 @@ export default function CancelReservationSheet({
                                 <Input
                                     type="text"
                                     value={customBankName}
-                                    onChange={(e) => setCustomBankName(e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCustomBankName(val);
+                                    }}
                                     placeholder="예: 새마을금고 ○○지점"
                                     autoComplete="off"
                                     autoCorrect="off"
@@ -196,7 +199,10 @@ export default function CancelReservationSheet({
                             <Input
                                 type="text"
                                 value={holder}
-                                onChange={(e) => setHolder(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setHolder(val);
+                                }}
                                 placeholder="예금주명을 입력하세요"
                                 autoComplete="off"
                                 data-form-type="other"

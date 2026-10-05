@@ -1027,8 +1027,11 @@ export default function InstantPlanModal({
                                         <Input
                                             value={searchQuery}
                                             onChange={(e) => {
-                                                setSearchQuery(e.target.value);
-                                                if (!e.target.value.trim()) {
+                                                const val = e.target.value;
+                                                React.startTransition(() => {
+                                                    setSearchQuery(val);
+                                                });
+                                                if (!val.trim()) {
                                                     setSearchResults([]);
                                                 }
                                             }}
@@ -1041,7 +1044,8 @@ export default function InstantPlanModal({
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                                                     e.preventDefault();
-                                                    handleSearch(searchQuery);
+                                                    const targetVal = (e.target as HTMLInputElement).value;
+                                                    handleSearch(targetVal.trim() || searchQuery);
                                                 }
                                             }}
                                             placeholder="캠핑장명, 지역, 관광지 검색 (예: 가평, 태안, 라온아이)"
