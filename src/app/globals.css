@@ -408,7 +408,7 @@ body.admin-body {
 }
 
 html.is-native-app {
-  --sat: max(env(safe-area-inset-top, 0px), 28px);
+  --sat: max(env(safe-area-inset-top, 0px), 36px);
   --sab: max(env(safe-area-inset-bottom, 0px), 16px);
 }
 

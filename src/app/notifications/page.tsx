@@ -73,9 +73,12 @@ export default function NotificationsPage() {
     return (
         <div className="min-h-screen bg-[#F7F5EF] dark:bg-black pb-20">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#F7F5EF]/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-stone-200 dark:border-zinc-800 pt-[var(--sat,0px)]">
+            <header
+                style={{ paddingTop: 'calc(0.5rem + var(--sat, 0px))' }}
+                className="sticky top-0 z-50 bg-[#F7F5EF]/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-stone-200 dark:border-zinc-800"
+            >
                 <div className="flex items-center h-14 px-4">
-                    <button onClick={() => router.back()} className="p-2 -ml-2">
+                    <button onClick={() => router.back()} className="p-2 -ml-2" aria-label="뒤로가기">
                         <ChevronLeft className="w-6 h-6 text-stone-800 dark:text-stone-200" />
                     </button>
                     <h1 className="text-lg font-bold text-stone-800 dark:text-stone-100 ml-2">알림 내역</h1>
