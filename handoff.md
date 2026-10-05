@@ -9,6 +9,22 @@
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
+### 🟢 마일스톤 9.84: Capacitor 안드로이드 네이티브 패키지 v1.0.10 (code 10) 정식 빌드 및 captureInput: false 탑재 배포 패키지 완성 (2026-10-05)
+
+1. **키보드 차단 더미 객체(BaseInputConnection) 영구 소멸 (`captureInput: false`)**:
+   - `npx cap sync android` 실행으로 `capacitor.config.json` 네이티브 에셋에 `captureInput: false` 완벽 동기화.
+   - 크롬 안드로이드 웹뷰 고유의 표준 IME 키보드 파이프라인(`super.onCreateInputConnection`)을 100% 온전히 복원하여, 삼성 키보드(천지인) 한글 입력 시 글자 렉, 버튼 미인식, 외부 터치 시 텍스트 초기화 결함의 네이티브 근본 원인을 원천 박멸.
+
+2. **버전 상향 및 릴리즈 바이너리(AAB & APK) 서명 빌드 성공**:
+   - `android/app/build.gradle`: `versionCode 10`, `versionName "1.0.10"` 상향.
+   - Java 21 환경에서 Gradle 릴리즈 서명 빌드 완료 (`signing.keystore` 정식 서명 적용).
+   - 바탕화면 `C:\Users\user\Desktop\라온아이 - Google Play package (v1.0.10)`에 정식 배포 패키지 생성 완료:
+     - `라온아이.aab` (11.48 MB) : Google Play 콘솔 업로드용
+     - `라온아이.apk` (11.81 MB) : 대표님 스마트폰 즉시 설치/테스트용
+     - `signing.keystore`, `signing-key-info.txt`, `assetlinks.json` 동봉.
+
+---
+
 ### 🟢 마일스톤 9.83: Capacitor 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 버퍼 충돌(글자 중복 및 버튼 미활성화) 완치 및 Input 표준화 복원 (2026-10-05)
 
 1. **글자 2번 써짐(중복 입력) 및 버퍼 파괴 원천 박멸 (`src/components/ui/input.tsx`)**:

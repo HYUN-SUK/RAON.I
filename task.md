@@ -1,6 +1,13 @@
 # Task Management
 
 ## Completed Tasks (2026-10-05)
+- [x] **마일스톤 9.84**: Capacitor 안드로이드 네이티브 패키지 v1.0.10 (code 10) 정식 빌드 및 captureInput: false 탑재 배포 패키지 완성
+  - **키보드 차단 더미 객체(BaseInputConnection) 영구 소멸 (`captureInput: false`)**:
+    - `npx cap sync android` 실행으로 `capacitor.config.json`에 `captureInput: false` 반영 완료.
+    - 웹뷰의 표준 IME 키보드 파이프라인(`super.onCreateInputConnection`)을 온전히 복원하여 한글 입력 렉/버튼 미활성화의 네이티브 원인 박멸.
+  - **버전 10 정식 서명 릴리즈 바이너리(AAB & APK) 빌드 완료**:
+    - `versionCode 10`, `versionName "1.0.10"` 상향.
+    - 바탕화면 `C:\Users\user\Desktop\라온아이 - Google Play package (v1.0.10)`에 `라온아이.aab` (Google Play 배포용), `라온아이.apk` (실기기 테스트용), 서명 키스토어 동봉 배치 완료.
 - [x] **마일스톤 9.83**: Capacitor 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 버퍼 충돌(글자 중복 및 버튼 미활성화) 완치 및 Input 표준화 복원
   - **글자 2번 써짐(중복 입력) 및 버퍼 파괴 원천 박멸 (`src/components/ui/input.tsx`)**:
     - `defaultValue` 비제어 우회 및 `useEffect` 내 `input.value = strVal` 수동 DOM 조작을 전면 걷어내고, 리액트 표준 컴포넌트로 복원하여 삼성 키보드 `InputConnection` 버퍼 재전송으로 인한 글자 중복("세종세종") 완전 박멸.

@@ -7,6 +7,10 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.84 Capacitor 안드로이드 네이티브 패키지 v1.0.10 (code 10) 정식 빌드 및 captureInput: false 탑재 배포 패키지 완성 (2026-10-05)** 🟢
+  - [x] **키보드 차단 더미 객체(BaseInputConnection) 영구 소멸 (`captureInput: false`)**: `npx cap sync android` 실행으로 `capacitor.config.json`에 `captureInput: false` 반영 완료. 크롬 안드로이드 웹뷰의 표준 IME 키보드 파이프라인(`super.onCreateInputConnection`)을 100% 온전히 복원하여 한글 입력 렉/버튼 미활성화의 네이티브 원인 박멸.
+  - [x] **버전 10 정식 서명 릴리즈 바이너리(AAB & APK) 빌드 완료**: `versionCode 10`, `versionName "1.0.10"` 상향. 바탕화면 `C:\Users\user\Desktop\라온아이 - Google Play package (v1.0.10)`에 `라온아이.aab` (Google Play 배포용), `라온아이.apk` (실기기 테스트용), 서명 키스토어 동봉 배치 완료.
+
 - [x] **9.83 Capacitor 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 버퍼 충돌(글자 중복 및 버튼 미활성화) 완치 및 Input 표준화 복원 (2026-10-05)** 🟢
   - [x] **글자 2번 써짐(중복 입력) 및 버퍼 파괴 원천 박멸 (`src/components/ui/input.tsx`)**: `defaultValue` 비제어 우회 및 `useEffect` 내 `input.value = strVal` 수동 DOM 조작을 전면 걷어내고, 리액트 표준 컴포넌트로 복원하여 삼성 키보드 `InputConnection` 버퍼 재전송으로 인한 글자 중복("세종세종") 완전 박멸. 네이티브 3중 이벤트 리스너 제거로 앱 전역 36개 입력 컴포넌트의 가상 DOM 합성 이벤트 정상화.
   - [x] **[검색] 버튼 미활성화(먹통) 0ms 즉시 활성화 완치 (`src/components/home/InstantPlanModal.tsx`)**: `onChange` 내 `React.startTransition`을 전면 제거하여 `searchQuery` 상태 갱신을 최우선순위(Urgent)로 복원. 천지인 자판 첫 자음(`ㅅ`) 입력 0.001초 즉시 [검색] 버튼이 100% 활성화되도록 구현. `enterKeyHint="search"` 추가로 모바일 삼성 키보드 우측 하단 엔터키가 네이티브 '검색' 돋보기 키로 전환.
