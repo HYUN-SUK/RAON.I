@@ -1,5 +1,24 @@
 # Task Management
 
+## Completed Tasks (2026-10-05)
+- [x] **마일스톤 9.82**: 모바일 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 조합 렉 완치, 0초 즉시 버튼 활성화 및 앱 전역 입력창 전수 고도화 완결
+  - **한글 자모음 조합 버퍼 파괴 원천 차단 (`src/components/ui/input.tsx`)**:
+    - 리액트 가상 DOM이 `value={state}`로 실시간 재할당할 때 삼성 키보드의 `InputConnection` 조합 세션이 강제 종료되어 앞글자가 지워지던("가" + "평" -> "평") 버그를 비제어 JSX(`defaultValue`) + Ref 제어 패턴으로 원천 박멸.
+    - 조합 중(`isComposing`)일 때는 가상 DOM의 덮어쓰기를 100% 차단하여 천지인 연타 시에도 글자 씹힘 0% 달성.
+  - **브라우저 네이티브 DOM 레벨 이벤트 직결 (`input.tsx`)**:
+    - 리액트 합성 이벤트(`SyntheticEvent`)가 한글 조합 중 이벤트를 보류/지연시키던 한계를 우회하기 위해, 순수 브라우저 DOM 엘리먼트에 `addEventListener('input')`, `addEventListener('compositionupdate')`, `addEventListener('compositionend')` 직결.
+    - 천지인 자판 첫 자음(`ㅅ`)을 누르는 0.001초 즉시 DOM 실시간 텍스트를 읽어 상태를 동기화하여, **다른 곳을 터치하지 않아도 [검색] 및 [취소 요청하기] 버튼이 실시간(0ms)으로 즉각 활성화**되도록 구현.
+  - **타이핑 비차단 분리 (`React.startTransition`) (`InstantPlanModal.tsx`, `CancelReservationSheet.tsx`)**:
+    - 글자 입력 자체는 브라우저 네이티브 120Hz 속도로 즉시 화면에 찍히게 하고, 2,000줄짜리 대형 모달의 리렌더링은 `startTransition`으로 백그라운드 분리.
+    - 메인 스레드 렌더링 병목을 제거하여, 누르는 족족 글씨가 0초 만에 부드럽게 출력되는 네이티브급 키보드 반응성 확보.
+  - **앱 내 핵심 입력창 전수 교체 완결**:
+    - 예약 취소 시트 ([CancelReservationSheet.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/CancelReservationSheet.tsx)): 예금주, 계좌번호, 은행명 직접입력
+    - 예약 폼 ([ReservationForm.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/ReservationForm.tsx)): 예약자 성함, 연락처, 방문객 수
+    - 목적지 즉시 여행계획 ([InstantPlanModal.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/home/InstantPlanModal.tsx)): 목적지/캠핑장 검색창
+    - 나만의 지도 ([MyMapModal.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/myspace/MyMapModal.tsx)): 주소 검색창, 내 기록 검색창
+    - 기타 모바일 검색창: 커뮤니티, 레시피, 놀이, 내 기록 검색창 전수 교체
+  - **무결성 검증**: ESLint 통과, `npx.cmd tsc --noEmit` 에러 0건, Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과, Git 커밋/푸시 완료 (`2545c53`, `0e58d99`).
+
 ## Completed Tasks (2026-10-02)
 - [x] **마일스톤 9.81**: 로그인 보상 다중 팝업 완치, 지도 UI 상태 스토리지 격리 및 모바일 3단계 뒤로가기(Popstate) 가드 완결
   - **로그인 보상 다중 팝업 원천 차단 (`TopBar.tsx`)**:

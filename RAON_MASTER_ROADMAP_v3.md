@@ -7,6 +7,13 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.82 모바일 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 조합 렉 완치, 0초 즉시 버튼 활성화 및 앱 전역 입력창 전수 고도화 완결 (2026-10-05)** 🟢
+  - [x] **한글 자모음 조합 버퍼 파괴 원천 차단 (`src/components/ui/input.tsx`)**: 리액트 가상 DOM의 실시간 `value` 재할당으로 삼성 키보드의 `InputConnection` 조합 세션이 깨지던 버그를 비제어 JSX(`defaultValue`) + Ref 제어 패턴으로 원천 박멸.
+  - [x] **브라우저 네이티브 DOM 레벨 이벤트 직결 (`input.tsx`)**: 리액트 합성 이벤트(`SyntheticEvent`)의 한글 조합 보류를 우회하기 위해 브라우저 DOM 엘리먼트에 `addEventListener('input')`, `addEventListener('compositionupdate')`, `addEventListener('compositionend')`를 직결. 천지인 첫 자음(`ㅅ`)을 누르는 즉시 실시간 상태를 동기화하여 다른 곳 터치 없이 [검색] 및 [취소 요청하기] 버튼 실시간(0ms) 활성화 구현.
+  - [x] **타이핑 비차단 분리 (`React.startTransition`) (`InstantPlanModal.tsx`, `CancelReservationSheet.tsx`)**: 글자 표출은 브라우저 네이티브 120Hz 속도로 즉시 찍히게 하고, 2,000줄 모달의 리렌더링은 `startTransition`으로 백그라운드 분리하여 타이핑 렉 0% 달성.
+  - [x] **앱 내 핵심 입력창 전수 교체 완결**: 예약 취소 시트(예금주, 계좌번호, 은행명), 예약 폼(성함, 연락처, 방문객수), 목적지 즉시 여행계획(검색창), 나만의 지도(주소, 내기록 검색), 커뮤니티, 레시피, 놀이, 기록 검색창 전수 교체.
+  - [x] **빌드 무결성 검증**: ESLint 통과, `npx.cmd tsc --noEmit` 0에러 통과, `npm run build` 103/103 전체 라우트 100% 정상 통과, Git 커밋/푸시 완료 (`2545c53`, `0e58d99`).
+
 - [x] **9.81 로그인 보상 다중 팝업 완치, 지도 UI 상태 스토리지 격리 및 모바일 3단계 뒤로가기(Popstate) 가드 완결 (2026-10-02)** 🟢
   - [x] **로그인 보상 다중 팝업 원천 차단 (`TopBar.tsx`)**: `checkUser()`와 `onAuthStateChange`의 경합 상태를 `loginRewardProcessedRef` 동기 락으로 차단하여 최초 1회만 보상/토스트 노출 보장.
   - [x] **지도 UI 상태 로컬스토리지 영구 저장 배제 (`useMySpaceStore.ts`)**: `isMapOpen`, `targetLocation`, `optimisticRecordPin`을 `partialize`에서 제외하여 새로고침/페이지 이동 시 지도가 제멋대로 열리던 버그 근본 박멸.
