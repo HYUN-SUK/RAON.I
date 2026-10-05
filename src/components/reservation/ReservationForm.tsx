@@ -15,6 +15,7 @@ import { useReservationGuard } from '@/hooks/useReservationGuard';
 import ReservationLockModal from './ReservationLockModal';
 import { Loader2 } from 'lucide-react';
 import { useAuthModalStore } from '@/store/useAuthModalStore';
+import { Input } from '@/components/ui/input';
 
 interface ReservationFormProps {
     site: Site;
@@ -467,25 +468,31 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm text-white/70 mb-1">예약자 성함</label>
-                        <input
+                        <Input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus-visible:ring-0 focus:border-[#388E5A] h-12"
                             placeholder="홍길동"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck="false"
                         />
                     </div>
                     <div>
                         <label className="block text-sm text-white/70 mb-1">연락처</label>
-                        <input
+                        <Input
                             type="tel"
                             value={phone}
                             onChange={handlePhoneChange}
                             required
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus-visible:ring-0 focus:border-[#388E5A] h-12"
                             placeholder="010-1234-5678"
                             maxLength={13}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck="false"
                         />
                     </div>
                 </div>
@@ -508,12 +515,12 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                             <label className="block text-sm text-white/90 font-medium">방문객 수</label>
                             <span className="text-xs text-amber-300 font-semibold">※ 성인 1인 1만원, 아동 무료</span>
                         </div>
-                        <input
+                        <Input
                             type="number"
                             min={0}
                             value={visitorCount}
                             onChange={(e) => setVisitorCount(parseInt(e.target.value) || 0)}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus-visible:ring-0 focus:border-[#388E5A] h-12"
                         />
                         {visitorCount > 0 && <p className="text-xs text-yellow-400 mt-1">+10,000원/인 (성인 방문객)</p>}
                     </div>

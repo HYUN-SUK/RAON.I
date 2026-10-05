@@ -9,6 +9,7 @@ import { ko } from "date-fns/locale";
 import { SITES } from "@/constants/sites";
 import { AlertTriangle, Loader2, ChevronDown, X, BanknoteIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 interface CancelReservationSheetProps {
@@ -160,7 +161,7 @@ export default function CancelReservationSheet({
                         {bankCode === "OTHER" && (
                             <div>
                                 <label className="block text-sm text-text-2 mb-1">은행명 직접 입력 *</label>
-                                <input
+                                <Input
                                     type="text"
                                     value={customBankName}
                                     onChange={(e) => setCustomBankName(e.target.value)}
@@ -168,7 +169,7 @@ export default function CancelReservationSheet({
                                     autoComplete="off"
                                     autoCorrect="off"
                                     spellCheck="false"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A] text-base"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus-visible:ring-0 focus:border-[#388E5A] text-base h-12"
                                 />
                             </div>
                         )}
@@ -176,7 +177,7 @@ export default function CancelReservationSheet({
                         {/* 계좌번호 */}
                         <div>
                             <label className="block text-sm text-text-2 mb-1">계좌번호 *</label>
-                            <input
+                            <Input
                                 type="text"
                                 inputMode="numeric"
                                 value={account}
@@ -185,14 +186,14 @@ export default function CancelReservationSheet({
                                 autoComplete="off"
                                 autoCorrect="off"
                                 spellCheck="false"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A] text-base"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus-visible:ring-0 focus:border-[#388E5A] text-base h-12"
                             />
                         </div>
 
                         {/* 예금주 */}
                         <div>
                             <label className="block text-sm text-text-2 mb-1">예금주 *</label>
-                            <input
+                            <Input
                                 type="text"
                                 value={holder}
                                 onChange={(e) => setHolder(e.target.value)}
@@ -202,7 +203,7 @@ export default function CancelReservationSheet({
                                 data-lpignore="true"
                                 autoCorrect="off"
                                 spellCheck="false"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A] text-base"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus-visible:ring-0 focus:border-[#388E5A] text-base h-12"
                             />
                         </div>
                     </div>

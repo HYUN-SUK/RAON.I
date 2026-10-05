@@ -12,6 +12,7 @@ import PlaceDetailSheet from './PlaceDetailSheet';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 // Kakao Maps SDK Type Augmentation for TypeScript
@@ -657,18 +658,21 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     {isSearching ? (
                         <>
                             <Search className="text-gray-400 mr-2 shrink-0" size={20} />
-                            <input
+                            <Input
                                 ref={searchInputRef}
                                 type="text"
                                 placeholder="장소명 또는 주소 검색 (예: 화악지암길448)..."
-                                className="flex-1 bg-transparent border-none text-base focus:ring-0 outline-none placeholder:text-gray-400 min-w-0"
+                                className="flex-1 bg-transparent border-none text-base focus-visible:ring-0 outline-none placeholder:text-gray-400 min-w-0 h-10 shadow-none px-0"
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
+                                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                                         e.preventDefault();
                                         handleSearchExecute();
                                     }
                                 }}
                                 autoFocus
+                                autoComplete="off"
+                                autoCorrect="off"
+                                spellCheck="false"
                                 onBlur={() => setTimeout(() => {
                                     // Delay hiding to allow click on result
                                 }, 200)}
@@ -958,13 +962,16 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     </div>
                     {/* 5. List Search Bar */}
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" size={16} />
+                        <Input
                             type="text"
                             placeholder="내 기록 검색 (이름, 주소, 메모)"
-                            className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-9 pr-4 text-sm focus:ring-1 focus:ring-[#388E5A]/50 transition-all"
+                            className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-9 pr-4 text-sm focus-visible:ring-1 focus-visible:ring-[#388E5A]/50 transition-all h-10 shadow-none"
                             value={listSearchQuery}
                             onChange={(e) => setListSearchQuery(e.target.value)}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck="false"
                         />
                     </div>
                 </div>

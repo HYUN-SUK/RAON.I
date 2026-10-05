@@ -20,6 +20,7 @@ import {
 import { useRouter } from 'next/navigation';
 import LocationPermissionPrompt from "@/components/permission/LocationPermissionPrompt";
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import PlayTimer from '@/components/play/PlayTimer';
 
@@ -485,12 +486,15 @@ export default function PlayExplorerPage() {
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                         <Search className="w-4 h-4 text-stone-400" />
                     </span>
-                    <input
+                    <Input
                         type="text"
                         placeholder="놀이 이름, 준비물, 또는 진행 팁 검색..."
                         value={localQuery}
                         onChange={(e) => setLocalQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:focus:ring-amber-500/40 transition-all text-stone-800 dark:text-stone-100 placeholder-stone-400"
+                        className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 rounded-2xl focus-visible:ring-2 focus-visible:ring-amber-500/50 dark:focus-visible:ring-amber-500/40 transition-all text-stone-800 dark:text-stone-100 placeholder-stone-400 h-10 shadow-none"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck="false"
                     />
                     {localQuery && (
                         <button 

@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 
 import { useCommunityStore } from '@/store/useCommunityStore';
@@ -44,13 +45,16 @@ export default function CommunityHeader() {
 
             {/* Search Bar */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+                <Input
                     type="text"
                     placeholder="검색어를 입력하세요 (제목, 내용)"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-10 pr-4 rounded-xl bg-white border border-gray-200 focus:outline-none focus:border-[#388E5A] text-sm transition-all shadow-sm placeholder:text-gray-400"
+                    className="w-full h-10 pl-10 pr-4 rounded-xl bg-white border border-gray-200 focus-visible:ring-0 focus:border-[#388E5A] text-sm transition-all shadow-sm placeholder:text-gray-400"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                 />
             </div>
         </header>

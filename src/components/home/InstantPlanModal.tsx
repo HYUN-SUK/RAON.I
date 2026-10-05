@@ -1039,7 +1039,7 @@ export default function InstantPlanModal({
                                                 }, 100);
                                             }}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
+                                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                                                     e.preventDefault();
                                                     handleSearch(searchQuery);
                                                 }

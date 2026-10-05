@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMySpaceStore, TimelineItem } from '@/store/useMySpaceStore';
 import TimelineCard from '@/components/myspace/TimelineCard';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ArrowLeft, Clock, Search, ChevronDown } from 'lucide-react';
 import RecordTools from '@/components/myspace/RecordTools';
 import { cn } from '@/lib/utils';
@@ -79,12 +80,15 @@ export default function MySpaceHistoryPage() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
                         <Search className="w-4 h-4" />
                     </div>
-                    <input
+                    <Input
                         type="text"
                         placeholder="기록 검색 (제목, 내용)"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#388E5A]/20 focus:border-[#388E5A] transition-all placeholder:text-stone-400"
+                        className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 text-sm focus-visible:ring-2 focus-visible:ring-[#388E5A]/20 focus:border-[#388E5A] transition-all placeholder:text-stone-400"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck="false"
                     />
                 </div>
 
