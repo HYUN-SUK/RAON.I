@@ -11,6 +11,12 @@ export default function MobileError({
     reset: () => void;
 }) {
     useEffect(() => {
+        // [v14.5.1] 배포 직후 이전 번들 청크 불일치(ChunkLoadError) 발생 시 자동 1회 새로고침 복구
+        if (error?.message?.includes('Loading chunk') || error?.message?.includes('ChunkLoadError')) {
+            window.location.reload();
+            return;
+        }
+
         // 튕김 원인을 정밀 기록
         recordBounceLog({
             source: 'error.tsx (Mobile Group Error Boundary)',
@@ -33,6 +39,15 @@ export default function MobileError({
                 네트워크 연결이나 화면 준비 중 일시적인 지연이 발생했습니다.<br />
                 아래 버튼을 눌러 다시 시도해 주세요.
             </p>
+
+            {/* 에러 상세 원인 (모바일 화면에서 즉시 진단 가능하도록 노출) */}
+            {error?.message && (
+                <div className="bg-red-50/90 border border-red-200/80 rounded-xl px-3 py-2 max-w-xs text-left">
+                    <p className="text-[11px] font-mono text-red-600 break-all leading-tight font-medium">
+                        {error.message}
+                    </p>
+                </div>
+            )}
             <div className="flex gap-2.5 pt-2">
                 <button
                     onClick={() => reset()}

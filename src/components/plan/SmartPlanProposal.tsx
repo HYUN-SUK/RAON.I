@@ -134,6 +134,10 @@ export default function SmartPlanProposal({
     const [hasTriggeredRegen, setHasTriggeredRegen] = useState(false);
     const [expandedWeatherDate, setExpandedWeatherDate] = useState<string | null>(null);
     const hasSwappedInCurrentSessionRef = useRef<boolean>(false);
+    const lastKnownPlanRef = useRef<any>(initialPlan);
+    useEffect(() => {
+        if (initialPlan) lastKnownPlanRef.current = initialPlan;
+    }, [initialPlan]);
 
     // [v14.0.0] 스마트플랜 지도 모달 및 숨김/방문순서 상태
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -514,11 +518,12 @@ export default function SmartPlanProposal({
                 console.error("Failed to fetch smart plan:", error);
 
                 // [v14.5.0] Graceful Fallback: 이전 플랜이 있으면 안전하게 복구하여 화면 튕김 방지
-                if (initialPlan) {
-                    const isWrapped = initialPlan?.wrapped === true;
-                    const fallbackAiPlan = isWrapped ? initialPlan.ai_plan : initialPlan;
+                const planToRestore = initialPlan || lastKnownPlanRef.current;
+                if (planToRestore) {
+                    const isWrapped = planToRestore?.wrapped === true;
+                    const fallbackAiPlan = isWrapped ? planToRestore.ai_plan : planToRestore;
                     if (fallbackAiPlan) {
-                        if (initialPlan?.mode === 'PRO') {
+                        if (planToRestore?.mode === 'PRO') {
                             setProPlan(fallbackAiPlan);
                         } else {
                             setPlan(fallbackAiPlan);
