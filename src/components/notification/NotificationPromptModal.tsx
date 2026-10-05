@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, CreditCard, Tent, Compass, X, ExternalLink, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Bell, X, ExternalLink, ArrowRight, ShieldAlert, Sparkles } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { App } from '@capacitor/app';
@@ -30,13 +30,26 @@ export default function NotificationPromptModal() {
         const isNative = Capacitor.isNativePlatform();
 
         // 1. [최우선 판별: 네이티브 앱 버전 확인]
-        // 구버전(versionCode 9 미만 또는 1.0.9 미만)인 경우 쿨다운과 무관하게 100% 무조건 업데이트 팝업 노출!
+        // 구버전(versionCode 10 미만 또는 1.0.10 미만)인 경우 쿨다운과 무관하게 100% 무조건 업데이트 팝업 노출!
         if (isNative) {
             try {
                 const appInfo = await App.getInfo().catch(() => null);
                 const buildVersion = appInfo ? parseInt(appInfo.build, 10) : NaN;
-                const isOldBuild = !isNaN(buildVersion) && buildVersion < 9;
-                const isOldVersion = appInfo?.version ? (appInfo.version !== '1.0.9' && !appInfo.version.startsWith('1.0.9')) : false;
+                // buildVersion(정수) 기준 판별 (10 미만은 구버전)
+                const isOldBuild = !isNaN(buildVersion) && buildVersion < 10;
+
+                // versionName(문자열) 보조 판별 (1.0.10 미만 시 구버전)
+                let isOldVersion = false;
+                if (appInfo?.version) {
+                    const parts = appInfo.version.split('.').map(p => parseInt(p, 10) || 0);
+                    if (parts.length >= 3) {
+                        if (parts[0] < 1 || (parts[0] === 1 && parts[1] === 0 && parts[2] < 10)) {
+                            isOldVersion = true;
+                        }
+                    } else if (appInfo.version !== '1.0.10') {
+                        isOldVersion = true;
+                    }
+                }
 
                 if (isOldBuild || isOldVersion) {
                     setModalType('need_update');
@@ -304,57 +317,45 @@ export default function NotificationPromptModal() {
                 {/* 타이틀 및 헤드라인 */}
                 <div className="space-y-1.5">
                     <h3 className="text-xl font-bold text-stone-900 dark:text-stone-100 leading-snug">
-                        {modalType === 'need_update' && '최신 버전(v1.0.9) 업데이트 안내 🚀'}
+                        {modalType === 'need_update' && '최신 버전(v1.0.10) 업데이트 안내 🚀'}
                         {modalType === 'os_blocked' && '스마트폰 알림이 꺼져 있어요! ⚠️'}
                         {modalType === 'need_permission' && '라온아이 필수 알림을 켜두세요! 🔔'}
                     </h3>
                     <p className="text-xs text-stone-500 dark:text-stone-400 font-medium leading-relaxed">
-                        {modalType === 'need_update' && '원터치 간편 로그인과 화면 여백 최적화가 적용된 최신 정식 버전으로 업데이트해 주세요.'}
+                        {modalType === 'need_update' && '키보드 입력 반응성과 필수 푸시 알림이 대폭 강화된 1.0.10 정식 버전으로 업데이트해 주세요.'}
                         {modalType === 'os_blocked' && '앱 자체 알림은 켜져 있으나, 스마트폰 설정에서 알림이 차단되어 있습니다.'}
                         {modalType === 'need_permission' && '알림을 꺼두시면 중요한 결제 마감 및 취소석 혜택을 놓치실 수 있습니다.'}
                     </p>
                 </div>
 
-                {/* 3대 핵심 혜택 안내 카드 */}
+                {/* 2대 핵심 혜택 안내 카드 */}
                 <div className="bg-stone-50 dark:bg-zinc-800/60 rounded-2xl p-3.5 space-y-2.5 text-left border border-stone-100 dark:border-zinc-800">
+                    {/* 1번 혜택: 한글 입력 완치 & 0초 검색 (알림 모드 시: 결제 기한 안내) */}
                     <div className="flex items-start gap-2.5">
                         <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 mt-0.5">
-                            <CreditCard className="w-4 h-4" />
+                            <Sparkles className="w-4 h-4" />
                         </div>
                         <div>
                             <div className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                                {modalType === 'need_update' ? '원터치 간편 로그인 지원' : '결제 기한 안내 (예약 취소 방지)'}
+                                {modalType === 'need_update' ? '삼성 키보드 한글 렉 완치 & 0초 검색' : '결제 기한 안내 (예약 취소 방지)'}
                             </div>
-                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">
-                                {modalType === 'need_update' ? '외부 브라우저 이탈 없이 앱 안에서 즉시 카카오/구글 로그인' : '입금 마감(6시간) 임박 시 자동 알림으로 예약 안전 보장'}
+                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight mt-0.5">
+                                {modalType === 'need_update' ? '천지인 한글 조합 버퍼 충돌을 해결하고 첫 자음 입력 즉시 0초 만에 버튼이 활성화됩니다.' : '입금 마감(6시간) 임박 시 자동 알림으로 예약 안전 보장'}
                             </div>
                         </div>
                     </div>
 
+                    {/* 2번 혜택: 결제 마감 & 취소석 푸시 알림 통합 */}
                     <div className="flex items-start gap-2.5">
                         <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
-                            <Tent className="w-4 h-4" />
+                            <Bell className="w-4 h-4" />
                         </div>
                         <div>
                             <div className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                                {modalType === 'need_update' ? '상하단 화면 최적화 & 당겨서 새로고침' : '실시간 빈자리 취소석 오픈 알림'}
+                                {modalType === 'need_update' ? '결제 마감 안내 & 취소석 실시간 알림' : '실시간 빈자리 취소석 오픈 알림'}
                             </div>
-                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">
-                                {modalType === 'need_update' ? '카메라 렌즈 간섭 해소 및 화면을 당겨서 1초 새로고침 탑재' : '마감된 인기 사이트에 취소석 발생 시 즉시 안내'}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0 mt-0.5">
-                            <Compass className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <div className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                                {modalType === 'need_update' ? '안정적인 실시간 알림 보장' : '스마트 여행플랜 & 기상 알림'}
-                            </div>
-                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight">
-                                {modalType === 'need_update' ? '결제 마감 안내 및 빈자리 취소석 알림 완벽 동기화' : '입실 5일 전 맞춤 날씨, 필수 준비물, 주변 행사 안내'}
+                            <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight mt-0.5">
+                                {modalType === 'need_update' ? '입금 마감 임박 전 안전 알림과 마감된 인기 사이트 취소석 오픈 시 실시간 알림을 보장합니다.' : '마감된 인기 사이트에 취소석 발생 시 즉시 안내'}
                             </div>
                         </div>
                     </div>
