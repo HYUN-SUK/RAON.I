@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generatePersonalizedSmartPlan } from '@/lib/smartPlan';
 
 export const maxDuration = 60;
+export const preferredRegion = 'icn1';
 
 export async function POST(request: NextRequest) {
     try {
