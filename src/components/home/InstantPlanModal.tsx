@@ -1023,7 +1023,7 @@ export default function InstantPlanModal({
                                 </label>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
-                                        <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-4" />
+                                        <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-4 pointer-events-none" />
                                         <Input
                                             value={searchQuery}
                                             onChange={(e) => {
@@ -1045,14 +1045,17 @@ export default function InstantPlanModal({
                                                 }
                                             }}
                                             placeholder="캠핑장명, 지역, 관광지 검색 (예: 가평, 태안, 라온아이)"
-                                            className="h-12 pl-10 pr-4 rounded-xl text-sm border-stone-300 focus-visible:ring-amber-500"
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            spellCheck="false"
+                                            className="h-12 pl-10 pr-4 rounded-xl text-base border-stone-300 focus-visible:ring-amber-500 touch-manipulation"
                                         />
                                     </div>
                                     <Button
                                         type="button"
                                         onClick={() => handleSearch(searchQuery)}
                                         disabled={isSearching || !searchQuery.trim()}
-                                        className="h-12 px-4 rounded-xl bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs shrink-0 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        className="h-12 px-4 rounded-xl bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs shrink-0 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 touch-manipulation"
                                     >
                                         {isSearching ? (
                                             <Loader2 className="w-4 h-4 animate-spin text-white" />

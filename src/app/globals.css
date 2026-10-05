@@ -423,3 +423,21 @@ html.is-native-app nav.fixed.bottom-0 {
   padding-bottom: calc(0.5rem + var(--sab)) !important;
   background-color: #ffffff !important;
 }
+
+/* ==========================================================================
+   모바일 입력창(Input) 키보드 반응성 및 터치 최적화
+   - 300ms 터치 딜레이 제거
+   - 모바일(화면 폭 768px 이하)에서 입력창 최소 폰트 16px 강제로 뷰포트 확대/리플로우 원천 차단
+   - 삼성 키보드 / 천지인 한글 조합 0ms 즉각 타이핑 보장
+   ========================================================================== */
+input, textarea, select, button {
+  touch-action: manipulation;
+}
+
+@media screen and (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

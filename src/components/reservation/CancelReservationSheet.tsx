@@ -165,7 +165,10 @@ export default function CancelReservationSheet({
                                     value={customBankName}
                                     onChange={(e) => setCustomBankName(e.target.value)}
                                     placeholder="예: 새마을금고 ○○지점"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A]"
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A] text-base"
                                 />
                             </div>
                         )}
@@ -179,7 +182,10 @@ export default function CancelReservationSheet({
                                 value={account}
                                 onChange={(e) => setAccount(e.target.value.replace(/[^0-9-]/g, ""))}
                                 placeholder="'-' 없이 숫자만 입력"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A]"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A] text-base"
                             />
                         </div>
 
@@ -191,7 +197,10 @@ export default function CancelReservationSheet({
                                 value={holder}
                                 onChange={(e) => setHolder(e.target.value)}
                                 placeholder="예금주명을 입력하세요"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A]"
+                                autoComplete="name"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#388E5A] text-base"
                             />
                         </div>
                     </div>
@@ -205,7 +214,7 @@ export default function CancelReservationSheet({
                                     key={r}
                                     type="button"
                                     onClick={() => setReason(reason === r ? "" : r)}
-                                    className={`px-3 py-2 text-sm rounded-full border transition-colors ${reason === r
+                                    className={`px-3 py-2 text-sm rounded-full border transition-colors touch-manipulation ${reason === r
                                             ? "bg-[#388E5A] text-white border-[#388E5A]"
                                             : "bg-white text-text-2 border-gray-200 hover:border-[#388E5A]"
                                         }`}
@@ -224,10 +233,11 @@ export default function CancelReservationSheet({
 
                     {/* 제출 버튼 */}
                     <button
+                        type="button"
                         onClick={handleSubmit}
                         disabled={!isValid || loading}
-                        className={`w-full py-4 rounded-xl font-bold text-white transition-colors ${isValid && !loading
-                                ? "bg-red-500 hover:bg-red-600"
+                        className={`w-full py-4 rounded-xl font-bold text-white transition-all touch-manipulation active:scale-[0.99] ${isValid && !loading
+                                ? "bg-red-500 hover:bg-red-600 shadow-md cursor-pointer"
                                 : "bg-gray-300 cursor-not-allowed"
                             }`}
                     >
