@@ -7,7 +7,7 @@ import { KOREAN_BANKS, CANCEL_REASONS, calculateRefundRate, calculateRefundAmoun
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { SITES } from "@/constants/sites";
-import { AlertTriangle, Loader2, ChevronDown, X, BanknoteIcon } from "lucide-react";
+import { AlertTriangle, Loader2, ChevronDown, BanknoteIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
