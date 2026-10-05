@@ -94,10 +94,48 @@ export default function NativeAppBridge() {
                     }
                 });
 
+                // 5. [포그라운드 푸시] 앱 실행 중 실시간 알림 수신 배너 노출
+                const pushReceivedHandler = await PushNotifications.addListener(
+                    'pushNotificationReceived',
+                    (notification) => {
+                        console.log('[Native Bridge] Foreground Notification Received:', notification);
+                        const title = notification.title || '🔔 라온아이 알림';
+                        const body = notification.body || '';
+                        const link = notification.data?.link || notification.data?.route || '/notifications';
+
+                        toast(title, {
+                            description: body,
+                            duration: 6000,
+                            icon: '🔔',
+                            action: link ? {
+                                label: '확인',
+                                onClick: () => {
+                                    router.push(link);
+                                }
+                            } : undefined,
+                        });
+                    }
+                );
+
+                // 6. [알림 터치] 백그라운드/헤드업 알림 탭 시 해당 상세 페이지 딥링크 이동
+                const pushActionHandler = await PushNotifications.addListener(
+                    'pushNotificationActionPerformed',
+                    (action) => {
+                        console.log('[Native Bridge] Notification Action Performed:', action);
+                        const data = action.notification?.data;
+                        const link = data?.link || data?.route || '/notifications';
+                        if (link) {
+                            router.push(link);
+                        }
+                    }
+                );
+
                 cleanup = () => {
                     backHandler.remove();
                     urlOpenHandler.remove();
                     appStateChangeHandler.remove();
+                    pushReceivedHandler.remove();
+                    pushActionHandler.remove();
                 };
             } catch (err) {
                 console.warn('[Native Bridge] Error initializing native listeners:', err);

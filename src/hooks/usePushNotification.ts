@@ -39,6 +39,9 @@ export function usePushNotification() {
             }).catch((err) => console.warn('[Capacitor Push] Channel creation warning:', err));
 
             // 토큰 발급 리스너
+            let regHandler: any = null;
+            let errHandler: any = null;
+
             PushNotifications.addListener('registration', async (token) => {
                 console.log('[Capacitor Push] Device Registration Token:', token.value);
                 setFcmToken(token.value);
@@ -63,30 +66,14 @@ export function usePushNotification() {
                 } catch (err) {
                     console.warn('[Capacitor Push] Token sync error:', err);
                 }
-            });
+            }).then(h => { regHandler = h; });
 
             // 토큰 에러 리스너
             PushNotifications.addListener('registrationError', (error) => {
                 console.warn('[Capacitor Push] Registration Error:', error);
-            });
+            }).then(h => { errHandler = h; });
 
-            // 포그라운드 알림 수신 리스너
-            PushNotifications.addListener('pushNotificationReceived', (notification) => {
-                console.log('[Capacitor Push] Foreground Notification Received:', notification);
-                toast.info(notification.title || '새 알림', {
-                    description: notification.body
-                });
-            });
-
-            // 백그라운드/헤드업 알림 클릭(탭) 리스너 (딥링크 이동)
-            PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-                console.log('[Capacitor Push] Action Performed:', action);
-                const data = action.notification?.data;
-                const link = data?.link || data?.route || '/notifications';
-                if (link) {
-                    router.push(link);
-                }
-            });
+            // (※ 포그라운드 알림 수신 및 클릭 처리는 NativeAppBridge에서 상시 전역으로 총괄)
 
             // 앱 구동 시 권한 상태 확인 및 자동 등록 시도
             PushNotifications.checkPermissions().then((status) => {
@@ -94,6 +81,11 @@ export function usePushNotification() {
                     PushNotifications.register();
                 }
             });
+
+            return () => {
+                if (regHandler) regHandler.remove();
+                if (errHandler) errHandler.remove();
+            };
         }
 
         // 3. [v12.0.1 레거시 브릿지 호환] 안드로이드 전역 브릿지 함수 바인딩
@@ -130,9 +122,6 @@ export function usePushNotification() {
         return () => {
             if (typeof window !== 'undefined') {
                 delete (window as any).onReceiveAndroidToken;
-                if (Capacitor.isNativePlatform()) {
-                    PushNotifications.removeAllListeners();
-                }
             }
         };
     }, [router]);
