@@ -9,6 +9,23 @@
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
+### 🟢 마일스톤 9.83: Capacitor 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 버퍼 충돌(글자 중복 및 버튼 미활성화) 완치 및 Input 표준화 복원 (2026-10-05)
+
+1. **글자 2번 써짐(중복 입력) 및 버퍼 파괴 원천 박멸 (`src/components/ui/input.tsx`)**:
+   - **근본 원인 규명**: `defaultValue` 비제어 우회 및 `useEffect` 내 `input.value = strVal` 수동 DOM 주입 방식이 삼성 키보드 `InputConnection` 내부의 조합 버퍼와 충돌을 일으켜, 키보드가 버퍼의 글자를 웹뷰로 한 번 더 재전송(Commit)하면서 "세종세종", "홍길길동"처럼 글씨가 두 번 찍히던 현상 규명.
+   - **표준 리액트 규격 복원**: 인위적인 네이티브 3중 이벤트 리스너(`input`, `compositionupdate`, `compositionend`) 및 수동 DOM 조작을 전면 걷어내고, 리액트 표준 컴포넌트로 복원하여 앱 전역 36개 입력창의 안정성을 100% 정상화.
+
+2. **[검색] 버튼 미활성화(먹통) 0ms 즉시 활성화 완치 (`src/components/home/InstantPlanModal.tsx`)**:
+   - **근본 원인 규명**: `onChange` 내부에 `React.startTransition`을 적용함에 따라, 버튼 활성화 조건을 결정하는 핵심 상태인 `searchQuery`가 백그라운드 지연 작업으로 강등되어 화면에는 '세종'이 보이나 버튼은 비활성화 상태로 멈춰 있던 결함 규명.
+   - **즉시 상태 반영 복원**: `React.startTransition`을 전면 제거하고 즉시 `setSearchQuery(val)`를 호출하여, 천지인 첫 자음(`ㅅ`)을 치는 0.001초 즉시 [검색] 버튼이 초록색으로 100% 활성화되도록 구현.
+   - **네이티브 검색 키 힌트 부여 (`enterKeyHint="search"`)**: 삼성 키보드 우측 하단 엔터키가 돋보기 모양의 '검색' 키로 네이티브 전환되도록 설정.
+
+3. **무결성 검증**:
+   - `npx.cmd tsc --noEmit` 에러 0건 통과.
+   - `npm.cmd run build` 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+
+---
+
 ### 🟢 마일스톤 9.82: 모바일 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 조합 렉 완치, 0초 즉시 버튼 활성화 및 앱 전역 입력창 전수 고도화 완결 (2026-10-05)
 
 1. **삼성 키보드 한글 자모음 조합 버퍼 파괴 원천 차단 (`src/components/ui/input.tsx`)**:

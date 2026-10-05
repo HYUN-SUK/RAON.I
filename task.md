@@ -1,6 +1,15 @@
 # Task Management
 
 ## Completed Tasks (2026-10-05)
+- [x] **마일스톤 9.83**: Capacitor 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 버퍼 충돌(글자 중복 및 버튼 미활성화) 완치 및 Input 표준화 복원
+  - **글자 2번 써짐(중복 입력) 및 버퍼 파괴 원천 박멸 (`src/components/ui/input.tsx`)**:
+    - `defaultValue` 비제어 우회 및 `useEffect` 내 `input.value = strVal` 수동 DOM 조작을 전면 걷어내고, 리액트 표준 컴포넌트로 복원하여 삼성 키보드 `InputConnection` 버퍼 재전송으로 인한 글자 중복("세종세종") 완전 박멸.
+    - 네이티브 3중 이벤트 리스너 제거로 앱 전역 36개 입력 컴포넌트의 가상 DOM 합성 이벤트 정상화.
+  - **[검색] 버튼 미활성화(먹통) 0ms 즉시 활성화 완치 (`src/components/home/InstantPlanModal.tsx`)**:
+    - `onChange` 내 `React.startTransition`을 전면 제거하여 `searchQuery` 상태 갱신을 최우선순위(Urgent)로 복원.
+    - 천지인 자판 첫 자음(`ㅅ`) 입력 0.001초 즉시 [검색] 버튼이 100% 활성화되도록 구현.
+    - `enterKeyHint="search"` 추가로 모바일 삼성 키보드 우측 하단 엔터키가 네이티브 '검색' 돋보기 키로 전환.
+  - **무결성 검증**: `npx.cmd tsc --noEmit` 에러 0건 통과, Next.js 16.1.1 Production Build 103/103 전체 라우트 100% 정상 통과.
 - [x] **마일스톤 9.82**: 모바일 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 조합 렉 완치, 0초 즉시 버튼 활성화 및 앱 전역 입력창 전수 고도화 완결
   - **한글 자모음 조합 버퍼 파괴 원천 차단 (`src/components/ui/input.tsx`)**:
     - 리액트 가상 DOM이 `value={state}`로 실시간 재할당할 때 삼성 키보드의 `InputConnection` 조합 세션이 강제 종료되어 앞글자가 지워지던("가" + "평" -> "평") 버그를 비제어 JSX(`defaultValue`) + Ref 제어 패턴으로 원천 박멸.

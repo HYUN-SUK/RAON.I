@@ -1028,13 +1028,12 @@ export default function InstantPlanModal({
                                             value={searchQuery}
                                             onChange={(e) => {
                                                 const val = e.target.value;
-                                                React.startTransition(() => {
-                                                    setSearchQuery(val);
-                                                });
+                                                setSearchQuery(val);
                                                 if (!val.trim()) {
                                                     setSearchResults([]);
                                                 }
                                             }}
+                                            enterKeyHint="search"
                                             onFocus={() => {
                                                 // 모바일 가상 키보드가 올라올 때도 상단 헤더 및 검색창이 가려지지 않고 최상단에 안정적으로 유지되도록 스크롤 앵커링
                                                 setTimeout(() => {
