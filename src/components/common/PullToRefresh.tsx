@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, ArrowDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface PullToRefreshProps {
@@ -133,37 +132,63 @@ export default function PullToRefresh({ children }: PullToRefreshProps) {
     }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
     const isTriggerReady = pullDistance >= PULL_THRESHOLD;
+    const progress = Math.min(pullDistance / PULL_THRESHOLD, 1);
+    const circumference = 131.95; // 2 * PI * 21
 
     return (
         <>
-            {/* 당겨서 새로고침 인디케이터 (상단 중앙 플로팅 링) */}
+            {/* 당겨서 새로고침 인디케이터 (상단 100% 정중앙 플로팅 배지) */}
             <div
-                className={`fixed left-1/2 -translate-x-1/2 z-[10000] pointer-events-none transition-all ${
-                    isPullingRef.current ? 'duration-75' : 'duration-300 ease-out'
-                }`}
+                className="fixed inset-x-0 z-[10000] pointer-events-none flex justify-center items-start"
                 style={{
-                    top: `calc(var(--sat, 0px) + ${Math.max(pullDistance - 10, -50)}px)`,
-                    opacity: pullDistance > 10 ? Math.min((pullDistance - 10) / 30, 1) : 0,
-                    transform: `translateX(-50%) scale(${Math.min(0.7 + (pullDistance / PULL_THRESHOLD) * 0.35, 1.05)})`,
+                    top: `calc(var(--sat, 0px) + ${Math.max(pullDistance - 10, -55)}px)`,
+                    opacity: pullDistance > 10 ? Math.min((pullDistance - 10) / 25, 1) : 0,
                 }}
             >
                 <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center shadow-xl border transition-all ${
-                        isTriggerReady || isRefreshing
-                            ? 'bg-[#388E5A] border-emerald-600 text-white shadow-emerald-900/20'
-                            : 'bg-white border-stone-200 text-stone-600 shadow-stone-900/10'
-                    }`}
+                    className={`relative w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-[0_10px_30px_rgba(30,77,43,0.18)] border border-emerald-50 transition-transform ${
+                        isPullingRef.current ? 'duration-75' : 'duration-300 ease-out'
+                    } ${isTriggerReady && !isRefreshing ? 'scale-105 shadow-[0_12px_35px_rgba(30,77,43,0.28)]' : ''}`}
+                    style={{
+                        transform: `scale(${isRefreshing ? 1.02 : Math.min(0.75 + progress * 0.3, 1.05)})`,
+                    }}
                 >
-                    {isRefreshing ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                        <ArrowDown
-                            className="w-5 h-5 transition-transform duration-200"
-                            style={{
-                                transform: `rotate(${Math.min((pullDistance / PULL_THRESHOLD) * 180, 180)}deg)`,
-                            }}
+                    {/* SVG 원형 프로그레스 트랙 & 스피너 */}
+                    <svg className={`absolute inset-0 w-full h-full -rotate-90 pointer-events-none ${isRefreshing ? 'animate-spin' : ''}`} viewBox="0 0 48 48">
+                        {/* 배경 링 */}
+                        <circle
+                            cx="24"
+                            cy="24"
+                            r="21"
+                            fill="none"
+                            stroke="#EAEFEA"
+                            strokeWidth="2.5"
                         />
-                    )}
+                        {/* 진행 게이지 / 새로고침 회전 스피너 링 */}
+                        <circle
+                            cx="24"
+                            cy="24"
+                            r="21"
+                            fill="none"
+                            stroke="#388E5A"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={isRefreshing ? 90 : circumference * (1 - progress)}
+                            className="transition-all duration-75"
+                        />
+                    </svg>
+
+                    {/* 라온아이 시그니처 텐트 캐릭터 로고 */}
+                    <div className="relative z-10 w-7 h-7 flex items-center justify-center">
+                        <img
+                            src="/icons/icon-192.png"
+                            alt="라온아이"
+                            className={`w-full h-full object-contain select-none pointer-events-none transition-transform duration-150 ${
+                                isRefreshing ? 'animate-pulse scale-105' : isTriggerReady ? 'scale-110' : 'scale-100'
+                            }`}
+                        />
+                    </div>
                 </div>
             </div>
 
