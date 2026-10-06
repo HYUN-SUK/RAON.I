@@ -27,29 +27,14 @@ const FIREBASE_PROJECT_ID = Deno.env.get('FIREBASE_PROJECT_ID');
 const FIREBASE_CLIENT_EMAIL = Deno.env.get('FIREBASE_CLIENT_EMAIL');
 const FIREBASE_PRIVATE_KEY = Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n');
 
-// Import jose for JWT signing
-import * as jose from "https://deno.land/x/jose@v4.14.4/index.ts";
-
-async function getFcmAccessToken() {
-    if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) throw new Error("Missing Firebase Credentials");
-    const jwt = await new jose.SignJWT({
-        iss: FIREBASE_CLIENT_EMAIL,
-        scope: "https://www.googleapis.com/auth/firebase.messaging",
-        aud: "https://oauth2.googleapis.com/token",
-    })
-        .setProtectedHeader({ alg: "RS256" })
-        .setIssuedAt()
-        .setExpirationTime("1h")
-        .sign(await jose.importPKCS8(FIREBASE_PRIVATE_KEY, "RS256"));
-
-    const response = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt }),
-    });
-    const data = await response.json();
-    return data.access_token;
-}
+import {
+    getFcmAccessToken,
+    selectDeliveryTokens,
+    buildFcmPayload,
+    sendFcmMessage,
+    pruneInvalidTokens,
+    PushTokenRecord
+} from "../_shared/fcm.ts";
 
 // ==========================================
 // DB-BASED SCORING GEAR RECOMMENDATION
@@ -553,107 +538,96 @@ async function sendBulkPush(notifications: any[]) {
     if (notifications.length === 0) return;
 
     console.log(`[Push] Starting bulk dispatch for ${notifications.length} notifications...`);
-    const accessToken = await getFcmAccessToken();
+    const accessToken = await getFcmAccessToken(FIREBASE_CLIENT_EMAIL || '', FIREBASE_PRIVATE_KEY || '');
 
-    // Chunking: Process 5 users at a time to stay safe with concurrency and rate limits
-    const CHUNK_SIZE = 5;
+    // Chunking: Process 10 users at a time to stay safe with concurrency
+    const CHUNK_SIZE = 10;
     for (let i = 0; i < notifications.length; i += CHUNK_SIZE) {
         const chunk = notifications.slice(i, i + CHUNK_SIZE);
         await Promise.all(chunk.map(async (notif) => {
             try {
-                // 1. Fetch ALL user's push tokens
-                const { data: tokens } = await supabase
+                // 1. Atomic claim guard (status = 'sending')
+                if (notif.id) {
+                    const { data: claimed } = await supabase
+                        .from('notifications')
+                        .update({ status: 'sending' })
+                        .eq('id', notif.id)
+                        .in('status', ['queued', 'retry'])
+                        .select('id')
+                        .maybeSingle();
+
+                    if (!claimed && notif.status !== 'queued') {
+                        console.log(`[Push Guard] Notification ${notif.id} already claimed/sent. Skipping.`);
+                        return;
+                    }
+                }
+
+                // 2. Fetch User's Push Tokens
+                const { data: rawTokens } = await supabase
                     .from('push_tokens')
-                    .select('token')
+                    .select('token, device_type, last_updated_at')
                     .eq('user_id', notif.user_id)
                     .eq('is_active', true)
                     .order('last_updated_at', { ascending: false });
 
-                if (!tokens || tokens.length === 0) {
-                    await supabase.from('notifications')
-                        .update({ status: 'failed', error_message: 'No tokens found' })
-                        .eq('id', notif.id);
+                const tokens = (rawTokens || []) as PushTokenRecord[];
+                if (tokens.length === 0) {
+                    if (notif.id) {
+                        await supabase.from('notifications')
+                            .update({ status: 'failed', error_message: 'No tokens found' })
+                            .eq('id', notif.id);
+                    }
                     return;
                 }
 
-                console.log(`[Push] Sending to ${tokens.length} tokens for user ${notif.user_id}...`);
+                // 3. Device filtering SSOT: Suppress web tokens if native app token exists
+                const deliveryTokens = selectDeliveryTokens(tokens);
 
-                const results = await Promise.all(tokens.map(async (t: any) => {
-                    const heroImage = notif.data?.hero_image || "https://raon-i.co.kr/images/reminder_hero.png";
-                    const linkUrl = notif.data?.link || "/notifications";
+                // Deduplicate tokens
+                const uniqueTokensMap = new Map<string, PushTokenRecord>();
+                deliveryTokens.forEach(t => uniqueTokensMap.set(t.token, t));
+                const uniqueTokens = Array.from(uniqueTokensMap.values());
 
-                    const message = {
-                        message: {
-                            token: t.token,
-                            notification: { 
-                                title: notif.title, 
-                                body: notif.body,
-                                image: heroImage
-                            },
-                            data: {
-                                title: notif.title,
-                                body: notif.body,
-                                link: linkUrl,
-                                ...notif.data
-                            },
-                            android: {
-                                priority: "high",
-                                notification: {
-                                    channel_id: "raon_notifications",
-                                    image: heroImage,
-                                    icon: "ic_launcher",
-                                    color: "#22C55E",
-                                    default_vibrate_timings: true,
-                                    notification_priority: "PRIORITY_HIGH"
-                                }
-                            },
-                            webpush: {
-                                notification: {
-                                    image: heroImage
-                                },
-                                fcm_options: {
-                                    link: linkUrl
-                                }
-                            }
-                        }
-                    };
+                console.log(`[Push] Sending to ${uniqueTokens.length} unique tokens for user ${notif.user_id}...`);
 
-                    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`, {
-                        method: "POST",
-                        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-                        body: JSON.stringify(message),
+                const heroImage = notif.data?.hero_image || "https://raon-i.co.kr/images/reminder_hero.png";
+                const linkUrl = notif.data?.link || "/notifications";
+
+                const results = await Promise.all(uniqueTokens.map(async (t) => {
+                    const message = buildFcmPayload(t.token, t.device_type, {
+                        title: String(notif.title),
+                        body: String(notif.body || ''),
+                        data: typeof notif.data === 'object' ? notif.data : {},
+                        heroImage: heroImage,
+                        link: linkUrl,
+                        eventType: notif.event_type,
+                        relatedId: notif.related_id,
                     });
 
-                    const resBody = await res.json();
-                    return { token: t.token, status: res.status, resBody };
+                    const res = await sendFcmMessage(FIREBASE_PROJECT_ID || '', accessToken, message);
+                    return { token: t.token, status: res.status, resBody: res.resBody };
                 }));
 
-                // Cleanup invalid tokens
-                const invalidTokens = results
-                    .filter((r: any) => {
-                        const isError = r.status === 400 || r.status === 404;
-                        const errCode = r.resBody?.error?.details?.[0]?.errorCode;
-                        const status = r.resBody?.error?.status;
-                        return isError || status === 'UNREGISTERED' || status === 'NOT_FOUND' || errCode === 'UNREGISTERED';
-                    })
-                    .map((r: any) => r.token);
+                // 4. Safe Token Pruning (Deletes ONLY confirmed 404 / UNREGISTERED)
+                await pruneInvalidTokens(supabase, results);
 
-                if (invalidTokens.length > 0) {
-                    console.log(`[CLEANUP] Pruning ${invalidTokens.length} stale tokens for user ${notif.user_id}`);
-                    await supabase.from('push_tokens').delete().in('token', invalidTokens);
-                }
-
-                const successCount = results.filter((r: any) => r.status === 200).length;
+                const successCount = results.filter(r => r.status === 200).length;
                 const finalStatus = successCount > 0 ? 'sent' : 'failed';
-                const resultSummary = JSON.stringify(results.map((r: any) => ({ status: r.status, err: r.resBody?.error?.message })));
+                const resultSummary = JSON.stringify(results.map(r => ({
+                    status: r.status,
+                    err: r.resBody?.error?.message,
+                    code: r.resBody?.error?.details?.[0]?.errorCode
+                })));
 
-                await supabase.from('notifications')
-                    .update({
-                        status: finalStatus,
-                        error_message: resultSummary,
-                        sent_at: successCount > 0 ? new Date().toISOString() : null
-                    })
-                    .eq('id', notif.id);
+                if (notif.id) {
+                    await supabase.from('notifications')
+                        .update({
+                            status: finalStatus,
+                            error_message: resultSummary,
+                            sent_at: successCount > 0 ? new Date().toISOString() : null
+                        })
+                        .eq('id', notif.id);
+                }
             } catch (err) {
                 console.error(`[Push Error] User ${notif.user_id}:`, err);
             }
@@ -948,8 +922,8 @@ serve(async (req: any) => {
                 console.error("Failed to insert notifications:", insertError);
             } else if (inserted) {
                 console.log(`Successfully queued ${inserted.length} notifications.`);
-                // Trigger direct dispatch for these notifications
-                sendBulkPush(inserted).then(); // Run in background
+                // Trigger direct dispatch for these notifications (await ensures Edge runtime completes all FCM calls)
+                await sendBulkPush(inserted);
             }
         }
 

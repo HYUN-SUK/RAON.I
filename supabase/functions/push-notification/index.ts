@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import * as jose from "https://deno.land/x/jose@v4.14.4/index.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+    getFcmAccessToken,
+    selectDeliveryTokens,
+    buildFcmPayload,
+    sendFcmMessage,
+    pruneInvalidTokens,
+    PushTokenRecord
+} from "../_shared/fcm.ts";
 
 /**
- * Supabase Edge Function: push-notification
- * Triggered by Database Webhook (INSERT on public.notifications)
+ * Supabase Edge Function: push-notification (v35 - SSOT)
+ * 
+ * Triggered by:
+ * 1) Database Webhook (INSERT on public.notifications with status='queued')
+ * 2) Direct RPC / Function Invoke
  */
 
 const corsHeaders = {
@@ -12,57 +22,16 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Firebase Settings (Set these in Supabase Dashboard Secrets)
-const FIREBASE_PROJECT_ID = Deno.env.get('FIREBASE_PROJECT_ID');
-const FIREBASE_CLIENT_EMAIL = Deno.env.get('FIREBASE_CLIENT_EMAIL');
-const FIREBASE_PRIVATE_KEY = Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+// Firebase Settings (Supabase Dashboard Secrets)
+const FIREBASE_PROJECT_ID = Deno.env.get('FIREBASE_PROJECT_ID') || '';
+const FIREBASE_CLIENT_EMAIL = Deno.env.get('FIREBASE_CLIENT_EMAIL') || '';
+const FIREBASE_PRIVATE_KEY = Deno.env.get('FIREBASE_PRIVATE_KEY') || '';
 
 // Supabase Settings
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('RAON_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-/**
- * Get Google Access Token for FCM HTTP v1 API
- */
-async function getAccessToken() {
-    if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
-        throw new Error("Missing Firebase Credentials");
-    }
-
-    try {
-        const jwt = await new jose.SignJWT({
-            iss: FIREBASE_CLIENT_EMAIL,
-            scope: "https://www.googleapis.com/auth/firebase.messaging",
-            aud: "https://oauth2.googleapis.com/token",
-        })
-            .setProtectedHeader({ alg: "RS256" })
-            .setIssuedAt()
-            .setExpirationTime("1h")
-            .sign(await jose.importPKCS8(FIREBASE_PRIVATE_KEY, "RS256"));
-
-
-        const response = await fetch("https://oauth2.googleapis.com/token", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-                grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                assertion: jwt,
-            }),
-        });
-
-        const data = await response.json();
-        console.log('[AUTH] Token response status:', response.status);
-        if (!data.access_token) {
-            console.error('[AUTH] Token error:', JSON.stringify(data));
-        }
-        return data.access_token;
-    } catch (err) {
-        console.error('[AUTH] Exception during token generation:', err);
-        throw err;
-    }
-}
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -71,194 +40,143 @@ serve(async (req) => {
 
     try {
         const payload = await req.json();
-        console.log("Received payload:", JSON.stringify(payload));
+        console.log("[Push Notification] Received payload:", JSON.stringify(payload));
 
-        // 1. Validate Payload (Supabase Database Webhook format)
-        const record = payload.record;
+        // 1. Validate Payload (Supabase Webhook format or Direct Invoke)
+        const record = payload.record || payload;
         if (!record || !record.user_id || !record.title) {
-            // Manual invocation support (for testing)
-            if (payload.user_id) return handleManualSend(payload);
-            throw new Error("Invalid payload format. Expected 'record' from DB Webhook.");
+            throw new Error("Invalid payload format. Expected 'record' with user_id and title.");
         }
 
         const { id, user_id, title, body, data, event_type, related_id } = record;
 
-        console.log(`Processing notification ${id} for user ${user_id}`);
+        console.log(`[Push Notification] Processing notification id=${id || 'direct'} for user=${user_id}`);
 
-        // 2. Fetch User's Push Tokens (Sorted by latest activity)
-        const { data: tokens, error: tokenError } = await supabase
+        // 2. Atomic Claim Guard (Prevent duplicate sends if trigger & direct invoke fire simultaneously)
+        if (id) {
+            const { data: claimed, error: claimErr } = await supabase
+                .from('notifications')
+                .update({ status: 'sending' })
+                .eq('id', id)
+                .in('status', ['queued', 'retry'])
+                .select('id')
+                .maybeSingle();
+
+            if (claimErr) {
+                console.warn('[CLAIM WARN]', claimErr.message);
+            }
+            // If already processed or claimed by another worker, exit cleanly
+            if (!claimed && payload.record) {
+                console.log(`[CLAIM GUARD] Notification ${id} already processed or in-flight. Skipping duplicate invocation.`);
+                return new Response(JSON.stringify({ message: "Already processed or claimed" }), {
+                    headers: { ...corsHeaders, "Content-Type": "application/json" }
+                });
+            }
+        }
+
+        // 3. Fetch User's Push Tokens
+        const { data: tokensRaw, error: tokenError } = await supabase
             .from('push_tokens')
-            .select('token, last_updated_at')
+            .select('token, device_type, last_updated_at')
             .eq('user_id', user_id)
             .eq('is_active', true)
             .order('last_updated_at', { ascending: false });
 
         if (tokenError) {
-            console.error('[STEP 2-ERR] Token fetch error:', tokenError);
+            console.error('[TOKEN FETCH ERR]', tokenError);
             throw tokenError;
         }
 
-        console.log(`Found ${tokens?.length || 0} tokens for user`);
+        const allTokens = (tokensRaw || []) as PushTokenRecord[];
 
-        if (!tokens || tokens.length === 0) {
-            console.log(`[STEP 2-SKIP] No tokens found for user ${user_id}`);
-            await updateNotificationStatus(id, 'failed', 'No tokens found');
-            return new Response(JSON.stringify({ message: "No tokens found" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (allTokens.length === 0) {
+            console.log(`[TOKEN SKIP] No active tokens found for user ${user_id}`);
+            if (id) {
+                await updateNotificationStatus(id, 'failed', 'No tokens found');
+            }
+            return new Response(JSON.stringify({ message: "No tokens found" }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
         }
 
-        // 3. Get FCM Access Token
-        const accessToken = await getAccessToken();
+        // 4. Device Filtering SSOT (Suppress web tokens if native app token exists)
+        const deliveryTokens = selectDeliveryTokens(allTokens);
 
-        // Deduplicate tokens
-        const uniqueTokens = Array.from(new Set(tokens.map(t => t.token)))
-            .map(token => {
-                return tokens.find(t => t.token === token);
-            })
-            .filter((t): t is { token: string } => !!t);
+        // Deduplicate tokens by token string
+        const uniqueTokensMap = new Map<string, PushTokenRecord>();
+        deliveryTokens.forEach(t => uniqueTokensMap.set(t.token, t));
+        const uniqueTokens = Array.from(uniqueTokensMap.values());
 
-        // [FIX] BROADCAST DELIVERY POLICY (Chunked Parallel Queue v2.0)
-        // To ensure delivery across multiple sessions or devices without FCM socket exhaustion,
-        // we process tokens in chunks of 50 with rate limit protection.
-        const deliveryTokens = uniqueTokens;
-        console.log(`Sending to all ${deliveryTokens.length} unique token(s)...`);
+        console.log(`[DISPATCH] Sending to ${uniqueTokens.length} unique filtered token(s)...`);
 
-        const CHUNK_SIZE = 50;
-        const results: any[] = [];
+        // 5. Retrieve FCM Access Token
+        const accessToken = await getFcmAccessToken(FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY);
 
-        for (let i = 0; i < deliveryTokens.length; i += CHUNK_SIZE) {
-            const chunk = deliveryTokens.slice(i, i + CHUNK_SIZE);
-            const chunkResults = await Promise.all(chunk.map(async (t, idx) => {
-                const globalIdx = i + idx;
-                console.log(`[STEP 4-${globalIdx}] Preparing message for token ${t.token.slice(0, 20)}...`);
+        // 6. Build and Send FCM Messages (in chunks of 25)
+        const CHUNK_SIZE = 25;
+        const results: Array<{ token: string; status: number; resBody: any }> = [];
 
-                // Ensure all data fields are strings (FCM v1 requirement)
-                const stringData: Record<string, string> = {
+        const isReservation = String(event_type || '').startsWith('reservation');
+        const defaultHero = (String(event_type || '').startsWith('upcoming_stay') || isReservation)
+            ? "https://raon-i.co.kr/images/reminder_hero.png"
+            : undefined;
+
+        const heroImage = data?.hero_image || defaultHero;
+
+        for (let i = 0; i < uniqueTokens.length; i += CHUNK_SIZE) {
+            const chunk = uniqueTokens.slice(i, i + CHUNK_SIZE);
+            const chunkResults = await Promise.all(chunk.map(async (t) => {
+                const message = buildFcmPayload(t.token, t.device_type, {
                     title: String(title),
-                    body: String(body),
-                    link: String(data?.link || "https://raon-i.co.kr/notifications"),
-                    event_type: String(event_type || 'default'),
-                    related_id: String(related_id || 'general')
-                };
+                    body: String(body || ''),
+                    data: typeof data === 'object' ? data : {},
+                    heroImage: heroImage,
+                    link: data?.link,
+                    eventType: event_type,
+                    relatedId: related_id,
+                });
 
-                if (data && typeof data === 'object') {
-                    Object.entries(data).forEach(([key, value]) => {
-                        stringData[key] = String(value);
-                    });
-                }
-
-                const isReservation = String(event_type).startsWith('reservation');
-                const heroImage = stringData.hero_image || (
-                    (String(event_type).startsWith('upcoming_stay') || isReservation)
-                    ? "https://raon-i.co.kr/images/reminder_hero.png"
-                    : undefined
-                );
-
-                // [FIX] 최고 우선순위 및 네이티브 BigPicture 스타일 (당근마켓 스타일 펼침 이미지 및 썸네일)
-                const message = {
-                    message: {
-                        token: t.token,
-                        notification: {
-                            title: String(title),
-                            body: String(body),
-                            image: heroImage
-                        },
-                        data: stringData,
-                        android: {
-                            priority: "high", // 안드로이드 Doze Mode 즉각 탈출 및 헤드업 배너 활성화
-                            notification: {
-                                channel_id: "raon_notifications",
-                                image: heroImage,
-                                icon: "ic_launcher",
-                                color: "#22C55E",
-                                default_vibrate_timings: true,
-                                notification_priority: "PRIORITY_HIGH"
-                            }
-                        },
-                        webpush: {
-                            headers: {
-                                Urgency: "high", // WebPush 표준 최우선순위 헤더
-                                TTL: "86400"     // 24시간 보존
-                            },
-                            notification: {
-                                title: String(title),
-                                body: String(body),
-                                icon: "https://raon-i.co.kr/icons/icon-192.png", // 라온아이 공식 마스코트 로고
-                                badge: "https://raon-i.co.kr/badge.png",          // 투명 단색 아이콘
-                                image: heroImage,                                 // 큰 전경 이미지
-                                requireInteraction: isReservation,
-                                vibrate: [200, 100, 200]
-                            },
-                            fcm_options: {
-                                link: String(data?.link || "https://raon-i.co.kr/notifications")
-                            }
-                        }
-                    }
-                };
-
-                try {
-                    const res = await fetch(
-                        `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
-                        {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${accessToken}`,
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify(message),
-                        }
-                    );
-
-                    const resBody = await res.json();
-                    console.log(`[STEP 4-${globalIdx}] FCM Response: ${res.status}`, JSON.stringify(resBody));
-                    return { token: t.token, status: res.status, resBody };
-                } catch (fetchErr: any) {
-                    console.error(`[STEP 4-${globalIdx}] FCM Fetch Error:`, fetchErr);
-                    return { token: t.token, status: 500, resBody: { error: fetchErr.message } };
-                }
+                const res = await sendFcmMessage(FIREBASE_PROJECT_ID, accessToken, message);
+                console.log(`[FCM SEND] Token: ${t.token.slice(0, 15)}... | Device: ${t.device_type || 'web'} | Status: ${res.status}`);
+                return { token: t.token, status: res.status, resBody: res.resBody };
             }));
 
             results.push(...chunkResults);
 
-            // 50개 초과 대량 발송 시 50ms 안전 대기로 FCM 초당 Rate Limit 방어
-            if (i + CHUNK_SIZE < deliveryTokens.length) {
+            if (i + CHUNK_SIZE < uniqueTokens.length) {
                 await new Promise(r => setTimeout(r, 50));
             }
         }
 
-        console.log(`All FCM calls completed. Success: ${results.filter(r => r.status === 200).length}`);
-
-        // 5. Cleanup Invalid Tokens & Update Status
         const successCount = results.filter(r => r.status === 200).length;
-        const failureCount = results.length - successCount;
+        console.log(`[FCM FINISHED] Success: ${successCount} / Total: ${results.length}`);
 
-        // Cleanup: Delete invalid tokens (Fires RPC or direct delete)
-        const invalidTokens = results
-            .filter(r => {
-                const isError = r.status === 400 || r.status === 404;
-                const errCode = r.resBody?.error?.details?.[0]?.errorCode;
-                const status = r.resBody?.error?.status;
-                return isError || status === 'UNREGISTERED' || status === 'NOT_FOUND' || errCode === 'UNREGISTERED';
-            })
-            .map(r => r.token);
+        // 7. Safe Token Pruning (Deletes ONLY confirmed 404 / UNREGISTERED)
+        const prunedCount = await pruneInvalidTokens(supabase, results);
 
-        if (invalidTokens.length > 0) {
-            console.log(`[CLEANUP] Found ${invalidTokens.length} invalid tokens. Pruning...`);
-            // Use RPC for atomic precision or direct delete
-            await supabase.from('push_tokens').delete().in('token', invalidTokens);
+        // 8. Update Notification Record Status
+        const finalStatus = successCount > 0 ? 'sent' : 'failed';
+        const resultSummary = JSON.stringify(results.map(r => ({
+            status: r.status,
+            err: r.resBody?.error?.message,
+            code: r.resBody?.error?.details?.[0]?.errorCode
+        })));
+
+        if (id) {
+            await updateNotificationStatus(id, finalStatus, resultSummary);
         }
 
-        // Determine final status
-        const finalStatus = successCount > 0 ? 'sent' : 'failed';
-        const resultSummary = JSON.stringify(results.map(r => ({ status: r.status, err: r.resBody.error?.message, full: r.resBody })));
-
-        await updateNotificationStatus(id, finalStatus, resultSummary); // Update sent_at if success
-
-        return new Response(JSON.stringify({ success: true, results, cleaned: invalidTokens.length }), {
+        return new Response(JSON.stringify({
+            success: successCount > 0,
+            successCount,
+            totalCount: results.length,
+            prunedTokens: prunedCount,
+        }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
 
-    } catch (error) {
-        console.error("Error processing request:", error);
+    } catch (error: any) {
+        console.error("[CRITICAL ERROR]", error);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -266,17 +184,13 @@ serve(async (req) => {
     }
 });
 
-async function updateNotificationStatus(id: string, status: string, result: string) {
-    const updateData: any = { status, error_message: result };
+async function updateNotificationStatus(id: string, status: string, resultSummary: string) {
+    const updateData: any = {
+        status,
+        error_message: resultSummary,
+    };
     if (status === 'sent') {
         updateData.sent_at = new Date().toISOString();
     }
     await supabase.from('notifications').update(updateData).eq('id', id);
-}
-
-// Helper for manual testing via direct RPC/Invoke
-async function handleManualSend(payload: any) {
-    const { user_id, title, body, data } = payload;
-    // ... Simplified logic reuse or similar ...
-    return new Response(JSON.stringify({ message: "Manual send not fully implemented yet in this snippet" }), { headers: corsHeaders });
 }
