@@ -39,12 +39,18 @@ export function getKakaoMapUrl({ destination, waypoints }: FullRouteParams) {
  * 카카오내비 딥링크 생성 (kakaonavi://navigate)
  */
 export function getKakaoNaviUrl({ destination }: FullRouteParams) {
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     const name = encodeURIComponent(destination.name);
     const lat = destination.lat.toFixed(6);
     const lng = destination.lng.toFixed(6);
     
-    // [v11.9.104] 차단된 원시 kakaonavi:// 스키마 대신 카카오 모빌리티 공식 길안내 딥링크 적용
-    return `https://map.kakao.com/link/to/${name},${lat},${lng}`;
+    if (isAndroid) {
+        // [v14.6.0] 안드로이드 네이티브 앱 AndroidManifest.xml (com.locnall.KimGiSa) 공식 인텐트 규격
+        return `intent://navigate?name=${name}&x=${lng}&y=${lat}&coord_type=wgs84#Intent;scheme=kakaonavi;package=com.locnall.KimGiSa;end;`;
+    }
+    
+    // iOS 및 기타 모바일 환경
+    return `kakaonavi://navigate?name=${name}&x=${lng}&y=${lat}&coord_type=wgs84`;
 }
 
 /**
@@ -145,20 +151,22 @@ export function openNavApp(
 
     const fallbackUrl = getWebFallbackUrl(app, route);
 
-    // [v14.3.0] 웹 URL은 현재 RAON.I 창을 덮어쓰지 않고 새 창으로 오픈하여 여행계획 결과물 유지
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-    } else {
-        // 네이티브 앱 스킴(kakaomap://, tmap://, intent://) 실행
-        window.location.href = url;
+    // [v14.6.0] 사용자가 안내 팝업을 먼저 편안하게 인지할 수 있도록 700ms 지연 후 내비 앱 전환
+    setTimeout(() => {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+            // 네이티브 앱 스킴(kakaomap://, tmap://, intent://) 실행
+            window.location.href = url;
 
-        // 앱이 열리지 않았을 경우를 대비한 웹 폴백 (2초 후)
-        setTimeout(() => {
-            if (document.visibilityState === 'visible') {
-                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-            }
-        }, 2000);
-    }
+            // 앱이 열리지 않았을 경우를 대비한 웹 폴백 (2.5초 후)
+            setTimeout(() => {
+                if (document.visibilityState === 'visible') {
+                    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+                }
+            }, 2500);
+        }
+    }, 700);
 
     return url;
 }

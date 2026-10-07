@@ -91,7 +91,14 @@ export default function RootLayout({
         <SystemThemeColorSync />
         <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet" />
         {children}
-        <Toaster position="top-center" />
+        <Toaster 
+          position="top-center" 
+          toastOptions={{
+            style: {
+              marginTop: 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 14px)',
+            }
+          }}
+        />
         <LoginRequestDialog />
         <Suspense fallback={null}>
           <DeepLinkHandler />

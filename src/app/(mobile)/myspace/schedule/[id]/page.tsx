@@ -795,7 +795,11 @@ function ScheduleDetailContent() {
                 {/* 스마트 여행 플랜 UI (통합 단일 CTA 구조) */}
                 <div className="mt-6 mb-4">
                     {(() => {
-                        const hasFullWrappedPlan = schedule.smart_plan_data && (schedule.smart_plan_data as any).wrapped === true && (schedule.smart_plan_data as any).is_preview !== true;
+                        const isPreviewPlan = (schedule.smart_plan_data as any)?.is_preview === true || 
+                                              (schedule.smart_plan_data as any)?.ai_plan?.is_preview === true;
+                        const hasFullWrappedPlan = schedule.smart_plan_data && 
+                                                   (schedule.smart_plan_data as any).wrapped === true && 
+                                                   !isPreviewPlan;
                         const isPreviewMode = !hasFullWrappedPlan;
                         const handleTriggerGeneration = (targetMode?: 'BASIC' | 'PRO') => {
                             if (targetMode === 'PRO') {

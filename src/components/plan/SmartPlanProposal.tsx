@@ -520,6 +520,7 @@ export default function SmartPlanProposal({
                 if (scheduleId) {
                     const wrappedData = {
                         wrapped: true,
+                        is_preview: false,
                         mode: restoredMode,
                         travel_type: restoredTravelType,
                         ai_plan: planWithWindow,
@@ -719,8 +720,10 @@ export default function SmartPlanProposal({
             setPlan(updatedPlanWithWindow);
             if (scheduleId) {
                 // [v11.9.53] 카드 교체 시에도 선택된 경로 정보가 누락되지 않도록 래핑하여 저장
+                const isPreviewState = isPreviewMode || (initialPlan as any)?.is_preview === true || (initialPlan as any)?.ai_plan?.is_preview === true || (plan as any)?.is_preview === true || false;
                 const wrappedData = {
                     wrapped: true,
+                    is_preview: isPreviewState,
                     mode: initialPlan?.mode || restoredMode,
                     travel_type: initialPlan?.travel_type || restoredTravelType,
                     ai_plan: updatedPlanWithWindow,
@@ -757,8 +760,10 @@ export default function SmartPlanProposal({
 
         if (scheduleId) {
             const calculatedWeatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'NONE');
+            const isPreviewState = isPreviewMode || (initialPlan as any)?.is_preview === true || (initialPlan as any)?.ai_plan?.is_preview === true || (plan as any)?.is_preview === true || false;
             const wrappedData = {
                 wrapped: true,
+                is_preview: isPreviewState,
                 mode: initialPlan?.mode || restoredMode,
                 travel_type: initialPlan?.travel_type || restoredTravelType,
                 ai_plan: plan,
@@ -778,8 +783,10 @@ export default function SmartPlanProposal({
         setVisitOrder(newOrderedIds);
         if (scheduleId) {
             const calculatedWeatherWindow = diffDaysForRegen <= 0 ? 'SHORT' : (diffDaysForRegen <= 7 ? 'MID' : 'NONE');
+            const isPreviewState = isPreviewMode || (initialPlan as any)?.is_preview === true || (initialPlan as any)?.ai_plan?.is_preview === true || (plan as any)?.is_preview === true || false;
             const wrappedData = {
                 wrapped: true,
+                is_preview: isPreviewState,
                 mode: initialPlan?.mode || restoredMode,
                 travel_type: initialPlan?.travel_type || restoredTravelType,
                 ai_plan: plan,
@@ -989,6 +996,7 @@ export default function SmartPlanProposal({
                         if (scheduleId) {
                             const wrappedData = {
                                 wrapped: true,
+                                is_preview: false,
                                 mode: 'PRO' as const,
                                 travel_type: restoredTravelType,
                                 ai_plan: updated,

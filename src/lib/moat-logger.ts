@@ -38,8 +38,8 @@ const DEFAULT_PARTNER_ID = 'a0000000-0000-0000-0000-000000000001'; // 라온아�
 export function logNavIntent(payload: NavIntentPayload) {
     try {
         // 1. 사용자에게 가벼운 예고 토스트
-        toast.info('다녀오신 후 어떠셨는지 알려주세요 🌿', {
-            duration: 3500,
+        toast.info('다녀오신 뒤 어떤지 알려주세요! 내비게이션으로 이동합니다. 🌿', {
+            duration: 4000,
         });
 
         // 2. 비동기 백그라운드 DB 인서트

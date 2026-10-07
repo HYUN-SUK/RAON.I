@@ -362,12 +362,16 @@ async function main() {
             latestCacheDate = new Date(Math.max(...sCandidates.map(c => c.date.getTime())));
         }
 
+        const isFinalizedFullPlan = s.smart_plan_data && 
+            s.smart_plan_data.is_preview !== true && 
+            s.smart_plan_data?.ai_plan?.is_preview !== true;
+
         if (forceArg) {
             console.log(`  🔥 Force option enabled. Bypassing skip guards for Schedule ${s.id}.`);
         } else if (hasCorruptedCandidates) {
             console.log(`  ⚠️ Schedule ${s.id} (${s.check_in}) has corrupted/null candidate coordinates. Bypassing skip guard for self-healing...`);
-        } else if (s.smart_plan_data && s.smart_plan_data.is_preview !== true) {
-            console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has finalized plan. Skipping...`);
+        } else if (isFinalizedFullPlan && hasCandidates) {
+            console.log(`  ℹ️ Schedule ${s.id} (${s.check_in}, D-${daysDiff}) already has finalized plan and candidates. Skipping...`);
             continue;
         } else if (hasCandidates) {
             if (daysDiff > 7) {
