@@ -149,6 +149,12 @@ export default function SmartPlanProposal({
         if (initialPlan) lastKnownPlanRef.current = initialPlan;
     }, [initialPlan]);
 
+    useEffect(() => {
+        if (swapCategory) {
+            hasSwappedInCurrentSessionRef.current = false;
+        }
+    }, [swapCategory]);
+
     // [v14.0.0] 스마트플랜 지도 모달 및 숨김/방문순서 상태
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
     const [mapModalMode, setMapModalMode] = useState<'alternatives' | 'full_timeline'>('alternatives');
@@ -815,6 +821,43 @@ export default function SmartPlanProposal({
             updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
         }
     };
+
+    // [v14.4.4] 대체리스트 바텀시트 안전 닫기 핸들러 (미교체 로깅 + 히스토리 안전 회수)
+    const handleCloseSwapSheet = useCallback(() => {
+        if (!hasSwappedInCurrentSessionRef.current && swapCategory && plan) {
+            const inItemIndex = plan.itemListElement.findIndex(c => c.id === swapTargetId);
+            const inRouteIndex = plan.routeListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
+            const inReturnIndex = plan.returnListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
+            const isRoute = inRouteIndex !== -1;
+            const isReturn = inReturnIndex !== -1;
+
+            let currentActiveInfo = null;
+            if (isRoute && plan.routeListElement) currentActiveInfo = plan.routeListElement[inRouteIndex];
+            else if (isReturn && plan.returnListElement) currentActiveInfo = plan.returnListElement[inReturnIndex];
+            else if (inItemIndex !== -1) currentActiveInfo = plan.itemListElement[inItemIndex];
+
+            const alternativeCards = plan.alternatives?.[swapCategory] || [];
+
+            if (currentActiveInfo) {
+                logPlanSwap({
+                    scheduleId,
+                    userId,
+                    event: 'VIEWED_NO_SWAP',
+                    stage: isRoute ? 'GOING' : (isReturn ? 'RETURNING' : 'DESTINATION'),
+                    category: swapCategory,
+                    candidateCount: alternativeCards.length,
+                    fromPlaceId: currentActiveInfo.id,
+                    fromTrustScore: currentActiveInfo.trustScore,
+                    fromDistance: currentActiveInfo.distanceKm,
+                });
+            }
+        }
+
+        closeSubsheetWithHistory(() => {
+            setSwapCategory(null);
+            setSwapPage(0);
+        });
+    }, [swapCategory, plan, swapTargetId, scheduleId, userId, closeSubsheetWithHistory]);
 
     // [v14.0.0] 대체리스트 지도로 보기 모달 오픈 (리스트 창 내리고 지도 화면 시원하게 전환)
     const handleOpenAlternativesMap = (currentActive: any, allOptions: any[]) => {
@@ -2098,58 +2141,33 @@ export default function SmartPlanProposal({
                 </div>
             </div>
 
-            {/* 3. Swap / Alternatives Bottom Sheet */}
-            <Sheet open={!!swapCategory} onOpenChange={(open) => {
-                if (open) {
-                    hasSwappedInCurrentSessionRef.current = false;
-                } else {
-                    // [A+D 해자 데이터] 대안 시트를 열어봤으나 교체 없이 닫은 경우 (VIEWED_NO_SWAP, 추천 만족 긍정 신호)
-                    if (!hasSwappedInCurrentSessionRef.current && swapCategory && plan) {
-                        const inItemIndex = plan.itemListElement.findIndex(c => c.id === swapTargetId);
-                        const inRouteIndex = plan.routeListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
-                        const inReturnIndex = plan.returnListElement?.findIndex(c => c.id === swapTargetId) ?? -1;
-                        const isRoute = inRouteIndex !== -1;
-                        const isReturn = inReturnIndex !== -1;
-
-                        let currentActiveInfo = null;
-                        if (isRoute && plan.routeListElement) currentActiveInfo = plan.routeListElement[inRouteIndex];
-                        else if (isReturn && plan.returnListElement) currentActiveInfo = plan.returnListElement[inReturnIndex];
-                        else if (inItemIndex !== -1) currentActiveInfo = plan.itemListElement[inItemIndex];
-
-                        const alternativeCards = plan.alternatives?.[swapCategory] || [];
-
-                        if (currentActiveInfo) {
-                            logPlanSwap({
-                                scheduleId,
-                                userId,
-                                event: 'VIEWED_NO_SWAP',
-                                stage: isRoute ? 'GOING' : (isReturn ? 'RETURNING' : 'DESTINATION'),
-                                category: swapCategory,
-                                candidateCount: alternativeCards.length,
-                                fromPlaceId: currentActiveInfo.id,
-                                fromTrustScore: currentActiveInfo.trustScore,
-                                fromDistance: currentActiveInfo.distanceKm,
-
-                            });
-                        }
-                    }
-
-                    closeSubsheetWithHistory(() => {
-                        setSwapCategory(null);
-                        setSwapPage(0);
-                    });
-                }
-            }}>
-
-                <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto bg-[#F8FAF8] px-4 pb-8">
-                    <SheetHeader className="pb-4 border-b border-gray-200">
-                        <SheetTitle className="text-left text-lg font-bold text-[#1E4D2B]">
-                            {swapCategory ? CATEGORY_NAMES[swapCategory] : ''} 일정 교체
-                        </SheetTitle>
-                        <SheetDescription className="text-left text-xs text-gray-500">
-                            캠퍼님의 취향에 맞는 다른 선택지를 골라보세요.
-                        </SheetDescription>
-                    </SheetHeader>
+            {/* 3. Swap / Alternatives Bottom Sheet (InstantPlanModal과 동일하게 0ms 즉각 슬라이드업 & 깜빡임 0% 보장) */}
+            {swapCategory && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 animate-in fade-in duration-150">
+                    {/* 외부 터치 시 닫기 */}
+                    <div 
+                        className="absolute inset-0"
+                        onClick={handleCloseSwapSheet}
+                    />
+                    <div className="relative w-full max-h-[85vh] overflow-y-auto bg-[#F8FAF8] rounded-t-3xl px-4 pb-8 z-10 shadow-2xl flex flex-col will-change-transform animate-in slide-in-from-bottom duration-250">
+                        {/* 헤더 */}
+                        <div className="flex items-center justify-between pb-4 pt-4 border-b border-gray-200">
+                            <div>
+                                <h3 className="text-left text-lg font-bold text-[#1E4D2B]">
+                                    {CATEGORY_NAMES[swapCategory] || '일정'} 교체
+                                </h3>
+                                <p className="text-left text-xs text-gray-500 mt-0.5">
+                                    캠퍼님의 취향에 맞는 다른 선택지를 골라보세요.
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleCloseSwapSheet}
+                                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full active:scale-95 transition-all"
+                                aria-label="닫기"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
 
                     <div className="py-5 space-y-4">
                         {(() => {
@@ -2330,8 +2348,9 @@ export default function SmartPlanProposal({
                             );
                         })()}
                     </div>
-                </SheetContent>
-            </Sheet>
+                </div>
+            </div>
+            )}
             {/* 내비게이션 앱 선택 시트 */}
             <Sheet open={!!navTargetCard} onOpenChange={(open) => {
                 if (!open) {
