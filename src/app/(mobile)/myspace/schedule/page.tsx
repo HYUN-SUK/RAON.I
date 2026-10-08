@@ -263,7 +263,7 @@ function ScheduleContent() {
         if (!cancelTarget) return;
         setIsCancelling(true);
         try {
-            await updateReservationStatus(cancelTarget.id, 'CANCELLED');
+            await updateReservationStatus(cancelTarget.id, 'CANCELLED', '예약자 본인 취소');
             toast.success('예약이 취소되었어요');
             setPendingCancelConfirmOpen(false);
             setCancelTarget(null);

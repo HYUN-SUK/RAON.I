@@ -121,7 +121,7 @@ export default function MyReservationsPage() {
 
         setDirectCancelling(true);
         try {
-            await updateReservationStatus(pendingCancelReservation.id, 'CANCELLED');
+            await updateReservationStatus(pendingCancelReservation.id, 'CANCELLED', '예약자 본인 취소');
             toast.success('예약이 취소되었습니다');
             setConfirmDialogOpen(false);
             setPendingCancelReservation(null);

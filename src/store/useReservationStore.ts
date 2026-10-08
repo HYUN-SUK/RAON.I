@@ -531,7 +531,8 @@ export const useReservationStore = create<ReservationState>()(
                                 deadline: deadline.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
                                 checkIn: params.checkIn.toLocaleDateString(),
                                 checkOut: params.checkOut.toLocaleDateString(),
-                                siteName: siteName
+                                siteName: siteName,
+                                link: '/notifications'
                             },
                             result.reservation_id
                         ).catch(err => console.error('[Store] Notification Dispatch Failed:', err));
@@ -836,6 +837,8 @@ export const useReservationStore = create<ReservationState>()(
                             siteName,
                             checkIn: targetReservation.checkInDate.toLocaleDateString(),
                             checkOut: targetReservation.checkOutDate.toLocaleDateString(),
+                            reason: params.cancelReason || '예약자 본인 취소',
+                            link: '/notifications',
                             reservation_id: params.reservationId
                         },
                         params.reservationId

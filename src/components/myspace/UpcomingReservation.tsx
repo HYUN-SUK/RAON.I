@@ -280,7 +280,7 @@ export default function UpcomingReservation({ isLoading = false, onRefresh }: Up
 
         setDirectCancelling(true);
         try {
-            await updateReservationStatus(targetId, 'CANCELLED');
+            await updateReservationStatus(targetId, 'CANCELLED', '예약자 본인 취소');
             toast.success('예약이 취소되었습니다');
             setCancelConfirmOpen(false);
             setPendingDetailOpen(false);

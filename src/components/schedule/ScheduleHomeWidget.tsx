@@ -571,7 +571,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         if (!selectedReservationForCancel) return;
         setIsDirectCancelling(true);
         try {
-            await updateReservationStatus(selectedReservationForCancel.id, 'CANCELLED');
+            await updateReservationStatus(selectedReservationForCancel.id, 'CANCELLED', '예약자 본인 취소');
             toast.success('예약이 정상적으로 취소되었습니다.');
             setCancelConfirmOpen(false);
             await fetchMyReservations();

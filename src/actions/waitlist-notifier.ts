@@ -60,7 +60,10 @@ export async function notifyWaitlistUsers(targetDate: string, siteId?: string): 
                 await notificationService.dispatchNotification(
                     NotificationEventType.WAITLIST_SLOT_OPENED,
                     user.user_id,
-                    { targetDate: formattedDate },
+                    { 
+                        targetDate: formattedDate,
+                        link: '/reservation'
+                    },
                     targetDate // relatedId로 날짜 저장
                 );
 

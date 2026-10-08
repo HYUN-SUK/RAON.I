@@ -976,10 +976,20 @@ export default function UnifiedReservationCalendar() {
                                             const oldSite = sites.find(s => s.id === selectedReservation.siteId);
                                             const newSite = sites.find(s => s.id === modifySiteId);
                                             const priceDiffText = result.diff > 0
-                                                ? `\n추가 입금: +${result.diff.toLocaleString()}원`
+                                                ? `추가 입금: +${result.diff.toLocaleString()}원 (입금 확인 후 확정됩니다)`
                                                 : result.diff < 0
-                                                    ? `\n환불 금액: ${Math.abs(result.diff).toLocaleString()}원`
-                                                    : '';
+                                                    ? `환불 예정: ${Math.abs(result.diff).toLocaleString()}원 (관리자 확인 후 환불 진행됩니다)`
+                                                    : '요금 변동: 변동 없음 (0원)';
+
+                                            let targetLink = '/myspace/schedule';
+                                            try {
+                                                const { ensureScheduleFromReservation } = await import('@/actions/schedule');
+                                                const schedRes = await ensureScheduleFromReservation(selectedReservation.id);
+                                                if (schedRes.success && schedRes.scheduleId) {
+                                                    targetLink = `/myspace/schedule/${schedRes.scheduleId}`;
+                                                }
+                                            } catch (_) {}
+
                                             await notificationService.dispatchNotification(
                                                 NotificationEventType.RESERVATION_CHANGED,
                                                 selectedReservation.userId,
@@ -991,6 +1001,7 @@ export default function UnifiedReservationCalendar() {
                                                     newCheckOut: format(newCheckOut, 'MM.dd(eee)', { locale: ko }),
                                                     newSiteName: newSite?.name || modifySiteId,
                                                     priceDiff: priceDiffText,
+                                                    link: targetLink,
                                                     reservation_id: selectedReservation.id
                                                 },
                                                 selectedReservation.id

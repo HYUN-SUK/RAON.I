@@ -43,6 +43,8 @@ import { ko } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import CancelReservationDialog from './CancelReservationDialog';
+import { notificationService } from '@/services/notificationService';
+import { NotificationEventType } from '@/types/notificationEvents';
 
 interface AdminReservationDetailModalProps {
     reservation: Reservation | null;
@@ -232,6 +234,48 @@ export default function AdminReservationDetailModal({
 
             if (res.success) {
                 toast.success(`예약 정보가 수정되었습니다.${pricePreview.diff > 0 ? ` (추가 입금: +${pricePreview.diff.toLocaleString()}원)` : pricePreview.diff < 0 ? ` (환불대기: -${Math.abs(pricePreview.diff).toLocaleString()}원)` : ''}`);
+
+                // 회원인 경우 예약 변경 알림 발송
+                if (reservation.userId) {
+                    const diff = pricePreview.diff;
+                    const priceDiffText = diff > 0
+                        ? `추가 입금: +${diff.toLocaleString()}원 (입금 확인 후 확정됩니다)`
+                        : diff < 0
+                            ? `환불 예정: ${Math.abs(diff).toLocaleString()}원 (관리자 확인 후 환불 진행됩니다)`
+                            : '요금 변동: 변동 없음 (0원)';
+
+                    (async () => {
+                        try {
+                            let targetLink = '/myspace/schedule';
+                            const { ensureScheduleFromReservation } = await import('@/actions/schedule');
+                            const schedRes = await ensureScheduleFromReservation(reservation.id);
+                            if (schedRes.success && schedRes.scheduleId) {
+                                targetLink = `/myspace/schedule/${schedRes.scheduleId}`;
+                            }
+
+                            const siteName = sites.find(s => s.id === reservation.siteId)?.name || reservation.siteId;
+                            await notificationService.dispatchNotification(
+                                NotificationEventType.RESERVATION_CHANGED,
+                                reservation.userId,
+                                {
+                                    oldCheckIn: safeFormatDate(reservation.checkInDate, 'MM.dd(eee)', { locale: ko }),
+                                    oldCheckOut: safeFormatDate(reservation.checkOutDate, 'MM.dd(eee)', { locale: ko }),
+                                    oldSiteName: siteName,
+                                    newCheckIn: safeFormatDate(reservation.checkInDate, 'MM.dd(eee)', { locale: ko }),
+                                    newCheckOut: safeFormatDate(reservation.checkOutDate, 'MM.dd(eee)', { locale: ko }),
+                                    newSiteName: siteName,
+                                    priceDiff: priceDiffText,
+                                    link: targetLink,
+                                    reservation_id: reservation.id
+                                },
+                                reservation.id
+                            );
+                        } catch (err) {
+                            console.error('[AdminModal] Notification dispatch error:', err);
+                        }
+                    })();
+                }
+
                 setIsEditing(false);
                 if (onStatusChanged) onStatusChanged();
             } else {

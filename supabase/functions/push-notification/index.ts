@@ -116,12 +116,8 @@ serve(async (req) => {
         const CHUNK_SIZE = 25;
         const results: Array<{ token: string; status: number; resBody: any }> = [];
 
-        const isReservation = String(event_type || '').startsWith('reservation');
-        const defaultHero = (String(event_type || '').startsWith('upcoming_stay') || isReservation)
-            ? "https://raon-i.co.kr/images/reminder_hero.png"
-            : undefined;
-
-        const heroImage = data?.hero_image || defaultHero;
+        // Pure BigTextStyle: Only attach heroImage if explicitly specified in data
+        const heroImage = data?.hero_image;
 
         for (let i = 0; i < uniqueTokens.length; i += CHUNK_SIZE) {
             const chunk = uniqueTokens.slice(i, i + CHUNK_SIZE);

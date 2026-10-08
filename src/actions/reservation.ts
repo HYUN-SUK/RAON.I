@@ -82,11 +82,14 @@ export async function updateReservationStatusAction(
     }
 
     // 2. [중요] 'CONFIRMED' 시 일정 동기화 강제 실행
+    let confirmedScheduleId: string | undefined;
     if (status === 'CONFIRMED') {
         console.log(`[Action] Confirmation detected for ${id}. Syncing schedule...`);
         const syncResult = await ensureScheduleFromReservationAdmin(reservation.id, reservation.user_id);
         if (!syncResult.success) {
             console.warn('[Action] Schedule sync failed during confirmation:', syncResult.error);
+        } else {
+            confirmedScheduleId = syncResult.scheduleId;
         }
     }
 
@@ -103,7 +106,10 @@ export async function updateReservationStatusAction(
                 checkIn: new Date(reservation.check_in_date).toLocaleDateString(),
                 checkOut: new Date(reservation.check_out_date).toLocaleDateString(),
                 totalPrice: reservation.total_price?.toLocaleString() || '0',
-                reason: cancelReason || (status === 'CONFIRMED' ? '입금 확인' : '관리자 예약 상태 변경')
+                reason: cancelReason || (status === 'CONFIRMED' ? '입금 확인' : '예약자 본인 취소'),
+                link: status === 'CONFIRMED'
+                    ? (confirmedScheduleId ? `/myspace/schedule/${confirmedScheduleId}` : '/myspace/schedule')
+                    : '/notifications'
             };
 
             const eventType = status === 'CONFIRMED'

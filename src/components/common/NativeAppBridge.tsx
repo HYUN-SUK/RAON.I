@@ -10,6 +10,24 @@ export default function NativeAppBridge() {
     const pathname = usePathname();
     const lastBackPressRef = useRef<number>(0);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [navigatingMessage, setNavigatingMessage] = useState('스마트플랜으로 이동 중입니다... 🏕️');
+
+    // 목적지 URL에 따른 안내 문구 동적 결정
+    const getTransitionMessage = (url: string) => {
+        if (url.includes('/notifications')) return '알림 내역으로 이동 중입니다... 🔔';
+        if (url.includes('/reservation')) return '실시간 예약 화면으로 이동 중입니다... ⛺';
+        if (url.includes('/myspace/schedule')) return '스마트플랜으로 이동 중입니다... 🏕️';
+        if (url.includes('/myspace/reservations')) return '예약 내역으로 이동 중입니다... 📋';
+        return '페이지로 이동 중입니다... 🏕️';
+    };
+
+    const triggerNavigation = (targetUrl: string) => {
+        setNavigatingMessage(getTransitionMessage(targetUrl));
+        setIsNavigating(true);
+        try { router.prefetch(targetUrl); } catch (_) {}
+        router.replace(targetUrl);
+        setTimeout(() => setIsNavigating(false), 3500);
+    };
 
     // 경로가 목적지로 변경되면 플로팅 로딩 카드 즉시 해제
     useEffect(() => {
@@ -86,10 +104,7 @@ export default function NativeAppBridge() {
                         const url = new URL(data.url);
                         const targetPath = url.pathname + url.search + url.hash;
                         if (targetPath) {
-                            setIsNavigating(true);
-                            try { router.prefetch(targetPath); } catch (_) {}
-                            router.replace(targetPath);
-                            setTimeout(() => setIsNavigating(false), 3500);
+                            triggerNavigation(targetPath);
                         }
                     } catch (e) {
                         console.warn('[Native Bridge] URL Open parse error:', e);
@@ -121,10 +136,7 @@ export default function NativeAppBridge() {
                             action: link ? {
                                 label: '확인',
                                 onClick: () => {
-                                    setIsNavigating(true);
-                                    try { router.prefetch(link); } catch (_) {}
-                                    router.replace(link);
-                                    setTimeout(() => setIsNavigating(false), 3500);
+                                    triggerNavigation(link);
                                 }
                             } : undefined,
                         });
@@ -139,14 +151,7 @@ export default function NativeAppBridge() {
                         const data = action.notification?.data;
                         const link = data?.link || data?.route || '/notifications';
                         if (link) {
-                            setIsNavigating(true);
-                            try {
-                                router.prefetch(link);
-                            } catch (_) {}
-                            router.replace(link);
-                            setTimeout(() => {
-                                setIsNavigating(false);
-                            }, 3500);
+                            triggerNavigation(link);
                         }
                     }
                 );
@@ -180,7 +185,7 @@ export default function NativeAppBridge() {
         >
             <RaonLoading size="sm" />
             <span className="text-xs font-bold text-stone-700 dark:text-stone-200">
-                스마트플랜으로 이동 중입니다... 🏕️
+                {navigatingMessage}
             </span>
         </div>
     );

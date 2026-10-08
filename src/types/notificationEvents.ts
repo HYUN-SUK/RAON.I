@@ -78,7 +78,8 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         fallback_badge: true,
         badge_target: 'reservation',
         title_template: '예약 신청 완료',
-        body_template: `입금이 확인되면 예약이 최종 확정됩니다.
+        body_template: `📍 라온아이 캠핑장 ({{siteName}})
+입금이 확인되면 예약이 최종 확정됩니다.
 
 ▶ 입금 대기 중
 입금 계좌: {{bankName}} {{bankAccount}}
@@ -87,8 +88,7 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
 입금 기한: {{deadline}} 까지
 * 기한 내 미입금 시 자동 취소됩니다.
 
-일정: {{checkIn}} - {{checkOut}}
-사이트: {{siteName}}`,
+일정: {{checkIn}} - {{checkOut}}`,
     },
 
     // 2. 예약 확정 (입금 확인 후)
@@ -98,16 +98,17 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         quiet_hours_override: true,
         fallback_badge: true,
         badge_target: 'reservation',
-        title_template: '예약 확정',
-        body_template: `예약이 확정되었습니다.
+        title_template: '예약 확정 안내',
+        body_template: `📍 라온아이 캠핑장 ({{siteName}})
+예약이 확정되었습니다. 즐거운 캠핑 되세요!
 
 ▶ 이용 안내
-입실 시간: 14:00
-퇴실 시간: 12:00
+입실 시간: 14:00 | 퇴실 시간: 12:00
 매너 타임: 22:00 ~ 07:00 (조용히 부탁드려요)
 
 일정: {{checkIn}} - {{checkOut}}
-사이트: {{siteName}}`,
+
+[ 🧭 터치해서 스마트플랜 확인하기 > ]`,
     },
 
     // 3. 예약 취소
@@ -117,13 +118,12 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         quiet_hours_override: true,
         fallback_badge: true,
         badge_target: 'reservation',
-        title_template: '예약 취소',
-        body_template: `예약이 취소되었습니다.
+        title_template: '예약 취소 안내',
+        body_template: `📍 라온아이 캠핑장 ({{siteName}})
+예약이 취소되었습니다.
 
 취소 사유: {{reason}}
-
-일정: {{checkIn}} - {{checkOut}}
-사이트: {{siteName}}`,
+일정: {{checkIn}} - {{checkOut}}`,
     },
 
     // 4. 예약 변경
@@ -133,8 +133,9 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         quiet_hours_override: true,
         fallback_badge: true,
         badge_target: 'reservation',
-        title_template: '예약 변경',
-        body_template: `예약이 변경되었습니다.
+        title_template: '예약 변경 안내',
+        body_template: `📍 라온아이 캠핑장
+예약 정보가 변경되었습니다.
 
 ▶ 기존
 일정: {{oldCheckIn}} - {{oldCheckOut}}
@@ -143,7 +144,11 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
 ▶ 변경
 일정: {{newCheckIn}} - {{newCheckOut}}
 사이트: {{newSiteName}}
-{{priceDiff}}`,
+
+▶ 결제 변동
+{{priceDiff}}
+
+[ 🧭 터치해서 변경된 일정 확인하기 > ]`,
     },
 
     // 5. 입금 확인 (레거시 - RESERVATION_CONFIRMED와 동일)
@@ -153,16 +158,17 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         quiet_hours_override: true,
         fallback_badge: true,
         badge_target: 'reservation',
-        title_template: '입금 확인',
-        body_template: `입금이 확인되었습니다. 예약이 완료되었어요!
+        title_template: '예약 확정 안내',
+        body_template: `📍 라온아이 캠핑장 ({{siteName}})
+예약이 확정되었습니다. 즐거운 캠핑 되세요!
 
 ▶ 이용 안내
-입실 시간: 14:00
-퇴실 시간: 12:00
+입실 시간: 14:00 | 퇴실 시간: 12:00
 매너 타임: 22:00 ~ 07:00 (조용히 부탁드려요)
 
 일정: {{checkIn}} - {{checkOut}}
-사이트: {{siteName}}`,
+
+[ 🧭 터치해서 스마트플랜 확인하기 > ]`,
     },
     [NotificationEventType.UPCOMING_STAY_D1]: {
         type: NotificationEventType.UPCOMING_STAY_D1,
@@ -236,8 +242,11 @@ export const NOTIFICATION_EVENT_CONFIGS: Record<NotificationEventType, Notificat
         quiet_hours_override: true, // 빈자리는 24시간 언제나 즉시 푸시 알림 발송
         fallback_badge: true,
         badge_target: 'reservation',
-        title_template: '빈자리 알림',
-        body_template: '요청하신 {{targetDate}}에 예약 가능한 자리가 생겼어요!',
+        title_template: '🏕️ 빈자리 알림',
+        body_template: `📍 라온아이 캠핑장
+요청하신 {{targetDate}}에 예약 가능한 빈자리가 생겼어요! 지금 바로 확인해보세요.
+
+[ ⛺ 터치해서 빈자리 확인하기 > ]`,
     },
 
     // ===== 시스템 필수 (푸시 O) =====
