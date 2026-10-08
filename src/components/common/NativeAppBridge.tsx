@@ -1,12 +1,20 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
+import RaonLoading from '@/components/common/RaonLoading';
 
 export default function NativeAppBridge() {
     const router = useRouter();
+    const pathname = usePathname();
     const lastBackPressRef = useRef<number>(0);
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    // 경로가 목적지로 변경되면 플로팅 로딩 카드 즉시 해제
+    useEffect(() => {
+        setIsNavigating(false);
+    }, [pathname]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -54,8 +62,8 @@ export default function NativeAppBridge() {
                         return;
                     }
 
-                    const pathname = window.location.pathname;
-                    const isRoot = pathname === '/' || pathname === '/login';
+                    const currentPath = window.location.pathname;
+                    const isRoot = currentPath === '/' || currentPath === '/login';
 
                     if (!isRoot && window.history.length > 1) {
                         window.history.back();
@@ -78,7 +86,10 @@ export default function NativeAppBridge() {
                         const url = new URL(data.url);
                         const targetPath = url.pathname + url.search + url.hash;
                         if (targetPath) {
-                            router.push(targetPath);
+                            setIsNavigating(true);
+                            try { router.prefetch(targetPath); } catch (_) {}
+                            router.replace(targetPath);
+                            setTimeout(() => setIsNavigating(false), 3500);
                         }
                     } catch (e) {
                         console.warn('[Native Bridge] URL Open parse error:', e);
@@ -110,7 +121,10 @@ export default function NativeAppBridge() {
                             action: link ? {
                                 label: '확인',
                                 onClick: () => {
-                                    router.push(link);
+                                    setIsNavigating(true);
+                                    try { router.prefetch(link); } catch (_) {}
+                                    router.replace(link);
+                                    setTimeout(() => setIsNavigating(false), 3500);
                                 }
                             } : undefined,
                         });
@@ -125,7 +139,14 @@ export default function NativeAppBridge() {
                         const data = action.notification?.data;
                         const link = data?.link || data?.route || '/notifications';
                         if (link) {
-                            router.push(link);
+                            setIsNavigating(true);
+                            try {
+                                router.prefetch(link);
+                            } catch (_) {}
+                            router.replace(link);
+                            setTimeout(() => {
+                                setIsNavigating(false);
+                            }, 3500);
                         }
                     }
                 );
@@ -149,5 +170,18 @@ export default function NativeAppBridge() {
         };
     }, [router]);
 
-    return null;
+    if (!isNavigating) return null;
+
+    return (
+        <div
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-emerald-500/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none"
+            role="status"
+            aria-live="polite"
+        >
+            <RaonLoading size="sm" />
+            <span className="text-xs font-bold text-stone-700 dark:text-stone-200">
+                스마트플랜으로 이동 중입니다... 🏕️
+            </span>
+        </div>
+    );
 }

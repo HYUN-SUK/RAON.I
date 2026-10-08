@@ -111,8 +111,7 @@ export function buildFcmPayload(
     deviceType: string | undefined,
     options: FcmPayloadOptions
 ): any {
-    const defaultImage = "https://raon-i.co.kr/images/reminder_hero.png";
-    const heroImage = options.heroImage || defaultImage;
+    const heroImage = options.heroImage;
     const linkPath = options.link || "/notifications";
     const fullLink = linkPath.startsWith('http') ? linkPath : `https://raon-i.co.kr${linkPath.startsWith('/') ? linkPath : `/${linkPath}`}`;
 
@@ -124,8 +123,10 @@ export function buildFcmPayload(
         full_link: fullLink,
         event_type: String(options.eventType || 'default'),
         related_id: String(options.relatedId || 'general'),
-        hero_image: heroImage,
     };
+    if (heroImage) {
+        stringData.hero_image = heroImage;
+    }
 
     if (options.data && typeof options.data === 'object') {
         Object.entries(options.data).forEach(([k, v]) => {
@@ -135,28 +136,36 @@ export function buildFcmPayload(
 
     const isWeb = deviceType === 'web';
 
+    const rootNotification: any = {
+        title: String(options.title),
+        body: String(options.body),
+    };
+    if (heroImage) {
+        rootNotification.image = heroImage;
+    }
+
+    const androidNotification: any = {
+        channel_id: "raon_notifications",
+        sound: "default",
+        icon: "ic_launcher",
+        color: "#22C55E",
+        default_vibrate_timings: true,
+        notification_priority: "PRIORITY_MAX", // Force high-importance popup banner
+        visibility: "PUBLIC",                 // Visible on secure lockscreens
+    };
+    if (heroImage) {
+        androidNotification.image = heroImage;
+    }
+
     const payload: any = {
         message: {
             token: token,
             // Root notification: Critical for Capacitor foreground banner + background system tray
-            notification: {
-                title: String(options.title),
-                body: String(options.body),
-                image: heroImage,
-            },
+            notification: rootNotification,
             data: stringData,
             android: {
                 priority: "high", // Immediate Doze Mode exit & heads-up banner
-                notification: {
-                    channel_id: "raon_notifications",
-                    sound: "default",
-                    image: heroImage,
-                    icon: "ic_launcher",
-                    color: "#22C55E",
-                    default_vibrate_timings: true,
-                    notification_priority: "PRIORITY_MAX", // Force high-importance popup banner
-                    visibility: "PUBLIC",                 // Visible on secure lockscreens
-                }
+                notification: androidNotification
             }
         }
     };
@@ -173,7 +182,7 @@ export function buildFcmPayload(
                 body: String(options.body),
                 icon: "https://raon-i.co.kr/icons/icon-192.png",
                 badge: "https://raon-i.co.kr/badge.png",
-                image: heroImage,
+                ...(heroImage ? { image: heroImage } : {}),
                 vibrate: [300, 150, 300],
             },
             fcm_options: {

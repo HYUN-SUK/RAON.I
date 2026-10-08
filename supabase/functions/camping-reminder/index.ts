@@ -590,7 +590,7 @@ async function sendBulkPush(notifications: any[]) {
 
                 console.log(`[Push] Sending to ${uniqueTokens.length} unique tokens for user ${notif.user_id}...`);
 
-                const heroImage = notif.data?.hero_image || "https://raon-i.co.kr/images/reminder_hero.png";
+                const heroImage = notif.data?.hero_image; // Only attach image if explicitly provided (Reminders use pure BigTextStyle)
                 const linkUrl = notif.data?.link || "/notifications";
 
                 const results = await Promise.all(uniqueTokens.map(async (t) => {
@@ -805,6 +805,8 @@ serve(async (req: any) => {
             primaryForecast.tempMin = tempMinOverall;
             primaryForecast.tempMax = tempMaxOverall;
 
+            const stayPeriod = (s.check_in && s.check_out) ? `${s.check_in} ~ ${s.check_out}` : (s.check_in || '');
+
             // Post-Check-Out: Record Reminder (1분 기록 독려)
             if (s.check_out === yesterday && !s.notification_record_reminder_sent) {
                 if (!writtenIdsSet.has(s.id)) {
@@ -813,7 +815,7 @@ serve(async (req: any) => {
                         category: 'reservation',
                         event_type: 'camping_record_reminder',
                         title: `⛺ 지난 캠핑은 어떠셨나요? 10초 만에 핀 꽂기`,
-                        body: `${displayName}에서의 추억을 10초 만족도 이모지와 함께 핀으로 꽂아보세요! ✨`,
+                        body: `📍 ${displayName} (${stayPeriod})\n캠핑의 추억을 10초 만족도 이모지와 함께 핀으로 꽂아보세요! ✨\n\n[ 📍 추억 핀 꽂으러 가기 > ]`,
                         data: { link: `/myspace` },
                         status: 'queued'
                     });
@@ -823,7 +825,7 @@ serve(async (req: any) => {
             // D-0: Today is the day!
             else if (s.check_in === today && !s.notification_d0_sent) {
                 const events = await getNearbyEvents(lat, lng, 30, s.check_in, s.check_out);
-                let eventText = "주변에 예정된 행사가 없어요~ 조용한 캠핑을 즐겨보세요!";
+                let eventText = "주변에 예정된 행사가 없어요~ 조용한 힐링 캠핑을 즐겨보세요!";
                 if (events.length > 0) {
                     eventText = `근처에서 행사가 열리고 있어요!\n` +
                         events.slice(0, 2).map(e => `🎈 ${e.title} (${Number(e.dist).toFixed(1)}km)`).join('\n');
@@ -834,10 +836,9 @@ serve(async (req: any) => {
                     category: 'reservation',
                     event_type: 'upcoming_stay_today',
                     title: `🏕️ 드디어 오늘이에요! (스마트플랜 최종 업데이트)`,
-                    body: `[⚡ 오늘 09:00부터 최종 스마트플랜으로 업데이트할 수 있어요!]\n\n📍 ${displayName}\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!`,
+                    body: `📍 ${displayName} (${stayPeriod})\n${weatherLine}\n\n${eventText}\n설레는 발걸음, 안전하게 다녀오세요!\n\n[ 🧭 최종 스마트플랜 확인하러 가기 > ]`,
                     data: { 
                         link: `/myspace/schedule/${s.id}`,
-                        hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
                     },
                     status: 'queued'
                 });
@@ -861,10 +862,9 @@ serve(async (req: any) => {
                     category: 'reservation',
                     event_type: 'upcoming_stay_d5',
                     title: `🎒 캠핑이 5일 남았어요! (주간 날씨 & 스마트플랜 오픈)`,
-                    body: `[⚡ 오늘 09:00부터 최신 정밀 스마트플랜으로 업데이트할 수 있어요!]\n\n📍 ${displayName}\n${weatherLine}\n\n[맞춤 준비물]\n${tip}`,
+                    body: `📍 ${displayName} (${stayPeriod})\n${weatherLine}\n\n[맞춤 준비물]\n${tip}\n\n[ 🧭 최신 스마트플랜 확인 / 업데이트하러 가기 > ]`,
                     data: { 
-                        link: `/myspace/schedule/${s.id}?tab=checklist`,
-                        hero_image: "https://raon-i.co.kr/images/reminder_hero.png"
+                        link: `/myspace/schedule/${s.id}`,
                     },
                     quiet_hours_override: true, // 8시~9시 크론 언제나 즉시 발송 보장
                     status: 'queued'
@@ -893,6 +893,7 @@ serve(async (req: any) => {
                 if (s.check_in === today || s.check_in === d5 || s.check_in < today) continue;
 
                 const displayName = s.source === 'raonai' ? `라온아이 캠핑장 (${s.campground_name})` : (s.campground_name || '캠핑장');
+                const stayPeriod = (s.check_in && s.check_out) ? `${s.check_in} ~ ${s.check_out}` : (s.check_in || '');
 
                 notifications.push({
                     user_id: s.user_id,
@@ -900,7 +901,7 @@ serve(async (req: any) => {
                     event_type: 'smart_plan_next_day',
                     related_id: s.id,
                     title: `🧭 나만의 정밀 스마트플랜을 완성해보세요!`,
-                    body: `정밀 스마트플랜을 업데이트할 수 있어요! 일정카드에 들어가 여행계획을 업데이트해보세요!`,
+                    body: `📍 ${displayName} (${stayPeriod})\n맞춤 여행 코스와 스마트플랜이 준비되었어요! 나만의 여행 계획을 완성해보세요.\n\n[ 🧭 스마트플랜 업데이트하러 가기 > ]`,
                     data: {
                         link: `/myspace/schedule/${s.id}`,
                         campground_name: displayName
