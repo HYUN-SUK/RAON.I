@@ -166,16 +166,16 @@ export default function SmartPlanProposal({
     const isProgrammaticBackRef = useRef(false);
 
     // 하위 시트 오픈 시 가상 히스토리 등록 (depth 1단계씩 동적 적재)
-    // Next.js App Router 렌더 처리 충돌을 방지하기 위해 웹 애니메이션 프레임 안착 후 비동기 분리
+    // Next.js App Router 렌더 처리 충돌(애니메이션 중 깜빡임)을 방지하기 위해 가드는 즉시 적용하되 pushState는 120ms 뒤 비동기 분리
     const pushSubsheetHistory = useCallback(() => {
         if (typeof window !== 'undefined') {
             const nextDepth = subsheetDepthRef.current + 1;
-            requestAnimationFrame(() => {
+            subsheetDepthRef.current = nextDepth;
+            setTimeout(() => {
                 try {
                     window.history.pushState({ raonProposalSubsheet: nextDepth }, '', window.location.href);
-                    subsheetDepthRef.current = nextDepth;
                 } catch {}
-            });
+            }, 120);
         }
     }, []);
 

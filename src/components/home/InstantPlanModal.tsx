@@ -152,6 +152,16 @@ export default function InstantPlanModal({
     const savedSwapTargetIdRef = React.useRef<string | null>(null);
     const lastSearchTimeRef = React.useRef<number>(0);
 
+    // [v14.4.3] 즉시 플랜 대체 리스트 사전 메모이제이션 (시트 오픈 시 0ms 즉각 렌더링, 깜빡임 방지)
+    const instantSwapData = useMemo(() => {
+        if (!swapCategory || !planData) return { currentActive: null, allOptions: [] as any[] };
+        const currentActive = planData.itemListElement?.find(c => c.id === (swapTargetId || savedSwapTargetIdRef.current));
+        const rawAlternatives = planData.alternatives?.[swapCategory] || [];
+        const availableAlternatives = rawAlternatives.filter(c => c.id !== currentActive?.id);
+        const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
+        return { currentActive, allOptions };
+    }, [swapCategory, swapTargetId, planData]);
+
     // Schedule saving state & travel dates
     const [isSaving, setIsSaving] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(false);
@@ -182,11 +192,16 @@ export default function InstantPlanModal({
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     // 하위 시트(대체리스트, 내비) 오픈 시 가상 히스토리 등록 (depth 1단계씩 동적 적재)
+    // Next.js App Router 렌더 처리 충돌(시트 올라올 때 번쩍임)을 방지하기 위해 가드는 즉시 적용하되 pushState는 120ms 뒤 비동기 분리
     const pushSubsheetHistory = React.useCallback(() => {
         if (typeof window !== 'undefined') {
             const nextDepth = subsheetDepthRef.current + 1;
-            window.history.pushState({ raonSubsheet: nextDepth }, '', window.location.href);
             subsheetDepthRef.current = nextDepth;
+            setTimeout(() => {
+                try {
+                    window.history.pushState({ raonSubsheet: nextDepth }, '', window.location.href);
+                } catch {}
+            }, 120);
         }
     }, []);
 
@@ -1515,14 +1530,14 @@ export default function InstantPlanModal({
                     )}
                 </div>
 
-                {/* 하단 고정 CTA (초밀착 최적화: 버튼을 아래로 내려 상단 뷰포트 확보) */}
+                {/* 하단 고정 CTA (초밀착 최적화: 버튼 및 안내 1줄 압축으로 상단 뷰포트 95px 추가 확보) */}
                 {step === 'RESULT' && planData && (
-                    <div className="pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] px-3.5 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-2">
+                    <div className="pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] px-3.5 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-1.5">
                         {/* 1. 메인 버튼: 딥 에메랄드 + 골드 보더 + 골드 쉬머 광택 애니메이션 */}
                         <Button
                             onClick={handleStartSaveSchedule}
                             disabled={isCheckingAuth}
-                            className="relative overflow-hidden w-full h-12 bg-gradient-to-r from-[#173824] via-[#224E35] to-[#173824] hover:from-[#132e1e] hover:to-[#1c402b] disabled:opacity-70 text-white font-extrabold text-sm rounded-xl border border-amber-300/40 shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
+                            className="relative overflow-hidden w-full h-11 bg-gradient-to-r from-[#173824] via-[#224E35] to-[#173824] hover:from-[#132e1e] hover:to-[#1c402b] disabled:opacity-70 text-white font-extrabold text-sm rounded-xl border border-amber-300/40 shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
                         >
                             {/* 골드 쉬머 광택 레이어 */}
                             <span className="absolute inset-0 -translate-x-full animate-shimmer-wave bg-gradient-to-r from-transparent via-amber-200/25 to-transparent pointer-events-none" />
@@ -1530,65 +1545,42 @@ export default function InstantPlanModal({
                             {isCheckingAuth ? (
                                 <>
                                     <Loader2 className="w-4 h-4 text-amber-300 animate-spin shrink-0" />
-                                    <span className="tracking-tight text-[14px]">인증 상태 확인 중...</span>
+                                    <span className="tracking-tight text-[13.5px]">인증 상태 확인 중...</span>
                                 </>
                             ) : (
                                 <>
                                     <Calendar className="w-4 h-4 text-amber-300 shrink-0" />
-                                    <span className="tracking-tight text-[14px]">✨ 이 계획 내 일정에 저장하기</span>
+                                    <span className="tracking-tight text-[13.5px]">✨ 이 계획 내 일정에 저장하기</span>
                                 </>
                             )}
                         </Button>
 
-                        {/* 2. 하단 3단계 정밀 로드맵 카드 (초간결 2단어 버전) */}
-                        <div className="bg-gradient-to-b from-amber-500/[0.07] to-emerald-500/[0.04] border border-amber-400/30 dark:border-amber-500/20 rounded-2xl p-2.5 space-y-2">
-                            <div className="flex items-center justify-between px-0.5">
-                                <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                                    <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                                    일정 저장 시 열리는 오전 9시 업데이트
-                                </span>
-                                <span className="text-[9px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
-                                    무료 혜택
-                                </span>
+                        {/* 2. 하단 3단계 정밀 로드맵: 가로 1줄 초슬림 인라인 칩 바 (~32px 초밀착 압축) */}
+                        <div className="bg-gradient-to-r from-amber-500/[0.07] via-emerald-500/[0.05] to-amber-500/[0.07] border border-amber-300/40 dark:border-amber-500/20 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-1 shadow-2xs">
+                            <span className="text-[10px] font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-1 shrink-0">
+                                <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                <span>09시 무료 업데이트</span>
+                            </span>
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-stone-700 dark:text-stone-300 shrink-0">
+                                <span className="bg-white/90 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md border border-amber-200/60 dark:border-zinc-700 text-stone-900 dark:text-stone-100">내일 정밀</span>
+                                <span className="text-stone-300 dark:text-zinc-600 text-[8px]">▶</span>
+                                <span className="bg-white/90 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md border border-amber-200/60 dark:border-zinc-700 text-stone-900 dark:text-stone-100">D-7 날씨</span>
+                                <span className="text-stone-300 dark:text-zinc-600 text-[8px]">▶</span>
+                                <span className="bg-white/90 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md border border-amber-200/60 dark:border-zinc-700 text-stone-900 dark:text-stone-100">당일 완성</span>
                             </div>
-
-                            {/* 가로 3열 미니 스텝 칩 (핵심 키워드 2줄로 압축) */}
-                            <div className="grid grid-cols-3 gap-1.5 text-center">
-                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl py-1.5 px-1 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
-                                    <span className="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 block">내일 09시</span>
-                                    <span className="text-[11px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">정밀 플랜</span>
-                                </div>
-                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl py-1.5 px-1 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
-                                    <span className="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 block">D-7 09시</span>
-                                    <span className="text-[11px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">날씨 최신</span>
-                                </div>
-                                <div className="bg-white/85 dark:bg-zinc-800/80 rounded-xl py-1.5 px-1 border border-amber-200/60 dark:border-zinc-700/50 shadow-2xs">
-                                    <span className="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 block">당일 09시</span>
-                                    <span className="text-[11px] font-black text-stone-800 dark:text-stone-100 block mt-0.5">최종 완성</span>
-                                </div>
-                            </div>
-
-                            {/* 비로그인 / 로그인 스마트 타겟팅 풋터 (1줄 압축) */}
-                            <p className="text-[10px] text-center text-stone-600 dark:text-stone-400 font-medium">
-                                {isLoggedIn ? (
-                                    <span>💡 각 단계 오전 9시에 업데이트 버튼이 활성화됩니다</span>
-                                ) : (
-                                    <span className="text-amber-900 dark:text-amber-200 font-semibold">🔒 카카오 3초 간편로그인으로 자동 여행계획이 가능해요!</span>
-                                )}
-                            </p>
                         </div>
                     </div>
                 )}
 
                 {/* 1. 대안 장소 교체 바텀 시트 (SmartPlanProposal 1:1 일치) */}
                 {swapCategory && (
-                    <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/45 animate-in fade-in duration-150">
                         {/* 외부 터치 시 닫기 */}
                         <div 
                             className="absolute inset-0"
                             onClick={() => closeSubsheetWithHistory(() => setSwapCategory(null))}
                         />
-                        <div className="relative w-full max-h-[85vh] overflow-y-auto bg-[#F8FAF8] rounded-t-3xl px-4 pb-8 z-10 shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
+                        <div className="relative w-full max-h-[85vh] overflow-y-auto bg-[#F8FAF8] rounded-t-3xl px-4 pb-8 z-10 shadow-2xl flex flex-col will-change-transform animate-in slide-in-from-bottom duration-250">
                             {/* 헤더 */}
                             <div className="flex items-center justify-between pb-4 pt-4 border-b border-gray-200">
                                 <div>
@@ -1611,10 +1603,7 @@ export default function InstantPlanModal({
                             <div className="py-4 space-y-4">
                                 {(() => {
                                     if (!swapCategory || !planData) return null;
-                                    const currentActive = planData.itemListElement?.find(c => c.id === (swapTargetId || savedSwapTargetIdRef.current));
-                                    const rawAlternatives = planData.alternatives?.[swapCategory] || [];
-                                    const availableAlternatives = rawAlternatives.filter(c => c.id !== currentActive?.id);
-                                    const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
+                                    const { currentActive, allOptions } = instantSwapData;
 
                                     if (allOptions.length === 0) {
                                         return (
