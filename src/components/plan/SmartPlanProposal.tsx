@@ -78,6 +78,16 @@ const CATEGORY_NAMES: Record<string, string> = {
     'FESTIVAL': '로컬 축제/이벤트'
 };
 
+const getDistHelper = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371e3;
+    const f1 = lat1 * Math.PI / 180, f2 = lat2 * Math.PI / 180;
+    const df = (lat2 - lat1) * Math.PI / 180, dl = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(df / 2) * Math.sin(df / 2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const cleanStrHelper = (s: string) => (s || '').replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\s/g, '').toLowerCase();
+
 export default function SmartPlanProposal({
     scheduleId,
     initialPlan,
@@ -156,11 +166,16 @@ export default function SmartPlanProposal({
     const isProgrammaticBackRef = useRef(false);
 
     // 하위 시트 오픈 시 가상 히스토리 등록 (depth 1단계씩 동적 적재)
+    // Next.js App Router 렌더 처리 충돌을 방지하기 위해 웹 애니메이션 프레임 안착 후 비동기 분리
     const pushSubsheetHistory = useCallback(() => {
         if (typeof window !== 'undefined') {
             const nextDepth = subsheetDepthRef.current + 1;
-            window.history.pushState({ raonProposalSubsheet: nextDepth }, '', window.location.href);
-            subsheetDepthRef.current = nextDepth;
+            requestAnimationFrame(() => {
+                try {
+                    window.history.pushState({ raonProposalSubsheet: nextDepth }, '', window.location.href);
+                    subsheetDepthRef.current = nextDepth;
+                } catch {}
+            });
         }
     }, []);
 
@@ -1029,6 +1044,79 @@ export default function SmartPlanProposal({
             </div>
         );
     }
+
+    // [v14.4.2] 대체 리스트의 공간 중복 제거 및 거리 계산을 useMemo로 사전 캐싱하여 바텀시트 오픈 시 0ms 즉각 렌더링 (깜빡임 퇴치)
+    const swapData = useMemo(() => {
+        if (!swapCategory || !plan) {
+            return { currentActive: null, allOptions: [] as any[], totalPages: 0, paginatedOptions: [] as any[], isTrackA: false };
+        }
+        const isTrackA = ['RESTAURANT', 'SPOT', 'FESTIVAL', 'MART', 'HOSPITAL', 'GAS_STATION'].includes(swapCategory);
+        const currentActive = plan.itemListElement?.find(c => c.id === swapTargetId) || 
+                             plan.routeListElement?.find(c => c.id === swapTargetId) || 
+                             plan.returnListElement?.find(c => c.id === swapTargetId);
+        
+        const rawAlternatives = plan.alternatives?.[swapCategory] || [];
+
+        // 클라이언트 단 대안 리스트 자체 공간 중복 제거 (이름 무관 50m 초근접 소거)
+        const deduplicateSpatialClient = (cards: any[]): any[] => {
+            const result: any[] = [];
+            for (const card of cards) {
+                let isDup = false;
+                const cName = cleanStrHelper(card.name);
+                for (const existing of result) {
+                    const dist = getDistHelper(card.lat, card.lng, existing.lat, existing.lng);
+                    const extName = cleanStrHelper(existing.name);
+                    
+                    const isSpatialDup = dist < 50 || (dist < 500 && (cName.includes(extName) || extName.includes(cName)));
+                    if (isSpatialDup) {
+                        isDup = true;
+                        if (card.trustScore > existing.trustScore) {
+                            Object.assign(existing, card);
+                        }
+                        break;
+                    }
+                }
+                if (!isDup) {
+                    result.push(card);
+                }
+            }
+            return result;
+        };
+
+        const uniqueAlternatives = deduplicateSpatialClient(rawAlternatives);
+
+        const activeCards = (plan as any).mode === 'PRO'
+            ? ((plan as any).factCards || [])
+            : [
+                ...(plan.itemListElement || []),
+                ...(plan.routeListElement || []),
+                ...(plan.returnListElement || [])
+              ];
+        
+        const activeIds = activeCards.map((c: any) => c.id);
+
+        const availableAlternatives = uniqueAlternatives.filter(c => {
+            if (activeIds.includes(c.id)) return false;
+
+            const cName = cleanStrHelper(c.name);
+            if (!cName) return false;
+
+            const isSpatialDup = activeCards.some((actCard: any) => {
+                const dist = getDistHelper(c.lat, c.lng, actCard.lat, actCard.lng);
+                const actName = cleanStrHelper(actCard.name);
+                if (!actName) return false;
+                return dist < 50 || (dist < 500 && (cName.includes(actName) || actName.includes(cName)));
+            });
+            return !isSpatialDup;
+        });
+
+        const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
+        const pageSize = 3;
+        const totalPages = Math.ceil(allOptions.length / pageSize);
+        const paginatedOptions = allOptions.slice(swapPage * pageSize, (swapPage + 1) * pageSize);
+
+        return { currentActive, allOptions, totalPages, paginatedOptions, isTrackA };
+    }, [swapCategory, swapTargetId, swapPage, plan]);
 
     const swapOptions = swapCategory ? [
         ((plan.itemListElement || []).find(c => c.category === swapCategory) || (plan.routeListElement || []).find(c => c.category === swapCategory) || (plan.returnListElement || []).find(c => c.category === swapCategory))!, // Current Active
@@ -2066,81 +2154,7 @@ export default function SmartPlanProposal({
                     <div className="py-5 space-y-4">
                         {(() => {
                             if (!swapCategory) return null;
-                            const isTrackA = ['RESTAURANT', 'SPOT', 'FESTIVAL', 'MART', 'HOSPITAL', 'GAS_STATION'].includes(swapCategory);
-                            const currentActive = plan.itemListElement?.find(c => c.id === swapTargetId) || 
-                                                 plan.routeListElement?.find(c => c.id === swapTargetId) || 
-                                                 plan.returnListElement?.find(c => c.id === swapTargetId);
-                            
-                            const rawAlternatives = plan.alternatives?.[swapCategory] || [];
-                            
-                            const getDistHelper = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-                                const R = 6371e3;
-                                const f1 = lat1 * Math.PI/180, f2 = lat2 * Math.PI/180;
-                                const df = (lat2-lat1) * Math.PI/180, dl = (lng2-lng1) * Math.PI/180;
-                                const a = Math.sin(df/2) * Math.sin(df/2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl/2) * Math.sin(dl/2);
-                                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                            };
-                            const cleanStrHelper = (s: string) => (s || '').replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\s/g, '').toLowerCase();
-
-                            // [v12.5.5] 클라이언트 단 대안 리스트 자체 공간 중복 제거 가드 추가 (이름 무관 50m 초근접 소거)
-                            const deduplicateSpatialClient = (cards: any[]): any[] => {
-                                const result: any[] = [];
-                                for (const card of cards) {
-                                    let isDup = false;
-                                    const cName = cleanStrHelper(card.name);
-                                    for (const existing of result) {
-                                        const dist = getDistHelper(card.lat, card.lng, existing.lat, existing.lng);
-                                        const extName = cleanStrHelper(existing.name);
-                                        
-                                        const isSpatialDup = dist < 50 || (dist < 500 && (cName.includes(extName) || extName.includes(cName)));
-                                        if (isSpatialDup) {
-                                            isDup = true;
-                                            if (card.trustScore > existing.trustScore) {
-                                                Object.assign(existing, card);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                    if (!isDup) {
-                                        result.push(card);
-                                    }
-                                }
-                                return result;
-                            };
-
-                            const uniqueAlternatives = deduplicateSpatialClient(rawAlternatives);
-
-                            // [v12.5.4] 클라이언트 단 교차 공간 중복 제거 및 PRO/BASIC 모드 호환 적용
-                            const activeCards = (plan as any).mode === 'PRO'
-                                ? ((plan as any).factCards || [])
-                                : [
-                                    ...(plan.itemListElement || []),
-                                    ...(plan.routeListElement || []),
-                                    ...(plan.returnListElement || [])
-                                  ];
-                            
-                            const activeIds = activeCards.map((c: any) => c.id);
-
-                            const availableAlternatives = uniqueAlternatives.filter(c => {
-                                if (activeIds.includes(c.id)) return false;
-
-                                const cName = cleanStrHelper(c.name);
-                                if (!cName) return false;
-
-                                const isSpatialDup = activeCards.some((actCard: any) => {
-                                    const dist = getDistHelper(c.lat, c.lng, actCard.lat, actCard.lng);
-                                    const actName = cleanStrHelper(actCard.name);
-                                    if (!actName) return false;
-                                    return dist < 50 || (dist < 500 && (cName.includes(actName) || actName.includes(cName)));
-                                });
-                                return !isSpatialDup;
-                            });
-
-                            const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
-                            
-                            const pageSize = 3;
-                            const totalPages = Math.ceil(allOptions.length / pageSize);
-                            const paginatedOptions = allOptions.slice(swapPage * pageSize, (swapPage + 1) * pageSize);
+                            const { currentActive, allOptions, totalPages, paginatedOptions, isTrackA } = swapData;
 
                             return (
                                 <>

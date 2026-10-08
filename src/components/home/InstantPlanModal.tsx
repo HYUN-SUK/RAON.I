@@ -177,6 +177,8 @@ export default function InstantPlanModal({
     const subsheetDepthRef = React.useRef<number>(0); // 0: 없음, 1: 대체리스트/내비, 2: 지도
     const isHandlingPopStateRef = React.useRef(false);
     const isProgrammaticBackRef = React.useRef(false);
+    const isNavigatingOutRef = React.useRef(false); // 상세/전체 페이지 이동 시 뒤로가기(go(-1)) 방지 플래그
+    const [showScrollHint, setShowScrollHint] = useState(true); // 일정 결과물 하단 스크롤 안내 힌트 표시 상태
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     // 하위 시트(대체리스트, 내비) 오픈 시 가상 히스토리 등록 (depth 1단계씩 동적 적재)
@@ -229,9 +231,33 @@ export default function InstantPlanModal({
     const swapCategoryRef = React.useRef(swapCategory);
     swapCategoryRef.current = swapCategory;
 
+    // 결과 화면(RESULT)에서 사용자가 스크롤을 내리면 아래로 스크롤 안내 힌트 부드럽게 페이드아웃
+    useEffect(() => {
+        const scrollEl = scrollContainerRef.current;
+        if (!scrollEl || step !== 'RESULT') return;
+
+        const handleScroll = () => {
+            if (scrollEl.scrollTop > 50) {
+                setShowScrollHint(false);
+            } else {
+                setShowScrollHint(true);
+            }
+        };
+
+        scrollEl.addEventListener('scroll', handleScroll, { passive: true });
+        return () => scrollEl.removeEventListener('scroll', handleScroll);
+    }, [step]);
+
     // popstate 이벤트 리스너 및 모달 루트 가상 히스토리 등록
     useEffect(() => {
         if (!isOpen) {
+            // 상세/전체 일정 페이지 이동 중인 경우 홈으로 튕겨나가지 않도록 가상 히스토리 회수 스킵
+            if (isNavigatingOutRef.current) {
+                modalHistoryPushedRef.current = false;
+                subsheetDepthRef.current = 0;
+                return;
+            }
+
             // 외부 UI 터치 등으로 모달이 닫혔을 때 남아있는 가상 히스토리 안전 회수
             if (!isHandlingPopStateRef.current && typeof window !== 'undefined') {
                 const totalToPop = (modalHistoryPushedRef.current ? 1 : 0) + subsheetDepthRef.current;
@@ -249,6 +275,9 @@ export default function InstantPlanModal({
             }
             return;
         }
+
+        // 모달 열릴 때 네비게이션 아웃 플래그 초기화
+        isNavigatingOutRef.current = false;
 
         // 1. 모달 루트 진입 시 가상 히스토리 등록 (Level 1)
         if (!modalHistoryPushedRef.current && typeof window !== 'undefined') {
@@ -949,6 +978,35 @@ export default function InstantPlanModal({
                     localStorage.removeItem('raon_draft_instant_plan');
                 } catch {}
 
+                // [대표님 지시사항] 0초 즉각 렌더링을 위해 날짜(체크인 오름차순) 순서에 맞춘 낙관적 캐시 선주입
+                try {
+                    const raw = localStorage.getItem('user_schedules_cache');
+                    const existingList = raw ? JSON.parse(raw) : [];
+                    const newSchedule = {
+                        id: res.scheduleId,
+                        campground_name: selectedDestination.name,
+                        campground_address: selectedDestination.address || '',
+                        campground_lat: selectedDestination.lat,
+                        campground_lng: selectedDestination.lng,
+                        check_in: regCheckIn,
+                        check_out: regCheckOut,
+                        status: 'scheduled',
+                        source: 'raonai',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    };
+                    const combined = [newSchedule, ...(Array.isArray(existingList) ? existingList.filter((s: any) => s.id !== res.scheduleId) : [])];
+                    combined.sort((a: any, b: any) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
+                    localStorage.setItem('user_schedules_cache', JSON.stringify(combined));
+                } catch (cacheErr) {
+                    console.warn('[InstantPlanModal] Cache pre-population warning:', cacheErr);
+                }
+
+                // 홈으로 튕겨나가지 않도록 가상 히스토리 회수 차단
+                isNavigatingOutRef.current = true;
+                modalHistoryPushedRef.current = false;
+                subsheetDepthRef.current = 0;
+
                 toast.success('🎉 내 일정에 저장되었습니다! 다음날 오전 9시 이후 정밀 플랜으로 업그레이드할 수 있습니다.');
                 onClose();
                 router.push(`/myspace/schedule/${res.scheduleId}`);
@@ -1226,10 +1284,28 @@ export default function InstantPlanModal({
                                             .filter(c => c.category === 'RESTAURANT')
                                             .map(card => renderInstantCard(card, 'RESTAURANT'))}
                                     </div>
+
+                                    {/* [대표님 지시사항] 아래로 스크롤 유도 힌트 배지 (일정 정도 스크롤 시 부드럽게 페이드아웃) */}
+                                    <div className={cn(
+                                        "flex justify-center pt-2 pb-0.5 transition-all duration-300",
+                                        showScrollHint ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
+                                    )}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const stage2El = document.getElementById('instant-stage-2');
+                                                stage2El?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            }}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700 text-[11px] font-extrabold text-[#1E4D2B] dark:text-emerald-300 shadow-xs active:scale-95 transition-all cursor-pointer animate-bounce"
+                                        >
+                                            <span>아래로 스크롤하여 카페 · 명소 · 편의시설 보기</span>
+                                            <span className="text-xs font-black">⌄</span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Stage 2: 여행의 쉼표 (로컬 카페) */}
-                                <div className="space-y-3 relative z-10 w-full min-w-0">
+                                <div id="instant-stage-2" className="space-y-3 relative z-10 w-full min-w-0 scroll-mt-4">
                                     <div className="flex flex-col gap-1 mb-2 ml-4 min-w-0">
                                         <div className="flex items-center gap-2">
                                             <div className="w-3 h-3 rounded-full bg-[#388E5A] ring-4 ring-white z-10 -ml-[6px]" />
@@ -1439,9 +1515,9 @@ export default function InstantPlanModal({
                     )}
                 </div>
 
-                {/* 하단 고정 CTA (초간결 미니멀 럭셔리) */}
+                {/* 하단 고정 CTA (초밀착 최적화: 버튼을 아래로 내려 상단 뷰포트 확보) */}
                 {step === 'RESULT' && planData && (
-                    <div className="p-3.5 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-2.5">
+                    <div className="pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] px-3.5 bg-white/95 dark:bg-zinc-900/95 border-t border-stone-200/80 dark:border-zinc-800 shadow-xl z-20 shrink-0 space-y-2">
                         {/* 1. 메인 버튼: 딥 에메랄드 + 골드 보더 + 골드 쉬머 광택 애니메이션 */}
                         <Button
                             onClick={handleStartSaveSchedule}

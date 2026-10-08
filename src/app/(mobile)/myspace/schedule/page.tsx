@@ -84,6 +84,7 @@ function ScheduleContent() {
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+    const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
     useEffect(() => {
         setIsMounted(true);
@@ -113,9 +114,11 @@ function ScheduleContent() {
 
     // 전체 일정 및 예약 통합 로드 (SWR 캐시 패턴: 캐시 존재 시 화면 차단 없이 백그라운드 조용히 갱신)
     const loadData = useCallback(async (isInitial = false) => {
-        // 캐시 데이터가 아예 없는 경우에만 스켈레톤 로더 노출
+        // 캐시 데이터가 아예 없는 경우에만 스켈레톤 로더 노출, 캐시가 있으면 백그라운드 동기화 상태 활성화
         if (isInitial && allSchedules.length === 0) {
             setIsLoading(true);
+        } else {
+            setIsSyncing(true);
         }
         try {
             const [schedulesData] = await Promise.all([
@@ -133,6 +136,7 @@ function ScheduleContent() {
             toast.error('일정을 불러오는데 실패했어요');
         } finally {
             setIsLoading(false);
+            setIsSyncing(false);
         }
     }, [allSchedules.length, fetchMyReservations]);
 
@@ -325,6 +329,14 @@ function ScheduleContent() {
                         </button>
                     ))}
                 </div>
+
+                {/* 동기화 알림 배지 (백그라운드 최신 데이터 조회 중) */}
+                {isSyncing && (
+                    <div className="mx-4 mb-2.5 px-3 py-1.5 bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-[#1E4D2B] dark:text-emerald-300 animate-in fade-in duration-200">
+                        <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                        <span>최신 여행 일정을 동기화하고 있어요...</span>
+                    </div>
+                )}
             </header>
 
             {/* 컨텐츠 */}

@@ -766,8 +766,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 })}
             </div>
 
-            {/* Map Area */}
-            <div className="w-full h-[65vh] relative shrink-0">
+            {/* Map Area: 52vh로 최적화하여 하단 첫 카드가 자연스럽게 Peek 노출 */}
+            <div className="w-full h-[52vh] relative shrink-0">
                 {loading ? (
                     <div className="w-full h-full flex items-center justify-center bg-gray-100">
                         <Loader2 className="animate-spin text-[#388E5A]" size={32} />
@@ -951,14 +951,30 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             </div>
 
             {/* List View */}
-            <div className="bg-surface-1 pb-10 relative z-20 flex flex-col min-h-screen">
-                <div data-list-header className="p-4 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10 space-y-3">
+            <div id="my-map-list-section" className="bg-surface-1 pb-10 relative z-20 flex flex-col min-h-screen scroll-mt-2">
+                <div data-list-header className="p-4 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10 space-y-2.5">
+                    {/* 모바일 시트 드래그 핸들 바 */}
+                    <div className="w-10 h-1 bg-gray-300 dark:bg-zinc-600 rounded-full mx-auto mb-0.5 shrink-0" />
+
                     <div className="flex justify-between items-center">
                         <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
                             <Navigation size={18} className="text-[#388E5A]" />
                             나의 캠핑 기록
                         </h3>
-                        <span className="text-xs font-bold text-[#2D5A3C] bg-[#E9EFEA] px-2.5 py-1 rounded-full">{allMarkers.length}곳 정복!</span>
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const el = document.getElementById('my-map-list-section');
+                                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                                className="text-[11px] font-bold text-[#1E4D2B] bg-[#EDF5EE] px-2 py-1 rounded-full flex items-center gap-1 active:scale-95 transition-transform cursor-pointer"
+                            >
+                                <span>위로 올려 보기</span>
+                                <span>⌃</span>
+                            </button>
+                            <span className="text-xs font-bold text-[#2D5A3C] bg-[#E9EFEA] px-2.5 py-1 rounded-full">{allMarkers.length}곳 정복!</span>
+                        </div>
                     </div>
                     {/* 5. List Search Bar */}
                     <div className="relative">
