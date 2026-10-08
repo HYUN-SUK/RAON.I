@@ -7,6 +7,7 @@ import { getFavoriteCampgrounds, toggleFavorite } from '@/actions/schedule';
 import { CampgroundWithScore } from '@/types/camping-ajiit';
 import RecommendationCard from '@/components/planlock/RecommendationCard';
 import { toast } from 'sonner';
+import RaonLoading from '@/components/common/RaonLoading';
 
 export default function MyFavoritesPage() {
     const router = useRouter();
@@ -70,7 +71,7 @@ export default function MyFavoritesPage() {
             <main className="px-5 pt-6 space-y-4 relative z-10">
                 {isLoading ? (
                     <div className="flex justify-center py-20">
-                        <Loader2 className="w-8 h-8 animate-spin text-stone-400" />
+                        <RaonLoading size="md" text="즐겨찾기를 불러오는 중..." />
                     </div>
                 ) : favorites.length > 0 ? (
                     <div className="space-y-4">

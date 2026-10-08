@@ -14,6 +14,7 @@ import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } fro
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import RaonLoading from '@/components/common/RaonLoading';
 
 // Kakao Maps SDK Type Augmentation for TypeScript
 declare global {
@@ -769,9 +770,8 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             {/* Map Area: 52vh로 최적화하여 하단 첫 카드가 자연스럽게 Peek 노출 */}
             <div className="w-full h-[52vh] relative shrink-0">
                 {loading ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                        <Loader2 className="animate-spin text-[#388E5A]" size={32} />
-                        <span className="ml-2 text-gray-500 font-medium">지도 불러오는 중...</span>
+                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                        <RaonLoading size="md" text="지도를 불러오는 중..." />
                     </div>
                 ) : error ? (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-6 text-center">
@@ -942,7 +942,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     }}
                 >
                     {isLocating ? (
-                        <Loader2 size={18} className="animate-spin text-[#388E5A]" />
+                        <RaonLoading size="xs" />
                     ) : (
                         <Locate size={18} />
                     )}

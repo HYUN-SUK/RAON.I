@@ -9,6 +9,7 @@ import { ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import UnlockableFeatureSection from '@/components/myspace/UnlockableFeatureSection';
 import { cn } from '@/lib/utils';
+import RaonLoading from '@/components/common/RaonLoading';
 
 const FILTERS = ["전체", "#게시글", "#미션"];
 
@@ -77,8 +78,7 @@ export default function MySpaceAlbumPage() {
                 <div className="mt-2 text-stone-300">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20">
-                            <Loader2 className="w-8 h-8 animate-spin text-stone-400 mb-2" />
-                            <p className="text-stone-400 text-sm">사진을 불러오는 중...</p>
+                            <RaonLoading size="md" text="사진을 불러오는 중..." />
                         </div>
                     ) : (
                         <PhotoGrid photos={filteredPhotos} />

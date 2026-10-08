@@ -12,6 +12,7 @@ import NearbyDetailSheet from '@/components/home/NearbyDetailSheet';
 import FacilityDetailSheet from '@/components/home/FacilityDetailSheet';
 import ScheduleHomeWidget from '@/components/schedule/ScheduleHomeWidget';
 import InstantPlanModal from '@/components/home/InstantPlanModal';
+import RaonLoading from '@/components/common/RaonLoading';
 import { motion } from 'framer-motion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
@@ -576,8 +577,8 @@ export default function BeginnerHome() {
 
     if (!isMounted) {
         return (
-            <div className="flex flex-col w-full min-h-screen bg-white dark:bg-black relative items-center justify-center text-stone-400 text-sm">
-                로딩 중...
+            <div className="flex flex-col w-full min-h-screen bg-[#F8FAF8] dark:bg-black relative items-center justify-center">
+                <RaonLoading size="md" />
             </div>
         );
     }

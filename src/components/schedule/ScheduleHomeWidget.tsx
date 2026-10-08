@@ -14,6 +14,7 @@ import { useWeather } from '@/hooks/useWeather';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
+import RaonLoading from '@/components/common/RaonLoading';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -628,15 +629,13 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     // 로딩 (새로고침 / 첫 진입 데이터 조회 중)
     if (isLoading) {
         return (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-[#388E5A]/20 shadow-sm flex items-center gap-3.5 animate-pulse">
-                <div className="w-10 h-10 rounded-xl bg-[#388E5A]/10 flex items-center justify-center text-[#388E5A] dark:text-emerald-400 shrink-0">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                </div>
-                <div className="space-y-0.5">
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100 flex items-center gap-1.5">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-[#388E5A]/20 shadow-sm flex items-center gap-3.5">
+                <RaonLoading size="sm" />
+                <div className="space-y-0.5 min-w-0 flex-1">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-stone-100 flex items-center gap-1.5 truncate">
                         일정을 불러오고 있습니다...
                     </h4>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium truncate">
                         잠시만 기다려주시면 다가오는 여행을 안내해 드립니다.
                     </p>
                 </div>
@@ -847,7 +846,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                                 className="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 border border-red-200 dark:border-red-900/50 px-3 py-1.5 rounded-full shadow-2xs active:scale-95 transition-all shrink-0 disabled:opacity-50"
                             >
                                 {isDirectCancelling ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <RaonLoading size="xs" />
                                 ) : (
                                     <span>취소요청</span>
                                 )}

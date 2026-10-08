@@ -12,6 +12,7 @@ import AjiitCard from '@/components/record/AjiitCard';
 import { getMyRecords, CampingRecord } from '@/actions/record';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import RaonLoading from '@/components/common/RaonLoading';
 
 type TabType = 'posts' | 'records';
 
@@ -165,9 +166,8 @@ function MyRecordsContent() {
                 {activeTab === 'posts' && (
                     <div className="space-y-3">
                         {isLoading ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-stone-400 space-y-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-[#388E5A]" />
-                                <span className="text-xs">내 글을 불러오는 중...</span>
+                            <div className="flex flex-col items-center justify-center py-20 text-stone-400">
+                                <RaonLoading size="md" text="내 글을 불러오는 중..." />
                             </div>
                         ) : posts.length > 0 ? (
                             <>
@@ -178,10 +178,10 @@ function MyRecordsContent() {
                                     <button
                                         onClick={handleLoadMore}
                                         disabled={isLoadingMore}
-                                        className="w-full py-3 text-xs text-stone-500 font-medium hover:text-stone-800 flex items-center justify-center gap-1"
+                                        className="w-full py-3 text-xs text-stone-500 font-medium hover:text-stone-800 flex items-center justify-center gap-1.5"
                                     >
                                         {isLoadingMore ? (
-                                            <Loader2 className="w-4 h-4 animate-spin text-stone-400" />
+                                            <RaonLoading size="xs" />
                                         ) : (
                                             '더 보기'
                                         )}
@@ -201,9 +201,8 @@ function MyRecordsContent() {
                 {activeTab === 'records' && (
                     <div className="space-y-3">
                         {isLoadingRecords ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-stone-400 space-y-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-[#388E5A]" />
-                                <span className="text-xs">10초 기록을 불러오는 중...</span>
+                            <div className="flex flex-col items-center justify-center py-20 text-stone-400">
+                                <RaonLoading size="md" text="10초 기록을 불러오는 중..." />
                             </div>
                         ) : campingRecords.length > 0 ? (
                             <>
@@ -235,7 +234,7 @@ export default function MyRecordsPage() {
     return (
         <Suspense fallback={
             <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-[#388E5A] animate-spin" />
+                <RaonLoading size="lg" text="기록을 불러오고 있습니다..." />
             </div>
         }>
             <MyRecordsContent />

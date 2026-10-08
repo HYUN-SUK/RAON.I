@@ -40,6 +40,7 @@ import { createClient } from '@/lib/supabase-client';
 import { openNavApp } from '@/lib/nav-utils';
 import SmartPlanMapViewModal from '@/components/plan/SmartPlanMapViewModal';
 import { cn } from '@/lib/utils';
+import RaonLoading from '@/components/common/RaonLoading';
 
 const CATEGORY_ICONS: Record<string, string> = {
     'ROUTE_CAFE': '☕',
@@ -1134,7 +1135,7 @@ export default function InstantPlanModal({
                                         className="h-12 px-4 rounded-xl bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold text-xs shrink-0 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 touch-manipulation"
                                     >
                                         {isSearching ? (
-                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                            <RaonLoading size="xs" />
                                         ) : (
                                             <span>검색</span>
                                         )}
@@ -1520,9 +1521,8 @@ export default function InstantPlanModal({
 
                             {isSaving && (
                                 <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50">
-                                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-xl flex flex-col items-center space-y-3">
-                                        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-                                        <p className="text-xs font-bold text-stone-700">일정을 저장하고 있습니다...</p>
+                                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-xl flex flex-col items-center">
+                                        <RaonLoading size="lg" text="일정을 저장하고 있습니다..." />
                                     </div>
                                 </div>
                             )}
@@ -1544,7 +1544,7 @@ export default function InstantPlanModal({
 
                             {isCheckingAuth ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 text-amber-300 animate-spin shrink-0" />
+                                    <RaonLoading size="xs" className="mr-1" />
                                     <span className="tracking-tight text-[13.5px]">인증 상태 확인 중...</span>
                                 </>
                             ) : (

@@ -9,6 +9,7 @@ import { ko } from "date-fns/locale";
 import { ChevronLeft, Calendar, MapPin, Clock, CheckCircle2, AlertCircle, XCircle, Loader2, RefreshCw, BanknoteIcon, Tent } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CancelReservationSheet from "@/components/reservation/CancelReservationSheet";
+import RaonLoading from "@/components/common/RaonLoading";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -350,8 +351,7 @@ export default function MyReservationsPage() {
             <div className="p-4 space-y-4">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 text-text-2">
-                        <Loader2 size={32} className="animate-spin mb-3" />
-                        <p>전체 내역을 불러오는 중...</p>
+                        <RaonLoading size="lg" text="전체 내역을 불러오는 중..." />
                     </div>
                 ) : unifiedList.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-text-2">

@@ -17,12 +17,13 @@ import { useReservationStore } from '@/store/useReservationStore';
 import { Reservation } from '@/types/reservation';
 import { SITES } from '@/constants/sites';
 import dynamic from 'next/dynamic';
+import RaonLoading from '@/components/common/RaonLoading';
 
 const ScheduleForm = dynamic(() => import('@/components/schedule/ScheduleForm'), {
     ssr: false,
     loading: () => (
         <div className="p-8 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#388E5A]" />
+            <RaonLoading size="sm" />
         </div>
     )
 });
@@ -333,7 +334,7 @@ function ScheduleContent() {
                 {/* 동기화 알림 배지 (백그라운드 최신 데이터 조회 중) */}
                 {isSyncing && (
                     <div className="mx-4 mb-2.5 px-3 py-1.5 bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-[#1E4D2B] dark:text-emerald-300 animate-in fade-in duration-200">
-                        <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                        <RaonLoading size="xs" />
                         <span>최신 여행 일정을 동기화하고 있어요...</span>
                     </div>
                 )}
@@ -479,7 +480,7 @@ export default function SchedulePage() {
     return (
         <Suspense fallback={
             <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-[#388E5A]" />
+                <RaonLoading size="lg" text="여행 일정을 불러오고 있습니다..." />
             </div>
         }>
             <ScheduleContent />

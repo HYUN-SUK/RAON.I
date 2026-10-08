@@ -37,6 +37,7 @@ import { useWeather } from '@/hooks/useWeather';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import RaonLoading from '@/components/common/RaonLoading';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -615,7 +616,7 @@ function ScheduleDetailContent() {
     if (!isMounted || isLoading || isUserLoading || !scheduleId || scheduleId === 'undefined') {
         return (
             <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-[#388E5A] animate-spin" />
+                <RaonLoading size="lg" text="일정 정보를 불러오고 있습니다..." />
             </div>
         );
     }
@@ -624,9 +625,7 @@ function ScheduleDetailContent() {
     if (!schedule) {
         return (
             <div className="min-h-screen bg-[#F8FAF8] flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-[#EDF5EE] flex items-center justify-center text-[#388E5A] mb-2">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                </div>
+                <RaonLoading size="md" className="mb-2" />
                 <h3 className="text-base font-bold text-gray-800">일정 정보를 준비 중입니다</h3>
                 <p className="text-xs text-gray-500 max-w-xs leading-relaxed">
                     네트워크 연결이나 세션 동기화로 인해 일시적으로 지연되고 있습니다. 아래 버튼을 눌러 다시 불러올 수 있습니다.
@@ -955,7 +954,7 @@ function ScheduleDetailContent() {
                             className="bg-[#388E5A] hover:bg-[#2F774B]"
                         >
                             {isAddingItem ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <RaonLoading size="xs" />
                             ) : (
                                 <Plus className="w-4 h-4" />
                             )}
@@ -1082,7 +1081,7 @@ function ScheduleDetailContent() {
                             >
                                 {isUpdating ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                        <RaonLoading size="xs" className="mr-1.5" />
                                         저장 중...
                                     </>
                                 ) : (
@@ -1123,9 +1122,8 @@ function ScheduleDetailContent() {
 export default function ScheduleDetailPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#F8FAF8] flex flex-col items-center justify-center space-y-3 font-sans">
-                <Loader2 className="w-8 h-8 text-[#388E5A] animate-spin" />
-                <span className="text-xs text-stone-500 font-medium">일정을 상세히 불러오는 중...</span>
+            <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center font-sans">
+                <RaonLoading size="lg" text="일정을 상세히 불러오는 중..." />
             </div>
         }>
             <ScheduleDetailContent />
