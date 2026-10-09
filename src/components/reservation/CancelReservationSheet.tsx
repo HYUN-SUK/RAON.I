@@ -48,27 +48,42 @@ export default function CancelReservationSheet({
     const isValid = displayBankName.trim() && account.trim() && holder.trim();
 
     const handleSubmit = async () => {
-        if (!isValid) return;
+        if (!isValid || loading) return;
 
         setLoading(true);
-        const result = await requestCancelReservation({
-            reservationId: reservation.id,
-            refundBank: displayBankName,
-            refundAccount: account,
-            refundHolder: holder,
-            cancelReason: reason || undefined,
-        });
-        setLoading(false);
+        try {
+            // 15초 타임아웃 가드 (통신 단절 시 무한 로딩 원천 방지)
+            const timeoutPromise = new Promise<{ success: false; message: string }>((_, reject) => {
+                setTimeout(() => reject(new Error("네트워크 응답 시간이 초과되었습니다. 인터넷 연결을 확인 후 다시 시도해 주세요.")), 15000);
+            });
 
-        if (result.success) {
-            toast.success("취소 요청이 완료되었습니다", {
-                description: `환불 예정액: ${result.refundAmount?.toLocaleString()}원 (${result.refundRate}%)`,
+            const cancelPromise = requestCancelReservation({
+                reservationId: reservation.id,
+                refundBank: displayBankName,
+                refundAccount: account,
+                refundHolder: holder,
+                cancelReason: reason || undefined,
             });
-            onComplete();
-        } else {
-            toast.error("취소 요청 실패", {
-                description: result.message || "다시 시도해주세요",
+
+            const result = await Promise.race([cancelPromise, timeoutPromise]);
+
+            if (result.success) {
+                toast.success("취소 요청이 완료되었습니다", {
+                    description: `환불 예정액: ${result.refundAmount?.toLocaleString()}원 (${result.refundRate}%)`,
+                });
+                onComplete();
+            } else {
+                toast.error("취소 요청 실패", {
+                    description: result.message || "다시 시도해 주세요",
+                });
+            }
+        } catch (err: any) {
+            console.error("[CancelReservationSheet] Submit error:", err);
+            toast.error("취소 처리 중 오류 발생", {
+                description: err?.message || "네트워크 연결이 원활하지 않습니다. 다시 시도해 주세요.",
             });
+        } finally {
+            setLoading(false);
         }
     };
 

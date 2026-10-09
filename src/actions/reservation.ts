@@ -604,18 +604,30 @@ export async function requestReservationCancelAction(params: {
         return { success: false, error: 'DB_ERROR', message: updateErr.message };
     }
 
-    // 5. 빈자리 대기자 알림 발송
+    // 5. 빈자리 대기자 알림 발송 (Next.js after로 백그라운드 비동기 분리)
     try {
-        const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
-        await notifyWaitlistUsers(reservation.check_in_date, reservation.site_id);
-    } catch (e) {
-        console.error('[requestReservationCancelAction] Waitlist notify error:', e);
+        const { after } = await import('next/server');
+        after(async () => {
+            try {
+                const { notifyWaitlistUsers } = await import('@/actions/waitlist-notifier');
+                await notifyWaitlistUsers(reservation.check_in_date, reservation.site_id);
+            } catch (e) {
+                console.error('[requestReservationCancelAction] Waitlist notify error:', e);
+            }
+        });
+    } catch {
+        import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
+            notifyWaitlistUsers(reservation.check_in_date, reservation.site_id).catch(() => {});
+        }).catch(() => {});
     }
 
     // 6. 캐시 무효화
-    revalidatePath('/admin/reservations');
-    revalidatePath('/admin/payments');
-    revalidatePath('/myspace/reservations');
+    try {
+        revalidatePath('/admin/reservations');
+        revalidatePath('/admin/payments');
+        revalidatePath('/myspace/reservations');
+        revalidatePath('/myspace/schedule');
+    } catch {}
 
     return {
         success: true,

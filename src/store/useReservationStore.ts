@@ -791,16 +791,65 @@ export const useReservationStore = create<ReservationState>()(
                 set({ reservations: publicReservations });
             },
 
-            // 사용자 취소 요청 [v13.9.0: Server Action 연동으로 계좌정보 100% 안전 저장]
+            // 사용자 취소 요청 [v14.6.0: 영구 불변 REST API + Bearer 토큰 연동으로 무한 로딩 원천 차단]
             requestCancelReservation: async (params) => {
-                const { requestReservationCancelAction } = await import('@/actions/reservation');
-                const result = await requestReservationCancelAction({
-                    reservationId: params.reservationId,
-                    refundBank: params.refundBank,
-                    refundAccount: params.refundAccount,
-                    refundHolder: params.refundHolder,
-                    cancelReason: params.cancelReason
-                });
+                let result: {
+                    success: boolean;
+                    refundRate?: number;
+                    refundAmount?: number;
+                    error?: string;
+                    message?: string;
+                };
+
+                try {
+                    const { createClient } = await import('@/lib/supabase-client');
+                    const supabase = createClient();
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
+
+                    const headers: Record<string, string> = {
+                        'Content-Type': 'application/json',
+                    };
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+
+                    const res = await fetch('/api/reservation/cancel', {
+                        method: 'POST',
+                        headers,
+                        credentials: 'include',
+                        body: JSON.stringify(params),
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.success) {
+                        result = data;
+                    } else {
+                        // 만약 REST API에서 404 등 오류가 발생하면 Server Action으로 하위 호환 폴백
+                        if (res.status === 404) {
+                            const { requestReservationCancelAction } = await import('@/actions/reservation');
+                            result = await requestReservationCancelAction(params);
+                        } else {
+                            result = {
+                                success: false,
+                                error: data.error || 'CANCEL_FAILED',
+                                message: data.message || '취소 요청에 실패했습니다.',
+                            };
+                        }
+                    }
+                } catch (fetchErr: any) {
+                    console.warn('[Store] REST API cancel failed, attempting Server Action fallback:', fetchErr);
+                    try {
+                        const { requestReservationCancelAction } = await import('@/actions/reservation');
+                        result = await requestReservationCancelAction(params);
+                    } catch (actionErr: any) {
+                        return {
+                            success: false,
+                            error: 'NETWORK_ERROR',
+                            message: actionErr?.message || '네트워크 연결이 원활하지 않습니다. 다시 시도해 주세요.'
+                        };
+                    }
+                }
 
                 if (!result.success) {
                     return { success: false, error: result.error, message: result.message };
@@ -826,37 +875,36 @@ export const useReservationStore = create<ReservationState>()(
                 }));
 
                 // Notification Trigger (사용자 취소 알림)
-                const targetReservation = get().reservations.find(r => r.id === params.reservationId);
-                if (targetReservation && targetReservation.userId) {
-                    const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || targetReservation.siteId;
+                try {
+                    const targetReservation = get().reservations.find(r => r.id === params.reservationId);
+                    if (targetReservation && targetReservation.userId) {
+                        const siteName = get().sites.find(s => s.id === targetReservation.siteId)?.name || targetReservation.siteId;
 
-                    notificationService.dispatchNotification(
-                        NotificationEventType.RESERVATION_CANCELLED,
-                        targetReservation.userId,
-                        {
-                            siteName,
-                            checkIn: targetReservation.checkInDate.toLocaleDateString(),
-                            checkOut: targetReservation.checkOutDate.toLocaleDateString(),
-                            reason: params.cancelReason || '예약자 본인 취소',
-                            link: '/notifications',
-                            reservation_id: params.reservationId
-                        },
-                        params.reservationId
-                    ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
+                        const checkInDate = new Date(targetReservation.checkInDate);
+                        const checkOutDate = new Date(targetReservation.checkOutDate);
 
-                    // 빈자리 알림 발송 (Server Action 호출 - 로컬 KST 날짜 기준 보존)
-                    const checkInDateStr = formatLocalDate(targetReservation.checkInDate);
-                    import('@/actions/waitlist-notifier').then(({ notifyWaitlistUsers }) => {
-                        notifyWaitlistUsers(checkInDateStr, targetReservation.siteId)
-                            .catch(err => console.error('[Store] Waitlist Notify Failed:', err));
-                    });
+                        notificationService.dispatchNotification(
+                            NotificationEventType.RESERVATION_CANCELLED,
+                            targetReservation.userId,
+                            {
+                                siteName,
+                                checkIn: isNaN(checkInDate.getTime()) ? String(targetReservation.checkInDate) : checkInDate.toLocaleDateString(),
+                                checkOut: isNaN(checkOutDate.getTime()) ? String(targetReservation.checkOutDate) : checkOutDate.toLocaleDateString(),
+                                reason: params.cancelReason || '예약자 본인 취소',
+                                link: '/notifications',
+                                reservation_id: params.reservationId
+                            },
+                            params.reservationId
+                        ).catch(err => console.error('[Store] Cancel Notification Failed:', err));
+                    }
+                } catch (notifErr) {
+                    console.error('[Store] Cancel Notification catch:', notifErr);
                 }
 
                 return {
-                    success: result.success,
+                    success: true,
                     refundRate: result.refundRate,
                     refundAmount: result.refundAmount,
-                    error: result.error,
                     message: result.message
                 };
             },
