@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import RaonLoading from '@/components/common/RaonLoading';
@@ -10,29 +10,62 @@ export default function NativeAppBridge() {
     const pathname = usePathname();
     const lastBackPressRef = useRef<number>(0);
     const [isNavigating, setIsNavigating] = useState(false);
-    const [navigatingMessage, setNavigatingMessage] = useState('스마트플랜으로 이동 중입니다... 🏕️');
+    const [navigatingMessage, setNavigatingMessage] = useState('해당 화면으로 이동하고 있습니다... 🏕️');
+    const targetPathRef = useRef<string | null>(null);
+    const navigationStartTimeRef = useRef<number>(0);
+    const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // 목적지 URL에 따른 안내 문구 동적 결정
-    const getTransitionMessage = (url: string) => {
-        if (url.includes('/notifications')) return '알림 내역으로 이동 중입니다... 🔔';
-        if (url.includes('/reservation')) return '실시간 예약 화면으로 이동 중입니다... ⛺';
-        if (url.includes('/myspace/schedule')) return '스마트플랜으로 이동 중입니다... 🏕️';
-        if (url.includes('/myspace/reservations')) return '예약 내역으로 이동 중입니다... 📋';
-        return '페이지로 이동 중입니다... 🏕️';
-    };
+    const getTransitionMessage = useCallback((url: string) => {
+        if (url.includes('/notifications')) return '🔔 알림 내역으로 이동하고 있습니다...';
+        if (url.includes('/reservation')) return '⛺ 실시간 예약 화면으로 이동하고 있습니다...';
+        if (url.includes('/myspace/schedule')) return '🏕️ 맞춤 스마트플랜으로 이동하고 있습니다...';
+        if (url.includes('/myspace/reservations')) return '📋 예약 상세 내역으로 이동하고 있습니다...';
+        return '🏕️ 해당 화면으로 이동하고 있습니다...';
+    }, []);
 
-    const triggerNavigation = (targetUrl: string) => {
+    const triggerNavigation = useCallback((targetUrl: string) => {
+        if (!targetUrl) return;
+
+        // 경로 비교용 순수 pathname 추출 (쿼리스트링, 해시 제외)
+        const purePath = targetUrl.split('?')[0].split('#')[0];
+        targetPathRef.current = purePath;
+        navigationStartTimeRef.current = Date.now();
+
         setNavigatingMessage(getTransitionMessage(targetUrl));
         setIsNavigating(true);
+
         try { router.prefetch(targetUrl); } catch (_) {}
         router.replace(targetUrl);
-        setTimeout(() => setIsNavigating(false), 3500);
-    };
 
-    // 경로가 목적지로 변경되면 플로팅 로딩 카드 즉시 해제
+        // [이중 안전 타이머] 네트워크 지연이나 예외 발생 시에도 최대 4.5초 후에는 무조건 해제하여 프리징 방지
+        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = setTimeout(() => {
+            setIsNavigating(false);
+            targetPathRef.current = null;
+        }, 4500);
+    }, [router, getTransitionMessage]);
+
+    // 경로가 목적지에 도달했을 때 최소 노출 시간(700ms) 보장 후 부드럽게 해제
     useEffect(() => {
-        setIsNavigating(false);
-    }, [pathname]);
+        if (!isNavigating || !targetPathRef.current) return;
+
+        const currentPurePath = pathname.split('?')[0].split('#')[0];
+        const isDestinationReached =
+            currentPurePath === targetPathRef.current ||
+            (targetPathRef.current !== '/' && currentPurePath.startsWith(targetPathRef.current));
+
+        if (isDestinationReached) {
+            const elapsed = Date.now() - navigationStartTimeRef.current;
+            const remaining = Math.max(0, 700 - elapsed);
+            const dismissTimer = setTimeout(() => {
+                setIsNavigating(false);
+                targetPathRef.current = null;
+            }, remaining);
+
+            return () => clearTimeout(dismissTimer);
+        }
+    }, [pathname, isNavigating]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -50,23 +83,33 @@ export default function NativeAppBridge() {
                 const { App } = await import('@capacitor/app');
                 const { PushNotifications } = await import('@capacitor/push-notifications');
 
-                // 1. Android 알림 채널(Notification Channel) 생성 (헤드업 팝업 및 고음질 알림 보장)
-                try {
-                    await PushNotifications.createChannel({
-                        id: 'raon_notifications',
-                        name: '라온아이 알림',
-                        description: '캠핑장 예약 알림 및 스마트 여행 플랜',
-                        importance: 5, // NotificationManager.IMPORTANCE_HIGH
-                        visibility: 1, // NotificationCompat.VISIBILITY_PUBLIC
-                        sound: 'default',
-                        vibration: true,
-                        lights: true,
-                        lightColor: '#22C55E'
-                    });
-                    console.log('[Native Bridge] Notification Channel (raon_notifications) ready.');
-                } catch (channelErr) {
+                // ⚡ [0순위 최우선 등록] 알림 탭(터치) 리스너를 0.00초 순간에 최우선 바인딩 (지연 0ms)
+                const pushActionHandler = await PushNotifications.addListener(
+                    'pushNotificationActionPerformed',
+                    (action) => {
+                        console.log('[Native Bridge] Notification Action Performed:', action);
+                        const data = action.notification?.data;
+                        const link = data?.link || data?.route || '/notifications';
+                        if (link) {
+                            triggerNavigation(link);
+                        }
+                    }
+                );
+
+                // 1. Android 알림 채널 생성 (헤드업 팝업 및 고음질 알림 보장)
+                PushNotifications.createChannel({
+                    id: 'raon_notifications',
+                    name: '라온아이 알림',
+                    description: '캠핑장 예약 알림 및 스마트 여행 플랜',
+                    importance: 5, // NotificationManager.IMPORTANCE_HIGH
+                    visibility: 1, // NotificationCompat.VISIBILITY_PUBLIC
+                    sound: 'default',
+                    vibration: true,
+                    lights: true,
+                    lightColor: '#22C55E'
+                }).catch((channelErr) => {
                     console.warn('[Native Bridge] Notification channel setup notice:', channelErr);
-                }
+                });
 
                 // 2. 하드웨어 뒤로가기(Back Button) 리스너
                 const backHandler = await App.addListener('backButton', ({ canGoBack }) => {
@@ -143,25 +186,12 @@ export default function NativeAppBridge() {
                     }
                 );
 
-                // 6. [알림 터치] 백그라운드/헤드업 알림 탭 시 해당 상세 페이지 딥링크 이동
-                const pushActionHandler = await PushNotifications.addListener(
-                    'pushNotificationActionPerformed',
-                    (action) => {
-                        console.log('[Native Bridge] Notification Action Performed:', action);
-                        const data = action.notification?.data;
-                        const link = data?.link || data?.route || '/notifications';
-                        if (link) {
-                            triggerNavigation(link);
-                        }
-                    }
-                );
-
                 cleanup = () => {
+                    pushActionHandler.remove();
                     backHandler.remove();
                     urlOpenHandler.remove();
                     appStateChangeHandler.remove();
                     pushReceivedHandler.remove();
-                    pushActionHandler.remove();
                 };
             } catch (err) {
                 console.warn('[Native Bridge] Error initializing native listeners:', err);
@@ -172,21 +202,28 @@ export default function NativeAppBridge() {
 
         return () => {
             if (cleanup) cleanup();
+            if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
         };
-    }, [router]);
+    }, [triggerNavigation]);
 
     if (!isNavigating) return null;
 
     return (
         <div
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-emerald-500/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none"
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-sm px-6 py-4 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-emerald-500/30 flex items-center gap-4 animate-in fade-in slide-in-from-top-6 duration-300 pointer-events-none"
+            style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
             role="status"
             aria-live="polite"
         >
-            <RaonLoading size="sm" />
-            <span className="text-xs font-bold text-stone-700 dark:text-stone-200">
-                {navigatingMessage}
-            </span>
+            <RaonLoading size="md" />
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-stone-800 dark:text-stone-100 leading-snug break-keep">
+                    {navigatingMessage}
+                </p>
+                <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    잠시만 기다려주세요
+                </p>
+            </div>
         </div>
     );
 }
