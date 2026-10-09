@@ -115,3 +115,52 @@ export function logPlanSwap(payload: PlanSwapPayload) {
     }
 }
 
+export interface PlanBookmarkPayload {
+    scheduleId?: string;
+    userId?: string;
+    placeId: string;
+    category?: string;
+    stage?: string;
+    isBookmarked: boolean;
+    trustScore?: number;
+    distance?: number;
+    partnerId?: string;
+}
+
+/**
+ * [A+D 해자 데이터] 3. 스마트플랜 장소 찜(Bookmark) 등록/해제 로그 기록
+ */
+export function logPlanBookmark(payload: PlanBookmarkPayload) {
+    try {
+        (async () => {
+            try {
+                const supabase = createClient();
+                const { error } = await supabase
+                    .from('plan_swap_log')
+                    .insert({
+                        partner_id: payload.partnerId || DEFAULT_PARTNER_ID,
+                        schedule_id: payload.scheduleId || null,
+                        user_id: payload.userId || null,
+                        event: payload.isBookmarked ? 'BOOKMARKED' : 'UNBOOKMARKED',
+                        stage: payload.stage || 'DESTINATION',
+                        category: payload.category || null,
+                        to_place_id: payload.placeId || null,
+                        to_trust_score: payload.trustScore || null,
+                        to_distance: payload.distance || null,
+                        occurred_at: new Date().toISOString(),
+                    });
+
+                if (error) {
+                    console.warn('[MoatLogger] plan_swap_log bookmark insert warning:', error.message);
+                } else {
+                    console.log(`[MoatLogger] ✅ plan_swap_log bookmark recorded: ${payload.isBookmarked ? 'BOOKMARKED' : 'UNBOOKMARKED'} (${payload.placeId})`);
+                }
+            } catch (err) {
+                console.warn('[MoatLogger] plan_swap_log bookmark network error:', err);
+            }
+        })();
+    } catch (e) {
+        console.warn('[MoatLogger] logPlanBookmark unexpected error:', e);
+    }
+}
+

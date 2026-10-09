@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Map, Polyline, CustomOverlayMap, useKakaoLoader } from 'react-kakao-maps-sdk';
-import { X, MapPin, Phone, Check, List } from 'lucide-react';
+import { X, MapPin, Phone, Check, List, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
 import { useModalBackHandler } from '@/hooks/useModalBackHandler';
@@ -36,6 +36,14 @@ interface SmartPlanMapViewModalProps {
     timelinePlaces?: any[];
     /** 커스텀 장소 카드 렌더러 (스마트플랜 본문의 정품 FactCard 렌더러) */
     renderCustomCard?: (card: any, onCloseCard: () => void) => React.ReactNode;
+
+    // [v15.0.0 찜(Bookmark) 전용 Props]
+    /** 찜(Bookmark)된 장소 ID 목록 (Set) */
+    bookmarkedPlaceIds?: Set<string>;
+    /** 찜 토글 콜백 */
+    onToggleBookmark?: (placeId: string, card?: any, e?: React.MouseEvent) => void;
+    /** [전체 동선 모드] 확정되지 않았으나 사용자가 찜해둔 후보 장소 목록 */
+    bookmarkedCandidatePlaces?: any[];
 }
 
 export default function SmartPlanMapViewModal({
@@ -51,7 +59,10 @@ export default function SmartPlanMapViewModal({
     onSelectCandidate,
     onSwitchToList,
     timelinePlaces = [],
-    renderCustomCard
+    renderCustomCard,
+    bookmarkedPlaceIds,
+    onToggleBookmark,
+    bookmarkedCandidatePlaces = []
 }: SmartPlanMapViewModalProps) {
     // 1. 카카오맵 SDK 로더
     const [loading] = useKakaoLoader({
@@ -145,6 +156,14 @@ export default function SmartPlanMapViewModal({
                         pointCount++;
                     }
                 });
+                if (bookmarkedCandidatePlaces && bookmarkedCandidatePlaces.length > 0) {
+                    bookmarkedCandidatePlaces.forEach(c => {
+                        if (c.lat && c.lng && c.lat > 33 && c.lat < 39) {
+                            bounds.extend(new window.kakao.maps.LatLng(c.lat, c.lng));
+                            pointCount++;
+                        }
+                    });
+                }
                 if (baseRoutePath.length > 0) {
                     baseRoutePath.forEach((p, idx) => {
                         if (idx % 20 === 0) {
@@ -160,7 +179,7 @@ export default function SmartPlanMapViewModal({
         } catch (e) {
             console.warn('[SmartPlanMapViewModal] LatLngBounds calculation failed:', e);
         }
-    }, [map, mode, candidateCards, timelinePlaces, baseRoutePath, origin, destination]);
+    }, [map, mode, candidateCards, timelinePlaces, bookmarkedCandidatePlaces, baseRoutePath, origin, destination]);
 
     // 데이터 변경 시 바운드 동기화
     useEffect(() => {
@@ -186,9 +205,11 @@ export default function SmartPlanMapViewModal({
         if (mode === 'alternatives') {
             return candidateCards.find(c => c.id === focusedCardId) || null;
         } else {
-            return timelinePlaces.find(p => p.id === focusedCardId) || null;
+            return timelinePlaces.find(p => p.id === focusedCardId) || 
+                   bookmarkedCandidatePlaces?.find(p => p.id === focusedCardId) || 
+                   null;
         }
-    }, [focusedCardId, mode, candidateCards, timelinePlaces]);
+    }, [focusedCardId, mode, candidateCards, timelinePlaces, bookmarkedCandidatePlaces]);
 
     // 최초 오픈 이전에는 DOM 마운트 일체 방지 (0원 유지)
     if (!hasBeenOpened && !isOpen) return null;
@@ -288,13 +309,38 @@ export default function SmartPlanMapViewModal({
                             </CustomOverlayMap>
                         )}
 
-                        {/* 4-A. [대체리스트 모드] 후보 장소 커스텀 말풍선 마커 렌더링 */}
+                        {/* 4-A. [대체리스트 모드] 후보 장소 커스텀 말풍선 마커 렌더링 (4단 컬러) */}
                         {mode === 'alternatives' && candidateCards.map((cand, idx) => {
                             if (!cand.lat || !cand.lng) return null;
                             const isCurrentActive = cand.id === currentActiveCard?.id;
                             const isFocused = cand.id === focusedCardId;
+                            const isBookmarked = bookmarkedPlaceIds?.has(cand.id) ?? false;
+                            const isMerged = (isFocused || isCurrentActive) && isBookmarked;
                             const badge = cand.evidence?.displayBadges?.[0]?.emoji || '';
                             const rankNum = idx + 1;
+
+                            // 꼬리 색상 및 배경/테두리 스타일 결정
+                            let bubbleStyle = 'bg-white text-gray-900 border-gray-200';
+                            let tailColor = '#ffffff';
+                            let zIndexVal = 10;
+
+                            if (isMerged) {
+                                bubbleStyle = 'bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 text-white border-white ring-4 ring-rose-400/50 shadow-xl animate-pulse';
+                                tailColor = '#e11d48';
+                                zIndexVal = 50;
+                            } else if (isFocused) {
+                                bubbleStyle = 'bg-amber-500 text-white border-white ring-4 ring-amber-400/40 shadow-xl';
+                                tailColor = '#f59e0b';
+                                zIndexVal = 40;
+                            } else if (isBookmarked) {
+                                bubbleStyle = 'bg-rose-500 text-white border-white ring-4 ring-rose-300/40 shadow-lg';
+                                tailColor = '#f43f5e';
+                                zIndexVal = 35;
+                            } else if (isCurrentActive) {
+                                bubbleStyle = 'bg-[#388E5A] text-white border-emerald-300 shadow-md';
+                                tailColor = '#388E5A';
+                                zIndexVal = 30;
+                            }
 
                             return (
                                 <CustomOverlayMap
@@ -302,51 +348,67 @@ export default function SmartPlanMapViewModal({
                                     position={{ lat: cand.lat, lng: cand.lng }}
                                     xAnchor={0.5}
                                     yAnchor={1.0}
-                                    zIndex={isFocused ? 40 : (isCurrentActive ? 30 : 10)}
+                                    zIndex={zIndexVal}
                                 >
                                     <div
                                         onClick={() => {
                                             setFocusedCardId(prev => prev === cand.id ? null : cand.id);
                                         }}
                                         className={`cursor-pointer transition-transform active:scale-95 flex flex-col items-center ${
-                                            isFocused ? 'scale-110 z-40' : 'scale-100 hover:scale-105'
+                                            isFocused || isMerged ? 'scale-110' : 'scale-100 hover:scale-105'
                                         }`}
                                     >
-                                        <div className={`px-2.5 py-1 rounded-xl shadow-xl flex items-center gap-1.5 border-2 text-[11px] font-black whitespace-nowrap ${
-                                            isFocused
-                                                ? 'bg-amber-500 text-white border-white ring-4 ring-amber-400/40'
-                                                : isCurrentActive
-                                                    ? 'bg-[#388E5A] text-white border-emerald-300'
-                                                    : 'bg-white text-gray-900 border-gray-200'
-                                        }`}>
+                                        <div className={`px-2.5 py-1 rounded-xl shadow-xl flex items-center gap-1.5 border-2 text-[11px] font-black whitespace-nowrap ${bubbleStyle}`}>
                                             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
-                                                isFocused || isCurrentActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+                                                isMerged || isFocused || isBookmarked || isCurrentActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
                                             }`}>
-                                                {rankNum}
+                                                {isMerged ? '⭐💖' : (isBookmarked ? '💖' : rankNum)}
                                             </span>
                                             <span className="truncate max-w-[100px]">{cand.name}</span>
                                             {badge && <span className="text-[10px]">{badge}</span>}
-                                            {isCurrentActive && (
+                                            {isCurrentActive && !isMerged && (
                                                 <span className="text-[8px] bg-emerald-400 text-gray-900 px-1 py-0.2 rounded font-bold">선택됨</span>
                                             )}
+                                            {isMerged && (
+                                                <span className="text-[8px] bg-white text-rose-600 px-1 py-0.2 rounded font-black">선택+찜</span>
+                                            )}
                                         </div>
-                                        {/* 말풍선 꼬리: 하단 끝이 좌표에 100% 자석 고정 */}
+                                        {/* 말풍선 꼬리 */}
                                         <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 mx-auto"
-                                            style={{
-                                                borderTopColor: isFocused ? '#f59e0b' : (isCurrentActive ? '#388E5A' : '#ffffff')
-                                            }}
+                                            style={{ borderTopColor: tailColor }}
                                         />
                                     </div>
                                 </CustomOverlayMap>
                             );
                         })}
 
-                        {/* 4-B. [전체동선 모드] 확정 추천 장소 커스텀 말풍선 마커 렌더링 (동선 연결선 제거) */}
+                        {/* 4-B. [전체동선 모드] 확정 추천 장소 커스텀 말풍선 마커 렌더링 (융합 컬러 지원) */}
                         {mode === 'full_timeline' && timelinePlaces.map((place, idx) => {
                             if (!place.lat || !place.lng) return null;
                             const orderNum = idx + 1;
                             const isFocused = place.id === focusedCardId;
+                            const isBookmarked = bookmarkedPlaceIds?.has(place.id) ?? false;
+                            // 확정 방문지이면서 찜까지 된 경우 -> 황금+연붉은색 융합
+                            const isMerged = isBookmarked;
                             const badge = place.evidence?.displayBadges?.[0]?.emoji || '';
+
+                            let bubbleStyle = 'bg-[#388E5A] text-white border-emerald-300 shadow-md';
+                            let tailColor = '#388E5A';
+                            let zIndexVal = 20 + idx;
+
+                            if (isMerged && isFocused) {
+                                bubbleStyle = 'bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 text-white border-white ring-4 ring-rose-400/60 shadow-2xl scale-110 animate-pulse';
+                                tailColor = '#e11d48';
+                                zIndexVal = 55;
+                            } else if (isMerged) {
+                                bubbleStyle = 'bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 text-white border-white ring-4 ring-rose-300/40 shadow-xl';
+                                tailColor = '#e11d48';
+                                zIndexVal = 45;
+                            } else if (isFocused) {
+                                bubbleStyle = 'bg-amber-500 text-white border-white ring-4 ring-amber-400/40 shadow-xl';
+                                tailColor = '#f59e0b';
+                                zIndexVal = 50;
+                            }
 
                             return (
                                 <CustomOverlayMap
@@ -354,7 +416,7 @@ export default function SmartPlanMapViewModal({
                                     position={{ lat: place.lat, lng: place.lng }}
                                     xAnchor={0.5}
                                     yAnchor={1.0}
-                                    zIndex={isFocused ? 40 : 20 + idx}
+                                    zIndex={zIndexVal}
                                 >
                                     <div
                                         onClick={() => {
@@ -364,23 +426,59 @@ export default function SmartPlanMapViewModal({
                                             isFocused ? 'scale-110 z-40' : 'scale-100 hover:scale-105'
                                         }`}
                                     >
-                                        <div className={`px-2.5 py-1 rounded-xl shadow-xl flex items-center gap-1.5 border-2 text-[11px] font-black whitespace-nowrap ${
-                                            isFocused
-                                                ? 'bg-amber-500 text-white border-white ring-4 ring-amber-400/40'
-                                                : 'bg-[#388E5A] text-white border-emerald-300'
-                                        }`}>
+                                        <div className={`px-2.5 py-1 rounded-xl shadow-xl flex items-center gap-1.5 border-2 text-[11px] font-black whitespace-nowrap ${bubbleStyle}`}>
                                             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
-                                                isFocused ? 'bg-white/20 text-white' : 'bg-white text-[#388E5A]'
+                                                isMerged ? 'bg-white text-rose-600' : (isFocused ? 'bg-white/20 text-white' : 'bg-white text-[#388E5A]')
                                             }`}>
-                                                {orderNum}
+                                                {isMerged ? '⭐💖' : orderNum}
                                             </span>
                                             <span className="truncate max-w-[100px]">{place.name}</span>
                                             {badge && <span className="text-[10px]">{badge}</span>}
+                                            {isMerged && (
+                                                <span className="text-[8px] bg-white text-rose-600 px-1 py-0.2 rounded font-black">확정+찜</span>
+                                            )}
                                         </div>
                                         <div className="w-0 h-0 border-x-4 border-x-transparent border-t-6 mx-auto"
-                                            style={{
-                                                borderTopColor: isFocused ? '#f59e0b' : '#388E5A'
-                                            }}
+                                            style={{ borderTopColor: tailColor }}
+                                        />
+                                    </div>
+                                </CustomOverlayMap>
+                            );
+                        })}
+
+                        {/* 4-C. [전체동선 모드] 사용자가 찜한 대체 후보 장소 마커 표출 (도로망 주변 💖 핀) */}
+                        {mode === 'full_timeline' && bookmarkedCandidatePlaces && bookmarkedCandidatePlaces.map((cCand) => {
+                            if (!cCand.lat || !cCand.lng) return null;
+                            const isFocused = cCand.id === focusedCardId;
+                            // 포커스되면 황금색 융합
+                            const bubbleStyle = isFocused
+                                ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 text-white border-white ring-4 ring-rose-400/50 shadow-xl'
+                                : 'bg-rose-500 text-white border-white ring-2 ring-rose-300/40 shadow-lg';
+                            const tailColor = isFocused ? '#e11d48' : '#f43f5e';
+
+                            return (
+                                <CustomOverlayMap
+                                    key={`bookmarked-candidate-${cCand.id}`}
+                                    position={{ lat: cCand.lat, lng: cCand.lng }}
+                                    xAnchor={0.5}
+                                    yAnchor={1.0}
+                                    zIndex={isFocused ? 42 : 32}
+                                >
+                                    <div
+                                        onClick={() => {
+                                            setFocusedCardId(prev => prev === cCand.id ? null : cCand.id);
+                                        }}
+                                        className={`cursor-pointer transition-transform active:scale-95 flex flex-col items-center ${
+                                            isFocused ? 'scale-110' : 'scale-100 hover:scale-105'
+                                        }`}
+                                    >
+                                        <div className={`px-2 py-0.5 rounded-lg shadow-md flex items-center gap-1 border text-[10px] font-black whitespace-nowrap ${bubbleStyle}`}>
+                                            <span className="text-[10px]">💖</span>
+                                            <span className="truncate max-w-[85px]">{cCand.name}</span>
+                                            <span className="text-[7.5px] bg-white/20 px-0.8 py-0.2 rounded font-bold">찜후보</span>
+                                        </div>
+                                        <div className="w-0 h-0 border-x-3 border-x-transparent border-t-5 mx-auto"
+                                            style={{ borderTopColor: tailColor }}
                                         />
                                     </div>
                                 </CustomOverlayMap>
@@ -405,7 +503,7 @@ export default function SmartPlanMapViewModal({
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-3">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                                         <h4 className="font-bold text-gray-900 text-sm truncate min-w-0 flex-1">{focusedCard.name}</h4>
                                         {mode === 'alternatives' ? (
                                             focusedCard.id === currentActiveCard?.id ? (
@@ -415,6 +513,11 @@ export default function SmartPlanMapViewModal({
                                             )
                                         ) : (
                                             <span className="shrink-0 whitespace-nowrap text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-bold">확정된 장소</span>
+                                        )}
+                                        {bookmarkedPlaceIds?.has(focusedCard.id) && (
+                                            <span className="shrink-0 whitespace-nowrap text-[9px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-sm font-bold border border-rose-200">
+                                                💖 찜
+                                            </span>
                                         )}
                                         {focusedCard.distanceKm !== undefined && focusedCard.distanceKm > 0 && (
                                             <span className="shrink-0 whitespace-nowrap text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/50">
@@ -448,7 +551,23 @@ export default function SmartPlanMapViewModal({
                                         return null;
                                     })()}
                                 </div>
-                                <div className="shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-1.5">
+                                    {onToggleBookmark && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => onToggleBookmark(focusedCard.id, focusedCard, e)}
+                                            className={cn(
+                                                "p-2 rounded-xl border transition-all active:scale-90 flex items-center justify-center",
+                                                bookmarkedPlaceIds?.has(focusedCard.id)
+                                                    ? "bg-rose-50 border-rose-200 text-rose-600 shadow-xs"
+                                                    : "bg-gray-50 border-gray-200 text-gray-400 hover:text-rose-500 hover:bg-rose-50/50"
+                                            )}
+                                            title={bookmarkedPlaceIds?.has(focusedCard.id) ? "찜 해제" : "찜하기"}
+                                            aria-label={bookmarkedPlaceIds?.has(focusedCard.id) ? "찜 해제" : "찜하기"}
+                                        >
+                                            <Heart className={cn("w-4 h-4", bookmarkedPlaceIds?.has(focusedCard.id) && "fill-rose-500 text-rose-500")} />
+                                        </button>
+                                    )}
                                     {mode === 'alternatives' && focusedCard.id !== currentActiveCard?.id && (
                                         <Button
                                             size="sm"

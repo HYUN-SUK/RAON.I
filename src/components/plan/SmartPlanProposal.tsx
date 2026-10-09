@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import RouteSelector from './RouteSelector';
 import SmartPlanMapViewModal from './SmartPlanMapViewModal';
 import { openNavApp } from '@/lib/nav-utils';
-import { logPlanSwap } from '@/lib/moat-logger';
+import { logPlanSwap, logPlanBookmark } from '@/lib/moat-logger';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
 import { cn } from '@/lib/utils';
 
@@ -322,6 +322,58 @@ export default function SmartPlanProposal({
     }, [initialPlan, isWrapped]);
     const [visitOrder, setVisitOrder] = useState<string[]>(initialVisitOrder);
 
+    // [v15.0.0] 찜(Bookmark) 카드 ID 복원 및 상태 (Set)
+    const initialBookmarkedPlaceIds = useMemo(() => {
+        const ids = initialPlan?.bookmarked_place_ids || (isWrapped ? initialPlan?.ai_plan?.bookmarked_place_ids : null);
+        return new Set<string>(Array.isArray(ids) ? ids : []);
+    }, [initialPlan, isWrapped]);
+    const [bookmarkedPlaceIds, setBookmarkedPlaceIds] = useState<Set<string>>(initialBookmarkedPlaceIds);
+
+    // [v15.0.0] 장소 찜(Bookmark) 토글 핸들러 (0ms 낙관적 UI + 비동기 DB 영속 + 해자 로깅)
+    const handleToggleBookmark = useCallback((placeId: string, card?: any, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        setBookmarkedPlaceIds((prev) => {
+            const next = new Set(prev);
+            const isAdding = !next.has(placeId);
+            if (isAdding) {
+                next.add(placeId);
+                toast.success('찜한 장소로 등록되었습니다! 상단에 우선 배치됩니다 💖');
+            } else {
+                next.delete(placeId);
+                toast.info('찜 등록이 해제되었습니다.');
+            }
+
+            // 1. 일정 DB 영속 저장 (Fire-and-Forget)
+            if (scheduleId && plan) {
+                const wrappedData = {
+                    ...lastKnownPlanRef.current,
+                    ai_plan: plan,
+                    hidden_card_ids: Array.from(hiddenCardIds),
+                    visit_order: visitOrder,
+                    bookmarked_place_ids: Array.from(next),
+                    updated_at: new Date().toISOString()
+                };
+                updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
+            }
+
+            // 2. 라온아이 해자 Moat 빅데이터 로깅
+            logPlanBookmark({
+                scheduleId,
+                userId,
+                placeId,
+                category: card?.category || swapCategory || undefined,
+                isBookmarked: isAdding,
+                trustScore: card?.trustScore,
+                distance: card?.distanceKm,
+            });
+
+            return next;
+        });
+    }, [scheduleId, plan, hiddenCardIds, visitOrder, userId, swapCategory]);
+
     // [v14.0.0] 전체 여행 동선 지도용 방문 장소 목록 (숨김 장소 100% 자동 제외 및 visitOrder 반영)
     const timelinePlacesForMap = useMemo(() => {
         if (!plan) return [];
@@ -365,6 +417,36 @@ export default function SmartPlanProposal({
         }
         return allActive;
     }, [plan, hiddenCardIds, visitOrder]);
+
+    // [v15.0.0] 확정 동선에 포함되지 않았으나 사용자가 찜해둔 후보 장소들 (최종 동선 지도 함께 표출용)
+    const bookmarkedCandidatePlaces = useMemo(() => {
+        if (!plan?.alternatives || bookmarkedPlaceIds.size === 0) return [];
+        const confirmedIds = new Set(timelinePlacesForMap.map((p: any) => p.id));
+        const result: any[] = [];
+        const seenIds = new Set<string>();
+
+        Object.values(plan.alternatives).forEach((candList: any) => {
+            if (Array.isArray(candList)) {
+                candList.forEach((cand: any) => {
+                    if (
+                        cand?.id &&
+                        bookmarkedPlaceIds.has(cand.id) &&
+                        !confirmedIds.has(cand.id) &&
+                        !seenIds.has(cand.id) &&
+                        !hiddenCardIds.has(cand.id) &&
+                        cand.lat && cand.lng
+                    ) {
+                        seenIds.add(cand.id);
+                        result.push({
+                            ...cand,
+                            isBookmarkedCandidate: true,
+                        });
+                    }
+                });
+            }
+        });
+        return result;
+    }, [plan, bookmarkedPlaceIds, timelinePlacesForMap, hiddenCardIds]);
 
     // [v13.4.0] 비동기로 뒤늦게 수급된 initialPlan 동적 동기화 (Stale State 락 해제)
     useEffect(() => {
@@ -924,13 +1006,22 @@ export default function SmartPlanProposal({
             return !isSpatialDup;
         });
 
-        const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
+        // [v15.0.0] 찜한 후보들을 우선 배치 (페이지당 3개 묶음 스와이프 규격 엄격 유지)
+        const sortedAlternatives = [...availableAlternatives].sort((a, b) => {
+            const aBookmarked = bookmarkedPlaceIds.has(a.id);
+            const bBookmarked = bookmarkedPlaceIds.has(b.id);
+            if (aBookmarked && !bBookmarked) return -1;
+            if (!aBookmarked && bBookmarked) return 1;
+            return 0; // 기존 순위(점수/거리순) 보존
+        });
+
+        const allOptions = currentActive ? [currentActive, ...sortedAlternatives] : sortedAlternatives;
         const pageSize = 3;
         const totalPages = Math.ceil(allOptions.length / pageSize);
         const paginatedOptions = allOptions.slice(swapPage * pageSize, (swapPage + 1) * pageSize);
 
         return { currentActive, allOptions, totalPages, paginatedOptions, isTrackA };
-    }, [swapCategory, swapTargetId, swapPage, plan]);
+    }, [swapCategory, swapTargetId, swapPage, plan, bookmarkedPlaceIds]);
 
     // [v14.0.0] 대체리스트 지도로 보기 모달 오픈 (리스트 창 내리고 지도 화면 시원하게 전환)
     const handleOpenAlternativesMap = (currentActive: any, allOptions: any[]) => {
@@ -1319,8 +1410,27 @@ export default function SmartPlanProposal({
                                             검증됨
                                         </span>
                                     )}
+                                    {bookmarkedPlaceIds.has(card.id) && (
+                                        <span className="flex items-center text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-sm border border-rose-200 shadow-xs">
+                                            💖 찜
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
+                                    {/* 찜 버튼 */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleToggleBookmark(card.id, card, e)}
+                                        className={`p-1 rounded-full transition-all active:scale-90 ${
+                                            bookmarkedPlaceIds.has(card.id)
+                                                ? 'text-rose-500 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200'
+                                                : 'text-stone-300 hover:text-rose-400 hover:bg-stone-50'
+                                        }`}
+                                        title={bookmarkedPlaceIds.has(card.id) ? '찜 해제' : '찜하기'}
+                                        aria-label={bookmarkedPlaceIds.has(card.id) ? '찜 해제' : '찜하기'}
+                                    >
+                                        <Heart className={`w-3.5 h-3.5 ${bookmarkedPlaceIds.has(card.id) ? 'fill-rose-500' : ''}`} />
+                                    </button>
                                     {/* 숨기기 버튼 (대체리스트 비교 지도시에는 숨기고 닫기 버튼만 노출) */}
                                     {!isAlternativeMapMode && (
                                         <Button
@@ -2210,10 +2320,17 @@ export default function SmartPlanProposal({
                                                     {chunk.map((opt, idx) => {
                                                         const globalIdx = chunkIdx * 3 + idx;
                                                         const isCurrentActive = opt.id === currentActive?.id;
+                                                        const isBookmarked = bookmarkedPlaceIds.has(opt.id);
                                                         return (
                                                             <Card
                                                                 key={opt.id}
-                                                                className={`transition-all border shadow-none ${isCurrentActive ? 'border-[#388E5A] ring-1 ring-[#388E5A] bg-[#388E5A]/5' : 'border-gray-100 bg-white'}`}
+                                                                className={`transition-all border shadow-none ${
+                                                                    isCurrentActive 
+                                                                        ? 'border-[#388E5A] ring-1 ring-[#388E5A] bg-[#388E5A]/5' 
+                                                                        : isBookmarked
+                                                                            ? 'border-rose-200 bg-rose-50/20 ring-1 ring-rose-200 shadow-xs'
+                                                                            : 'border-gray-100 bg-white'
+                                                                }`}
                                                                 onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
                                                             >
                                                                 <CardContent className="p-3 flex items-start gap-3">
@@ -2223,6 +2340,11 @@ export default function SmartPlanProposal({
                                                                                 <span className="text-[10px] text-gray-400 mr-1 shrink-0">{globalIdx + 1}위</span>
                                                                                 {opt.name}
                                                                             </h4>
+                                                                            {isBookmarked && (
+                                                                                <span className="shrink-0 whitespace-nowrap text-[9px] bg-rose-500 text-white px-1.5 py-0.5 rounded font-black flex items-center gap-0.5 shadow-xs">
+                                                                                    💖 찜
+                                                                                </span>
+                                                                            )}
                                                                             {isCurrentActive && (
                                                                                 <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#388E5A] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                                                             )}
@@ -2326,9 +2448,25 @@ export default function SmartPlanProposal({
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                    {!isCurrentActive && (
-                                                                        <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#388E5A]/20 text-[#388E5A] hover:bg-[#388E5A]/10">변경</Button>
-                                                                    )}
+                                                                    <div className="shrink-0 flex items-center gap-1.5 self-start">
+                                                                        {/* 찜(Heart) 버튼 */}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => handleToggleBookmark(opt.id, opt, e)}
+                                                                            className={`p-1.5 rounded-full transition-all active:scale-90 cursor-pointer ${
+                                                                                isBookmarked
+                                                                                    ? 'text-rose-500 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200 shadow-xs'
+                                                                                    : 'text-stone-300 hover:text-rose-400 hover:bg-stone-50'
+                                                                            }`}
+                                                                            title={isBookmarked ? '찜 해제' : '찜하기'}
+                                                                            aria-label={isBookmarked ? '찜 해제' : '찜하기'}
+                                                                        >
+                                                                            <Heart className={`w-4 h-4 transition-transform ${isBookmarked ? 'fill-rose-500 scale-110' : ''}`} />
+                                                                        </button>
+                                                                        {!isCurrentActive && (
+                                                                            <Button size="sm" variant="outline" className="h-7 px-2 text-[10px] rounded-full border-[#388E5A]/20 text-[#388E5A] hover:bg-[#388E5A]/10">변경</Button>
+                                                                        )}
+                                                                    </div>
                                                                 </CardContent>
                                                             </Card>
                                                         );
@@ -2570,6 +2708,9 @@ export default function SmartPlanProposal({
                         }
                     });
                 }}
+                bookmarkedPlaceIds={bookmarkedPlaceIds}
+                onToggleBookmark={handleToggleBookmark}
+                bookmarkedCandidatePlaces={bookmarkedCandidatePlaces}
             />
         </div>
     );
