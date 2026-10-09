@@ -197,6 +197,40 @@ export function buildFcmPayload(
 /**
  * 4. Send Message via FCM HTTP v1 API
  */
+export type FcmOutcome = 'success' | 'prune' | 'retry' | 'dead';
+
+export function classifyFcmResult(status: number, resBody: any): FcmOutcome {
+    if (status === 200) return 'success';
+
+    const errCode = resBody?.error?.details?.[0]?.errorCode;
+    const errStatus = resBody?.error?.status;
+
+    // Strict 404 / Unregistered: Token is dead and must be pruned
+    if (
+        status === 404 ||
+        errStatus === 'UNREGISTERED' ||
+        errStatus === 'NOT_FOUND' ||
+        errCode === 'UNREGISTERED'
+    ) {
+        return 'prune';
+    }
+
+    // 400 Bad Request / Invalid Argument: Format bug, retrying won't help
+    if (status === 400 || errStatus === 'INVALID_ARGUMENT') {
+        return 'dead';
+    }
+
+    // 429 Quota / Rate limit, 500, 503 Google server errors, network fetch exceptions
+    if (status === 429 || status >= 500 || status === 0) {
+        return 'retry';
+    }
+
+    return 'retry';
+}
+
+/**
+ * 4. Send Message via FCM HTTP v1 API
+ */
 export async function sendFcmMessage(
     projectId: string,
     accessToken: string,
@@ -219,8 +253,31 @@ export async function sendFcmMessage(
         return { status: res.status, resBody };
     } catch (err: any) {
         console.error("[FCM SEND] Network exception:", err);
-        return { status: 500, resBody: { error: err.message } };
+        return { status: 500, resBody: { error: { message: err.message, status: 'NETWORK_EXCEPTION' } } };
     }
+}
+
+/**
+ * 4-1. Send FCM Message with 1-step In-memory Backoff Retry (for real-time single alerts)
+ */
+export async function sendFcmMessageWithRetry(
+    projectId: string,
+    accessToken: string,
+    payload: any,
+    maxRetries: number = 1
+): Promise<{ status: number; resBody: any; outcome: FcmOutcome }> {
+    let res = await sendFcmMessage(projectId, accessToken, payload);
+    let outcome = classifyFcmResult(res.status, res.resBody);
+
+    if (outcome === 'retry' && maxRetries > 0) {
+        console.log(`[FCM BACKOFF] Temporary failure (status ${res.status}). Waiting 1500ms before in-memory retry...`);
+        await new Promise(r => setTimeout(r, 1500));
+        res = await sendFcmMessage(projectId, accessToken, payload);
+        outcome = classifyFcmResult(res.status, res.resBody);
+        console.log(`[FCM BACKOFF RETRY RESULT] Status: ${res.status} | Outcome: ${outcome}`);
+    }
+
+    return { ...res, outcome };
 }
 
 /**
@@ -233,17 +290,7 @@ export async function pruneInvalidTokens(
     results: Array<{ token: string; status: number; resBody: any }>
 ): Promise<number> {
     const invalidTokens = results
-        .filter(r => {
-            const errCode = r.resBody?.error?.details?.[0]?.errorCode;
-            const status = r.resBody?.error?.status;
-            // Strict 404 check: Only delete if Google explicitly confirms token is dead
-            return (
-                r.status === 404 ||
-                status === 'UNREGISTERED' ||
-                status === 'NOT_FOUND' ||
-                errCode === 'UNREGISTERED'
-            );
-        })
+        .filter(r => classifyFcmResult(r.status, r.resBody) === 'prune')
         .map(r => r.token);
 
     if (invalidTokens.length > 0) {

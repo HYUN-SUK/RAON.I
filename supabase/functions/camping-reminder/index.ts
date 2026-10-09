@@ -32,6 +32,7 @@ import {
     selectDeliveryTokens,
     buildFcmPayload,
     sendFcmMessage,
+    classifyFcmResult,
     pruneInvalidTokens,
     PushTokenRecord
 } from "../_shared/fcm.ts";
@@ -540,8 +541,8 @@ async function sendBulkPush(notifications: any[]) {
     console.log(`[Push] Starting bulk dispatch for ${notifications.length} notifications...`);
     const accessToken = await getFcmAccessToken(FIREBASE_CLIENT_EMAIL || '', FIREBASE_PRIVATE_KEY || '');
 
-    // Chunking: Process 10 users at a time to stay safe with concurrency
-    const CHUNK_SIZE = 10;
+    // Chunking: Process 25 users concurrently for optimal speed without exceeding FCM limits
+    const CHUNK_SIZE = 25;
     for (let i = 0; i < notifications.length; i += CHUNK_SIZE) {
         const chunk = notifications.slice(i, i + CHUNK_SIZE);
         await Promise.all(chunk.map(async (notif) => {
@@ -550,7 +551,7 @@ async function sendBulkPush(notifications: any[]) {
                 if (notif.id) {
                     const { data: claimed } = await supabase
                         .from('notifications')
-                        .update({ status: 'sending' })
+                        .update({ status: 'sending', last_attempt_at: new Date().toISOString() })
                         .eq('id', notif.id)
                         .in('status', ['queued', 'retry'])
                         .select('id')
@@ -612,7 +613,18 @@ async function sendBulkPush(notifications: any[]) {
                 await pruneInvalidTokens(supabase, results);
 
                 const successCount = results.filter(r => r.status === 200).length;
-                const finalStatus = successCount > 0 ? 'sent' : 'failed';
+                const hasRetryableFailure = results.some(r => classifyFcmResult(r.status, r.resBody) === 'retry');
+                const hasDeadFailure = results.some(r => classifyFcmResult(r.status, r.resBody) === 'dead');
+
+                let finalStatus = 'failed';
+                if (successCount > 0) {
+                    finalStatus = 'sent';
+                } else if (hasRetryableFailure) {
+                    finalStatus = 'retry';
+                } else if (hasDeadFailure) {
+                    finalStatus = 'dead';
+                }
+
                 const resultSummary = JSON.stringify(results.map(r => ({
                     status: r.status,
                     err: r.resBody?.error?.message,
@@ -620,12 +632,19 @@ async function sendBulkPush(notifications: any[]) {
                 })));
 
                 if (notif.id) {
+                    const updatePayload: any = {
+                        status: finalStatus,
+                        error_message: resultSummary,
+                        last_attempt_at: new Date().toISOString()
+                    };
+                    if (finalStatus === 'sent') {
+                        updatePayload.sent_at = new Date().toISOString();
+                    } else if (finalStatus === 'retry') {
+                        updatePayload.next_retry_at = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+                    }
+
                     await supabase.from('notifications')
-                        .update({
-                            status: finalStatus,
-                            error_message: resultSummary,
-                            sent_at: successCount > 0 ? new Date().toISOString() : null
-                        })
+                        .update(updatePayload)
                         .eq('id', notif.id);
                 }
             } catch (err) {
@@ -645,8 +664,10 @@ serve(async (req: any) => {
     try {
         const url = new URL(req.url);
         const mode = url.searchParams.get('mode') || 'dispatch';
+        const chainDepth = Number(url.searchParams.get('chain_depth') || 0);
+        const BATCH_LIMIT = 250;
 
-        console.log(`[Camping Reminder] Starting execution... Mode: ${mode}`);
+        console.log(`[Camping Reminder] Starting execution... Mode: ${mode} | Chain Depth: ${chainDepth}`);
         const now = new Date();
         const kst = new Date(now.getTime() + 9 * 3600000);
         const today = kst.toISOString().split('T')[0];
@@ -659,30 +680,46 @@ serve(async (req: any) => {
         const yesterdayStart = `${yesterday}T00:00:00+09:00`;
         const yesterdayEnd = `${yesterday}T23:59:59+09:00`;
 
-        const { data: schedulesRaw, error } = await supabase
+        // Query unsent schedules with BATCH_LIMIT (250)
+        let scheduleQuery = supabase
             .from('user_schedules')
             .select('*')
-            .eq('status', 'scheduled')
-            .or(`check_in.in.(${today},${d5}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
+            .eq('status', 'scheduled');
+
+        if (mode === 'prefetch') {
+            scheduleQuery = scheduleQuery.or(`check_in.in.(${today},${d5}),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
+        } else {
+            // Dispatch mode: filter to unsent only and limit to BATCH_LIMIT
+            scheduleQuery = scheduleQuery.or(`and(check_in.eq.${today},notification_d0_sent.eq.false),and(check_in.eq.${d5},notification_d4_sent.eq.false),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`).limit(BATCH_LIMIT);
+        }
+
+        const { data: schedulesRaw, error } = await scheduleQuery;
 
         if (error) throw error;
         const schedules = schedulesRaw || [];
-        console.log(`[Query] Found ${schedules.length} D-Day/checkout schedules`);
+        console.log(`[Query] Found ${schedules.length} D-Day/checkout schedules (depth: ${chainDepth})`);
 
         // 어제 생성된 일정 조회 (예약 다음날 스마트플랜 업데이트 알림 대상)
-        const { data: createdYesterdayRaw, error: yesterdayErr } = await supabase
+        let createdYesterdayQuery = supabase
             .from('user_schedules')
             .select('*')
             .eq('status', 'scheduled')
             .gte('created_at', yesterdayStart)
             .lte('created_at', yesterdayEnd);
 
+        if (mode !== 'prefetch') {
+            createdYesterdayQuery = createdYesterdayQuery.limit(BATCH_LIMIT);
+        }
+
+        const { data: createdYesterdayRaw, error: yesterdayErr } = await createdYesterdayQuery;
+
         if (yesterdayErr) console.warn('[Query] Yesterday schedules warning:', yesterdayErr.message);
         const createdYesterdaySchedules = createdYesterdayRaw || [];
         console.log(`[Query] Found ${createdYesterdaySchedules.length} schedules created yesterday`);
 
         if (schedules.length === 0 && createdYesterdaySchedules.length === 0) {
-            return new Response(JSON.stringify({ success: true, message: "No schedules found" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            console.log(`[Camping Reminder] No pending schedules found at depth ${chainDepth}. Finished.`);
+            return new Response(JSON.stringify({ success: true, message: "No schedules found", chainDepth, processed: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
         // ==========================================
@@ -928,12 +965,52 @@ serve(async (req: any) => {
             }
         }
 
+        // Commit flags immediately for processed schedules to guarantee Idempotency
         if (updateIds.d0.length > 0) await supabase.from('user_schedules').update({ notification_d0_sent: true }).in('id', updateIds.d0);
         if (updateIds.d1.length > 0) await supabase.from('user_schedules').update({ notification_d1_sent: true }).in('id', updateIds.d1);
         if (updateIds.d4.length > 0) await supabase.from('user_schedules').update({ notification_d4_sent: true }).in('id', updateIds.d4);
         if (updateIds.record_reminder.length > 0) await supabase.from('user_schedules').update({ notification_record_reminder_sent: true }).in('id', updateIds.record_reminder);
 
-        return new Response(JSON.stringify({ success: true, mode: 'dispatch', count: notifications.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        // Check if additional schedules remain for next batch relay
+        let chained = false;
+        let remainingCount = 0;
+
+        if (mode === 'dispatch') {
+            const { count: remCount } = await supabase
+                .from('user_schedules')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'scheduled')
+                .or(`and(check_in.eq.${today},notification_d0_sent.eq.false),and(check_in.eq.${d5},notification_d4_sent.eq.false),and(check_out.eq.${yesterday},notification_record_reminder_sent.eq.false)`);
+
+            remainingCount = remCount || 0;
+
+            if (remainingCount > 0 && chainDepth < 20) {
+                chained = true;
+                const nextUrl = `${SUPABASE_URL}/functions/v1/camping-reminder?mode=dispatch&chain_depth=${chainDepth + 1}`;
+                console.log(`[Camping Reminder Relay] Triggering next batch (depth ${chainDepth + 1}, remaining: ${remainingCount})...`);
+
+                // Fire async un-awaited background HTTP request to relay next 250 batch
+                fetch(nextUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ chained: true, previous_depth: chainDepth })
+                }).catch(err => console.warn('[Relay Chain Notice]', err));
+            } else if (chainDepth >= 20) {
+                console.warn(`[Camping Reminder Relay] Max chain depth 20 reached with ${remainingCount} remaining. Safety stop.`);
+            }
+        }
+
+        return new Response(JSON.stringify({
+            success: true,
+            mode,
+            count: notifications.length,
+            chainDepth,
+            remainingCount,
+            chained
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     } catch (err: any) {
         console.error("Critical Error:", err);

@@ -186,12 +186,77 @@ export default function NativeAppBridge() {
                     }
                 );
 
+                // 6. [전역 푸시 토큰 등록 및 계정 동기화]
+                const regHandler = await PushNotifications.addListener('registration', async (token) => {
+                    console.log('[Native Bridge] Device Push Token:', token.value);
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('last_fcm_token_raw', token.value);
+                    }
+                    try {
+                        const { createClient } = await import('@/lib/supabase-client');
+                        const supabase = createClient();
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                            const userCacheKey = `last_synced_fcm_token_${user.id}`;
+                            const lastToken = localStorage.getItem(userCacheKey);
+                            if (lastToken !== token.value) {
+                                await supabase.from('push_tokens').upsert({
+                                    token: token.value,
+                                    user_id: user.id,
+                                    device_type: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
+                                    is_active: true,
+                                    last_updated_at: new Date().toISOString()
+                                });
+                                localStorage.setItem(userCacheKey, token.value);
+                                console.log('[Native Bridge] Device Token synced to Supabase for user:', user.id);
+                            }
+                        }
+                    } catch (tSyncErr) {
+                        console.warn('[Native Bridge] Token sync error:', tSyncErr);
+                    }
+                });
+
+                PushNotifications.checkPermissions().then((status) => {
+                    if (status.receive === 'granted') {
+                        PushNotifications.register();
+                    }
+                });
+
+                // 7. [로그인 상태 변경 실시간 감지 및 즉각 토큰 바인딩]
+                const { createClient } = await import('@/lib/supabase-client');
+                const supabase = createClient();
+                const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (event, session) => {
+                    if (event === 'SIGNED_IN' && session?.user) {
+                        const rawToken = typeof window !== 'undefined' ? localStorage.getItem('last_fcm_token_raw') : null;
+                        if (rawToken) {
+                            const userCacheKey = `last_synced_fcm_token_${session.user.id}`;
+                            if (localStorage.getItem(userCacheKey) !== rawToken) {
+                                try {
+                                    await supabase.from('push_tokens').upsert({
+                                        token: rawToken,
+                                        user_id: session.user.id,
+                                        device_type: Capacitor.isNativePlatform() ? (Capacitor.getPlatform() === 'ios' ? 'ios' : 'android') : 'web',
+                                        is_active: true,
+                                        last_updated_at: new Date().toISOString()
+                                    });
+                                    localStorage.setItem(userCacheKey, rawToken);
+                                    console.log('[Native Bridge] Auth state changed: Device Token successfully bound to user:', session.user.id);
+                                } catch (e) {
+                                    console.warn('[Native Bridge] Auth token binding warning:', e);
+                                }
+                            }
+                        }
+                    }
+                });
+
                 cleanup = () => {
                     pushActionHandler.remove();
                     backHandler.remove();
                     urlOpenHandler.remove();
                     appStateChangeHandler.remove();
                     pushReceivedHandler.remove();
+                    regHandler.remove();
+                    authSub.unsubscribe();
                 };
             } catch (err) {
                 console.warn('[Native Bridge] Error initializing native listeners:', err);

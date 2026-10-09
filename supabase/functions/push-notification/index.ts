@@ -5,6 +5,8 @@ import {
     selectDeliveryTokens,
     buildFcmPayload,
     sendFcmMessage,
+    sendFcmMessageWithRetry,
+    classifyFcmResult,
     pruneInvalidTokens,
     PushTokenRecord
 } from "../_shared/fcm.ts";
@@ -132,9 +134,9 @@ serve(async (req) => {
                     relatedId: related_id,
                 });
 
-                const res = await sendFcmMessage(FIREBASE_PROJECT_ID, accessToken, message);
-                console.log(`[FCM SEND] Token: ${t.token.slice(0, 15)}... | Device: ${t.device_type || 'web'} | Status: ${res.status}`);
-                return { token: t.token, status: res.status, resBody: res.resBody };
+                const res = await sendFcmMessageWithRetry(FIREBASE_PROJECT_ID, accessToken, message, 1);
+                console.log(`[FCM SEND] Token: ${t.token.slice(0, 15)}... | Device: ${t.device_type || 'web'} | Status: ${res.status} | Outcome: ${res.outcome}`);
+                return { token: t.token, status: res.status, resBody: res.resBody, outcome: res.outcome };
             }));
 
             results.push(...chunkResults);
@@ -150,8 +152,19 @@ serve(async (req) => {
         // 7. Safe Token Pruning (Deletes ONLY confirmed 404 / UNREGISTERED)
         const prunedCount = await pruneInvalidTokens(supabase, results);
 
-        // 8. Update Notification Record Status
-        const finalStatus = successCount > 0 ? 'sent' : 'failed';
+        // 8. Determine Final Status based on Selective Retry Architecture
+        const hasRetryableFailure = results.some(r => classifyFcmResult(r.status, r.resBody) === 'retry');
+        const hasDeadFailure = results.some(r => classifyFcmResult(r.status, r.resBody) === 'dead');
+
+        let finalStatus = 'failed';
+        if (successCount > 0) {
+            finalStatus = 'sent';
+        } else if (hasRetryableFailure) {
+            finalStatus = 'retry';
+        } else if (hasDeadFailure) {
+            finalStatus = 'dead';
+        }
+
         const resultSummary = JSON.stringify(results.map(r => ({
             status: r.status,
             err: r.resBody?.error?.message,
@@ -159,11 +172,13 @@ serve(async (req) => {
         })));
 
         if (id) {
-            await updateNotificationStatus(id, finalStatus, resultSummary);
+            const currentAttempt = Number(record.attempt_count || record.data?.attempt_count || 1);
+            await updateNotificationStatus(id, finalStatus, resultSummary, data, currentAttempt);
         }
 
         return new Response(JSON.stringify({
             success: successCount > 0,
+            status: finalStatus,
             successCount,
             totalCount: results.length,
             prunedTokens: prunedCount,
@@ -180,13 +195,49 @@ serve(async (req) => {
     }
 });
 
-async function updateNotificationStatus(id: string, status: string, resultSummary: string) {
+async function updateNotificationStatus(
+    id: string, 
+    status: string, 
+    resultSummary: string, 
+    existingData?: any,
+    currentAttempt: number = 1
+) {
+    const nowIso = new Date().toISOString();
     const updateData: any = {
         status,
         error_message: resultSummary,
+        last_attempt_at: nowIso,
     };
+
     if (status === 'sent') {
-        updateData.sent_at = new Date().toISOString();
+        updateData.sent_at = nowIso;
+    } else if (status === 'retry') {
+        const nextRetry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+        updateData.next_retry_at = nextRetry;
+        updateData.attempt_count = currentAttempt;
+        if (existingData && typeof existingData === 'object') {
+            updateData.data = {
+                ...existingData,
+                attempt_count: currentAttempt,
+                next_retry_at: nextRetry,
+                last_attempt_at: nowIso
+            };
+        }
+    } else if (status === 'dead') {
+        updateData.attempt_count = currentAttempt;
+        if (existingData && typeof existingData === 'object') {
+            updateData.data = {
+                ...existingData,
+                attempt_count: currentAttempt,
+                is_dead: true,
+                last_attempt_at: nowIso
+            };
+        }
     }
-    await supabase.from('notifications').update(updateData).eq('id', id);
+
+    try {
+        await supabase.from('notifications').update(updateData).eq('id', id);
+    } catch (uErr) {
+        console.warn('[UPDATE STATUS WARN]', uErr);
+    }
 }

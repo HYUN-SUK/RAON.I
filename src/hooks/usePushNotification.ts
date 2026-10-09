@@ -45,12 +45,16 @@ export function usePushNotification() {
             PushNotifications.addListener('registration', async (token) => {
                 console.log('[Capacitor Push] Device Registration Token:', token.value);
                 setFcmToken(token.value);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('last_fcm_token_raw', token.value);
+                }
 
                 try {
                     const supabase = createClient();
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user) {
-                        const lastToken = localStorage.getItem('last_synced_fcm_token');
+                        const userCacheKey = `last_synced_fcm_token_${user.id}`;
+                        const lastToken = localStorage.getItem(userCacheKey);
                         if (lastToken !== token.value) {
                             await supabase.from('push_tokens').upsert({
                                 token: token.value,
@@ -59,8 +63,8 @@ export function usePushNotification() {
                                 is_active: true,
                                 last_updated_at: new Date().toISOString()
                             });
-                            localStorage.setItem('last_synced_fcm_token', token.value);
-                            console.log('[Capacitor Push] Token synced to Supabase.');
+                            localStorage.setItem(userCacheKey, token.value);
+                            console.log('[Capacitor Push] Token synced to Supabase for user:', user.id);
                         }
                     }
                 } catch (err) {
@@ -92,13 +96,17 @@ export function usePushNotification() {
         (window as any).onReceiveAndroidToken = async (token: string) => {
             console.log('[Android Bridge] Received Device Token:', token);
             if (!token) return;
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('last_fcm_token_raw', token);
+            }
 
             try {
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
 
                 if (user) {
-                    const lastToken = localStorage.getItem('last_synced_fcm_token');
+                    const userCacheKey = `last_synced_fcm_token_${user.id}`;
+                    const lastToken = localStorage.getItem(userCacheKey);
                     if (lastToken !== token) {
                         const { error: upsertErr } = await supabase.from('push_tokens').upsert({
                             token,
@@ -109,8 +117,8 @@ export function usePushNotification() {
                         });
 
                         if (!upsertErr) {
-                            localStorage.setItem('last_synced_fcm_token', token);
-                            console.log('[Android Bridge] Device Token successfully synced to Supabase.');
+                            localStorage.setItem(userCacheKey, token);
+                            console.log('[Android Bridge] Device Token successfully synced to Supabase for user:', user.id);
                         }
                     }
                 }
@@ -159,6 +167,9 @@ export function usePushNotification() {
 
             if (token) {
                 setFcmToken(token);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('last_fcm_token_raw', token);
+                }
 
                 // Internal Sync Logic (Stable)
                 const supabase = createClient();
@@ -166,9 +177,10 @@ export function usePushNotification() {
 
                 if (user) {
                     // [SYNC GUARD] Prevent redundant writes if token hasn't changed (unless forced)
-                    const lastToken = localStorage.getItem('last_synced_fcm_token');
-                    if (lastToken === token) {
-                        console.log('[Push] Token already synced. Skipping...');
+                    const userCacheKey = `last_synced_fcm_token_${user.id}`;
+                    const lastToken = localStorage.getItem(userCacheKey);
+                    if (lastToken === token && !force) {
+                        console.log('[Push] Token already synced for user:', user.id);
                         if (force) {
                             toast.success('이미 알림 설정이 완료되어 있습니다! 🔔');
                         }
@@ -180,8 +192,8 @@ export function usePushNotification() {
                             is_active: true,
                             last_updated_at: new Date().toISOString()
                         });
-                        localStorage.setItem('last_synced_fcm_token', token);
-                        console.log(`[Push] Token synced to Supabase (force: ${!!force})`);
+                        localStorage.setItem(userCacheKey, token);
+                        console.log(`[Push] Token synced to Supabase for user ${user.id} (force: ${!!force})`);
                         if (force) {
                             toast.success('알림 수신 권한 설정이 완료되었습니다! 🔔');
                         }

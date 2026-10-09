@@ -175,10 +175,10 @@ export default function TopBar() {
                 localStorage.removeItem('reservation-storage-v2');
                 localStorage.removeItem('raon_cached_guest_info');
                 localStorage.removeItem('raonai_back_from_detail');
-                // sb-* 및 auth-token 관련 로컬스토리지 잔여 키 일괄 정리
+                // sb-* 및 auth-token 및 last_synced_fcm_token 관련 로컬스토리지 잔여 키 일괄 정리
                 for (let i = localStorage.length - 1; i >= 0; i--) {
                     const key = localStorage.key(i);
-                    if (key && (key.startsWith('sb-') || key.includes('auth-token'))) {
+                    if (key && (key.startsWith('sb-') || key.includes('auth-token') || key.startsWith('last_synced_fcm_token_'))) {
                         localStorage.removeItem(key);
                     }
                 }
@@ -255,6 +255,16 @@ export default function TopBar() {
 
     const handleLogout = async () => {
         try {
+            // [푸시 토큰 안전 비활성화] 현재 기기의 푸시 토큰 비활성화하여 타인 수신 원천 차단
+            const rawToken = typeof window !== 'undefined' ? localStorage.getItem('last_fcm_token_raw') : null;
+            if (rawToken) {
+                try {
+                    await supabase.from('push_tokens').update({ is_active: false, last_updated_at: new Date().toISOString() }).eq('token', rawToken);
+                } catch (tErr) {
+                    console.warn('[Logout] Push token deactivation notice:', tErr);
+                }
+            }
+
             const signOutPromise = supabase.auth.signOut();
             const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 1500));
             await Promise.race([signOutPromise, timeoutPromise]);
