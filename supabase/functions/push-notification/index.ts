@@ -44,6 +44,15 @@ serve(async (req) => {
         const payload = await req.json();
         console.log("[Push Notification] Received payload:", JSON.stringify(payload));
 
+        // 0. Retry Sweep Mode (invoked by cron or retry worker)
+        if (payload?.mode === 'retry-sweep' || payload?.action === 'retry-sweep') {
+            console.log("[Push Notification] Running retry sweep cycle...");
+            const sweepResult = await executeRetrySweep();
+            return new Response(JSON.stringify(sweepResult), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
+        }
+
         // 1. Validate Payload (Supabase Webhook format or Direct Invoke)
         const record = payload.record || payload;
         if (!record || !record.user_id || !record.title) {
@@ -240,4 +249,130 @@ async function updateNotificationStatus(
     } catch (uErr) {
         console.warn('[UPDATE STATUS WARN]', uErr);
     }
+}
+
+async function executeRetrySweep() {
+    const nowIso = new Date().toISOString();
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    const { data: candidates, error: fetchErr } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('status', 'retry')
+        .or(`next_retry_at.lte.${nowIso},and(next_retry_at.is.null,created_at.lte.${fiveMinAgo})`)
+        .limit(50);
+
+    if (fetchErr) {
+        console.error("[Push Retry Sweep] Query error:", fetchErr);
+        return { success: false, error: fetchErr.message };
+    }
+
+    const list = candidates || [];
+    if (list.length === 0) {
+        return { success: true, processed: 0, message: "No retry candidates due" };
+    }
+
+    const accessToken = await getFcmAccessToken(FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY);
+    let sentCount = 0;
+    let deadCount = 0;
+    let reRetryCount = 0;
+
+    for (const notif of list) {
+        try {
+            // Atomic claim
+            const { data: claimed } = await supabase
+                .from('notifications')
+                .update({ status: 'sending', last_attempt_at: nowIso })
+                .eq('id', notif.id)
+                .eq('status', 'retry')
+                .select('id')
+                .maybeSingle();
+
+            if (!claimed) continue;
+
+            const currentAttempt = Number(notif.attempt_count || notif.data?.attempt_count || 1);
+            const nextAttempt = currentAttempt + 1;
+
+            const { data: rawTokens } = await supabase
+                .from('push_tokens')
+                .select('token, device_type, last_updated_at')
+                .eq('user_id', notif.user_id)
+                .eq('is_active', true)
+                .order('last_updated_at', { ascending: false });
+
+            const tokens = (rawTokens || []) as PushTokenRecord[];
+            if (tokens.length === 0) {
+                await supabase.from('notifications').update({
+                    status: 'failed',
+                    error_message: 'No active push tokens found on retry'
+                }).eq('id', notif.id);
+                continue;
+            }
+
+            const deliveryTokens = selectDeliveryTokens(tokens);
+            const uniqueTokensMap = new Map<string, PushTokenRecord>();
+            deliveryTokens.forEach(t => uniqueTokensMap.set(t.token, t));
+            const uniqueTokens = Array.from(uniqueTokensMap.values());
+
+            const heroImage = notif.data?.hero_image;
+            const results = await Promise.all(uniqueTokens.map(async (t) => {
+                const message = buildFcmPayload(t.token, t.device_type, {
+                    title: String(notif.title),
+                    body: String(notif.body || ''),
+                    data: typeof notif.data === 'object' ? notif.data : {},
+                    heroImage: heroImage,
+                    link: notif.data?.link,
+                    eventType: notif.event_type,
+                    relatedId: notif.related_id,
+                });
+                return await sendFcmMessageWithRetry(FIREBASE_PROJECT_ID, accessToken, message, 1);
+            }));
+
+            await pruneInvalidTokens(supabase, results);
+            const success = results.some(r => r.status === 200);
+
+            if (success) {
+                await supabase.from('notifications').update({
+                    status: 'sent',
+                    sent_at: new Date().toISOString(),
+                    attempt_count: nextAttempt
+                }).eq('id', notif.id);
+                sentCount++;
+            } else {
+                const resultSummary = JSON.stringify(results.map(r => ({
+                    status: r.status,
+                    err: r.resBody?.error?.message,
+                    code: r.resBody?.error?.details?.[0]?.errorCode
+                })));
+
+                if (nextAttempt >= 3) {
+                    await supabase.from('notifications').update({
+                        status: 'dead',
+                        attempt_count: nextAttempt,
+                        error_message: `Max retries (3) exceeded: ${resultSummary}`
+                    }).eq('id', notif.id);
+                    deadCount++;
+                } else {
+                    const nextRetryAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+                    await supabase.from('notifications').update({
+                        status: 'retry',
+                        attempt_count: nextAttempt,
+                        next_retry_at: nextRetryAt,
+                        error_message: resultSummary
+                    }).eq('id', notif.id);
+                    reRetryCount++;
+                }
+            }
+        } catch (e) {
+            console.error(`[Push Retry Sweep] Item ${notif.id} error:`, e);
+        }
+    }
+
+    return {
+        success: true,
+        totalProcessed: list.length,
+        sentCount,
+        deadCount,
+        reRetryCount
+    };
 }
