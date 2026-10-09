@@ -201,7 +201,12 @@ export default function SmartPlanMapViewModal({
             )}
         >
             {/* 상단 컨트롤 헤더 */}
-            <div className="bg-[#112419] text-white px-4 py-3 flex items-center justify-between shrink-0 shadow-lg border-b border-white/10 z-10">
+            <div 
+                className="bg-[#112419] text-white px-4 pb-3 flex items-center justify-between shrink-0 shadow-lg border-b border-white/10 z-10"
+                style={{
+                    paddingTop: 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px)'
+                }}
+            >
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                     <h3 className="font-bold text-sm truncate">

@@ -31,6 +31,16 @@ interface UserInfo {
     avatarUrl?: string;
 }
 
+// 모듈 스코프 캐시: SPA 페이지 이동 간 TopBar가 언마운트/리마운트되어도 즉시 상태 보존 (로그인 버튼 깜빡임 0ms 방어)
+let cachedAuthState: { isLoggedIn: boolean; userInfo: UserInfo | null } = {
+    isLoggedIn: false,
+    userInfo: null,
+};
+
+// 당일 로그인 보상 및 지갑 갱신 중복 호출 방지 모듈 락
+let lastRewardCheckUserId: string | null = null;
+let lastRewardCheckDate: string | null = null;
+
 // 플레이스토어 공식 다운로드 URL
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=kr.co.raoni.app";
 
@@ -39,8 +49,8 @@ export default function TopBar() {
     const router = useRouter();
     const pathname = usePathname();
     const supabase = createClient();
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(() => cachedAuthState.isLoggedIn);
+    const [userInfo, setUserInfo] = useState<UserInfo | null>(() => cachedAuthState.userInfo);
 
     // 앱 설치 여부 감지 (앱 사용자 감춤, 웹 사용자 전용 주황색 버튼 노출)
     const { isAppUser, isMounted } = useAppStandaloneDetector();
@@ -69,7 +79,13 @@ export default function TopBar() {
     const loginRewardProcessedRef = useRef<string | null>(null);
 
     const handleDailyLoginReward = async (user: { id: string }) => {
-        if (!user?.id || loginRewardProcessedRef.current === user.id) return;
+        if (!user?.id) return;
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (lastRewardCheckUserId === user.id && lastRewardCheckDate === todayStr) {
+            return; // 이미 당일 1회 보상 및 지갑 동기화 완료 (페이지 전환 시 중복 호출 방어)
+        }
+        lastRewardCheckUserId = user.id;
+        lastRewardCheckDate = todayStr;
         loginRewardProcessedRef.current = user.id;
 
         try {
@@ -98,24 +114,44 @@ export default function TopBar() {
 
     const checkUser = async () => {
         try {
+            // [0ms 즉시 복원] 로컬스토리지 캐시가 있으면 네트워크 응답 전 즉각 바인딩
+            if (typeof window !== 'undefined' && !cachedAuthState.isLoggedIn) {
+                try {
+                    const raw = localStorage.getItem('raon_user_auth_cache');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed?.isLoggedIn && parsed?.userInfo) {
+                            cachedAuthState = parsed;
+                            setIsLoggedIn(true);
+                            setUserInfo(parsed.userInfo);
+                        }
+                    }
+                } catch {}
+            }
+
             const sessionPromise = supabase.auth.getSession();
             const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
                 setTimeout(() => resolve({ data: { session: null } }), 3000)
             );
             const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
             const user = session?.user;
-            setIsLoggedIn(!!session);
 
             if (user) {
-                // Set User Info
-                setUserInfo({
+                const info: UserInfo = {
                     nickname: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Camper',
                     avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture
-                });
+                };
+                cachedAuthState = { isLoggedIn: true, userInfo: info };
+                try { localStorage.setItem('raon_user_auth_cache', JSON.stringify(cachedAuthState)); } catch {}
+                setIsLoggedIn(true);
+                setUserInfo(info);
 
                 // 로그인 보상 및 동기화 1회 안전 실행
                 handleDailyLoginReward(user);
             } else {
+                cachedAuthState = { isLoggedIn: false, userInfo: null };
+                try { localStorage.removeItem('raon_user_auth_cache'); } catch {}
+                setIsLoggedIn(false);
                 setUserInfo(null);
                 try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
                 reset();
@@ -127,8 +163,12 @@ export default function TopBar() {
 
     const clearUserAuthCaches = () => {
         try {
+            cachedAuthState = { isLoggedIn: false, userInfo: null };
+            lastRewardCheckUserId = null;
+            lastRewardCheckDate = null;
             loginRewardProcessedRef.current = null;
             if (typeof window !== 'undefined') {
+                localStorage.removeItem('raon_user_auth_cache');
                 localStorage.removeItem('user_schedules_cache');
                 localStorage.removeItem('last_schedule_sync_date');
                 localStorage.removeItem('reservation-storage-v3');
@@ -162,13 +202,16 @@ export default function TopBar() {
         // 실시간 세션 변경 감지 리스너 구독 (SDK 표준: 세션 인자 직접 활용 및 부가 비동기 격리)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session)) {
-                setIsLoggedIn(true);
                 const user = session?.user;
                 if (user) {
-                    setUserInfo({
+                    const info: UserInfo = {
                         nickname: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Camper',
                         avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture
-                    });
+                    };
+                    cachedAuthState = { isLoggedIn: true, userInfo: info };
+                    try { localStorage.setItem('raon_user_auth_cache', JSON.stringify(cachedAuthState)); } catch {}
+                    setIsLoggedIn(true);
+                    setUserInfo(info);
 
                     // SDK 이벤트 루프 차단을 방지하기 위해 보상 및 지갑 갱신을 비동기 큐로 분리 (1회 락 보장)
                     setTimeout(() => {
@@ -177,6 +220,9 @@ export default function TopBar() {
                 }
             } else if (event === 'SIGNED_OUT') {
                 loginRewardProcessedRef.current = null;
+                lastRewardCheckUserId = null;
+                lastRewardCheckDate = null;
+                cachedAuthState = { isLoggedIn: false, userInfo: null };
                 setIsLoggedIn(false);
                 setUserInfo(null);
                 clearUserAuthCaches();
@@ -192,8 +238,13 @@ export default function TopBar() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 페이지 경로 전환 시 최신 로그인 세션 즉시 동기화 (캐시 지연 및 레이스 컨디션 완벽 방어)
+    // 페이지 경로 전환 시 최신 로그인 세션 동기화 (최초 마운트 시 중복 실행 방어)
+    const isFirstMountRef = useRef(true);
     useEffect(() => {
+        if (isFirstMountRef.current) {
+            isFirstMountRef.current = false;
+            return;
+        }
         checkUser();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pathname]);
