@@ -56,6 +56,10 @@ export async function notifyWaitlistUsers(targetDate: string, siteId?: string): 
         const formattedDate = format(new Date(targetDate), 'M월 d일', { locale: ko });
         let notifiedCount = 0;
 
+        // [v14.5.0] 10초 타임 버킷 고유 ID 생성 (10초 내 광클은 중복 차단 + 10초 후 재신청/취소는 100% 정상 발송)
+        const timeBucket = Math.floor(Date.now() / 10000);
+        const uniqueSlotEventId = `waitlist_${targetDate}_${siteId || 'all'}_${timeBucket}`;
+
         for (const user of waitlistUsers as WaitlistUser[]) {
             try {
                 // 푸시 알림 발송
@@ -66,7 +70,7 @@ export async function notifyWaitlistUsers(targetDate: string, siteId?: string): 
                         targetDate: formattedDate,
                         link: '/reservation'
                     },
-                    targetDate // relatedId로 날짜 저장
+                    uniqueSlotEventId // 10초 타임 버킷 고유 relatedId
                 );
 
                 if (dispatchResult.success) {
