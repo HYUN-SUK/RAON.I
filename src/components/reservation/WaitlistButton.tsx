@@ -8,10 +8,14 @@
 import { useState, useEffect } from 'react';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import PushPermissionPrompt from '@/components/permission/PushPermissionPrompt';
+import {
+    checkWaitlistStatusAction,
+    registerWaitlistAction,
+    cancelWaitlistAction
+} from '@/actions/waitlist-actions';
 
 interface WaitlistButtonProps {
     targetDate: string; // YYYY-MM-DD
@@ -24,72 +28,35 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
     const [isRegistered, setIsRegistered] = useState(false);
     const [showPushPrompt, setShowPushPrompt] = useState(false);
     const { requestPermission } = usePushNotification();
-    const supabase = createClient();
 
-    // 초기 상태 확인
+    // 초기 상태 확인 (Server Action을 통한 안전 조회)
     useEffect(() => {
+        let isMounted = true;
         const checkRegistration = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const query = supabase
-                .from('waitlist')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('target_date', targetDate)
-                .eq('is_notified', false); // 활성 대기 건만 체크
-
-            if (siteId) {
-                query.eq('site_id', siteId);
-            } else {
-                query.is('site_id', null);
-            }
-
-            const { data } = await query.maybeSingle();
-            if (data) {
-                setIsRegistered(true);
-            } else {
-                setIsRegistered(false);
+            const res = await checkWaitlistStatusAction(targetDate, siteId);
+            if (isMounted) {
+                setIsRegistered(res.isRegistered);
             }
         };
 
         checkRegistration();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        return () => { isMounted = false; };
     }, [targetDate, siteId]);
 
-    // 대기 신청 실제 처리 로직
+    // 대기 신청 실제 처리 로직 (Server Action: Service Role 기반 100% 안전 Upsert)
     const executeRegister = async () => {
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                toast.error('로그인이 필요합니다.');
-                return;
+            const res = await registerWaitlistAction(targetDate, siteId);
+            if (res.success) {
+                setIsRegistered(true);
+                toast.success('빈자리가 나면 알려드릴게요!');
+            } else {
+                toast.error(res.error || '알림 신청에 실패했습니다.');
             }
-
-            // 기존 알림 완료(is_notified=true) 레코드가 있어도 is_notified=false로 안전하게 재활성화(Upsert)
-            const { error } = await supabase.from('waitlist').upsert({
-                user_id: user.id,
-                target_date: targetDate,
-                site_id: siteId || null,
-                is_notified: false,
-                notified_at: null,
-                created_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id,target_date,site_id'
-            });
-
-            if (error) {
-                console.error('[Waitlist] Upsert error:', error);
-                toast.error('알림 신청에 실패했습니다.');
-                return;
-            }
-
-            setIsRegistered(true);
-            toast.success('빈자리가 나면 알려드릴게요!');
-        } catch (err) {
+        } catch (err: any) {
             console.error('[Waitlist] Exception:', err);
-            toast.error('오류가 발생했습니다.');
+            toast.error(err?.message || '오류가 발생했습니다.');
         } finally {
             setLoading(false);
         }
@@ -106,31 +73,20 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
         await executeRegister();
     };
 
-    // 대기 취소
+    // 대기 취소 (Server Action을 통한 안전 삭제)
     const handleCancel = async () => {
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const query = supabase
-                .from('waitlist')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('target_date', targetDate);
-
-            if (siteId) {
-                query.eq('site_id', siteId);
+            const res = await cancelWaitlistAction(targetDate, siteId);
+            if (res.success) {
+                setIsRegistered(false);
+                toast.success('빈자리 알림이 취소되었습니다.');
             } else {
-                query.is('site_id', null);
+                toast.error(res.error || '알림 취소에 실패했습니다.');
             }
-
-            await query;
-
-            setIsRegistered(false);
-            toast.success('빈자리 알림이 취소되었습니다.');
-        } catch (err) {
+        } catch (err: any) {
             console.error('[Waitlist] Cancel exception:', err);
+            toast.error(err?.message || '취소 처리에 실패했습니다.');
         } finally {
             setLoading(false);
         }
