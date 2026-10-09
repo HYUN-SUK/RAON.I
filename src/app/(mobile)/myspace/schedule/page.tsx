@@ -122,14 +122,27 @@ function ScheduleContent() {
             setIsSyncing(true);
         }
         try {
-            const [schedulesData] = await Promise.all([
+            const [schedulesData, reservationsData] = await Promise.all([
                 getMySchedules(),
                 fetchMyReservations()
             ]);
             if (schedulesData) {
-                setAllSchedules(schedulesData);
+                const resList = (reservationsData && Array.isArray(reservationsData)) ? reservationsData : (reservations || []);
+                const mappedSchedules = schedulesData.map(s => {
+                    if (s.reservation_id) {
+                        const matchedRes = resList.find(r => r.id === s.reservation_id);
+                        if (matchedRes) {
+                            return {
+                                ...s,
+                                reservation_status: matchedRes.status
+                            };
+                        }
+                    }
+                    return s;
+                });
+                setAllSchedules(mappedSchedules);
                 try {
-                    localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
+                    localStorage.setItem('user_schedules_cache', JSON.stringify(mappedSchedules));
                 } catch {}
             }
         } catch (error) {
@@ -139,7 +152,7 @@ function ScheduleContent() {
             setIsLoading(false);
             setIsSyncing(false);
         }
-    }, [allSchedules.length, fetchMyReservations]);
+    }, [allSchedules.length, fetchMyReservations, reservations]);
 
     useEffect(() => {
         loadData(true);
@@ -172,7 +185,20 @@ function ScheduleContent() {
                     };
                 });
 
-            const scheduledList = allSchedules.filter(s => s.status === 'scheduled');
+            const scheduledList = allSchedules
+                .filter(s => s.status === 'scheduled')
+                .map(s => {
+                    if (s.reservation_id) {
+                        const matchedRes = reservations.find(r => r.id === s.reservation_id);
+                        if (matchedRes) {
+                            return {
+                                ...s,
+                                reservation_status: matchedRes.status
+                            };
+                        }
+                    }
+                    return s;
+                });
             const combined = [...pendingReservations, ...scheduledList];
             // 날짜 정렬 (체크인 빠른 순)
             combined.sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
@@ -230,6 +256,11 @@ function ScheduleContent() {
     const handleScheduleClick = (schedule: Schedule) => {
         if ((schedule as any).is_pending_reservation) {
             router.push('/reservation/complete');
+            return;
+        }
+        // 취소/환불 대기 상태인 경우 예약 내역 페이지로 안전하게 이동
+        if ((schedule as any).reservation_status === 'REFUND_PENDING') {
+            router.push('/myspace/reservations');
             return;
         }
         router.push(`/myspace/schedule/${schedule.id}`);

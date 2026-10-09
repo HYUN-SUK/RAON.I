@@ -63,9 +63,12 @@ export default function ScheduleCard({
     const daysUntil = useMemo(() => differenceInDays(checkIn, today), [checkIn, today]);
     const nights = useMemo(() => Math.max(0, differenceInDays(checkOut, checkIn)), [checkOut, checkIn]);
 
+    // [v15.1.0] 예약 취소/환불 대기 상태 판별 (홈 화면과 일원화)
+    const isRefundPending = (schedule as any).reservation_status === 'REFUND_PENDING';
+
     // 스마트플랜 사용 가능 여부 판별 (예약 생성 새벽 5시 이전 당일 9시, 이후 다음날 오전 9시 활성화)
     const isSmartPlanAvailable = useMemo(() => {
-        if (schedule.status !== 'scheduled') return false;
+        if (schedule.status !== 'scheduled' || isRefundPending) return false;
 
         const createdAtDate = new Date(schedule.created_at);
         if (isNaN(createdAtDate.getTime())) return false;
@@ -79,11 +82,11 @@ export default function ScheduleCard({
         }
 
         return new Date() >= unlockTimeByCreation;
-    }, [schedule]);
+    }, [schedule, isRefundPending]);
 
     // [v14.1.0] 스마트플랜 5단계 동적 D-Day 생명주기 뱃지 수식 (완료/취소 일정 상태 분기 보강)
     const smartPlanMessage = useMemo(() => {
-        if ((schedule as any).is_pending_reservation) {
+        if ((schedule as any).is_pending_reservation || isRefundPending) {
             return null;
         }
 
@@ -136,10 +139,11 @@ export default function ScheduleCard({
 
         // 1단계: 즉시 여행계획 생성 전 (신규 등록 직후)
         return "⚡ 즉시 여행계획 생성가능!, 터치해보세요!";
-    }, [schedule, isSmartPlanAvailable, daysUntil]);
+    }, [schedule, isSmartPlanAvailable, daysUntil, isRefundPending]);
 
     // D-Day 텍스트
     const getDDayText = () => {
+        if (isRefundPending) return '취소 접수';
         if ((schedule as any).is_pending_reservation) return '입금 대기';
         if (schedule.status === 'completed') return '완료';
         if (schedule.status === 'cancelled') return '취소됨';
@@ -151,6 +155,7 @@ export default function ScheduleCard({
 
     // D-Day 배지 색상
     const getDDayColor = () => {
+        if (isRefundPending) return 'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-700';
         if ((schedule as any).is_pending_reservation) return 'bg-yellow-500 text-white animate-pulse';
         if (schedule.status === 'completed') return 'bg-[#388E5A] text-white';
         if (schedule.status === 'cancelled') return 'bg-gray-400 text-white';
@@ -176,6 +181,7 @@ export default function ScheduleCard({
             className={cn(
                 "bg-white rounded-2xl p-4 shadow-sm border border-gray-100",
                 (schedule as any).is_pending_reservation && "border-yellow-200 bg-yellow-50/10 shadow-sm",
+                isRefundPending && "border-amber-200 bg-amber-50/15 shadow-sm",
                 "transition-all duration-200 hover:shadow-md",
                 onClick && "cursor-pointer"
             )}
@@ -211,7 +217,7 @@ export default function ScheduleCard({
                         <MoreVertical className="w-5 h-5 text-gray-400" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                        {onEdit && schedule.status === 'scheduled' && (
+                        {onEdit && schedule.status === 'scheduled' && !isRefundPending && (
                             <DropdownMenuItem
                                 onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
                                 className="gap-2"
@@ -220,7 +226,7 @@ export default function ScheduleCard({
                                 수정하기
                             </DropdownMenuItem>
                         )}
-                        {onComplete && schedule.status === 'scheduled' && daysUntil <= 0 && (
+                        {onComplete && schedule.status === 'scheduled' && !isRefundPending && daysUntil <= 0 && (
                             <DropdownMenuItem
                                 onClick={(e) => { e.stopPropagation(); onComplete(schedule.id); }}
                                 className="gap-2 text-[#388E5A]"
@@ -250,8 +256,13 @@ export default function ScheduleCard({
                 </div>
             )}
 
-            {/* 스마트플랜 안내 배지 */}
-            {smartPlanMessage && (
+            {/* 안내 배지: 취소/환불 대기 시 환불확인 배너 표출, 그 외에는 스마트플랜 배지 */}
+            {isRefundPending ? (
+                <div className="mb-3 text-xs font-bold px-2.5 py-1.5 rounded-xl w-full flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800/60 shadow-2xs">
+                    <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>⏳ 관리자 환불 확인 중입니다</span>
+                </div>
+            ) : smartPlanMessage ? (
                 <div className={cn(
                     "mb-3 text-[11px] font-bold px-2.5 py-1.5 rounded-xl w-fit flex items-center gap-1.5 shadow-sm",
                     smartPlanMessage.includes('완료')
@@ -262,7 +273,7 @@ export default function ScheduleCard({
                 )}>
                     {smartPlanMessage}
                 </div>
-            )}
+            ) : null}
 
             {/* 일정 정보 */}
             <div className="flex items-center gap-4 text-sm">
@@ -286,9 +297,14 @@ export default function ScheduleCard({
             )}
 
             {/* 하단 링크 */}
-            {(onClick || (schedule.source === 'raonai' && onCancelRequest && schedule.status === 'scheduled')) && (
+            {(onClick || (schedule.source === 'raonai' && onCancelRequest && schedule.status === 'scheduled') || isRefundPending) && (
                 <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    {schedule.source === 'raonai' && onCancelRequest && schedule.status === 'scheduled' ? (
+                    {isRefundPending ? (
+                        <span className="flex items-center gap-1 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 px-3 py-1.5 rounded-full shadow-2xs shrink-0 cursor-default">
+                            <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400 animate-pulse" />
+                            <span>취소 요청중</span>
+                        </span>
+                    ) : (schedule.source === 'raonai' && onCancelRequest && schedule.status === 'scheduled') ? (
                         <button
                             type="button"
                             onClick={(e) => {
@@ -303,9 +319,14 @@ export default function ScheduleCard({
                         <div />
                     )}
                     {onClick && !(schedule as any).is_pending_reservation && (
-                        <div className="flex items-center gap-1 text-xs font-bold text-white bg-[#388E5A] hover:bg-[#2F774B] px-3.5 py-1.5 rounded-full shadow-xs active:scale-95 transition-all group">
-                            <span className="text-xs">👆</span>
-                            <span>상세보기</span>
+                        <div className={cn(
+                            "flex items-center gap-1 text-xs font-bold text-white px-3.5 py-1.5 rounded-full shadow-xs active:scale-95 transition-all group",
+                            isRefundPending
+                                ? "bg-amber-600 hover:bg-amber-700"
+                                : "bg-[#388E5A] hover:bg-[#2F774B]"
+                        )}>
+                            <span className="text-xs">{isRefundPending ? '📋' : '👆'}</span>
+                            <span>{isRefundPending ? '예약/환불 내역' : '상세보기'}</span>
                             <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 stroke-[2.5]" />
                         </div>
                     )}
