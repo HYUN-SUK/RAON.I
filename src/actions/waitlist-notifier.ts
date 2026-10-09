@@ -50,14 +50,16 @@ export async function notifyWaitlistUsers(targetDate: string, siteId?: string): 
             return { success: true, notifiedCount: 0, message: 'No waitlist users found' };
         }
 
-        // 2. 각 대기자에게 알림 발송
+        // 2. 관리자 권한 클라이언트 주입 (RLS 보안 차단 완벽 우회)
+        notificationService.setAdminClient(supabaseAdmin);
+
         const formattedDate = format(new Date(targetDate), 'M월 d일', { locale: ko });
         let notifiedCount = 0;
 
         for (const user of waitlistUsers as WaitlistUser[]) {
             try {
                 // 푸시 알림 발송
-                await notificationService.dispatchNotification(
+                const dispatchResult = await notificationService.dispatchNotification(
                     NotificationEventType.WAITLIST_SLOT_OPENED,
                     user.user_id,
                     { 
@@ -67,21 +69,24 @@ export async function notifyWaitlistUsers(targetDate: string, siteId?: string): 
                     targetDate // relatedId로 날짜 저장
                 );
 
-                // 알림 완료 처리
-                await supabaseAdmin.rpc('mark_waitlist_notified', {
-                    p_user_id: user.user_id,
-                    p_date: targetDate,
-                    p_site_id: user.site_id || null
-                });
-
-                notifiedCount++;
+                if (dispatchResult.success) {
+                    // 알림 큐 적재 성공 시에만 대기자 완료 처리
+                    await supabaseAdmin.rpc('mark_waitlist_notified', {
+                        p_user_id: user.user_id,
+                        p_date: targetDate,
+                        p_site_id: user.site_id || null
+                    });
+                    notifiedCount++;
+                } else {
+                    console.warn(`[WaitlistNotifier] Notification dispatch skipped/failed for ${user.user_id}:`, dispatchResult.message);
+                }
             } catch (err) {
                 console.error(`[WaitlistNotifier] Failed to notify user ${user.user_id}:`, err);
                 // 개별 실패는 무시하고 계속 진행
             }
         }
 
-        console.log(`[WaitlistNotifier] Notified ${notifiedCount}/${waitlistUsers.length} users for ${targetDate}`);
+        console.log(`[WaitlistNotifier] Successfully notified ${notifiedCount}/${waitlistUsers.length} users for ${targetDate}`);
         return { success: true, notifiedCount };
 
     } catch (err) {

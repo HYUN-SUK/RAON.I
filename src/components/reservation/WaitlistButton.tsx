@@ -36,7 +36,8 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
                 .from('waitlist')
                 .select('id')
                 .eq('user_id', user.id)
-                .eq('target_date', targetDate);
+                .eq('target_date', targetDate)
+                .eq('is_notified', false); // 활성 대기 건만 체크
 
             if (siteId) {
                 query.eq('site_id', siteId);
@@ -47,6 +48,8 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
             const { data } = await query.maybeSingle();
             if (data) {
                 setIsRegistered(true);
+            } else {
+                setIsRegistered(false);
             }
         };
 
@@ -64,21 +67,21 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
                 return;
             }
 
-            const { error } = await supabase.from('waitlist').insert({
+            // 기존 알림 완료(is_notified=true) 레코드가 있어도 is_notified=false로 안전하게 재활성화(Upsert)
+            const { error } = await supabase.from('waitlist').upsert({
                 user_id: user.id,
                 target_date: targetDate,
                 site_id: siteId || null,
+                is_notified: false,
+                notified_at: null,
+                created_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id,target_date,site_id'
             });
 
             if (error) {
-                if (error.code === '23505') {
-                    // Unique constraint violation - 이미 등록됨
-                    toast.info('이미 빈자리 알림을 신청하셨어요.');
-                    setIsRegistered(true);
-                } else {
-                    console.error('[Waitlist] Insert error:', error);
-                    toast.error('알림 신청에 실패했습니다.');
-                }
+                console.error('[Waitlist] Upsert error:', error);
+                toast.error('알림 신청에 실패했습니다.');
                 return;
             }
 
@@ -118,6 +121,8 @@ export default function WaitlistButton({ targetDate, siteId, siteName }: Waitlis
 
             if (siteId) {
                 query.eq('site_id', siteId);
+            } else {
+                query.is('site_id', null);
             }
 
             await query;
