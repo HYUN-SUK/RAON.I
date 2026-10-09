@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Plus,
@@ -114,9 +114,17 @@ function ScheduleContent() {
     }, [searchParams]);
 
     // 전체 일정 및 예약 통합 로드 (SWR 캐시 패턴: 캐시 존재 시 화면 차단 없이 백그라운드 조용히 갱신)
+    const isFetchingRef = useRef(false);
+    const allSchedulesRef = useRef(allSchedules);
+    allSchedulesRef.current = allSchedules;
+
     const loadData = useCallback(async (isInitial = false) => {
+        // 이미 통신 중인 경우 중복 호출 방지 (동시 실행 방지 동기 락)
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+
         // 캐시 데이터가 아예 없는 경우에만 스켈레톤 로더 노출, 캐시가 있으면 백그라운드 동기화 상태 활성화
-        if (isInitial && allSchedules.length === 0) {
+        if (isInitial && allSchedulesRef.current.length === 0) {
             setIsLoading(true);
         } else {
             setIsSyncing(true);
@@ -124,10 +132,12 @@ function ScheduleContent() {
         try {
             const [schedulesData, reservationsData] = await Promise.all([
                 getMySchedules(),
-                fetchMyReservations()
+                useReservationStore.getState().fetchMyReservations()
             ]);
             if (schedulesData) {
-                const resList = (reservationsData && Array.isArray(reservationsData)) ? reservationsData : (reservations || []);
+                const resList = (reservationsData && Array.isArray(reservationsData))
+                    ? reservationsData
+                    : (useReservationStore.getState().reservations || []);
                 const mappedSchedules = schedulesData.map(s => {
                     if (s.reservation_id) {
                         const matchedRes = resList.find(r => r.id === s.reservation_id);
@@ -151,8 +161,9 @@ function ScheduleContent() {
         } finally {
             setIsLoading(false);
             setIsSyncing(false);
+            isFetchingRef.current = false;
         }
-    }, [allSchedules.length, fetchMyReservations, reservations]);
+    }, []);
 
     useEffect(() => {
         loadData(true);
