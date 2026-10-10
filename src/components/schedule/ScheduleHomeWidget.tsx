@@ -271,6 +271,53 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     useEffect(() => {
         let isSubscribed = true;
 
+        const syncSchedules = async (userId: string) => {
+            await fetchMyReservations();
+            let schedulesData = await getMySchedules('scheduled');
+
+            // [안전망 1] 모바일 웹뷰 쿠키 엇박자 대응: 서버 액션이 빈 배열을 반환했을 때, 클라이언트 Supabase SDK(Bearer 토큰)로 즉시 교차 조회
+            if ((!schedulesData || schedulesData.length === 0) && userId) {
+                try {
+                    const { data: clientData, error: clientErr } = await supabase
+                        .from('user_schedules')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .eq('status', 'scheduled')
+                        .order('check_in', { ascending: true });
+                    if (!clientErr && Array.isArray(clientData) && clientData.length > 0) {
+                        schedulesData = clientData as Schedule[];
+                    }
+                } catch (crossErr) {
+                    console.warn('[ScheduleHomeWidget] Client fallback schedule fetch notice:', crossErr);
+                }
+            }
+
+            if (!isSubscribed) return;
+
+            // [안전망 2] 캐시 덮어쓰기 불변 방어막:
+            // 조회 결과가 여전히 빈 배열일 때, 기존 캐시에 오늘 이후의 유효한 일정이 이미 있다면 빈 배열로 덮어쓰지 않고 보존!
+            const todayZero = new Date();
+            todayZero.setHours(0, 0, 0, 0);
+            const hasExistingFutureSchedule = schedulesRef.current.some(s => {
+                if (!s.check_out) return false;
+                const cOut = new Date(s.check_out);
+                cOut.setHours(0, 0, 0, 0);
+                return cOut >= todayZero && s.status === 'scheduled';
+            });
+
+            if ((!schedulesData || schedulesData.length === 0) && hasExistingFutureSchedule) {
+                // 기존 캐시 유지 (빈 배열로 덮어쓰기 거부)
+                return;
+            }
+
+            setSchedules(schedulesData);
+            try {
+                localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                localStorage.setItem('last_schedule_sync_date', todayStr);
+            } catch {}
+        };
+
         const checkAuthAndFetch = async () => {
             // [0ms 즉시 판정] 쿠키 및 스토리지에 Supabase 인증 토큰이 아예 없다면 비로그인으로 즉시 확정하여 불필요한 대기 원천 차단
             const hasAuthToken = (typeof document !== 'undefined' && document.cookie.includes('sb-')) ||
@@ -317,16 +364,8 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
 
                 setIsAuthenticated(true);
 
-                // 백그라운드 Silent Revalidation
-                await fetchMyReservations();
-                const schedulesData = await getMySchedules('scheduled');
-                if (!isSubscribed) return;
-                setSchedules(schedulesData);
-                try {
-                    localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
-                    const todayStr = format(new Date(), 'yyyy-MM-dd');
-                    localStorage.setItem('last_schedule_sync_date', todayStr);
-                } catch {}
+                // 백그라운드 Silent Revalidation (2중 안전망 적용)
+                await syncSchedules(session.user.id);
             } catch (error) {
                 console.error('Fetch error:', error);
             } finally {
@@ -346,17 +385,9 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                 setIsLoading(false);
             } else if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
                 setIsAuthenticated(true);
-                // 로그인 감지 즉시 내 예약 및 일정 데이터 자동 재조회
+                // 로그인 감지 즉시 내 예약 및 일정 데이터 자동 재조회 (2중 안전망 적용)
                 try {
-                    await fetchMyReservations();
-                    const schedulesData = await getMySchedules('scheduled');
-                    if (!isSubscribed) return;
-                    setSchedules(schedulesData);
-                    try {
-                        localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
-                        const todayStr = format(new Date(), 'yyyy-MM-dd');
-                        localStorage.setItem('last_schedule_sync_date', todayStr);
-                    } catch {}
+                    await syncSchedules(session.user.id);
                 } catch (error) {
                     console.error('[ScheduleHomeWidget] Error fetching on auth change:', error);
                 } finally {
