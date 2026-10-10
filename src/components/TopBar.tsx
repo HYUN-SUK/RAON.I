@@ -130,13 +130,15 @@ export default function TopBar() {
             }
 
             const sessionPromise = supabase.auth.getSession();
-            const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
-                setTimeout(() => resolve({ data: { session: null } }), 3000)
+            const timeoutPromise = new Promise<{ data: { session: null }; timedOut?: boolean }>((resolve) =>
+                setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 3000)
             );
-            const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-            const user = session?.user;
+            const result = await Promise.race([sessionPromise, timeoutPromise]);
+            const session = result.data.session;
+            const isTimedOut = (result as any).timedOut === true;
 
-            if (user) {
+            if (session?.user) {
+                const user = session.user;
                 const info: UserInfo = {
                     nickname: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Camper',
                     avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture
@@ -148,13 +150,18 @@ export default function TopBar() {
 
                 // 로그인 보상 및 동기화 1회 안전 실행
                 handleDailyLoginReward(user);
-            } else {
+            } else if (!isTimedOut) {
+                // 명시적으로 3초 내에 session이 null로 확인된 경우에만 (진짜 비로그인) 캐시 삭제 및 로그아웃
                 cachedAuthState = { isLoggedIn: false, userInfo: null };
                 try { localStorage.removeItem('raon_user_auth_cache'); } catch {}
                 setIsLoggedIn(false);
                 setUserInfo(null);
                 try { useMySpaceStore.persist?.clearStorage?.(); } catch {}
                 reset();
+            } else {
+                // 3초 타임아웃 발생 시 (네트워크 지연 또는 백그라운드 토큰 갱신 중):
+                // 기존 정상 로그인 캐시(아바타, 레벨, 토큰)를 절대 파괴하지 않고 온전히 보존
+                console.warn('[TopBar] Session check timed out (3s). Preserving optimistic cached auth state.');
             }
         } catch (e) {
             console.error("checkUser error:", e);
@@ -238,16 +245,7 @@ export default function TopBar() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 페이지 경로 전환 시 최신 로그인 세션 동기화 (최초 마운트 시 중복 실행 방어)
-    const isFirstMountRef = useRef(true);
-    useEffect(() => {
-        if (isFirstMountRef.current) {
-            isFirstMountRef.current = false;
-            return;
-        }
-        checkUser();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pathname]);
+    // [v14.4.0] 탭 전환 시 checkUser() 중복 난사 제거 (onAuthStateChange 단일 파이프라인으로 100% 안전 동기화)
 
     const handleLogin = () => {
         router.push('/login');

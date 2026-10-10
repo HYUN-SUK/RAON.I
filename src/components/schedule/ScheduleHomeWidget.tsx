@@ -288,15 +288,29 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
             try {
                 // Fail-safe timeout (4초): 만에 하나 브라우저 Web Locks 지연이 발생하더라도 스켈레톤 무한 대기 원천 방어
                 const sessionPromise = supabase.auth.getSession();
-                const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
-                    setTimeout(() => resolve({ data: { session: null } }), 4000)
+                const timeoutPromise = new Promise<{ data: { session: null }; timedOut?: boolean }>((resolve) =>
+                    setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 4000)
                 );
-                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+                const result = await Promise.race([sessionPromise, timeoutPromise]);
                 if (!isSubscribed) return;
 
+                const session = result.data.session;
+                const isTimedOut = (result as any).timedOut === true;
+
                 if (!session?.user) {
+                    if (!isTimedOut) {
+                        setIsAuthenticated(false);
+                        setSchedules([]);
+                        setIsLoading(false);
+                        return;
+                    }
+                    // 4초 타임아웃 발생 시: 기존 캐시 일정/예약이 존재한다면 화면을 날리지 않고 유지!
+                    if (cachedSchedules.length > 0 || cachedReservations.length > 0 || schedulesRef.current.length > 0) {
+                        setIsAuthenticated(true);
+                        setIsLoading(false);
+                        return;
+                    }
                     setIsAuthenticated(false);
-                    setSchedules([]);
                     setIsLoading(false);
                     return;
                 }

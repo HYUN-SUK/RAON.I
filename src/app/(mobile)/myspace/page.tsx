@@ -46,19 +46,24 @@ export default function MySpacePage() {
         const supabase = createClient();
         
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            // [0ms 고속 판정] 세션 메모리/캐시에서 user 우선 획득하여 네트워크 HTTP 블로킹 제거
+            const { data: { session } } = await supabase.auth.getSession();
+            let user = session?.user;
+            if (!user) {
+                const { data: { user: fallbackUser } } = await supabase.auth.getUser();
+                user = fallbackUser ?? undefined;
+            }
             if (!user) {
                 router.push('/login');
                 return;
             }
 
-            // [v14.2.5] 1단계: 프로필, 예약, 미션, 타임라인을 병렬 조회하여 첫 진입 즉시 로딩 가동 & 빠른 완성
-            const [_prof, _res, _mis, _tl, _sp, profileRes] = await Promise.all([
+            // [v14.4.0] 1단계: 프로필, 예약, 미션, 타임라인을 병렬 조회하여 첫 진입 즉시 로딩 가동 & 빠른 완성
+            const [_prof, _res, _mis, _tl, profileRes] = await Promise.all([
                 useMySpaceStore.getState().fetchProfile(user.id),
                 useReservationStore.getState().fetchMyReservations(),
                 useMissionStore.getState().fetchCurrentMission(),
                 useMySpaceStore.getState().fetchTimeline(user.id),
-                refresh(),
                 supabase.from('profiles').select('family_type').eq('id', user.id).maybeSingle()
             ]);
 
@@ -66,10 +71,12 @@ export default function MySpacePage() {
                 setFamilyType(profileRes.data.family_type);
             }
 
-            // 사용자 화면 1차 완성
+            // 사용자 화면 1차 완성 (메인 스레드 즉각 언락)
             setPageLoading(false);
 
-            // [v14.2.5 - 2단계: 백그라운드 엠버 통계 동기화]
+            // [v14.4.0] 2단계: 10초기록 반짝임 및 엠버 통계는 메인 스레드를 막지 않도록 백그라운드로 안전 격리
+            refresh().catch((e: unknown) => console.warn('[MySpace] Background sparkle check warning:', e));
+
             Promise.resolve(supabase.rpc('get_my_ember_stats')).then((emberRes) => {
                 if (emberRes?.data && emberRes.data.success) {
                     setEmberStats({
