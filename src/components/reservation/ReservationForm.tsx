@@ -428,13 +428,13 @@ export default function ReservationForm({ site }: ReservationFormProps) {
 
     return (
         <>
-            <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-white/5 rounded-2xl border border-white/10">
-                <h3 className="text-xl font-bold text-white mb-4">예약 정보 입력</h3>
+            <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-[#F8FBF9] rounded-2xl border border-[#D2E5D7]">
+                <h3 className="text-xl font-extrabold text-[#1E4D2B] mb-4">예약 정보 입력</h3>
 
                 {/* 에어컨 기기 선택 UI (2-Step) */}
                 {site.id === 'air-group' && (
-                    <div className="space-y-3 bg-white/5 p-4 rounded-xl border border-white/10 mb-6">
-                        <label className="block text-sm font-bold text-white/90">대여할 에어컨 기기 번호 선택</label>
+                    <div className="space-y-3 bg-white p-4 rounded-xl border border-[#C5DFC9] mb-6">
+                        <label className="block text-sm font-bold text-[#1E4D2B]">대여할 에어컨 기기 번호 선택</label>
                         <div className="grid grid-cols-4 gap-2">
                             {airOptions.map((opt) => (
                                 <button
@@ -445,10 +445,10 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                                     className={`
                                         h-12 text-sm font-semibold rounded-lg border transition-all flex items-center justify-center touch-manipulation
                                         ${!opt.available 
-                                            ? 'bg-red-950/20 text-red-400/60 border-red-900/30 cursor-not-allowed opacity-30 line-through' 
+                                            ? 'bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-50 line-through' 
                                             : selectedAirId === opt.id
-                                                ? 'bg-[#388E5A] text-white border-[#388E5A] ring-2 ring-[#388E5A]/30 shadow-md'
-                                                : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20 active:scale-[0.97]'
+                                                ? 'bg-[#2E7D47] text-white border-[#2E7D47] ring-2 ring-[#2E7D47]/30 shadow-md'
+                                                : 'bg-[#EDF5EE] text-[#1E4D2B] border-[#C5DFC9] hover:bg-[#DDF0E4] active:scale-[0.97]'
                                         }
                                     `}
                                 >
@@ -457,9 +457,9 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                             ))}
                         </div>
                         {selectedAirId ? (
-                            <p className="text-xs text-green-400">✓ 선택된 기기: {airOptions.find(o => o.id === selectedAirId)?.name} (예약 가능)</p>
+                            <p className="text-xs text-[#2E7D47] font-semibold">✓ 선택된 기기: {airOptions.find(o => o.id === selectedAirId)?.name} (예약 가능)</p>
                         ) : (
-                            <p className="text-xs text-red-400">⚠️ 선택한 일정에 대여 가능한 에어컨 기기가 없습니다.</p>
+                            <p className="text-xs text-red-500 font-semibold">⚠️ 선택한 일정에 대여 가능한 에어컨 기기가 없습니다.</p>
                         )}
                     </div>
                 )}
@@ -467,13 +467,13 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 {/* Basic Info */}
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm text-white/70 mb-1">예약자 성함</label>
+                        <label className="block text-sm font-semibold text-[#4A5D4E] mb-1">예약자 성함</label>
                         <Input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus-visible:ring-0 focus:border-[#388E5A] h-12"
+                            className="w-full bg-white border border-[#C5DFC9] rounded-lg px-4 py-3 text-[#1A3822] font-semibold placeholder:text-[#9CA89E] focus-visible:ring-0 focus:border-[#2E7D47] h-12"
                             placeholder="홍길동"
                             autoComplete="off"
                             autoCorrect="off"
@@ -481,13 +481,13 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm text-white/70 mb-1">연락처</label>
+                        <label className="block text-sm font-semibold text-[#4A5D4E] mb-1">연락처</label>
                         <Input
                             type="tel"
                             value={phone}
                             onChange={handlePhoneChange}
                             required
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus-visible:ring-0 focus:border-[#388E5A] h-12"
+                            className="w-full bg-white border border-[#C5DFC9] rounded-lg px-4 py-3 text-[#1A3822] font-semibold placeholder:text-[#9CA89E] focus-visible:ring-0 focus:border-[#2E7D47] h-12"
                             placeholder="010-1234-5678"
                             maxLength={13}
                             autoComplete="off"
@@ -500,36 +500,36 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 {/* Counts */}
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm text-white/70 mb-1">가족 수 (기본 1, 최대 2)</label>
+                        <label className="block text-sm font-semibold text-[#4A5D4E] mb-1">가족 수 (기본 1, 최대 2)</label>
                         <select
                             value={familyCount}
                             onChange={(e) => setFamilyCount(parseInt(e.target.value))}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
+                            className="w-full bg-white border border-[#C5DFC9] rounded-lg px-4 py-3 text-[#1A3822] font-semibold focus:outline-none focus:border-[#2E7D47]"
                         >
                             {[1, 2].map(n => <option key={n} value={n} className="text-black">{n}가족</option>)}
                         </select>
-                        {familyCount > 1 && <p className="text-xs text-yellow-400 mt-1">+35,000원/박 (추가 가족)</p>}
+                        {familyCount > 1 && <p className="text-xs text-[#2E7D47] font-semibold mt-1">+35,000원/박 (추가 가족)</p>}
                     </div>
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm text-white/90 font-medium">방문객 수</label>
-                            <span className="text-xs text-amber-300 font-semibold">※ 성인 1인 1만원, 아동 무료</span>
+                            <label className="block text-sm text-[#1E4D2B] font-bold">방문객 수</label>
+                            <span className="text-xs text-[#B45309] font-bold">※ 성인 1인 1만원, 아동 무료</span>
                         </div>
                         <Input
                             type="number"
                             min={0}
                             value={visitorCount}
                             onChange={(e) => setVisitorCount(parseInt(e.target.value) || 0)}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus-visible:ring-0 focus:border-[#388E5A] h-12"
+                            className="w-full bg-white border border-[#C5DFC9] rounded-lg px-4 py-3 text-[#1A3822] font-semibold focus-visible:ring-0 focus:border-[#2E7D47] h-12"
                         />
-                        {visitorCount > 0 && <p className="text-xs text-yellow-400 mt-1">+10,000원/인 (성인 방문객)</p>}
+                        {visitorCount > 0 && <p className="text-xs text-[#2E7D47] font-semibold mt-1">+10,000원/인 (성인 방문객)</p>}
                     </div>
                     <div>
-                        <label className="block text-sm text-white/70 mb-1">차량 수</label>
+                        <label className="block text-sm font-semibold text-[#4A5D4E] mb-1">차량 수</label>
                         <select
                             value={vehicleCount}
                             onChange={(e) => setVehicleCount(parseInt(e.target.value))}
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#388E5A]"
+                            className="w-full bg-white border border-[#C5DFC9] rounded-lg px-4 py-3 text-[#1A3822] font-semibold focus:outline-none focus:border-[#2E7D47]"
                         >
                             {[1, 2, 3, 4].map(n => <option key={n} value={n} className="text-black">{n}대</option>)}
                         </select>
@@ -537,73 +537,73 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 </div>
 
                 {/* [Phase 1: Smart Camping Plan] 세분화된 인원 정보 */}
-                <div className="space-y-4 pt-4 border-t border-white/10">
-                    <h4 className="text-sm font-bold text-white mb-2">상세 인원 구성 <span className="text-xs font-normal text-white/50">(스마트 추천용)</span></h4>
+                <div className="space-y-4 pt-4 border-t border-[#D2E5D7]">
+                    <h4 className="text-sm font-extrabold text-[#1E4D2B] mb-2">상세 인원 구성 <span className="text-xs font-medium text-[#6B7E70]">(스마트 추천용)</span></h4>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs text-white/70 mb-1">성인</label>
+                            <label className="block text-xs font-semibold text-[#4A5D4E] mb-1">성인</label>
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => setAdults(Math.max(0, adults - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
-                                <span className="text-white flex-1 text-center">{adults}명</span>
-                                <button type="button" onClick={() => setAdults(adults + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                                <button type="button" onClick={() => setAdults(Math.max(0, adults - 1))} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">-</button>
+                                <span className="text-[#1A3822] font-bold flex-1 text-center">{adults}명</span>
+                                <button type="button" onClick={() => setAdults(adults + 1)} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">+</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-white/70 mb-1">부모님/어르신</label>
+                            <label className="block text-xs font-semibold text-[#4A5D4E] mb-1">부모님/어르신</label>
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => setSeniors(Math.max(0, seniors - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
-                                <span className="text-white flex-1 text-center">{seniors}명</span>
-                                <button type="button" onClick={() => setSeniors(seniors + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                                <button type="button" onClick={() => setSeniors(Math.max(0, seniors - 1))} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">-</button>
+                                <span className="text-[#1A3822] font-bold flex-1 text-center">{seniors}명</span>
+                                <button type="button" onClick={() => setSeniors(seniors + 1)} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">+</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-white/70 mb-1">미취학 아동</label>
+                            <label className="block text-xs font-semibold text-[#4A5D4E] mb-1">미취학 아동</label>
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => setKidsPreschool(Math.max(0, kidsPreschool - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
-                                <span className="text-white flex-1 text-center">{kidsPreschool}명</span>
-                                <button type="button" onClick={() => setKidsPreschool(kidsPreschool + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                                <button type="button" onClick={() => setKidsPreschool(Math.max(0, kidsPreschool - 1))} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">-</button>
+                                <span className="text-[#1A3822] font-bold flex-1 text-center">{kidsPreschool}명</span>
+                                <button type="button" onClick={() => setKidsPreschool(kidsPreschool + 1)} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">+</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-white/70 mb-1">초등학생</label>
+                            <label className="block text-xs font-semibold text-[#4A5D4E] mb-1">초등학생</label>
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => setKidsElementary(Math.max(0, kidsElementary - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
-                                <span className="text-white flex-1 text-center">{kidsElementary}명</span>
-                                <button type="button" onClick={() => setKidsElementary(kidsElementary + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                                <button type="button" onClick={() => setKidsElementary(Math.max(0, kidsElementary - 1))} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">-</button>
+                                <span className="text-[#1A3822] font-bold flex-1 text-center">{kidsElementary}명</span>
+                                <button type="button" onClick={() => setKidsElementary(kidsElementary + 1)} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">+</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-white/70 mb-1">청소년</label>
+                            <label className="block text-xs font-semibold text-[#4A5D4E] mb-1">청소년</label>
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => setKidsTeen(Math.max(0, kidsTeen - 1))} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">-</button>
-                                <span className="text-white flex-1 text-center">{kidsTeen}명</span>
-                                <button type="button" onClick={() => setKidsTeen(kidsTeen + 1)} className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">+</button>
+                                <button type="button" onClick={() => setKidsTeen(Math.max(0, kidsTeen - 1))} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">-</button>
+                                <span className="text-[#1A3822] font-bold flex-1 text-center">{kidsTeen}명</span>
+                                <button type="button" onClick={() => setKidsTeen(kidsTeen + 1)} className="w-8 h-8 rounded-full bg-white text-[#2E7D47] font-bold flex items-center justify-center border border-[#C5DFC9] hover:bg-[#EDF5EE] shadow-2xs">+</button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-4 bg-white/5 p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 mt-4 bg-white p-3 rounded-lg border border-[#C5DFC9]">
                         <input
                             type="checkbox"
                             id="hasPet"
                             checked={hasPet}
                             onChange={(e) => setHasPet(e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
+                            className="w-4 h-4 rounded border-[#7CAE89] text-[#2E7D47] focus:ring-[#2E7D47] cursor-pointer accent-[#2E7D47]"
                         />
-                        <label htmlFor="hasPet" className="text-sm text-white/80 cursor-pointer select-none">
-                            🐾 반려견과 함께 방문합니다. <span className="text-xs text-white/50 ml-1">(현재 사이트 규정에 따름)</span>
+                        <label htmlFor="hasPet" className="text-sm font-semibold text-[#1E3A26] cursor-pointer select-none">
+                            🐾 반려견과 함께 방문합니다. <span className="text-xs font-normal text-[#6B7E70] ml-1">(현재 사이트 규정에 따름)</span>
                         </label>
                     </div>
                 </div>
 
                 {/* Requests */}
                 <div>
-                    <label className="block text-sm text-white/70 mb-1">요청사항</label>
+                    <label className="block text-sm font-semibold text-[#4A5D4E] mb-1">요청사항</label>
                     <textarea
                         value={requests}
                         onChange={(e) => setRequests(e.target.value)}
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#388E5A] h-20 resize-none"
+                        className="w-full bg-white border border-[#C5DFC9] rounded-lg px-4 py-2 text-[#1A3822] placeholder:text-[#9CA89E] focus:outline-none focus:border-[#2E7D47] h-20 resize-none"
                         placeholder="관리자에게 전달할 내용이 있다면 적어주세요."
                     />
                 </div>
@@ -624,10 +624,10 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                                 setAgreed(false);
                             }
                         }}
-                        className="w-4 h-4 rounded border-gray-300 text-[#388E5A] focus:ring-[#388E5A] cursor-pointer"
+                        className="w-4 h-4 rounded border-[#7CAE89] text-[#2E7D47] focus:ring-[#2E7D47] cursor-pointer accent-[#2E7D47]"
                     />
                     <span
-                        className="text-sm text-white/80 cursor-pointer select-none"
+                        className="text-sm font-bold text-[#1E3A26] cursor-pointer select-none"
                         onClick={() => !agreed && setTermsDialogOpen(true)}
                     >
                         [필수] 이용 규정 및 환불 규정에 동의합니다.
@@ -635,33 +635,33 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 </div>
 
                 {/* Price Breakdown & Submit */}
-                <div className="pt-4 border-t border-white/10 mt-4 space-y-3">
+                <div className="pt-4 border-t border-[#D2E5D7] mt-4 space-y-3">
                     {priceBreakdown && (
-                        <div className="text-sm text-white/70 space-y-1">
+                        <div className="text-sm text-[#4A5D4E] font-medium space-y-1">
                             <div className="flex justify-between">
                                 <span>기본 요금 ({nights}박)</span>
-                                <span>{priceBreakdown.basePrice.toLocaleString()}원</span>
+                                <span className="font-bold text-[#1E3A26]">{priceBreakdown.basePrice.toLocaleString()}원</span>
                             </div>
                             {priceBreakdown.options.extraFamily > 0 && (
-                                <div className="flex justify-between text-yellow-400">
+                                <div className="flex justify-between text-[#B45309] font-semibold">
                                     <span>추가 가족</span>
                                     <span>+{priceBreakdown.options.extraFamily.toLocaleString()}원</span>
                                 </div>
                             )}
                             {priceBreakdown.options.visitor > 0 && (
-                                <div className="flex justify-between text-yellow-400">
+                                <div className="flex justify-between text-[#B45309] font-semibold">
                                     <span>방문객</span>
                                     <span>+{priceBreakdown.options.visitor.toLocaleString()}원</span>
                                 </div>
                             )}
                             {priceBreakdown.discount.pkg > 0 && (
-                                <div className="flex justify-between text-green-400">
+                                <div className="flex justify-between text-[#2E7D47] font-semibold">
                                     <span>2박 패키지 할인</span>
                                     <span>-{priceBreakdown.discount.pkg.toLocaleString()}원</span>
                                 </div>
                             )}
                             {priceBreakdown.discount.consecutive > 0 && (
-                                <div className="flex justify-between text-green-400">
+                                <div className="flex justify-between text-[#2E7D47] font-semibold">
                                     <span>연박 할인</span>
                                     <span>-{priceBreakdown.discount.consecutive.toLocaleString()}원</span>
                                 </div>
@@ -669,9 +669,9 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         </div>
                     )}
 
-                    <div className="flex justify-between text-white pt-2 border-t border-white/5">
-                        <span className="text-lg font-bold">총 결제 금액</span>
-                        <span className="font-bold text-2xl text-[#C3A675]">
+                    <div className="flex justify-between items-center text-[#1E4D2B] pt-2 border-t border-[#E2EFE5]">
+                        <span className="text-lg font-extrabold">총 결제 금액</span>
+                        <span className="font-extrabold text-2xl text-[#2E7D47]">
                             {totalPrice.toLocaleString()}원
                         </span>
                     </div>
@@ -679,7 +679,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     <button
                         type="submit"
                         disabled={isSubmitting || !fromDate || !toDate || fromDate.getTime() === toDate.getTime() || !agreed}
-                        className="w-full bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                        className="w-full bg-[#2E7D47] hover:bg-[#256639] text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
                     >
                         {isSubmitting ? (
                             <>
@@ -691,11 +691,11 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         )}
                     </button>
 
-                    <div className="text-center text-xs text-white/50 mt-4">
-                        <p className="mb-1">입금 계좌: <span className="text-[#C3A675] font-bold">
+                    <div className="text-center text-xs text-[#5A6E5E] mt-4">
+                        <p className="mb-1">입금 계좌: <span className="text-[#2E7D47] font-extrabold">
                             {siteConfig ? `${siteConfig.bankName} ${siteConfig.bankAccount}` : '로딩중...'}
                         </span> (예금주: {siteConfig?.bankHolder || '라온아이'})</p>
-                        <p>예약 신청 후 <span className="text-white/80">6시간 내</span> 미입금 시 자동 취소됩니다.</p>
+                        <p>예약 신청 후 <span className="text-[#1E3A26] font-bold">6시간 내</span> 미입금 시 자동 취소됩니다.</p>
                     </div>
                 </div>
             </form>

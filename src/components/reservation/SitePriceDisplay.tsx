@@ -56,6 +56,6 @@ export default function SitePriceDisplay({ site }: SitePriceDisplayProps) {
     };
 
     return (
-        <p className="text-xl font-bold">{getPriceDisplay()}</p>
+        <p className="text-xl font-extrabold text-[#1E4D2B]">{getPriceDisplay()}</p>
     );
 }

@@ -36,7 +36,7 @@ export default function SiteImageSlider({ imageUrls, siteName, fallbackUrl }: Si
                     priority
                     unoptimized
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#1a1a1a]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#F4F8F5]" />
                 <Link
                     href="/reservation"
                     className="absolute top-6 left-4 p-2 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-white/10 transition-colors z-20"
@@ -61,7 +61,7 @@ export default function SiteImageSlider({ imageUrls, siteName, fallbackUrl }: Si
     };
 
     return (
-        <div className="relative h-[40vh] w-full bg-stone-900 overflow-hidden">
+        <div className="relative h-[40vh] w-full bg-[#F4F8F5] overflow-hidden">
             {/* 가로 스크롤 스냅 컨테이너 */}
             <div
                 ref={scrollContainerRef}
@@ -87,18 +87,18 @@ export default function SiteImageSlider({ imageUrls, siteName, fallbackUrl }: Si
             </div>
 
             {/* 그라데이션 오버레이 */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#1a1a1a] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#F4F8F5] pointer-events-none" />
 
             {/* 뒤로가기 버튼 */}
             <Link
                 href="/reservation"
-                className="absolute top-6 left-4 p-2 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-white/10 transition-colors z-20"
+                className="absolute top-6 left-4 p-2 bg-black/25 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-colors z-20"
             >
                 <ArrowLeft className="w-6 h-6" />
             </Link>
 
             {/* 페이지 인디케이터 배지 (우측 하단) */}
-            <div className="absolute bottom-12 right-5 bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-xs text-white font-bold tracking-wider z-20 shadow-lg">
+            <div className="absolute bottom-12 right-5 bg-black/50 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-xs text-white font-bold tracking-wider z-20 shadow-lg">
                 {activeIndex + 1} / {validImages.length}
             </div>
 
@@ -109,8 +109,8 @@ export default function SiteImageSlider({ imageUrls, siteName, fallbackUrl }: Si
                         key={idx}
                         className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
                             idx === activeIndex
-                                ? 'bg-[#C3A675] w-3'
-                                : 'bg-white/40'
+                                ? 'bg-[#2E7D47] w-3'
+                                : 'bg-[#7CAE89]/50'
                         }`}
                     />
                 ))}
