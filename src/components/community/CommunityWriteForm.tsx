@@ -341,12 +341,12 @@ export default function CommunityWriteForm() {
     return (
         <div className="min-h-screen bg-white pb-48">
             {/* Header */}
-            <div className="flex items-center h-[56px] px-4 border-b">
+            <header className="sticky top-0 z-10 bg-white flex items-center h-[56px] px-4 border-b">
                 <button onClick={() => router.back()} className="mr-4">
                     <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
                 </button>
                 <h1 className="text-lg font-bold text-[#1A1A1A]">{editId ? '글수정' : '글쓰기'}</h1>
-            </div>
+            </header>
 
             {/* Form */}
             <div className="p-5 space-y-5">

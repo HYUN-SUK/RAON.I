@@ -16,7 +16,7 @@ export default function CommunityHeader() {
     const canWrite = activeTab !== 'NOTICE' || currentUser.role === 'ADMIN';
 
     return (
-        <header className="pt-6 pb-2 px-5 bg-[#F7F5EF] space-y-4">
+        <header className="pt-[calc(1.25rem+var(--sat,0px))] pb-2 px-5 bg-[#F7F5EF] space-y-4">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
