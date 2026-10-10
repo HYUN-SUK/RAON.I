@@ -145,6 +145,9 @@ export function buildFcmPayload(
     }
 
     const androidNotification: any = {
+        title: String(options.title),
+        body: String(options.body),
+        ticker: "라온아이",
         channel_id: "raon_notifications",
         sound: "default",
         icon: "ic_launcher",
