@@ -153,8 +153,32 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
     });
 
     const [isNavigating, setIsNavigating] = useState(false);
+    const isNavigatingRef = useRef(false);
+    const isSyncingRef = useRef(false);
+    const navSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [dontShowToday, setDontShowToday] = useState(false);
+
+    const startNavigatingWithSafety = () => {
+        isNavigatingRef.current = true;
+        setIsNavigating(true);
+        if (navSafetyTimerRef.current) clearTimeout(navSafetyTimerRef.current);
+        navSafetyTimerRef.current = setTimeout(() => {
+            if (isComponentMounted.current) {
+                isNavigatingRef.current = false;
+                setIsNavigating(false);
+            }
+        }, 2500);
+    };
+
+    const stopNavigating = () => {
+        if (navSafetyTimerRef.current) {
+            clearTimeout(navSafetyTimerRef.current);
+            navSafetyTimerRef.current = null;
+        }
+        isNavigatingRef.current = false;
+        setIsNavigating(false);
+    };
 
     // 활성 예약 및 일정 (로컬 캐시 동기 참조 0.00초 보장)
     const activeReservations = useMemo<Reservation[]>(() => {
@@ -243,6 +267,31 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         return unifiedList[0] || null;
     }, [cachedReservations, reservations, cachedSchedules, schedules, isAuthenticated]);
 
+    // 다가오는 일정 대상 상세 경로 즉시 프리패치 & BFCache 복귀 시 스피너 안전 해제
+    useEffect(() => {
+        if (upcomingItem) {
+            if (upcomingItem.type === 'schedule') {
+                try { router.prefetch(`/myspace/schedule/${upcomingItem.id}`); } catch {}
+            } else {
+                const matched = activeSchedules.find(s => s.reservation_id === upcomingItem.id);
+                if (matched) {
+                    try { router.prefetch(`/myspace/schedule/${matched.id}`); } catch {}
+                }
+            }
+        }
+    }, [upcomingItem, activeSchedules, router]);
+
+    useEffect(() => {
+        const handlePageShow = () => {
+            stopNavigating();
+        };
+        window.addEventListener('pageshow', handlePageShow);
+        return () => {
+            window.removeEventListener('pageshow', handlePageShow);
+            if (navSafetyTimerRef.current) clearTimeout(navSafetyTimerRef.current);
+        };
+    }, []);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -272,50 +321,75 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         let isSubscribed = true;
 
         const syncSchedules = async (userId: string) => {
-            await fetchMyReservations();
-            let schedulesData = await getMySchedules('scheduled');
+            if (isSyncingRef.current || isNavigatingRef.current) return;
+            isSyncingRef.current = true;
 
-            // [안전망 1] 모바일 웹뷰 쿠키 엇박자 대응: 서버 액션이 빈 배열을 반환했을 때, 클라이언트 Supabase SDK(Bearer 토큰)로 즉시 교차 조회
-            if ((!schedulesData || schedulesData.length === 0) && userId) {
-                try {
-                    const { data: clientData, error: clientErr } = await supabase
-                        .from('user_schedules')
-                        .select('*')
-                        .eq('user_id', userId)
-                        .eq('status', 'scheduled')
-                        .order('check_in', { ascending: true });
-                    if (!clientErr && Array.isArray(clientData) && clientData.length > 0) {
-                        schedulesData = clientData as Schedule[];
-                    }
-                } catch (crossErr) {
-                    console.warn('[ScheduleHomeWidget] Client fallback schedule fetch notice:', crossErr);
-                }
-            }
-
-            if (!isSubscribed) return;
-
-            // [안전망 2] 캐시 덮어쓰기 불변 방어막:
-            // 조회 결과가 여전히 빈 배열일 때, 기존 캐시에 오늘 이후의 유효한 일정이 이미 있다면 빈 배열로 덮어쓰지 않고 보존!
-            const todayZero = new Date();
-            todayZero.setHours(0, 0, 0, 0);
-            const hasExistingFutureSchedule = schedulesRef.current.some(s => {
-                if (!s.check_out) return false;
-                const cOut = new Date(s.check_out);
-                cOut.setHours(0, 0, 0, 0);
-                return cOut >= todayZero && s.status === 'scheduled';
-            });
-
-            if ((!schedulesData || schedulesData.length === 0) && hasExistingFutureSchedule) {
-                // 기존 캐시 유지 (빈 배열로 덮어쓰기 거부)
-                return;
-            }
-
-            setSchedules(schedulesData);
             try {
-                localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
-                const todayStr = format(new Date(), 'yyyy-MM-dd');
-                localStorage.setItem('last_schedule_sync_date', todayStr);
-            } catch {}
+                await fetchMyReservations();
+                let schedulesData: Schedule[] = [];
+
+                // [1순위 직통 조회] Next.js 라우터 큐(actionQueue) 간섭을 원천 차단하기 위해 클라이언트 Supabase SDK(GET)를 1순위로 조회
+                if (userId) {
+                    try {
+                        const { data: clientData, error: clientErr } = await supabase
+                            .from('user_schedules')
+                            .select('*')
+                            .eq('user_id', userId)
+                            .eq('status', 'scheduled')
+                            .order('check_in', { ascending: true });
+
+                        if (!clientErr && Array.isArray(clientData) && clientData.length > 0) {
+                            const todayZero = new Date();
+                            todayZero.setHours(0, 0, 0, 0);
+                            schedulesData = (clientData as Schedule[]).filter(s => {
+                                if (!s.check_out) return true;
+                                const cOut = new Date(s.check_out);
+                                cOut.setHours(0, 0, 0, 0);
+                                return cOut >= todayZero;
+                            });
+                        }
+                    } catch (crossErr) {
+                        console.warn('[ScheduleHomeWidget] Client primary schedule fetch notice:', crossErr);
+                    }
+                }
+
+                // [안전망 1] 클라이언트 SDK 조회 결과가 비어있을 때만 서버 액션 백업 조회
+                if (!schedulesData || schedulesData.length === 0) {
+                    try {
+                        schedulesData = await getMySchedules('scheduled');
+                    } catch (srvErr) {
+                        console.warn('[ScheduleHomeWidget] Server fallback schedule fetch notice:', srvErr);
+                    }
+                }
+
+                // 페이지 이동 중이거나 언마운트된 경우 상태 변경 중단 (홈 튕김 방지)
+                if (!isSubscribed || isNavigatingRef.current) return;
+
+                // [안전망 2] 캐시 덮어쓰기 불변 방어막:
+                // 조회 결과가 여전히 빈 배열일 때, 기존 캐시에 오늘 이후의 유효한 일정이 이미 있다면 빈 배열로 덮어쓰지 않고 보존!
+                const todayZero = new Date();
+                todayZero.setHours(0, 0, 0, 0);
+                const hasExistingFutureSchedule = schedulesRef.current.some(s => {
+                    if (!s.check_out) return false;
+                    const cOut = new Date(s.check_out);
+                    cOut.setHours(0, 0, 0, 0);
+                    return cOut >= todayZero && s.status === 'scheduled';
+                });
+
+                if ((!schedulesData || schedulesData.length === 0) && hasExistingFutureSchedule) {
+                    // 기존 캐시 유지 (빈 배열로 덮어쓰기 거부)
+                    return;
+                }
+
+                setSchedules(schedulesData);
+                try {
+                    localStorage.setItem('user_schedules_cache', JSON.stringify(schedulesData));
+                    const todayStr = format(new Date(), 'yyyy-MM-dd');
+                    localStorage.setItem('last_schedule_sync_date', todayStr);
+                } catch {}
+            } finally {
+                isSyncingRef.current = false;
+            }
         };
 
         const checkAuthAndFetch = async () => {
@@ -378,14 +452,14 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
         checkAuthAndFetch();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (!isSubscribed) return;
+            if (!isSubscribed || isNavigatingRef.current) return;
             if (event === 'SIGNED_OUT' || !session) {
                 setIsAuthenticated(false);
                 setSchedules([]);
                 setIsLoading(false);
-            } else if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
+            } else if (event === 'SIGNED_IN') {
                 setIsAuthenticated(true);
-                // 로그인 감지 즉시 내 예약 및 일정 데이터 자동 재조회 (2중 안전망 적용)
+                // 명시적 로그인 감지 시 내 예약 및 일정 데이터 자동 재조회 (INITIAL_SESSION 중복 호출 제외)
                 try {
                     await syncSchedules(session.user.id);
                 } catch (error) {
@@ -546,7 +620,7 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
 
     const handleCardClick = () => {
         withAuth(async () => {
-            if (!upcomingItem || isNavigating) return;
+            if (!upcomingItem || isNavigatingRef.current) return;
             try { window.sessionStorage?.setItem('raonai_back_from_detail', 'true'); } catch {}
 
             // 라온아이 입금대기 또는 취소/환불대기 상태면 예약 목록 페이지로 (스케줄 생성 X)
@@ -558,14 +632,14 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
             // 이미 Schedules 목록에 매핑된 일정이 존재하는 경우 비동기 서버 액션 호출 없이 0.001초 직통 이동
             const matchedSchedule = activeSchedules.find(s => s.reservation_id === upcomingItem.id);
             if (matchedSchedule) {
-                setIsNavigating(true);
+                startNavigatingWithSafety();
                 router.push(`/myspace/schedule/${matchedSchedule.id}`);
                 return;
             }
 
             // 그 외 (예약 확정, 타캠핑장) -> 일정 상세 페이지로
             if (upcomingItem.type === 'reservation') {
-                setIsNavigating(true);
+                startNavigatingWithSafety();
                 try {
                     // 백그라운드 동기화와 겹치거나 지연 생성 시 직접 호출
                     const result = await ensureScheduleFromReservation(upcomingItem.id);
@@ -581,18 +655,18 @@ const ScheduleHomeWidget = memo(function ScheduleHomeWidget({
                     } else {
                         console.error('Failed to ensure schedule:', result.error);
                         toast.error('일정을 준비 중입니다. 잠시 후 다시 클릭해 주세요.');
-                        setIsNavigating(false);
+                        stopNavigating();
                     }
                 } catch (e) {
                     if (isComponentMounted.current) {
                         console.error('Navigation error:', e);
                         toast.error('일정을 불러오는 중 오류가 발생했습니다.');
-                        setIsNavigating(false);
+                        stopNavigating();
                     }
                 }
             } else {
                 // 이미 스케줄임
-                setIsNavigating(true);
+                startNavigatingWithSafety();
                 router.push(`/myspace/schedule/${upcomingItem.id}`);
             }
         });

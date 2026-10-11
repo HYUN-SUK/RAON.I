@@ -72,6 +72,32 @@ export function clearBounceLogs() {
     } catch {}
 }
 
+const CHUNK_RELOAD_COOLDOWN_KEY = 'raonai_chunk_reload_ts';
+const CHUNK_RELOAD_COOLDOWN_MS = 30 * 1000; // 30초 쿨다운 (무한 새로고침 방지)
+
+function tryRecoverFromStaleDeploymentError(message: string) {
+    if (typeof window === 'undefined' || !message) return;
+    const isStaleChunkOrAction =
+        message.includes('ChunkLoadError') ||
+        message.includes('Loading chunk') ||
+        message.includes('Failed to find Server Action') ||
+        message.includes('Failed to fetch dynamically imported module');
+
+    if (!isStaleChunkOrAction) return;
+
+    try {
+        const lastReloadRaw = window.sessionStorage.getItem(CHUNK_RELOAD_COOLDOWN_KEY);
+        const lastReloadTs = lastReloadRaw ? parseInt(lastReloadRaw, 10) : 0;
+        const now = Date.now();
+
+        if (!lastReloadTs || now - lastReloadTs > CHUNK_RELOAD_COOLDOWN_MS) {
+            window.sessionStorage.setItem(CHUNK_RELOAD_COOLDOWN_KEY, String(now));
+            console.warn('🔄 [Auto-Recovery] 구버전 청크/Server Action 충돌 감지 — 최신 빌드로 자동 새로고침합니다:', message);
+            window.location.reload();
+        }
+    } catch {}
+}
+
 /**
  * 전역 자바스크립트 에러, Promise Rejection 및 무음 라우팅 리다이렉트(Navigation Interceptor) 감지기 활성화
  */
@@ -96,6 +122,8 @@ export function setupGlobalErrorListener() {
                 sessionExists: true, // 임시 표시
                 stackTrace: stack
             });
+
+            tryRecoverFromStaleDeploymentError(message);
         } catch (e) {
             console.error('Error in global error logger:', e);
         }
@@ -116,6 +144,8 @@ export function setupGlobalErrorListener() {
                 sessionExists: true,
                 stackTrace: stack
             });
+
+            tryRecoverFromStaleDeploymentError(message);
         } catch (e) {
             console.error('Error in global promise rejection logger:', e);
         }

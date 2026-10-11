@@ -1,6 +1,5 @@
 "use client";
 
-import { createClient } from "@/lib/supabase-client";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 
 export function useRequireAuth() {
@@ -52,16 +51,10 @@ export function useRequireAuth() {
         );
 
         // 1. [0ms Fast-Path] 기기에 유효한 로그인 정보(스토리지 토큰, 쿠키 토큰, 리프레시 토큰, 유저 프로필)가 존재하면
-        // 5초 타임아웃 대기(UI 먹통) 없이 즉시 0ms 만에 액션 실행 (낙관적 쾌속 진입)
+        // 클릭 순간 불필요한 getSession() 락 경합 없이 즉시 0ms 만에 액션 실행 (세션 갱신은 복귀 시 Pre-warming에서 전담)
         const hasAnyAuthCredential = hasValidStorageToken || hasCookieToken || hasRefreshToken || hasStoredUser;
 
         if (hasAnyAuthCredential) {
-            // 백그라운드에서 세션 유효성 조용히 Revalidate (UI 차단 절대 없음)
-            try {
-                const supabase = createClient();
-                supabase.auth.getSession().catch(() => {});
-            } catch {}
-
             await action();
             return;
         }

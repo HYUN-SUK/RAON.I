@@ -413,30 +413,48 @@ function ScheduleDetailContent() {
         }
     };
 
-    // 데이터 로드 (서버 Action 1차 + 클라이언트 SDK 2차 백업 듀얼 폴백)
+    // 데이터 로드 (클라이언트 SDK 직통 1차 조회로 라우터 큐 충돌 원천 차단 + 서버 Action 2차 백업 폴백)
     const loadData = useCallback(async () => {
         try {
-            let [scheduleData, checklistData] = await Promise.all([
-                getScheduleById(scheduleId),
-                getChecklist(scheduleId),
-            ]);
+            let scheduleData: Schedule | null = null;
+            let checklistData: ChecklistItem[] | null = null;
 
-            // [v11.9.120] 1차 Server Action 조회 실패 시 클라이언트 SDK 2차 백업 조회 (Dual-Fallback)
-            if (!scheduleData) {
-                try {
-                    const supabase = createClient();
-                    const { data: clientSchedule } = await supabase
+            // [1순위] Next.js 라우터 actionQueue와 무관한 클라이언트 Supabase SDK 직통 조회 (GET)
+            try {
+                const supabase = createClient();
+                const [schedRes, checkRes] = await Promise.all([
+                    supabase
                         .from('user_schedules')
                         .select('*')
                         .eq('id', scheduleId)
-                        .maybeSingle();
+                        .maybeSingle(),
+                    supabase
+                        .from('schedule_checklists')
+                        .select('*')
+                        .eq('schedule_id', scheduleId)
+                        .order('sort_order', { ascending: true }),
+                ]);
 
-                    if (clientSchedule) {
-                        scheduleData = clientSchedule as Schedule;
-                    }
-                } catch (clientErr) {
-                    console.warn('[ScheduleDetail] Client fallback fetch error:', clientErr);
+                if (!schedRes.error && schedRes.data) {
+                    scheduleData = schedRes.data as Schedule;
                 }
+                if (!checkRes.error && checkRes.data) {
+                    checklistData = checkRes.data as ChecklistItem[];
+                }
+            } catch (clientErr) {
+                console.warn('[ScheduleDetail] Client primary fetch error, falling back to Server Action:', clientErr);
+            }
+
+            // [2순위 폴백] 클라이언트 조회 결과 없을 시에만 Server Action 백업 조회
+            if (!scheduleData) {
+                const [fallbackSchedule, fallbackChecklist] = await Promise.all([
+                    getScheduleById(scheduleId),
+                    checklistData ? Promise.resolve(checklistData) : getChecklist(scheduleId),
+                ]);
+                scheduleData = fallbackSchedule;
+                checklistData = fallbackChecklist;
+            } else if (!checklistData) {
+                checklistData = await getChecklist(scheduleId);
             }
 
             if (!isMountedRef.current) return;
@@ -452,10 +470,10 @@ function ScheduleDetailContent() {
     }, [scheduleId]);
 
     useEffect(() => {
-        if (scheduleId && scheduleId !== 'undefined' && !isUserLoading) {
+        if (scheduleId && scheduleId !== 'undefined') {
             loadData();
         }
-    }, [loadData, isUserLoading, scheduleId]);
+    }, [loadData, scheduleId]);
 
     // [v12.8.0] 예약건 단위 순수 새벽 캐싱 완료 여부 실시간 쿼리 (Server Action 안전 감지)
     useEffect(() => {
@@ -612,8 +630,8 @@ function ScheduleDetailContent() {
         }
     };
 
-    // 로딩 상태 (Route Param Gate: params.id가 준비 완료될 때까지 안전 대기 고정)
-    if (!isMounted || isLoading || isUserLoading || !scheduleId || scheduleId === 'undefined') {
+    // 로딩 상태 (로컬 캐시 schedule 보유 시 isUserLoading 대기 없이 0초 즉시 렌더링)
+    if (!isMounted || (!schedule && (isLoading || isUserLoading)) || !scheduleId || scheduleId === 'undefined') {
         return (
             <div className="min-h-screen bg-[#F8FAF8] flex items-center justify-center">
                 <RaonLoading size="lg" text="일정 정보를 불러오고 있습니다..." />

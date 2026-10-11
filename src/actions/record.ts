@@ -569,7 +569,7 @@ export async function getScheduleForRecord(scheduleId: string): Promise<{
 
         const { data, error } = await supabase
             .from('user_schedules')
-            .select('*')
+            .select('id, source, campground_name, campground_address, campground_lat, campground_lng, check_in, check_out')
             .eq('id', scheduleId)
             .single();
 

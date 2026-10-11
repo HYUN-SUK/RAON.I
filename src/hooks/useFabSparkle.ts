@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { hasUnwrittenScheduleRecord, getScheduleForRecord } from '@/actions/record';
 
 interface UnwrittenScheduleInfo {
@@ -28,8 +28,11 @@ export function useFabSparkle(): UseFabSparkleResult {
     const [shouldSparkle, setShouldSparkle] = useState(false);
     const [unwrittenScheduleIds, setUnwrittenScheduleIds] = useState<string[]>([]);
     const [unwrittenScheduleDetail, setUnwrittenScheduleDetail] = useState<UnwrittenScheduleInfo | null>(null);
+    const isFetchingRef = useRef(false);
 
     const refresh = useCallback(async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             const result = await hasUnwrittenScheduleRecord();
             setShouldSparkle(result.hasUnwritten);
@@ -45,6 +48,8 @@ export function useFabSparkle(): UseFabSparkleResult {
         } catch (err) {
             console.error('Failed to check unwritten schedules:', err);
             setUnwrittenScheduleDetail(null);
+        } finally {
+            isFetchingRef.current = false;
         }
     }, []);
 
@@ -59,3 +64,4 @@ export function useFabSparkle(): UseFabSparkleResult {
         refresh,
     }), [shouldSparkle, unwrittenScheduleIds, unwrittenScheduleDetail, refresh]);
 }
+
