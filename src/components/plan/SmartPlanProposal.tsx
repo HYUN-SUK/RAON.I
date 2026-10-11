@@ -460,6 +460,10 @@ export default function SmartPlanProposal({
                     setPlan(aiPlan);
                 }
             }
+            const bIds = initialPlan?.bookmarked_place_ids || (isWrapped ? initialPlan?.ai_plan?.bookmarked_place_ids : null);
+            if (Array.isArray(bIds) && bIds.length > 0) {
+                setBookmarkedPlaceIds(prev => prev.size === 0 ? new Set(bIds) : prev);
+            }
         }
     }, [initialPlan, plan, proPlan]);
 
@@ -835,6 +839,7 @@ export default function SmartPlanProposal({
                     weather_window: (plan as any)?.weather_window || calculatedWeatherWindow,
                     hidden_card_ids: Array.from(hiddenCardIds),
                     visit_order: visitOrder,
+                    bookmarked_place_ids: Array.from(bookmarkedPlaceIds),
                     updated_at: new Date().toISOString()
                 };
                 updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
@@ -875,6 +880,7 @@ export default function SmartPlanProposal({
                 weather_window: (plan as any)?.weather_window || calculatedWeatherWindow,
                 hidden_card_ids: Array.from(next),
                 visit_order: visitOrder,
+                bookmarked_place_ids: Array.from(bookmarkedPlaceIds),
                 updated_at: new Date().toISOString()
             };
             updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
@@ -898,6 +904,7 @@ export default function SmartPlanProposal({
                 weather_window: (plan as any)?.weather_window || calculatedWeatherWindow,
                 hidden_card_ids: Array.from(hiddenCardIds),
                 visit_order: newOrderedIds,
+                bookmarked_place_ids: Array.from(bookmarkedPlaceIds),
                 updated_at: new Date().toISOString()
             };
             updateSmartPlanData(scheduleId, wrappedData).catch(console.error);
@@ -1424,7 +1431,7 @@ export default function SmartPlanProposal({
                                         className={`p-1 rounded-full transition-all active:scale-90 ${
                                             bookmarkedPlaceIds.has(card.id)
                                                 ? 'text-rose-500 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200'
-                                                : 'text-stone-300 hover:text-rose-400 hover:bg-stone-50'
+                                                : 'text-stone-400 border border-stone-200/80 bg-white hover:text-rose-400 hover:bg-stone-50'
                                         }`}
                                         title={bookmarkedPlaceIds.has(card.id) ? '찜 해제' : '찜하기'}
                                         aria-label={bookmarkedPlaceIds.has(card.id) ? '찜 해제' : '찜하기'}
@@ -2459,7 +2466,7 @@ export default function SmartPlanProposal({
                                                                             className={`p-1.5 rounded-full transition-all active:scale-90 cursor-pointer ${
                                                                                 isBookmarked
                                                                                     ? 'text-rose-500 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200 shadow-xs'
-                                                                                    : 'text-stone-300 hover:text-rose-400 hover:bg-stone-50'
+                                                                                    : 'text-stone-400 border border-stone-200/80 bg-white hover:text-rose-400 hover:bg-stone-50'
                                                                             }`}
                                                                             title={isBookmarked ? '찜 해제' : '찜하기'}
                                                                             aria-label={isBookmarked ? '찜 해제' : '찜하기'}

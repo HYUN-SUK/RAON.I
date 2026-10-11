@@ -38,6 +38,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
 import { openNavApp } from '@/lib/nav-utils';
+import { logPlanBookmark } from '@/lib/moat-logger';
 import SmartPlanMapViewModal from '@/components/plan/SmartPlanMapViewModal';
 import { cn } from '@/lib/utils';
 import RaonLoading from '@/components/common/RaonLoading';
@@ -153,15 +154,53 @@ export default function InstantPlanModal({
     const savedSwapTargetIdRef = React.useRef<string | null>(null);
     const lastSearchTimeRef = React.useRef<number>(0);
 
-    // [v14.4.3] 즉시 플랜 대체 리스트 사전 메모이제이션 (시트 오픈 시 0ms 즉각 렌더링, 깜빡임 방지)
+    // [v15.1.0] 장소 찜(Bookmark) 상태 및 토글 핸들러 (0ms 낙관적 UI + 해자 로깅)
+    const [bookmarkedPlaceIds, setBookmarkedPlaceIds] = useState<Set<string>>(new Set());
+
+    const handleToggleBookmark = useCallback((placeId: string, card?: any, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        setBookmarkedPlaceIds((prev) => {
+            const next = new Set(prev);
+            const isAdding = !next.has(placeId);
+            if (isAdding) {
+                next.add(placeId);
+                toast.success('찜한 장소로 등록되었습니다! 상단에 우선 배치됩니다 💖');
+            } else {
+                next.delete(placeId);
+                toast.info('찜 등록이 해제되었습니다.');
+            }
+
+            logPlanBookmark({
+                placeId,
+                category: card?.category || swapCategory || undefined,
+                isBookmarked: isAdding,
+                trustScore: card?.trustScore,
+                distance: card?.distanceKm,
+            });
+
+            return next;
+        });
+    }, [swapCategory]);
+
+    // [v14.4.3] 즉시 플랜 대체 리스트 사전 메모이제이션 (시트 오픈 시 0ms 즉각 렌더링, 깜빡임 방지 + 찜 우선 배치)
     const instantSwapData = useMemo(() => {
         if (!swapCategory || !planData) return { currentActive: null, allOptions: [] as any[] };
         const currentActive = planData.itemListElement?.find(c => c.id === (swapTargetId || savedSwapTargetIdRef.current));
         const rawAlternatives = planData.alternatives?.[swapCategory] || [];
         const availableAlternatives = rawAlternatives.filter(c => c.id !== currentActive?.id);
-        const allOptions = currentActive ? [currentActive, ...availableAlternatives] : availableAlternatives;
+        const sortedAlternatives = [...availableAlternatives].sort((a, b) => {
+            const aBookmarked = bookmarkedPlaceIds.has(a.id);
+            const bBookmarked = bookmarkedPlaceIds.has(b.id);
+            if (aBookmarked && !bBookmarked) return -1;
+            if (!aBookmarked && bBookmarked) return 1;
+            return 0;
+        });
+        const allOptions = currentActive ? [currentActive, ...sortedAlternatives] : sortedAlternatives;
         return { currentActive, allOptions };
-    }, [swapCategory, swapTargetId, planData]);
+    }, [swapCategory, swapTargetId, planData, bookmarkedPlaceIds]);
 
     // Schedule saving state & travel dates
     const [isSaving, setIsSaving] = useState(false);
@@ -530,6 +569,7 @@ export default function InstantPlanModal({
             savedSwapTargetIdRef.current = null;
             setIsMapModalOpen(false);
             setNavTargetCard(null);
+            setBookmarkedPlaceIds(new Set());
             try {
                 sessionStorage.removeItem('raon_active_instant_plan');
             } catch {}
@@ -539,6 +579,10 @@ export default function InstantPlanModal({
         // [복원 퍼널] 로그인 후 방금 작성한 draft 복원 진입
         if (initialDraftData) {
             setPlanData(initialDraftData.planData);
+            const draftBookmarks = (initialDraftData.planData as any)?.bookmarked_place_ids;
+            if (Array.isArray(draftBookmarks)) {
+                setBookmarkedPlaceIds(new Set(draftBookmarks));
+            }
             setSelectedDestination(initialDraftData.selectedDestination);
             setSearchQuery(initialDraftData.selectedDestination.name);
             if (initialDraftData.targetDate) setTargetDate(initialDraftData.targetDate);
@@ -570,6 +614,7 @@ export default function InstantPlanModal({
 
             setPlanData(null);
             setSwapCategory(null);
+            setBookmarkedPlaceIds(new Set());
             setTargetDate(todayStr);
 
             // 비동기 위치 확인 후 즉시 4단계 플랜 생성 기동
@@ -693,6 +738,7 @@ export default function InstantPlanModal({
             setStep('INPUT');
             setPlanData(null);
             setSwapCategory(null);
+            setBookmarkedPlaceIds(new Set());
         }
     }, [isOpen, initialMode, todayStr, defaultSaturday, skipLocationRequest, userLat, userLng, initialDraftData, planData, step]);
 
@@ -754,6 +800,7 @@ export default function InstantPlanModal({
         }
 
         setStep('GENERATING');
+        setBookmarkedPlaceIds(new Set());
         try {
             const res = await generateInstantPlanAction({
                 targetLat: target.lat,
@@ -850,6 +897,10 @@ export default function InstantPlanModal({
         openNavApp(app, {
             origin: { name: '현재 위치', lat: 0, lng: 0 },
             destination: { name, lat, lng }
+        }, {
+            placeId: navTargetCard.id,
+            category: navTargetCard.category,
+            stage: (navTargetCard as any).stage || 'DESTINATION',
         });
         closeSingleSubsheetWithHistory(() => {
             setNavTargetCard(null);
@@ -890,7 +941,10 @@ export default function InstantPlanModal({
     const saveDraftAndRedirectToLogin = () => {
         if (planData && selectedDestination) {
             const draftPayload = {
-                planData,
+                planData: {
+                    ...planData,
+                    bookmarked_place_ids: Array.from(bookmarkedPlaceIds),
+                },
                 selectedDestination,
                 targetDate: targetDate || todayStr,
                 regStayType: regStayType || '1n2d',
@@ -983,7 +1037,10 @@ export default function InstantPlanModal({
                 campgroundLng: selectedDestination.lng,
                 checkIn: regCheckIn,
                 checkOut: regCheckOut,
-                planData: planData,
+                planData: {
+                    ...planData,
+                    bookmarked_place_ids: Array.from(bookmarkedPlaceIds),
+                } as any,
                 profile: profile,
                 logId: currentLogId || undefined,
             });
@@ -1649,10 +1706,17 @@ export default function InstantPlanModal({
                                                              {chunk.map((opt, idx) => {
                                                                 const globalIdx = chunkIdx * 3 + idx;
                                                                 const isCurrentActive = opt.id === currentActive?.id;
+                                                                const isBookmarked = bookmarkedPlaceIds.has(opt.id);
                                                                 return (
                                                                     <Card
                                                                         key={opt.id}
-                                                                        className={`transition-all border shadow-none cursor-pointer ${isCurrentActive ? 'border-[#388E5A] ring-1 ring-[#388E5A] bg-[#388E5A]/5' : 'border-gray-100 bg-white'}`}
+                                                                        className={`transition-all border shadow-none cursor-pointer ${
+                                                                            isCurrentActive
+                                                                                ? 'border-[#388E5A] ring-1 ring-[#388E5A] bg-[#388E5A]/5'
+                                                                                : isBookmarked
+                                                                                    ? 'border-rose-200 bg-rose-50/20 ring-1 ring-rose-200 shadow-xs'
+                                                                                    : 'border-gray-100 bg-white'
+                                                                        }`}
                                                                         onClick={() => handleSwapPlace(swapCategory!, opt.id)}
                                                                     >
                                                                         <CardContent className="p-3 flex items-start gap-3">
@@ -1662,6 +1726,11 @@ export default function InstantPlanModal({
                                                                                         <span className="text-[10px] text-gray-400 mr-1 shrink-0">{globalIdx + 1}위</span>
                                                                                         {opt.name}
                                                                                     </h4>
+                                                                                    {isBookmarked && (
+                                                                                        <span className="shrink-0 whitespace-nowrap text-[9px] bg-rose-500 text-white px-1.5 py-0.5 rounded font-black flex items-center gap-0.5 shadow-xs">
+                                                                                            💖 찜
+                                                                                        </span>
+                                                                                    )}
                                                                                     {isCurrentActive && (
                                                                                         <span className="shrink-0 whitespace-nowrap text-[9px] bg-[#388E5A] text-white px-1.5 py-0.5 rounded-sm font-medium">현재 선택됨</span>
                                                                                     )}
@@ -1757,9 +1826,25 @@ export default function InstantPlanModal({
                                                                                     </div>
                                                                                 )}
                                                                             </div>
-                                                                            {!isCurrentActive && (
-                                                                                <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#388E5A]/30 text-[#388E5A] hover:bg-[#388E5A]/10">변경</Button>
-                                                                            )}
+                                                                            <div className="shrink-0 flex items-center gap-1.5 self-start">
+                                                                                {/* 찜(Heart) 버튼 */}
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={(e) => handleToggleBookmark(opt.id, opt, e)}
+                                                                                    className={`p-1.5 rounded-full transition-all active:scale-90 cursor-pointer ${
+                                                                                        isBookmarked
+                                                                                            ? 'text-rose-500 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200 shadow-xs'
+                                                                                            : 'text-stone-400 border border-stone-200/80 bg-white hover:text-rose-400 hover:bg-stone-50'
+                                                                                    }`}
+                                                                                    title={isBookmarked ? '찜 해제' : '찜하기'}
+                                                                                    aria-label={isBookmarked ? '찜 해제' : '찜하기'}
+                                                                                >
+                                                                                    <Heart className={`w-4 h-4 transition-transform ${isBookmarked ? 'fill-rose-500 scale-110' : ''}`} />
+                                                                                </button>
+                                                                                {!isCurrentActive && (
+                                                                                    <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 text-[10px] rounded-full border-[#388E5A]/30 text-[#388E5A] hover:bg-[#388E5A]/10">변경</Button>
+                                                                                )}
+                                                                            </div>
                                                                         </CardContent>
                                                                     </Card>
                                                                 );
@@ -1871,6 +1956,8 @@ export default function InstantPlanModal({
                             }
                         });
                     }}
+                    bookmarkedPlaceIds={bookmarkedPlaceIds}
+                    onToggleBookmark={handleToggleBookmark}
                 />
             </SheetContent>
         </Sheet>
@@ -1949,6 +2036,11 @@ export default function InstantPlanModal({
                                             검증됨
                                         </span>
                                     )}
+                                    {bookmarkedPlaceIds.has(card.id) && (
+                                        <span className="flex items-center text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-sm border border-rose-200 shadow-xs">
+                                            💖 찜
+                                        </span>
+                                    )}
                                     {isFestival && (
                                         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
                                             🎉 로컬 축제 개최 중
@@ -1956,6 +2048,20 @@ export default function InstantPlanModal({
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
+                                    {/* 찜 버튼 */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleToggleBookmark(card.id, card, e)}
+                                        className={`p-1 rounded-full transition-all active:scale-90 cursor-pointer ${
+                                            bookmarkedPlaceIds.has(card.id)
+                                                ? 'text-rose-500 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200'
+                                                : 'text-stone-400 border border-stone-200/80 bg-white hover:text-rose-400 hover:bg-stone-50'
+                                        }`}
+                                        title={bookmarkedPlaceIds.has(card.id) ? '찜 해제' : '찜하기'}
+                                        aria-label={bookmarkedPlaceIds.has(card.id) ? '찜 해제' : '찜하기'}
+                                    >
+                                        <Heart className={`w-3.5 h-3.5 ${bookmarkedPlaceIds.has(card.id) ? 'fill-rose-500' : ''}`} />
+                                    </button>
                                     {card.trustScore !== undefined && (
                                         <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded-md">
                                             {card.trustScore.toFixed(0)}점
