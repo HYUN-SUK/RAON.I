@@ -101,22 +101,32 @@ export default function ScheduleCard({
         }
 
         const hasPlanData = !!schedule.smart_plan_data;
-        const isPreviewPlan = (schedule.smart_plan_data as any)?.is_preview === true;
-        const weatherWindow = (schedule.smart_plan_data as any)?.weather_window || 'NONE';
+        const isPreviewPlan = (schedule.smart_plan_data as any)?.is_preview === true || (schedule.smart_plan_data as any)?.ai_plan?.is_preview === true;
+        const weatherWindow = (schedule.smart_plan_data as any)?.weather_window || (schedule.smart_plan_data as any)?.ai_plan?.weather_window || 'NONE';
+
+        const isAfter9AM = new Date().getHours() >= 9;
+        const isD0Unlocked = daysUntil < 0 || (daysUntil === 0 && isAfter9AM);
+        const isD7Unlocked = daysUntil < 7 || (daysUntil === 7 && isAfter9AM);
 
         // 5단계: 사용자가 정밀/업데이트 플랜 작성을 완전히 완료한 경우
         if (hasPlanData && !isPreviewPlan) {
             if (daysUntil <= 0) {
-                if (weatherWindow !== 'SHORT') {
+                if (weatherWindow === 'SHORT') {
+                    return '✨ 출발 당일 플랜 최신화 완료';
+                }
+                if (isD0Unlocked) {
                     return '⚡ 당일 정밀날씨 업데이트 가능';
                 }
-                return '✨ 출발 당일 플랜 최신화 완료';
+                return weatherWindow === 'MID' ? '✨ 주간 예보 업데이트 완료' : '✨ 스마트플랜 생성 완료';
             }
             if (daysUntil <= 7 && daysUntil >= 1) {
-                if (weatherWindow === 'NONE') {
+                if (weatherWindow !== 'NONE') {
+                    return '✨ 주간 예보 업데이트 완료';
+                }
+                if (isD7Unlocked) {
                     return '🌤️ 날씨정보 업데이트 가능';
                 }
-                return '✨ 주간 예보 업데이트 완료';
+                return '✨ 스마트플랜 생성 완료';
             }
             return '✨ 스마트플랜 생성 완료';
         }
@@ -124,10 +134,10 @@ export default function ScheduleCard({
         // 3/4단계: DB 캐싱 완료 & 오전 9시 도달 시 (정밀 스마트플랜 생성 관문)
         if (isSmartPlanAvailable) {
             if (daysUntil <= 0) {
-                return '⚡ 당일 정밀날씨 업데이트 가능';
+                return isD0Unlocked ? '⚡ 당일 정밀날씨 업데이트 가능' : '🌤️ 날씨정보 업데이트 가능';
             }
             if (daysUntil <= 7 && daysUntil >= 1) {
-                return '🌤️ 날씨정보 업데이트 가능';
+                return isD7Unlocked ? '🌤️ 날씨정보 업데이트 가능' : '✨ 정밀 스마트플랜 생성가능';
             }
             return '✨ 정밀 스마트플랜 생성가능';
         }

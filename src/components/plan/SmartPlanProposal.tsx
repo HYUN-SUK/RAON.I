@@ -1642,6 +1642,9 @@ export default function SmartPlanProposal({
     const weatherWindow = (plan as any)?.weather_window || (initialPlan as any)?.weather_window || (initialPlan as any)?.ai_plan?.weather_window || 'NONE';
 
 
+    const isMidTermUnlocked = diffDaysForRegen < 7 || (diffDaysForRegen === 7 && isAfter9AM);
+    const isShortTermUnlocked = diffDaysForRegen < 0 || (diffDaysForRegen === 0 && isAfter9AM);
+
     // CTA 버튼 상태 및 메시지 동적 계산 (단일 CTA 원칙 & 시기별 1회 락 정책)
     let ctaButtonText = '✨ 정밀 스마트플랜 생성하기';
     let ctaSubtext = '💡 더욱더 풍부한 정밀 플랜을 만나보세요.';
@@ -1668,8 +1671,8 @@ export default function SmartPlanProposal({
             ctaSubtext = '🌤️ 여행 7일 전 기상청 주간 날씨 예보가 준비되면 업데이트를 받으실 수 있습니다.';
             ctaIcon = '✨';
         } else if (diffDaysForRegen >= 1 && diffDaysForRegen <= 7) {
-            // [v14.0.0] 7일 전 오전 9시 이전 락 보강
-            if (!isAfter9AM) {
+            // [v14.0.0] D-7 당일 오전 9시 이전 락 보강 (D-6 ~ D-1은 새벽에도 잠기지 않도록 허용)
+            if (!isMidTermUnlocked) {
                 isCtaDisabled = true;
                 ctaButtonText = '🔄 주간 예보 정밀 플랜 업데이트';
                 ctaSubtext = '⏳ 최신 기상청 주간 예보 반영을 위해 오전 9시부터 업데이트가 가능합니다.';
@@ -1688,9 +1691,9 @@ export default function SmartPlanProposal({
                 ctaIcon = '✨';
             }
         } else {
-            // 출발 당일 (diffDaysForRegen <= 0)
-            // [v14.0.0] 당일 오전 9시 이전 락 보강
-            if (!isAfter9AM) {
+            // 출발 당일 및 여행 중 (diffDaysForRegen <= 0)
+            // [v14.0.0] 출발 당일(D-0) 오전 9시 이전 락 보강 (여행 2일차 이후는 새벽에도 잠기지 않도록 허용)
+            if (!isShortTermUnlocked) {
                 isCtaDisabled = true;
                 ctaButtonText = '🔄 출발 당일 초정밀 플랜 업데이트';
                 ctaSubtext = '⏳ 출발 당일 정밀 기상 정보 반영을 위해 오전 9시부터 업데이트가 가능합니다.';
@@ -1712,8 +1715,8 @@ export default function SmartPlanProposal({
     }
 
     const showNoWeatherBanner = !isPublicView && diffDaysForRegen >= 8 && !isPreview;
-    const showMidTermActionBanner = !isPublicView && diffDaysForRegen >= 1 && diffDaysForRegen <= 7 && weatherWindow === 'NONE' && !isPreview && isAfter9AM;
-    const showShortTermActionBanner = !isPublicView && diffDaysForRegen <= 0 && weatherWindow !== 'SHORT' && !isPreview && isAfter9AM;
+    const showMidTermActionBanner = !isPublicView && diffDaysForRegen >= 1 && diffDaysForRegen <= 7 && weatherWindow === 'NONE' && !isPreview && isMidTermUnlocked;
+    const showShortTermActionBanner = !isPublicView && diffDaysForRegen <= 0 && weatherWindow !== 'SHORT' && !isPreview && isShortTermUnlocked;
 
     const handleCtaClick = (e: React.MouseEvent) => {
         e.stopPropagation();
