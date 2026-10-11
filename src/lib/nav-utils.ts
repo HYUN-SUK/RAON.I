@@ -37,14 +37,47 @@ export function getKakaoMapUrl({ destination, waypoints }: FullRouteParams) {
 
 /**
  * 카카오내비 딥링크 생성 (kakaonavi://navigate)
+ * [v15.1.1] 카카오내비 앱 내부 길안내 수신기(Receiver) 규격(param JSON, apiver, appkey, extras) 적용
  */
-export function getKakaoNaviUrl({ destination }: FullRouteParams) {
-    const name = encodeURIComponent(destination.name);
-    const lat = destination.lat.toFixed(6);
-    const lng = destination.lng.toFixed(6);
-    
-    // [v15.1.0] Capacitor 안드로이드 WebView(Bridge.java) 및 모바일 공통 순수 커스텀 스킴 적용
-    return `kakaonavi://navigate?name=${name}&x=${lng}&y=${lat}&coord_type=wgs84`;
+export function getKakaoNaviUrl({ destination, waypoints }: FullRouteParams) {
+    const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY || '56dccecc7b2e62236b6f7b9c8a9a7dfb';
+    const origin = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : 'https://raon-i.vercel.app';
+    const lang = (typeof navigator !== 'undefined' && navigator.language) || 'ko-KR';
+    const device = (typeof navigator !== 'undefined' && navigator.platform)
+        ? navigator.platform.replace(/ /g, '_')
+        : 'Linux_armv8l';
+
+    const extras = JSON.stringify({
+        KA: `sdk/1.44.0 os/javascript sdk_type/javascript lang/${lang} device/${device} origin/${encodeURIComponent(origin)}`
+    });
+
+    const paramObj: Record<string, unknown> = {
+        destination: {
+            name: destination.name || '목적지',
+            x: Number(destination.lng.toFixed(6)),
+            y: Number(destination.lat.toFixed(6)),
+        },
+        option: {
+            coord_type: 'wgs84',
+            vehicle_type: 1,
+            rpoption: 100,
+            route_info: false,
+        },
+    };
+
+    if (waypoints && waypoints.length > 0) {
+        paramObj.via_list = waypoints.slice(0, 3).map((v) => ({
+            name: v.name || '경유지',
+            x: Number(v.lng.toFixed(6)),
+            y: Number(v.lat.toFixed(6)),
+        }));
+    }
+
+    const param = JSON.stringify(paramObj);
+
+    return `kakaonavi://navigate?param=${encodeURIComponent(param)}&apiver=1.0&appkey=${encodeURIComponent(appKey)}&extras=${encodeURIComponent(extras)}`;
 }
 
 /**
