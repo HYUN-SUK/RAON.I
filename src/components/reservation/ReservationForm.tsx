@@ -81,7 +81,6 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const [selectedAirId, setSelectedAirId] = useState('');
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsMounted(true);
         setSelectedSite(site);
         fetchSiteConfig();
@@ -180,7 +179,6 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     // userContactInfo가 로드되면 폼에 적용 및 로컬 캐시 갱신
     useEffect(() => {
         if (!rebookData && userContactInfo) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             if (!name && userContactInfo.guestName) setName(userContactInfo.guestName);
             if (!phone && userContactInfo.guestPhone) setPhone(userContactInfo.guestPhone);
             // 다음번 0.000초 즉시 완성을 위한 로컬 캐시 영구화
@@ -226,7 +224,6 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                         available: !hasOverlap && !hasBlock
                     };
                 });
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setAirOptions(options);
 
             const firstAvail = options.find(o => o.available);
