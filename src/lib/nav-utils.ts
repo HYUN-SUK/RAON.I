@@ -36,8 +36,8 @@ export function getKakaoMapUrl({ destination, waypoints }: FullRouteParams) {
 }
 
 /**
- * 카카오내비 딥링크 생성 (kakaonavi://navigate)
- * [v15.1.1] 카카오내비 앱 내부 길안내 수신기(Receiver) 규격(param JSON, apiver, appkey, extras) 적용
+ * 카카오내비 딥링크 생성 (kakaonavi-sdk://navigate)
+ * [v15.1.2] 카카오 공식 SDK(kakao.js) NAVI_SCHEME("kakaonavi-sdk://navigate") 및 파라미터 규격 100% 일치화
  */
 export function getKakaoNaviUrl({ destination, waypoints }: FullRouteParams) {
     const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY || '56dccecc7b2e62236b6f7b9c8a9a7dfb';
@@ -77,7 +77,7 @@ export function getKakaoNaviUrl({ destination, waypoints }: FullRouteParams) {
 
     const param = JSON.stringify(paramObj);
 
-    return `kakaonavi://navigate?param=${encodeURIComponent(param)}&apiver=1.0&appkey=${encodeURIComponent(appKey)}&extras=${encodeURIComponent(extras)}`;
+    return `kakaonavi-sdk://navigate?appkey=${encodeURIComponent(appKey)}&apiver=1.0&extras=${encodeURIComponent(extras)}&param=${encodeURIComponent(param)}`;
 }
 
 /**
