@@ -1,5 +1,34 @@
 # Task Management
 
+## Completed Tasks (2026-10-11)
+- [x] **마일스톤 9.91**: 예약 흐름 전체(사이트 상세 ➔ 예약 정보 입력폼 ➔ 예약완료 팝업 ➔ 신청완료 화면) '클린 화이트 & 세이지 그린' 라이트 테마 통일 및 커뮤니티 상단 안전 여백 확보 완결
+  - **예약 흐름 '1안: 클린 화이트 & 세이지 그린' 컬러 전면 적용 (`SiteImageSlider.tsx`, `SitePriceDisplay.tsx`, `reservation/[id]/page.tsx`, `ReservationForm.tsx`, `reservation/complete/page.tsx`)**:
+    - 기존 다크모드 고정(`#1a1a1a`, `#121212`)으로 인해 밝은 홈 화면 및 예약 메인 화면과 이질감이 있던 문제를 해결하기 위해, 기능과 레이아웃 배치는 100% 그대로 유지하고 순수 색상 클래스만 1:1 교체(121줄 추가 / 121줄 삭제).
+    - 전체 배경(`#F4F8F5`), 순백색 외곽 카드(`#FFFFFF`) + 세이지 테두리(`#D2E5D7`), 연세이지 배지/칩/입금계좌 박스(`#EDF5EE`), 소프트 세이지 입력폼(`#F8FBF9`), 라온 시그니처 그린(`#2E7D47`) 총 결제금액 및 CTA 버튼, 화이트 안내 모달로 일괄 통일.
+  - **커뮤니티 화면 및 글쓰기 화면 상단 안전 여백(`--sat` Safe Area) 확보 (`CommunityHeader.tsx`, `CommunityWriteForm.tsx`)**:
+    - 안드로이드 네이티브 앱(`html.is-native-app`)에서 상태표시줄과 겹쳐 밀려 올라가던 현상을 해결하기 위해 `CommunityHeader`에 `pt-[calc(1.25rem+var(--sat,0px))]` 적용 및 `CommunityWriteForm` 상단 헤더를 `header.sticky.top-0`로 전환하여 다른 화면들과 동일한 상단 여백 확보.
+- [x] **마일스톤 9.90**: 하단 내비게이션 바(`BottomNav.tsx`) 0ms 낙관적 즉각 활성화 & 연초록 캡슐 알약 바운스 피드백 완결
+  - **0ms 낙관적 즉각 활성화 (`activeTab` 상태 도입)**:
+    - Next.js `router.push()`가 다음 페이지 청크를 로드할 때까지 `pathname`이 바뀌지 않아 터치 후 0.1~0.3초 동안 버튼이 회색으로 방치되던 근본 원인을 해결.
+    - 탭 터치 즉시(0.00초) `setActiveTab(tab.href)`로 초록색(`#2E7D47`) 및 볼드(Bold) 상태를 즉각 점등하고, `useEffect`로 실제 `pathname` 변경(뒤로가기, 외부 링크 이동)과 100% 동기화.
+    - 비로그인 보호 탭은 `withAuth` 통과 시점에만 활성화되도록 방어.
+  - **연초록 캡슐 알약(Pill Capsule) 하이라이트 & 마이크로 스프링 바운스**:
+    - 활성 아이콘 주변에 `bg-[#2E7D47]/12` 캡슐 알약 배경과 `scale-105` 탄성 모션, `active:scale-90` 터치 반응성 및 웹 진동(`navigator.vibrate(10)`) 보조 연동, 동일 탭 중복 터치 가드 장착.
+- [x] **마일스톤 9.89**: 탭 고속 왕복 및 백그라운드 복귀 시 프로필/라온토큰/다가오는 일정(타캠핑장) 풀림 현상 3중 방어 완결
+  - **전체 여행일정(`/myspace/schedule/page.tsx`) 무한 리렌더링 및 DB 무한 호출 루프 원천 차단 (`07b7770`)**:
+    - `loadData`의 `useCallback` 의존성에서 `schedules` 상태를 제거하고 `hasSchedulesCacheRef` 및 `isFetchingRef` 동기 락을 적용하여, 일정 페이지 진입 시 수백 회 발생하던 DB 호출 루프를 마운트 당 1회로 완벽 격리.
+  - **3초 타임아웃 오판(`isTimedOut`) 분리 및 탭 전환 시 세션 풀림 차단 (`supabase-client.ts`, `TopBar.tsx`, `myspace/page.tsx`, `7de2783`)**:
+    - `getSessionWithTimeout`에 `isTimedOut: true` 플래그를 신설하여, 네트워크/WebView 일시 지연으로 인한 타임아웃을 '진짜 로그아웃'과 엄격히 구분(캐시 보존).
+    - `TopBar.tsx`의 `useEffect`에서 `[pathname]` 의존성을 제거하여 탭 이동마다 `checkUser()`가 재실행되던 현상을 차단하고 마운트 시 1회 + `onAuthStateChange` 이벤트 기반으로 정착.
+    - `myspace/page.tsx`에서 느린 원격 `getUser()` 대신 0ms 로컬 `getSession()`을 우선 판정하도록 개선.
+  - **백그라운드 복귀 시 서버 쿠키 엇박자로 인한 다가오는 일정("병지방오토캠핑장") 증발 방어막 (`actions/schedule.ts`, `ScheduleHomeWidget.tsx`, `3f2cfb0`)**:
+    - `getMySchedules(accessToken?)` Server Action이 쿠키 인증 실패 시 클라이언트가 전달한 Bearer `accessToken`으로 2차 검증(Fallback)하도록 보강하고, 인증 미확인 시 `{ schedules: [], authFailed: true }`를 반환.
+    - `ScheduleHomeWidget.tsx`에서 `authFailed`이거나 로컬 캐시가 있는데 빈 배열이 내려올 경우 기존 `user_schedules_cache`를 덮어쓰지 않고 보존하도록 방어.
+- [x] **마일스톤 9.88**: FCM v1 푸시 알림 안정화(페이로드 규격화, 청크 분할, 선택적 재시도 워커) 및 예약 취소 영구 REST API 전환 완결
+  - **FCM v1 안드로이드 알림 페이로드 명시 (`push-notification/index.ts`, `3a0d65a`)**: `android.notification` 블록에 `title`, `body`, `ticker: '라온아이'`를 명시하여 백그라운드/종료 상태에서도 시스템 트레이 알림 표출 보장.
+  - **청크 릴레이 및 선택적 재시도 스윕 워커 (`17d19e2`, `1894d1b`)**: 대량 발송 시 타임아웃 방지 및 실패 건 자동 복구 파이프라인 구축.
+  - **예약 취소 영구 REST API(`/api/reservation/cancel`) 전환 (`6f54cdd`)**: Server Action 직렬화 지연을 우회하는 전용 REST 엔드포인트, Bearer 토큰 이중 인증, `try-finally` UI 락 해제 및 빈자리 대기 알림 백그라운드 비동기 분리.
+
 ## Completed Tasks (2026-10-05)
 - [x] **마일스톤 9.85**: 네이티브 앱 v1.0.10(code 10) 정식 출시에 따른 NotificationPromptModal 버전 판별 기준 상향 및 2대 핵심 혜택 카드 개편 완결
   - **버전 판별 기준치 v1.0.10(code 10) 정밀 상향 (`NotificationPromptModal.tsx`)**:

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { BoardType, useCommunityStore } from '@/store/useCommunityStore';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Loader2, Camera, X, Pencil, Sparkles } from 'lucide-react';
 import { communityService } from '@/services/communityService';
-import { z } from 'zod';
 import { dispatchPersonaAction } from '@/lib/persona';
 
 const CATEGORIES: { id: BoardType; label: string }[] = [
@@ -27,15 +25,6 @@ const VISIBILITY_OPTIONS = [
     { value: 'PRIVATE', label: '비공개' },
 ];
 
-// Zod Schema
-const postSchema = z.object({
-    title: z.string().min(1, '제목을 입력해주세요.'),
-    content: z.string().min(1, '내용을 입력해주세요.'),
-    type: z.enum(['NOTICE', 'REVIEW', 'STORY', 'QNA', 'GROUP', 'CONTENT']),
-    images: z.array(z.custom<File>((val) => val instanceof File, "파일 형식이 올바르지 않습니다."))
-        .max(5, '사진은 최대 5장까지 업로드 가능합니다.'),
-});
-
 import ImageEditorModal from '@/components/record/ImageEditorModal';
 import { createClient } from '@/lib/supabase-client';
 
@@ -44,7 +33,7 @@ export default function CommunityWriteForm() {
     const searchParams = useSearchParams();
     const initialType = (searchParams.get('type') as BoardType) || 'STORY';
 
-    const { createPost, isLoading: storeLoading, currentUser } = useCommunityStore();
+    const { createPost, isLoading: storeLoading } = useCommunityStore();
     const [localLoading, setLocalLoading] = useState(false);
     const editId = searchParams.get('editId');
 

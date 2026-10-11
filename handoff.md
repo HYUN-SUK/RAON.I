@@ -1,92 +1,65 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-10-05T15:20:00+09:00  
+**작성 일시**: 2026-10-11T10:12:00+09:00  
 **기준 브랜치**: `main`  
-**빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, ESLint 통과, 103/103 빌드 100% 통과)  
-**실서버 배포**: Vercel 프로덕션 자동 배포 연동 (`https://raon-i.co.kr`, 커밋 `95b0c03`)  
+**빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, ESLint 통과, 104/104 빌드 100% 통과)  
+**실서버 배포**: Vercel 프로덕션 자동 배포 연동 (`https://raon-i.co.kr`, 최신 커밋 `094ecc9`)  
 
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
-### 🟢 마일스톤 9.85: 네이티브 앱 v1.0.10(code 10) 정식 출시에 따른 NotificationPromptModal 버전 판별 기준 상향 및 2대 핵심 혜택 카드 개편 완결 (2026-10-05)
+### 🟢 마일스톤 9.91: 예약 흐름 전체(사이트 상세 ➔ 예약 정보 입력폼 ➔ 예약완료 팝업 ➔ 신청완료 화면) '클린 화이트 & 세이지 그린' 라이트 테마 통일 및 커뮤니티 상단 안전 여백 확보 완결 (2026-10-10 ~ 2026-10-11)
 
-1. **버전 판별 기준치 v1.0.10(code 10) 정밀 상향 (`src/components/notification/NotificationPromptModal.tsx`)**:
-   - `buildVersion < 10` 정수 판별 및 `1.0.10` 미만 시맨틱 버전 보조 판별을 장착하여, 구버전(v1.0.9 이하 및 구버전 TWA) 사용자 접속 시 쿨다운과 무관하게 `need_update` 팝업 100% 최우선 노출.
-   - 최신 10버전 설치 기기 및 일반 웹 브라우저 환경에서는 팝업을 안전하게 건너뛰도록 격리.
+1. **예약 흐름 '1안: 클린 화이트 & 세이지 그린' 컬러 전면 통일 (`ccdb4e3`)**:
+   - **대상 파일**:
+     - [SiteImageSlider.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/SiteImageSlider.tsx)
+     - [SitePriceDisplay.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/SitePriceDisplay.tsx)
+     - [reservation/[id]/page.tsx](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/reservation/[id]/page.tsx)
+     - [ReservationForm.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/ReservationForm.tsx)
+     - [reservation/complete/page.tsx](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/reservation/complete/page.tsx)
+   - **조치 내용**:
+     - 기존 다크모드 고정(`#1a1a1a`, `#121212`)으로 인해 밝은 홈 화면 및 예약 메인 화면과 시각적 이질감이 있던 문제를 해결하기 위해, 기능·상태·배치는 100% 그대로 유지하고 순수 색상 클래스만 1:1 교체(`121 insertions, 121 deletions`).
+     - 전체 배경을 포레스트 화이트(`#F4F8F5`), 외곽 카드를 순백색(`#FFFFFF`) + 세이지 테두리(`#D2E5D7`), `AUTO` 배지·편의시설 칩·입금계좌 박스를 연한 세이지 그린(`#EDF5EE`), 안쪽 입력폼을 소프트 세이지 화이트(`#F8FBF9`), 총 결제금액 및 CTA 버튼을 라온 시그니처 그린(`#2E7D47`), 예약 완료 팝업 모달을 화이트 카드로 일괄 통일.
 
-2. **2대 핵심 혜택 카드 개편 및 타이틀 최신화**:
-   - 타이틀을 `최신 버전(v1.0.10) 업데이트 안내 🚀`로 상향.
-   - 기존 3개 카드의 복잡도를 줄이고 **[1: 삼성키보드 한글 입력 완치 & 0초 검색]**, **[2: 결제 마감 & 취소석 실시간 푸시알림]** 2대 카드로 단정하게 압축하여, 모바일 전 기종에서 스크롤 없이 `[플레이스토어에서 업데이트하기]` 버튼이 한눈에 노출되도록 모바일 UX 완성.
-
-3. **무결성 검증**:
-   - `npx tsc --noEmit` 0에러 통과.
-   - `npm run build` 103/103 전체 라우트 100% 빌드 성공.
-   - Git 커밋 및 origin main 푸시 완료 (`95b0c03`).
-
----
-
-### 🟢 마일스톤 9.84: Capacitor 안드로이드 네이티브 패키지 v1.0.10 (code 10) 정식 빌드 및 captureInput: false 탑재 배포 패키지 완성 (2026-10-05)
-
-1. **키보드 차단 더미 객체(BaseInputConnection) 영구 소멸 (`captureInput: false`)**:
-   - `npx cap sync android` 실행으로 `capacitor.config.json` 네이티브 에셋에 `captureInput: false` 완벽 동기화.
-   - 크롬 안드로이드 웹뷰 고유의 표준 IME 키보드 파이프라인(`super.onCreateInputConnection`)을 100% 온전히 복원하여, 삼성 키보드(천지인) 한글 입력 시 글자 렉, 버튼 미인식, 외부 터치 시 텍스트 초기화 결함의 네이티브 근본 원인을 원천 박멸.
-
-2. **버전 상향 및 릴리즈 바이너리(AAB & APK) 서명 빌드 성공**:
-   - `android/app/build.gradle`: `versionCode 10`, `versionName "1.0.10"` 상향.
-   - Java 21 환경에서 Gradle 릴리즈 서명 빌드 완료 (`signing.keystore` 정식 서명 적용).
-   - 바탕화면 `C:\Users\user\Desktop\라온아이 - Google Play package (v1.0.10)`에 정식 배포 패키지 생성 완료:
-     - `라온아이.aab` (11.48 MB) : Google Play 콘솔 업로드용
-     - `라온아이.apk` (11.81 MB) : 대표님 스마트폰 즉시 설치/테스트용
-     - `signing.keystore`, `signing-key-info.txt`, `assetlinks.json` 동봉.
+2. **커뮤니티 화면 및 글쓰기 화면 상단 안전 여백(`--sat` Safe Area) 확보 (`094ecc9`)**:
+   - **대상 파일**: [CommunityHeader.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/community/CommunityHeader.tsx), [CommunityWriteForm.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/community/CommunityWriteForm.tsx)
+   - **조치 내용**: 안드로이드 네이티브 앱(`html.is-native-app`)에서 상태표시줄과 겹쳐 밀려 올라가던 현상을 해결하기 위해 `CommunityHeader`에 `pt-[calc(1.25rem+var(--sat,0px))]`를 적용하고, `CommunityWriteForm` 상단 헤더를 `header.sticky.top-0`로 전환하여 다른 화면들과 동일한 상단 여백 확보.
 
 ---
 
-### 🟢 마일스톤 9.83: Capacitor 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 버퍼 충돌(글자 중복 및 버튼 미활성화) 완치 및 Input 표준화 복원 (2026-10-05)
+### 🟢 마일스톤 9.90: 하단 내비게이션 바(`BottomNav.tsx`) 0ms 낙관적 즉각 활성화 & 연초록 캡슐 알약 바운스 피드백 완결 (2026-10-10)
 
-1. **글자 2번 써짐(중복 입력) 및 버퍼 파괴 원천 박멸 (`src/components/ui/input.tsx`)**:
-   - **근본 원인 규명**: `defaultValue` 비제어 우회 및 `useEffect` 내 `input.value = strVal` 수동 DOM 주입 방식이 삼성 키보드 `InputConnection` 내부의 조합 버퍼와 충돌을 일으켜, 키보드가 버퍼의 글자를 웹뷰로 한 번 더 재전송(Commit)하면서 "세종세종", "홍길길동"처럼 글씨가 두 번 찍히던 현상 규명.
-   - **표준 리액트 규격 복원**: 인위적인 네이티브 3중 이벤트 리스너(`input`, `compositionupdate`, `compositionend`) 및 수동 DOM 조작을 전면 걷어내고, 리액트 표준 컴포넌트로 복원하여 앱 전역 36개 입력창의 안정성을 100% 정상화.
-
-2. **[검색] 버튼 미활성화(먹통) 0ms 즉시 활성화 완치 (`src/components/home/InstantPlanModal.tsx`)**:
-   - **근본 원인 규명**: `onChange` 내부에 `React.startTransition`을 적용함에 따라, 버튼 활성화 조건을 결정하는 핵심 상태인 `searchQuery`가 백그라운드 지연 작업으로 강등되어 화면에는 '세종'이 보이나 버튼은 비활성화 상태로 멈춰 있던 결함 규명.
-   - **즉시 상태 반영 복원**: `React.startTransition`을 전면 제거하고 즉시 `setSearchQuery(val)`를 호출하여, 천지인 첫 자음(`ㅅ`)을 치는 0.001초 즉시 [검색] 버튼이 초록색으로 100% 활성화되도록 구현.
-   - **네이티브 검색 키 힌트 부여 (`enterKeyHint="search"`)**: 삼성 키보드 우측 하단 엔터키가 돋보기 모양의 '검색' 키로 네이티브 전환되도록 설정.
-
-3. **무결성 검증**:
-   - `npx.cmd tsc --noEmit` 에러 0건 통과.
-   - `npm.cmd run build` 103/103 전체 라우트 100% 정상 통과 (Exit Code 0).
+1. **0ms 낙관적 즉각 활성화 (`activeTab` 상태 도입, `f5db157`)**:
+   - **근본 원인**: Next.js `router.push()`가 다음 페이지 청크를 로드하고 마운트할 때까지 `pathname`이 바뀌지 않아, 터치 후 0.1~0.3초 동안 눌린 탭이 회색으로 남아 유저가 "터치가 안 먹혔나?"라고 느끼던 현상 규명.
+   - **해결**: 탭 터치 즉시(0.00초) 로컬 `activeTab` 상태를 갱신하여 초록색(`#2E7D47`) 및 볼드(Bold) 상태를 즉각 점등하고, `useEffect`로 실제 `pathname` 변경(뒤로가기, 외부 링크 이동)과 100% 동기화. 비로그인 보호 탭은 `withAuth` 통과 시점에만 활성화되도록 방어.
+2. **연초록 캡슐 알약(Pill Capsule) 하이라이트 & 마이크로 스프링 바운스**:
+   - 활성 아이콘 주변에 `bg-[#2E7D47]/12` 캡슐 알약 배경과 `scale-105` 탄성 모션, `active:scale-90` 터치 반응성 및 웹 진동(`navigator.vibrate(10)`) 보조 연동, 동일 탭 중복 터치 가드 장착.
 
 ---
 
-### 🟢 마일스톤 9.82: 모바일 안드로이드 웹뷰(삼성 키보드/천지인) 한글 IME 조합 렉 완치, 0초 즉시 버튼 활성화 및 앱 전역 입력창 전수 고도화 완결 (2026-10-05)
+### 🟢 마일스톤 9.89: 탭 고속 왕복 및 백그라운드 복귀 시 프로필/라온토큰/다가오는 일정(타캠핑장) 풀림 현상 3중 방어 완결 (2026-10-10)
 
-1. **삼성 키보드 한글 자모음 조합 버퍼 파괴 원천 차단 (`src/components/ui/input.tsx`)**:
-   - **근본 원인 규명**: 숫자는 조합(IME)이 없는 단일 문자라 즉시 입력되었으나, 한글(CJK)은 자음·모음 조합 중(`isComposing`)일 때 리액트 가상 DOM이 `value={state}`로 실시간 재할당하면서 안드로이드 `InputConnection` 조합 세션이 강제 종료되어 앞글자가 지워지던("가" + "평" -> "평") 버그를 규명.
-   - **비제어 JSX(`defaultValue`) + Ref 제어 패턴**: 리액트 가상 DOM이 타이핑 중 DOM `value`를 직접 덮어쓰지 못하도록 격리하여, 삼성 천지인 자판 연타 시에도 글자 씹힘/삭제 0% 달성.
+1. **전체 여행일정(`/myspace/schedule/page.tsx`) 무한 리렌더링 및 DB 무한 호출 루프 원천 차단 (`07b7770`)**:
+   - `loadData`의 `useCallback` 의존성에서 `schedules` 상태를 제거하고 `hasSchedulesCacheRef` 및 `isFetchingRef` 동기 락을 적용하여, 일정 페이지 진입 시 수백 회 발생하던 DB 호출 루프를 마운트 당 1회로 완벽 격리.
+2. **3초 타임아웃 오판(`isTimedOut`) 분리 및 탭 전환 시 세션 풀림 차단 (`supabase-client.ts`, `TopBar.tsx`, `myspace/page.tsx`, `7de2783`)**:
+   - `getSessionWithTimeout`에 `isTimedOut: true` 플래그를 신설하여, 네트워크/WebView 일시 지연으로 인한 타임아웃을 '진짜 로그아웃'과 엄격히 구분(기존 캐시 보존).
+   - `TopBar.tsx`의 `useEffect`에서 `[pathname]` 의존성을 제거하여 탭 이동마다 `checkUser()`가 재실행되던 현상을 차단하고 마운트 시 1회 + `onAuthStateChange` 이벤트 기반으로 정착.
+   - `myspace/page.tsx`에서 느린 원격 `getUser()` 대신 0ms 로컬 `getSession()`을 우선 판정하도록 개선.
+3. **백그라운드 복귀 시 서버 쿠키 엇박자로 인한 다가오는 일정("병지방오토캠핑장") 증발 방어막 (`actions/schedule.ts`, `ScheduleHomeWidget.tsx`, `3f2cfb0`)**:
+   - `getMySchedules(accessToken?)` Server Action이 쿠키 인증 실패 시 클라이언트가 전달한 Bearer `accessToken`으로 2차 검증(Fallback)하도록 보강하고, 인증 미확인 시 `{ schedules: [], authFailed: true }`를 반환.
+   - `ScheduleHomeWidget.tsx`에서 `authFailed`이거나 로컬 캐시가 있는데 빈 배열이 내려올 경우 기존 `user_schedules_cache`를 덮어쓰지 않고 보존하도록 방어.
 
-2. **브라우저 네이티브 DOM 레벨 이벤트 직결 (`src/components/ui/input.tsx`)**:
-   - **근본 원인 규명**: 삼성 천지인 키보드가 한글을 조합하는 동안, 리액트 합성 이벤트(`SyntheticEvent`) 계층이 `onChange`/`onInput` 이벤트의 부모 전달을 보류(억제)하여, 타이핑 중에는 버튼이 비활성화 상태였다가 다른 곳을 터치(blur)해야만 활성화되던 결함 확인.
-   - **네이티브 리스너 직결**: 순수 브라우저 DOM 엘리먼트에 `addEventListener('input')`, `addEventListener('compositionupdate')`, `addEventListener('compositionend')`를 직결.
-   - **결과**: 첫 자음(`ㅅ`)을 누르는 0.001초 즉시 DOM 실시간 텍스트를 읽어 상태를 동기화하여, **다른 곳을 터치할 필요 없이 첫 글자를 치는 즉시 [검색] 및 [취소 요청하기] 버튼이 실시간(0ms)으로 즉각 활성화**되도록 구현.
+---
 
-3. **타이핑 비차단 분리 (`React.startTransition`) (`InstantPlanModal.tsx`, `CancelReservationSheet.tsx`, `ReservationForm.tsx`)**:
-   - **근본 원인 규명**: 2,000줄에 달하는 대형 모달이 자판 입력마다 동기식으로 무겁게 다시 렌더링되면서 스마트폰 메인 스레드를 점유해 글씨가 반 박자 늦게 기어 나오는 입력 렉 발생.
-   - **렌더링 우선순위 분리**: 글자 표출(Input View)은 브라우저 네이티브 120Hz 속도로 즉시 화면에 찍히게 하고, 대형 모달의 리렌더링은 `startTransition`으로 백그라운드 분리.
-   - **결과**: 누르는 족족 글씨가 0초 만에 부드럽게 출력되는 네이티브급 키보드 반응성 확보.
+### 🟢 마일스톤 9.88: FCM v1 푸시 알림 안정화(페이로드 규격화, 청크 분할, 선택적 재시도 워커) 및 예약 취소 영구 REST API 전환 완결 (2026-10-09 ~ 2026-10-10)
 
-4. **앱 내 핵심 입력창 전수 교체 완결**:
-   - **예약 취소 시트** ([CancelReservationSheet.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/CancelReservationSheet.tsx)): 예금주, 계좌번호, 은행명 직접입력 (취소 사유 터치 시 예금주 날아감 및 취소버튼 비활성화 완치)
-   - **예약 폼** ([ReservationForm.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/ReservationForm.tsx)): 예약자 성함, 연락처, 방문객 수
-   - **목적지 즉시 여행계획** ([InstantPlanModal.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/home/InstantPlanModal.tsx)): 목적지/캠핑장 검색창
-   - **나만의 지도** ([MyMapModal.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/myspace/MyMapModal.tsx)): 주소 검색창, 내 기록 검색창
-   - **기타 모바일 검색창**: [CommunityHeader.tsx](file:///c:/Users/user/Desktop/RAON.I/src/components/community/CommunityHeader.tsx), [recipe/page.tsx](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/recipe/page.tsx), [play/page.tsx](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/play/page.tsx), [history/page.tsx](file:///c:/Users/user/Desktop/RAON.I/src/app/(mobile)/myspace/history/page.tsx)
-
-5. **코드 정리 및 빌드 검증**:
-   - ESLint 검사 통과 및 미사용 import (`X`), 빈 인터페이스 타입 에러 수정 완료.
-   - `npx.cmd tsc --noEmit` 에러 0건 통과.
-   - `npm.cmd run build` 103/103 전체 라우트 100% 빌드 성공.
-   - Git 커밋/푸시 완료 (`2545c53`, `0e58d99`).
+1. **FCM v1 안드로이드 알림 페이로드 명시 (`push-notification/index.ts`, `3a0d65a`)**:
+   - `android.notification` 블록에 `title`, `body`, `ticker: '라온아이'`를 명시하여 백그라운드/종료 상태에서도 안드로이드 시스템 트레이 알림 표출 보장.
+2. **청크 릴레이 및 선택적 재시도 스윕 워커 (`17d19e2`, `1894d1b`)**:
+   - 대량 발송 시 타임아웃 방지 및 실패 건 자동 복구 파이프라인 구축.
+3. **예약 취소 영구 REST API(`/api/reservation/cancel`) 전환 (`6f54cdd`)**:
+   - Server Action 직렬화 지연을 우회하는 전용 REST 엔드포인트 신설, Bearer 토큰 이중 인증, `try-finally` UI 락 해제 및 빈자리 대기 알림 백그라운드 비동기 분리.
 
 ---
 
@@ -94,38 +67,33 @@
 
 | 결정 사항 | 적용 파일 | 채택 이유 |
 | :--- | :--- | :--- |
-| **비제어 JSX (`defaultValue`) + Ref 제어** | `src/components/ui/input.tsx` | 제어 컴포넌트(`value={val}`)의 리액트 가상 DOM 재할당이 안드로이드 WebView의 IME 조합 버퍼를 강제 종료시키는 현상을 차단하고, 외부 상태 변경(초기화/자동완성)은 `useEffect`로 안전하게 동기화. |
-| **네이티브 DOM 이벤트 직결 (`addEventListener`)** | `src/components/ui/input.tsx` | 리액트의 `SyntheticEvent` 계층이 `isComposing` 중에 `onChange`/`onInput`을 보류시키는 한계를 완전히 우회하여, 자판을 누르는 0.001초 즉시 버튼 활성화 신호를 발송. |
-| **`React.startTransition` 타이핑 분리** | `InstantPlanModal.tsx`, `CancelReservationSheet.tsx` | 2,000줄 모달의 리렌더링 연산을 백그라운드 트랜지션으로 낮추어, 브라우저가 사용자 키 입력을 120Hz 속도로 지연 없이 즉시 화면에 그리도록 보장. |
-| **엔터키 `isComposing` 방어 (`!e.nativeEvent.isComposing`)** | `InstantPlanModal.tsx`, `MyMapModal.tsx` | 한글 조합을 마치는 첫 번째 엔터와 폼 제출/검색 실행 엔터가 중복 실행되는 안드로이드 특유의 더블 트리거 버그 원천 차단. |
+| **`isTimedOut` 플래그를 통한 타임아웃 vs 로그아웃 분리** | `src/lib/supabase-client.ts`, `src/components/TopBar.tsx` | 모바일 WebView 백그라운드 복귀나 네트워크 지연 시 3초 타임아웃이 발생했을 때, 이를 비로그인(`session === null`)으로 오판하여 프로필과 토큰 게이지를 날려버리던 부작용을 원천 차단하고, 무한 로딩 방어 목적은 그대로 유지. |
+| **Server Action 내 Bearer Token 2차 Fallback 인증** | `src/actions/schedule.ts`, `src/components/schedule/ScheduleHomeWidget.tsx` | 모바일 앱 장기 미사용 후 복귀 시 브라우저 쿠키 동기화보다 컴포넌트 마운트가 먼저 일어나 서버가 빈 배열(`[]`)을 반환하고 로컬 일정 캐시를 증발시키던 현상을 100% 방어. |
+| **`BottomNav` 0ms 낙관적 활성화 (`activeTab`)** | `src/components/BottomNav.tsx` | 앱 재빌드(구글 플레이 재등록) 없이도 웹 배포만으로 탭 터치 즉시(0.00초) 시각적 피드백(초록색 점등 + 연초록 캡슐 알약 바운스)을 제공하여 라우팅 지연 체감을 완전히 제거. |
+| **예약 상세/입력폼/완료 화면 1:1 순수 색상 클래스 치환** | `ReservationForm.tsx`, `reservation/complete/page.tsx` 등 5개 파일 | 11월 예약 오픈을 앞두고 검증된 예약 동시성 제어 및 상태 로직에 단 1%의 영향도 주지 않기 위해, 로직 수정 없이 순수 Tailwind 색상 클래스만 1:1 치환하여 홈 화면과 통일된 라이트 테마 달성. |
 
 ---
 
 ## 3. 다음 작업 가이드 (Next Action Items for Next Session)
 
-다음 세션에서는 대표님의 지침에 따라 보류해 두었던 **[이슈 1]**과 **[이슈 2]**를 우선적으로 처리합니다.
+다음 세션에서는 실기기 운영 모니터링과 함께 아래 항목들을 우선순위에 따라 점검 및 진행합니다.
 
-### 📌 1순위: [이슈 1] 전주 허브원캠프 정밀 스마트플랜 10초 타임아웃 오류(504 Gateway Timeout) 완치
-- **현상**: 전주 허브원캠프 재가동 시 10초 만에 에러 화면(`error.tsx`) 노출.
-- **원인**: Vercel 서버리스 함수 타임아웃(10초) 제한 내에 마스터 DB 30km 반경 쿼리 연산이 늦어져 504 Gateway Timeout 발생.
-- **해결 계획**:
-  1. 초기 탐색 반경을 30km ➔ 15km로 정밀 컴팩트화하여 DB 응답 속도를 1.5초대로 대폭 단축.
-  2. `automation_logs` 및 `smart_plan_cache` 프리셋 사전 캐싱 연동을 활성화하여 0초대 즉시 반환 보장.
+### 📌 1순위: 최근 반영된 UX/안정화 패치 실기기 종합 점검
+- **하단 내비게이션(`BottomNav`) 터치 반응성**: 탭 전환 시 0ms 연초록 캡슐 알약 점등 및 바운스 모션 체감 확인.
+- **예약 흐름 라이트 테마(`클린 화이트 & 세이지`)**: 사이트 상세 ➔ 예약 정보 입력폼 ➔ 예약완료 팝업 ➔ 신청완료 화면의 시인성 및 가독성 실기기 확인.
+- **커뮤니티 상단 안전 여백**: 안드로이드 앱에서 상태표시줄과 '캠퍼들의 이야기' 헤더 간 여백 정상 여부 확인.
 
-### 📌 2순위: [이슈 2] 내비게이션 연결 버튼 우측 '결' 글자 잘림 해결
-- **현상**: 스마트플랜 카드 내비게이션 연결 버튼 우측의 '결' 글자가 모바일 좁은 화면에서 미세하게 잘림.
-- **해결 계획**:
-  - `text-[14px] sm:text-base font-extrabold tracking-tight` 및 내부 패딩(`px-3 py-1.5`) 컴팩트화 적용하여 모바일 전 기종에서 글자 잘림 0% 보장.
-
-### 📌 3순위: [이슈 3 실기기 최종 확인]
-- 대표님의 안드로이드 실기기에서 목적지 검색창 및 예약취소 예금주 입력 시 글씨 렉 해소 및 0초 버튼 활성화 최종 만족도 확인.
+### 📌 2순위: 전주 허브원캠프 등 타캠핑장 정밀 스마트플랜 응답 속도 및 내비 버튼 UI 점검
+- 마스터 DB 반경 쿼리 응답 속도 모니터링 및 필요 시 프리셋 캐싱 고도화.
+- 스마트플랜 카드 내비게이션 연결 버튼 모바일 좁은 화면 텍스트 레이아웃 점검.
 
 ---
 
 ## 4. 주의 사항 (Caveats & Known Characteristics)
 
 1. **안드로이드 웹뷰 캐시 정책**:
-   - `capacitor.config.ts`의 `server.url: 'https://raon-i.co.kr'` 환경에서는 Vercel 배포 완료 후 약 1~2분이 지나야 CDN 전파가 완료됩니다.
-   - 실기기 테스트 시에는 반드시 **앱을 최근 앱 목록에서 완전히 위로 쓸어올려 종료한 후 재실행**해야 새 버전의 자바스크립트 번들이 로드됩니다.
-2. **입력 컴포넌트 사용 가이드**:
-   - 향후 신규 폼이나 검색창을 개발할 때 순수 `<input>` 태그 대신 반드시 `@/components/ui/input`의 `<Input />` 컴포넌트를 사용해야 한글 IME 보호 혜택을 100% 누릴 수 있습니다.
+   - `capacitor.config.ts`의 `server.url: 'https://raon-i.co.kr'` 환경에서는 Vercel 배포 완료 후 실기기 반영을 위해 **앱을 최근 앱 목록에서 완전히 종료한 후 재실행**하는 것이 가장 확실합니다.
+2. **Next.js 전역 `loading.tsx` 생성 금지**:
+   - 루트나 `(mobile)` 레이아웃에 전역 `loading.tsx`를 두면 탭 전환 시 기존 화면이 언마운트되며 깜빡임이 발생할 수 있으므로, 현재의 SWR 로컬 캐시 즉시 복원 + `BottomNav` 0ms 낙관적 활성화 아키텍처를 유지해야 합니다.
+3. **진동(`VIBRATE`) 권한 관련**:
+   - 현재 `AndroidManifest.xml`에는 `android.permission.VIBRATE`가 포함되어 있지 않으므로, 향후 네이티브 APK/AAB 신규 버전 빌드 시 매니페스트에 추가하면 `BottomNav`에 심어둔 `navigator.vibrate(10)`이 네이티브 앱에서도 자동 활성화됩니다.

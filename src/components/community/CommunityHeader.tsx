@@ -10,10 +10,7 @@ import { Plus, Search } from 'lucide-react';
 import { useCommunityStore } from '@/store/useCommunityStore';
 
 export default function CommunityHeader() {
-    const { activeTab, currentUser, searchQuery, setSearchQuery } = useCommunityStore();
-
-    // Permissions: Only Admin can write in NOTICE
-    const canWrite = activeTab !== 'NOTICE' || currentUser.role === 'ADMIN';
+    const { activeTab, searchQuery, setSearchQuery } = useCommunityStore();
 
     return (
         <header className="pt-[calc(1.25rem+var(--sat,0px))] pb-2 px-5 bg-[#F7F5EF] space-y-4">
