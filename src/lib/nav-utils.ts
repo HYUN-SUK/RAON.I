@@ -141,22 +141,24 @@ export function getNaverMapUrl({ destination, waypoints }: FullRouteParams) {
 
 /**
  * 웹/스토어 폴백 URL 생성 (미설치 시 앱별 분리로 타 내비 앱 오작동 원천 차단)
+ * [v15.1.3] 안드로이드 WebView에서 play.google.com 리다이렉트(intent://)로 인한 흰색 에러 화면 방지를 위해 market:// 스킴 적용
  */
 export function getWebFallbackUrl(app: 'kakao' | 'tmap' | 'naver' | 'kakaonavi', { destination }: FullRouteParams) {
     const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     const dName = encodeURIComponent(destination.name);
     const dLat = destination.lat.toFixed(6);
     const dLng = destination.lng.toFixed(6);
 
     switch (app) {
         case 'kakaonavi':
-            return isIOS
-                ? 'https://apps.apple.com/kr/app/id417698849'
-                : 'https://play.google.com/store/apps/details?id=com.locnall.KimGiSa';
+            if (isIOS) return 'https://apps.apple.com/kr/app/id417698849';
+            if (isAndroid) return 'market://details?id=com.locnall.KimGiSa';
+            return 'https://play.google.com/store/apps/details?id=com.locnall.KimGiSa';
         case 'tmap':
-            return isIOS
-                ? 'https://apps.apple.com/kr/app/id431589174'
-                : 'https://play.google.com/store/apps/details?id=com.skt.tmap.ku';
+            if (isIOS) return 'https://apps.apple.com/kr/app/id431589174';
+            if (isAndroid) return 'market://details?id=com.skt.tmap.ku';
+            return 'https://play.google.com/store/apps/details?id=com.skt.tmap.ku';
         case 'naver':
             return `https://map.naver.com/p/search/${dName}`;
         case 'kakao':
@@ -209,17 +211,21 @@ export function openNavApp(
             document.addEventListener('visibilitychange', markLaunched);
             window.addEventListener('blur', onBlur);
 
-            // 네이티브 앱 스킴(kakaomap://, kakaonavi://, tmap://, nmap://) 실행
+            // 네이티브 앱 스킴(kakaomap://, kakaonavi-sdk://, tmap://, nmap://) 실행
             window.location.href = url;
 
-            // 앱이 열리지 않았을 경우(미설치)를 대비한 웹/스토어 폴백 (2.5초 후)
+            // 앱이 열리지 않았을 경우(미설치)를 대비한 웹/스토어 폴백 (연결 프로그램 선택 시간 확보를 위해 4초 후 실행)
             setTimeout(() => {
                 document.removeEventListener('visibilitychange', markLaunched);
                 window.removeEventListener('blur', onBlur);
                 if (!appLaunched && document.visibilityState === 'visible' && document.hasFocus()) {
-                    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+                    if (fallbackUrl.startsWith('market://')) {
+                        window.location.href = fallbackUrl;
+                    } else {
+                        window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+                    }
                 }
-            }, 2500);
+            }, 4000);
         }
     }, 700);
 
