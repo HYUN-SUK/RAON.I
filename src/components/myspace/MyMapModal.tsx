@@ -215,23 +215,35 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                         tags: r.tags || []
                     }));
                 setRecordItems(mapped);
+
+                // 서버에서 실제 기록이 로드되면 1회성 optimisticRecordPin과 대조하여 실제 DB 레코드로 자동 승격 후 해제
+                const currentOpt = useMySpaceStore.getState().optimisticRecordPin;
+                if (currentOpt) {
+                    const matchedServerItem = mapped.find(
+                        m => m.id === currentOpt.id || (currentOpt.id.startsWith('record-opt-') && m.siteName === currentOpt.siteName)
+                    );
+                    if (matchedServerItem) {
+                        setSelectedItem(prev => (prev && prev.id === currentOpt.id ? matchedServerItem : prev));
+                        setOptimisticRecordPin(null);
+                    }
+                }
             } catch (err) {
                 console.error('Failed to load map records', err);
             }
         };
 
         fetchRecords();
-    }, [isOpen]);
+    }, [isOpen, setOptimisticRecordPin]);
 
-    // Combine Store Items + Record Items + Optimistic Pin (0초 핀 즉시 주입)
+    // Combine Store Items + Record Items + Optimistic Pin (0초 핀 즉시 주입하되 서버 데이터 로드 완료 시 서버 데이터 우선)
     const allMarkers = useMemo(() => {
         const storeIds = new Set(mapItems.map(i => i.id));
         const filteredRecords = recordItems.filter(r => !storeIds.has(r.id));
         let combined = [...mapItems, ...filteredRecords];
 
-        // 10초 기록 직후 주입된 핀이 있다면 최상위에 즉시 병합
-        if (optimisticRecordPin) {
-            combined = [optimisticRecordPin, ...combined.filter(m => m.id !== optimisticRecordPin.id)];
+        // 10초 기록 직후 아직 서버 목록(combined)에 반영되기 전인 경우에만 최상위에 즉시 병합
+        if (optimisticRecordPin && !combined.some(m => m.id === optimisticRecordPin.id)) {
+            combined = [optimisticRecordPin, ...combined];
         }
 
         return combined;
@@ -1064,6 +1076,10 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                 onClose={() => setIsDetailOpen(false)}
                 isNew={isAddingMode}
                 onSaveNew={handleSaveNew}
+                onUpdateItem={(id, updates) => {
+                    setRecordItems(prev => prev.map(r => (r.id === id ? { ...r, ...updates } : r)));
+                    setSelectedItem(prev => (prev && prev.id === id ? { ...prev, ...updates } : prev));
+                }}
             />
         </Modal>
     );

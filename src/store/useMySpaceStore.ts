@@ -178,11 +178,13 @@ export const useMySpaceStore = create<MySpaceState>()(
                 return { mapItems: [item, ...state.mapItems] }; // Prepend new item
             }),
             updateMapItem: (id, updates) => set((state) => {
-
                 return {
                     mapItems: state.mapItems.map(item =>
                         item.id === id ? { ...item, ...updates } : item
-                    )
+                    ),
+                    optimisticRecordPin: state.optimisticRecordPin?.id === id
+                        ? { ...state.optimisticRecordPin, ...updates }
+                        : state.optimisticRecordPin
                 };
             }),
             toggleMapFavorite: (id) => set((state) => ({

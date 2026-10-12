@@ -265,14 +265,14 @@ export async function updateRecord(
     recordId: string,
     input: {
         content?: string;
-        photoUrl?: string;
+        photoUrl?: string | null;
         tags?: string[];
         campgroundName?: string;
         campgroundAddress?: string;
         rating?: number;
         isPublic?: boolean;
     }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; tags?: string[]; error?: string }> {
     try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -285,11 +285,30 @@ export async function updateRecord(
         const updateData: any = {};
         if (input.content !== undefined) updateData.content = input.content;
         if (input.photoUrl !== undefined) updateData.photo_url = input.photoUrl;
-        if (input.tags !== undefined) updateData.tags = input.tags;
         if (input.campgroundName !== undefined) updateData.campground_name = input.campgroundName;
         if (input.campgroundAddress !== undefined) updateData.campground_address = input.campgroundAddress;
         if (input.rating !== undefined) updateData.rating = input.rating;
         if (input.isPublic !== undefined) updateData.is_public = input.isPublic;
+
+        // 태그 병합 (기존/입력 태그 + 수정된 본문 내 #해시태그 및 키워드 추출)
+        let mergedTags: string[] | undefined = undefined;
+        if (input.tags !== undefined || input.content !== undefined) {
+            const autoTags = input.content ? extractTags(input.content) : [];
+            if (input.tags !== undefined) {
+                mergedTags = [...new Set([...input.tags, ...autoTags])];
+                updateData.tags = mergedTags;
+            } else if (autoTags.length > 0) {
+                const { data: existing } = await supabase
+                    .from('camping_records')
+                    .select('tags')
+                    .eq('id', recordId)
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                const currentTags = Array.isArray(existing?.tags) ? existing.tags : [];
+                mergedTags = [...new Set([...currentTags, ...autoTags])];
+                updateData.tags = mergedTags;
+            }
+        }
 
         const { error } = await supabase
             .from('camping_records')
@@ -304,7 +323,7 @@ export async function updateRecord(
 
         revalidatePath('/myspace');
         revalidatePath('/myspace/records');
-        return { success: true };
+        return { success: true, tags: mergedTags };
     } catch (error) {
         console.error('Update record error:', error);
         return { success: false, error: '오류가 발생했어요' };

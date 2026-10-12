@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { X, Star, Heart, Camera, MapPin, Calendar, Edit2 } from 'lucide-react';
 import { useMySpaceStore, MapItem } from '@/store/useMySpaceStore';
-import { updateRecord } from '@/actions/record';
+import { updateRecord, uploadRecordImage } from '@/actions/record';
+import { compressImage } from '@/utils/imageCompressor';
 import { toast } from 'sonner';
 
 interface PlaceDetailSheetProps {
@@ -13,9 +14,10 @@ interface PlaceDetailSheetProps {
     onClose: () => void;
     isNew?: boolean; // New prop to indicate "Add Mode"
     onSaveNew?: (item: MapItem) => void; // Callback when saving a new item
+    onUpdateItem?: (id: string, updates: Partial<MapItem>) => void; // 수정 완료 시 부모 지도 리스트 실시간 동기화 콜백
 }
 
-export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false, onSaveNew }: PlaceDetailSheetProps) {
+export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false, onSaveNew, onUpdateItem }: PlaceDetailSheetProps) {
     const { updateMapItem, toggleMapFavorite } = useMySpaceStore();
     const [isEditing, setIsEditing] = useState(isNew);
 
@@ -98,19 +100,44 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
             };
             if (onSaveNew) onSaveNew(newItem);
         } else {
-            // 1분 기록 기반의 핀인 경우 DB 수정 실시간 동기화
-            if (item.id.startsWith('record-')) {
+            let finalPhotos = [...photos];
+            let updatedTags = item.tags || [];
+
+            // 1분/10초 기록 기반의 핀인 경우 DB 수정 실시간 동기화
+            if (item.id.startsWith('record-') && !item.id.startsWith('record-opt-')) {
                 const recordId = item.id.replace('record-', '');
                 try {
+                    // 새로 추가/편집된 Base64 이미지가 있다면 Storage에 업로드하여 URL로 변환
+                    if (finalPhotos.length > 0 && finalPhotos[0].startsWith('data:image/')) {
+                        const res = await fetch(finalPhotos[0]);
+                        const blob = await res.blob();
+                        const rawFile = new File([blob], `record-edit-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+                        const compressed = await compressImage(rawFile);
+                        const uploadRes = await uploadRecordImage(compressed);
+                        if (uploadRes.success && uploadRes.url) {
+                            finalPhotos[0] = uploadRes.url;
+                            setPhotos(finalPhotos);
+                        } else {
+                            toast.error(uploadRes.error || '사진 업로드에 실패했어요');
+                            return;
+                        }
+                    }
+
                     const result = await updateRecord(recordId, {
                         content: memo,
-                        photoUrl: photos.length > 0 ? photos[0] : undefined,
+                        photoUrl: finalPhotos.length > 0 ? finalPhotos[0] : null,
+                        tags: item.tags,
                         campgroundName: name,
                         campgroundAddress: address,
                         rating: rating,
                     });
                     if (result.success) {
+                        if (result.tags) {
+                            updatedTags = result.tags;
+                        }
                         toast.success('나만의 캠핑 기록이 수정되었어요! ✨');
+                        // 내 수첩 타임라인도 백그라운드 동기화
+                        useMySpaceStore.getState().fetchTimeline().catch(() => {});
                     } else {
                         toast.error(result.error || '기록 수정 실패');
                         return;
@@ -122,15 +149,19 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                 }
             }
 
-            // Update existing in local store
-            updateMapItem(item.id, {
-                siteName: name, // Allow name update
-                address: address, // Allow address update
-                visitedDate: new Date(visitedDate).toISOString(), // Allow date update
+            const updatedFields: Partial<MapItem> = {
+                siteName: name,
+                address: address,
+                visitedDate: new Date(visitedDate).toISOString(),
                 memo,
                 rating,
-                photos
-            });
+                photos: finalPhotos,
+                tags: updatedTags,
+            };
+
+            // Update existing in local store & parent map modal state
+            updateMapItem(item.id, updatedFields);
+            onUpdateItem?.(item.id, updatedFields);
             setIsEditing(false); // Switch back to view mode
         }
     };

@@ -125,6 +125,7 @@ export default function QuickRecordForm({
 
     // [v14.1.2] 방금 작성한 캠핑장 고정 스냅샷 (부모의 다음 미작성 일정 변경으로 인한 덮어쓰기 원천 방어)
     const [submittedSnapshot, setSubmittedSnapshot] = useState<{
+        recordId?: string;
         scheduleId?: string;
         name: string;
         address: string;
@@ -375,6 +376,7 @@ export default function QuickRecordForm({
                 toast.success('기록이 저장되었어요! ✨');
                 // 방금 작성한 일정의 스냅샷 고정 저장 (부모의 다음 미작성 일정 변경에 영향받지 않음)
                 setSubmittedSnapshot({
+                    recordId: result.id,
                     scheduleId,
                     name: finalName,
                     address: finalAddress,
@@ -474,9 +476,9 @@ export default function QuickRecordForm({
                                             }
                                         }
 
-                                        // 0초 즉시 핀 주입 (Optimistic Injection)
+                                        // 0초 즉시 핀 주입 (실제 DB UUID를 바인딩하여 즉시 수정 및 DB 목록 중복 제거 완벽 보장)
                                         useMySpaceStore.getState().setOptimisticRecordPin({
-                                            id: `record-opt-${Date.now()}`,
+                                            id: snap?.recordId ? `record-${snap.recordId}` : `record-opt-${Date.now()}`,
                                             siteName: pinName,
                                             x: 50,
                                             y: 50,
