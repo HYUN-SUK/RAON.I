@@ -121,6 +121,7 @@ export default function QuickRecordForm({
     const [scheduleInfo, setScheduleInfo] = useState<ScheduleInfo | null>(null);
     const [rating, setRating] = useState<number>(5); // Default: 최고의 힐링
     const [showSuccess, setShowSuccess] = useState<boolean>(false); // Success view state
+    const [showScrollHint, setShowScrollHint] = useState<boolean>(true); // 아래로 스크롤 안내 힌트 표시 상태
     const memoSectionRef = useRef<HTMLDivElement>(null);
 
     // [v14.1.2] 방금 작성한 캠핑장 고정 스냅샷 (부모의 다음 미작성 일정 변경으로 인한 덮어쓰기 원천 방어)
@@ -158,10 +159,12 @@ export default function QuickRecordForm({
             setAddress('');
             setSelectedLocation(null);
             setShowSuccess(false);
+            setShowScrollHint(true);
             setRating(5);
             setSelectedTags([]);
             return;
         }
+        setShowScrollHint(true);
 
         let isCancelled = false;
 
@@ -409,6 +412,7 @@ export default function QuickRecordForm({
         setScheduleInfo(null);
         setIsMapOpen(false);
         setShowSuccess(false);
+        setShowScrollHint(true);
         setSubmittedSnapshot(null);
         setRating(5);
         onClose();
@@ -421,6 +425,13 @@ export default function QuickRecordForm({
                 <SheetContent
                     side="bottom"
                     className="rounded-t-3xl max-h-[85vh] overflow-y-auto"
+                    onScroll={(e) => {
+                        if (e.currentTarget.scrollTop > 50) {
+                            if (showScrollHint) setShowScrollHint(false);
+                        } else {
+                            if (!showScrollHint) setShowScrollHint(true);
+                        }
+                    }}
                     onInteractOutside={(e) => {
                         if (isEditorOpen || isMapOpen) {
                             e.preventDefault();
@@ -694,11 +705,17 @@ export default function QuickRecordForm({
                                     ))}
                                 </div>
 
-                                {/* 하단 사진·기록 영역 스크롤 유도 힌트 배지 */}
-                                <div className="flex justify-center pt-1">
+                                {/* 하단 사진·기록 영역 스크롤 유도 힌트 배지 (스크롤 내리면 부드럽게 페이드아웃) */}
+                                <div className={cn(
+                                    "flex justify-center transition-all duration-300",
+                                    showScrollHint
+                                        ? "opacity-100 translate-y-0 max-h-10 pt-1"
+                                        : "opacity-0 -translate-y-2 max-h-0 pt-0 overflow-hidden pointer-events-none"
+                                )}>
                                     <button
                                         type="button"
                                         onClick={() => {
+                                            setShowScrollHint(false);
                                             memoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                         }}
                                         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300/80 text-[11px] font-extrabold text-[#1E4D2B] shadow-2xs active:scale-95 transition-all cursor-pointer animate-bounce"
