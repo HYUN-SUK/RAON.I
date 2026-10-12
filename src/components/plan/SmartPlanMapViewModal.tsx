@@ -5,6 +5,7 @@ import { Map, Polyline, CustomOverlayMap, useKakaoLoader } from 'react-kakao-map
 import { X, MapPin, Phone, Check, List, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPlaceDetailText, getPlacePhoneNumber } from '@/utils/placeFormatter';
+import { getLocalGourmetInfo } from '@/lib/smartPlan';
 import { useModalBackHandler } from '@/hooks/useModalBackHandler';
 import { cn } from '@/lib/utils';
 
@@ -316,13 +317,16 @@ export default function SmartPlanMapViewModal({
                             const isFocused = cand.id === focusedCardId;
                             const isBookmarked = bookmarkedPlaceIds?.has(cand.id) ?? false;
                             const isMerged = (isFocused || isCurrentActive) && isBookmarked;
-                            const badge = cand.evidence?.displayBadges?.[0]?.emoji || '';
+                            const localGourmet = getLocalGourmetInfo(cand);
+                            const badge = localGourmet.remainingDisplayBadges?.[0]?.emoji || '';
                             const rankNum = idx + 1;
 
                             // 꼬리 색상 및 배경/테두리 스타일 결정
-                            let bubbleStyle = 'bg-white text-gray-900 border-gray-200';
+                            let bubbleStyle = localGourmet.isLocalGourmet
+                                ? 'bg-white text-gray-900 border-amber-400 ring-2 ring-amber-200/70'
+                                : 'bg-white text-gray-900 border-gray-200';
                             let tailColor = '#ffffff';
-                            let zIndexVal = 10;
+                            let zIndexVal = localGourmet.isLocalGourmet ? 25 : 10;
 
                             if (isMerged) {
                                 bubbleStyle = 'bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 text-white border-white ring-4 ring-rose-400/50 shadow-xl animate-pulse';
@@ -358,6 +362,11 @@ export default function SmartPlanMapViewModal({
                                             isFocused || isMerged ? 'scale-110' : 'scale-100 hover:scale-105'
                                         }`}
                                     >
+                                        {localGourmet.isLocalGourmet && (
+                                            <div className="mb-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black shadow-md border border-white flex items-center gap-0.5 whitespace-nowrap z-10">
+                                                <span>{localGourmet.badgeLabel}</span>
+                                            </div>
+                                        )}
                                         <div className={`px-2.5 py-1 rounded-xl shadow-xl flex items-center gap-1.5 border-2 text-[11px] font-black whitespace-nowrap ${bubbleStyle}`}>
                                             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
                                                 isMerged || isFocused || isBookmarked || isCurrentActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
@@ -390,7 +399,8 @@ export default function SmartPlanMapViewModal({
                             const isBookmarked = bookmarkedPlaceIds?.has(place.id) ?? false;
                             // 확정 방문지이면서 찜까지 된 경우 -> 황금+연붉은색 융합
                             const isMerged = isBookmarked;
-                            const badge = place.evidence?.displayBadges?.[0]?.emoji || '';
+                            const localGourmet = getLocalGourmetInfo(place);
+                            const badge = localGourmet.remainingDisplayBadges?.[0]?.emoji || '';
 
                             let bubbleStyle = 'bg-[#388E5A] text-white border-emerald-300 shadow-md';
                             let tailColor = '#388E5A';
@@ -426,6 +436,11 @@ export default function SmartPlanMapViewModal({
                                             isFocused ? 'scale-110 z-40' : 'scale-100 hover:scale-105'
                                         }`}
                                     >
+                                        {localGourmet.isLocalGourmet && (
+                                            <div className="mb-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black shadow-md border border-white flex items-center gap-0.5 whitespace-nowrap z-10">
+                                                <span>{localGourmet.badgeLabel}</span>
+                                            </div>
+                                        )}
                                         <div className={`px-2.5 py-1 rounded-xl shadow-xl flex items-center gap-1.5 border-2 text-[11px] font-black whitespace-nowrap ${bubbleStyle}`}>
                                             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
                                                 isMerged ? 'bg-white text-rose-600' : (isFocused ? 'bg-white/20 text-white' : 'bg-white text-[#388E5A]')
@@ -450,6 +465,7 @@ export default function SmartPlanMapViewModal({
                         {mode === 'full_timeline' && bookmarkedCandidatePlaces && bookmarkedCandidatePlaces.map((cCand) => {
                             if (!cCand.lat || !cCand.lng) return null;
                             const isFocused = cCand.id === focusedCardId;
+                            const localGourmet = getLocalGourmetInfo(cCand);
                             // 포커스되면 황금색 융합
                             const bubbleStyle = isFocused
                                 ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 text-white border-white ring-4 ring-rose-400/50 shadow-xl'
@@ -472,6 +488,11 @@ export default function SmartPlanMapViewModal({
                                             isFocused ? 'scale-110' : 'scale-100 hover:scale-105'
                                         }`}
                                     >
+                                        {localGourmet.isLocalGourmet && (
+                                            <div className="mb-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black shadow-md border border-white flex items-center gap-0.5 whitespace-nowrap z-10">
+                                                <span>{localGourmet.badgeLabel}</span>
+                                            </div>
+                                        )}
                                         <div className={`px-2 py-0.5 rounded-lg shadow-md flex items-center gap-1 border text-[10px] font-black whitespace-nowrap ${bubbleStyle}`}>
                                             <span className="text-[10px]">💖</span>
                                             <span className="truncate max-w-[85px]">{cCand.name}</span>
@@ -503,6 +524,17 @@ export default function SmartPlanMapViewModal({
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-3">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
+                                    {(() => {
+                                        const focusedLocalGourmet = getLocalGourmetInfo(focusedCard);
+                                        if (!focusedLocalGourmet.isLocalGourmet) return null;
+                                        return (
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full shadow-xs border border-amber-400/50">
+                                                    {focusedLocalGourmet.badgeLabel}
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
                                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                                         <h4 className="font-bold text-gray-900 text-sm truncate min-w-0 flex-1">{focusedCard.name}</h4>
                                         {mode === 'alternatives' ? (

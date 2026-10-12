@@ -446,6 +446,87 @@ function buildEvidence(raw: any, category: string): FactCard['evidence'] {
     };
 }
 
+export interface LocalGourmetInfo {
+    isLocalGourmet: boolean;
+    hasBaek: boolean;
+    hasLx: boolean;
+    certOriginLabel: string;
+    badgeLabel: string;
+    shortMapLabel: string;
+    remainingDisplayBadges: Array<{ emoji: string; label: string }>;
+}
+
+/**
+ * 식당(RESTAURANT, ROUTE_RESTAURANT) 및 카페(CAFE, ROUTE_CAFE) 카드에서
+ * 백년가게(SMBA_BAEK) 또는 LX맛집(LX_RESTAURANT) 인증 여부를 판별하여
+ * 상단 하이라이트용 '🏆 로컬맛집' 배지 정보와 중복 제거된 하단 보조 배지 목록을 반환합니다.
+ * (기존 저장된 스마트플랜 JSON 데이터와도 100% 하위 호환)
+ */
+export function getLocalGourmetInfo(card: any): LocalGourmetInfo {
+    const cat = card?.category || '';
+    const isFoodOrCafe = ['RESTAURANT', 'ROUTE_RESTAURANT', 'CAFE', 'ROUTE_CAFE'].includes(cat);
+    const displayBadges: Array<{ emoji: string; label: string }> = card?.evidence?.displayBadges || [];
+
+    if (!isFoodOrCafe) {
+        return {
+            isLocalGourmet: false,
+            hasBaek: false,
+            hasLx: false,
+            certOriginLabel: '',
+            badgeLabel: '',
+            shortMapLabel: '',
+            remainingDisplayBadges: displayBadges,
+        };
+    }
+
+    const badges: string[] = card?.evidence?.badges || [];
+    const certs: string[] = card?.evidence?.certifications || [];
+    const metaBadges: string[] = Array.isArray(card?.metadata?.badges) ? card.metadata.badges : [];
+    const source = card?.provenance?.sourceName || card?.metadata?.api_source || '';
+
+    const hasBaek =
+        source === 'SMBA_BAEK' ||
+        badges.includes('백년가게') ||
+        metaBadges.includes('백년가게') ||
+        certs.some((c: string) => c.includes('백년가게')) ||
+        displayBadges.some((b) => b.emoji?.includes('백년가게') || b.label?.includes('백년가게'));
+
+    const hasLx =
+        source === 'LX_RESTAURANT' ||
+        badges.includes('LX인증') ||
+        badges.includes('LX인증맛집') ||
+        metaBadges.includes('LX인증') ||
+        metaBadges.includes('LX인증맛집') ||
+        certs.some((c: string) => c.includes('LX')) ||
+        displayBadges.some((b) => b.emoji?.includes('LX') || b.label?.includes('LX'));
+
+    const isLocalGourmet = hasBaek || hasLx;
+    const certOriginLabel = hasBaek && hasLx ? '백년가게·LX맛집' : hasBaek ? '백년가게' : hasLx ? 'LX맛집' : '';
+    const badgeLabel = isLocalGourmet ? `🏆 로컬맛집 · ${certOriginLabel}` : '';
+    const shortMapLabel = hasBaek && hasLx ? '🏆로컬맛집·백년·LX' : hasBaek ? '🏆로컬맛집·백년가게' : hasLx ? '🏆로컬맛집·LX맛집' : '';
+
+    const remainingDisplayBadges = isLocalGourmet
+        ? displayBadges.filter(
+              (b) =>
+                  !b.emoji?.includes('백년가게') &&
+                  !b.label?.includes('백년가게') &&
+                  !b.emoji?.includes('LX') &&
+                  !b.label?.includes('LX')
+          )
+        : displayBadges;
+
+    return {
+        isLocalGourmet,
+        hasBaek,
+        hasLx,
+        certOriginLabel,
+        badgeLabel,
+        shortMapLabel,
+        remainingDisplayBadges,
+    };
+}
+
+
 function cleanPlaceName(rawName: string): string {
     if (!rawName) return '';
     let name = rawName.trim();
@@ -1981,52 +2062,43 @@ export async function generateInstantSmartPlan(
             // [정밀 스마트플랜과 100% 동일] 오직 매장 이름과 고유 카테고리만으로 카페 판정 (설명글 식당/카페 오분류 원천 차단)
             const isCafePlace = cafeRegex.test(name) || r.category === 'CAFE';
 
+            // 4대 누적 인증 점수 합산 (식당 및 카페/베이커리 공통 적용)
+            let certBonus = 0;
+            if (sources.includes('SMBA_BAEK') || rawBadges.includes('백년가게') || card.evidence?.certifications?.some(c => c.includes('백년가게'))) {
+                certBonus += 80;
+            }
+            if (sources.includes('LX_RESTAURANT') || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증') || card.evidence?.certifications?.some(c => c.includes('LX'))) {
+                certBonus += 80;
+            }
+            if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || rawBadges.includes('모범음식점') || rawBadges.includes('모범식당')) {
+                certBonus += 30;
+            }
+            if (sources.includes('SAFE_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_SAFE') || rawBadges.includes('안심식당')) {
+                certBonus += 20;
+            }
+
+            if (/미쉐린|미슐랭|블루리본|식신/.test(name)) {
+                if (baseScore + certBonus < 110) {
+                    certBonus = Math.max(certBonus, 110 - baseScore);
+                }
+            }
+
+            const distPenalty = dKm * 3.0;
+            card.trustScore = baseScore + certBonus - distPenalty - strikePenalty;
+            card.scoreBreakdown = {
+                baseScore,
+                contextFit: 0,
+                certBonus,
+                distanceBonus: -distPenalty,
+                riskPenalty: strikePenalty,
+                finalScore: card.trustScore
+            };
+
             if (isCafePlace) {
-                // 카페 스코어링 (식당과 동일하게 거리감점 -3.0점/km 적용)
-                const distPenalty = dKm * 3.0;
-                card.trustScore = baseScore - distPenalty - strikePenalty;
-                card.scoreBreakdown = {
-                    baseScore,
-                    contextFit: 0,
-                    distanceBonus: -distPenalty,
-                    riskPenalty: strikePenalty,
-                    finalScore: card.trustScore
-                };
                 card.category = 'ROUTE_CAFE';
                 card.roleName = '여행의 쉼표';
                 scoredCafes.push(card);
             } else {
-                // 순수 식당 스코어링 (4대 누적 인증 점수 합산)
-                let certBonus = 0;
-                if (sources.includes('SMBA_BAEK') || rawBadges.includes('백년가게') || card.evidence?.certifications?.some(c => c.includes('백년가게'))) {
-                    certBonus += 80;
-                }
-                if (sources.includes('LX_RESTAURANT') || rawBadges.includes('LX인증맛집') || rawBadges.includes('LX인증') || card.evidence?.certifications?.some(c => c.includes('LX'))) {
-                    certBonus += 80;
-                }
-                if (sources.includes('MOIS_GOOD_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_GOOD') || rawBadges.includes('모범음식점') || rawBadges.includes('모범식당')) {
-                    certBonus += 30;
-                }
-                if (sources.includes('SAFE_RESTAURANT') || sources.includes('LOCALDATA_RESTAURANT_SAFE') || rawBadges.includes('안심식당')) {
-                    certBonus += 20;
-                }
-
-                if (/미쉐린|미슐랭|블루리본|식신/.test(name)) {
-                    if (baseScore + certBonus < 110) {
-                        certBonus = Math.max(certBonus, 110 - baseScore);
-                    }
-                }
-
-                const distPenalty = dKm * 3.0;
-                card.trustScore = baseScore + certBonus - distPenalty - strikePenalty;
-                card.scoreBreakdown = {
-                    baseScore,
-                    contextFit: 0,
-                    certBonus,
-                    distanceBonus: -distPenalty,
-                    riskPenalty: strikePenalty,
-                    finalScore: card.trustScore
-                };
                 card.category = 'RESTAURANT';
                 card.roleName = '현지 대표 맛집';
                 scoredRestaurants.push(card);

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Map as MapIcon, RefreshCw, ShieldCheck, Heart, ArrowRightLeft, MapPin, Share2, RefreshCcw, Phone, AlertTriangle, Eye, EyeOff, X, Check } from 'lucide-react';
 
-import { StandardizedPlanJSON, FactCard, ProTimelinePlan } from '@/lib/smartPlan';
+import { StandardizedPlanJSON, FactCard, ProTimelinePlan, getLocalGourmetInfo } from '@/lib/smartPlan';
 import SmartPlanTimelinePro from './SmartPlanTimelinePro';
 import { dispatchPersonaAction } from '@/lib/persona';
 
@@ -1360,10 +1360,16 @@ export default function SmartPlanProposal({
             );
         }
 
+        const localGourmet = getLocalGourmetInfo(card);
+
         return (
             <Card
                 key={card.id}
-                className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#388E5A]/30 hover:shadow-sm border-gray-100/80 bg-white w-full`}
+                className={`relative z-10 overflow-hidden transition-all duration-300 cursor-pointer hover:border-[#388E5A]/30 hover:shadow-sm w-full ${
+                    localGourmet.isLocalGourmet
+                        ? 'border-amber-300/90 bg-gradient-to-br from-amber-50/25 via-white to-white ring-1 ring-amber-200/50 shadow-xs'
+                        : 'border-gray-100/80 bg-white'
+                }`}
                 onClick={() => handleCardClick(card)}
             >
                 <CardContent className="p-3">
@@ -1411,7 +1417,12 @@ export default function SmartPlanProposal({
                                     <span className="text-[10px] font-bold text-[#2D5A3C] px-1.5 py-0.5 bg-[#E9EFEA] rounded-sm">
                                         {card.roleName || CATEGORY_NAMES[card.category] || '추천 장소'}
                                     </span>
-                                    {card.verificationStatus === 'VERIFIED' && (
+                                    {localGourmet.isLocalGourmet && (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full shadow-xs border border-amber-400/50">
+                                            {localGourmet.badgeLabel}
+                                        </span>
+                                    )}
+                                    {card.verificationStatus === 'VERIFIED' && !localGourmet.isLocalGourmet && (
                                         <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm">
                                             <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
                                             검증됨
@@ -1532,7 +1543,7 @@ export default function SmartPlanProposal({
                                     💬 리뷰 {card.evidence.reviews >= 100 ? '100+' : card.evidence.reviews}
                                 </span>
                             )}
-                            {(card.evidence?.displayBadges || []).map((badge, idx) => (
+                            {localGourmet.remainingDisplayBadges.map((badge, idx) => (
                                 <span key={idx} className="text-[12px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center justify-center leading-none shadow-sm" title={badge.label}>
                                     {badge.emoji}
                                 </span>
@@ -2331,6 +2342,7 @@ export default function SmartPlanProposal({
                                                         const globalIdx = chunkIdx * 3 + idx;
                                                         const isCurrentActive = opt.id === currentActive?.id;
                                                         const isBookmarked = bookmarkedPlaceIds.has(opt.id);
+                                                        const localGourmet = getLocalGourmetInfo(opt);
                                                         return (
                                                             <Card
                                                                 key={opt.id}
@@ -2339,12 +2351,21 @@ export default function SmartPlanProposal({
                                                                         ? 'border-[#388E5A] ring-1 ring-[#388E5A] bg-[#388E5A]/5' 
                                                                         : isBookmarked
                                                                             ? 'border-rose-200 bg-rose-50/20 ring-1 ring-rose-200 shadow-xs'
-                                                                            : 'border-gray-100 bg-white'
+                                                                            : localGourmet.isLocalGourmet
+                                                                                ? 'border-amber-300/90 bg-gradient-to-br from-amber-50/25 via-white to-white ring-1 ring-amber-200/50 shadow-xs'
+                                                                                : 'border-gray-100 bg-white'
                                                                 }`}
                                                                 onClick={() => handleSwapOptionSelected(swapCategory!, opt.id)}
                                                             >
                                                                 <CardContent className="p-3 flex items-start gap-3">
                                                                     <div className="flex-1 min-w-0">
+                                                                        {localGourmet.isLocalGourmet && (
+                                                                            <div className="flex items-center gap-1 mb-1">
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full shadow-xs border border-amber-400/50">
+                                                                                    {localGourmet.badgeLabel}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
                                                                         <div className="flex items-center gap-2 mb-1">
                                                                             <h4 className="font-bold text-gray-900 text-[13px] truncate min-w-0 flex-1">
                                                                                 <span className="text-[10px] text-gray-400 mr-1 shrink-0">{globalIdx + 1}위</span>
@@ -2415,7 +2436,7 @@ export default function SmartPlanProposal({
                                                                             {opt.evidence?.stars && (
                                                                                 <span className="text-[9px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-md font-bold border border-yellow-100/30">⭐ {opt.evidence.stars.toFixed(1)}</span>
                                                                             )}
-                                                                            {(opt.evidence?.displayBadges || []).map((badge: any, i: number) => (
+                                                                            {localGourmet.remainingDisplayBadges.map((badge: any, i: number) => (
                                                                                 <span key={i} className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center justify-center leading-none shadow-sm" title={badge.label}>
                                                                                     {badge.emoji}
                                                                                 </span>
