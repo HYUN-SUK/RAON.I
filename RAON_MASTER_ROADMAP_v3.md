@@ -7,6 +7,17 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.93 내비게이션 3사(카카오맵·카카오내비·T맵) 완벽 연결 및 즉시 여행계획 대체리스트/지도 찜(💖) 기능 전면 반영 완결 (2026-10-11 ~ 2026-10-12)** 🟢
+  - [x] **내비게이션 3사 딥링크 및 스토어 폴백 완벽 정규화 (`src/lib/nav-utils.ts`, `8a8342d`, `42ff827`, `9628890`)**: 카카오내비 호출 시 Capacitor WebView에서 차단되던 `intent://` 및 단순 홈 화면만 열던 `kakaonavi://navigate` 대신 카카오 공식 SDK(`kakao.js`)의 실제 길안내 스킴인 **`kakaonavi-sdk://navigate?appkey=...&apiver=1.0&extras=...&param=...`**(JSON 직렬화 `destination` 및 `option`)를 적용하여 목적지 길안내 직행 완치. T맵은 `tmap://route?goalname=...&goalx=...&goaly=...` 순수 스킴으로 일원화. 미설치 폴백은 안드로이드 WebView의 `ERR_UNKNOWN_URL_SCHEME` 흰색 에러 방지를 위해 `market://details?id=...` 스킴과 `4000ms(4초)` 타이머 적용 (`700ms` 상단 안내 토스트 노출 지연은 100% 보존).
+  - [x] **즉시 여행계획(`InstantPlanModal.tsx`) 대체리스트·지도 찜(💖) 전면 반영 및 React Hook #310 차단 (`3d72b97`, `8a8342d`)**: 최상단(조기 반환 전)에 `bookmarkedPlaceIds` 상태, `handleToggleBookmark`(`logPlanBookmark` 연동), `instantSwapData` `useMemo`(찜한 후보 최상단 우선 정렬)를 고정 배치. 장소 카드·대체리스트 바텀시트(`💖 찜` 배지 및 하트 토글)·지도 모달(`SmartPlanMapViewModal` 붉은색 4단 융합 마커) 전면 연동 및 일정 저장/비로그인 드래프트 저장 시 `bookmarked_place_ids` 영구 승계.
+  - [x] **정밀 스마트플랜(`SmartPlanProposal.tsx`) 찜 보존 보강**: 비동기 `initialPlan` 로드 시 `bookmarked_place_ids` 동적 복원 및 장소 교체/숨김/순서변경 저장 시 `bookmarked_place_ids` 보존 추가.
+  - [x] **실기기 및 빌드 검증**: `npx tsc --noEmit` 0에러 통과, ESLint 통과, 안드로이드 실기기 내비게이션 3사 길안내 직행 확인 완료.
+
+- [x] **9.92 다가오는 일정 D-7/D-0 오전 9시 활성화 동기화 및 D-Day 무한 스피너·상세화면 튕김 완결 (2026-10-11)** 🟢
+  - [x] **일정 목록 카드(`ScheduleCard.tsx`) 스마트플랜 잠금 해제 동기화 (`6f66a8e`)**: 상세 화면과 동일하게 D-7~D-1 및 D-0 오전 9시 기준 잠금 해제 타이밍을 100% 일치화.
+  - [x] **홈 다가오는 일정(`ScheduleHomeWidget.tsx`) D-Day 무한 스피너 완치 (`6f66a8e`, `4c94585`)**: D-Day 오전 9시 이후 실제 `weather_window === 'SHORT'` 완료 여부를 기준으로 배지를 표출하여 무한 스피너 현상 해결.
+  - [x] **일정 상세 페이지(`myspace/schedule/[id]/page.tsx`) 튕김 방어 (`4c94585`)**: 로컬 캐시 미스 시 `getScheduleById` 단건 조회 전에 목록으로 튕겨내던 조기 리다이렉트를 제거하고, `smart_plan_data`가 배열(`FactCard[]`) 형태일 때도 안전하게 언래핑하도록 보완.
+
 - [x] **9.91 예약 흐름 전체(사이트 상세 ➔ 예약 정보 입력폼 ➔ 예약완료 팝업 ➔ 신청완료 화면) '클린 화이트 & 세이지 그린' 라이트 테마 통일 및 커뮤니티 상단 안전 여백 확보 완결 (2026-10-11)** 🟢
   - [x] **예약 흐름 '1안: 클린 화이트 & 세이지 그린' 컬러 전면 통일 (`SiteImageSlider.tsx`, `SitePriceDisplay.tsx`, `reservation/[id]/page.tsx`, `ReservationForm.tsx`, `reservation/complete/page.tsx`)**: 기존 다크모드 고정(`#1a1a1a`, `#121212`)으로 인해 밝은 홈 화면 및 예약 메인 화면과 이질감이 있던 문제를 해결하기 위해, 기능과 레이아웃 배치는 100% 그대로 유지하고 순수 색상 클래스만 1:1 교체(121줄 추가 / 121줄 삭제). 전체 배경(`#F4F8F5`), 순백색 외곽 카드(`#FFFFFF`) + 세이지 테두리(`#D2E5D7`), 연세이지 배지/칩/입금계좌 박스(`#EDF5EE`), 소프트 세이지 입력폼(`#F8FBF9`), 라온 시그니처 그린(`#2E7D47`) 총 결제금액 및 CTA 버튼, 화이트 안내 모달로 일괄 통일 (`ccdb4e3`).
   - [x] **커뮤니티 화면 및 글쓰기 화면 상단 안전 여백(`--sat` Safe Area) 확보 (`CommunityHeader.tsx`, `CommunityWriteForm.tsx`)**: 안드로이드 네이티브 앱(`html.is-native-app`)에서 상태표시줄과 겹쳐 밀려 올라가던 현상을 해결하기 위해 `CommunityHeader`에 `pt-[calc(1.25rem+var(--sat,0px))]` 적용 및 `CommunityWriteForm` 상단 헤더를 `header.sticky.top-0`로 전환하여 다른 화면들과 동일한 상단 여백 확보 (`094ecc9`).

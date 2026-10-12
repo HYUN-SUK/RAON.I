@@ -1,6 +1,20 @@
 # Task Management
 
-## Completed Tasks (2026-10-11)
+## Completed Tasks (2026-10-11 ~ 2026-10-12)
+- [x] **마일스톤 9.93**: 내비게이션 3사(카카오맵·카카오내비·T맵) 완벽 연결 및 즉시 여행계획 대체리스트/지도 찜(💖) 기능 전면 반영 완결 (실기기 검증 완료)
+  - **내비게이션 3사 딥링크 및 폴백 완벽 정규화 ([`src/lib/nav-utils.ts`](file:///c:/Users/user/Desktop/RAON.I/src/lib/nav-utils.ts), `8a8342d`, `42ff827`, `9628890`)**:
+    - **카카오내비 (`getKakaoNaviUrl`)**: Capacitor WebView(`Bridge.java`)에서 외부 실행이 누락되던 `intent://`와 단순 홈 화면(`"어디로 갈까요?"`)만 열던 `kakaonavi://navigate` 대신, 카카오 공식 SDK(`kakao.js`)의 실제 길안내 전용 스킴인 **`kakaonavi-sdk://navigate?appkey=...&apiver=1.0&extras=...&param=...`**(JSON 직렬화 `destination` 및 `option`)를 적용하여 목적지 길안내 직행 완치.
+    - **T맵 (`getTMapUrl`)**: 안드로이드에서 `intent://` 강제 치환을 제거하고 순수 커스텀 스킴 `tmap://route?goalname=...&goalx=...&goaly=...`로 일원화하여 즉시 길안내 연결 완치.
+    - **미설치 스토어 폴백 (`getWebFallbackUrl`, `openNavApp`)**: 모든 앱을 무조건 카카오맵 웹으로 보내던 하드코딩을 제거하고 앱별 분리. 안드로이드에서는 `https://play.google.com/...` 호출 시 구글 서버의 `intent://` 리다이렉트로 인해 발생하던 `ERR_UNKNOWN_URL_SCHEME` 흰색 에러 화면을 차단하기 위해 **`market://details?id=...`** 순수 마켓 스킴을 적용하고, '연결 프로그램' 최초 선택 시간을 보장하기 위해 폴백 타이머를 `4000ms(4초)`로 설정 (`700ms` 상단 안내 토스트 노출 지연은 100% 보존).
+  - **즉시 여행계획(`InstantPlanModal.tsx`) 대체리스트·지도 찜(💖) 기능 전면 반영 및 React Hook #310 원천 차단 (`3d72b97`, `8a8342d`)**:
+    - 컴포넌트 최상단(조기 반환문 이전)에 `bookmarkedPlaceIds` 상태, `handleToggleBookmark`(`logPlanBookmark` 연동), `instantSwapData` `useMemo`(찜한 후보 최상단 우선 배치)를 고정 선언하여 React Error #310(Hook 호출 개수 불일치) 원천 차단.
+    - 장소 카드(`renderInstantCard`), 대체리스트 바텀시트(`💖 찜` 배지 및 우측 하트 토글), 지도 모달(`SmartPlanMapViewModal` 붉은색 4단 융합 마커) 전면 연동 및 내 일정 저장/비로그인 드래프트 저장 시 `bookmarked_place_ids` 영구 승계.
+    - `handleNavChoice`에서 `openNavApp` 호출 시 3번째 인자 `metadata`를 전달하여 정밀 스마트플랜과 100% 동일한 안내 토스트 및 길안내 로그 연동.
+  - **정밀 스마트플랜(`SmartPlanProposal.tsx`) 찜 보존 보강**: 비동기 `initialPlan` 로드 시 `bookmarked_place_ids` 동적 복원 및 장소 교체/숨김/순서변경 저장 시 찜 목록 보존 추가.
+- [x] **마일스톤 9.92**: 다가오는 일정 D-7/D-0 오전 9시 활성화 동기화 및 D-Day 무한 스피너·상세화면 튕김 완치 (`6f66a8e`, `4c94585`)
+  - **일정 목록 카드(`ScheduleCard.tsx`) 스마트플랜 잠금 해제 동기화**: 상세 화면과 동일하게 D-7~D-1 및 D-0 오전 9시 기준 잠금 해제 타이밍을 100% 일치화.
+  - **홈 다가오는 일정(`ScheduleHomeWidget.tsx`) D-Day 무한 스피너 완치**: D-Day 오전 9시 이후 단순 `status === 'completed'`가 아닌 실제 `smart_plan_status === 'CACHED_D0'` 및 `weather_window === 'SHORT'` 완료 여부를 기준으로 배지를 표출하여 무한 스피너 현상 해결.
+  - **일정 상세 페이지(`myspace/schedule/[id]/page.tsx`) 튕김 방어**: 로컬 캐시 미스 시 `getScheduleById` 단건 조회 전에 목록으로 튕겨내던 조기 리다이렉트를 제거하고, `smart_plan_data`가 배열(`FactCard[]`) 형태일 때도 정상 언래핑하도록 보완.
 - [x] **마일스톤 9.91**: 예약 흐름 전체(사이트 상세 ➔ 예약 정보 입력폼 ➔ 예약완료 팝업 ➔ 신청완료 화면) '클린 화이트 & 세이지 그린' 라이트 테마 통일 및 커뮤니티 상단 안전 여백 확보 완결
   - **예약 흐름 '1안: 클린 화이트 & 세이지 그린' 컬러 전면 적용 (`SiteImageSlider.tsx`, `SitePriceDisplay.tsx`, `reservation/[id]/page.tsx`, `ReservationForm.tsx`, `reservation/complete/page.tsx`)**:
     - 기존 다크모드 고정(`#1a1a1a`, `#121212`)으로 인해 밝은 홈 화면 및 예약 메인 화면과 이질감이 있던 문제를 해결하기 위해, 기능과 레이아웃 배치는 100% 그대로 유지하고 순수 색상 클래스만 1:1 교체(121줄 추가 / 121줄 삭제).
