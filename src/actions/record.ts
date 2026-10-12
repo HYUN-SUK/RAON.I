@@ -111,19 +111,19 @@ export async function createRecord(input: CreateRecordInput): Promise<{ success:
                 .eq('id', input.scheduleId);
         }
 
-        // [Phase 2] Dispatch Persona Actions for Community Post
+        // [Phase 2] Dispatch Persona Actions for Community Post (본문 키워드 및 표준 선택 태그 연동)
         try {
-            if (allTags.includes('장비') || input.content.includes('불멍')) {
+            if (allTags.includes('장비') || allTags.includes('불멍최고') || input.content.includes('불멍')) {
                 await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_FIRE', supabase);
             }
-            if (allTags.includes('음식') || input.content.includes('요리') || input.content.includes('바베큐')) {
+            if (allTags.includes('음식') || allTags.includes('음식맛집') || input.content.includes('요리') || input.content.includes('바베큐')) {
                 await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_COOKING', supabase);
             }
-            if (input.content.includes('힐링') || input.content.includes('여유')) {
+            if (allTags.includes('힐링됨') || allTags.includes('조용해요') || input.content.includes('힐링') || input.content.includes('여유')) {
                 await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_HEALING', supabase);
             }
             // No 13: 별빛/은하수 관련
-            if (input.content.includes('별') || input.content.includes('은하수')) {
+            if (allTags.includes('별보기좋음') || input.content.includes('별') || input.content.includes('은하수')) {
                 await dispatchPersonaAction(user.id, 'COMMUNITY_WRITE_STARRY', supabase);
             }
             // No 14: 우중캠핑/비 관련
@@ -315,10 +315,18 @@ export async function updateRecord(
 // 헬퍼 함수
 // ═══════════════════════════════════════════════════════════
 
-// 간단한 태그 자동 추출 (키워드 기반)
+// 간단한 태그 자동 추출 (키워드 및 본문 내 #해시태그 기반)
 function extractTags(content: string): string[] {
     const tags: string[] = [];
     const lowerContent = content.toLowerCase();
+
+    // 사용자가 본문에 직접 입력한 #해시태그 추출
+    const hashtagMatches = content.matchAll(/#([가-힣a-zA-Z0-9_]+)/g);
+    for (const match of hashtagMatches) {
+        if (match[1]) {
+            tags.push(match[1]);
+        }
+    }
 
     // 날씨 관련
     if (lowerContent.includes('날씨') || lowerContent.includes('맑') || lowerContent.includes('비') || lowerContent.includes('흐림')) {

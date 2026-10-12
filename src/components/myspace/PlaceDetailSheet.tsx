@@ -267,7 +267,23 @@ export default function PlaceDetailSheet({ item, isOpen, onClose, isNew = false,
                             <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                                 <span className="w-1 h-4 bg-[#388E5A] rounded-full"></span> 나만의 기록
                             </h3>
-                            {memo ? memo : <span className="text-gray-400 italic">작성된 기록이 없습니다.</span>}
+                            {item.tags && item.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2.5 not-prose">
+                                    {item.tags.map((tag, idx) => (
+                                        <span
+                                            key={`${tag}-${idx}`}
+                                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#388E5A]/10 text-[#1E4D2B] border border-[#388E5A]/20"
+                                        >
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {memo ? (
+                                <div>{memo}</div>
+                            ) : (!item.tags || item.tags.length === 0) ? (
+                                <span className="text-gray-400 italic">작성된 기록이 없습니다.</span>
+                            ) : null}
                         </div>
                     )}
                 </div>

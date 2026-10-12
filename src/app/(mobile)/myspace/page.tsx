@@ -162,6 +162,7 @@ export default function MySpacePage() {
                 isOpen={isRecordOpen}
                 onClose={() => setIsRecordOpen(false)}
                 scheduleId={unwrittenScheduleIds[0]} // 미작성 일정이 있으면 첫 번째 ID 전달
+                initialScheduleDetail={unwrittenScheduleDetail}
                 onSuccess={handleRecordSuccess}
             />
 

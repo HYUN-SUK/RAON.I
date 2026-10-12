@@ -44,10 +44,10 @@ import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { UtensilsCrossed } from 'lucide-react';
 
 interface QuickRecordFormProps {
-
     isOpen: boolean;
     onClose: () => void;
     scheduleId?: string;
+    initialScheduleDetail?: ScheduleInfo | null;
     onSuccess?: () => void;
 }
 
@@ -61,15 +61,6 @@ const SATISFACTION_LEVELS = [
     { value: 3, label: '잔잔한 쉼', emoji: '⛺' },
     { value: 2, label: '조금 아쉬운 순간', emoji: '🌦️' },
     { value: 1, label: '속상한 기억', emoji: '☔' },
-];
-
-// 로컬 룰 기반 AI 감성 초안 템플릿
-const CAPTION_TEMPLATES = [
-    "{campgroundName}에서 {emoji} {satisfaction} 시간을 보내며 {tags}의 소중한 추억을 따뜻하게 아카이빙합니다.",
-    "{campgroundName}에서의 캠핑은 {emoji} {satisfaction} 그 자체였습니다. {tags}의 추억을 마음속에 깊이 남깁니다.",
-    "{emoji} {satisfaction} 가득했던 {campgroundName}에서의 하루. {tags} 덕분에 더 특별한 쉼이 되었습니다.",
-    "고요한 자연 속 {campgroundName}에서 느낀 {emoji} {satisfaction}. {tags}의 조각들을 하나씩 기록해 둡니다.",
-    "{emoji} {satisfaction} 기억을 남겨준 {campgroundName}. {tags}의 감성을 가득 안고 돌아갑니다."
 ];
 
 // 표준 태그 Taxonomy (20개)
@@ -104,29 +95,19 @@ const STANDARD_TAGS = {
     ],
 };
 
-// 룰 기반 자동 캡션 생성기
-function generateAutoCaption(satisfactionVal: number, tagsVal: string[], campName: string): string {
-    if (!campName) return '';
-    const satisfactionObj = SATISFACTION_LEVELS.find(s => s.value === satisfactionVal) || SATISFACTION_LEVELS[0];
-    const emoji = satisfactionObj.emoji;
-    const satisfaction = satisfactionObj.label;
-    const tagsStr = tagsVal.length > 0 ? tagsVal.map(t => `#${t}`).join(' ') : '#행복한캠핑';
-    
-    // 무작위 템플릿 선택
-    const randIdx = Math.floor(Math.random() * CAPTION_TEMPLATES.length);
-    const template = CAPTION_TEMPLATES[randIdx];
-    
-    return template
-        .replace(/{campgroundName}/g, campName)
-        .replace(/{emoji}/g, emoji)
-        .replace(/{satisfaction}/g, satisfaction)
-        .replace(/{tags}/g, tagsStr);
-}
+// 태그 키 -> 이모지 빠른 조회 맵
+const TAG_EMOJI_MAP: Record<string, string> = Object.values(STANDARD_TAGS)
+    .flat()
+    .reduce((acc, cur) => {
+        acc[cur.key] = cur.emoji;
+        return acc;
+    }, {} as Record<string, string>);
 
 export default function QuickRecordForm({
     isOpen,
     onClose,
     scheduleId,
+    initialScheduleDetail,
     onSuccess
 }: QuickRecordFormProps) {
     const router = useRouter();
@@ -139,8 +120,8 @@ export default function QuickRecordForm({
     const [isPublic, setIsPublic] = useState(false);
     const [scheduleInfo, setScheduleInfo] = useState<ScheduleInfo | null>(null);
     const [rating, setRating] = useState<number>(5); // Default: 최고의 힐링
-    const [lastGenerated, setLastGenerated] = useState<string>(''); // Auto-caption tracking
     const [showSuccess, setShowSuccess] = useState<boolean>(false); // Success view state
+    const memoSectionRef = useRef<HTMLDivElement>(null);
 
     // [v14.1.2] 방금 작성한 캠핑장 고정 스냅샷 (부모의 다음 미작성 일정 변경으로 인한 덮어쓰기 원천 방어)
     const [submittedSnapshot, setSubmittedSnapshot] = useState<{
@@ -168,45 +149,9 @@ export default function QuickRecordForm({
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-    // 일정 정보 로드 및 자동완성
+    // 일정 정보 로드 및 0.00초 즉시 자동완성
     useEffect(() => {
-        if (scheduleId && isOpen) {
-            getScheduleForRecord(scheduleId).then(async info => {
-                setScheduleInfo(info);
-
-                if (info) {
-                    const baseName = info.campgroundName || info.title;
-                    const baseAddr = info.campgroundAddress || '';
-
-                    setAddress(baseAddr);
-
-                    // 좌표 설정
-                    if (info.latitude && info.longitude) {
-                        setSelectedLocation({ lat: info.latitude, lng: info.longitude });
-                    }
-
-                    // 방문 횟수 체크 (동일 이름)
-                    let resolvedName = baseName;
-                    if (baseName) {
-                        const count = await getVisitCount(baseName);
-                        if (count > 0) {
-                            resolvedName = `${baseName} (${count + 1})`;
-                        }
-                    }
-                    setName(resolvedName || '');
-
-                    // 라온아이 캠핑장이면 기본 공개
-                    if (info.isRaonai) {
-                        setIsPublic(true);
-                    }
-
-                    // 초기 자동 캡션 적용
-                    const initialCaption = generateAutoCaption(5, [], resolvedName || '');
-                    setContent(initialCaption);
-                    setLastGenerated(initialCaption);
-                }
-            });
-        } else {
+        if (!isOpen) {
             setScheduleInfo(null);
             setName('');
             setAddress('');
@@ -214,39 +159,108 @@ export default function QuickRecordForm({
             setShowSuccess(false);
             setRating(5);
             setSelectedTags([]);
+            return;
         }
-    }, [scheduleId, isOpen]);
 
-    // 캡션 자동 업데이트 트리거
-    const triggerAutoCaption = (satisfactionVal: number, tagsVal: string[], campName: string) => {
-        if (content.trim() === '' || content === lastGenerated) {
-            const newCaption = generateAutoCaption(satisfactionVal, tagsVal, campName);
-            setContent(newCaption);
-            setLastGenerated(newCaption);
+        let isCancelled = false;
+
+        // 1. 부모로부터 전달받은 initialScheduleDetail이 있으면 네트워크 대기 없이 0.00초 즉시 세팅
+        if (initialScheduleDetail && (!scheduleId || initialScheduleDetail.id === scheduleId)) {
+            const baseName = initialScheduleDetail.campgroundName || initialScheduleDetail.title || '';
+            const baseAddr = initialScheduleDetail.campgroundAddress || '';
+
+            setScheduleInfo(initialScheduleDetail);
+            setName(baseName);
+            setAddress(baseAddr);
+
+            if (initialScheduleDetail.latitude && initialScheduleDetail.longitude) {
+                setSelectedLocation({
+                    lat: initialScheduleDetail.latitude,
+                    lng: initialScheduleDetail.longitude,
+                });
+            } else if (initialScheduleDetail.isRaonai || baseName.includes('라온아이')) {
+                setSelectedLocation({
+                    lat: DEFAULT_CAMPING_LOCATION.latitude,
+                    lng: DEFAULT_CAMPING_LOCATION.longitude,
+                });
+            }
+
+            if (initialScheduleDetail.isRaonai) {
+                setIsPublic(true);
+            }
+
+            // 방문 횟수 및 누락 좌표는 백그라운드 비동기로 조용히 보완
+            if (baseName) {
+                getVisitCount(baseName).then((count) => {
+                    if (!isCancelled && count > 0) {
+                        setName(`${baseName} (${count + 1})`);
+                    }
+                }).catch(() => {});
+            }
+
+            if ((!initialScheduleDetail.latitude || !initialScheduleDetail.longitude) && scheduleId) {
+                getScheduleForRecord(scheduleId).then((info) => {
+                    if (!isCancelled && info?.latitude && info?.longitude) {
+                        setSelectedLocation({ lat: info.latitude, lng: info.longitude });
+                    }
+                }).catch(() => {});
+            }
+            return () => {
+                isCancelled = true;
+            };
         }
-    };
+
+        // 2. initialScheduleDetail 없이 scheduleId만 전달된 경우: 조회 직후 baseName 먼저 즉시 반영
+        if (scheduleId) {
+            getScheduleForRecord(scheduleId).then(async (info) => {
+                if (isCancelled || !info) return;
+                setScheduleInfo(info);
+
+                const baseName = info.campgroundName || info.title || '';
+                const baseAddr = info.campgroundAddress || '';
+
+                // 방문 횟수 대기 전에 즉시 이름과 주소 먼저 세팅 (딜레이 제거)
+                setName(baseName);
+                setAddress(baseAddr);
+
+                if (info.latitude && info.longitude) {
+                    setSelectedLocation({ lat: info.latitude, lng: info.longitude });
+                }
+
+                if (info.isRaonai) {
+                    setIsPublic(true);
+                }
+
+                if (baseName) {
+                    const count = await getVisitCount(baseName);
+                    if (!isCancelled && count > 0) {
+                        setName(`${baseName} (${count + 1})`);
+                    }
+                }
+            });
+        }
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [scheduleId, initialScheduleDetail, isOpen]);
 
     // 만족도 선택 핸들러
     const handleSatisfactionSelect = (val: number) => {
         setRating(val);
-        triggerAutoCaption(val, selectedTags, name);
     };
 
-    // 태그 토글
+    // 태그 토글 (텍스트 자동 문장 주입 없이 순수 태그 상태만 관리)
     const handleTagToggle = (tag: string) => {
         setSelectedTags(prev => {
-            let nextTags = [];
             if (prev.includes(tag)) {
-                nextTags = prev.filter(t => t !== tag);
-            } else {
-                if (prev.length >= MAX_TAGS) {
-                    toast.error(`태그는 최대 ${MAX_TAGS}개까지 선택할 수 있어요`);
-                    return prev;
-                }
-                nextTags = [...prev, tag];
+                return prev.filter(t => t !== tag);
             }
-            triggerAutoCaption(rating, nextTags, name);
-            return nextTags;
+            if (prev.length >= MAX_TAGS) {
+                toast.error(`태그는 최대 ${MAX_TAGS}개까지 선택할 수 있어요`);
+                return prev;
+            }
+            return [...prev, tag];
         });
     };
 
@@ -327,7 +341,6 @@ export default function QuickRecordForm({
         setAddress(place.address);
         setSelectedLocation({ lat: place.lat, lng: place.lng });
         setIsMapOpen(false);
-        triggerAutoCaption(rating, selectedTags, place.name);
     };
 
     // 제출
@@ -642,17 +655,19 @@ export default function QuickRecordForm({
                                 </div>
                             </div>
 
-                            {/* 4. 태그 선택 영역 (NEW: 상단 배치) */}
-                            <div className="space-y-2">
+                            {/* 4. 태그 선택 영역 (20개 전체 태그 한눈에 노출) */}
+                            <div className="space-y-2.5">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">태그 선택</span>
-                                    <span className="text-xs text-gray-400">{selectedTags.length}/{MAX_TAGS}</span>
+                                    <span className="text-sm font-semibold text-gray-700">태그 선택 (최대 5개)</span>
+                                    <span className="text-xs font-bold text-[#388E5A] bg-[#EDF5EE] px-2 py-0.5 rounded-full">
+                                        {selectedTags.length}/{MAX_TAGS}
+                                    </span>
                                 </div>
 
-                                <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                                <div className="space-y-2.5 bg-stone-50/80 p-3 rounded-2xl border border-stone-200/80">
                                     {Object.entries(STANDARD_TAGS).map(([category, tags]) => (
                                         <div key={category} className="flex flex-col">
-                                            <span className="text-[10px] text-gray-400 mb-1">{category}</span>
+                                            <span className="text-[11px] font-bold text-stone-500 mb-1.5">{category}</span>
                                             <div className="flex flex-wrap gap-1.5">
                                                 {tags.map(({ key, emoji }) => {
                                                     const isSelected = selectedTags.includes(key);
@@ -662,10 +677,10 @@ export default function QuickRecordForm({
                                                             type="button"
                                                             onClick={() => handleTagToggle(key)}
                                                             className={cn(
-                                                                'px-2 py-0.5 rounded-full text-xs font-medium transition-all scale-95 origin-left',
+                                                                'px-2.5 py-1 rounded-full text-xs font-semibold transition-all active:scale-95',
                                                                 isSelected
-                                                                    ? 'bg-[#388E5A] text-white'
-                                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                                    ? 'bg-[#388E5A] text-white shadow-xs ring-1 ring-[#388E5A]'
+                                                                    : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
                                                             )}
                                                         >
                                                             {emoji} {key}
@@ -676,11 +691,25 @@ export default function QuickRecordForm({
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* 하단 사진·기록 영역 스크롤 유도 힌트 배지 */}
+                                <div className="flex justify-center pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            memoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300/80 text-[11px] font-extrabold text-[#1E4D2B] shadow-2xs active:scale-95 transition-all cursor-pointer animate-bounce"
+                                    >
+                                        <span>아래로 스크롤하여 사진 · 나의 기록 남기기</span>
+                                        <span className="text-xs font-black">⌄</span>
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* 5. 사진 영역 (NEW: 하단 배치) */}
-                            <div className="space-y-1">
-                                <span className="text-xs font-semibold text-gray-400">사진 추가 (선택)</span>
+                            {/* 5. 사진 영역 (선택) */}
+                            <div className="space-y-1.5">
+                                <span className="text-xs font-semibold text-gray-600">사진 추가 (선택)</span>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -734,19 +763,60 @@ export default function QuickRecordForm({
                                 )}
                             </div>
 
-                            {/* 6. 메모 영역 (NEW: 하단 배치 & AI 감성 초안 자동 주입) */}
-                            <div className="space-y-1">
-                                <span className="text-xs font-semibold text-gray-400">캠핑 메모 (선택)</span>
-                                <Textarea
-                                    value={content}
-                                    onChange={(e) => {
-                                        setContent(e.target.value.slice(0, MAX_CONTENT_LENGTH));
-                                    }}
-                                    placeholder="캠핑 경험을 자유롭게 적어주세요..."
-                                    className="min-h-[80px] resize-none border-gray-200 focus:border-[#388E5A] focus:ring-[#388E5A] text-sm leading-relaxed"
-                                />
-                                <div className="text-right text-[10px] text-gray-400">
-                                    {content.length}/{MAX_CONTENT_LENGTH}
+                            {/* 6. 2단 분리형 메모 영역: [상단: 선택한 #태그 표기칸] + [하단: 사용자 직접 작성칸] */}
+                            <div ref={memoSectionRef} className="space-y-1.5 scroll-mt-4">
+                                <div className="rounded-2xl border-2 border-stone-200 bg-white overflow-hidden focus-within:border-[#388E5A] transition-colors shadow-2xs">
+                                    {/* 상단 칸: 선택한 #태그 실시간 표기 영역 */}
+                                    <div className="bg-[#F4F8F5] border-b border-stone-200/80 px-3.5 py-2.5 space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[11px] font-extrabold text-[#1E4D2B] flex items-center gap-1">
+                                                <span>🏷️ 선택한 해시태그</span>
+                                            </span>
+                                            <span className="text-[10px] font-semibold text-stone-400">
+                                                태그 터치 시 자동 반영
+                                            </span>
+                                        </div>
+                                        {selectedTags.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                                {selectedTags.map((tag) => (
+                                                    <button
+                                                        key={tag}
+                                                        type="button"
+                                                        onClick={() => handleTagToggle(tag)}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#388E5A]/15 text-[#1E4D2B] border border-[#388E5A]/30 text-xs font-bold hover:bg-[#388E5A]/25 active:scale-95 transition-all"
+                                                        title="터치하여 태그 해제"
+                                                    >
+                                                        <span>#{TAG_EMOJI_MAP[tag] ? `${TAG_EMOJI_MAP[tag]} ` : ''}{tag}</span>
+                                                        <X className="w-3 h-3 text-[#2E7D47]" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[11px] text-stone-400 font-medium py-0.5">
+                                                위에서 태그를 터치하면 <strong className="text-[#388E5A] font-semibold">#뷰맛집</strong> 처럼 여기에 표시돼요.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* 하단 칸: 순수 사용자 직접 글쓰기 영역 */}
+                                    <div className="p-3 bg-white space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-extrabold text-stone-700 flex items-center gap-1">
+                                                <span>✍️ 나의 캠핑 이야기 (직접 작성)</span>
+                                            </span>
+                                            <span className="text-[10px] font-semibold text-stone-400">
+                                                {content.length}/{MAX_CONTENT_LENGTH}
+                                            </span>
+                                        </div>
+                                        <Textarea
+                                            value={content}
+                                            onChange={(e) => {
+                                                setContent(e.target.value.slice(0, MAX_CONTENT_LENGTH));
+                                            }}
+                                            placeholder="이번 캠핑에서 좋았던 순간이나 기억을 나만의 언어로 직접 적어보세요... (선택)"
+                                            className="min-h-[84px] p-0 border-0 shadow-none resize-none focus-visible:ring-0 text-sm text-stone-800 placeholder:text-stone-400 leading-relaxed"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

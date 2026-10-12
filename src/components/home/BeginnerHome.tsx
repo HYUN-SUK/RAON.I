@@ -836,6 +836,7 @@ export default function BeginnerHome() {
                 isOpen={isRecordOpen}
                 onClose={() => setIsRecordOpen(false)}
                 scheduleId={unwrittenScheduleIds[0]}
+                initialScheduleDetail={unwrittenScheduleDetail}
                 onSuccess={() => {
                     refresh();
                     fetchMyReservations();

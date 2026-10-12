@@ -161,31 +161,34 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                             내 지도에 {selectedPlaceIds.length}곳이 담겼어요!
                         </h2>
                         <p className="text-sm text-stone-600 leading-relaxed font-medium">
-                            '나의 공간 &gt; 나만의 캠핑지도'에서 언제든 확인하고,
+                            '내 수첩 &gt; 나만의 캠핑지도'에서 언제든 확인하고,
                             다음 캠핑 때 나만의 장소로 찾아갈 수 있어요.
                         </p>
                     </div>
 
-                    {/* 화면 D 트리거 링크 */}
-                    <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
+                    {/* 화면 D 트리거 링크 — 고대비 앰버/오렌지 강조 카드 */}
+                    <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4 rounded-2xl border-2 border-amber-400 shadow-md shadow-amber-500/10">
                         <button
                             onClick={() => setStep('SCREEN_D')}
-                            className="w-full flex items-center justify-between text-left group"
+                            className="w-full flex items-center justify-between text-left group active:scale-[0.99] transition-all"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-amber-50 text-amber-700">
+                                <div className="p-2.5 rounded-xl bg-amber-500 text-white shadow-xs shrink-0">
                                     <AlertCircle className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <div className="text-xs font-bold text-stone-900 group-hover:text-amber-800">
+                                    <div className="text-xs font-extrabold text-amber-950 group-hover:text-amber-900">
                                         혹시 문 닫은 곳이나 정보가 다른 곳이 있었나요?
                                     </div>
-                                    <div className="text-[11px] text-stone-400 mt-0.5">
+                                    <div className="text-[11px] font-semibold text-amber-800 mt-0.5">
                                         다른 캠퍼들을 위해 1초 만에 알려주세요
                                     </div>
                                 </div>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-stone-300 group-hover:text-stone-600" />
+                            <div className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 text-[11px] font-bold shrink-0">
+                                <span>신고</span>
+                                <ChevronRight className="w-3.5 h-3.5 text-amber-700 group-hover:translate-x-0.5 transition-transform" />
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -196,7 +199,7 @@ export default function UserVerifyPage({ params }: { params: Promise<{ scheduleI
                         onClick={() => router.push('/myspace')}
                         className="w-full py-4 bg-[#388E5A] hover:bg-[#2F774B] text-white font-bold rounded-2xl shadow-md text-sm"
                     >
-                        내 공간으로 이동하기
+                        내 수첩으로 이동하기
                     </Button>
                 </div>
             </div>

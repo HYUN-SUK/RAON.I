@@ -225,7 +225,7 @@ export const useMySpaceStore = create<MySpaceState>()(
                             .limit(10),
                         supabase
                             .from('camping_records')
-                            .select('id, campground_name, content, photo_url, created_at')
+                            .select('id, campground_name, content, tags, photo_url, created_at')
                             .eq('user_id', targetUserId)
                             .order('created_at', { ascending: false })
                             .limit(10)
@@ -265,15 +265,23 @@ export const useMySpaceStore = create<MySpaceState>()(
                             images: m.image_url ? [m.image_url] : []
                         }));
 
-                    const recordItems: TimelineItem[] = records.map(r => ({
-                        id: `record-${r.id}`,
-                        type: 'record',
-                        date: r.created_at,
-                        title: r.campground_name ? `10초 기록: ${r.campground_name}` : '나의 10초 기록',
-                        content: r.content,
-                        images: r.photo_url ? [r.photo_url] : [],
-                        recordId: r.id
-                    }));
+                    const recordItems: TimelineItem[] = records.map(r => {
+                        const tagText = Array.isArray(r.tags) && r.tags.length > 0
+                            ? r.tags.map((t: string) => `#${t}`).join(' ')
+                            : '';
+                        const combinedContent = r.content && tagText
+                            ? `${tagText}\n${r.content}`
+                            : (r.content || tagText);
+                        return {
+                            id: `record-${r.id}`,
+                            type: 'record',
+                            date: r.created_at,
+                            title: r.campground_name ? `10초 기록: ${r.campground_name}` : '나의 10초 기록',
+                            content: combinedContent,
+                            images: r.photo_url ? [r.photo_url] : [],
+                            recordId: r.id
+                        };
+                    });
 
                     const allItems = [...postItems, ...missionItems, ...recordItems].sort((a, b) =>
                         new Date(b.date).getTime() - new Date(a.date).getTime()

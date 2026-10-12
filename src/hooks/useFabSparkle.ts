@@ -8,6 +8,8 @@ interface UnwrittenScheduleInfo {
     title: string;
     campgroundName?: string;
     campgroundAddress?: string;
+    latitude?: number;
+    longitude?: number;
     startDate: string;
     endDate: string;
     isRaonai: boolean;
