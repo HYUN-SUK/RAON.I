@@ -7,7 +7,7 @@ import { getMyRecords } from '@/actions/record';
 import { searchAddressAction } from '@/actions/camping-profile';
 import { SITES } from '@/constants/sites';
 import { Modal } from '@/components/ui/Modal';
-import { MapPin, Search, Plus, Loader2, Navigation, Check, X, Locate } from 'lucide-react';
+import { MapPin, Search, Plus, Loader2, Navigation, Check, X, Locate, ChevronRight } from 'lucide-react';
 import PlaceDetailSheet from './PlaceDetailSheet';
 import { DEFAULT_CAMPING_LOCATION } from '@/constants/location';
 import { Map, MapMarker, MarkerClusterer, useKakaoLoader, CustomOverlayMap } from 'react-kakao-maps-sdk';
@@ -280,7 +280,7 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
         if (match) {
             setSelectedItem(match);
             setIsAddingMode(false);
-            setIsDetailOpen(true);
+            setIsDetailOpen(false); // [v14.1.0] 지도를 가리지 않고 하단 미니 카드로 노출 (터치 시 상세창 열림)
 
             // 지도 센터 설정 및 줌 레벨 조정
             if (match.lat && match.lng) {
@@ -560,6 +560,12 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
             return;
         }
 
+        // [부작용 ② 방어] 미니 카드가 열려있는 상태에서 지도 빈 곳을 탭하면 미니 카드를 먼저 닫고 신규 핀 추가는 스킵
+        if (selectedItem && !isDetailOpen) {
+            setSelectedItem(null);
+            return;
+        }
+
         // Click to add custom spot with Reverse Geocoding
         const lat = mouseEvent.latLng.getLat();
         const lng = mouseEvent.latLng.getLng();
@@ -815,10 +821,14 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                                         onClick={() => {
                                             setSelectedItem(item);
                                             setIsAddingMode(false);
-                                            setIsDetailOpen(true);
-                                            // Scroll to item
-                                            const el = document.getElementById(`map-item-${item.id}`);
-                                            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            setIsDetailOpen(false); // [v14.1.0] 85vh 시트 대신 미니 카드 우선 표출
+                                            setPendingPin(null);
+
+                                            // 지도 중심을 선택된 핀으로 부드럽게 이동
+                                            if (mapRef.current && item.lat && item.lng && window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+                                                mapRef.current.panTo(new window.kakao.maps.LatLng(item.lat, item.lng));
+                                            }
+                                            // [부작용 ③ 방어] 하단 리스트로 강제 스크롤(scrollIntoView)하지 않고 지도 화면에 고정
                                         }}
                                         image={{
                                             src: getMarkerPinImage(catType),
@@ -913,9 +923,11 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     </Map>
                 )}
 
-                {/* Current Location Button */}
+                {/* Current Location Button - [부작용 ① 방어] 미니 카드가 열려있을 때 카드 위로 부드럽게 상승 */}
                 <button
-                    className={`absolute bottom-4 right-4 bg-white px-4 py-2.5 rounded-full shadow-lg z-10 text-gray-700 hover:text-[#388E5A] active:scale-95 transition-all flex items-center gap-2 ${isLocating ? 'opacity-80 cursor-wait' : ''}`}
+                    className={`absolute right-4 bg-white px-4 py-2.5 rounded-full shadow-lg z-20 text-gray-700 hover:text-[#388E5A] active:scale-95 transition-all duration-300 flex items-center gap-2 ${
+                        selectedItem && !isDetailOpen ? 'bottom-[108px]' : 'bottom-4'
+                    } ${isLocating ? 'opacity-80 cursor-wait' : ''}`}
                     disabled={isLocating}
                     onClick={() => {
                         if (!mapRef.current) return;
@@ -960,6 +972,108 @@ export default function MyMapModal({ isOpen, onClose, mode = 'view', onPlaceSele
                     )}
                     <span className="text-xs font-bold">{isLocating ? '찾는 중...' : '현위치'}</span>
                 </button>
+
+                {/* Mini Floating Place Card on Map [v14.1.0] */}
+                {selectedItem && !isDetailOpen && (
+                    <div
+                        className="absolute bottom-3 inset-x-3 sm:inset-x-6 z-30 max-w-md mx-auto animate-in slide-in-from-bottom-3 fade-in duration-200"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (mode === 'schedule' && onPlaceSelect) {
+                                onPlaceSelect({
+                                    name: selectedItem.siteName,
+                                    address: selectedItem.address || '',
+                                    lat: selectedItem.lat || 0,
+                                    lng: selectedItem.lng || 0
+                                });
+                                setSelectedItem(null);
+                                onClose();
+                                return;
+                            }
+                            setIsAddingMode(false);
+                            setIsDetailOpen(true);
+                        }}
+                    >
+                        <div className="bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-emerald-100 hover:border-[#388E5A]/50 transition-all cursor-pointer group active:scale-[0.99]">
+                            <div className="flex items-center gap-3">
+                                {/* 썸네일 이미지 또는 카테고리 아이콘 */}
+                                <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-emerald-50 shrink-0 border border-emerald-100/60 flex items-center justify-center">
+                                    {selectedItem.photos && selectedItem.photos.length > 0 ? (
+                                        <img
+                                            src={selectedItem.photos[0]}
+                                            alt={selectedItem.siteName}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-[#388E5A]">
+                                            <MapPin size={24} className="stroke-[2.5]" />
+                                        </div>
+                                    )}
+                                    {/* 별점 오버레이 */}
+                                    {selectedItem.rating > 0 && (
+                                        <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-xs px-1 py-0.2 rounded text-[10px] text-amber-300 font-bold flex items-center gap-0.5">
+                                            <span>★</span>
+                                            <span>{selectedItem.rating}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 정보 영역 */}
+                                <div className="flex-1 min-w-0 pr-6">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <span className="font-bold text-gray-900 text-sm sm:text-base truncate">
+                                            {selectedItem.siteName}
+                                        </span>
+                                        {selectedItem.isFavorite && <span className="text-red-400 text-xs shrink-0">❤</span>}
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 truncate mb-1.5">
+                                        <span className="px-1.5 py-0.2 bg-gray-100 text-gray-600 rounded text-[10px] font-medium shrink-0">
+                                            {selectedItem.visitedDate && !isNaN(new Date(selectedItem.visitedDate).getTime())
+                                                ? new Date(selectedItem.visitedDate).toLocaleDateString()
+                                                : '기록일 미입력'}
+                                        </span>
+                                        {selectedItem.address && (
+                                            <span className="truncate text-gray-400 text-[11px]">{selectedItem.address}</span>
+                                        )}
+                                    </div>
+
+                                    {/* 하단 터치 유도 뱃지 및 태그 */}
+                                    <div className="flex items-center justify-between gap-1">
+                                        <div className="flex items-center gap-1 overflow-hidden">
+                                            {selectedItem.tags && selectedItem.tags.length > 0 ? (
+                                                selectedItem.tags.slice(0, 2).map((t, idx) => (
+                                                    <span key={idx} className="text-[10px] text-[#2F774B] bg-[#EDF5EE] px-1.5 py-0.5 rounded-md font-medium truncate max-w-[70px]">
+                                                        #{t}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-[11px] text-gray-400 italic">터치하여 기록 확인</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-0.5 text-[11px] font-bold text-[#388E5A] group-hover:translate-x-0.5 transition-transform shrink-0">
+                                            <span>{mode === 'schedule' ? '선택하기' : '확인 · 수정'}</span>
+                                            <ChevronRight size={13} strokeWidth={2.5} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 닫기 버튼 [부작용 ④ 방어: e.stopPropagation] */}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedItem(null);
+                                    }}
+                                    className="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 rounded-full transition-colors"
+                                    aria-label="닫기"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* List View */}
