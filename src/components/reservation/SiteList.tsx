@@ -208,8 +208,8 @@ export default function SiteList() {
                             <div className={`absolute bottom-3 left-3.5 right-3.5 ${available ? 'text-white' : 'text-white/80'}`}>
                                 <h3 className="text-lg font-black tracking-tight drop-shadow-sm">{site.name}</h3>
                             </div>
-                            <div className="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
-                                <span className={`backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold shadow-xs flex items-center gap-1 ${
+                            <div className="absolute top-3 left-2.5 right-2.5 flex justify-between items-center gap-1 pointer-events-none">
+                                <span className={`backdrop-blur-md px-2 py-0.5 rounded-full text-[11px] font-bold shadow-xs inline-flex items-center gap-0.5 whitespace-nowrap shrink-0 ${
                                     available
                                         ? 'bg-white/95 text-[#2E7D47]'
                                         : 'bg-stone-800/80 text-stone-300'
@@ -217,11 +217,11 @@ export default function SiteList() {
                                     ⚡ {site.type}
                                 </span>
                                 {available ? (
-                                    <span className="bg-[#2E7D47] px-2.5 py-0.5 rounded-full text-[11px] text-white font-bold shadow-xs">
+                                    <span className="bg-[#2E7D47] px-2 py-0.5 rounded-full text-[11px] text-white font-bold shadow-xs whitespace-nowrap shrink-0">
                                         예약가능
                                     </span>
                                 ) : (
-                                    <span className="bg-[#E06B62] px-2.5 py-0.5 rounded-full text-[11px] text-white font-bold shadow-xs">
+                                    <span className="bg-[#E06B62] px-2 py-0.5 rounded-full text-[11px] text-white font-bold shadow-xs whitespace-nowrap shrink-0">
                                         마감
                                     </span>
                                 )}
