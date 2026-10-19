@@ -185,31 +185,43 @@ export default function SiteList() {
                         key={site.id}
                         onClick={() => handleSiteClick(site)}
                         className={`
-            relative overflow-hidden rounded-3xl border transition-all duration-150 group bg-white shadow-xs touch-manipulation
-            ${available ? 'cursor-pointer hover:shadow-md hover:border-[#68A678] hover:-translate-y-0.5 active:scale-[0.98] active:brightness-95' : 'cursor-not-allowed opacity-75'}
-            ${selectedSite?.id === site.id
-                                ? 'border-[#2E7D47] ring-2 ring-[#2E7D47]/25'
-                                : 'border-[#EAEFEA]'}
+            relative overflow-hidden rounded-3xl border transition-all duration-150 group shadow-xs touch-manipulation
+            ${available
+                                ? 'bg-white cursor-pointer hover:shadow-md hover:border-[#2E7D47] hover:-translate-y-0.5 active:scale-[0.98] active:brightness-95'
+                                : 'bg-[#F5F7F5] cursor-not-allowed'}
+            ${available
+                                ? (selectedSite?.id === site.id
+                                    ? 'border-[#2E7D47] ring-2 ring-[#2E7D47]/25'
+                                    : 'border-[#68A678]/60')
+                                : 'border-stone-200'}
           `}
                     >
 
-                        <div className={`relative h-44 w-full ${!available ? 'grayscale' : ''}`}>
+                        <div className="relative h-44 w-full">
                             <Image
                                 src={site.imageUrl}
                                 alt={site.name}
                                 fill
-                                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                className={`object-cover transition-transform duration-500 ${available ? 'group-hover:scale-105' : 'grayscale brightness-75'}`}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                            <div className="absolute bottom-3 left-3.5 right-3.5 text-white">
+                            <div className={`absolute inset-0 ${available ? 'bg-gradient-to-t from-black/70 via-black/20 to-transparent' : 'bg-gradient-to-t from-black/80 via-black/45 to-black/25'}`} />
+                            <div className={`absolute bottom-3 left-3.5 right-3.5 ${available ? 'text-white' : 'text-white/80'}`}>
                                 <h3 className="text-lg font-black tracking-tight drop-shadow-sm">{site.name}</h3>
                             </div>
                             <div className="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
-                                <span className="bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-xs text-[#2E7D47] font-bold shadow-xs flex items-center gap-1">
+                                <span className={`backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold shadow-xs flex items-center gap-1 ${
+                                    available
+                                        ? 'bg-white/95 text-[#2E7D47]'
+                                        : 'bg-stone-800/80 text-stone-300'
+                                }`}>
                                     ⚡ {site.type}
                                 </span>
-                                {!available && (
-                                    <span className="bg-[#E06B62] px-2 py-0.5 rounded-full text-[11px] text-white font-bold shadow-xs">
+                                {available ? (
+                                    <span className="bg-[#2E7D47] px-2.5 py-0.5 rounded-full text-[11px] text-white font-bold shadow-xs">
+                                        예약가능
+                                    </span>
+                                ) : (
+                                    <span className="bg-[#E06B62] px-2.5 py-0.5 rounded-full text-[11px] text-white font-bold shadow-xs">
                                         마감
                                     </span>
                                 )}
@@ -217,23 +229,39 @@ export default function SiteList() {
                         </div>
 
                         <div className="p-3.5">
-                            {/* 가격 배지 (웜 크림 골드) */}
-                            <div className="bg-[#FBEFD9] text-[#9A6B2F] font-black text-xs px-2.5 py-1 rounded-lg w-fit mb-2">
+                            {/* 가격 배지 (예약가능: 웜 크림 골드 / 마감: 무채색 톤다운) */}
+                            <div className={`font-black text-xs px-2.5 py-1 rounded-lg w-fit mb-2 ${
+                                available
+                                    ? 'bg-[#FBEFD9] text-[#9A6B2F]'
+                                    : 'bg-stone-200/80 text-stone-500'
+                            }`}>
                                 {priceText}
                             </div>
-                            <p className="text-xs text-[#556B5C] mb-2.5 line-clamp-2 leading-relaxed font-normal">{site.description}</p>
+                            <p className={`text-xs mb-2.5 line-clamp-2 leading-relaxed font-normal ${
+                                available ? 'text-[#556B5C]' : 'text-stone-400'
+                            }`}>{site.description}</p>
                             <div className="flex flex-wrap gap-1.5">
                                 {site.features.map((feature, idx) => (
-                                    <span key={idx} className="text-[11px] px-2 py-0.5 rounded-md bg-[#EBF3ED] text-[#2D5A3D] font-semibold">
+                                    <span
+                                        key={idx}
+                                        className={`text-[11px] px-2 py-0.5 rounded-md font-semibold ${
+                                            available
+                                                ? 'bg-[#EBF3ED] text-[#2D5A3D]'
+                                                : 'bg-stone-200/70 text-stone-400'
+                                        }`}
+                                    >
                                         {feature}
                                     </span>
                                 ))}
                             </div>
 
-                            {/* 개별 사이트 빈자리 알림 버튼 */}
+                            {/* 개별 사이트 빈자리 알림 버튼 (100% 선명한 활성 영역으로 분리) */}
                             {!available && selectedDateRange.from && (
-                                <div className="mt-3 pt-2.5 border-t border-[#F0F4F1]" onClick={(e) => e.stopPropagation()}>
-                                    <p className="text-[11px] text-[#7A8B7E] mb-1.5 text-center font-medium">
+                                <div
+                                    className="mt-3 p-2.5 rounded-2xl bg-white border border-[#68A678]/40 shadow-2xs flex flex-col items-center cursor-default"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <p className="text-[11px] text-[#1E4D2B] mb-2 text-center font-semibold leading-snug break-keep">
                                         이 사이트에 빈자리가 나면 알려드릴게요!
                                     </p>
                                     <WaitlistButton
