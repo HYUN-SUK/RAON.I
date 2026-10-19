@@ -1,5 +1,21 @@
 # Task Management
 
+## Completed Tasks (2026-10-19)
+- [x] **마일스톤 9.94**: 예약 마감 표시 유지(`publicReservations` 상태 분리·백그라운드 복귀 동기화), 사이트 예약가능/마감 시인성 및 빈자리 알림 버튼 선명도 개선, 10초 기록 지도 미니 장소카드 전환 완결
+  - **공개 예약 마감 현황(`publicReservations`) 슬롯 분리 및 백그라운드 복귀 즉시 동기화 (`useReservationStore.ts`, `reservation/page.tsx`, `SiteList.tsx`, `DateRangePicker.tsx`, `ReservationForm.tsx`, `26bd56d`)**:
+    - `useReservationStore`에서 내 개인 예약 목록(`reservations`, `fetchMyReservations`)과 전체 사이트 마감 현황(`publicReservations`, `fetchPublicReservations`)을 완전히 분리하여, 내 예약이 0건인 사용자가 홈 화면 이동이나 앱 백그라운드 복귀 시 전체 사이트 마감 데이터가 빈 배열(`[]`)로 덮어써지던 근본 원인 완치.
+    - `fetchPublicReservations`에 만료된 사용자 JWT 간섭을 우회하는 순수 `anon` 키 PostgREST 2차 폴백(Fallback) 및 네트워크 단절 시 기존 마감 데이터 보존 가드 장착.
+    - `/reservation` 페이지에 `visibilitychange`, `focus`, `pageshow` 이벤트 리스너(300ms 디바운스)를 추가하여 앱을 내렸다가 다시 올릴 때 최신 마감 현황 즉시 재동기화.
+    - `createReservationSafe`, `requestCancelReservation`, `validateReservation` 및 사용자 예약 UI 4종(`page.tsx`, `SiteList.tsx`, `DateRangePicker.tsx`, `ReservationForm.tsx`) 모두 `publicReservations` 기준으로 동기화.
+  - **예약가능 vs 마감 사이트 시각적 구분 강화 및 빈자리 알림 버튼 선명도 100% 복원 (`SiteList.tsx`, `d1e341c`, `492d7c9`)**:
+    - `grayscale` 필터를 상단 부모 컨테이너에서 분리하여 `<Image>`에만 단독 적용(`grayscale brightness-75`)함으로써, 우측 상단 코랄 레드 `마감` 배지(`#E06B62`)가 회색으로 죽지 않고 원색 그대로 또렷하게 노출되도록 수정.
+    - 예약 가능 사이트 우측 상단에 에메랄드 그린 `예약가능` 배지(`#2E7D47`)를 신설하고, 마감 사이트 본문(카드 배경·테두리·가격표·설명·특징 태그)은 차분한 무채색(Stone) 톤으로 낮춰 한눈에 대비되도록 개선.
+    - 마감 카드 최외곽의 `opacity-75` 상속을 제거하고 하단 `빈자리 알림` 영역을 깨끗한 화이트 활성 박스(`bg-white border-[#68A678]/40 rounded-2xl`)로 분리하여, 기존 `WaitlistButton`이 비활성화된 것처럼 흐릿하게 보이던 현상 완치.
+    - 상단 `⚡ AUTO` 배지와 `예약가능 / 마감` 배지에 `whitespace-nowrap shrink-0` 및 여백 최적화(`left-2.5 right-2.5`, `px-2 py-0.5 text-[11px]`)를 적용하여 좁은 모바일 2열 화면에서도 글씨가 두 줄로 꺾이지 않도록 고정.
+  - **10초 기록 직후 '지도에 핀 꽂기' 진입 시 지도 중심 노출 및 하단 미니 장소카드 전환 (`MyMapModal.tsx`, `f659188`)**:
+    - 10초 기록 완료 후 지도 진입 시 화면 전체를 가리던 상세 시트(`isDetailOpen = true`) 자동 오픈을 제거하고, 지도를 중심으로 보여주면서 하단에 컴팩트 플로팅 장소카드(`selectedPin && !isDetailOpen`)를 노출하도록 개선.
+    - 하단 미니 장소카드 터치 시 상세 내용 확인 및 수정 시트가 열리도록 2단계 인터랙션 구축 및 모바일 하드웨어 뒤로가기(`popstate`) 4단계 계층 방어(상세시트 ➔ 미니 장소카드 ➔ 검색창 ➔ 지도 모달) 연동.
+
 ## Completed Tasks (2026-10-11 ~ 2026-10-12)
 - [x] **마일스톤 9.93**: 내비게이션 3사(카카오맵·카카오내비·T맵) 완벽 연결 및 즉시 여행계획 대체리스트/지도 찜(💖) 기능 전면 반영 완결 (실기기 검증 완료)
   - **내비게이션 3사 딥링크 및 폴백 완벽 정규화 ([`src/lib/nav-utils.ts`](file:///c:/Users/user/Desktop/RAON.I/src/lib/nav-utils.ts), `8a8342d`, `42ff827`, `9628890`)**:

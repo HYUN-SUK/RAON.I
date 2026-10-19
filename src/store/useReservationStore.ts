@@ -734,7 +734,13 @@ export const useReservationStore = create<ReservationState>()(
             fetchPublicReservations: async (start: Date, end: Date) => {
                 const startStr = formatLocalDate(start);
                 const endStr = formatLocalDate(end);
-                let rows: any[] | null = null;
+                type PublicReservationRow = {
+                    site_id: string;
+                    check_in_date: string;
+                    check_out_date: string;
+                    status: ReservationStatus | 'BLOCKED';
+                };
+                let rows: PublicReservationRow[] | null = null;
 
                 try {
                     const { createClient } = await import('@/lib/supabase-client');
@@ -747,7 +753,7 @@ export const useReservationStore = create<ReservationState>()(
                     });
 
                     if (!error && Array.isArray(data)) {
-                        rows = data;
+                        rows = data as PublicReservationRow[];
                     } else if (error) {
                         console.warn('[Store] Primary get_public_reservations RPC error, trying anon fallback:', error);
                     }
@@ -778,7 +784,7 @@ export const useReservationStore = create<ReservationState>()(
                             if (res.ok) {
                                 const fallbackData = await res.json();
                                 if (Array.isArray(fallbackData)) {
-                                    rows = fallbackData;
+                                    rows = fallbackData as PublicReservationRow[];
                                 }
                             }
                         }
@@ -794,12 +800,12 @@ export const useReservationStore = create<ReservationState>()(
                 }
 
                 const mappedPublicReservations: Reservation[] = [];
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                rows.forEach((r: any) => {
+                rows.forEach((r) => {
                     // [가용성 정규화] PENDING, CONFIRMED, BLOCKED만 마감 점유로 반영 (REFUND_PENDING/CANCELLED/REFUNDED는 미포함 = 즉시 오픈)
                     if (r.status !== 'PENDING' && r.status !== 'CONFIRMED' && r.status !== 'BLOCKED') {
                         return;
                     }
+                    const normalizedStatus: ReservationStatus = r.status === 'BLOCKED' ? 'CONFIRMED' : r.status;
 
                     if (r.site_id === 'ALL') {
                         ['site-1', 'site-2', 'site-3', 'site-4', 'site-5', 'site-6', 'site-7', 'site-8'].forEach(sId => {
@@ -814,7 +820,7 @@ export const useReservationStore = create<ReservationState>()(
                                 vehicleCount: 1,
                                 guests: 1,
                                 totalPrice: 0,
-                                status: r.status,
+                                status: normalizedStatus,
                                 requests: '',
                                 createdAt: new Date(),
                             });
@@ -831,7 +837,7 @@ export const useReservationStore = create<ReservationState>()(
                             vehicleCount: 1,
                             guests: 1,
                             totalPrice: 0,
-                            status: r.status,
+                            status: normalizedStatus,
                             requests: '',
                             createdAt: new Date(),
                         });
