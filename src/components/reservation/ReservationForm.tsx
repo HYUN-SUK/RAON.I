@@ -53,7 +53,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
     const router = useRouter();
     const { isLoading: isGuardLoading, isAllowed: isGuardAllowed, showLockModal, closeLockModal } = useReservationGuard();
     // Use calculatePrice instead of calculateTotalPrice
-    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, reservations, blockedDates, fetchBlockedDates, fetchSites } = useReservationStore();
+    const { selectedDateRange, setSelectedSite, calculatePrice, validateReservation, siteConfig, fetchSiteConfig, createReservationSafe, rebookData, clearRebookData, fetchUserContactInfo, userContactInfo, sites, publicReservations, fetchPublicReservations, blockedDates, fetchBlockedDates, fetchSites } = useReservationStore();
     const [name, setName] = useState(() => getCachedGuestInfo().name);
     const [phone, setPhone] = useState(() => getCachedGuestInfo().phone);
     const [familyCount, setFamilyCount] = useState(1);
@@ -86,6 +86,12 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         fetchSiteConfig();
         fetchBlockedDates(); // 관리자 차단일 데이터 동기화
         fetchSites(); // 개별 에어컨 기기 최신 목록 동기화
+        if (site.id === 'air-group') {
+            const start = new Date();
+            const end = new Date();
+            end.setMonth(end.getMonth() + 6);
+            fetchPublicReservations(start, end);
+        }
 
         // [0초 즉시 완성] 연락처 정보 병렬 즉시 로드 (await Waterfall 병목 해소)
         fetchUserContactInfo();
@@ -174,7 +180,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         return () => {
             clearRebookData();
         };
-    }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo, fetchBlockedDates, fetchSites]);
+    }, [site, setSelectedSite, fetchSiteConfig, rebookData, clearRebookData, fetchUserContactInfo, fetchBlockedDates, fetchSites, fetchPublicReservations]);
 
     // userContactInfo가 로드되면 폼에 적용 및 로컬 캐시 갱신
     useEffect(() => {
@@ -202,8 +208,8 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             const options = sites
                 .filter(s => s.id.startsWith('air-') && s.id !== 'air-group' && s.isActive)
                 .map(s => {
-                    // 웹 예약 중복 검사
-                    const hasOverlap = reservations.some(r => {
+                    // 웹 예약 중복 검사 (전체 마감 현황 publicReservations 기준)
+                    const hasOverlap = publicReservations.some(r => {
                         if (r.siteId !== s.id || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
@@ -233,7 +239,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                 setSelectedAirId('');
             }
         }
-    }, [site, selectedDateRange, sites, reservations, blockedDates]);
+    }, [site, selectedDateRange, sites, publicReservations, blockedDates]);
 
     // Calculate dates
     const fromDate = selectedDateRange.from ? new Date(selectedDateRange.from) : undefined;

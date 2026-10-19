@@ -19,18 +19,49 @@ import ReservationLockModal from '@/components/reservation/ReservationLockModal'
 export default function ReservationPage() {
     const router = useRouter();
     const { isLoading, isAllowed, showLockModal, closeLockModal } = useReservationGuard();
-    const { selectedDateRange, reservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchSiteConfig, fetchPublicReservations } = useReservationStore();
+    const { selectedDateRange, publicReservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchSiteConfig, fetchPublicReservations } = useReservationStore();
 
     useEffect(() => {
-        fetchOpenDayRule();
-        fetchSites();
-        fetchSiteConfig();
+        const syncReservationAvailability = () => {
+            fetchOpenDayRule();
+            fetchSites();
+            fetchSiteConfig();
 
-        // Fetch public reservations for the next 6 months to ensure availability is up to date
-        const start = new Date();
-        const end = new Date();
-        end.setMonth(end.getMonth() + 6);
-        fetchPublicReservations(start, end);
+            // Fetch public reservations for the next 6 months to ensure availability is up to date
+            const start = new Date();
+            const end = new Date();
+            end.setMonth(end.getMonth() + 6);
+            fetchPublicReservations(start, end);
+        };
+
+        syncReservationAvailability();
+
+        // [백그라운드 복귀 동기화] 앱을 내렸다가 다시 올리거나(visibilitychange/focus), 뒤로가기로 복귀(pageshow)할 때
+        // 즉시 최신 마감 상태를 재동기화하여 마감된 사이트가 열리는 현상을 원천 차단
+        let resumeTimer: NodeJS.Timeout | null = null;
+        const handleAppResume = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+            if (resumeTimer) clearTimeout(resumeTimer);
+            resumeTimer = setTimeout(() => {
+                const start = new Date();
+                const end = new Date();
+                end.setMonth(end.getMonth() + 6);
+                fetchPublicReservations(start, end);
+                fetchSites();
+                fetchOpenDayRule();
+            }, 300);
+        };
+
+        window.addEventListener('focus', handleAppResume);
+        window.addEventListener('pageshow', handleAppResume);
+        document.addEventListener('visibilitychange', handleAppResume);
+
+        return () => {
+            if (resumeTimer) clearTimeout(resumeTimer);
+            window.removeEventListener('focus', handleAppResume);
+            window.removeEventListener('pageshow', handleAppResume);
+            document.removeEventListener('visibilitychange', handleAppResume);
+        };
     }, [fetchOpenDayRule, fetchSites, fetchSiteConfig, fetchPublicReservations]);
 
     // Realtime Postgres changes subscription to sync database modifications (e.g. block cancel) instantly
@@ -133,7 +164,7 @@ export default function ReservationPage() {
             }
 
             if (checkIn.getDay() === 5) { // Friday
-                const saturdayBookedSiteIds = reservations
+                const saturdayBookedSiteIds = publicReservations
                     .filter(r => {
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
@@ -141,7 +172,7 @@ export default function ReservationPage() {
                     })
                     .map(r => r.siteId);
 
-                const fridayBookedSiteIds = reservations
+                const fridayBookedSiteIds = publicReservations
                     .filter(r => {
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
@@ -158,7 +189,7 @@ export default function ReservationPage() {
                     hasEndCapAvailability = true;
                 }
             } else if (checkIn.getDay() === 6) { // Saturday (Start-cap)
-                const fridayBookedSiteIds = reservations
+                const fridayBookedSiteIds = publicReservations
                     .filter(r => {
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
@@ -166,7 +197,7 @@ export default function ReservationPage() {
                     })
                     .map(r => r.siteId);
 
-                const saturdayBookedSiteIds = reservations
+                const saturdayBookedSiteIds = publicReservations
                     .filter(r => {
                         const rCheckIn = new Date(r.checkInDate);
                         const rCheckOut = new Date(r.checkOutDate);
@@ -192,7 +223,7 @@ export default function ReservationPage() {
             isPrevDayBlocked
         });
         return { ...ruleResult, hasEndCapAvailability, isNextDayBlocked, hasStartCapAvailability, isPrevDayBlocked };
-    }, [selectedDateRange.from, activeConfig, selectedDateRange.to, reservations, todayStr, sites]);
+    }, [selectedDateRange.from, activeConfig, selectedDateRange.to, publicReservations, todayStr, sites]);
 
     // 추가: 모든 사이트가 예약되었는지 체크
     const allSitesBooked = useMemo(() => {
@@ -203,14 +234,14 @@ export default function ReservationPage() {
 
         // 각 사이트별로 예약 여부 확인
         return sites.every(site => {
-            return reservations.some(r => {
+            return publicReservations.some(r => {
                 if (r.siteId !== site.id || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                 const rCheckIn = new Date(r.checkInDate);
                 const rCheckOut = new Date(r.checkOutDate);
                 return rCheckIn < checkOut && rCheckOut > checkIn;
             });
         });
-    }, [selectedDateRange.from, selectedDateRange.to, sites, reservations]);
+    }, [selectedDateRange.from, selectedDateRange.to, sites, publicReservations]);
 
     if (isLoading) {
         return (

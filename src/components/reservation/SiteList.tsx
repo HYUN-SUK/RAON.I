@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange, reservations, calculatePrice, sites, fetchSites } = useReservationStore();
+    const { selectedSite, setSelectedSite, selectedDateRange, publicReservations, calculatePrice, sites, fetchSites } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -21,7 +21,7 @@ export default function SiteList() {
         fetchSites(); // 실시간 DB 사이트 상태 동기화
     }, [fetchSites]);
 
-    // Check availability based on reservations and rules
+    // Check availability based on publicReservations and rules
     const isSiteAvailable = (siteId: string) => {
         if (!selectedDateRange.from || !selectedDateRange.to) return true;
 
@@ -29,7 +29,7 @@ export default function SiteList() {
         const checkOut = new Date(selectedDateRange.to);
 
         // 1. Check for overlapping reservations
-        const hasOverlap = reservations.some(r => {
+        const hasOverlap = publicReservations.some(r => {
             if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
             const rCheckIn = new Date(r.checkInDate);
             const rCheckOut = new Date(r.checkOutDate);
@@ -57,7 +57,7 @@ export default function SiteList() {
                 const nextDay = new Date(checkIn);
                 nextDay.setDate(checkIn.getDate() + 1);
 
-                const isSaturdayBooked = reservations.some(r => {
+                const isSaturdayBooked = publicReservations.some(r => {
                     if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
@@ -71,7 +71,7 @@ export default function SiteList() {
                 const prevDay = new Date(checkIn);
                 prevDay.setDate(checkIn.getDate() - 1);
 
-                const isFridayBooked = reservations.some(r => {
+                const isFridayBooked = publicReservations.some(r => {
                     if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);

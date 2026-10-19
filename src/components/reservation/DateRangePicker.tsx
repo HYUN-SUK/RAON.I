@@ -13,7 +13,7 @@ import 'react-day-picker/style.css';
 import { cn } from '@/lib/utils';
 
 export default function DateRangePicker() {
-    const { selectedDateRange, setDateRange, reservations, openDayRule, fetchHolidays, holidays } = useReservationStore();
+    const { selectedDateRange, setDateRange, publicReservations, openDayRule, fetchHolidays, holidays } = useReservationStore();
 
     const activeConfig = useMemo(() => {
         if (openDayRule) {
@@ -74,7 +74,7 @@ export default function DateRangePicker() {
         }
 
         if (checkIn.getDay() === 5) { // Friday
-            const saturdayBookedSiteIds = reservations
+            const saturdayBookedSiteIds = publicReservations
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
@@ -82,7 +82,7 @@ export default function DateRangePicker() {
                 })
                 .map(r => r.siteId);
 
-            const fridayBookedSiteIds = reservations
+            const fridayBookedSiteIds = publicReservations
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
@@ -99,7 +99,7 @@ export default function DateRangePicker() {
                 isSaturdayFull = true;
             }
         } else if (checkIn.getDay() === 6) { // Saturday (Start-cap)
-            const fridayBookedSiteIds = reservations
+            const fridayBookedSiteIds = publicReservations
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);
@@ -107,7 +107,7 @@ export default function DateRangePicker() {
                 })
                 .map(r => r.siteId);
 
-            const saturdayBookedSiteIds = reservations
+            const saturdayBookedSiteIds = publicReservations
                 .filter(r => {
                     const rCheckIn = new Date(r.checkInDate);
                     const rCheckOut = new Date(r.checkOutDate);

@@ -20,6 +20,7 @@ interface ReservationState {
     };
     selectedSite: Site | null;
     reservations: Reservation[];
+    publicReservations: Reservation[];
 
     // Dynamic Data
     sites: Site[];
@@ -194,6 +195,7 @@ export const useReservationStore = create<ReservationState>()(
             selectedDateRange: { from: undefined, to: undefined },
             selectedSite: null,
             reservations: [],
+            publicReservations: [],
             deadlineHours: 6, // Default 6h
             lastReservation: null, // Smart Re-book용 마지막 예약 정보
             rebookData: null, // Rebook 폼 자동 입력용
@@ -509,7 +511,10 @@ export const useReservationStore = create<ReservationState>()(
                         createdAt: new Date()
                     };
 
-                    set((state) => ({ reservations: [...state.reservations, newReservation] }));
+                    set((state) => ({
+                        reservations: [...state.reservations, newReservation],
+                        publicReservations: [...state.publicReservations, newReservation]
+                    }));
 
                     // Notification Trigger (누락된 알림 코드 추가)
                     const { sites, siteConfig } = get();
@@ -725,25 +730,72 @@ export const useReservationStore = create<ReservationState>()(
                 set({ reservations: mapped });
             },
 
-            // 공개 예약 조회 (마감 현황 확인용)
+            // 공개 예약 조회 (마감 현황 확인용 - 개인 예약 reservations와 완전히 분리된 publicReservations 사용)
             fetchPublicReservations: async (start: Date, end: Date) => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
+                const startStr = formatLocalDate(start);
+                const endStr = formatLocalDate(end);
+                let rows: any[] | null = null;
 
-                // RPC 호출
-                const { data, error } = await supabase.rpc('get_public_reservations', {
-                    p_start_date: formatLocalDate(start),
-                    p_end_date: formatLocalDate(end)
-                });
+                try {
+                    const { createClient } = await import('@/lib/supabase-client');
+                    const supabase = createClient();
 
-                if (error || !data) {
-                    console.error('[Store] Failed to fetch public reservations:', error);
+                    // 1차: 기본 Supabase 클라이언트로 RPC 호출
+                    const { data, error } = await supabase.rpc('get_public_reservations', {
+                        p_start_date: startStr,
+                        p_end_date: endStr
+                    });
+
+                    if (!error && Array.isArray(data)) {
+                        rows = data;
+                    } else if (error) {
+                        console.warn('[Store] Primary get_public_reservations RPC error, trying anon fallback:', error);
+                    }
+                } catch (rpcErr) {
+                    console.warn('[Store] Primary get_public_reservations exception, trying anon fallback:', rpcErr);
+                }
+
+                // 2차 폴백: 앱 백그라운드 복귀 직후 만료된 사용자 JWT 헤더 등으로 인해 1차 호출이 실패한 경우,
+                // 순수 anon 키로 직접 PostgREST RPC를 호출하여 마감 상태를 100% 보장
+                if (!rows) {
+                    try {
+                        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                        if (supabaseUrl && supabaseAnonKey) {
+                            const res = await fetch(`${supabaseUrl}/rest/v1/rpc/get_public_reservations`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'apikey': supabaseAnonKey,
+                                    'Authorization': `Bearer ${supabaseAnonKey}`
+                                },
+                                body: JSON.stringify({
+                                    p_start_date: startStr,
+                                    p_end_date: endStr
+                                }),
+                                cache: 'no-store'
+                            });
+                            if (res.ok) {
+                                const fallbackData = await res.json();
+                                if (Array.isArray(fallbackData)) {
+                                    rows = fallbackData;
+                                }
+                            }
+                        }
+                    } catch (fallbackErr) {
+                        console.error('[Store] Anon fallback for get_public_reservations failed:', fallbackErr);
+                    }
+                }
+
+                // 네트워크 단절 등으로 조회 자체가 실패한 경우 기존 마감 상태(publicReservations)를 절대 초기화하지 않고 유지
+                if (!rows) {
+                    console.error('[Store] Failed to fetch public reservations; preserving existing publicReservations state.');
                     return;
                 }
 
-                const publicReservations: Reservation[] = [];
+                const mappedPublicReservations: Reservation[] = [];
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                data.forEach((r: any) => {
+                rows.forEach((r: any) => {
                     // [가용성 정규화] PENDING, CONFIRMED, BLOCKED만 마감 점유로 반영 (REFUND_PENDING/CANCELLED/REFUNDED는 미포함 = 즉시 오픈)
                     if (r.status !== 'PENDING' && r.status !== 'CONFIRMED' && r.status !== 'BLOCKED') {
                         return;
@@ -751,7 +803,7 @@ export const useReservationStore = create<ReservationState>()(
 
                     if (r.site_id === 'ALL') {
                         ['site-1', 'site-2', 'site-3', 'site-4', 'site-5', 'site-6', 'site-7', 'site-8'].forEach(sId => {
-                            publicReservations.push({
+                            mappedPublicReservations.push({
                                 id: `public-${sId}-${r.check_in_date}-${Math.random()}`,
                                 userId: '00000000-0000-0000-0000-000000000000',
                                 siteId: sId,
@@ -768,7 +820,7 @@ export const useReservationStore = create<ReservationState>()(
                             });
                         });
                     } else {
-                        publicReservations.push({
+                        mappedPublicReservations.push({
                             id: `public-${r.site_id}-${r.check_in_date}`,
                             userId: '00000000-0000-0000-0000-000000000000',
                             siteId: r.site_id,
@@ -786,9 +838,8 @@ export const useReservationStore = create<ReservationState>()(
                     }
                 });
 
-                // 서버에서 받아온 공개 예약 데이터로 완전히 교체
-                // (localStorage 캐시된 오래된 데이터를 무시하고 최신 서버 데이터만 사용)
-                set({ reservations: publicReservations });
+                // 전용 publicReservations 슬롯에 저장하여 fetchMyReservations(개인 예약 조회)와 절대 충돌하지 않도록 보장
+                set({ publicReservations: mappedPublicReservations });
             },
 
             // 사용자 취소 요청 [v14.6.0: 영구 불변 REST API + Bearer 토큰 연동으로 무한 로딩 원천 차단]
@@ -855,7 +906,8 @@ export const useReservationStore = create<ReservationState>()(
                     return { success: false, error: result.error, message: result.message };
                 }
 
-                // 로컬 상태 업데이트
+                // 로컬 상태 업데이트 (개인 예약 목록 및 공개 마감 목록 동시 반영)
+                const cancelledTarget = get().reservations.find(r => r.id === params.reservationId);
                 set((state) => ({
                     reservations: state.reservations.map((res) =>
                         res.id === params.reservationId
@@ -871,7 +923,19 @@ export const useReservationStore = create<ReservationState>()(
                                 cancelledAt: new Date()
                             }
                             : res
-                    )
+                    ),
+                    publicReservations: state.publicReservations.filter((pub) => {
+                        if (pub.id === params.reservationId) return false;
+                        if (
+                            cancelledTarget &&
+                            pub.siteId === cancelledTarget.siteId &&
+                            formatLocalDate(pub.checkInDate) === formatLocalDate(cancelledTarget.checkInDate) &&
+                            formatLocalDate(pub.checkOutDate) === formatLocalDate(cancelledTarget.checkOutDate)
+                        ) {
+                            return false;
+                        }
+                        return true;
+                    })
                 }));
 
                 // Notification Trigger (사용자 취소 알림)
@@ -1256,7 +1320,8 @@ export const useReservationStore = create<ReservationState>()(
                 );
             },
             validateReservation: (siteId, checkIn, checkOut) => {
-                const { reservations } = get();
+                const { publicReservations, reservations } = get();
+                const availabilityList = publicReservations.length > 0 ? publicReservations : reservations;
                 const startDay = checkIn.getDay();
                 const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -1281,7 +1346,7 @@ export const useReservationStore = create<ReservationState>()(
                             const saturdayDate = new Date(checkIn);
                             saturdayDate.setDate(saturdayDate.getDate() + 1); // This is Saturday
 
-                            const isSaturdayBooked = reservations.some(r => {
+                            const isSaturdayBooked = availabilityList.some(r => {
                                 if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                                 const rCheckIn = new Date(r.checkInDate);
                                 const rCheckOut = new Date(r.checkOutDate);
@@ -1301,7 +1366,7 @@ export const useReservationStore = create<ReservationState>()(
                             const fridayDate = new Date(checkIn);
                             fridayDate.setDate(fridayDate.getDate() - 1); // This is Friday
 
-                            const isFridayBooked = reservations.some(r => {
+                            const isFridayBooked = availabilityList.some(r => {
                                 if (r.siteId !== siteId || r.status === 'CANCELLED' || r.status === 'REFUNDED' || r.status === 'REFUND_PENDING') return false;
                                 const rCheckIn = new Date(r.checkInDate);
                                 const rCheckOut = new Date(r.checkOutDate);
