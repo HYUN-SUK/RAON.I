@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config({ path: 'c:/Users/user/Desktop/RAON.I/.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import { addMonths, endOfMonth, isBefore } from 'date-fns';
+import { addMonths, endOfMonth, isBefore, format } from 'date-fns';
+import fs from 'fs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -31,13 +32,13 @@ async function cleanupTestData() {
             .from('reservations')
             .delete()
             .gte('check_in_date', `${SIMULATION_YEAR}-01-01`)
-            .lte('check_out_date', `${SIMULATION_YEAR}-12-31`);
+            .lte('check_out_date', `${SIMULATION_YEAR + 1}-12-31`);
 
         await adminClient
             .from('blocked_dates')
             .delete()
             .gte('start_date', `${SIMULATION_YEAR}-01-01`)
-            .lte('end_date', `${SIMULATION_YEAR}-12-31`);
+            .lte('end_date', `${SIMULATION_YEAR + 1}-12-31`);
     } catch (err) {
         console.warn('Clean-up warning:', err.message);
     }
@@ -63,7 +64,7 @@ async function callCreateReservationSafe(params) {
     return data;
 }
 
-// 헬퍼: 룰 기반 closeAt 계산 (가상 시간 주입)
+// 헬퍼: 룰 기반 closeAt 계산 (useReservationStore.ts와 100% 동일 공식, 가상 시간 주입)
 function calculateDynamicCloseAt(rule, simulatedNow) {
     if (!rule || rule.repeat_rule !== 'MONTHLY' || !rule.automation_config) {
         return new Date(rule?.close_at || '2099-12-31');
@@ -93,7 +94,7 @@ function calculateDynamicCloseAt(rule, simulatedNow) {
 
 async function runMasterSimulation() {
     console.log('======================================================================');
-    console.log('🔥 [RAON.I] 11월 대규모 예약 오픈 최종 통합 실전 시뮬레이션 (16개 전수)');
+    console.log('🔥 [RAON.I] 12월 대규모 예약 오픈 최종 통합 실전 시뮬레이션 (20개 전수)');
     console.log('- 방식: 선택 A (완전 무위험 격리, 실제 운영 DB 수정 0%, 2099년 격리)');
     console.log('======================================================================\n');
 
@@ -101,34 +102,54 @@ async function runMasterSimulation() {
 
     try {
         // -------------------------------------------------------------------------
-        // [영역 A] 오픈 시간 경계 및 11월 동적 활성화 검증 (2개)
+        // [영역 A] 오픈 시간 경계 및 12월(~2027-01-04) 동적 활성화 검증 (3개)
         // -------------------------------------------------------------------------
-        console.log('--- [영역 A] 오픈 시간 경계 및 11월 동적 활성화 검증 ---');
+        console.log('--- [영역 A] 오픈 시간 경계 및 12월(~2027-01-04) 동적 활성화 검증 ---');
         
-        // A-1: 08:59 vs 09:00 경계 계산 (가상 시간 주입, 운영 DB 미변경)
+        // A-1: 10월 20일 08:59:59 vs 09:00:01 경계 계산 (가상 시간 주입, 운영 DB 미변경)
         const { data: activeRule } = await adminClient.from('open_day_rules').select('*').eq('is_active', true).single();
-        const preOpenTime = new Date('2026-09-20T08:59:59+09:00');
-        const postOpenTime = new Date('2026-09-20T09:00:01+09:00');
+        const preOpenTime = new Date('2026-10-20T08:59:59+09:00');
+        const postOpenTime = new Date('2026-10-20T09:00:01+09:00');
         
         const closeAtBefore = calculateDynamicCloseAt(activeRule, preOpenTime);
         const closeAtAfter = calculateDynamicCloseAt(activeRule, postOpenTime);
         
-        const nov15 = new Date('2026-11-15T00:00:00+09:00');
-        const isNovBlockedBefore = nov15 > closeAtBefore; // 08:59 시점에는 11/15가 닫혀있어야 함
-        const isNovOpenAfter = nov15 <= closeAtAfter;     // 09:00 시점에는 11/15가 열려있어야 함
+        const dec15 = new Date('2026-12-15T00:00:00+09:00');
+        const jan04 = new Date('2027-01-04T12:00:00+09:00');
+        const jan05 = new Date('2027-01-05T00:00:00+09:00');
+
+        const isDecBlockedBefore = dec15 > closeAtBefore; // 08:59 시점에는 12/15가 닫혀있어야 함 (~12/04 마감)
+        const isDecOpenAfter = dec15 <= closeAtAfter && jan04 <= closeAtAfter && jan05 > closeAtAfter; // 09:00 시점에는 ~2027-01-04까지 열려야 함
         
-        const passA1 = isNovBlockedBefore && isNovOpenAfter;
-        recordResult('Case A-1', '08:59 vs 09:00 경계 동적 계산', passA1, 
-            `08:59 마감일: ${closeAtBefore.toISOString().split('T')[0]} (11/15 차단: ${isNovBlockedBefore}), 09:00 마감일: ${closeAtAfter.toISOString().split('T')[0]} (11/15 오픈: ${isNovOpenAfter})`);
+        const passA1 = isDecBlockedBefore && isDecOpenAfter;
+        recordResult('Case A-1', '10/20 08:59 vs 09:00 경계 동적 계산 (~2027-01-04 오픈)', passA1, 
+            `08:59 마감일: ${format(closeAtBefore, 'yyyy-MM-dd')} (12/15 차단: ${isDecBlockedBefore}), 09:00 마감일: ${format(closeAtAfter, 'yyyy-MM-dd')} (12/15 & 01/04 오픈: ${isDecOpenAfter})`);
 
         // A-2: 09:00 전 조기 요청 클라이언트 가드 검증
         const isPreOpenBlocked = (targetDate, simTime) => {
             const ruleCloseAt = calculateDynamicCloseAt(activeRule, simTime);
             return targetDate > ruleCloseAt;
         };
-        const passA2 = isPreOpenBlocked(new Date('2026-11-20'), preOpenTime) === true;
-        recordResult('Case A-2', '09:00 전 조기 요청 가드 차단', passA2,
-            `08:59에 11/20 선택 시도 시 클라이언트 가드 차단 여부: ${passA2}`);
+        const passA2 = isPreOpenBlocked(new Date('2026-12-25T00:00:00+09:00'), preOpenTime) === true;
+        recordResult('Case A-2', '09:00 전 조기 요청 가드 차단 (12/25 성탄절 조기 접근 차단)', passA2,
+            `08:59에 12/25 선택 시도 시 클라이언트 가드 차단 여부: ${passA2}`);
+
+        // A-3: 12월 성탄절(2026-12-25) & 신정(2027-01-01) 공휴일 SSOT 및 연말 해넘이(2099-12-31 ~ 2100-01-02) 예약 검증
+        const holidaysSource = fs.readFileSync('c:/Users/user/Desktop/RAON.I/src/lib/constants/holidays.ts', 'utf8');
+        const hasXmasAndNewYear = holidaysSource.includes("'2026-12-25'") && holidaysSource.includes("'2027-01-01'");
+        const resYearCross = await callCreateReservationSafe({
+            userId: null,
+            siteId: 'site-1',
+            checkIn: `${SIMULATION_YEAR}-12-31`,
+            checkOut: `${SIMULATION_YEAR + 1}-01-02`,
+            guestName: '해넘이캠퍼'
+        });
+        const passA3 = hasXmasAndNewYear && resYearCross.success === true;
+        recordResult('Case A-3', '성탄절/신정 공휴일 SSOT 및 연말 해넘이(12/31~01/02) 예약 검증', passA3,
+            `성탄절(12/25)·신정(2027-01-01) SSOT 등재: ${hasXmasAndNewYear}, 해넘이 연박 예약 성공: ${resYearCross.success}`);
+        if (resYearCross.reservation_id) {
+            await adminClient.from('reservations').delete().eq('id', resYearCross.reservation_id);
+        }
 
         // -------------------------------------------------------------------------
         // [영역 B] 모바일 연타 및 비로그인 인증 안전망 검증 (2개)
@@ -162,8 +183,8 @@ async function runMasterSimulation() {
         const resB2 = await callCreateReservationSafe({
             userId: null,
             siteId: 'site-1',
-            checkIn: `${SIMULATION_YEAR}-11-01`,
-            checkOut: `${SIMULATION_YEAR}-11-02`,
+            checkIn: `${SIMULATION_YEAR}-12-01`,
+            checkOut: `${SIMULATION_YEAR}-12-02`,
             guestName: '비로그인게스트',
             guestPhone: '010-1234-5678'
         });
@@ -171,7 +192,6 @@ async function runMasterSimulation() {
         recordResult('Case B-2', '비로그인(userId=null) DB 외래키 위반 0% 방어', passB2,
             `성공여부: ${resB2.success}, 발급 ID: ${resB2.reservation_id || '없음'}, 에러: ${resB2.error || '없음'}`);
         
-        // 롤백 클린업
         if (resB2.reservation_id) {
             await adminClient.from('reservations').delete().eq('id', resB2.reservation_id);
         }
@@ -181,10 +201,10 @@ async function runMasterSimulation() {
         // -------------------------------------------------------------------------
         console.log('\n--- [영역 C] 수백 명 동시 집중 폭격 및 자원 경합 검증 ---');
 
-        // C-1: 최고 인기 사이트(site-1) 100명 동시 광클 경합
+        // C-1: 최고 인기 사이트(site-1) 성탄절 연휴 100명 동시 광클 경합
         const targetSite = 'site-1';
-        const targetCheckIn = `${SIMULATION_YEAR}-11-14`;
-        const targetCheckOut = `${SIMULATION_YEAR}-11-16`;
+        const targetCheckIn = `${SIMULATION_YEAR}-12-25`;
+        const targetCheckOut = `${SIMULATION_YEAR}-12-27`;
         
         const startTimeC1 = Date.now();
         const promisesC1 = Array.from({ length: 100 }).map((_, idx) =>
@@ -213,8 +233,8 @@ async function runMasterSimulation() {
 
         // C-2: 10개 사이트 분산 50명 동시 폭격 (10개 사이트 x 5명)
         const sitesList = ['site-1', 'site-2', 'site-3', 'site-4', 'site-5', 'site-6', 'site-7', 'site-8', 'site-9', 'site-10'];
-        const targetDateC2In = `${SIMULATION_YEAR}-11-21`;
-        const targetDateC2Out = `${SIMULATION_YEAR}-11-23`;
+        const targetDateC2In = `${SIMULATION_YEAR}-12-18`;
+        const targetDateC2Out = `${SIMULATION_YEAR}-12-20`;
 
         const promisesC2 = [];
         for (const sId of sitesList) {
@@ -235,24 +255,22 @@ async function runMasterSimulation() {
             `10개 사이트 당첨 수: ${successCountC2}/10개 사이트, 40명 정상 거절 (데드락 0건)`);
 
         // C-3: 에어컨 기기(air-1 ~ air-8) 동시 경합 및 연쇄 배정
-        // 10명이 동시에 air-1을 요청 -> 1명 당첨, 9명 거절
         const promisesC3 = Array.from({ length: 10 }).map((_, idx) =>
             callCreateReservationSafe({
                 userId: null,
                 siteId: 'air-1',
-                checkIn: `${SIMULATION_YEAR}-11-05`,
-                checkOut: `${SIMULATION_YEAR}-11-06`,
+                checkIn: `${SIMULATION_YEAR}-12-05`,
+                checkOut: `${SIMULATION_YEAR}-12-06`,
                 guestName: `에어컨유저_${idx + 1}`
             })
         );
         const resultsC3 = await Promise.all(promisesC3);
         const successC3 = resultsC3.filter(r => r.success === true).length;
-        // 탈락자가 air-2로 재시도 시 성공 확인
         const retryAir2 = await callCreateReservationSafe({
             userId: null,
             siteId: 'air-2',
-            checkIn: `${SIMULATION_YEAR}-11-05`,
-            checkOut: `${SIMULATION_YEAR}-11-06`,
+            checkIn: `${SIMULATION_YEAR}-12-05`,
+            checkOut: `${SIMULATION_YEAR}-12-06`,
             guestName: '에어컨_재시도유저'
         });
         const passC3 = successC3 === 1 && retryAir2.success === true;
@@ -262,16 +280,16 @@ async function runMasterSimulation() {
         // C-4: 에어컨 대표카드(air-group) 차단 시 개별 기기(air-1~8) DB 차단
         await adminClient.from('blocked_dates').insert({
             site_id: 'air-group',
-            start_date: `${SIMULATION_YEAR}-11-10`,
-            end_date: `${SIMULATION_YEAR}-11-12`,
+            start_date: `${SIMULATION_YEAR}-12-10`,
+            end_date: `${SIMULATION_YEAR}-12-12`,
             memo: '에어컨 대표카드 전체 점검 차단',
             is_paid: false
         });
         const resC4 = await callCreateReservationSafe({
             userId: null,
             siteId: 'air-3',
-            checkIn: `${SIMULATION_YEAR}-11-10`,
-            checkOut: `${SIMULATION_YEAR}-11-12`,
+            checkIn: `${SIMULATION_YEAR}-12-10`,
+            checkOut: `${SIMULATION_YEAR}-12-12`,
             guestName: '침투시도자'
         });
         const passC4 = resC4.success === false && resC4.error === 'ALREADY_BOOKED';
@@ -279,15 +297,15 @@ async function runMasterSimulation() {
             `차단 성공 여부: ${passC4} (error: ${resC4.error})`);
 
         // -------------------------------------------------------------------------
-        // [영역 D] 가용성, 취소 즉시 오픈 및 주말 규칙 검증 (4개)
+        // [영역 D] 가용성, 취소 즉시 오픈, 주말 규칙 및 마일스톤 9.94 마감 격리 검증 (6개)
         // -------------------------------------------------------------------------
-        console.log('\n--- [영역 D] 가용성, 취소 즉시 오픈 및 주말 규칙 검증 ---');
+        console.log('\n--- [영역 D] 가용성, 취소 즉시 오픈, 주말 규칙 및 마일스톤 9.94 마감 격리 검증 ---');
 
         // D-1: 환불대기(REFUND_PENDING) 자리 즉시 타인 예약 성공 (공실률 0%)
         await adminClient.from('reservations').insert({
             site_id: 'site-2',
-            check_in_date: `${SIMULATION_YEAR}-11-02`,
-            check_out_date: `${SIMULATION_YEAR}-11-04`,
+            check_in_date: `${SIMULATION_YEAR}-12-02`,
+            check_out_date: `${SIMULATION_YEAR}-12-04`,
             status: 'REFUND_PENDING',
             total_price: 100000,
             guest_name: '취소신청고객'
@@ -296,8 +314,8 @@ async function runMasterSimulation() {
         const resD1 = await callCreateReservationSafe({
             userId: null,
             siteId: 'site-2',
-            checkIn: `${SIMULATION_YEAR}-11-02`,
-            checkOut: `${SIMULATION_YEAR}-11-04`,
+            checkIn: `${SIMULATION_YEAR}-12-02`,
+            checkOut: `${SIMULATION_YEAR}-12-04`,
             guestName: '신규고객'
         });
         const passD1 = resD1.success === true;
@@ -307,26 +325,24 @@ async function runMasterSimulation() {
         // D-2: 퇴실일 당일 입실(Turnover) 정상 허용 & 체류일 겹침 100% 차단
         await adminClient.from('reservations').insert({
             site_id: 'site-3',
-            check_in_date: `${SIMULATION_YEAR}-11-05`,
-            check_out_date: `${SIMULATION_YEAR}-11-07`,
+            check_in_date: `${SIMULATION_YEAR}-12-05`,
+            check_out_date: `${SIMULATION_YEAR}-12-07`,
             status: 'CONFIRMED',
             total_price: 100000,
             guest_name: '선예약자'
         });
-        // 11/07 당일 체크인 (Turnover 정상)
         const resD2Turnover = await callCreateReservationSafe({
             userId: null,
             siteId: 'site-3',
-            checkIn: `${SIMULATION_YEAR}-11-07`,
-            checkOut: `${SIMULATION_YEAR}-11-09`,
+            checkIn: `${SIMULATION_YEAR}-12-07`,
+            checkOut: `${SIMULATION_YEAR}-12-09`,
             guestName: '당일입실자'
         });
-        // 11/06 체류일 침범 (차단되어야 함)
         const resD2Overlap = await callCreateReservationSafe({
             userId: null,
             siteId: 'site-3',
-            checkIn: `${SIMULATION_YEAR}-11-06`,
-            checkOut: `${SIMULATION_YEAR}-11-08`,
+            checkIn: `${SIMULATION_YEAR}-12-06`,
+            checkOut: `${SIMULATION_YEAR}-12-08`,
             guestName: '침범자'
         });
         const passD2 = resD2Turnover.success === true && resD2Overlap.success === false;
@@ -343,17 +359,48 @@ async function runMasterSimulation() {
             }
             return { allowed: true };
         };
-        const testD3Blocked = validateWeekendRule('2099-11-06', '2099-11-07', false);
-        const testD3Allowed = validateWeekendRule('2099-11-06', '2099-11-07', true);
+        const testD3Blocked = validateWeekendRule('2099-12-04', '2099-12-05', false);
+        const testD3Allowed = validateWeekendRule('2099-12-04', '2099-12-05', true);
         const passD3 = testD3Blocked.allowed === false && testD3Allowed.allowed === true;
         recordResult('Case D-3', '주말 1박/2박 및 End-cap 1박 허용', passD3,
             `토요일 공실 시 금요일 1박 차단: ${!testD3Blocked.allowed}, 토요일 점유 시 1박 허용: ${testD3Allowed.allowed}`);
 
         // D-4: 주말 취소 건의 실시간 룰 연동 (토요일이 취소되면 금요일 1박 차단)
-        const testD4 = validateWeekendRule('2099-11-06', '2099-11-07', false); // 취소되어 공실
+        const testD4 = validateWeekendRule('2099-12-04', '2099-12-05', false);
         const passD4 = testD4.allowed === false;
         recordResult('Case D-4', '주말 취소 건 실시간 연동 (1박 즉시 차단)', passD4,
             `토요일 취소(빈자리) 감지 시 금요일 1박 즉시 차단: ${!testD4.allowed}`);
+
+        // D-5: [마일스톤 9.94] get_public_reservations RPC 정합성 검증
+        // (CONFIRMED, PENDING, BLOCKED는 반환되고 REFUND_PENDING은 제외되어야 함)
+        const { data: pubRows, error: pubErr } = await anonClient.rpc('get_public_reservations', {
+            p_start_date: `${SIMULATION_YEAR}-12-01`,
+            p_end_date: `${SIMULATION_YEAR}-12-31`
+        });
+        const hasConfirmedSite3 = Array.isArray(pubRows) && pubRows.some(r => r.site_id === 'site-3' && r.status === 'CONFIRMED');
+        const hasPendingSite2 = Array.isArray(pubRows) && pubRows.some(r => r.site_id === 'site-2' && r.status === 'PENDING');
+        const hasRefundPendingLeaked = Array.isArray(pubRows) && pubRows.some(r => r.status === 'REFUND_PENDING');
+        const passD5 = !pubErr && hasConfirmedSite3 && hasPendingSite2 && !hasRefundPendingLeaked;
+        recordResult('Case D-5', '[마일스톤 9.94] get_public_reservations RPC 마감 정합성', passD5,
+            `정상 마감 포함(CONFIRMED/PENDING): ${hasConfirmedSite3 && hasPendingSite2}, REFUND_PENDING 누출 0건: ${!hasRefundPendingLeaked}`);
+
+        // D-6: [마일스톤 9.94] 백그라운드 복귀 순수 anon PostgREST 2차 폴백 호출 검증
+        const fallbackRes = await fetch(`${supabaseUrl}/rest/v1/rpc/get_public_reservations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${supabaseAnonKey}`
+            },
+            body: JSON.stringify({
+                p_start_date: `${SIMULATION_YEAR}-12-01`,
+                p_end_date: `${SIMULATION_YEAR}-12-31`
+            })
+        });
+        const fallbackData = fallbackRes.ok ? await fallbackRes.json() : null;
+        const passD6 = fallbackRes.ok && Array.isArray(fallbackData) && fallbackData.length > 0;
+        recordResult('Case D-6', '[마일스톤 9.94] 백그라운드 복귀 순수 anon PostgREST 폴백 응답', passD6,
+            `HTTP Status: ${fallbackRes.status}, 반환 마감 건수: ${Array.isArray(fallbackData) ? fallbackData.length : 0}건`);
 
         // -------------------------------------------------------------------------
         // [영역 E] 실시간 트래픽 부하 및 사후 운영 라이프사이클 검증 (3개)
@@ -369,12 +416,11 @@ async function runMasterSimulation() {
                 actualRpcCount++;
             }, 500);
         };
-        // 20회 연속 트리거 (20ms 간격)
         for (let i = 0; i < 20; i++) {
             triggerRealtimeEvent();
             await new Promise(r => setTimeout(r, 20));
         }
-        await new Promise(r => setTimeout(r, 600)); // 디바운스 완료 대기
+        await new Promise(r => setTimeout(r, 600));
         const passE1 = actualRpcCount === 1;
         recordResult('Case E-1', 'Realtime 500ms 디바운스 압축', passE1,
             `20회 연속 이벤트 ➔ 실제 실행 횟수: ${actualRpcCount}회 (부하 95% 절감)`);
@@ -382,23 +428,21 @@ async function runMasterSimulation() {
         // E-2: 미입금(6시간 경과) 자동 취소 및 빈자리 환원
         const { data: overdueRes } = await adminClient.from('reservations').insert({
             site_id: 'site-4',
-            check_in_date: `${SIMULATION_YEAR}-11-25`,
-            check_out_date: `${SIMULATION_YEAR}-11-26`,
+            check_in_date: `${SIMULATION_YEAR}-12-22`,
+            check_out_date: `${SIMULATION_YEAR}-12-23`,
             status: 'PENDING',
             total_price: 50000,
             guest_name: '미입금고객',
-            created_at: new Date(Date.now() - 7 * 3600 * 1000).toISOString() // 7시간 전
+            created_at: new Date(Date.now() - 7 * 3600 * 1000).toISOString()
         }).select().single();
 
-        // 자동 취소 처리 모사
         await adminClient.from('reservations').update({ status: 'CANCELLED', cancel_reason: '입금 기한 초과 자동 취소' }).eq('id', overdueRes.id);
         
-        // 타인 즉시 재예약
         const resE2Rebook = await callCreateReservationSafe({
             userId: null,
             siteId: 'site-4',
-            checkIn: `${SIMULATION_YEAR}-11-25`,
-            checkOut: `${SIMULATION_YEAR}-11-26`,
+            checkIn: `${SIMULATION_YEAR}-12-22`,
+            checkOut: `${SIMULATION_YEAR}-12-23`,
             guestName: '대기진성고객'
         });
         const passE2 = resE2Rebook.success === true;
@@ -410,8 +454,8 @@ async function runMasterSimulation() {
         const resE3 = await callCreateReservationSafe({
             userId: null,
             siteId: 'site-5',
-            checkIn: `${SIMULATION_YEAR}-11-28`,
-            checkOut: `${SIMULATION_YEAR}-11-29`,
+            checkIn: `${SIMULATION_YEAR}-12-28`,
+            checkOut: `${SIMULATION_YEAR}-12-29`,
             guestName: '푸시격리테스터'
         });
         const durationE3 = Date.now() - tStartE3;
@@ -420,9 +464,9 @@ async function runMasterSimulation() {
             `예약 트랜잭션 지연 0ms 및 정상 완료: ${resE3.success} (소요: ${durationE3}ms)`);
 
         // -------------------------------------------------------------------------
-        // [영역 F] 최종 데이터 완전 정화 및 운영 환경 검증 (1개)
+        // [영역 F] 최종 데이터 완전 정화 및 12월 운영 환경 검증 (2개)
         // -------------------------------------------------------------------------
-        console.log('\n--- [영역 F] 최종 데이터 완전 정화 및 운영 환경 검증 ---');
+        console.log('\n--- [영역 F] 최종 데이터 완전 정화 및 12월 운영 환경 검증 ---');
 
         await cleanupTestData();
 
@@ -436,21 +480,27 @@ async function runMasterSimulation() {
             .select('*', { count: 'exact', head: true })
             .gte('start_date', `${SIMULATION_YEAR}-01-01`);
 
-        const { count: countRealNovRes } = await adminClient
+        const passF1 = count2099Res === 0 && count2099Blocked === 0;
+        recordResult('Case F-1', '2099년 시뮬레이션 테스트 데이터 100% 완전 정화 확인', passF1,
+            `2099~2100년 잔여 테스트 예약: ${count2099Res}건, 잔여 차단일: ${count2099Blocked}건 (오염 0.00%)`);
+
+        // F-2: 실제 내일 오픈 대상인 2026년 12월(12/05~2027-01-04) 백지 상태 및 사전 차단일 보존 확인
+        const { count: countRealDecRes } = await adminClient
             .from('reservations')
             .select('*', { count: 'exact', head: true })
-            .gte('check_in_date', '2026-11-01')
-            .lte('check_in_date', '2026-11-30');
+            .gte('check_in_date', '2026-12-05')
+            .lte('check_in_date', '2027-01-04')
+            .not('status', 'in', '("CANCELLED","REFUNDED")');
 
-        const { count: countRealNovBlocked } = await adminClient
+        const { count: countRealDecBlocked } = await adminClient
             .from('blocked_dates')
             .select('*', { count: 'exact', head: true })
-            .lte('start_date', '2026-11-30')
-            .gte('end_date', '2026-11-01');
+            .lte('start_date', '2027-01-04')
+            .gte('end_date', '2026-12-01');
 
-        const passF1 = count2099Res === 0 && count2099Blocked === 0 && countRealNovRes === 0;
-        recordResult('Case F-1', '운영 DB 무오염 및 백지 상태 무결성 확인', passF1,
-            `2099년 잔여 테스트 데이터: 0건 (예약: ${count2099Res}, 차단: ${count2099Blocked}) | 실제 2026년 11월 일반 예약: ${countRealNovRes}건 (완전 백지) | 기존 운영 차단일: ${countRealNovBlocked}건 안전 보존`);
+        const passF2 = countRealDecRes === 0 && countRealDecBlocked > 0;
+        recordResult('Case F-2', '실제 12월 오픈 구간(12/05~01/04) 백지 상태 및 차단일 보존 확인', passF2,
+            `실제 12월 신규 오픈 구간 일반 예약: ${countRealDecRes}건 (완전 백지) | 기존 운영 차단일: ${countRealDecBlocked}건 안전 보존`);
 
     } catch (criticalErr) {
         console.error('Critical Error in Simulation:', criticalErr);

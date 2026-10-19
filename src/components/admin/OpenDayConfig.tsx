@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CalendarClock, Save, Loader2, CalendarRange, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addMonths, endOfMonth, isBefore } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 interface OpenDayRule {
@@ -21,8 +21,64 @@ interface OpenDayRule {
     automation_config?: {
         triggerDay: number;
         monthsToAdd: number;
-        targetDay: 'END' | number;
+        targetDay: 'END' | number | string;
     } | null;
+}
+
+// useReservationStore.ts와 100% 동일한 공식으로 현재 오픈 마감일 및 다가오는 오픈 일시/마감일을 계산하는 헬퍼
+function calculateMonthlySchedulePreview(
+    triggerDayInput: number | string,
+    monthsToAddInput: number | string,
+    targetDayInput: 'END' | number | string
+) {
+    const now = new Date();
+    const tDay = Number(triggerDayInput) || 1;
+    const mAdd = Number(monthsToAddInput) || 2;
+    const targetDayStr = String(targetDayInput || 'END');
+
+    const resolveCloseDate = (base: Date) => {
+        const targetMonthDate = addMonths(base, mAdd);
+        if (targetDayStr === 'END') {
+            const end = endOfMonth(targetMonthDate);
+            end.setHours(23, 59, 59, 999);
+            return end;
+        }
+        const d = new Date(targetMonthDate);
+        d.setDate(Number(targetDayStr) || 1);
+        d.setHours(23, 59, 59, 999);
+        return d;
+    };
+
+    // 1. 이번 달 트리거 시각 (매월 tDay일 09:00:00)
+    const thisMonthTrigger = new Date(now);
+    thisMonthTrigger.setDate(tDay);
+    thisMonthTrigger.setHours(9, 0, 0, 0);
+
+    // 2. 현재 시점 기준 열려있는 마감일 계산
+    const currentBaseDate = new Date(now);
+    const isBeforeThisMonthTrigger = isBefore(now, thisMonthTrigger);
+    if (isBeforeThisMonthTrigger) {
+        currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
+    }
+    const currentCloseAt = resolveCloseDate(currentBaseDate);
+
+    // 3. 다가오는 다음 오픈 시각 및 그때 열리는 마감일 계산
+    const nextTriggerAt = isBeforeThisMonthTrigger
+        ? thisMonthTrigger
+        : (() => {
+            const next = addMonths(thisMonthTrigger, 1);
+            next.setDate(tDay);
+            next.setHours(9, 0, 0, 0);
+            return next;
+        })();
+
+    const nextCloseAt = resolveCloseDate(nextTriggerAt);
+
+    return {
+        currentCloseAt,
+        nextTriggerAt,
+        nextCloseAt,
+    };
 }
 
 export default function OpenDayConfig() {
@@ -32,16 +88,16 @@ export default function OpenDayConfig() {
 
     // Form State
     const [seasonName, setSeasonName] = useState('');
-    const [repeatRule, setRepeatRule] = useState<'NONE' | 'MONTHLY'>('NONE');
+    const [repeatRule, setRepeatRule] = useState<'NONE' | 'MONTHLY'>('MONTHLY');
 
     // Manual Mode State
     const [openAt, setOpenAt] = useState('');
     const [closeAt, setCloseAt] = useState('');
 
     // Automation Mode State
-    const [monthsToAdd, setMonthsToAdd] = useState('2');
-    const [targetDay, setTargetDay] = useState('END');
-    const [triggerDay, setTriggerDay] = useState('1');
+    const [monthsToAdd, setMonthsToAdd] = useState('3');
+    const [targetDay, setTargetDay] = useState('4');
+    const [triggerDay, setTriggerDay] = useState('20');
 
     // Current Rule State
     const [currentRule, setCurrentRule] = useState<OpenDayRule | null>(null);
@@ -59,9 +115,12 @@ export default function OpenDayConfig() {
             if (data) {
                 setCurrentRule(data);
                 setSeasonName(data.season_name || '');
-                // Note: We don't pre-fill form to avoid confusion unless editing,
-                // but for Auto mode persistence, we might want to check the previous rule style?
-                // Let's keep form separate for "New Rule".
+                setRepeatRule(data.repeat_rule || 'NONE');
+                if (data.repeat_rule === 'MONTHLY' && data.automation_config) {
+                    setTriggerDay(String(data.automation_config.triggerDay ?? 20));
+                    setMonthsToAdd(String(data.automation_config.monthsToAdd ?? 3));
+                    setTargetDay(String(data.automation_config.targetDay ?? 'END'));
+                }
             }
         } catch (error) {
             console.error('Error fetching open day rule:', error);
@@ -165,16 +224,33 @@ export default function OpenDayConfig() {
                                     )}
                                 </p>
                                 {currentRule.repeat_rule === 'MONTHLY' && currentRule.automation_config ? (
-                                    <div className="mt-1 text-gray-600 space-y-1">
-                                        <p>매월 {currentRule.automation_config.triggerDay || 1}일 09:00 오픈</p>
-                                        <p>
-                                            범위: 현재 월 +
-                                            <span className="font-bold text-[#1C4526] mx-1">{currentRule.automation_config.monthsToAdd}개월</span>
-                                            뒤
-                                            <span className="font-bold text-[#1C4526] mx-1">{currentRule.automation_config.targetDay === 'END' ? '말일' : `${currentRule.automation_config.targetDay}일`}</span>
-                                            까지
-                                        </p>
-                                    </div>
+                                    (() => {
+                                        const activePreview = calculateMonthlySchedulePreview(
+                                            currentRule.automation_config.triggerDay || 1,
+                                            currentRule.automation_config.monthsToAdd || 2,
+                                            currentRule.automation_config.targetDay || 'END'
+                                        );
+                                        return (
+                                            <div className="mt-1 text-gray-600 space-y-1">
+                                                <p>매월 {currentRule.automation_config.triggerDay || 1}일 09:00 오픈</p>
+                                                <p>
+                                                    범위: 현재 월 +
+                                                    <span className="font-bold text-[#1C4526] mx-1">{currentRule.automation_config.monthsToAdd}개월</span>
+                                                    뒤
+                                                    <span className="font-bold text-[#1C4526] mx-1">{currentRule.automation_config.targetDay === 'END' ? '말일' : `${currentRule.automation_config.targetDay}일`}</span>
+                                                    까지
+                                                </p>
+                                                <div className="mt-2 pt-2 border-t border-gray-200 text-xs space-y-0.5">
+                                                    <p className="text-gray-700">
+                                                        • 현재 열려있는 마감일: <span className="font-bold text-[#1C4526]">{format(activePreview.currentCloseAt, 'yyyy년 MM월 dd일')}까지</span>
+                                                    </p>
+                                                    <p className="text-blue-700 font-semibold">
+                                                        • 다음 오픈 일정: <span className="underline underline-offset-2">{format(activePreview.nextTriggerAt, 'MM월 dd일')} 09:00에 {format(activePreview.nextCloseAt, 'yyyy년 MM월 dd일')}까지 오픈!</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()
                                 ) : (
                                     <>
                                         <p className="text-gray-600 mt-1">
@@ -301,9 +377,19 @@ export default function OpenDayConfig() {
                                         </select>
                                         <span className="text-sm font-medium">까지 오픈</span>
                                     </div>
-                                    <p className="text-[11px] text-blue-600">
-                                        예: 현재 1월 15일 → 3월 말일까지 오픈됨 (기간 연장)
-                                    </p>
+                                    {(() => {
+                                        const preview = calculateMonthlySchedulePreview(triggerDay, monthsToAdd, targetDay);
+                                        return (
+                                            <div className="mt-2 p-2.5 rounded-md bg-white border border-[#D2E5D7] space-y-1">
+                                                <p className="text-xs font-bold text-[#1E4D2B]">
+                                                    📢 {format(preview.nextTriggerAt, 'MM월 dd일')} 09:00에 <span className="text-blue-700 underline underline-offset-2">{format(preview.nextCloseAt, 'yyyy년 MM월 dd일')}까지 오픈!</span>
+                                                </p>
+                                                <p className="text-[11px] text-gray-500">
+                                                    (오픈 전 현재는 <span className="font-semibold text-gray-700">{format(preview.currentCloseAt, 'yyyy년 MM월 dd일')}</span>까지 열려 있습니다)
+                                                </p>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>
