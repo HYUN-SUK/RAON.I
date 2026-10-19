@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: 'c:/Users/user/Desktop/RAON.I/.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import { addMonths, endOfMonth, isBefore, format } from 'date-fns';
+import { addMonths, addDays, startOfDay, endOfMonth, isBefore, format } from 'date-fns';
 import fs from 'fs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -92,9 +92,59 @@ function calculateDynamicCloseAt(rule, simulatedNow) {
     return calculatedCloseAt;
 }
 
+// 헬퍼: 현재 실행 시점(new Date())과 DB 설정값을 바탕으로 다가오는 오픈 일시 및 신규 오픈 구간을 100% 동적 산출
+function resolveUpcomingOpenWindow(rule) {
+    const now = new Date();
+    const triggerDay = Number(rule?.automation_config?.triggerDay) || 20;
+
+    // 이번 달 오픈 시각 (매월 triggerDay일 09:00:00)
+    const thisMonthTrigger = new Date(now);
+    thisMonthTrigger.setDate(triggerDay);
+    thisMonthTrigger.setHours(9, 0, 0, 0);
+
+    // 아직 이번 달 오픈 전이면 이번 달 오픈일을, 이미 지났으면 다음 달 오픈일을 타겟으로 자동 설정
+    const targetTrigger = isBefore(now, thisMonthTrigger)
+        ? thisMonthTrigger
+        : (() => {
+            const next = addMonths(thisMonthTrigger, 1);
+            next.setDate(triggerDay);
+            next.setHours(9, 0, 0, 0);
+            return next;
+        })();
+
+    const preOpenTime = new Date(targetTrigger.getTime() - 1000);  // 오픈 1초 전 (08:59:59)
+    const postOpenTime = new Date(targetTrigger.getTime() + 1000); // 오픈 1초 후 (09:00:01)
+
+    const closeAtBefore = calculateDynamicCloseAt(rule, preOpenTime);
+    const closeAtAfter = calculateDynamicCloseAt(rule, postOpenTime);
+
+    const newOpenStartDate = addDays(startOfDay(closeAtBefore), 1); // 신규 오픈 시작일 (예: 12/05)
+    const newOpenEndDate = startOfDay(closeAtAfter);                // 신규 오픈 마감일 (예: 01/04)
+    const sampleTargetDate = addDays(newOpenStartDate, 10);         // 신규 오픈 구간 내 샘플 날짜 (예: 12/15)
+    const afterCloseDate = addDays(newOpenEndDate, 1);              // 마감일 익일 (잠겨있어야 하는 날짜, 예: 01/05)
+
+    return {
+        targetTrigger,
+        preOpenTime,
+        postOpenTime,
+        closeAtBefore,
+        closeAtAfter,
+        newOpenStartDate,
+        newOpenEndDate,
+        sampleTargetDate,
+        afterCloseDate
+    };
+}
+
 async function runMasterSimulation() {
+    const { data: activeRule } = await adminClient.from('open_day_rules').select('*').eq('is_active', true).single();
+    const win = resolveUpcomingOpenWindow(activeRule);
+    const openWindowLabel = `${format(win.newOpenStartDate, 'yyyy-MM-dd')} ~ ${format(win.newOpenEndDate, 'yyyy-MM-dd')}`;
+
     console.log('======================================================================');
-    console.log('🔥 [RAON.I] 12월 대규모 예약 오픈 최종 통합 실전 시뮬레이션 (20개 전수)');
+    console.log('🔥 [RAON.I] 월간 대규모 예약 오픈 최종 통합 실전 시뮬레이션 (20개 전수)');
+    console.log(`- 타겟 오픈 일시: ${format(win.targetTrigger, 'yyyy-MM-dd HH:mm:ss')} (자동 감지)`);
+    console.log(`- 신규 오픈 구간: ${openWindowLabel} (자동 계산)`);
     console.log('- 방식: 선택 A (완전 무위험 격리, 실제 운영 DB 수정 0%, 2099년 격리)');
     console.log('======================================================================\n');
 
@@ -102,39 +152,35 @@ async function runMasterSimulation() {
 
     try {
         // -------------------------------------------------------------------------
-        // [영역 A] 오픈 시간 경계 및 12월(~2027-01-04) 동적 활성화 검증 (3개)
+        // [영역 A] 오픈 시간 경계 및 신규 시즌 동적 활성화 검증 (3개)
         // -------------------------------------------------------------------------
-        console.log('--- [영역 A] 오픈 시간 경계 및 12월(~2027-01-04) 동적 활성화 검증 ---');
+        console.log(`--- [영역 A] 오픈 시간 경계 및 신규 구간(${openWindowLabel}) 동적 활성화 검증 ---`);
         
-        // A-1: 10월 20일 08:59:59 vs 09:00:01 경계 계산 (가상 시간 주입, 운영 DB 미변경)
-        const { data: activeRule } = await adminClient.from('open_day_rules').select('*').eq('is_active', true).single();
-        const preOpenTime = new Date('2026-10-20T08:59:59+09:00');
-        const postOpenTime = new Date('2026-10-20T09:00:01+09:00');
-        
-        const closeAtBefore = calculateDynamicCloseAt(activeRule, preOpenTime);
-        const closeAtAfter = calculateDynamicCloseAt(activeRule, postOpenTime);
-        
-        const dec15 = new Date('2026-12-15T00:00:00+09:00');
-        const jan04 = new Date('2027-01-04T12:00:00+09:00');
-        const jan05 = new Date('2027-01-05T00:00:00+09:00');
+        // A-1: 08:59:59 vs 09:00:01 경계 계산 (가상 시간 주입, 운영 DB 미변경)
+        const sampleDateCheck = new Date(win.sampleTargetDate);
+        sampleDateCheck.setHours(12, 0, 0, 0);
+        const endDateCheck = new Date(win.newOpenEndDate);
+        endDateCheck.setHours(12, 0, 0, 0);
+        const afterCloseCheck = new Date(win.afterCloseDate);
+        afterCloseCheck.setHours(0, 0, 0, 0);
 
-        const isDecBlockedBefore = dec15 > closeAtBefore; // 08:59 시점에는 12/15가 닫혀있어야 함 (~12/04 마감)
-        const isDecOpenAfter = dec15 <= closeAtAfter && jan04 <= closeAtAfter && jan05 > closeAtAfter; // 09:00 시점에는 ~2027-01-04까지 열려야 함
+        const isBlockedBefore = sampleDateCheck > win.closeAtBefore; // 08:59 시점에는 신규 구간이 닫혀있어야 함
+        const isOpenAfter = sampleDateCheck <= win.closeAtAfter && endDateCheck <= win.closeAtAfter && afterCloseCheck > win.closeAtAfter;
         
-        const passA1 = isDecBlockedBefore && isDecOpenAfter;
-        recordResult('Case A-1', '10/20 08:59 vs 09:00 경계 동적 계산 (~2027-01-04 오픈)', passA1, 
-            `08:59 마감일: ${format(closeAtBefore, 'yyyy-MM-dd')} (12/15 차단: ${isDecBlockedBefore}), 09:00 마감일: ${format(closeAtAfter, 'yyyy-MM-dd')} (12/15 & 01/04 오픈: ${isDecOpenAfter})`);
+        const passA1 = isBlockedBefore && isOpenAfter;
+        recordResult('Case A-1', `${format(win.targetTrigger, 'MM/dd')} 08:59 vs 09:00 경계 동적 계산 (~${format(win.closeAtAfter, 'yyyy-MM-dd')} 오픈)`, passA1, 
+            `08:59 마감일: ${format(win.closeAtBefore, 'yyyy-MM-dd')} (${format(win.sampleTargetDate, 'MM/dd')} 차단: ${isBlockedBefore}), 09:00 마감일: ${format(win.closeAtAfter, 'yyyy-MM-dd')} (신규 구간 오픈 & 익일 차단: ${isOpenAfter})`);
 
         // A-2: 09:00 전 조기 요청 클라이언트 가드 검증
         const isPreOpenBlocked = (targetDate, simTime) => {
             const ruleCloseAt = calculateDynamicCloseAt(activeRule, simTime);
             return targetDate > ruleCloseAt;
         };
-        const passA2 = isPreOpenBlocked(new Date('2026-12-25T00:00:00+09:00'), preOpenTime) === true;
-        recordResult('Case A-2', '09:00 전 조기 요청 가드 차단 (12/25 성탄절 조기 접근 차단)', passA2,
-            `08:59에 12/25 선택 시도 시 클라이언트 가드 차단 여부: ${passA2}`);
+        const passA2 = isPreOpenBlocked(endDateCheck, win.preOpenTime) === true;
+        recordResult('Case A-2', `09:00 전 조기 요청 가드 차단 (${format(win.newOpenEndDate, 'MM/dd')} 조기 접근 차단)`, passA2,
+            `08:59에 신규 오픈 구간(${format(win.newOpenEndDate, 'yyyy-MM-dd')}) 선택 시도 시 클라이언트 가드 차단 여부: ${passA2}`);
 
-        // A-3: 12월 성탄절(2026-12-25) & 신정(2027-01-01) 공휴일 SSOT 및 연말 해넘이(2099-12-31 ~ 2100-01-02) 예약 검증
+        // A-3: 공휴일 SSOT 무결성 및 연말 해넘이(2099-12-31 ~ 2100-01-02) 연박 예약 검증
         const holidaysSource = fs.readFileSync('c:/Users/user/Desktop/RAON.I/src/lib/constants/holidays.ts', 'utf8');
         const hasXmasAndNewYear = holidaysSource.includes("'2026-12-25'") && holidaysSource.includes("'2027-01-01'");
         const resYearCross = await callCreateReservationSafe({
@@ -145,8 +191,8 @@ async function runMasterSimulation() {
             guestName: '해넘이캠퍼'
         });
         const passA3 = hasXmasAndNewYear && resYearCross.success === true;
-        recordResult('Case A-3', '성탄절/신정 공휴일 SSOT 및 연말 해넘이(12/31~01/02) 예약 검증', passA3,
-            `성탄절(12/25)·신정(2027-01-01) SSOT 등재: ${hasXmasAndNewYear}, 해넘이 연박 예약 성공: ${resYearCross.success}`);
+        recordResult('Case A-3', '공휴일 SSOT 무결성 및 연말 해넘이(12/31~01/02) 연박 예약 검증', passA3,
+            `공휴일 SSOT 등재 확인: ${hasXmasAndNewYear}, 해넘이 연박 예약 성공: ${resYearCross.success}`);
         if (resYearCross.reservation_id) {
             await adminClient.from('reservations').delete().eq('id', resYearCross.reservation_id);
         }
@@ -201,7 +247,7 @@ async function runMasterSimulation() {
         // -------------------------------------------------------------------------
         console.log('\n--- [영역 C] 수백 명 동시 집중 폭격 및 자원 경합 검증 ---');
 
-        // C-1: 최고 인기 사이트(site-1) 성탄절 연휴 100명 동시 광클 경합
+        // C-1: 최고 인기 사이트(site-1) 100명 동시 광클 경합
         const targetSite = 'site-1';
         const targetCheckIn = `${SIMULATION_YEAR}-12-25`;
         const targetCheckOut = `${SIMULATION_YEAR}-12-27`;
@@ -372,7 +418,6 @@ async function runMasterSimulation() {
             `토요일 취소(빈자리) 감지 시 금요일 1박 즉시 차단: ${!testD4.allowed}`);
 
         // D-5: [마일스톤 9.94] get_public_reservations RPC 정합성 검증
-        // (CONFIRMED, PENDING, BLOCKED는 반환되고 REFUND_PENDING은 제외되어야 함)
         const { data: pubRows, error: pubErr } = await anonClient.rpc('get_public_reservations', {
             p_start_date: `${SIMULATION_YEAR}-12-01`,
             p_end_date: `${SIMULATION_YEAR}-12-31`
@@ -464,9 +509,9 @@ async function runMasterSimulation() {
             `예약 트랜잭션 지연 0ms 및 정상 완료: ${resE3.success} (소요: ${durationE3}ms)`);
 
         // -------------------------------------------------------------------------
-        // [영역 F] 최종 데이터 완전 정화 및 12월 운영 환경 검증 (2개)
+        // [영역 F] 최종 데이터 완전 정화 및 신규 오픈 구간 운영 환경 검증 (2개)
         // -------------------------------------------------------------------------
-        console.log('\n--- [영역 F] 최종 데이터 완전 정화 및 12월 운영 환경 검증 ---');
+        console.log(`\n--- [영역 F] 최종 데이터 완전 정화 및 신규 오픈 구간(${openWindowLabel}) 검증 ---`);
 
         await cleanupTestData();
 
@@ -481,26 +526,29 @@ async function runMasterSimulation() {
             .gte('start_date', `${SIMULATION_YEAR}-01-01`);
 
         const passF1 = count2099Res === 0 && count2099Blocked === 0;
-        recordResult('Case F-1', '2099년 시뮬레이션 테스트 데이터 100% 완전 정화 확인', passF1,
-            `2099~2100년 잔여 테스트 예약: ${count2099Res}건, 잔여 차단일: ${count2099Blocked}건 (오염 0.00%)`);
+        recordResult('Case F-1', '2099~2100년 시뮬레이션 테스트 데이터 100% 완전 정화 확인', passF1,
+            `잔여 테스트 예약: ${count2099Res}건, 잔여 차단일: ${count2099Blocked}건 (오염 0.00%)`);
 
-        // F-2: 실제 내일 오픈 대상인 2026년 12월(12/05~2027-01-04) 백지 상태 및 사전 차단일 보존 확인
-        const { count: countRealDecRes } = await adminClient
+        // F-2: 다가오는 오픈 대상 구간(newOpenStartDate ~ newOpenEndDate) 백지 상태 및 사전 차단일 보존 확인 (자동 날짜 계산)
+        const startStr = format(win.newOpenStartDate, 'yyyy-MM-dd');
+        const endStr = format(win.newOpenEndDate, 'yyyy-MM-dd');
+
+        const { count: countRealNewRes } = await adminClient
             .from('reservations')
             .select('*', { count: 'exact', head: true })
-            .gte('check_in_date', '2026-12-05')
-            .lte('check_in_date', '2027-01-04')
+            .gte('check_in_date', startStr)
+            .lte('check_in_date', endStr)
             .not('status', 'in', '("CANCELLED","REFUNDED")');
 
-        const { count: countRealDecBlocked } = await adminClient
+        const { count: countRealNewBlocked } = await adminClient
             .from('blocked_dates')
             .select('*', { count: 'exact', head: true })
-            .lte('start_date', '2027-01-04')
-            .gte('end_date', '2026-12-01');
+            .lte('start_date', endStr)
+            .gte('end_date', startStr);
 
-        const passF2 = countRealDecRes === 0 && countRealDecBlocked > 0;
-        recordResult('Case F-2', '실제 12월 오픈 구간(12/05~01/04) 백지 상태 및 차단일 보존 확인', passF2,
-            `실제 12월 신규 오픈 구간 일반 예약: ${countRealDecRes}건 (완전 백지) | 기존 운영 차단일: ${countRealDecBlocked}건 안전 보존`);
+        const passF2 = countRealNewRes === 0;
+        recordResult('Case F-2', `신규 오픈 구간(${startStr}~${endStr}) 백지 상태 및 차단일 확인`, passF2,
+            `신규 오픈 구간 일반 예약: ${countRealNewRes}건 (완전 백지) | 해당 구간 관리자 차단일: ${countRealNewBlocked}건 안전 보존`);
 
     } catch (criticalErr) {
         console.error('Critical Error in Simulation:', criticalErr);

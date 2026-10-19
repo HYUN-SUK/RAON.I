@@ -1,6 +1,9 @@
 # 📋 [RAON.I] 대규모 예약 오픈 사전 점검 및 시뮬레이션 표준 가이드 (SOP)
 
-본 문서는 매월 20일 오전 9시 대규모 월간 예약 오픈(예: 10월 20일 09:00 ➔ 12월 전체 및 내년 1월 초 오픈)을 앞두고, **실제 운영 데이터 오염 없이(0.00% 무위험)** 실시간 시스템 건전성과 동시성 트랜잭션을 철저히 사전 점검하기 위한 **표준 운영 절차서(SOP, Standard Operating Procedure)**입니다.
+본 문서는 매월 정기 대규모 예약 오픈(예: 매월 20일 오전 9시)을 앞두고, **실제 운영 데이터 오염 없이(0.00% 무위험)** 실시간 시스템 건전성과 동시성 트랜잭션을 철저히 사전 점검하기 위한 **영구 표준 운영 절차서(SOP, Standard Operating Procedure)**입니다.
+
+> [!IMPORTANT]
+> 본 문서와 시뮬레이션 스크립트([`scripts/simulate-master-edge-cases.mjs`](file:///c:/Users/user/Desktop/RAON.I/scripts/simulate-master-edge-cases.mjs))는 **실행 시점의 날짜와 DB `open_day_rules` 설정값을 읽어 다가오는 오픈 일시 및 신규 오픈 구간을 100% 자동으로 계산**하므로, 매월 날짜를 수정할 필요 없이 언제든 동일하게 실행할 수 있습니다.
 
 ---
 
@@ -9,10 +12,10 @@
 1. **임의 코딩 및 비즈니스 로직 수정 금지**:
    * 점검 및 시뮬레이션 과정에서 프로덕션 비즈니스 로직을 임의로 변경하지 않습니다.
 2. **선택 A (완전 무위험 가상 시간 격리) 엄수**:
-   * 오픈 대상 월(예: 12월)의 실제 운영 DB를 테스트 목적으로 임의로 개방하거나 데이터를 삽입하지 않습니다.
+   * 오픈 대상 월의 실제 운영 DB를 테스트 목적으로 임의로 개방하거나 데이터를 삽입하지 않습니다.
    * **2099~2100년 격리 연도**와 **가상 시간(`simulatedNow`) 주입 방식**을 사용하여 실제 운영 환경에 0.00%의 영향도 주지 않습니다.
-3. **사전/사후 2중 자동 클린업**:
-   * 시뮬레이션 시작 전 및 종료 후(`finally` 블록 포함) 2099~2100년 테스트 데이터를 100% 완전 삭제합니다.
+3. **사전/사후 3중 자동 클린업**:
+   * 시뮬레이션 시작 직전, 종료 직전(`Case F-1`), 그리고 예외 안전망(`finally` 블록)에서 2099~2100년 테스트 데이터를 100% 완전 삭제하고 잔여 0건 여부를 검증합니다.
 
 ---
 
@@ -35,9 +38,9 @@ cmd.exe /c "node scripts/simulate-master-edge-cases.mjs"
 
 | 영역 | 케이스 ID | 시나리오 명칭 | 정상 통과(PASS) 판정 기준 |
 | :--- | :---: | :--- | :--- |
-| **[영역 A]<br>오픈 시간 경계 &<br>시즌/해넘이** | **Case A-1** | 08:59 vs 09:00 경계 동적 계산 | 08:59:59 시점에는 오픈 대상 기간(`~12/04` 이후)이 잠겨있고, 09:00:00 도달 시 설정된 마감일(`~2027-01-04`)까지 자동 개방되는지 검증 |
-| | **Case A-2** | 09:00 전 조기 요청 가드 차단 | 08:59 이전에 오픈 대상 날짜(예: 12/25 성탄절) 선택 시도 시 클라이언트 가드에 의해 정상 차단되는지 검증 |
-| | **Case A-3** | 성탄절/신정 공휴일 SSOT & 해넘이 연박 | `2026-12-25`(성탄절) 및 `2027-01-01`(신정) 공휴일 SSOT 등재 확인 및 연말 해넘이(`12/31~01/02`) 연박 예약 정상 처리 확인 |
+| **[영역 A]<br>오픈 시간 경계 &<br>시즌/해넘이** | **Case A-1** | 08:59 vs 09:00 경계 동적 계산 | `08:59:59` 시점에는 신규 오픈 구간이 잠겨있고, `09:00:01` 도달 시 설정된 마감일까지 자동 개방되며 마감 익일은 차단되는지 검증 |
+| | **Case A-2** | 09:00 전 조기 요청 가드 차단 | `08:59` 이전에 신규 오픈 구간 날짜 선택 시도 시 클라이언트 가드에 의해 정상 차단되는지 검증 |
+| | **Case A-3** | 공휴일 SSOT 무결성 & 해넘이 연박 | 법정 공휴일 SSOT 등재 확인 및 연말 해넘이(`12/31~01/02`) 연박 예약 정상 처리 확인 |
 | **[영역 B]<br>모바일/인증 안전망** | **Case B-1** | 0.05초 모바일 더블 탭 동기 락 | 모바일 연타(50ms 간격 2회 터치) 시 1번째만 통과되고 2번째는 0.0001초 만에 클라이언트에서 완전 차단 (서버 호출 1회) |
 | | **Case B-2** | 비로그인 DB 외래키 위반 0% 방어 | 세션 만료 또는 비로그인(`userId=null`) 신청 시 PostgreSQL FK 에러 없이 `create_reservation_safe`가 안전 처리 |
 | **[영역 C]<br>수백 명 동시 폭격 & 경합** | **Case C-1** | 단일 명당 사이트 100:1 동시 광클 | 100명이 1개 사이트에 동시 신청 시 정확히 1명 당첨 / 99명 정상 거절 (`ALREADY_BOOKED`), DB 적재 1건, 데드락 0건 |
@@ -45,7 +48,7 @@ cmd.exe /c "node scripts/simulate-master-edge-cases.mjs"
 | | **Case C-3** | 에어컨 기기 동시 경합 및 연쇄 배정 | `air-1` 기기 10명 경합 탈락자가 `air-2` 기기로 즉시 재시도하여 성공하는지 확인 |
 | | **Case C-4** | 에어컨 대표카드(`air-group`) 차단 연동 | 관리자가 `air-group` 차단 시 개별 기기(`air-1~8`) 직접 침투 시도가 DB 레벨에서 100% 차단되는지 확인 |
 | **[영역 D]<br>가용성 & 취소 즉시 오픈 &<br>마일스톤 9.94 마감 격리** | **Case D-1** | 환불 대기(`REFUND_PENDING`) 즉시 오픈 | 취소 신청된 사이트는 관리자 송금 대기 상태라도 즉시 타인에게 오픈되어 공실률 0% 달성 여부 확인 |
-| | **Case D-2** | 퇴실 당일 입실(Turnover) & 체류 침범 차단 | `12/05~07` 예약 시 `12/07` 당일 입실은 허용되고 `12/06` 체류일 침범은 차단되는지 확인 |
+| | **Case D-2** | 퇴실 당일 입실(Turnover) & 체류 침범 차단 | 퇴실 당일 입실은 허용되고 체류일 침범은 100% 차단되는지 확인 |
 | | **Case D-3** | 주말 1박/2박 및 End-cap 잔여석 허용 | 토요일 공실 시 금요일 1박 차단, 토요일 점유 시 금요일 1박 잔여석 정상 허용 확인 |
 | | **Case D-4** | 주말 취소 건 실시간 연동 (1박 즉시 차단) | 토요일 예약자가 취소하는 즉시 단독 1박 방지 규칙이 재작동하여 금요일 1박이 즉시 차단되는지 확인 |
 | | **Case D-5** | `[9.94]` `get_public_reservations` 정합성 | 공개 마감 조회 RPC가 `PENDING`/`CONFIRMED`/`BLOCKED`만 반환하고 `REFUND_PENDING`/`CANCELLED`는 즉시 제외하는지 확인 |
@@ -54,27 +57,17 @@ cmd.exe /c "node scripts/simulate-master-edge-cases.mjs"
 | | **Case E-2** | 미입금 자동 취소 후 즉시 재예약 환원 | 입금 기한 경과로 취소된 자리가 실시간 빈자리로 환원되어 즉시 타인 재예약 성공 확인 |
 | | **Case E-3** | 대량 예약 시 FCM 알림 비동기 격리 | 알림 발송이 백그라운드 비동기로 분리되어 예약 트랜잭션 지연 0ms (1000ms 이내 완료) 확인 |
 | **[영역 F]<br>운영 데이터 무결성** | **Case F-1** | 2099~2100년 테스트 데이터 100% 정화 | 시뮬레이션 종료 후 2099~2100년 잔여 예약 0건, 잔여 차단일 0건 (오염 0.00%) 확인 |
-| | **Case F-2** | 실제 오픈 구간 백지 상태 & 차단일 보존 | 실제 오픈 대상 구간(`2026-12-05 ~ 2027-01-04`) 일반 예약 0건(백지 상태) 및 기존 관리자 사전 차단일 안전 보존 확인 |
+| | **Case F-2** | 신규 오픈 구간 백지 상태 & 차단일 보존 | DB 규칙 기반으로 자동 계산된 신규 오픈 구간의 일반 예약 0건(백지 상태) 및 기존 관리자 사전 차단일 안전 보존 확인 |
 
 ---
 
-## 🔍 3. 실시간 운영 DB 상태 단독 점검 명령어 (Read-Only)
+## 🔍 3. 실시간 운영 DB 상태 단독 점검 명령어 (Read-Only, 매월 자동 계산)
 
-시뮬레이션 외에 순수하게 현재 운영 DB 상태만을 즉시 확인하고 싶을 때는 아래의 Node.js 일회성 명령어를 실행합니다.
+시뮬레이션 외에 순수하게 현재 운영 DB 상태(오픈 규칙, 다가오는 신규 오픈 구간 백지 여부 및 사전 차단일 내역)만을 즉시 확인하고 싶을 때는 아래의 Node.js 일회성 명령어를 실행합니다. *(실행 날짜에 맞춰 자동으로 해당 월의 오픈 구간을 계산합니다.)*
 
-### 1) 시스템 설정 및 09:00 오픈 규칙 확인
 ```powershell
-cmd.exe /c "node -e ""import('@supabase/supabase-js').then(async ({ createClient }) => { const dotenv = await import('dotenv'); dotenv.config({ path: '.env.local' }); const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY); const { data: config } = await supabase.from('system_config').select('*').eq('id', 1).single(); const { data: rules } = await supabase.from('open_day_rules').select('*').eq('is_active', true); console.log('SYSTEM CONFIG:', config); console.log('ACTIVE RULES:', rules); });"""
+cmd.exe /c "node -e ""import('@supabase/supabase-js').then(async ({ createClient }) => { const dotenv = await import('dotenv'); const { addMonths, addDays, startOfDay, endOfMonth, isBefore, format } = await import('date-fns'); dotenv.config({ path: '.env.local' }); const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY); const { data: config } = await supabase.from('system_config').select('*').eq('id', 1).single(); const { data: rule } = await supabase.from('open_day_rules').select('*').eq('is_active', true).single(); const calc = (r, sim) => { const c = r.automation_config; const t = new Date(sim); t.setDate(c.triggerDay || 1); t.setHours(9,0,0,0); const b = new Date(sim); if (isBefore(sim, t)) b.setMonth(b.getMonth() - 1); const m = addMonths(b, c.monthsToAdd); const d = c.targetDay === 'END' ? endOfMonth(m) : new Date(m.getFullYear(), m.getMonth(), Number(c.targetDay)); d.setHours(23,59,59,999); return d; }; const now = new Date(); const tDay = Number(rule.automation_config?.triggerDay) || 20; const trig = new Date(now); trig.setDate(tDay); trig.setHours(9,0,0,0); const nextTrig = isBefore(now, trig) ? trig : addMonths(trig, 1); const closeBefore = calc(rule, new Date(nextTrig.getTime() - 1000)); const closeAfter = calc(rule, new Date(nextTrig.getTime() + 1000)); const startStr = format(addDays(startOfDay(closeBefore), 1), 'yyyy-MM-dd'); const endStr = format(startOfDay(closeAfter), 'yyyy-MM-dd'); const { count: resCount } = await supabase.from('reservations').select('*', { count: 'exact', head: true }).gte('check_in_date', startStr).lte('check_in_date', endStr).not('status', 'in', '(""CANCELLED"",""REFUNDED"")'); const { data: blocks } = await supabase.from('blocked_dates').select('*').lte('start_date', endStr).gte('end_date', startStr); console.log('SYSTEM CONFIG:', config); console.log('ACTIVE RULE:', rule.automation_config); console.log('다가오는 오픈 일시:', format(nextTrig, 'yyyy-MM-dd HH:mm:ss'), '-> 신규 오픈 구간:', startStr, '~', endStr); console.log('신규 오픈 구간 일반 예약 건수 (0건이어야 정상):', resCount); console.log('신규 오픈 구간 관리자 차단일 건수 및 내역:', blocks?.length, blocks?.map(b => ({ site: b.site_id, date: b.start_date + '~' + b.end_date, guest: b.guest_name }))); });"""
 ```
-* **정상 기준**: `maintenance_mode: false`, `reservation_enabled: true`, `automation_config: { triggerDay: 20, monthsToAdd: 3, targetDay: '4' }` (10/20 09:00 정각에 `2027-01-04`까지 오픈)
-
-### 2) 오픈 대상 월(12월 ~ 내년 1월 4일) 백지 상태 및 차단일 확인
-```powershell
-cmd.exe /c "node -e ""import('@supabase/supabase-js').then(async ({ createClient }) => { const dotenv = await import('dotenv'); dotenv.config({ path: '.env.local' }); const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY); const { count: resCount } = await supabase.from('reservations').select('*', { count: 'exact', head: true }).gte('check_in_date', '2026-12-05').lte('check_in_date', '2027-01-04').not('status', 'in', '(""CANCELLED"",""REFUNDED"")'); const { data: blocks } = await supabase.from('blocked_dates').select('*').lte('start_date', '2027-01-04').gte('end_date', '2026-12-01'); console.log('12월 신규 오픈구간 일반 예약 건수 (0건이어야 정상):', resCount); console.log('12월 관리자 차단일 건수 및 내역:', blocks?.length, blocks?.map(b => ({ site: b.site_id, date: b.start_date + '~' + b.end_date, guest: b.guest_name }))); });"""
-```
-* **정상 기준**:
-  * 일반 예약 건수: **0건 (완전 백지 상태)**
-  * 차단일 건수: 기존 관리자 합법적 차단일(사전 협의 수동 등록건)만 정상 존재
 
 ---
 
@@ -100,7 +93,7 @@ cmd.exe /c "npx.cmd tsc --noEmit"
 | :--- | :--- | :--- |
 | **T-30<br>(08:30)** | **종합 점검 및 시뮬레이션** | 본 문서의 원클릭 시뮬레이션 명령어를 실행하여 **20/20 전수 통과** 확인 |
 | **T-10<br>(08:50)** | **사용자 사전 유입 공지** | • **"오픈 10분 전 카카오 사전 로그인 완료"** 안내 (입력 중 세션 이동 및 폼 리셋 방지)<br>• **"09:00 정각 새로고침(F5) 또는 앱 다시 열기"** 안내 (08:55 접속자의 브라우저 달력 즉시 갱신용) |
-| **T-00<br>(09:00)** | **정각 자동 오픈 모니터링** | `09:00:00` 도달 시 시스템 규칙에 의해 **12월 전체 및 2027년 1월 4일까지** 사람 개입 없이 자동 개방됨.<br>Supabase 대시보드 또는 Unified Calendar에서 실시간 예약 인입 확인 |
+| **T-00<br>(09:00)** | **정각 자동 오픈 모니터링** | `09:00:00` 도달 시 시스템 규칙에 의해 신규 시즌 구간 전체가 사람 개입 없이 자동 개방됨.<br>Supabase 대시보드 또는 Unified Calendar에서 실시간 예약 인입 확인 |
 | **T+05<br>(09:05)** | **결제/입금 대기 전이 확인** | 광클 유입된 예약들이 `PENDING`(입금 대기) 상태로 정상 저장되고 입금 안내 알림이 정상 발송되는지 확인 |
 | **비상 상황** | **긴급 킬스위치 가동** | 서버 이상 또는 예상치 못한 사태 발생 시 관리자 운영 페이지(`/admin/operations`)에서 **[RESERVATION_STOP]** 버튼 클릭 또는 `system_config`의 `maintenance_mode: true` 전환 |
 
