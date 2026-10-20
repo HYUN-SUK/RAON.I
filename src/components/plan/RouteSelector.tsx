@@ -169,28 +169,28 @@ export default function RouteSelector({ origin, destination, destinationName, on
     return (
         <div className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="p-4 bg-white/95 backdrop-blur-md border-b border-gray-50 flex flex-col gap-1">
-                <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                    <Navigation className="w-5 h-5 text-[#388E5A]" />
+            <div className="px-4 py-3 bg-white/95 backdrop-blur-md border-b border-gray-50 flex flex-col gap-1">
+                <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                    <Navigation className="w-4 h-4 text-[#388E5A]" />
                     여행 여정 선택
                 </h3>
 
                 {/* 산악/등산로 목적지 인근 주차장 보정 안내 뱃지 */}
                 {refinedDestination?.isRefined && (
-                    <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800 text-xs mt-1 animate-fade-in">
-                        <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <p className="leading-tight font-medium">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800 text-xs mt-1 animate-fade-in">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <p className="leading-tight font-medium text-[11px]">
                             💡 산악 구역 인근 차도 <strong className="font-bold text-emerald-950">[{refinedDestination.name}]</strong> 기준 최적 통행료/경로입니다.
                         </p>
                     </div>
                 )}
             </div>
 
-            {/* Map Area */}
+            {/* Map Area: 모바일 화면에서 하단 버튼이 바로 보이도록 컴팩트 높이(210px) 적용 */}
             <div className="relative w-full overflow-hidden bg-gray-100">
                 <Map
                     center={{ lat: (origin.lat + targetDestCoords.lat) / 2, lng: (origin.lng + targetDestCoords.lng) / 2 }}
-                    style={{ width: '100%', height: '350px' }}
+                    style={{ width: '100%', height: '210px' }}
                     onCreate={(m) => setMap(m)}
                 >
                     <MapMarker position={origin} />
@@ -198,7 +198,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
                     {routePaths[selectedIndex] && (
                         <Polyline
                             path={routePaths[selectedIndex]}
-                            strokeWeight={7}
+                            strokeWeight={6}
                             strokeColor={currentLabel.color}
                             strokeOpacity={1}
                             zIndex={10}
@@ -207,27 +207,27 @@ export default function RouteSelector({ origin, destination, destinationName, on
                 </Map>
             </div>
 
-            {/* Route Detail Card */}
-            <div className="p-4 bg-white">
-                <div className="flex items-center justify-between mb-4">
+            {/* Route Detail Card: 스크롤 없이 한 화면에 노출되도록 컴팩트 여백 적용 */}
+            <div className="px-4 py-3 bg-white">
+                <div className="flex items-center justify-between mb-2.5">
                     <button 
                         onClick={() => setSelectedIndex(prev => (prev > 0 ? prev - 1 : routes.length - 1))}
                         disabled={routes.length <= 1}
-                        className={`p-3 rounded-full transition-all ${routes.length <= 1 ? 'bg-gray-50 text-gray-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-90'}`}
+                        className={`p-2 rounded-full transition-all ${routes.length <= 1 ? 'bg-gray-50 text-gray-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-90'}`}
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft size={20} />
                     </button>
                     
                     <div className="text-center flex-1">
-                        <span className={`text-[10px] font-black px-3 py-1 rounded-full ${currentLabel.bg} text-[#1E4D2B] uppercase`}>
+                        <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${currentLabel.bg} text-[#1E4D2B] uppercase`}>
                             {currentLabel.keyword}
                         </span>
-                        <div className="flex items-center gap-2 mt-1 justify-center">
-                            <span className="text-2xl font-black text-gray-900">
-                                {durationMinutes}<span className="text-sm ml-0.5">분</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 justify-center">
+                            <span className="text-xl font-black text-gray-900">
+                                {durationMinutes}<span className="text-xs ml-0.5">분</span>
                             </span>
                             <span className="text-gray-300">|</span>
-                            <span className="text-sm font-bold text-gray-500">
+                            <span className="text-xs font-bold text-gray-500">
                                 {distanceKm}km
                             </span>
                         </div>
@@ -236,28 +236,28 @@ export default function RouteSelector({ origin, destination, destinationName, on
                     <button 
                         onClick={() => setSelectedIndex(prev => (prev < routes.length - 1 ? prev + 1 : 0))}
                         disabled={routes.length <= 1}
-                        className={`p-3 rounded-full transition-all ${routes.length <= 1 ? 'bg-gray-50 text-gray-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-90'}`}
+                        className={`p-2 rounded-full transition-all ${routes.length <= 1 ? 'bg-gray-50 text-gray-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-90'}`}
                     >
-                        <ChevronRight size={24} />
+                        <ChevronRight size={20} />
                     </button>
                 </div>
 
                 {/* Fare Info (Safe Optional Chaining Wrapped) */}
-                <div className="bg-gray-50 rounded-2xl p-3 flex justify-around items-center border border-gray-100 mb-4">
+                <div className="bg-gray-50 rounded-xl py-2 px-3 flex justify-around items-center border border-gray-100 mb-2.5">
                     <div className="flex flex-col items-center">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">통행료</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">통행료</span>
                         <span className="text-xs font-black text-gray-700">{tollPrice.toLocaleString()}원</span>
                     </div>
-                    <div className="w-[1px] h-6 bg-gray-200" />
+                    <div className="w-[1px] h-5 bg-gray-200" />
                     <div className="flex flex-col items-center">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">택시비</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">택시비</span>
                         <span className="text-xs font-black text-gray-700">{taxiPrice.toLocaleString()}원</span>
                     </div>
                 </div>
 
                 {/* Simple Route Alert */}
                 {routes.length === 1 && (
-                    <div className="flex items-center justify-center gap-1.5 mb-4 px-4 py-2 bg-red-50 rounded-xl border border-red-100">
+                    <div className="flex items-center justify-center gap-1.5 mb-2.5 px-3 py-1.5 bg-red-50 rounded-xl border border-red-100">
                         <AlertCircle className="w-3.5 h-3.5 text-red-500" />
                         <p className="text-[11px] font-bold text-red-600">
                             단순한 경로이기에 추천 경로가 1개만 있습니다.
@@ -267,11 +267,11 @@ export default function RouteSelector({ origin, destination, destinationName, on
 
                 {/* Progress Indicators */}
                 {routes.length > 1 && (
-                    <div className="flex justify-center gap-1.5 mb-6">
+                    <div className="flex justify-center gap-1.5 mb-3">
                         {routes.map((_, i) => (
                             <div 
                                 key={i} 
-                                className={`h-1.5 rounded-full transition-all duration-300 ${i === selectedIndex ? 'w-8 bg-[#388E5A]' : 'w-2 bg-gray-200'}`} 
+                                className={`h-1.5 rounded-full transition-all duration-300 ${i === selectedIndex ? 'w-6 bg-[#388E5A]' : 'w-2 bg-gray-200'}`} 
                             />
                         ))}
                     </div>
@@ -280,7 +280,7 @@ export default function RouteSelector({ origin, destination, destinationName, on
                 {/* Confirm Button */}
                 <Button 
                     onClick={handleConfirm}
-                    className={`w-full h-14 rounded-2xl bg-[#388E5A] hover:bg-[#2F774B] text-white font-black text-lg shadow-lg active:scale-95 transition-all ${routes.length === 1 ? 'mt-2' : ''}`}
+                    className="w-full h-12 rounded-xl bg-[#388E5A] hover:bg-[#2F774B] text-white font-black text-base shadow-md active:scale-95 transition-all"
                 >
                     이 경로로 스마트플랜 생성
                 </Button>
