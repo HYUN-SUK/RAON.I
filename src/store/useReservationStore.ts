@@ -13,6 +13,45 @@ type DbSite = Database['public']['Tables']['sites']['Row'];
 type DbBlockedDate = Database['public']['Tables']['blocked_dates']['Row'];
 // Note: reservations table not in current supabase.ts schema
 
+/**
+ * [백그라운드 복귀 무한 대기(Hang) 원천 차단 헬퍼]
+ * 모바일 절전 복귀 직후 만료된 JWT 갱신 락(supabase.auth)에 걸려 공개 조회가 멈추는 현상을 방지하기 위해,
+ * 순수 anon 키 + 5초 강제 타임아웃(AbortController)으로 PostgREST를 직접 호출합니다.
+ */
+async function fetchAnonRest<T>(
+    path: string,
+    init?: { method?: 'GET' | 'POST'; body?: unknown },
+    timeoutMs = 5000
+): Promise<T | null> {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) return null;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const res = await fetch(`${supabaseUrl}${path}`, {
+            method: init?.method || 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${supabaseAnonKey}`
+            },
+            body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+            cache: 'no-store',
+            signal: controller.signal
+        });
+        if (!res.ok) return null;
+        return (await res.json()) as T;
+    } catch (err) {
+        console.warn(`[Store] fetchAnonRest failed for ${path}:`, err);
+        return null;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 interface ReservationState {
     selectedDateRange: {
         from: Date | undefined;
@@ -21,6 +60,9 @@ interface ReservationState {
     selectedSite: Site | null;
     reservations: Reservation[];
     publicReservations: Reservation[];
+    isSitesLoaded: boolean;
+    isPublicReservationsLoaded: boolean;
+    lastPublicReservationsFetchedAt: number;
 
     // Dynamic Data
     sites: Site[];
@@ -196,6 +238,9 @@ export const useReservationStore = create<ReservationState>()(
             selectedSite: null,
             reservations: [],
             publicReservations: [],
+            isSitesLoaded: false,
+            isPublicReservationsLoaded: false,
+            lastPublicReservationsFetchedAt: 0,
             deadlineHours: 6, // Default 6h
             lastReservation: null, // Smart Re-book용 마지막 예약 정보
             rebookData: null, // Rebook 폼 자동 입력용
@@ -228,11 +273,24 @@ export const useReservationStore = create<ReservationState>()(
 
             // --- New Async: Fetch Sites & Config ---
             fetchSites: async () => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
-                const { data } = await supabase.from('sites').select('*').order('id');
+                // 1순위: 순수 anon REST 직접 호출 (백그라운드 복귀 직후 Auth 토큰 갱신 락 무한 대기 원천 우회)
+                let data = await fetchAnonRest<DbSite[]>('/rest/v1/sites?select=*&order=id.asc');
 
-                if (data) {
+                // 2순위 폴백: 기본 Supabase 클라이언트 조회
+                if (!Array.isArray(data)) {
+                    try {
+                        const { createClient } = await import('@/lib/supabase-client');
+                        const supabase = createClient();
+                        const res = await supabase.from('sites').select('*').order('id');
+                        if (Array.isArray(res.data)) {
+                            data = res.data;
+                        }
+                    } catch (err) {
+                        console.error('[Store] Fallback fetchSites failed:', err);
+                    }
+                }
+
+                if (Array.isArray(data) && data.length > 0) {
                     const mappedSites: Site[] = data.map((s: DbSite) => {
                         const raw = s as any;
                         return {
@@ -252,14 +310,26 @@ export const useReservationStore = create<ReservationState>()(
                             peakWeekend: raw.peak_weekend ?? undefined
                         };
                     });
-                    set({ sites: mappedSites });
+                    set({ sites: mappedSites, isSitesLoaded: true });
                 }
             },
 
-             fetchSiteConfig: async () => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
-                const { data } = await supabase.from('site_config').select('*').eq('id', 1).single();
+            fetchSiteConfig: async () => {
+                // 1순위: 순수 anon REST 직접 호출
+                const rows = await fetchAnonRest<any[]>('/rest/v1/site_config?select=*&id=eq.1&limit=1');
+                let data: any = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+
+                // 2순위 폴백: 기본 Supabase 클라이언트 조회
+                if (!data) {
+                    try {
+                        const { createClient } = await import('@/lib/supabase-client');
+                        const supabase = createClient();
+                        const res = await supabase.from('site_config').select('*').eq('id', 1).single();
+                        data = res.data;
+                    } catch (err) {
+                        console.error('[Store] Fallback fetchSiteConfig failed:', err);
+                    }
+                }
 
                 if (data) {
                     const updatePayload: any = {
@@ -742,54 +812,39 @@ export const useReservationStore = create<ReservationState>()(
                 };
                 let rows: PublicReservationRow[] | null = null;
 
-                try {
-                    const { createClient } = await import('@/lib/supabase-client');
-                    const supabase = createClient();
-
-                    // 1차: 기본 Supabase 클라이언트로 RPC 호출
-                    const { data, error } = await supabase.rpc('get_public_reservations', {
-                        p_start_date: startStr,
-                        p_end_date: endStr
-                    });
-
-                    if (!error && Array.isArray(data)) {
-                        rows = data as PublicReservationRow[];
-                    } else if (error) {
-                        console.warn('[Store] Primary get_public_reservations RPC error, trying anon fallback:', error);
+                // 1순위: 순수 anon 키로 직접 PostgREST RPC 호출 (백그라운드 복귀 직후 만료된 사용자 JWT 갱신 락 무한 대기 원천 우회)
+                const directRows = await fetchAnonRest<PublicReservationRow[]>(
+                    '/rest/v1/rpc/get_public_reservations',
+                    {
+                        method: 'POST',
+                        body: {
+                            p_start_date: startStr,
+                            p_end_date: endStr
+                        }
                     }
-                } catch (rpcErr) {
-                    console.warn('[Store] Primary get_public_reservations exception, trying anon fallback:', rpcErr);
+                );
+                if (Array.isArray(directRows)) {
+                    rows = directRows;
                 }
 
-                // 2차 폴백: 앱 백그라운드 복귀 직후 만료된 사용자 JWT 헤더 등으로 인해 1차 호출이 실패한 경우,
-                // 순수 anon 키로 직접 PostgREST RPC를 호출하여 마감 상태를 100% 보장
+                // 2순위 폴백: 1순위 직접 호출이 실패한 경우 기본 Supabase 클라이언트로 RPC 호출
                 if (!rows) {
                     try {
-                        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-                        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-                        if (supabaseUrl && supabaseAnonKey) {
-                            const res = await fetch(`${supabaseUrl}/rest/v1/rpc/get_public_reservations`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'apikey': supabaseAnonKey,
-                                    'Authorization': `Bearer ${supabaseAnonKey}`
-                                },
-                                body: JSON.stringify({
-                                    p_start_date: startStr,
-                                    p_end_date: endStr
-                                }),
-                                cache: 'no-store'
-                            });
-                            if (res.ok) {
-                                const fallbackData = await res.json();
-                                if (Array.isArray(fallbackData)) {
-                                    rows = fallbackData as PublicReservationRow[];
-                                }
-                            }
+                        const { createClient } = await import('@/lib/supabase-client');
+                        const supabase = createClient();
+
+                        const { data, error } = await supabase.rpc('get_public_reservations', {
+                            p_start_date: startStr,
+                            p_end_date: endStr
+                        });
+
+                        if (!error && Array.isArray(data)) {
+                            rows = data as PublicReservationRow[];
+                        } else if (error) {
+                            console.warn('[Store] Fallback get_public_reservations RPC error:', error);
                         }
-                    } catch (fallbackErr) {
-                        console.error('[Store] Anon fallback for get_public_reservations failed:', fallbackErr);
+                    } catch (rpcErr) {
+                        console.warn('[Store] Fallback get_public_reservations exception:', rpcErr);
                     }
                 }
 
@@ -845,7 +900,11 @@ export const useReservationStore = create<ReservationState>()(
                 });
 
                 // 전용 publicReservations 슬롯에 저장하여 fetchMyReservations(개인 예약 조회)와 절대 충돌하지 않도록 보장
-                set({ publicReservations: mappedPublicReservations });
+                set({
+                    publicReservations: mappedPublicReservations,
+                    isPublicReservationsLoaded: true,
+                    lastPublicReservationsFetchedAt: Date.now()
+                });
             },
 
             // 사용자 취소 요청 [v14.6.0: 영구 불변 REST API + Bearer 토큰 연동으로 무한 로딩 원천 차단]
@@ -1510,14 +1569,40 @@ export const useReservationStore = create<ReservationState>()(
             // Open Day Rule
             openDayRule: null,
             fetchOpenDayRule: async () => {
-                const { createClient } = await import('@/lib/supabase-client');
                 const { addMonths, endOfMonth, isBefore } = await import('date-fns');
-                const supabase = createClient();
-                const { data } = await supabase
-                    .from('open_day_rules')
-                    .select('*')
-                    .eq('is_active', true)
-                    .maybeSingle();
+
+                // 1순위: 순수 anon REST 직접 호출 (백그라운드 복귀 직후 Auth 토큰 갱신 락 무한 대기 원천 우회)
+                let ruleLoaded = false;
+                let data: any = null;
+                const directRows = await fetchAnonRest<any[]>('/rest/v1/open_day_rules?select=*&is_active=eq.true&limit=1');
+                if (Array.isArray(directRows)) {
+                    ruleLoaded = true;
+                    data = directRows[0] ?? null;
+                }
+
+                // 2순위 폴백: 기본 Supabase 클라이언트 조회
+                if (!ruleLoaded) {
+                    try {
+                        const { createClient } = await import('@/lib/supabase-client');
+                        const supabase = createClient();
+                        const res = await supabase
+                            .from('open_day_rules')
+                            .select('*')
+                            .eq('is_active', true)
+                            .maybeSingle();
+                        if (!res.error) {
+                            ruleLoaded = true;
+                            data = res.data;
+                        }
+                    } catch (err) {
+                        console.error('[Store] Fallback fetchOpenDayRule failed:', err);
+                    }
+                }
+
+                // 네트워크 단절 등으로 조회 자체가 실패한 경우 기존 openDayRule 상태를 보존
+                if (!ruleLoaded) {
+                    return;
+                }
 
                 if (data) {
                     let calculatedCloseAt = new Date(data.close_at);

@@ -19,7 +19,19 @@ import ReservationLockModal from '@/components/reservation/ReservationLockModal'
 export default function ReservationPage() {
     const router = useRouter();
     const { isLoading, isAllowed, showLockModal, closeLockModal } = useReservationGuard();
-    const { selectedDateRange, publicReservations, openDayRule, fetchOpenDayRule, sites, fetchSites, fetchSiteConfig, fetchPublicReservations } = useReservationStore();
+    const {
+        selectedDateRange,
+        publicReservations,
+        isSitesLoaded,
+        isPublicReservationsLoaded,
+        lastPublicReservationsFetchedAt,
+        openDayRule,
+        fetchOpenDayRule,
+        sites,
+        fetchSites,
+        fetchSiteConfig,
+        fetchPublicReservations
+    } = useReservationStore();
 
     useEffect(() => {
         const syncReservationAvailability = () => {
@@ -36,7 +48,7 @@ export default function ReservationPage() {
 
         syncReservationAvailability();
 
-        // [백그라운드 복귀 동기화] 앱을 내렸다가 다시 올리거나(visibilitychange/focus), 뒤로가기로 복귀(pageshow)할 때
+        // [백그라운드 복귀 동기화] 앱을 내렸다가 다시 올리거나(visibilitychange/focus), 뒤로가기로 복귀(pageshow), 네트워크 복구(online)할 때
         // 즉시 최신 마감 상태를 재동기화하여 마감된 사이트가 열리는 현상을 원천 차단
         let resumeTimer: NodeJS.Timeout | null = null;
         const handleAppResume = () => {
@@ -54,15 +66,43 @@ export default function ReservationPage() {
 
         window.addEventListener('focus', handleAppResume);
         window.addEventListener('pageshow', handleAppResume);
+        window.addEventListener('online', handleAppResume);
         document.addEventListener('visibilitychange', handleAppResume);
 
         return () => {
             if (resumeTimer) clearTimeout(resumeTimer);
             window.removeEventListener('focus', handleAppResume);
             window.removeEventListener('pageshow', handleAppResume);
+            window.removeEventListener('online', handleAppResume);
             document.removeEventListener('visibilitychange', handleAppResume);
         };
     }, [fetchOpenDayRule, fetchSites, fetchSiteConfig, fetchPublicReservations]);
+
+    // [날짜 변경 시 안전 재검증 (15초 스로틀링)]
+    // 백그라운드 장시간 대기 후 달력에서 날짜를 찍어볼 때, 미로드 상태이거나 마지막 조회로부터 15초 이상 지났다면 최신 마감 현황 즉시 동기화
+    useEffect(() => {
+        if (!selectedDateRange.from && !selectedDateRange.to) return;
+
+        if (!isSitesLoaded) {
+            fetchSites();
+        }
+
+        const now = Date.now();
+        if (!isPublicReservationsLoaded || now - lastPublicReservationsFetchedAt > 15000) {
+            const start = new Date();
+            const end = new Date();
+            end.setMonth(end.getMonth() + 6);
+            fetchPublicReservations(start, end);
+        }
+    }, [
+        selectedDateRange.from,
+        selectedDateRange.to,
+        isSitesLoaded,
+        isPublicReservationsLoaded,
+        lastPublicReservationsFetchedAt,
+        fetchSites,
+        fetchPublicReservations
+    ]);
 
     // Realtime Postgres changes subscription to sync database modifications (e.g. block cancel) instantly
     // [동시성 최적화] 대량 접속 시 잇단 예약 완료 브로드캐스트로 인한 6개월치 RPC 폭증을 500ms 디바운스로 압축

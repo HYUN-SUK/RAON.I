@@ -12,14 +12,26 @@ import { toast } from 'sonner';
 
 export default function SiteList() {
     const router = useRouter();
-    const { selectedSite, setSelectedSite, selectedDateRange, publicReservations, calculatePrice, sites, fetchSites } = useReservationStore();
+    const {
+        selectedSite,
+        setSelectedSite,
+        selectedDateRange,
+        publicReservations,
+        isSitesLoaded,
+        isPublicReservationsLoaded,
+        calculatePrice,
+        sites,
+        fetchSites
+    } = useReservationStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
-        fetchSites(); // 실시간 DB 사이트 상태 동기화
-    }, [fetchSites]);
+        if (!isSitesLoaded) {
+            fetchSites(); // 최초 미동기화 시 실시간 DB 사이트 상태 동기화
+        }
+    }, [fetchSites, isSitesLoaded]);
 
     // Check availability based on publicReservations and rules
     const isSiteAvailable = (siteId: string) => {
@@ -120,6 +132,11 @@ export default function SiteList() {
     });
 
     const handleSiteClick = (site: Site) => {
+        if (!isSitesLoaded || !isPublicReservationsLoaded) {
+            toast.info('실시간 예약 현황을 확인하고 있습니다. 잠시만 기다려주세요.');
+            return;
+        }
+
         // 0-night validation (Check-in == Check-out or no Check-out)
         if (!selectedDateRange.from || !selectedDateRange.to || new Date(selectedDateRange.from).getTime() === new Date(selectedDateRange.to).getTime()) {
             toast.error('퇴실일을 선택하세요');
@@ -173,6 +190,33 @@ export default function SiteList() {
             return `${minPrice.toLocaleString()}원 ~ ${maxPrice.toLocaleString()}원 / 1박`;
         }
     };
+
+    // [초기 미동기화 방어 가드] 최초 1회 DB 사이트 정보 및 마감 현황 동기화가 완료되기 전에는
+    // 더미 DEFAULT_SITES(AI 일러스트 + 거짓 '예약가능')를 절대 노출하지 않고 로딩 스켈레톤을 표시
+    if (!mounted || !isSitesLoaded || !isPublicReservationsLoaded) {
+        return (
+            <div className="space-y-3 pb-20">
+                <div className="text-center py-2 text-xs font-semibold text-[#2E7D47] animate-pulse">
+                    실시간 예약 및 마감 현황을 확인하고 있습니다...
+                </div>
+                <div className="grid grid-cols-2 gap-3.5">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                        <div
+                            key={idx}
+                            className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-xs animate-pulse"
+                        >
+                            <div className="h-44 w-full bg-stone-200" />
+                            <div className="p-3.5 space-y-2">
+                                <div className="h-5 w-24 rounded-lg bg-stone-200" />
+                                <div className="h-3.5 w-full rounded bg-stone-100" />
+                                <div className="h-3.5 w-3/4 rounded bg-stone-100" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="grid grid-cols-2 gap-3.5 pb-20">
