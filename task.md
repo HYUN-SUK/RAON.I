@@ -1,5 +1,35 @@
 # Task Management
 
+## Active / Next Session Tasks
+- [ ] **P0 프로토타입: 3D 가상 피칭 & 날씨 시뮬레이터 (철수네 `site-1`) 착수**:
+  - 대표님 현장 실측치(철수네 가로x세로, 진입로 방위각, 나무/배전함 위치) 수령 및 확인
+  - **WBS 1: 독립 모듈 환경 & 관리자 보안 격리 라우트 구축** (`src/features/pitching/`, `/admin/pitching-preview` 404 차단, `noindex, nofollow`)
+  - **WBS 2: 철수네 DEM 16방위 능선 고도각 자동 산출 & DB 초기화** (Open-Meteo Elevation API 1회성 배치 산출)
+  - **WBS 3: 3D 디오라마 렌더러 & 절차적 터널형 텐트 제작** (파쇄석 질감, 3/4 부감 구도, Directional Light Soft PCF 실그림자, 버텍스 바람 연출)
+  - **WBS 4: 타임랩스 엔진 & 24방향 Scoring 채점기 연동** (SunCalc 태양 궤적, 능선 그림자 마스킹, 기상청 예보 벡터 합성)
+  - **WBS 5: 1탭 결과 요약 카드 & Canvas 캡처 공유** (추천 입구 방향, 주풍향 보강 팩 빨간 점, 시간대별 주의사항)
+  - **WBS 6: 특허 발명 메모 작성** (`docs/pitching_sim_invention_notes.md`)
+  - **WBS 7: 대표님 실기기 튜닝 & 현장 그늘 검증** (맑은 날 15시/17시 ±15분 오차 목표)
+
+## Completed Tasks (2026-10-20 ~ 2026-10-21)
+- [x] **마일스톤 9.95**: 예약 화면 백그라운드 복귀 언락 패치, 스마트플랜 경로선택기 뷰포트 최적화, 독립 스테이징 환경(`test.raon-i.co.kr`) 구축 및 3D 가상 피칭 시뮬레이터 P0 아키텍처/최종 구현계획서 확립 완결
+  - **예약 화면 백그라운드 복귀 가용성 언락 및 무결성 패치 (`6753a5d`)**:
+    - `fetchPublicReservations`, `fetchSites`, `fetchSiteConfig`, `fetchOpenDayRule`를 사용자 인증 세션과 독립된 순수 `anon` REST 직통 호출(5초 타임아웃)로 전환.
+    - `SiteList.tsx`에 `isSitesLoaded` 및 `isPublicReservationsLoaded` 스켈레톤 가드를 장착하여 데이터 로딩 중 빈 화면 깜빡임 차단.
+    - `/reservation/page.tsx`에 15초 쓰로틀링 날짜 재검증 가드를 탑재하여 백그라운드 복귀 시 안정적인 실시간 동기화 보장.
+  - **스마트플랜 경로선택기(`RouteSelector.tsx`) 뷰포트 레이아웃 최적화 (`75a1797`)**:
+    - 카카오 지도 높이를 `350px`에서 `210px`로 컴팩트화하고 상하 패딩/마진을 최적화하여, 모바일 전 기종에서 스크롤 없이 `[이 경로로 스마트플랜 생성]` CTA 버튼이 첫 화면(Above the Fold)에 100% 노출되도록 개선.
+  - **독립 스테이징 환경(`test.raon-i.co.kr`) 구축 및 Vercel 배포 연결**:
+    - 가비아 DNS CNAME(`test` ➔ `cname.vercel-dns.com.`) 설정 및 Vercel Domains에 `test.raon-i.co.kr` 연동 완료.
+    - Git 독립 `staging` 브랜치(`origin/staging`) 생성 및 푸시 완료, 스테이징 실서버 정상 응답(200 OK) 확인.
+  - **Vercel 트래픽 점검 및 방화벽 감사**:
+    - `robots.ts` 적용 이후 무단 스크래핑 봇 차단율 100% 및 정적 이미지 캐시 쓰기 95% 절감(64k ➔ 3.45k) 확인.
+    - 10월 초 봇 공격 누적치로 인한 일시 초과 해소 후 11월 1일 주기 리셋에 맞춘 Hobby(무료) 플랜 안전 다운그레이드 가이드 수립.
+  - **신규 기능 "가상 피칭 & 캠핑 시뮬레이터(Pitching Simulator)" P0 아키텍처 및 구현계획서 최종 확정**:
+    - 기획 AI(Claude)와의 1~2차 기술 검토 및 대표님 피드백 반영: 8개 사이트 전원 텐트 사이트 확정, 절차적(Procedural) 파라메트릭 텐트 메시, 4대 3D 시각 품질 체크포인트(Directional Light Soft PCF 실그림자 + 접지 ContactShadows + 감성 색온도 조명 + 3/4 부감 구도) 확립.
+    - 기존 앱 영향 0%의 완전 모듈 독립 구조(`src/features/pitching/`, `/admin/pitching-preview`), 순수 기하학적 일사량 계산 분리, 기상학 $\sin/\cos$ 풍향 벡터 보간, Open-Meteo DEM 90m 기반 16방위 능선 고도각(`horizon_profile`) 1회성 자동 산출 파이프라인 수립.
+    - 프로젝트 문서 [`docs/PITCHING_SIMULATOR_P0_PLAN.md`](file:///c:/Users/user/Desktop/RAON.I/docs/PITCHING_SIMULATOR_P0_PLAN.md) 작성 완료.
+
 ## Completed Tasks (2026-10-19)
 - [x] **마일스톤 9.94**: 예약 마감 표시 유지(`publicReservations` 상태 분리·백그라운드 복귀 동기화), 사이트 예약가능/마감 시인성 및 빈자리 알림 버튼 선명도 개선, 10초 기록 지도 미니 장소카드 전환 완결
   - **공개 예약 마감 현황(`publicReservations`) 슬롯 분리 및 백그라운드 복귀 즉시 동기화 (`useReservationStore.ts`, `reservation/page.tsx`, `SiteList.tsx`, `DateRangePicker.tsx`, `ReservationForm.tsx`, `26bd56d`)**:

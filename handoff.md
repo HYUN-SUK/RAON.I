@@ -1,80 +1,96 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-10-19T15:06:00+09:00  
-**기준 브랜치**: `main`  
+**작성 일시**: 2026-10-21T18:45:00+09:00  
+**기준 브랜치**: `main` (운영 라이브) / `staging` (`test.raon-i.co.kr` - 피칭 시뮬레이터 개발용)  
 **빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, Production Build 104/104 전체 라우트 100% 통과)  
-**실서버 배포**: Vercel 프로덕션 자동 배포 연동 (`https://raon-i.co.kr`)  
+**실서버 배포**: 
+- 운영 프로덕션: `https://raon-i.co.kr` (Vercel 자동 배포 연동)
+- 스테이징 프리뷰: `https://test.raon-i.co.kr` (`origin/staging` 브랜치 연동, 보안 차단)
 
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
-### 🟢 마일스톤 9.94: 예약 마감 표시 유지(`publicReservations` 상태 분리·백그라운드 복귀 동기화), 사이트 예약가능/마감 시인성 및 빈자리 알림 버튼 선명도 개선, 10초 기록 지도 미니 장소카드 전환 완결 (2026-10-19)
+### 🟢 마일스톤 9.95: 예약 화면 백그라운드 복귀 언락 패치, 스마트플랜 경로선택기 뷰포트 최적화, 독립 스테이징 환경(`test.raon-i.co.kr`) 구축 및 3D 가상 피칭 시뮬레이터 P0 아키텍처/최종 구현계획서 확립 완결 (2026-10-20 ~ 2026-10-21)
 
-1. **공개 예약 마감 현황(`publicReservations`) 슬롯 분리 및 앱 백그라운드 복귀 시 즉시 동기화 (`26bd56d`)**:
-   - **대상 파일**:
-     - [`src/store/useReservationStore.ts`](file:///c:/Users/user/Desktop/RAON.I/src/store/useReservationStore.ts)
-     - [`src/app/(mobile)/reservation/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/%28mobile%29/reservation/page.tsx)
-     - [`src/components/reservation/SiteList.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/SiteList.tsx)
-     - [`src/components/reservation/DateRangePicker.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/DateRangePicker.tsx)
-     - [`src/components/reservation/ReservationForm.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/ReservationForm.tsx)
-   - **원인 규명 및 해결 내용**:
-     - 기존에는 전체 사이트의 6개월치 마감 현황을 조회하는 `fetchPublicReservations`와 로그인 사용자의 개인 예약을 조회하는 `fetchMyReservations`가 동일한 `state.reservations` 배열을 공유하고 있었음. 이로 인해 내 예약이 0건인 사용자가 홈 화면을 다녀오거나 앱 백그라운드 복귀 시 `fetchMyReservations()`가 실행되면 `state.reservations`가 빈 배열(`[]`)로 덮어써지면서 마감된 사이트가 모두 열린 것처럼 보이던 현상 발생.
-     - `useReservationStore`에 전용 **`publicReservations: Reservation[]`** 상태를 분리하여, `fetchMyReservations`는 `reservations`(개인 예약)만, `fetchPublicReservations`는 `publicReservations`(전체 사이트 마감 현황)만 업데이트하도록 완벽 격리.
-     - `fetchPublicReservations` 호출 시 앱 백그라운드 복귀 직후 만료된 사용자 JWT 토큰 헤더로 인해 1차 RPC 호출이 실패하더라도, 즉시 순수 `anon` 키로 PostgREST 엔드포인트(`/rest/v1/rpc/get_public_reservations`)를 재호출하는 2차 폴백(Fallback) 및 네트워크 단절 시 기존 `publicReservations` 보존 가드 장착.
-     - `/reservation` 페이지에 `visibilitychange`, `focus`, `pageshow` 이벤트 리스너(300ms 디바운스)를 추가하여 앱을 내렸다가 다시 올리거나 뒤로가기로 복귀할 때 최신 마감 현황을 즉시 동기화.
-     - 예약 생성(`createReservationSafe`), 취소 요청(`requestCancelReservation`), 주말 1박 검증(`validateReservation`) 및 사용자 예약 UI 4종 모두 `publicReservations` 기준으로 연동.
+1. **예약 화면 백그라운드 복귀 가용성 언락 및 무결성 패치 (`6753a5d`)**:
+   - **대상 파일**: [`src/store/useReservationStore.ts`](file:///c:/Users/user/Desktop/RAON.I/src/store/useReservationStore.ts), [`src/components/reservation/SiteList.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/SiteList.tsx), [`src/app/(mobile)/reservation/page.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/app/%28mobile%29/reservation/page.tsx)
+   - `fetchPublicReservations`, `fetchSites`, `fetchSiteConfig`, `fetchOpenDayRule`를 사용자 세션 만료 간섭이 없는 순수 `anon` REST 직통 호출(5초 타임아웃)로 전환.
+   - `SiteList.tsx`에 `isSitesLoaded` 및 `isPublicReservationsLoaded` 스켈레톤 가드를 장착하여 데이터 로딩 중 빈 화면 깜빡임 차단.
+   - `/reservation/page.tsx`에 15초 쓰로틀링 날짜 재검증 가드를 탑재하여 백그라운드 복귀 시 안정적인 실시간 동기화 보장.
 
-2. **예약가능 vs 예약마감 사이트 시각적 대비 강화 및 빈자리 알림 버튼 선명도 100% 복원 (`d1e341c`, `492d7c9`)**:
-   - **대상 파일**: [`src/components/reservation/SiteList.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/SiteList.tsx)
-   - **조치 내용**:
-     - **배지 원색 복원 및 `예약가능` 배지 신설**: 기존에는 이미지와 배지를 감싸는 부모 `<div className="relative h-44 w-full">`에 `grayscale`이 걸려 있어 빨간색 `마감` 배지까지 회색으로 변해 파쇄석 사진에 묻히던 문제를 해결하기 위해, `grayscale brightness-75`를 `<Image>`에만 단독 적용. 우측 상단에 예약 가능 사이트는 에메랄드 그린 **`예약가능` 배지**(`bg-[#2E7D47] text-white`), 마감 사이트는 선명한 코랄 레드 **`마감` 배지**(`bg-[#E06B62] text-white`)를 노출.
-     - **상단 배지 줄바꿈 원천 차단**: 모바일 2열 그리드의 좁은 가로폭에서도 `⚡ AUTO`와 `예약가능` 글씨가 두 줄로 꺾이지 않도록 `whitespace-nowrap shrink-0` 및 여백·패딩(`left-2.5 right-2.5`, `px-2 py-0.5 text-[11px]`) 최적화.
-     - **마감 카드 본문 톤다운 & 빈자리 알림 영역 선명화**: 마감된 사이트의 배경(`bg-[#F5F7F5]`), 테두리(`border-stone-200`), 가격표, 설명, 해시태그는 차분한 무채색(Stone)으로 톤다운하고, 카드 최외곽의 `opacity-75` 상속을 제거한 뒤 하단 `빈자리 알림` 영역을 깨끗한 화이트 활성 박스(`bg-white border border-[#68A678]/40 rounded-2xl`)로 분리하여 `WaitlistButton`이 비활성화된 것처럼 흐릿하게 보이던 현상 완치.
+2. **스마트플랜 경로선택기(`RouteSelector.tsx`) 뷰포트 레이아웃 최적화 (`75a1797`)**:
+   - **대상 파일**: [`src/components/plan/RouteSelector.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/plan/RouteSelector.tsx)
+   - 카카오 지도 높이를 `350px`에서 `210px`로 컴팩트화하고 상하 패딩/마진을 최적화하여, 모바일 전 기종에서 스크롤 없이 `[이 경로로 스마트플랜 생성]` CTA 버튼이 첫 화면(Above the Fold)에 100% 노출되도록 개선.
 
-3. **10초 기록 직후 '지도에 핀 꽂기' 진입 시 지도 중심 노출 및 하단 미니 장소카드 전환 (`f659188`)**:
-   - **대상 파일**: [`src/components/myspace/MyMapModal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/myspace/MyMapModal.tsx)
-   - **조치 내용**:
-     - 10초 기록 완료 후 지도 진입 시(`optimisticRecordPin`) 화면 전체를 가리던 상세 시트(`isDetailOpen = true`) 자동 오픈을 제거하고, 방금 꽂힌 핀을 중심으로 지도를 보여주면서 하단에 컴팩트 플로팅 미니 장소카드(`selectedPin && !isDetailOpen`)를 노출하도록 개선.
-     - 하단 미니 장소카드 터치 시 상세 내용 확인 및 수정 시트가 열리도록 연결하고, 모바일 하드웨어 뒤로가기(`popstate`) 4단계 계층 가드(상세시트 ➔ 미니 장소카드 ➔ 검색창 ➔ 지도 모달) 연동.
+3. **독립 스테이징 환경(`test.raon-i.co.kr`) 구축 및 Vercel 배포 연결**:
+   - 가비아 DNS CNAME(`test` ➔ `cname.vercel-dns.com.`) 설정 및 Vercel Domains에 `test.raon-i.co.kr` 연동 완료.
+   - Git 독립 `staging` 브랜치(`origin/staging`) 생성 및 푸시 완료, 스테이징 실서버 정상 응답(200 OK) 확인.
+
+4. **Vercel 트래픽 점검 및 방화벽 감사**:
+   - `robots.ts` 적용 이후 무단 스크래핑 봇 차단율 100% 및 정적 이미지 캐시 쓰기 95% 절감(64k ➔ 3.45k) 확인 ($0 베이스라인 유지).
+   - 10월 초 봇 공격 누적치로 인한 일시 초과 해소 후 11월 1일 주기 리셋에 맞춘 Hobby(무료) 플랜 안전 다운그레이드 가이드 수립.
+
+5. **신규 기능 "가상 피칭 & 캠핑 시뮬레이터(Pitching Simulator)" P0 아키텍처 및 구현계획서 최종 확정**:
+   - 기획 AI(Claude)와의 1~2차 기술 검토 및 대표님 피드백 반영: 8개 사이트 전원 텐트 사이트 확정, 절차적(Procedural) 파라메트릭 텐트 메시, 4대 3D 시각 품질 체크포인트(Directional Light Soft PCF 실그림자 + 접지 ContactShadows + 감성 색온도 조명 + 3/4 부감 구도) 확립.
+   - 기존 앱 영향 0%의 완전 모듈 독립 구조(`src/features/pitching/`, `/admin/pitching-preview`), 순수 기하학적 일사량 계산 분리, 기상학 $\sin/\cos$ 풍향 벡터 보간, Open-Meteo DEM 90m 기반 16방위 능선 고도각(`horizon_profile`) 1회성 자동 산출 파이프라인 수립.
+   - 프로젝트 문서 [`docs/PITCHING_SIMULATOR_P0_PLAN.md`](file:///c:/Users/user/Desktop/RAON.I/docs/PITCHING_SIMULATOR_P0_PLAN.md) 작성 완료.
 
 ---
 
-### 🟢 마일스톤 9.93: 내비게이션 3사(카카오맵·카카오내비·T맵) 완벽 연결 및 즉시 여행계획 대체리스트/지도 찜(💖) 기능 전면 반영 완결 (2026-10-11 ~ 2026-10-12)
-- [`src/lib/nav-utils.ts`](file:///c:/Users/user/Desktop/RAON.I/src/lib/nav-utils.ts): 카카오내비 `kakaonavi-sdk://navigate` JSON 프로토콜 적용, T맵 `tmap://route` 순수 스킴 일원화, 안드로이드 미설치 폴백 `market://details?id=...` 및 4000ms 타이머 적용.
-- [`src/components/home/InstantPlanModal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/home/InstantPlanModal.tsx), [`src/components/plan/SmartPlanProposal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/plan/SmartPlanProposal.tsx): 즉시 여행계획 대체리스트·지도 찜(💖) 전면 반영 및 정밀 스마트플랜 영구 승계.
+### 🟢 마일스톤 9.94: 예약 마감 표시 유지(`publicReservations` 상태 분리·백그라운드 복귀 동기화), 사이트 예약가능/마감 시인성 및 빈자리 알림 버튼 선명도 개선, 10초 기록 지도 미니 장소카드 전환 완결 (2026-10-19)
+- `useReservationStore`의 개인 예약(`reservations`)과 전체 마감 현황(`publicReservations`) 상태 분리 (`26bd56d`).
+- `SiteList.tsx`의 마감 배지 원색 복원, `예약가능` 배지 신설, `빈자리 알림` 버튼 화이트 활성 박스 분리 (`d1e341c`, `492d7c9`).
+- `MyMapModal.tsx`의 10초 기록 핀 꽂기 직후 하단 플로팅 미니 장소카드 전환 (`f659188`).
 
 ---
 
 ## 2. 기술적 결정 사항 (Technical Decisions)
 
-| 결정 사항 | 적용 파일 | 채택 이유 |
+| 결정 사항 | 적용 위치 | 채택 이유 |
 | :--- | :--- | :--- |
-| **`reservations`(개인 예약)와 `publicReservations`(전체 마감 현황) 상태 완전 분리** | [`src/store/useReservationStore.ts`](file:///c:/Users/user/Desktop/RAON.I/src/store/useReservationStore.ts) | 홈 위젯(`ScheduleHomeWidget`)이나 백그라운드 복귀 시 실행되는 `fetchMyReservations()`가 전체 사이트 마감 데이터를 덮어쓰지 않도록 상태를 물리적으로 분리하여, 어떤 화면 이동이나 백그라운드 전환에서도 마감 표시가 100% 유지되도록 보장. |
-| **`fetchPublicReservations` 순수 `anon` 키 PostgREST 2차 폴백 및 상태 보존 가드** | [`src/store/useReservationStore.ts`](file:///c:/Users/user/Desktop/RAON.I/src/store/useReservationStore.ts) | 앱을 장시간 내려두었다가 올렸을 때 만료된 사용자 JWT 헤더 때문에 1차 RPC 호출이 실패하더라도 `anon` 권한으로 공개 마감 현황을 즉시 가져오고, 오프라인 상태에서도 기존 마감 목록이 빈 배열로 초기화되지 않도록 방어. |
-| **마감 사이트 카드의 `<Image>` 단독 `grayscale` 및 외곽 `opacity-75` 제거** | [`src/components/reservation/SiteList.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/reservation/SiteList.tsx) | 부모 컨테이너에 걸려 있던 `grayscale`과 `opacity-75`가 자식 요소인 `마감` 배지와 `빈자리 알림` 버튼의 색상·투명도까지 훼손하던 문제를 해결하여, `WaitlistButton.tsx` 원본(`animate-pulse` 포함)을 건드리지 않고도 배지와 알림 버튼의 선명도를 100% 복원. |
-| **10초 기록 지도 진입 시 하단 플로팅 미니 장소카드(`selectedPin && !isDetailOpen`) 도입** | [`src/components/myspace/MyMapModal.tsx`](file:///c:/Users/user/Desktop/RAON.I/src/components/myspace/MyMapModal.tsx) | 핀 꽂기 직후 지도가 상세 시트에 가려지지 않고 지도 위 핀 위치를 먼저 확인한 뒤, 하단 카드를 터치해 상세 확인·수정을 진행할 수 있도록 사용성 개선. |
+| **피칭 시뮬레이터 단일 독립 모듈 격리** | `src/features/pitching/` | 기존 예약, 결제, 소셜 로그인 코드에 단 한 줄의 부작용도 미치지 않도록 물리적·논리적으로 100% 캡슐화. 외부 노출은 뷰 1개와 계산함수 1개로 제한. |
+| **Three.js 지연 로딩 (`ssr: false`)** | `next/dynamic` | 3D 라이브러리 번들(500KB~1MB)을 피칭 시뮬레이터 화면 진입 시에만 로드하여 기존 홈/예약 사용자에게 로딩 부하 0% 보장. |
+| **절차적(Procedural) 텐트 3D 메시** | R3F 메시 코드 | 수백 개 브랜드의 고용량 3D 캐드/glTF 파일 대신, 사용자가 입력한 치수(가로x세로x높이)대로 즉시 만들어지는 초경량(수 KB) 3D 형상 구현. |
+| **방향성 실그림자(Directional Soft PCF) + ContactShadows 보조** | 3D 씬 라이팅 | 접지 그림자(`ContactShadows`)만으로는 시간대별 늘어지는 그늘을 볼 수 없으므로, 태양 방위/고도각에 연동되는 실그림자를 켜서 실제 그늘 위치를 정확히 시각화. |
+| **순수 기하학적 일사량 계산 분리** | 계산 엔진 | 일사/그늘 계산을 3D 화면(픽셀)에 의존하지 않고 순수 수학적 Ray-casting으로 계산하여, 3D 뷰와 2D 탑뷰 폴백(Konva)에서 100% 동일한 점수 산출 보장. |
+| **Open-Meteo DEM 16방위 능선 각도 자동 산출** | 1회성 배치 스크립트 | 캠장이 현장에서 16방위 산봉우리 각도를 일일이 측정할 필요 없이, 캠핑장 위경도(36.6354349, 126.7638091) 기반으로 무료 90m DEM API를 통해 1초 만에 자동 산출 및 DB 영구 저장. |
+| **특허 보호 보안 격리 (스테이징)** | `test.raon-i.co.kr` (`staging`) | 특허 출원 전 외부 유출을 차단하기 위해 `main` 병합을 금지하고, `noindex, nofollow` 및 `/admin/pitching-preview` 관리자 인증(미인증 시 404)으로 보호. |
 
 ---
 
 ## 3. 다음 작업 가이드 (Next Action Items for Next Session)
 
-다음 세션에서는 실기기 점검을 이어가며 아래 항목들을 우선순위에 따라 진행합니다.
+다음 세션에서는 대표님의 현장 실측치를 전달받아 **P0 프로토타입 구현(총 1~1.5주 로드맵)**에 즉시 착수합니다.
 
-### 📌 1순위: 예약 화면 및 10초 기록 지도 UI 실기기 점검 및 추가 피드백 반영
-- 앱 백그라운드 전환/복귀 및 탭 이동 시 예약 마감 사이트 유지 여부 실기기 최종 확인.
-- 개선된 `예약가능` / `마감` 배지 시인성 및 마감 카드 하단 `빈자리 알림` 활성 박스 실기기 확인.
-- 10초 기록 후 지도 핀 꽂기 진입 시 하단 미니 장소카드 노출 및 터치 상세/수정 전환 확인.
+### 📌 1순위: 대표님 현장 실측치 수령 및 확인
+- **철수네(`site-1`) 실측 항목**:
+  1. 가로 x 세로 크기 (m)
+  2. 진입로 정면 방위각 (나침반 앱, 진북 기준 각도)
+  3. 주요 장애물(나무, 배전함) 위치 (사이트 앞쪽 좌측 모서리 (0,0) 기준 오른쪽 x m, 안쪽 y m)
+  4. 대략의 바닥 경사 및 배수 방향
 
-### 📌 2순위: 사용자 추가 점검 항목 순차 진행
-- 실기기 테스트 과정에서 발견되는 추가 UI/UX 또는 기능 점검 사항을 **"점검 및 원인/계획 보고 ➔ 사용자 승인 ➔ 정밀 구현 ➔ 타입(`tsc --noEmit`) 및 빌드(`npm run build`) 검증"** 절차에 따라 순차 진행.
+### 📌 2순위: WBS 1 & WBS 2 착수 (`staging` 브랜치)
+- **WBS 1 (독립 환경 구축)**:
+  - `src/features/pitching/` 폴더 구조 생성
+  - `/admin/pitching-preview` 라우트 생성 (관리자 세션 검증 가드 + 404 차단)
+  - 스테이징 메타태그 `noindex, nofollow` 적용
+- **WBS 2 (지형 자동 산출 & DB 초기화)**:
+  - Open-Meteo Elevation API를 호출하는 16방위 능선 고도각 자동 산출 스크립트 작성 및 실행
+  - `site_geometry` 테이블 마이그레이션 및 철수네 데이터 적재
+
+### 📌 3순위: WBS 3 착수 (3D 디오라마 & 절차적 텐트)
+- R3F 파쇄석 바닥 텍스처 + 주변 나무 배치
+- 입력 치수 비례 터널형 아치 절차적 3D 메시 + Directional Soft PCF 실그림자 + 접지 그림자 + 버텍스 바람 연출
 
 ---
 
 ## 4. 주의 사항 (Caveats & Known Characteristics)
 
-1. **작업 진행 원칙 준수**:
-   - 사용자가 점검을 요청할 때는 **절대 바로 코딩하지 않고**, 먼저 코드 레벨 원인 분석과 세부 구현 계획·부작용 점검 결과를 보고한 뒤 **명시적 승인("승인")**을 받은 후 코드를 수정합니다.
-   - 코드 반영 후에는 **단독 타입 검증(`npx.cmd tsc --noEmit`)과 프로덕션 빌드 검증(`npm.cmd run build`)을 모두 수행**하여 무결성을 확인합니다.
-2. **예약 상태 스토어 슬롯 구분 주의**:
-   - `useReservationStore`에서 **`reservations`**는 로그인한 사용자의 개인 예약 내역(`fetchMyReservations`) 및 관리자 전체 예약 조회(`fetchAllReservations`)용이며, **`publicReservations`**는 사용자 예약 화면의 전체 사이트 마감/가용성 판별(`fetchPublicReservations`) 전용입니다. 향후 사용자 예약 가용성 관련 UI 수정 시 반드시 `publicReservations`를 참조해야 합니다.
+1. **특허 보호 및 브랜치 격리 원칙 절대 준수**:
+   - 가상 피칭 시뮬레이터 관련 코드는 **특허 출원 전까지 절대 `main` 브랜치에 커밋하거나 병합하지 않습니다.**
+   - 모든 신규 작업은 **`staging` 브랜치(`test.raon-i.co.kr`)**에서만 진행하며, 관리자 전용 비공개 경로(`/admin/pitching-preview`) 뒤에 은닉합니다.
+2. **코드 무결성 검증 원칙**:
+   - 코드 작업 후에는 항상 **`npx.cmd tsc --noEmit` (타입 검증 0에러)**와 **`npm.cmd run build` (프로덕션 빌드 100% 통과)**를 수행하여 전체 시스템 무결성을 확인합니다.
+3. **Vercel 플랜 다운그레이드 일정**:
+   - 10월 1~2일 악성 봇 트래픽으로 인한 누적 사용량 때문에 즉시 다운그레이드가 제한되었으므로, **11월 1일 사용량 주기 리셋 직후 Hobby(무료) 플랜으로 안전하게 전환**합니다.
