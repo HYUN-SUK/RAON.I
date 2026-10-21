@@ -32,6 +32,7 @@ export interface SiteGeometry {
   horizonProfile: HorizonProfilePoint[];
   obstacles: SiteObstacle[];
   isCustom?: boolean;
+  lastElevationSyncAt?: string; // 국토지리정보원/브이월드 지형 데이터 최종 동기화 시각 (6개월 주기 갱신용)
 }
 
 export interface UserGear {

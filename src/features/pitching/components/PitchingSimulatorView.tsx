@@ -3,52 +3,15 @@
 import React, { useState, Suspense } from 'react';
 import { Tent, Sun, Wind, Compass, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 import type { SiteGeometry, UserGear } from '../types';
+import { SITE_1_GEOMETRY, DEFAULT_TUNNEL_TENT } from '../constants/defaultSite';
 
 interface PitchingSimulatorViewProps {
   initialSite?: SiteGeometry;
   initialGear?: UserGear;
 }
 
-// 기본 철수네(site-1) 시뮬레이션 데이터 (P0 기본값)
-const DEFAULT_SITE_1: SiteGeometry = {
-  id: 'site-1-preview',
-  siteId: 'site-1',
-  name: '철수네 (Site 1)',
-  lat: 37.5326, // 예시 좌표 (WBS 2에서 실제 좌표 연동)
-  lng: 128.0123,
-  widthM: 8.0,
-  depthM: 7.0,
-  bearingDeg: 145, // 남동향 진입로
-  groundType: 'gravel',
-  horizonProfile: [
-    { az: 0, alt: 14 },
-    { az: 45, alt: 18 },
-    { az: 90, alt: 22 },
-    { az: 135, alt: 12 },
-    { az: 180, alt: 8 },
-    { az: 225, alt: 15 },
-    { az: 270, alt: 24 }, // 서쪽 능선이 높아 오후 해가 일찍 짐
-    { az: 315, alt: 19 },
-  ],
-  obstacles: [
-    { type: 'tree', x: 2.0, y: 1.0, height: 6.0, radius: 2.2 },
-    { type: 'car', x: 0.5, y: -1.2, height: 1.8, width: 1.9, length: 4.8 },
-  ],
-};
-
-// 기본 터널형 텐트 규격 (카즈미/스노우피크 표준 규격)
-const DEFAULT_TUNNEL_TENT: UserGear = {
-  shape: 'tunnel',
-  modelName: '표준 2룸 터널형 텐트',
-  lengthM: 6.2,
-  widthM: 3.3,
-  heightM: 2.1,
-  color: '#4B5320', // 올리브 카키
-  doorSides: ['front', 'side'],
-};
-
 export default function PitchingSimulatorView({
-  initialSite = DEFAULT_SITE_1,
+  initialSite = SITE_1_GEOMETRY,
   initialGear = DEFAULT_TUNNEL_TENT,
 }: PitchingSimulatorViewProps) {
   const [site] = useState<SiteGeometry>(initialSite);
@@ -137,6 +100,10 @@ export default function PitchingSimulatorView({
                   <div className="flex justify-between text-stone-300">
                     <span>검증 시간대:</span>
                     <span className="font-semibold text-amber-300">{simHour}:00 (오후 일사·그늘)</span>
+                  </div>
+                  <div className="flex justify-between text-stone-300 pt-1 border-t border-emerald-600/30">
+                    <span>지형 데이터 (국토정보):</span>
+                    <span className="font-semibold text-emerald-300">6개월 유효 (2026.10 동기화)</span>
                   </div>
                 </div>
               </div>
