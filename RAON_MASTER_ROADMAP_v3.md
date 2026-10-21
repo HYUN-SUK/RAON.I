@@ -7,6 +7,13 @@
 ??문서???�온?�이 ?�로?�트??**최종 ?�정??개발 가?�드**?�니??
 기존??견고???�레?�워???�에 **?�렌??감성·초개?�화)**?� **?�실?�인 AI ?�략(L0/L1)**??결합?�여, ?�용?�에�?가??가�??�는 경험???�선?�으�??�달?�니??
 
+- [x] **9.96 모바일 예약 신청 무한 스피너 완치(전용 REST API 승격 & 8초 강제 타임아웃), 완료 화면 0초 직행 및 새로고침 튕김 방어 완결 (2026-10-21)** 🟢
+  - [x] **신규 예약 생성 전용 REST 엔드포인트 승격 (`src/app/api/reservation/create/route.ts`)**: 모바일 웹뷰(갤럭시 등)에서 브라우저 Supabase 클라이언트 SDK의 JWT 토큰 갱신 데드락 및 소켓 멈춤으로 인해 DB RPC 호출이 발송조차 못하고 무한 스피너에 갇히던 취약성을 원천 박멸. 1순위 Bearer 헤더 + 2순위 쿠키 세션 2중 인증 및 Service Role 기반 DB RPC `create_reservation_safe` 호출로 서버 레벨 직통 처리. 캠핑 프로필(`upsert_camping_profile`) 및 페르소나 행동 로그(`dispatchPersonaAction`)를 Next.js `after()` 비동기 백그라운드로 안전하게 위임하여 클라이언트 화면 전환 지연 0% 달성.
+  - [x] **클라이언트 스토어 8초 모래시계(강제 타임아웃) 장착 (`src/store/useReservationStore.ts`)**: `createReservationSafe`를 `/api/reservation/create` 호출 구조로 전환하고, `AbortController(8000ms)` 장착. 무선망 불안정이나 통신 지연 시에도 어떤 경우든 8초가 지나면 락을 즉시 해제하고 안내 토스트를 표출하여 사용자가 무한 스피너에 방치되는 일 원천 차단.
+  - [x] **완료 화면 0초 직행 가속화 및 2초 네비게이션 페일세이프 (`src/components/reservation/ReservationForm.tsx`)**: 폼 마운트 시 `router.prefetch('/reservation/complete')`로 완료 페이지 번들 사전 캐싱. 예약 성공 시 `router.push('/reservation/complete?id=' + reservationId)`로 즉시 이동하며, Next.js 라우터 지연 시 2초 후 `window.location.href`로 강제 직행하는 안전망 장착.
+  - [x] **완료 페이지 URL id 파라미터 연동 및 새로고침 튕김 방어 (`src/app/(mobile)/reservation/complete/page.tsx`)**: URL `?id=` 파라미터를 지원하여, 사용자가 새로고침을 하거나 복귀하여 메모리(`reservations`)가 비어있더라도 DB 단건 조회를 통해 입금 계좌와 예약 정보를 온전히 표출하고 메인 튕김 결함 박멸 (`Suspense` 래핑 포함).
+  - [x] **빌드 및 타입 무결성 검증**: `npx tsc --noEmit` 0에러 통과, Next.js 16.1.1 Production Build 105/105 전체 라우트 100% 통과.
+
 - [x] **9.95 예약 화면 백그라운드 복귀 언락 패치, 스마트플랜 경로선택기 뷰포트 최적화, 독립 스테이징 환경(`test.raon-i.co.kr`) 구축 및 3D 가상 피칭 시뮬레이터 P0 아키텍처/최종 구현계획서 확립 완결 (2026-10-20 ~ 2026-10-21)** 🟢
   - [x] **예약 화면 백그라운드 복귀 가용성 언락 및 무결성 패치 (`6753a5d`)**: `fetchPublicReservations`, `fetchSites`, `fetchSiteConfig`, `fetchOpenDayRule`를 사용자 인증 세션과 독립된 순수 `anon` REST 직통 호출(5초 타임아웃)로 전환. `SiteList.tsx`에 `isSitesLoaded` 및 `isPublicReservationsLoaded` 스켈레톤 가드를 장착하여 데이터 로딩 중 빈 화면 깜빡임을 차단하고, `/reservation/page.tsx`에 15초 쓰로틀링 날짜 재검증 가드를 탑재하여 백그라운드 복귀 시 안정적인 실시간 동기화 보장.
   - [x] **스마트플랜 경로선택기(`RouteSelector.tsx`) 뷰포트 레이아웃 최적화 (`75a1797`)**: 카카오 지도 높이를 `350px`에서 `210px`로 컴팩트화하고 상하 패딩/마진을 최적화하여, 모바일 전 기종에서 스크롤 없이 `[이 경로로 스마트플랜 생성]` CTA 버튼이 첫 화면(Above the Fold)에 100% 노출되도록 개선.

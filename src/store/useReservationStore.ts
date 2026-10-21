@@ -514,17 +514,8 @@ export const useReservationStore = create<ReservationState>()(
                 set((state) => ({ reservations: [...state.reservations, reservation] }));
             },
 
-            // 동시성 제어가 적용된 안전한 예약 생성 (DB RPC 사용)
+            // 동시성 제어가 적용된 안전한 예약 생성 (전용 REST API + 8초 강제 타임아웃)
             createReservationSafe: async (params) => {
-                const { createClient } = await import('@/lib/supabase-client');
-                const supabase = createClient();
-
-                // 현재 사용자 확인 (로컬 세션 즉시 조회 - 원격 HTTP 왕복 지연 0ms)
-                const { data: { session } } = await supabase.auth.getSession();
-                const userId = session?.user?.id || null;
-
-
-
                 // 0-night validation (Surgical safeguard)
                 if (params.checkIn.getTime() === params.checkOut.getTime()) {
                     return {
@@ -534,38 +525,72 @@ export const useReservationStore = create<ReservationState>()(
                     };
                 }
 
-                // RPC 호출
-                const { data, error } = await supabase.rpc('create_reservation_safe', {
-                    p_user_id: userId,
-                    p_site_id: params.siteId,
-                    p_check_in: formatLocalDate(params.checkIn),
-                    p_check_out: formatLocalDate(params.checkOut),
-                    p_family_count: params.familyCount,
-                    p_visitor_count: params.visitorCount,
-                    p_vehicle_count: params.vehicleCount,
-                    p_total_price: params.totalPrice,
-                    p_guest_name: params.guestName,
-                    p_guest_phone: params.guestPhone,
-                    p_requests: params.requests || null,
-                    p_guest_details: params.guestDetails || null
-                });
-
-                if (error) {
-                    console.error('[createReservationSafe] RPC Error:', error);
-                    return {
-                        success: false,
-                        error: 'RPC_ERROR',
-                        message: error.message || 'Unknown DB Error'
-                    };
+                // 현재 사용자 세션 토큰 확인 (Bearer 2중 인증용)
+                let accessToken: string | null = null;
+                let userId: string | null = null;
+                try {
+                    const { createClient } = await import('@/lib/supabase-client');
+                    const supabase = createClient();
+                    const { data: { session } } = await supabase.auth.getSession();
+                    accessToken = session?.access_token || null;
+                    userId = session?.user?.id || null;
+                } catch (sessionErr) {
+                    console.warn('[createReservationSafe] Session check warning:', sessionErr);
                 }
 
-                // RPC 반환값 파싱
-                const result = data as { success: boolean; reservation_id?: string; error?: string; message?: string };
+                // [8초 모래시계 강제 타임아웃] 무한 로딩 원천 차단
+                const controller = new AbortController();
+                const timeoutTimer = setTimeout(() => {
+                    controller.abort();
+                }, 8000);
 
-                if (result.success) {
-                    // 로컬 상태에도 추가 (옵티미스틱 업데이트)
+                try {
+                    const headers: Record<string, string> = {
+                        'Content-Type': 'application/json'
+                    };
+                    if (accessToken) {
+                        headers['Authorization'] = `Bearer ${accessToken}`;
+                    }
+
+                    const response = await fetch('/api/reservation/create', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            siteId: params.siteId,
+                            checkIn: formatLocalDate(params.checkIn),
+                            checkOut: formatLocalDate(params.checkOut),
+                            familyCount: params.familyCount,
+                            visitorCount: params.visitorCount,
+                            vehicleCount: params.vehicleCount,
+                            totalPrice: params.totalPrice,
+                            guestName: params.guestName,
+                            guestPhone: params.guestPhone,
+                            requests: params.requests || null,
+                            guestDetails: params.guestDetails || null
+                        }),
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutTimer);
+
+                    const result = await response.json().catch(() => ({
+                        success: false,
+                        error: 'INVALID_RESPONSE',
+                        message: '서버 응답을 처리할 수 없습니다.'
+                    }));
+
+                    if (!response.ok || !result.success) {
+                        return {
+                            success: false,
+                            error: result.error || 'SERVER_ERROR',
+                            message: result.message || '예약 처리 중 오류가 발생했습니다.'
+                        };
+                    }
+
+                    // 예약 성공: 로컬 상태 옵티미스틱 추가
+                    const reservationId = result.reservationId || Math.random().toString(36).substr(2, 9);
                     const newReservation: Reservation = {
-                        id: result.reservation_id || Math.random().toString(36).substr(2, 9),
+                        id: reservationId,
                         userId: userId || '',
                         siteId: params.siteId,
                         checkInDate: params.checkIn,
@@ -586,14 +611,11 @@ export const useReservationStore = create<ReservationState>()(
                         publicReservations: [...state.publicReservations, newReservation]
                     }));
 
-                    // Notification Trigger (누락된 알림 코드 추가)
+                    // Notification Trigger (인앱/푸시 알림)
                     const { sites, siteConfig } = get();
                     const siteName = sites.find(s => s.id === params.siteId)?.name || '캠핑장';
-
-                    // 입금 기한: 현재 + deadlineHours (default 6h)
                     const deadline = new Date(Date.now() + get().deadlineHours * 60 * 60 * 1000);
 
-                    // Fire & Forget (await 하지 않음 - 회원인 경우에만 발송)
                     if (userId) {
                         notificationService.dispatchNotification(
                             NotificationEventType.RESERVATION_SUBMITTED,
@@ -609,17 +631,37 @@ export const useReservationStore = create<ReservationState>()(
                                 siteName: siteName,
                                 link: '/notifications'
                             },
-                            result.reservation_id
+                            reservationId
                         ).catch(err => console.error('[Store] Notification Dispatch Failed:', err));
                     }
-                }
 
-                return {
-                    success: result.success,
-                    reservationId: result.reservation_id,
-                    error: result.error,
-                    message: result.message
-                };
+                    return {
+                        success: true,
+                        reservationId: reservationId,
+                        message: result.message
+                    };
+
+                } catch (fetchErr: unknown) {
+                    clearTimeout(timeoutTimer);
+
+                    // 타임아웃 감지 (AbortError)
+                    if (fetchErr instanceof DOMException && fetchErr.name === 'AbortError') {
+                        console.error('[createReservationSafe] 8-second timeout reached');
+                        return {
+                            success: false,
+                            error: 'TIMEOUT_ERROR',
+                            message: '서버 응답이 지연되고 있습니다. 잠시 후 [내수첩 > 나의 예약 내역]에서 예약 상태를 먼저 확인해 주세요.'
+                        };
+                    }
+
+                    console.error('[createReservationSafe] Fetch error:', fetchErr);
+                    const message = fetchErr instanceof Error ? fetchErr.message : '통신 중 오류가 발생했습니다.';
+                    return {
+                        success: false,
+                        error: 'NETWORK_ERROR',
+                        message
+                    };
+                }
             },
 
             // 내 예약 목록 조회 (DB에서)
