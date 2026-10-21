@@ -6,9 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Site } from '@/types/reservation';
 import TermsAgreementDialog from './TermsAgreementDialog';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
-import { dispatchPersonaAction } from '@/lib/persona';
 import { createClient } from '@/lib/supabase-client';
-import { getCampingProfile, saveCampingProfile } from '@/actions/camping-profile';
+import { getCampingProfile } from '@/actions/camping-profile';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useReservationGuard } from '@/hooks/useReservationGuard';
@@ -92,6 +91,9 @@ export default function ReservationForm({ site }: ReservationFormProps) {
             end.setMonth(end.getMonth() + 6);
             fetchPublicReservations(start, end);
         }
+
+        // [0초 직행 보장] 예약 완료 페이지 번들 사전 캐싱
+        router.prefetch('/reservation/complete');
 
         // [0초 즉시 완성] 연락처 정보 병렬 즉시 로드 (await Waterfall 병목 해소)
         fetchUserContactInfo();
@@ -306,7 +308,7 @@ export default function ReservationForm({ site }: ReservationFormProps) {
         setIsSubmitting(true);
 
         try {
-            // 동시성 제어가 적용된 안전한 예약 생성 (DB RPC)
+            // 동시성 제어가 적용된 안전한 예약 생성 (전용 REST API + 8초 강제 타임아웃)
             const result = await createReservationSafe({
                 siteId: targetSiteId,
                 checkIn: fromDate,
@@ -341,63 +343,32 @@ export default function ReservationForm({ site }: ReservationFormProps) {
                     } catch {}
                 }
 
-                // 캠핑 프로필 동기화 (Awaited for stability) — 인원 구성 정보 업데이트
-                try {
-                    await saveCampingProfile({
-                        originLabel: null, originLat: null, originLng: null,
-                        adults, seniors, kidsPreschool, kidsElementary, kidsTeen, hasPet,
-                    });
-                } catch (saveErr) {
-                    console.error('[ReservationForm] Profile sync failed', saveErr);
-                }
-
-                // [Phase 2] Dispatch Persona Actions safely in the background
-                try {
-                    const supabase = createClient();
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const userId = session?.user?.id;
-                    if (userId) {
-                        if (kidsPreschool > 0 || kidsElementary > 0) {
-                            dispatchPersonaAction(userId, 'RESERVATION_KIDS_INCLUDED').catch(console.error);
-                        }
-                        if (hasPet) {
-                            dispatchPersonaAction(userId, 'RESERVATION_PET_INCLUDED').catch(console.error);
-                        }
-                        if (familyCount > 1) {
-                            dispatchPersonaAction(userId, 'RESERVATION_FAMILY_ADDED').catch(console.error);
-                        }
-                        if (nights >= 2) {
-                            dispatchPersonaAction(userId, 'RESERVATION_MULTIPLE_NIGHTS').catch(console.error);
-                        }
-                        if (adults === 1 && (kidsPreschool + kidsElementary + kidsTeen) === 0 && familyCount === 1) {
-                            dispatchPersonaAction(userId, 'RESERVATION_SOLO_CAMPER').catch(console.error);
-                        }
-                        const dayOfWeekIn = fromDate.getDay();
-                        const dayOfWeekOut = toDate.getDay();
-                        // 주말 판단: 금(5), 토(6), 일(0)
-                        const isWeekend = [0, 5, 6].includes(dayOfWeekIn) || [0, 5, 6].includes(dayOfWeekOut);
-                        if (isWeekend) {
-                            dispatchPersonaAction(userId, 'RESERVATION_WEEKEND_PEAK').catch(console.error);
-                        } else {
-                            dispatchPersonaAction(userId, 'RESERVATION_WEEKDAY_LEISURE').catch(console.error);
-                        }
-                    }
-                } catch (err) {
-                    console.error('[Persona] Failed to dispatch reservation actions', err);
-                }
-
-                // 기존 토스트 모두 소멸 후 완료 화면으로 부드럽게 직행 (락 유지)
+                // 기존 토스트 모두 소멸 후 완료 화면으로 직행 (URL에 ID 명시)
                 toast.dismiss();
-                router.push('/reservation/complete');
+                const targetUrl = `/reservation/complete?id=${result.reservationId || ''}`;
+
+                // [2초 네비게이션 페일세이프] 라우터 지연 시 브라우저 하드 네비게이션으로 강제 직행
+                if (typeof window !== 'undefined') {
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 2000);
+                }
+
+                router.push(targetUrl);
             } else {
                 // 실패 시 재시도 가능하도록 동기 락 즉시 해제
                 isSubmittingRef.current = false;
                 setIsSubmitting(false);
-                // 동시성 충돌 또는 중복 예약
+
+                // 동시성 충돌 또는 타임아웃 분기
                 if (result.error === 'ALREADY_BOOKED') {
                     toast.error('죄송합니다. 방금 다른 분이 먼저 예약을 완료했습니다.\n다른 날짜를 선택해주세요.');
                 } else if (result.error === 'CONCURRENT_REQUEST') {
                     toast.error('다른 예약이 처리 중입니다. 잠시 후 다시 시도해주세요.');
+                } else if (result.error === 'TIMEOUT_ERROR') {
+                    toast.error(result.message || '서버 응답이 지연되고 있습니다. 잠시 후 [내수첩 > 나의 예약 내역]에서 예약 상태를 먼저 확인해 주세요.', {
+                        duration: 6000
+                    });
                 } else {
                     toast.error(result.message || '예약 중 오류가 발생했습니다.');
                 }

@@ -1,8 +1,8 @@
 # RAON.I 프로젝트 인수인계 문서 (Handoff Document)
 
-**작성 일시**: 2026-10-21T18:45:00+09:00  
+**작성 일시**: 2026-10-21T19:50:00+09:00  
 **기준 브랜치**: `main` (운영 라이브) / `staging` (`test.raon-i.co.kr` - 피칭 시뮬레이터 개발용)  
-**빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, Production Build 104/104 전체 라우트 100% 통과)  
+**빌드 상태**: Next.js 16.1.1 (TypeScript 0에러, Production Build 105/105 전체 라우트 100% 통과)  
 **실서버 배포**: 
 - 운영 프로덕션: `https://raon-i.co.kr` (Vercel 자동 배포 연동)
 - 스테이징 프리뷰: `https://test.raon-i.co.kr` (`origin/staging` 브랜치 연동, 보안 차단)
@@ -10,6 +10,27 @@
 ---
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
+
+### 🟢 마일스톤 9.96: 모바일 예약 신청 무한 스피너 완치(전용 REST API 승격 & 8초 강제 타임아웃), 완료 화면 0초 직행 및 새로고침 튕김 방어 완결 (2026-10-21)
+
+1. **신규 예약 생성 전용 REST 엔드포인트 승격 (`src/app/api/reservation/create/route.ts`)**:
+   - 모바일 웹뷰(갤럭시 등)에서 브라우저 Supabase 클라이언트 SDK의 JWT 토큰 갱신 데드락 및 소켓 멈춤으로 인해 DB RPC 호출이 발송조차 못하고 무한 스피너에 갇히던 취약성을 원천 박멸.
+   - 1순위 Bearer 헤더 + 2순위 쿠키 세션 2중 인증 및 Service Role 기반 DB RPC `create_reservation_safe` 호출로 서버 레벨 직통 처리.
+   - 캠핑 프로필(`upsert_camping_profile`) 및 페르소나 행동 로그(`dispatchPersonaAction`)를 Next.js `after()` 비동기 백그라운드로 안전하게 위임하여 클라이언트 화면 전환 지연 0% 달성.
+
+2. **클라이언트 스토어 8초 모래시계(강제 타임아웃) 장착 (`src/store/useReservationStore.ts`)**:
+   - `createReservationSafe`를 `/api/reservation/create` 호출 구조로 전환하고, `AbortController(8000ms)` 장착.
+   - 무선망 불안정이나 통신 지연 시에도 어떤 경우든 8초가 지나면 락을 즉시 해제하고 안내 토스트를 표출하여 사용자가 무한 스피너에 방치되는 일 원천 차단.
+
+3. **완료 화면 0초 직행 가속화 및 2초 네비게이션 페일세이프 (`src/components/reservation/ReservationForm.tsx`)**:
+   - 폼 마운트 시 `router.prefetch('/reservation/complete')`로 완료 페이지 번들 사전 캐싱.
+   - 예약 성공 시 `router.push('/reservation/complete?id=' + reservationId)`로 즉시 이동하며, Next.js 라우터 지연 시 2초 후 `window.location.href`로 강제 직행하는 안전망 장착.
+
+4. **완료 페이지 URL id 파라미터 연동 및 새로고침 튕김 방어 (`src/app/(mobile)/reservation/complete/page.tsx`)**:
+   - URL `?id=` 파라미터를 지원하여, 사용자가 새로고침을 하거나 복귀하여 메모리(`reservations`)가 비어있더라도 DB 단건 조회를 통해 입금 계좌와 예약 정보를 온전히 표출하고 메인 튕김 결함 박멸.
+   - `Suspense` 래핑으로 Next.js 16 프로덕션 빌드 무결성 100% 확보.
+
+---
 
 ### 🟢 마일스톤 9.95: 예약 화면 백그라운드 복귀 언락 패치, 스마트플랜 경로선택기 뷰포트 최적화, 독립 스테이징 환경(`test.raon-i.co.kr`) 구축 및 3D 가상 피칭 시뮬레이터 P0 아키텍처/최종 구현계획서 확립 완결 (2026-10-20 ~ 2026-10-21)
 

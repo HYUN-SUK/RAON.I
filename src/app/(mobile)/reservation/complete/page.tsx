@@ -1,18 +1,22 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useReservationStore } from '@/store/useReservationStore';
-import { useRouter } from 'next/navigation';
-import { format, addHours } from 'date-fns';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { CheckCircle2, Clock, AlertCircle, Copy, Home } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, Copy, Home, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useReservationGuard } from '@/hooks/useReservationGuard';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import PushPermissionPrompt from '@/components/permission/PushPermissionPrompt';
+import { createClient } from '@/lib/supabase-client';
 
-export default function ReservationCompletePage() {
+function ReservationCompleteContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const queryId = searchParams.get('id');
+
     const { isLoading: isGuardLoading, isAllowed: isGuardAllowed } = useReservationGuard();
     const { reservations, sites, siteConfig, fetchSites, fetchSiteConfig, deadlineHours } = useReservationStore();
     const [latestReservation, setLatestReservation] = useState<any>(null);
@@ -20,7 +24,7 @@ export default function ReservationCompletePage() {
     const [showGuideModal, setShowGuideModal] = useState(false);
     const [showPushPrompt, setShowPushPrompt] = useState(false);
     const { requestPermission } = usePushNotification();
-    const notificationSentRef = useRef(false);
+    const [isLoadingDirect, setIsLoadingDirect] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -40,21 +44,77 @@ export default function ReservationCompletePage() {
     }, [fetchSites, fetchSiteConfig]);
 
     useEffect(() => {
+        // 1. 메모리(Zustand)에 예약이 있는 경우 (방금 예약 완료 직행)
         if (reservations.length > 0) {
-            // [v11.9.108] 과거 취소된 예약 등 인덱스 꼬임을 원천 방지하기 위해 생성시간 순으로 확실하게 정렬
-            const latest = [...reservations].sort((a, b) => 
-                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            )[reservations.length - 1];
-            setLatestReservation(latest);
-            if (latest.status === 'CONFIRMED' || latest.status === 'PENDING') {
-                setShowGuideModal(true);
+            let target: any = null;
+            if (queryId) {
+                target = reservations.find(r => r.id === queryId);
             }
-        } else {
-            router.push('/reservation');
+            if (!target) {
+                target = [...reservations].sort((a, b) => 
+                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                )[reservations.length - 1];
+            }
+            if (target) {
+                setLatestReservation(target);
+                if (target.status === 'CONFIRMED' || target.status === 'PENDING') {
+                    setShowGuideModal(true);
+                }
+                return;
+            }
         }
-    }, [reservations, router, sites, siteConfig, deadlineHours]);
 
-    if (isGuardLoading || !isGuardAllowed || !latestReservation) return null;
+        // 2. 메모리가 비어있으나 URL에 ?id= 가 있는 경우 (새로고침 또는 복귀 시 DB 단건 조회)
+        if (queryId) {
+            setIsLoadingDirect(true);
+            (async () => {
+                try {
+                    const supabase = createClient();
+                    const { data, error } = await supabase
+                        .from('reservations')
+                        .select('*')
+                        .eq('id', queryId)
+                        .maybeSingle();
+
+                    if (data && !error) {
+                        setLatestReservation({
+                            id: data.id,
+                            userId: data.user_id,
+                            siteId: data.site_id,
+                            checkInDate: data.check_in_date,
+                            checkOutDate: data.check_out_date,
+                            totalPrice: data.total_price,
+                            status: data.status,
+                            createdAt: data.created_at
+                        });
+                        if (data.status === 'CONFIRMED' || data.status === 'PENDING') {
+                            setShowGuideModal(true);
+                        }
+                    } else {
+                        router.push('/reservation');
+                    }
+                } catch (err) {
+                    console.error('[ReservationComplete] Fetch failed:', err);
+                    router.push('/reservation');
+                } finally {
+                    setIsLoadingDirect(false);
+                }
+            })();
+            return;
+        }
+
+        // 3. 둘 다 없는 경우에만 예약 메인 화면으로 안전 튕김
+        router.push('/reservation');
+    }, [reservations, queryId, router]);
+
+    if (isGuardLoading || !isGuardAllowed || isLoadingDirect || !latestReservation) {
+        return (
+            <div className="min-h-screen bg-[#F4F8F5] flex flex-col items-center justify-center p-6 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#2E7D47] mb-3" />
+                <p className="text-sm text-[#4A5D4E] font-semibold">예약 정보를 불러오는 중입니다...</p>
+            </div>
+        );
+    }
 
     const { status, totalPrice, checkInDate, checkOutDate, siteId, createdAt } = latestReservation;
     const checkIn = new Date(checkInDate);
@@ -123,7 +183,7 @@ export default function ReservationCompletePage() {
                                     <span className="font-mono font-extrabold text-[#2E7D47]">
                                         {siteConfig ? `${siteConfig.bankName} ${siteConfig.bankAccount}` : '계좌정보 로딩중...'}
                                     </span>
-                                    <button onClick={handleCopyAccount} className="p-1 hover:bg-[#D2E5D7]/60 rounded">
+                                    <button onClick={handleCopyAccount} className="p-1 hover:bg-[#D2E5D7]/60 rounded cursor-pointer">
                                         <Copy className="w-4 h-4 text-[#2E7D47]" />
                                     </button>
                                 </div>
@@ -180,14 +240,14 @@ export default function ReservationCompletePage() {
                 <div className="flex gap-3">
                     <button
                         onClick={() => router.push('/')}
-                        className="flex-1 bg-white hover:bg-[#EDF5EE] text-[#1E4D2B] border border-[#C5DFC9] py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-2xs"
+                        className="flex-1 bg-white hover:bg-[#EDF5EE] text-[#1E4D2B] border border-[#C5DFC9] py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer active:scale-[0.98]"
                     >
                         <Home className="w-5 h-5" />
                         홈으로
                     </button>
                     <button
                         onClick={() => router.push('/myspace')}
-                        className="flex-1 bg-[#2E7D47] hover:bg-[#256639] text-white py-4 rounded-xl font-bold transition-colors shadow-sm"
+                        className="flex-1 bg-[#2E7D47] hover:bg-[#256639] text-white py-4 rounded-xl font-bold transition-colors shadow-sm cursor-pointer active:scale-[0.98]"
                     >
                         내 수첩으로 가기
                     </button>
@@ -210,7 +270,7 @@ export default function ReservationCompletePage() {
                         </p>
                         <button
                             onClick={() => setShowGuideModal(false)}
-                            className="mt-6 w-full bg-[#2E7D47] hover:bg-[#256639] text-white rounded-xl py-3 font-bold text-xs transition-colors shadow-xs"
+                            className="mt-6 w-full bg-[#2E7D47] hover:bg-[#256639] text-white rounded-xl py-3 font-bold text-xs transition-colors shadow-xs cursor-pointer"
                         >
                             확인
                         </button>
@@ -227,5 +287,20 @@ export default function ReservationCompletePage() {
                 onDismiss={() => setShowPushPrompt(false)}
             />
         </div>
+    );
+}
+
+export default function ReservationCompletePage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen bg-[#F4F8F5] flex flex-col items-center justify-center p-6 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#2E7D47] mb-3" />
+                    <p className="text-sm text-[#4A5D4E] font-semibold">화면을 준비하고 있습니다...</p>
+                </div>
+            }
+        >
+            <ReservationCompleteContent />
+        </Suspense>
     );
 }
