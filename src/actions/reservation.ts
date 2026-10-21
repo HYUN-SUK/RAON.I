@@ -94,8 +94,8 @@ export async function updateReservationStatusAction(
     }
 
     // 3. 백그라운드 비동기 후속 작업 (FCM 푸시, 대기자 알림, 일정 취소 동기화)
-    // Edge Functions 및 구글 FCM 외부 통신으로 인한 관리자 화면 멈춤을 원천 차단하기 위해 백그라운드로 안전하게 격리 실행
-    (async () => {
+    // [v11.9.109] Next.js after()를 통해 Vercel 서버리스 절전(Freeze) 방어 및 대시보드 새로고침 없는 즉시 알림 발송 보장
+    const runBackgroundTasks = async () => {
         try {
             notificationService.setAdminClient(supabase);
 
@@ -149,7 +149,15 @@ export async function updateReservationStatusAction(
         } catch (notifErr) {
             console.error('[Action/Background] Notification dispatch internal error:', notifErr);
         }
-    })();
+    };
+
+    try {
+        const { after } = await import('next/server');
+        after(runBackgroundTasks);
+    } catch {
+        // after 지원 불가 환경(단위테스트 등) 대비 안전 폴백
+        runBackgroundTasks().catch(() => {});
+    }
 
     // 4. 경로 무효화
     revalidatePath('/admin/reservations');
