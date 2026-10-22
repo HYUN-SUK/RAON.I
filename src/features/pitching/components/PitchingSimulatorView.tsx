@@ -4,6 +4,7 @@ import React, { useState, Suspense } from 'react';
 import { Tent, Sun, Wind, Compass, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 import type { SiteGeometry, UserGear } from '../types';
 import { SITE_1_GEOMETRY, DEFAULT_TUNNEL_TENT } from '../constants/defaultSite';
+import PitchingCanvas from './3d/PitchingCanvas';
 
 interface PitchingSimulatorViewProps {
   initialSite?: SiteGeometry;
@@ -18,6 +19,7 @@ export default function PitchingSimulatorView({
   const [gear] = useState<UserGear>(initialGear);
   const [activeTab, setActiveTab] = useState<'3D' | 'CARD'>('3D');
   const [simHour, setSimHour] = useState<number>(15); // 기본 오후 3시 (검증 기준 시각)
+  const [tentRotationDeg, setTentRotationDeg] = useState<number>(initialSite.bearingDeg || 135);
   const [isSimulating] = useState<boolean>(false);
 
   return (
@@ -72,77 +74,115 @@ export default function PitchingSimulatorView({
       <div className="relative flex-1 w-full bg-[#1b2b20] overflow-hidden flex items-center justify-center">
         {activeTab === '3D' ? (
           <Suspense fallback={<SimulationLoadingState />}>
-            {/* 3D 캔버스 영역 스켈레톤 (WBS 3에서 R3F Canvas 직결) */}
-            <div className="relative w-full h-full flex flex-col items-center justify-center">
-              {/* 임시 안내 오버레이 (WBS 1 검증용) */}
-              <div className="text-center p-6 max-w-sm mx-auto bg-[#224732]/85 backdrop-blur-md rounded-2xl border border-emerald-500/30 shadow-2xl">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-300 mx-auto flex items-center justify-center mb-3">
-                  <Sparkles className="w-6 h-6 animate-pulse" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-1">
-                  P0 시뮬레이터 보안 세션 활성화
-                </h3>
-                <p className="text-xs text-stone-300 leading-relaxed mb-4">
-                  대표님 계정(<span className="text-emerald-300 font-semibold">tootg</span>) 인증이 안전하게 완료되었습니다.
-                  <br />
-                  다음 WBS 2단계(지형 능선 고도각) 및 WBS 3단계(3D 디오라마 렌더러)가 이 공간에 연결됩니다.
-                </p>
+            {/* 1. 실제 Three.js 3D 디오라마 캔버스 */}
+            <PitchingCanvas
+              site={site}
+              gear={gear}
+              simHour={simHour}
+              tentRotationDeg={tentRotationDeg}
+            />
 
-                <div className="bg-[#183123] rounded-xl p-3 text-left space-y-1.5 border border-emerald-600/20 text-[11px]">
-                  <div className="flex justify-between text-stone-300">
-                    <span>대상 사이트:</span>
-                    <span className="font-semibold text-white">{site.name} ({site.widthM}m × {site.depthM}m)</span>
-                  </div>
-                  <div className="flex justify-between text-stone-300">
-                    <span>장비 규격:</span>
-                    <span className="font-semibold text-white">터널형 ({gear.lengthM}m × {gear.widthM}m)</span>
-                  </div>
-                  <div className="flex justify-between text-stone-300">
-                    <span>검증 시간대:</span>
-                    <span className="font-semibold text-amber-300">{simHour}:00 (오후 일사·그늘)</span>
-                  </div>
-                  <div className="flex justify-between text-stone-300 pt-1 border-t border-emerald-600/30">
-                    <span>지형 데이터 (국토정보):</span>
-                    <span className="font-semibold text-emerald-300">6개월 유효 (2026.10 동기화)</span>
-                  </div>
-                </div>
+            {/* 2. 상단 좌측 미니 오버레이 배지 (사이트 정보 & 6개월 동기화) */}
+            <div className="absolute top-3 left-3 bg-[#183123]/85 backdrop-blur-md px-3 py-2 rounded-xl border border-emerald-500/30 shadow-lg text-[11px] space-y-0.5 pointer-events-none">
+              <div className="flex items-center gap-1.5 text-white font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+                <span>{site.name} ({site.widthM}m × {site.depthM}m)</span>
               </div>
+              <div className="text-stone-300 text-[10px]">
+                국토지리정보원 표고 · 6개월 유효
+              </div>
+            </div>
 
-              {/* 하단 플로팅 타임랩스 컨트롤러 (WBS 4 연동 예정) */}
-              <div className="absolute bottom-6 left-4 right-4 bg-[#224732]/90 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/30 shadow-xl max-w-md mx-auto">
-                <div className="flex items-center justify-between text-xs font-semibold mb-2">
-                  <span className="flex items-center gap-1.5 text-amber-300">
-                    <Sun className="w-4 h-4" />
-                    <span>시간별 태양 & 바람</span>
+            {/* 3. 상단 우측 빠른 검증 버튼 (15시 / 17시 그늘 검증 숏컷) */}
+            <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-10">
+              <button
+                type="button"
+                onClick={() => setSimHour(15)}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border shadow-sm transition-all ${
+                  simHour === 15
+                    ? 'bg-amber-500 text-stone-950 border-amber-300 scale-105'
+                    : 'bg-[#224732]/90 text-stone-200 border-emerald-600/40 hover:bg-[#2e5d42]'
+                }`}
+              >
+                15:00 그늘 검증
+              </button>
+              <button
+                type="button"
+                onClick={() => setSimHour(17)}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border shadow-sm transition-all ${
+                  simHour === 17
+                    ? 'bg-amber-500 text-stone-950 border-amber-300 scale-105'
+                    : 'bg-[#224732]/90 text-stone-200 border-emerald-600/40 hover:bg-[#2e5d42]'
+                }`}
+              >
+                17:00 산그늘 검증
+              </button>
+            </div>
+
+            {/* 4. 하단 플로팅 듀얼 컨트롤러 (태양 시간 슬라이더 + 텐트 회전 컨트롤러) */}
+            <div className="absolute bottom-5 left-3 right-3 bg-[#224732]/92 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/35 shadow-2xl max-w-md mx-auto space-y-3 z-10">
+              {/* 태양 타임라인 조작 */}
+              <div>
+                <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
+                  <span className="flex items-center gap-1 text-amber-300">
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>태양 이동 & 그늘</span>
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-200 text-[11px] font-bold">
-                    {simHour}:00 ({simHour === 15 ? '오후 검증 #1' : simHour === 17 ? '오후 검증 #2' : '일반'})
+                  <span className="px-2 py-0.5 rounded bg-emerald-900/90 text-emerald-200 text-[11px] font-bold">
+                    {simHour}:00 ({simHour >= 17 ? '서쪽 산그늘' : simHour >= 15 ? '오후 일사' : '한낮'})
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-stone-400">10:00</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-stone-400">10시</span>
                   <input
                     type="range"
                     min="10"
                     max="18"
-                    step="1"
+                    step="0.5"
                     value={simHour}
                     onChange={(e) => setSimHour(Number(e.target.value))}
-                    className="flex-1 accent-emerald-500 cursor-pointer h-2 bg-emerald-950 rounded-lg"
+                    className="flex-1 accent-emerald-400 cursor-pointer h-2 bg-emerald-950 rounded-lg"
                   />
-                  <span className="text-[11px] text-stone-400">18:00</span>
+                  <span className="text-[10px] text-stone-400">18시</span>
+                </div>
+              </div>
+
+              {/* 텐트 피칭 방향(회전) 조작 */}
+              <div className="pt-2 border-t border-emerald-600/25 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-stone-200">
+                  <Compass className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>텐트 방향:</span>
+                  <span className="font-bold text-emerald-300">{Math.round(tentRotationDeg)}°</span>
+                  {tentRotationDeg === 135 && (
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-700 text-white font-semibold">
+                      추천
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex justify-between mt-2 pt-2 border-t border-emerald-600/20 text-[11px] text-stone-300">
-                  <div className="flex items-center gap-1">
-                    <Wind className="w-3.5 h-3.5 text-cyan-300" />
-                    <span>예보 풍향: 남서풍 2.8m/s</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-emerald-300">
-                    <Compass className="w-3.5 h-3.5" />
-                    <span>추천 방향: 135° (남동향)</span>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setTentRotationDeg((prev) => (prev - 15 + 360) % 360)}
+                    className="px-2 py-1 text-[11px] font-bold rounded-md bg-[#183123] text-stone-200 hover:text-white border border-emerald-600/30 active:scale-95"
+                  >
+                    ↺ -15°
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTentRotationDeg(135)}
+                    className="px-2 py-1 text-[11px] font-bold rounded-md bg-[#2E7D47] text-white hover:bg-emerald-600 border border-emerald-500/40 active:scale-95"
+                  >
+                    남동(135°)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTentRotationDeg((prev) => (prev + 15) % 360)}
+                    className="px-2 py-1 text-[11px] font-bold rounded-md bg-[#183123] text-stone-200 hover:text-white border border-emerald-600/30 active:scale-95"
+                  >
+                    +15° ↻
+                  </button>
                 </div>
               </div>
             </div>
