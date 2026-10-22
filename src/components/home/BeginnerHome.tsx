@@ -47,6 +47,7 @@ import QuickRecordForm from '@/components/myspace/QuickRecordForm';
 import MyMapModal from '@/components/myspace/MyMapModal';
 import { useMySpaceStore } from '@/store/useMySpaceStore';
 import { useAppStandaloneDetector } from '@/hooks/useAppStandaloneDetector';
+import { isAuthorizedPitchingUser } from '@/features/pitching/guards/pitchingAuthGuard';
 
 // [v14.4.0] 구글 앱 심사 기간 동안 '내 주변 찾기' 일시 제한 안내 팝업 플래그 (배포 완료 시 false 전환)
 const IS_GPS_NOTICE_ACTIVE = false;
@@ -120,6 +121,26 @@ export default function BeginnerHome() {
     // [v14.2.0] 비로그인 10분 draft 복원 상태
     const [draftToRestore, setDraftToRestore] = useState<any>(null);
     const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+
+    // [특허 보안] 관리자 및 대표님(tootg) 전용 3D 피칭 시뮬레이션 진입 권한
+    const [isPitchingAdmin, setIsPitchingAdmin] = useState(false);
+
+    useEffect(() => {
+        const checkPitchingAuth = async () => {
+            try {
+                const supabase = createClient();
+                const { data: { session } } = await supabase.auth.getSession();
+                const email = session?.user?.email;
+                const role = session?.user?.role || (session?.user?.user_metadata?.role as string | undefined);
+                if (isAuthorizedPitchingUser(email, role)) {
+                    setIsPitchingAdmin(true);
+                }
+            } catch (e) {
+                console.error('Error checking pitching auth:', e);
+            }
+        };
+        checkPitchingAuth();
+    }, []);
 
     // 내 주변 즉시여행계획 생성 핸들러 (skipLocation: 위치 동의 건너뛰고 라온아이 기준 생성 여부)
     const handleNearbyPlanClick = useCallback((skipLocation: boolean = false) => {
@@ -593,30 +614,30 @@ export default function BeginnerHome() {
                     <NotificationBadge variant="home" />
                 </section>
 
-                {/* 2. 2열 계획 생성 카드 그리드: [내 주변 맛집 · 관광지 찾기] & [바로 여행계획 만들기] */}
+                {/* 2. 계획 생성 카드 그리드: 관리자/tootg 계정 시 [3D 피칭 시뮬레이션] 포함 3개 나란히 노출 */}
                 <section className="px-4 mb-3">
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* 좌측: 내 주변 맛집 · 관광지 찾기 (소프트 말차 세이지) */}
+                    <div className={`grid ${isPitchingAdmin ? 'grid-cols-3 gap-2' : 'grid-cols-2 gap-3'}`}>
+                        {/* 1) 내 주변 맛집 · 관광지 찾기 (소프트 말차 세이지) */}
                         <button
                             onClick={openNearbyConfirm}
-                            className="flex flex-col justify-between p-4 bg-[#D2E5D7] dark:bg-zinc-850 border-2 border-[#7CAE89] rounded-2xl shadow-xs hover:shadow-md hover:border-[#6B9E78] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
+                            className={`flex flex-col justify-between ${isPitchingAdmin ? 'p-3' : 'p-4'} bg-[#D2E5D7] dark:bg-zinc-850 border-2 border-[#7CAE89] rounded-2xl shadow-xs hover:shadow-md hover:border-[#6B9E78] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer`}
                         >
                             <div className="flex items-center justify-between w-full">
-                                <div className="w-9 h-9 flex items-center justify-center drop-shadow-xs group-hover:scale-105 transition-transform">
-                                    <MapPin className="w-8 h-8 text-[#4C855C] fill-[#6EB783]" />
+                                <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center drop-shadow-xs group-hover:scale-105 transition-transform">
+                                    <MapPin className="w-7 h-7 sm:w-8 sm:h-8 text-[#4C855C] fill-[#6EB783]" />
                                 </div>
-                                <span className="text-[10px] bg-white/85 dark:bg-zinc-900/80 text-[#2D5A3C] font-bold px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                                <span className="text-[9.5px] sm:text-[10px] bg-white/85 dark:bg-zinc-900/80 text-[#2D5A3C] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow-2xs shrink-0">
                                     실시간 GPS
                                 </span>
                             </div>
-                            <div className="mt-3">
-                                <h4 className="text-[15px] sm:text-[16.5px] font-bold text-[#1A3822] dark:text-[#A7D7B5] leading-snug tracking-tight">
-                                    내 주변<br />맛집 · 관광지 찾기
+                            <div className="mt-2.5 sm:mt-3">
+                                <h4 className={`${isPitchingAdmin ? 'text-[13px] sm:text-[14.5px]' : 'text-[15px] sm:text-[16.5px]'} font-bold text-[#1A3822] dark:text-[#A7D7B5] leading-snug tracking-tight`}>
+                                    내 주변<br />맛집 · 관광지
                                 </h4>
                             </div>
                         </button>
 
-                        {/* 우측: 바로 여행계획 만들기 (웜 버터 아프리콧) */}
+                        {/* 2) 바로 여행계획 만들기 (웜 버터 아프리콧) */}
                         <button
                             onClick={() => {
                                 setSelectedAnchorDest(null);
@@ -624,22 +645,44 @@ export default function BeginnerHome() {
                                 setInstantPlanMode('DESTINATION');
                                 setInstantPlanOpen(true);
                             }}
-                            className="flex flex-col justify-between p-4 bg-[#FBE7C6] dark:bg-zinc-850 border-2 border-[#D4A359] rounded-2xl shadow-xs hover:shadow-md hover:border-[#C9944D] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
+                            className={`flex flex-col justify-between ${isPitchingAdmin ? 'p-3' : 'p-4'} bg-[#FBE7C6] dark:bg-zinc-850 border-2 border-[#D4A359] rounded-2xl shadow-xs hover:shadow-md hover:border-[#C9944D] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer`}
                         >
                             <div className="flex items-center justify-between w-full">
-                                <div className="w-9 h-9 flex items-center justify-center drop-shadow-xs group-hover:scale-105 transition-transform">
-                                    <Sparkles className="w-8 h-8 text-[#D9963E] fill-[#F3B863]" />
+                                <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center drop-shadow-xs group-hover:scale-105 transition-transform">
+                                    <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-[#D9963E] fill-[#F3B863]" />
                                 </div>
-                                <span className="text-[10px] bg-white/85 dark:bg-zinc-900/80 text-[#8C5D1E] font-bold px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                                <span className="text-[9.5px] sm:text-[10px] bg-white/85 dark:bg-zinc-900/80 text-[#8C5D1E] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow-2xs shrink-0">
                                     어디든 즉시
                                 </span>
                             </div>
-                            <div className="mt-3">
-                                <h4 className="text-[15px] sm:text-[16.5px] font-bold text-[#5E3B05] dark:text-[#F3D4A0] leading-snug tracking-tight">
-                                    바로<br />여행계획 만들기
+                            <div className="mt-2.5 sm:mt-3">
+                                <h4 className={`${isPitchingAdmin ? 'text-[13px] sm:text-[14.5px]' : 'text-[15px] sm:text-[16.5px]'} font-bold text-[#5E3B05] dark:text-[#F3D4A0] leading-snug tracking-tight`}>
+                                    바로<br />여행계획
                                 </h4>
                             </div>
                         </button>
+
+                        {/* 3) 3D 피칭 시뮬레이션 (관리자/tootg 계정 전용, 포레스트 에메랄드) */}
+                        {isPitchingAdmin && (
+                            <button
+                                onClick={() => router.push('/admin/pitching-preview')}
+                                className="flex flex-col justify-between p-3 bg-[#D4E8DC] dark:bg-zinc-850 border-2 border-[#54936A] rounded-2xl shadow-xs hover:shadow-md hover:border-[#3E7A53] active:scale-[0.98] transition-all text-left min-h-[130px] group cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center drop-shadow-xs group-hover:scale-105 transition-transform">
+                                        <Tent className="w-7 h-7 sm:w-8 sm:h-8 text-[#225732] fill-[#4CAF50]/35" />
+                                    </div>
+                                    <span className="text-[9.5px] sm:text-[10px] bg-white/85 dark:bg-zinc-900/80 text-[#1E4D2B] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                                        P0 프리뷰
+                                    </span>
+                                </div>
+                                <div className="mt-2.5 sm:mt-3">
+                                    <h4 className="text-[13px] sm:text-[14.5px] font-bold text-[#143A1E] dark:text-[#A7D7B5] leading-snug tracking-tight">
+                                        3D 피칭<br />시뮬레이션
+                                    </h4>
+                                </div>
+                            </button>
+                        )}
                     </div>
                 </section>
 
