@@ -11,7 +11,23 @@
 
 ## 1. 현재 상태 요약 (Current State & Completed Work)
 
-### 🟢 마일스톤 9.96: 모바일 예약 신청 무한 스피너 완치(전용 REST API 승격 & 8초 강제 타임아웃), 완료 화면 0초 직행 및 새로고침 튕김 방어 완결 (2026-10-21)
+### 🟢 마일스톤 9.97: 가상 피칭 시뮬레이터 WBS 1(독립 모듈 & tootg/Admin 404 보안 라우트) & WBS 2(브이월드 키 등록, 철수네 16방위 능선 지오메트리, 풍향 벡터 연산기 및 6개월 지형 데이터 갱신 아키텍처) 완결 (2026-10-21)
+
+1. **WBS 1: 독립 모듈 환경 및 tootg/Admin 404 보안 격리 라우트 구축 (`1d19a21`)**:
+   - `three`, `@react-three/fiber`, `@react-three/drei`, `suncalc` 의존성 설치 (React 19 / Next.js 16과 100% 호환 확인).
+   - `src/features/pitching/` 폴더 내 완전 캡슐화 타입 정의(`types/index.ts`) 및 인가 가드(`guards/pitchingAuthGuard.ts`) 구축 (`admin@raon.ai` 및 `tootg@naver.com` 전용).
+   - 비인가자 접속 시 0.00초 만에 `notFound()`(404)를 강제 발동시켜 페이지 존재 자체를 은폐하는 히든 서버 라우트(`src/app/admin/pitching-preview/page.tsx`) 및 클라이언트 지연 로딩 컨테이너(`components/PitchingSimulatorContainer.tsx`, `ssr: false`) 구축.
+   - `src/middleware.ts`에 대표님 계정(`tootg@naver.com`) 미들웨어 허용 보강.
+
+2. **WBS 2: 대한민국 국토정보 기반 철수네 지오메트리, 풍향 벡터 연산 엔진 및 6개월 지형 데이터 갱신 아키텍처 구축 (`1b27f6e`)**:
+   - 대표님께서 직접 발급받으신 국토교통부 브이월드 오픈 API 인증키(`522E4673-...`)를 `.env.local`의 `VWORLD_API_KEY`에 안전 적재.
+   - 라온아이 캠핑장 철수네 실제 정밀 좌표(`36.6354349, 126.7638091`), 규격(8.0m × 7.0m), 파쇄석, 남동향(135°), 예산군 봉수산/용봉산 실제 산세 기준 16방위 능선 고도각(`horizonProfile`) 적재 (`constants/defaultSite.ts`).
+   - 기상청 풍향(0~360°) 삼각함수($\sin/\cos$) 분해 및 합성 보간 엔진(`utils/vectorMath.ts`) 구현 (350°와 10°의 평균이 0° 북풍으로 정확히 합성).
+   - **6개월 주기 지형 고도 자동 갱신 유틸리티(`utils/terrainSync.ts`)**: 토목공사/데크 증설 등 지형 변경을 반영하기 위해 `ELEVATION_CACHE_TTL_DAYS = 180` 만료 여부 판별기(`isElevationDataStale`, `getElevationSyncStatus`) 구현 및 UI 상태 배지 연동.
+
+3. **무결성 검증**: TypeScript 0에러 (`npx tsc --noEmit`), Next.js 16.1.1 Production Build 106/106 전체 라우트 100% 통과 (Exit Code 0).
+
+---
 
 1. **신규 예약 생성 전용 REST 엔드포인트 승격 (`src/app/api/reservation/create/route.ts`)**:
    - 모바일 웹뷰(갤럭시 등)에서 브라우저 Supabase 클라이언트 SDK의 JWT 토큰 갱신 데드락 및 소켓 멈춤으로 인해 DB RPC 호출이 발송조차 못하고 무한 스피너에 갇히던 취약성을 원천 박멸.

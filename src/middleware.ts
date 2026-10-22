@@ -89,6 +89,8 @@ export async function middleware(request: NextRequest) {
         // Strict Admin Check (Middleware Level)
         const isAdmin =
             user.email === 'admin@raon.ai' ||
+            user.email === 'tootg@naver.com' ||
+            user.email?.includes('tootg') ||
             user.app_metadata?.role === 'admin' ||
             user.user_metadata?.role === 'admin';
 

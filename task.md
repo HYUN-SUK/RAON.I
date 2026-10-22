@@ -1,15 +1,15 @@
 # Task Management
 
 ## Active / Next Session Tasks
-- [ ] **P0 프로토타입: 3D 가상 피칭 & 날씨 시뮬레이터 (철수네 `site-1`) 착수**:
-  - 대표님 현장 실측치(철수네 가로x세로, 진입로 방위각, 나무/배전함 위치) 수령 및 확인
-  - **WBS 1: 독립 모듈 환경 & 관리자 보안 격리 라우트 구축** (`src/features/pitching/`, `/admin/pitching-preview` 404 차단, `noindex, nofollow`)
-  - **WBS 2: 철수네 DEM 16방위 능선 고도각 자동 산출 & DB 초기화** (Open-Meteo Elevation API 1회성 배치 산출)
-  - **WBS 3: 3D 디오라마 렌더러 & 절차적 터널형 텐트 제작** (파쇄석 질감, 3/4 부감 구도, Directional Light Soft PCF 실그림자, 버텍스 바람 연출)
-  - **WBS 4: 타임랩스 엔진 & 24방향 Scoring 채점기 연동** (SunCalc 태양 궤적, 능선 그림자 마스킹, 기상청 예보 벡터 합성)
-  - **WBS 5: 1탭 결과 요약 카드 & Canvas 캡처 공유** (추천 입구 방향, 주풍향 보강 팩 빨간 점, 시간대별 주의사항)
-  - **WBS 6: 특허 발명 메모 작성** (`docs/pitching_sim_invention_notes.md`)
-  - **WBS 7: 대표님 실기기 튜닝 & 현장 그늘 검증** (맑은 날 15시/17시 ±15분 오차 목표)
+- [ ] **P0 프로토타입: 3D 가상 피칭 & 날씨 시뮬레이터 (철수네 `site-1`) 계속**:
+  - [x] **WBS 1: 독립 모듈 환경 & 관리자 보안 격리 라우트 구축** (`src/features/pitching/`, `/admin/pitching-preview` 404 차단, `noindex, nofollow`, Next.js 16 빌드 무결성 통과, `1d19a21`)
+  - [x] **WBS 2: 브이월드 키 등록, 철수네 16방위 능선 지오메트리, 풍향 벡터 연산 엔진 및 6개월 지형 데이터 갱신 아키텍처 구축** (`1b27f6e`)
+  - [ ] **WBS 3: 3D 디오라마 렌더러 & 절차적 터널형 텐트 제작** (파쇄석 질감, 3/4 부감 구도, Directional Light Soft PCF 실그림자, 버텍스 바람 연출, frameloop="demand")
+  - [ ] **WBS 4: 타임랩스 엔진 & 24방향 Scoring 채점기 연동** (SunCalc 태양 궤적, 능선 그림자 마스킹, 기상청 예보 벡터 합성)
+  - [ ] **WBS 5: 1탭 결과 요약 카드 & Canvas 캡처 공유** (추천 입구 방향, 주풍향 보강 팩 빨간 점, 시간대별 주의사항)
+  - [ ] **WBS 6: 초정밀 위성 핀포인트 & 실척 박스 빌더** (스카이뷰, 조준경, 기본틀 3종 + 가로/세로m 직접입력)
+  - [ ] **WBS 7: 특허 발명 메모 작성** (`docs/pitching_sim_invention_notes.md`)
+  - [ ] **WBS 8: 대표님 실기기 튜닝 & 현장 그늘 검증** (맑은 날 15시/17시 ±15분 오차 목표)
 
 ## Completed Tasks (2026-10-21)
 - [x] **마일스톤 9.96**: 모바일 예약 신청 무한 스피너 완치(전용 REST API 승격 & 8초 강제 타임아웃), 완료 화면 0초 직행 및 새로고침 튕김 방어 완결
