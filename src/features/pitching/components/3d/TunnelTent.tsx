@@ -11,6 +11,7 @@ interface TunnelTentProps {
   rotationDeg?: number; // Y축 회전각 (도)
   position?: [number, number, number];
   reinforcedPegPositions?: [number, number, number][]; // 풍상측 보강 팩 강조 좌표
+  isLanternOn?: boolean; // 야간 내부 랜턴 점등 시 원단 투과 발광
 }
 
 export default function TunnelTent({
@@ -21,6 +22,7 @@ export default function TunnelTent({
   rotationDeg = 0,
   position = [0, 0.1, 0],
   reinforcedPegPositions = [],
+  isLanternOn = false,
 }: TunnelTentProps) {
   const rotationRad = (rotationDeg * Math.PI) / 180;
 
@@ -117,6 +119,8 @@ export default function TunnelTent({
           color={color}
           roughness={0.72} // 감성 무광 캔버스/나일론 질감
           metalness={0.06}
+          emissive={isLanternOn ? '#FF8F00' : '#000000'}
+          emissiveIntensity={isLanternOn ? 0.22 : 0.0}
           side={THREE.DoubleSide}
         />
       </mesh>

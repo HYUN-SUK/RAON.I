@@ -1,90 +1,61 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { getSunVector, getInterpolatedRidgeAltitude } from '../../utils/vectorMath';
-import type { HorizonProfilePoint } from '../../types';
+import type { HorizonProfilePoint, WeatherLightingParams, WeatherCaseCode } from '../../types';
+import { calculateWeatherLighting } from '../../engine/weatherLightingEngine';
 
 interface DirectionalSunLightProps {
-  simHour: number; // 10 ~ 18
+  simHour: number;
+  dayIndex?: number;
+  weatherCase?: WeatherCaseCode;
+  windSpeed?: number;
   horizonProfile?: HorizonProfilePoint[];
+  weatherParams?: WeatherLightingParams;
 }
 
 export default function DirectionalSunLight({
   simHour,
+  dayIndex = 1,
+  weatherCase = 'clear',
+  windSpeed = 2.5,
   horizonProfile = [],
+  weatherParams: directParams,
 }: DirectionalSunLightProps) {
-  // 시간대(10~18시)에 따른 태양 방위각 및 고도각 추정 계산
-  const sunInfo = useMemo(() => {
-    // 한국 춘추(5월/10월) 기준 예산군 태양 궤적 근사치
-    // 10:00: az 130°, alt 46°
-    // 12:00: az 180°, alt 60°
-    // 14:00: az 225°, alt 49°
-    // 15:00: az 242°, alt 39° (오후 검증 시각 #1)
-    // 16:30: az 258°, alt 24°
-    // 17:00: az 268°, alt 16° (오후 검증 시각 #2 - 서쪽 능선 24.8°에 의해 산그늘 진입)
-    // 18:00: az 285°, alt 4°
-
-    const t = Math.min(Math.max(simHour, 10), 18);
-    // 방위각 (10시 130° ~ 18시 285°)
-    const azDeg = 130 + ((t - 10) / 8) * 155;
-    // 고도각 (정오 60° 피크의 포물선 곡선)
-    const normalizedHour = (t - 12) / 6; // -0.33 ~ 1.0
-    const altDeg = Math.max(2, 60 - Math.pow(normalizedHour, 2) * 56);
-
-    // 해당 방위각의 산 능선 고도각 조회
-    const ridgeAltDeg = getInterpolatedRidgeAltitude(horizonProfile, azDeg);
-    const isOccludedByRidge = altDeg <= ridgeAltDeg;
-
-    // 태양 광선 단위 벡터
-    const [vx, vy, vz] = getSunVector(azDeg, altDeg);
-    const lightDist = 26;
-    const lightPos: [number, number, number] = [
-      vx * lightDist,
-      Math.max(2, vy * lightDist),
-      vz * lightDist,
-    ];
-
-    // 시간대별 색온도 및 밝기 (능선에 가려지면 직사광은 부드럽게 감쇄)
-    let lightColor = '#FFFDF5'; // 한낮 백색광
-    let intensity = isOccludedByRidge ? 0.35 : 1.7;
-
-    if (t >= 16) {
-      // 노을빛 오렌지 앰버
-      lightColor = '#FFB074';
-      intensity = isOccludedByRidge ? 0.25 : 1.4;
-    } else if (t >= 14) {
-      // 따뜻한 오후 햇살 (황금빛)
-      lightColor = '#FFF0D0';
-      intensity = isOccludedByRidge ? 0.35 : 1.65;
-    }
-
-    return {
-      azDeg: Math.round(azDeg),
-      altDeg: Math.round(altDeg),
-      ridgeAltDeg: Math.round(ridgeAltDeg * 10) / 10,
-      isOccludedByRidge,
-      lightPos,
-      lightColor,
-      intensity,
-    };
-  }, [simHour, horizonProfile]);
+  // 직접 파라미터가 전달되지 않았을 경우 계산 엔진 실행
+  const lighting = useMemo(() => {
+    if (directParams) return directParams;
+    return calculateWeatherLighting({
+      hour: simHour,
+      dayIndex,
+      weatherCase,
+      windSpeed,
+      horizonProfile,
+    });
+  }, [directParams, simHour, dayIndex, weatherCase, windSpeed, horizonProfile]);
 
   return (
     <group>
-      {/* 1. 은은한 환경광 (자연스러운 숲속 앰비언트) */}
-      <ambientLight intensity={sunInfo.isOccludedByRidge ? 0.65 : 0.45} color="#E0F2E9" />
+      {/* 1. 3D 씬 대기 안개 (Fog) */}
+      <fog attach="fog" args={[lighting.fogColor, 15, Math.max(30, 1 / (lighting.fogDensity + 0.0001))]} />
 
-      {/* 2. 하늘과 지면의 명암 대비를 살리는 헤미스피어 라이트 */}
+      {/* 2. 환경광 (Ambient) */}
+      <ambientLight intensity={lighting.ambientIntensity} color={lighting.ambientColor} />
+
+      {/* 3. 하늘과 지면의 헤미스피어 라이트 */}
       <hemisphereLight
-        args={['#C7E8D6', '#2A3C2E', sunInfo.isOccludedByRidge ? 0.6 : 0.45]}
+        args={[
+          lighting.hemiSkyColor,
+          lighting.hemiGroundColor,
+          lighting.hemiIntensity,
+        ]}
       />
 
-      {/* 3. 태양 방향광 (Soft PCF 섀도맵으로 늘어지는 실제 그늘 연출) */}
+      {/* 4. 태양 방향광 (Soft PCF 섀도맵으로 늘어지는 실제 그늘 연출) */}
       <directionalLight
-        position={sunInfo.lightPos}
-        intensity={sunInfo.intensity}
-        color={sunInfo.lightColor}
-        castShadow
+        position={lighting.sunPos}
+        intensity={lighting.sunIntensity}
+        color={lighting.sunColor}
+        castShadow={lighting.shadowOpacity > 0.1}
         shadow-mapSize={[1024, 1024]} // 모바일 최적화 해상도
         shadow-bias={-0.0005}         // 그림자 아티팩트 방지
         shadow-camera-near={0.5}
@@ -94,6 +65,36 @@ export default function DirectionalSunLight({
         shadow-camera-top={12}
         shadow-camera-bottom={-12}
       />
+
+      {/* 5. 야간 텐트 감성 랜턴 조명 (일몰 후 19:30 ~ 05:30) */}
+      {lighting.isTentLanternOn && (
+        <group position={[0, 1.1, 0]}>
+          {/* 랜턴 발광 포인트 라이트 */}
+          <pointLight
+            color="#FFB74D"
+            intensity={2.8}
+            distance={6.5}
+            decay={2}
+          />
+          {/* 내부 은은한 필라이트 */}
+          <pointLight
+            color="#FFE082"
+            intensity={1.2}
+            distance={3.5}
+            decay={1}
+          />
+        </group>
+      )}
+
+      {/* 6. 뇌우 시 간헐적 번개 순간 플래시 라이트 */}
+      {lighting.isLightning && (
+        <pointLight
+          position={[0, 15, 0]}
+          color="#E1F5FE"
+          intensity={6.0}
+          distance={40}
+        />
+      )}
     </group>
   );
 }

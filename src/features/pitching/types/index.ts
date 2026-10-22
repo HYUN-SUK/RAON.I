@@ -72,3 +72,47 @@ export interface PitchSimulationResult {
   warningTimeRanges: { timeStr: string; message: string; severity: 'low' | 'medium' | 'high' }[];
   checklist: string[];
 }
+
+export type WeatherCaseCode =
+  | 'clear'         // 쾌청 맑음
+  | 'partly_cloudy' // 구름많음
+  | 'overcast'      // 흐림
+  | 'drizzle'       // 약한 비 / 이슬비
+  | 'rain'          // 보통 비
+  | 'heavy_rain'    // 폭우 / 호우
+  | 'shower'        // 소나기
+  | 'sleet'         // 진눈깨비
+  | 'snow'          // 눈 / 함박눈
+  | 'fog'           // 안개 / 짙은 안개
+  | 'yellow_dust'   // 황사 / 미세먼지
+  | 'thunderstorm'; // 뇌우 / 천둥번개
+
+export type StayDuration = '1N2D' | '2N3D' | '3N4D';
+
+export type PrecipitationType = 'none' | 'rain' | 'heavy_rain' | 'snow' | 'sleet';
+
+export interface WeatherLightingParams {
+  timeStr: string;
+  hour: number;
+  dayIndex: number;
+  sunPos: [number, number, number];
+  sunColor: string;
+  sunIntensity: number;
+  ambientColor: string;
+  ambientIntensity: number;
+  hemiSkyColor: string;
+  hemiGroundColor: string;
+  hemiIntensity: number;
+  shadowOpacity: number;
+  fogColor: string;
+  fogDensity: number;
+  skyBgColor: string;
+  isTentLanternOn: boolean;
+  precipitationType: PrecipitationType;
+  precipitationSpeed: number;
+  windLevel: number;
+  windSpeed: number;
+  isLightning: boolean;
+  isOccludedByRidge: boolean;
+  warningMessage?: string;
+}
