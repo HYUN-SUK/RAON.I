@@ -1,9 +1,23 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
-import { Tent, Sun, Wind, Compass, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import {
+  Tent,
+  Sun,
+  Wind,
+  Compass,
+  Sparkles,
+  AlertCircle,
+  RefreshCw,
+  Play,
+  Pause,
+  RotateCcw,
+  CheckCircle2,
+  ShieldAlert,
+} from 'lucide-react';
 import type { SiteGeometry, UserGear } from '../types';
 import { SITE_1_GEOMETRY, DEFAULT_TUNNEL_TENT } from '../constants/defaultSite';
+import { calculatePitchingScoring } from '../engine/pitchScoringEngine';
 import PitchingCanvas from './3d/PitchingCanvas';
 
 interface PitchingSimulatorViewProps {
@@ -20,7 +34,34 @@ export default function PitchingSimulatorView({
   const [activeTab, setActiveTab] = useState<'3D' | 'CARD'>('3D');
   const [simHour, setSimHour] = useState<number>(15); // 기본 오후 3시 (검증 기준 시각)
   const [tentRotationDeg, setTentRotationDeg] = useState<number>(initialSite.bearingDeg || 135);
-  const [isSimulating] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+
+  // 1. 순수 기하 벡터 기반 24방향 Scoring 채점 연산 (0.01초 만에 산출)
+  const scoringResult = useMemo(() => {
+    return calculatePitchingScoring(site, gear);
+  }, [site, gear]);
+
+  // 보강 팩 3D 좌표 목록
+  const reinforcedPegPositions = useMemo(() => {
+    return scoringResult.reinforcedPegs.map((p) => p.position);
+  }, [scoringResult]);
+
+  // 2. 30초 타임랩스 재생 타이머 엔진 (10시 ~ 18시 연속 재생)
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const interval = setInterval(() => {
+      setSimHour((prev) => {
+        if (prev >= 18) {
+          setIsPlaying(false);
+          return 18;
+        }
+        return Math.round((prev + 0.1) * 10) / 10;
+      });
+    }, 120); // 120ms마다 6분(0.1시간)씩 부드럽게 전진 -> 총 10초 내외 타임랩스
+
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#18231C] text-stone-100 overflow-hidden select-none">
@@ -70,34 +111,40 @@ export default function PitchingSimulatorView({
         </div>
       </header>
 
-      {/* 2. 메인 시뮬레이션 영역 (3D 뷰) */}
+      {/* 2. 메인 시뮬레이션 영역 (3D 뷰 or 결과 카드) */}
       <div className="relative flex-1 w-full bg-[#1b2b20] overflow-hidden flex items-center justify-center">
         {activeTab === '3D' ? (
           <Suspense fallback={<SimulationLoadingState />}>
-            {/* 1. 실제 Three.js 3D 디오라마 캔버스 */}
+            {/* 3D 디오라마 캔버스 */}
             <PitchingCanvas
               site={site}
               gear={gear}
               simHour={simHour}
               tentRotationDeg={tentRotationDeg}
+              reinforcedPegPositions={reinforcedPegPositions}
             />
 
-            {/* 2. 상단 좌측 미니 오버레이 배지 (사이트 정보 & 6개월 동기화) */}
-            <div className="absolute top-3 left-3 bg-[#183123]/85 backdrop-blur-md px-3 py-2 rounded-xl border border-emerald-500/30 shadow-lg text-[11px] space-y-0.5 pointer-events-none">
+            {/* 상단 좌측 미니 오버레이 배지 (사이트 정보 & 종합 점수) */}
+            <div className="absolute top-3 left-3 bg-[#183123]/88 backdrop-blur-md px-3 py-2 rounded-xl border border-emerald-500/30 shadow-lg text-[11px] space-y-0.5 pointer-events-none">
               <div className="flex items-center gap-1.5 text-white font-bold">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
                 <span>{site.name} ({site.widthM}m × {site.depthM}m)</span>
               </div>
-              <div className="text-stone-300 text-[10px]">
-                국토지리정보원 표고 · 6개월 유효
+              <div className="flex items-center gap-2 text-[10px]">
+                <span className="text-emerald-300 font-semibold">피칭 적합도: {scoringResult.score}점</span>
+                <span className="text-stone-400">·</span>
+                <span className="text-stone-300">국토정보 표고 연동</span>
               </div>
             </div>
 
-            {/* 3. 상단 우측 빠른 검증 버튼 (15시 / 17시 그늘 검증 숏컷) */}
+            {/* 상단 우측 빠른 검증 버튼 (15시 / 17시 그늘 검증 숏컷) */}
             <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-10">
               <button
                 type="button"
-                onClick={() => setSimHour(15)}
+                onClick={() => {
+                  setIsPlaying(false);
+                  setSimHour(15);
+                }}
                 className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border shadow-sm transition-all ${
                   simHour === 15
                     ? 'bg-amber-500 text-stone-950 border-amber-300 scale-105'
@@ -108,7 +155,10 @@ export default function PitchingSimulatorView({
               </button>
               <button
                 type="button"
-                onClick={() => setSimHour(17)}
+                onClick={() => {
+                  setIsPlaying(false);
+                  setSimHour(17);
+                }}
                 className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border shadow-sm transition-all ${
                   simHour === 17
                     ? 'bg-amber-500 text-stone-950 border-amber-300 scale-105'
@@ -119,18 +169,50 @@ export default function PitchingSimulatorView({
               </button>
             </div>
 
-            {/* 4. 하단 플로팅 듀얼 컨트롤러 (태양 시간 슬라이더 + 텐트 회전 컨트롤러) */}
-            <div className="absolute bottom-5 left-3 right-3 bg-[#224732]/92 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/35 shadow-2xl max-w-md mx-auto space-y-3 z-10">
-              {/* 태양 타임라인 조작 */}
+            {/* 하단 플로팅 타임랩스 & 텐트 조작 바 */}
+            <div className="absolute bottom-5 left-3 right-3 bg-[#224732]/94 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/35 shadow-2xl max-w-md mx-auto space-y-3 z-10">
+              {/* 태양 타임라인 조작 & 타임랩스 재생 버튼 */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                  <span className="flex items-center gap-1 text-amber-300">
+                  <div className="flex items-center gap-1.5 text-amber-300">
                     <Sun className="w-3.5 h-3.5" />
                     <span>태양 이동 & 그늘</span>
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-900/90 text-emerald-200 text-[11px] font-bold">
-                    {simHour}:00 ({simHour >= 17 ? '서쪽 산그늘' : simHour >= 15 ? '오후 일사' : '한낮'})
-                  </span>
+                    <span className="text-[10px] text-stone-300 font-normal">
+                      ({simHour >= 17 ? '서쪽 산그늘 진입' : simHour >= 15 ? '오후 직사광' : '한낮'})
+                    </span>
+                  </div>
+
+                  {/* 타임랩스 재생 / 일시정지 컨트롤러 */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-sm active:scale-95 transition-all"
+                    >
+                      {isPlaying ? (
+                        <>
+                          <Pause className="w-3 h-3" />
+                          <span>일시정지</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3 h-3 fill-white" />
+                          <span>타임랩스 재생</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPlaying(false);
+                        setSimHour(10);
+                      }}
+                      className="p-1 rounded bg-[#183123] text-stone-300 hover:text-white border border-emerald-600/30"
+                      title="10시로 리셋"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -139,9 +221,12 @@ export default function PitchingSimulatorView({
                     type="range"
                     min="10"
                     max="18"
-                    step="0.5"
+                    step="0.1"
                     value={simHour}
-                    onChange={(e) => setSimHour(Number(e.target.value))}
+                    onChange={(e) => {
+                      setIsPlaying(false);
+                      setSimHour(Number(e.target.value));
+                    }}
                     className="flex-1 accent-emerald-400 cursor-pointer h-2 bg-emerald-950 rounded-lg"
                   />
                   <span className="text-[10px] text-stone-400">18시</span>
@@ -154,9 +239,9 @@ export default function PitchingSimulatorView({
                   <Compass className="w-3.5 h-3.5 text-emerald-300" />
                   <span>텐트 방향:</span>
                   <span className="font-bold text-emerald-300">{Math.round(tentRotationDeg)}°</span>
-                  {tentRotationDeg === 135 && (
-                    <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-700 text-white font-semibold">
-                      추천
+                  {tentRotationDeg === scoringResult.recommendedBearingDeg && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-800 text-emerald-200 font-bold border border-emerald-500/30">
+                      최적 추천
                     </span>
                   )}
                 </div>
@@ -171,10 +256,10 @@ export default function PitchingSimulatorView({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setTentRotationDeg(135)}
+                    onClick={() => setTentRotationDeg(scoringResult.recommendedBearingDeg)}
                     className="px-2 py-1 text-[11px] font-bold rounded-md bg-[#2E7D47] text-white hover:bg-emerald-600 border border-emerald-500/40 active:scale-95"
                   >
-                    남동(135°)
+                    추천 {scoringResult.recommendedBearingDeg}°
                   </button>
                   <button
                     type="button"
@@ -188,26 +273,71 @@ export default function PitchingSimulatorView({
             </div>
           </Suspense>
         ) : (
-          /* 결과 카드 탭 (WBS 5 연동 예정) */
-          <div className="p-4 w-full max-w-md mx-auto overflow-y-auto max-h-full space-y-3">
-            <div className="bg-[#224732] p-4 rounded-2xl border border-emerald-500/30">
-              <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-emerald-300" />
-                <span>추천 피칭 방향: 남동향 (135°)</span>
-              </h4>
+          /* 3. 1탭 결과 요약 카드 (WBS 4·5 연동) */
+          <div className="p-4 w-full max-w-md mx-auto overflow-y-auto max-h-full space-y-3 pb-8">
+            {/* 최적 피칭 추천 방향 */}
+            <div className="bg-[#224732] p-4 rounded-2xl border border-emerald-500/40 shadow-xl">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-300" />
+                  <span>추천 피칭 방향: 남동향 ({scoringResult.recommendedBearingDeg}°)</span>
+                </h4>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-900 text-emerald-200 font-bold text-xs border border-emerald-500/30">
+                  {scoringResult.score}점
+                </span>
+              </div>
               <p className="text-xs text-stone-200 leading-relaxed">
-                오후 15시 이후 서쪽 산 능선 그늘을 뒤편으로 두고, 정오의 강한 햇빛이 거실 공간에 들이치지 않도록 배치하는 것이 가장 쾌적합니다.
+                오후 13~16시 강한 서쪽 햇빛이 텐트 거실로 직접 들어오는 것을 차단하고,
+                서남서 골바람을 텐트 좁은 후면으로 흘려보내 측면 돌풍 저항을 최소화하는 최적의 각도입니다.
               </p>
             </div>
 
-            <div className="bg-[#224732] p-4 rounded-2xl border border-emerald-500/30">
-              <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 text-amber-300" />
-                <span>바람 대비 보강 팩 위치</span>
+            {/* 바람 대비 보강 팩 안내 */}
+            <div className="bg-[#224732] p-4 rounded-2xl border border-amber-500/40 shadow-xl">
+              <h4 className="text-sm font-bold text-amber-300 mb-2 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4" />
+                <span>주풍향 보강 팩 (3D 노란 링 표시)</span>
               </h4>
-              <p className="text-xs text-stone-200 leading-relaxed">
-                오후 14시~16시 사이 남서쪽 계곡 골바람(최대 4.5m/s)이 예상되므로, 텐트 좌측 후면 가이라인 팩을 40cm 장팩으로 단단히 보강하세요.
-              </p>
+              <div className="space-y-2">
+                {scoringResult.reinforcedPegs.map((peg, idx) => (
+                  <div key={idx} className="bg-[#183123] p-2.5 rounded-xl border border-emerald-600/20 text-xs text-stone-200">
+                    <p className="font-semibold text-emerald-300 mb-0.5">보강 포인트 #{idx + 1}</p>
+                    <p className="text-[11px] leading-relaxed text-stone-300">{peg.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 시간대별 주의사항 타임라인 */}
+            <div className="bg-[#224732] p-4 rounded-2xl border border-emerald-500/30 shadow-xl">
+              <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-cyan-300" />
+                <span>시간대별 주의사항 타임라인</span>
+              </h4>
+              <div className="space-y-1.5">
+                {scoringResult.warningTimeRanges.map((w, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs bg-[#183123] p-2 rounded-xl border border-emerald-600/20">
+                    <span className="font-bold text-cyan-300 shrink-0 text-[11px]">{w.timeStr}</span>
+                    <span className="text-stone-300 text-[11px]">{w.message}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 준비물 체크리스트 */}
+            <div className="bg-[#224732] p-4 rounded-2xl border border-emerald-500/30 shadow-xl">
+              <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                <span>현장 피칭 체크리스트</span>
+              </h4>
+              <ul className="space-y-1.5 text-xs text-stone-200">
+                {scoringResult.checklist.map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         )}

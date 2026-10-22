@@ -14,6 +14,7 @@ interface PitchingCanvasProps {
   gear: UserGear;
   simHour: number;
   tentRotationDeg?: number;
+  reinforcedPegPositions?: [number, number, number][];
 }
 
 // 상태 변경 시 On-Demand 렌더 루프를 트리거하는 내부 컴포넌트
@@ -33,6 +34,7 @@ export default function PitchingCanvas({
   gear,
   simHour,
   tentRotationDeg = 0,
+  reinforcedPegPositions = [],
 }: PitchingCanvasProps) {
   return (
     <div className="relative w-full h-full select-none">
@@ -77,6 +79,7 @@ export default function PitchingCanvas({
           heightM={gear.heightM}
           color={gear.color}
           rotationDeg={tentRotationDeg}
+          reinforcedPegPositions={reinforcedPegPositions}
         />
 
         {/* 5. 3D 디오라마 터치 인터랙션 컨트롤러 */}

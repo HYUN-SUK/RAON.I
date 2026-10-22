@@ -10,6 +10,7 @@ interface TunnelTentProps {
   color?: string;   // 텐트 원단 색상
   rotationDeg?: number; // Y축 회전각 (도)
   position?: [number, number, number];
+  reinforcedPegPositions?: [number, number, number][]; // 풍상측 보강 팩 강조 좌표
 }
 
 export default function TunnelTent({
@@ -19,6 +20,7 @@ export default function TunnelTent({
   color = '#4B5320', // 올리브 카키
   rotationDeg = 0,
   position = [0, 0.1, 0],
+  reinforcedPegPositions = [],
 }: TunnelTentProps) {
   const rotationRad = (rotationDeg * Math.PI) / 180;
 
@@ -165,6 +167,17 @@ export default function TunnelTent({
               <cylinderGeometry args={[0.02, 0.015, 0.15, 8]} />
               <meshStandardMaterial color="#B91C1C" roughness={0.4} /> {/* 시인성 높은 붉은색 팩 */}
             </mesh>
+            {/* 풍상측 보강 팩 강조 하이라이트 링 */}
+            {reinforcedPegPositions.some((pos) => {
+              const [px, , pz] = pos;
+              const [tx, , tz] = line.to;
+              return Math.hypot(px - tx, pz - tz) < 0.3;
+            }) && (
+              <mesh position={[line.to[0], 0.02, line.to[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+                <ringGeometry args={[0.1, 0.22, 24]} />
+                <meshBasicMaterial color="#F59E0B" transparent opacity={0.85} side={THREE.DoubleSide} />
+              </mesh>
+            )}
           </group>
         );
       })}
