@@ -89,23 +89,38 @@ export default function PitchingSimulatorView({
   // 날씨 및 환경 조작
   const [weatherCase, setWeatherCase] = useState<WeatherCaseCode>('clear');
   const [windSpeed, setWindSpeed] = useState<number>(2.5); // m/s
+  const [season, setSeason] = useState<'summer' | 'autumn' | 'winter' | 'spring'>('summer'); // 기본 여름 (대표님 질문: 여름 19:30 밝음 검증)
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
+
+  // 계절별 대표 기준 날짜 (SunCalc 천문 연산용)
+  const simDate = useMemo(() => {
+    switch (season) {
+      case 'summer': return new Date('2026-07-20T12:00:00'); // 여름: 일출 05:28, 일몰 19:50 (19:30에도 훤함!)
+      case 'winter': return new Date('2026-12-22T12:00:00'); // 겨울: 일출 07:44, 일몰 17:18 (17:30이면 깜깜한 밤!)
+      case 'spring': return new Date('2026-05-15T12:00:00'); // 봄: 일출 05:25, 일몰 19:35
+      case 'autumn':
+      default: return new Date('2026-10-22T12:00:00');       // 가을: 일출 06:45, 일몰 17:45
+    }
+  }, [season]);
 
   // 현재 시점의 절대 시간(입실 14시 기준 누적 시간)
   const absoluteHour = 14 + elapsedHours;
   const currentDay = Math.floor(absoluteHour / 24) + 1;
   const currentHourInDay = absoluteHour % 24;
 
-  // 2. 12대 날씨 매트릭스 3D 렌더링 파라미터 실시간 연산
+  // 2. 12대 날씨 매트릭스 3D 렌더링 파라미터 실시간 연산 (SunCalc 천문 고도각 연동)
   const weatherLighting = useMemo(() => {
     return calculateWeatherLighting({
       hour: currentHourInDay,
       dayIndex: currentDay,
+      date: simDate,
+      lat: site.lat,
+      lng: site.lng,
       weatherCase,
       windSpeed,
       horizonProfile: site.horizonProfile,
     });
-  }, [currentHourInDay, currentDay, weatherCase, windSpeed, site.horizonProfile]);
+  }, [currentHourInDay, currentDay, simDate, site.lat, site.lng, weatherCase, windSpeed, site.horizonProfile]);
 
   // 3. 순수 기하 24방향 채점 엔진
   const scoringResult = useMemo(() => {
@@ -268,6 +283,27 @@ export default function PitchingSimulatorView({
                 )}
               </div>
 
+              {/* 천문 태양 고도각 & 일출/일몰 시간 연동 정보 */}
+              <div className="pt-1 border-t border-emerald-600/30 text-[10.5px] text-emerald-200/90 flex flex-col gap-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-amber-200 font-semibold">
+                    태양 고도 {weatherLighting.altitudeDeg}° (방위 {weatherLighting.azimuthDeg}°)
+                  </span>
+                  <span className="text-[10px] px-1 rounded bg-emerald-800/80 text-emerald-100">
+                    {weatherLighting.altitudeDeg > 12
+                      ? '한낮'
+                      : weatherLighting.altitudeDeg > 0
+                      ? '골든아워 노을'
+                      : weatherLighting.altitudeDeg > -6
+                      ? '황혼/블루아워'
+                      : '야간'}
+                  </span>
+                </div>
+                <div className="text-stone-300 text-[10px]">
+                  🌅 일출 {weatherLighting.sunriseStr} · 🌇 일몰 {weatherLighting.sunsetStr}
+                </div>
+              </div>
+
               {/* 기상 및 안전 경고 문구 */}
               {weatherLighting.warningMessage && (
                 <div className="pt-1 border-t border-emerald-600/30 text-[10.5px] text-amber-200 flex items-start gap-1 leading-tight">
@@ -354,31 +390,56 @@ export default function PitchingSimulatorView({
 
             {/* 하단 플로팅 컨트롤러: 타임라인 슬라이더 & 텐트 회전 */}
             <div className="absolute bottom-4 left-3 right-3 bg-[#1C3B29]/95 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/40 shadow-2xl max-w-lg mx-auto space-y-3 z-10">
-              {/* 1) 일정 선택 탭 (1박 15초 / 2박 30초 / 3박 45초) */}
-              <div className="flex items-center justify-between pb-2 border-b border-emerald-600/30">
+              {/* 1) 일정 & 계절 선택 탭 (여름 19:30 밝음 vs 겨울 17:30 밤 실시간 검증) */}
+              <div className="flex flex-wrap items-center justify-between gap-1 pb-2 border-b border-emerald-600/30">
                 <div className="flex items-center gap-1.5 text-xs text-stone-200">
                   <Calendar className="w-3.5 h-3.5 text-emerald-300" />
-                  <span className="font-semibold">일정 선택:</span>
+                  <span className="font-semibold">일정:</span>
+                  <div className="flex bg-[#12271B] p-0.5 rounded-lg border border-emerald-600/30">
+                    {(['1N2D', '2N3D', '3N4D'] as StayDuration[]).map((dur) => (
+                      <button
+                        key={dur}
+                        type="button"
+                        onClick={() => {
+                          setDuration(dur);
+                          setElapsedHours(1.0);
+                          setIsPlaying(false);
+                        }}
+                        className={`px-1.5 py-0.5 text-[10.5px] font-bold rounded transition-all ${
+                          duration === dur
+                            ? 'bg-[#2E7D47] text-white shadow-sm'
+                            : 'text-stone-300 hover:text-white'
+                        }`}
+                      >
+                        {dur === '1N2D' ? '1박 (15초)' : dur === '2N3D' ? '2박 (30초)' : '3박 (45초)'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex bg-[#12271B] p-0.5 rounded-lg border border-emerald-600/30">
-                  {(['1N2D', '2N3D', '3N4D'] as StayDuration[]).map((dur) => (
-                    <button
-                      key={dur}
-                      type="button"
-                      onClick={() => {
-                        setDuration(dur);
-                        setElapsedHours(1.0);
-                        setIsPlaying(false);
-                      }}
-                      className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all ${
-                        duration === dur
-                          ? 'bg-[#2E7D47] text-white shadow-sm'
-                          : 'text-stone-300 hover:text-white'
-                      }`}
-                    >
-                      {dur === '1N2D' ? '1박2일 (15초)' : dur === '2N3D' ? '2박3일 (30초)' : '3박4일 (45초)'}
-                    </button>
-                  ))}
+
+                <div className="flex items-center gap-1 text-[11px] text-stone-300">
+                  <span className="text-[10px] text-stone-400">계절:</span>
+                  <div className="flex bg-[#12271B] p-0.5 rounded-lg border border-emerald-600/30">
+                    {[
+                      { id: 'summer', label: '여름(7월)' },
+                      { id: 'autumn', label: '가을(10월)' },
+                      { id: 'winter', label: '겨울(12월)' },
+                      { id: 'spring', label: '봄(5월)' },
+                    ].map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSeason(s.id as any)}
+                        className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all ${
+                          season === s.id
+                            ? 'bg-amber-600 text-white shadow-sm'
+                            : 'text-stone-300 hover:text-white'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

@@ -1,9 +1,10 @@
 /**
  * weatherLightingEngine.ts
- * 기상청 전수 예보(SKY, PTY, 특수 기상) 및 24시간 태양 궤적, 16방위 산 능선 차폐를 결합한
- * 순수 3D 조명 및 시각 효과 매트릭스(Matrix) 연산 엔진
+ * SunCalc 천문 물리 연산(실시간 태양 고도각·방위각, 일출·일몰) 및
+ * 16방위 산 능선 차폐, 기상청 12대 전수 날씨 매트릭스를 결합한 순수 3D 조명/효과 연산 엔진
  */
 
+import * as SunCalc from 'suncalc';
 import { getSunVector, getInterpolatedRidgeAltitude } from '../utils/vectorMath';
 import type {
   HorizonProfilePoint,
@@ -13,33 +14,58 @@ import type {
 } from '../types';
 
 /**
- * 24시간 태양 고도각(altDeg) 및 방위각(azDeg) 근사 모델 (한국 춘추 예산군 기준)
+ * 특정 일자의 일출(Sunrise), 일몰(Sunset), 박명(Twilight) 시간 산출 (SunCalc)
  */
-export function calculateSunTrajectory(hour: number): { azDeg: number; altDeg: number } {
-  // hour: 0.0 ~ 24.0
-  // 일출 약 06:00 (동쪽 85°), 정오 12:30 (남쪽 180°, 최고 고도 62°), 일몰 약 18:45 (서쪽 275°)
-  let azDeg = 180;
-  let altDeg = -30; // 기본 밤
+export function getSunTimesForDate(
+  date: Date = new Date(),
+  lat: number = 36.6354349, // 철수네 기본 위도
+  lng: number = 126.7638091 // 철수네 기본 경도
+) {
+  const times = SunCalc.getTimes(date, lat, lng);
+  const formatTime = (d?: Date | null) => {
+    if (!d || isNaN(d.getTime())) return '--:--';
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
 
-  if (hour >= 5.5 && hour <= 19.5) {
-    // 주간 및 박명 시간대
-    const progress = (hour - 5.5) / (19.5 - 5.5); // 0.0 ~ 1.0
-    azDeg = 80 + progress * 200; // 80°(동) ~ 280°(서)
-    // 정오 12.5시 기준 사인 곡선 피크 고도 62°
-    const sinFactor = Math.sin(progress * Math.PI);
-    altDeg = sinFactor * 62;
-  } else {
-    // 야간 시간대
-    if (hour > 19.5) {
-      const nightProgress = (hour - 19.5) / 10.0;
-      azDeg = 280 + nightProgress * 80;
-      altDeg = -Math.sin(nightProgress * Math.PI) * 45;
-    } else {
-      const nightProgress = (hour + 4.5) / 10.0;
-      azDeg = 360 - nightProgress * 80;
-      altDeg = -Math.sin(nightProgress * Math.PI) * 45;
-    }
-  }
+  return {
+    sunriseStr: formatTime(times.sunrise),
+    sunsetStr: formatTime(times.sunset),
+    dawnStr: formatTime(times.dawn),
+    duskStr: formatTime(times.dusk),
+    goldenHourStr: formatTime(times.goldenHour),
+    rawTimes: times,
+  };
+}
+
+/**
+ * 특정 일시의 실제 천문 고도각(altDeg) 및 나침반 방위각(azDeg) 연산 (SunCalc)
+ */
+export function calculateAstronomicalSunTrajectory({
+  date = new Date(),
+  hour,
+  lat = 36.6354349,
+  lng = 126.7638091,
+}: {
+  date?: Date;
+  hour: number;
+  lat?: number;
+  lng?: number;
+}): { azDeg: number; altDeg: number } {
+  const targetDate = new Date(date);
+  const targetHour = Math.floor(hour);
+  const targetMin = Math.floor((hour - targetHour) * 60);
+  const targetSec = Math.floor(((hour - targetHour) * 60 - targetMin) * 60);
+
+  targetDate.setHours(targetHour, targetMin, targetSec, 0);
+
+  const sunPos = SunCalc.getPosition(targetDate, lat, lng);
+
+  // 고도각(Altitude): 라디안 -> 도 (0 = 지평선, 90 = 천정, 음수 = 지평선 아래)
+  const altDeg = sunPos.altitude * (180 / Math.PI);
+
+  // 방위각(Azimuth): SunCalc(남쪽 0 기준) -> 나침반 표준(북=0, 동=90, 남=180, 서=270)
+  let azDeg = (sunPos.azimuth * (180 / Math.PI) + 180) % 360;
+  if (azDeg < 0) azDeg += 360;
 
   return { azDeg, altDeg };
 }
@@ -74,28 +100,41 @@ export function getWindLevel(windSpeed: number): { level: number; label: string;
 }
 
 /**
- * 날씨 케이스 및 시각, 풍속, 지형 능선을 종합하여 3D 조명/안개/파티클 파라미터 반환
+ * 천문 고도각, 16방위 지형 능선 차폐, 기상청 12대 날씨 매트릭스를 종합한 3D 조명/효과 연산
  */
 export function calculateWeatherLighting({
   hour,
   dayIndex = 1,
+  date = new Date(),
+  lat = 36.6354349,
+  lng = 126.7638091,
   weatherCase = 'clear',
   windSpeed = 2.5,
   horizonProfile = [],
 }: {
   hour: number;
   dayIndex?: number;
+  date?: Date;
+  lat?: number;
+  lng?: number;
   weatherCase?: WeatherCaseCode;
   windSpeed?: number;
   horizonProfile?: HorizonProfilePoint[];
 }): WeatherLightingParams {
-  const { azDeg, altDeg } = calculateSunTrajectory(hour);
+  // 1. 해당 날짜 및 시각의 실제 천문 고도각 및 방위각 연산
+  const { azDeg, altDeg } = calculateAstronomicalSunTrajectory({ date, hour, lat, lng });
+  const sunTimes = getSunTimesForDate(date, lat, lng);
+
+  // 2. 16방위 산 능선 고도각 및 차폐(산그늘) 여부 판정
   const ridgeAltDeg = getInterpolatedRidgeAltitude(horizonProfile, azDeg);
-  const isOccludedByRidge = altDeg <= ridgeAltDeg && altDeg > 0;
   const isDaylight = altDeg > 0;
-  const isNight = hour < 5.5 || hour >= 19.5;
-  const isSunsetHour = hour >= 16.5 && hour < 19.0;
-  const isSunriseHour = hour >= 5.5 && hour < 7.5;
+  // 주간이더라도 해당 방위의 능선 고도각보다 낮으면 서쪽 산그늘 진입!
+  const isOccludedByRidge = isDaylight && altDeg <= ridgeAltDeg;
+
+  // 3. 천문 고도각(altDeg) 기반 시간대 상태 물리 판정 (고정 시각 제거!)
+  const isGoldenHour = altDeg > 0 && altDeg <= 12;      // 일출/일몰 직전후 붉고 낮은 태양 (장축 그림자)
+  const isCivilTwilight = altDeg <= 0 && altDeg > -6;   // 해 진 직후 황혼/블루아워 (붉은 잔광 + 인디고 블루)
+  const isNight = altDeg <= -6;                         // 시민박명 종료 후 완전한 야간 (달빛 + 텐트 랜턴)
 
   // 태양 광선 3D 위치 (광원 거리 28m)
   const [vx, vy, vz] = getSunVector(azDeg, Math.max(altDeg, 2));
@@ -106,7 +145,7 @@ export function calculateWeatherLighting({
     vz * lightDist,
   ];
 
-  // 12대 날씨 케이스별 기본 렌더링 파라미터 템플릿
+  // 기본 렌더링 템플릿
   let sunColor = '#FFFDF5';
   let sunIntensity = 1.85;
   let ambientColor = '#E3F2FD';
@@ -117,17 +156,17 @@ export function calculateWeatherLighting({
   let shadowOpacity = 0.85;
   let fogColor = '#E8F5E9';
   let fogDensity = 0.001;
-  let skyBgColor = '#87CEEB'; // 기본 하늘색
+  let skyBgColor = '#87CEEB';
   let precipitationType: PrecipitationType = 'none';
   let precipitationSpeed = 1.0;
   let isLightning = false;
   let warningMessage: string | undefined;
 
-  // 1. 시간대별 태양 색상 및 기본 조도 변조
+  // 4. 천문 고도각에 따른 조명 물리 감쇄 및 색온도 변화
   if (isNight) {
-    // 칠흑 같은 밤하늘 (달빛 앰비언트)
+    // 완전한 밤 (달빛 앰비언트)
     sunColor = '#81D4FA';
-    sunIntensity = 0.05;
+    sunIntensity = 0.03;
     ambientColor = '#101726';
     ambientIntensity = 0.18;
     hemiSkyColor = '#1C283F';
@@ -137,50 +176,59 @@ export function calculateWeatherLighting({
     skyBgColor = '#0B0F19';
     fogColor = '#0F172A';
     fogDensity = 0.006;
-  } else if (isSunriseHour) {
-    // 아침 일출 골든아워
-    sunColor = '#FF8A50';
-    sunIntensity = 1.3;
-    ambientColor = '#FFE0B2';
-    ambientIntensity = 0.38;
-    skyBgColor = '#FDEBD0';
-  } else if (isSunsetHour) {
-    // 저녁 일몰 골든아워 (노을)
-    sunColor = '#FF7043';
+  } else if (isCivilTwilight) {
+    // 황혼 / 블루아워 (태양은 졌으나 하늘은 푸르스름하고 노을 잔광이 남음)
+    sunColor = '#FF5722';
+    sunIntensity = 0.15;
+    ambientColor = '#3F51B5';
+    ambientIntensity = 0.32;
+    hemiSkyColor = '#5C6BC0';
+    hemiGroundColor = '#1A237E';
+    hemiIntensity = 0.35;
+    shadowOpacity = 0.15;
+    skyBgColor = '#1A237E';
+    fogColor = '#283593';
+    fogDensity = 0.005;
+  } else if (isGoldenHour) {
+    // 골든아워 (낮은 고도각 0~12°: 따뜻한 앰버/코랄 레드 노을)
+    sunColor = azDeg < 180 ? '#FF8A50' : '#FF7043'; // 아침 일출 vs 저녁 일몰 톤
     sunIntensity = isOccludedByRidge ? 0.35 : 1.45;
     ambientColor = '#FFCCBC';
     ambientIntensity = 0.45;
     skyBgColor = '#FBE9E7';
+    shadowOpacity = isOccludedByRidge ? 0.25 : 0.8;
+  } else {
+    // 한낮 주간 (고도각 12° 초과)
+    // 고도각이 높을수록 맑고 쨍한 백색광 (정오 피크)
+    sunIntensity = Math.min(2.0, 1.4 + (altDeg / 65) * 0.6);
+    sunColor = altDeg > 45 ? '#FFFDF5' : '#FFF9E6';
   }
 
-  // 산 능선 차폐(산그늘) 시 직사광 감쇄
-  if (isOccludedByRidge && isDaylight) {
+  // 산 능선 차폐(산그늘) 시 직사광 부드러운 감쇄
+  if (isOccludedByRidge) {
     sunIntensity *= 0.22;
     shadowOpacity *= 0.3;
     ambientIntensity = Math.min(ambientIntensity * 1.25, 0.7);
   }
 
-  // 2. 12대 전수 날씨 케이스(Matrix) 오버라이드
+  // 5. 12대 전수 날씨 케이스(Matrix) 오버라이드
   switch (weatherCase) {
     case 'clear':
-      // 쾌청 맑음: 기본 템플릿 유지
-      if (!isNight) {
-        warningMessage = hour >= 11 && hour <= 15 ? '한낮 직사광 노출 주의 (타프 그늘 권장)' : undefined;
+      if (altDeg > 40) {
+        warningMessage = '한낮 직사광 노출 주의 (타프 그늘 권장)';
       }
       break;
 
     case 'partly_cloudy':
-      // 구름많음: 부드러운 산란광
-      if (!isNight) {
+      if (isDaylight) {
         sunIntensity *= 0.75;
         ambientIntensity *= 1.2;
-        shadowOpacity = 0.55;
+        shadowOpacity *= 0.7;
         skyBgColor = '#A0C4E2';
       }
       break;
 
     case 'overcast':
-      // 흐림: 직사광 소멸, 쿨그레이 전천후 잿빛
       sunIntensity = 0.15;
       sunColor = '#B0BEC5';
       ambientColor = '#90A4AE';
@@ -195,7 +243,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'drizzle':
-      // 약한 비 / 이슬비
       sunIntensity = 0.1;
       sunColor = '#90A4AE';
       ambientColor = '#78909C';
@@ -210,7 +257,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'rain':
-      // 보통 비
       sunIntensity = 0.04;
       ambientColor = '#607D8B';
       ambientIntensity = isNight ? 0.12 : 0.58;
@@ -224,7 +270,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'heavy_rain':
-      // 폭우 / 호우
       sunIntensity = 0.0;
       ambientColor = '#455A64';
       ambientIntensity = 0.42;
@@ -238,7 +283,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'shower':
-      // 소나기: 구름 틈새 빛줄기 연출
       sunIntensity = 0.65;
       sunColor = '#FFF9C4';
       ambientIntensity = 0.6;
@@ -252,7 +296,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'sleet':
-      // 진눈깨비
       sunIntensity = 0.08;
       sunColor = '#ECEFF1';
       ambientColor = '#B0BEC5';
@@ -267,7 +310,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'snow':
-      // 눈 / 함박눈: 설원 반사광 웜화이트
       sunIntensity = 0.35;
       sunColor = '#FFFFFF';
       ambientColor = '#F5F5F5';
@@ -284,7 +326,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'fog':
-      // 안개 / 짙은 안개 (새벽/계곡)
       sunIntensity = isDaylight ? 0.2 : 0.02;
       sunColor = '#FFE0B2';
       ambientColor = '#CFD8DC';
@@ -297,7 +338,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'yellow_dust':
-      // 황사 / 고농도 미세먼지: 탁한 황갈색
       sunIntensity = 0.45;
       sunColor = '#D4A373';
       ambientColor = '#A1887F';
@@ -310,7 +350,6 @@ export function calculateWeatherLighting({
       break;
 
     case 'thunderstorm':
-      // 뇌우 / 천둥번개: 먹구름 속 간헐적 섬광
       sunIntensity = 0.0;
       ambientColor = '#263238';
       ambientIntensity = 0.32;
@@ -320,7 +359,7 @@ export function calculateWeatherLighting({
       skyBgColor = '#1A232E';
       precipitationType = 'heavy_rain';
       precipitationSpeed = 2.2;
-      isLightning = Math.random() > 0.65; // 간헐적 번개 섬광
+      isLightning = Math.random() > 0.65;
       if (isLightning) {
         sunIntensity = 4.5;
         sunColor = '#E1F5FE';
@@ -330,7 +369,7 @@ export function calculateWeatherLighting({
       break;
   }
 
-  // 3. 풍속 등급 연산 및 경고 합성
+  // 6. 풍속 등급 연산 및 경고 합성
   const windInfo = getWindLevel(windSpeed);
   if (windInfo.warning) {
     warningMessage = warningMessage
@@ -338,7 +377,7 @@ export function calculateWeatherLighting({
       : windInfo.warning;
   }
 
-  // 4. 야간 텐트 감성 랜턴 점등 (19:30 ~ 05:30)
+  // 7. 야간 텐트 감성 랜턴 점등 (천문 고도각 altDeg <= -6° 기준!)
   const isTentLanternOn = isNight;
 
   const formattedHour = Math.floor(hour);
@@ -368,6 +407,10 @@ export function calculateWeatherLighting({
     windSpeed,
     isLightning,
     isOccludedByRidge,
+    altitudeDeg: Math.round(altDeg * 10) / 10,
+    azimuthDeg: Math.round(azDeg),
+    sunriseStr: sunTimes.sunriseStr,
+    sunsetStr: sunTimes.sunsetStr,
     warningMessage,
   };
 }

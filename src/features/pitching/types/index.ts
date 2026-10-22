@@ -114,5 +114,9 @@ export interface WeatherLightingParams {
   windSpeed: number;
   isLightning: boolean;
   isOccludedByRidge: boolean;
+  altitudeDeg: number;
+  azimuthDeg: number;
+  sunriseStr?: string;
+  sunsetStr?: string;
   warningMessage?: string;
 }
