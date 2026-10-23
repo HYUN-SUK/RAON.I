@@ -33,6 +33,11 @@ export interface SiteGeometry {
   obstacles: SiteObstacle[];
   isCustom?: boolean;
   lastElevationSyncAt?: string; // 국토지리정보원/브이월드 지형 데이터 최종 동기화 시각 (6개월 주기 갱신용)
+  locationType?: 'campground' | 'wild'; // 등록 캠핑장 vs 노지/현위치
+  campgroundName?: string;
+  siteName?: string;
+  address?: string; // 도로명 또는 지번 주소
+  polygonPoints?: [number, number][]; // 비정형 사이트용 꼭짓점 좌표 (미터 단위)
 }
 
 export interface UserGear {
@@ -91,6 +96,29 @@ export type StayDuration = '1N2D' | '2N3D' | '3N4D';
 
 export type PrecipitationType = 'none' | 'rain' | 'heavy_rain' | 'snow' | 'sleet';
 
+export type PlacedGearType =
+  | 'tunnel_tent'     // 터널형 텐트
+  | 'dome_tent'       // 돔 텐트
+  | 'livingshell_tent'// 거실형 리빙쉘
+  | 'tipi_tent'       // 티피 텐트
+  | 'recta_tarp'      // 렉타(사각) 타프
+  | 'hexa_tarp';      // 헥사(육각) 타프
+
+export interface PlacedGearItem {
+  id: string;
+  type: PlacedGearType;
+  name: string;
+  widthM: number;
+  lengthM: number;
+  heightM: number;
+  color: string;
+  x: number; // 사이트 중심 기준 상대 좌표 (m)
+  z: number;
+  rotationDeg: number;
+}
+
+export type SimulationStep = 'ENTRY' | 'MAP_SITE' | 'GEAR_SETUP' | 'SIMULATION_3D';
+
 export interface WeatherLightingParams {
   timeStr: string;
   hour: number;
@@ -108,6 +136,8 @@ export interface WeatherLightingParams {
   fogDensity: number;
   skyBgColor: string;
   isTentLanternOn: boolean;
+  isBonfireActive: boolean; // 야간 감성 모닥불(불멍) 활성화 여부
+  bonfireIntensity: number; // 모닥불 불꽃 조명 밝기 (플리커 효과)
   precipitationType: PrecipitationType;
   precipitationSpeed: number;
   windLevel: number;
