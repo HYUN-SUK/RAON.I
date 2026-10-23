@@ -111,19 +111,30 @@ export default function PitchingSimulatorView({
   const currentDay = Math.floor(absoluteHour / 24) + 1;
   const currentHourInDay = absoluteHour % 24;
 
+  // 한국 영토 유효 좌표 안전 보정 (SunCalc 천문 연산 보호)
+  const safeLat = useMemo(() => {
+    const lat = Number(site.lat);
+    return !isNaN(lat) && lat >= 33 && lat <= 39 ? lat : 36.6354349;
+  }, [site.lat]);
+
+  const safeLng = useMemo(() => {
+    const lng = Number(site.lng);
+    return !isNaN(lng) && lng >= 124 && lng <= 132 ? lng : 126.7638091;
+  }, [site.lng]);
+
   // 12대 날씨 매트릭스 및 천문 고도각 계산
   const weatherLighting = useMemo(() => {
     return calculateWeatherLighting({
       hour: currentHourInDay,
       dayIndex: currentDay,
       date: simDate,
-      lat: site.lat,
-      lng: site.lng,
+      lat: safeLat,
+      lng: safeLng,
       weatherCase,
       windSpeed,
       horizonProfile: site.horizonProfile,
     });
-  }, [currentHourInDay, currentDay, simDate, site.lat, site.lng, weatherCase, windSpeed, site.horizonProfile]);
+  }, [currentHourInDay, currentDay, simDate, safeLat, safeLng, weatherCase, windSpeed, site.horizonProfile]);
 
   // 24방향 Scoring 채점
   const scoringResult = useMemo(() => {
