@@ -60,9 +60,9 @@ export default function PitchingSimulatorView({
   initialSite = SITE_1_GEOMETRY,
   initialGear = DEFAULT_TUNNEL_TENT,
 }: PitchingSimulatorViewProps) {
-  // 현재 위자드 단계 (기본값: 바로 3D 시뮬레이션 or 모달 열림)
-  const [step, setStep] = useState<SimulationStep>('SIMULATION_3D');
-  const [isEntryModalOpen, setIsEntryModalOpen] = useState<boolean>(false);
+  // 현재 위자드 단계 (기본값: 진입 모달 즉시 표출)
+  const [step, setStep] = useState<SimulationStep>('ENTRY');
+  const [isEntryModalOpen, setIsEntryModalOpen] = useState<boolean>(true);
 
   // 사이트 및 복수 장비 상태
   const [site, setSite] = useState<SiteGeometry>({
@@ -233,6 +233,23 @@ export default function PitchingSimulatorView({
       .join(' + ');
   }, [placedGears]);
 
+  // Step 1: 첫 진입 2-Track 모달 렌더링
+  if (step === 'ENTRY') {
+    return (
+      <div className="relative h-screen w-full bg-[#121E15] flex items-center justify-center">
+        <PitchingEntryModal
+          isOpen={isEntryModalOpen}
+          onClose={() => {
+            // 닫았을 때 기본 샘플로 Step 2로 이동
+            setIsEntryModalOpen(false);
+            setStep('GEAR_SETUP');
+          }}
+          onSelect={handleEntrySelect}
+        />
+      </div>
+    );
+  }
+
   // Step 2: 2D 배치 에디터 렌더링
   if (step === 'GEAR_SETUP') {
     return (
@@ -242,7 +259,10 @@ export default function PitchingSimulatorView({
         placedGears={placedGears}
         onUpdateGears={setPlacedGears}
         onStartSimulation={() => setStep('SIMULATION_3D')}
-        onBackToEntry={() => setIsEntryModalOpen(true)}
+        onBackToEntry={() => {
+          setIsEntryModalOpen(true);
+          setStep('ENTRY');
+        }}
       />
     );
   }
@@ -255,7 +275,10 @@ export default function PitchingSimulatorView({
         <div className="flex items-center space-x-2.5">
           <button
             type="button"
-            onClick={() => setIsEntryModalOpen(true)}
+            onClick={() => {
+              setIsEntryModalOpen(true);
+              setStep('ENTRY');
+            }}
             className="w-8 h-8 rounded-full bg-emerald-600/30 flex items-center justify-center border border-emerald-400/40 hover:bg-emerald-600/50 transition-colors"
             title="장소 및 일정 변경"
           >
