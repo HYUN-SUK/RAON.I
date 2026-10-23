@@ -82,6 +82,25 @@ export default function PitchingEntryModal({
 
   if (!isOpen) return null;
 
+const DEFAULT_FALLBACK_LAT = 36.6354349;
+const DEFAULT_FALLBACK_LNG = 126.7638091;
+
+function sanitizeKoreaCoordinates(lat: any, lng: any): { lat: number; lng: number } {
+  const parsedLat = typeof lat === 'number' ? lat : parseFloat(lat);
+  const parsedLng = typeof lng === 'number' ? lng : parseFloat(lng);
+  if (
+    !isNaN(parsedLat) &&
+    !isNaN(parsedLng) &&
+    parsedLat >= 33 &&
+    parsedLat <= 39 &&
+    parsedLng >= 124 &&
+    parsedLng <= 132
+  ) {
+    return { lat: parsedLat, lng: parsedLng };
+  }
+  return { lat: DEFAULT_FALLBACK_LAT, lng: DEFAULT_FALLBACK_LNG };
+}
+
   // 1. 현위치 바로 피칭하기 핸들러
   const handleCurrentGpsPitching = () => {
     if (!navigator.geolocation) {
@@ -93,15 +112,14 @@ export default function PitchingEntryModal({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setIsLocating(false);
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+        const safeCoords = sanitizeKoreaCoordinates(pos.coords.latitude, pos.coords.longitude);
 
         onSelect({
           locationType: 'wild',
           name: '현위치 노지 피칭',
           address: '현재 GPS 위치 (노지/자연)',
-          lat,
-          lng,
+          lat: safeCoords.lat,
+          lng: safeCoords.lng,
           date: new Date(),
           isWeatherAvailable: true,
           widthM: 8,
@@ -116,8 +134,8 @@ export default function PitchingEntryModal({
           locationType: 'wild',
           name: '현위치 노지 피칭 (기본)',
           address: '충남 예산군 신암면 추사고택로 (라온아이 일대)',
-          lat: 36.6354349,
-          lng: 126.7638091,
+          lat: DEFAULT_FALLBACK_LAT,
+          lng: DEFAULT_FALLBACK_LNG,
           date: new Date(),
           isWeatherAvailable: true,
           widthM: 8,
@@ -128,7 +146,7 @@ export default function PitchingEntryModal({
     );
   };
 
-  // 2. 여행 일정 선택 핸들러
+  // 2. 여행 일정 선택 핸들러 (실제 user_schedules 컬럼 campground_lat/lng 우선 파싱)
   const handleSelectSchedule = (item: any) => {
     const today = new Date();
     const checkInDate = item.check_in ? new Date(item.check_in) : new Date();
@@ -144,14 +162,23 @@ export default function PitchingEntryModal({
       );
     }
 
+    // campground_lat, campground_lng 우선 파싱
+    const rawLat = item.campground_lat ?? item.lat;
+    const rawLng = item.campground_lng ?? item.lng;
+    const safeCoords = sanitizeKoreaCoordinates(rawLat, rawLng);
+
+    const campgroundName = item.campground_name || item.title || item.place_name || '라온아이 캠핑장';
+    const siteName = item.site_name || '철수네 (Site 1)';
+    const address = item.campground_address || item.address || '충남 예산군 신암면 추사고택로 40-10';
+
     onSelect({
       locationType: 'campground',
-      name: `${item.title || item.place_name || '캠핑장'} · ${item.site_name || '사이트'}`,
-      campgroundName: item.title || item.place_name || '라온아이 캠핑장',
-      siteName: item.site_name || '철수네 (Site 1)',
-      address: item.address || '충남 예산군 신암면 추사고택로 40-10',
-      lat: item.lat || 36.6354349,
-      lng: item.lng || 126.7638091,
+      name: `${campgroundName} · ${siteName}`,
+      campgroundName,
+      siteName,
+      address,
+      lat: safeCoords.lat,
+      lng: safeCoords.lng,
       date: checkInDate,
       isWeatherAvailable,
       widthM: 8,
