@@ -12,8 +12,10 @@ import {
   Sparkles,
   AlertTriangle,
   RefreshCw,
+  Minus,
+  Plus,
 } from 'lucide-react';
-import { Map, CustomOverlayMap, useKakaoLoader } from 'react-kakao-maps-sdk';
+import { Map, CustomOverlayMap, Polygon, useKakaoLoader } from 'react-kakao-maps-sdk';
 import { toast } from 'sonner';
 import type { SiteGeometry } from '../../types';
 
@@ -23,7 +25,7 @@ interface SiteMapPickerProps {
   onBack: () => void;
 }
 
-// 🛡️ [내부 Error Boundary] 카카오 지도 렌더 중 오류가 발생해도 global-error로 튕기지 않고 화면 내에서 안전 복구
+// 🛡️ [내부 Error Boundary] 카카오 지도 로딩 에러 시 화면 내에서 안전 복구
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallbackSite: SiteGeometry;
@@ -46,7 +48,7 @@ class SiteMapPickerErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🚨 [SiteMapPicker 내부 에러 감지 및 격리 방어]:', error, errorInfo);
+    console.error('🚨 [SiteMapPicker 내부 에러 감지]:', error, errorInfo);
   }
 
   render() {
@@ -61,7 +63,7 @@ class SiteMapPickerErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
               위성 지도 환경을 초기화하는 중입니다
             </h3>
             <p className="text-xs text-stone-300 max-w-sm leading-relaxed">
-              기기 네트워크 환경에 따라 지도가 일시 지연될 수 있습니다. 기본 피칭 사이트 위치로 바로 이동하여 텐트 배치를 계속 진행할 수 있습니다.
+              기본 피칭 사이트 위치로 바로 이동하여 텐트 배치를 계속 진행할 수 있습니다.
             </p>
           </div>
           <button
@@ -90,7 +92,7 @@ export default function SiteMapPicker(props: SiteMapPickerProps) {
 }
 
 function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerProps) {
-  // 1. 카카오 지도 SDK 로드 (기존 라온아이 시스템과 100% 동일한 libraries 옵션으로 로더 충돌 완전 차단!)
+  // 1. 카카오 지도 SDK 로드
   const [loading, error] = useKakaoLoader({
     appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY || '',
     libraries: ['services', 'clusterer'],
@@ -103,43 +105,140 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
   const [pinLat, setPinLat] = useState<number>(site.lat || 36.6354349);
   const [pinLng, setPinLng] = useState<number>(site.lng || 126.7638091);
 
-  // 사이트 규격 및 회전 방위각
+  // 사이트 규격(m) 및 회전 방위각(deg)
   const [widthM, setWidthM] = useState<number>(site.widthM || 8);
   const [depthM, setDepthM] = useState<number>(site.depthM || 7);
   const [bearingDeg, setBearingDeg] = useState<number>(site.bearingDeg || 135);
 
-  // 지도 인스턴스 준비 완료 여부 (지도가 준비된 후에만 CustomOverlayMap 렌더링하여 kakao is not defined 원천 방지)
-  const [isMapReady, setIsMapReady] = useState<boolean>(false);
+  // 입력창 전용 문자열 상태 (12m 입력 시 3~25 강제 가로챔 방지)
+  const [widthInput, setWidthInput] = useState<string>(String(site.widthM || 8));
+  const [depthInput, setDepthInput] = useState<string>(String(site.depthM || 7));
 
-  // 지도 줌 레벨 (1~2 레벨: 초고해상도 피칭 사이트 뷰)
+  // 지도 준비 완료 상태
+  const [isMapReady, setIsMapReady] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  // Step 2에서 뒤로가기로 복귀했을 때 prop 변경값과 내부 state 양방향 동기화
+  // Step 2에서 뒤로 복귀 시 prop 양방향 동기화
   useEffect(() => {
     if (site.lat && site.lng) {
       setPinLat(site.lat);
       setPinLng(site.lng);
     }
-    if (site.widthM) setWidthM(site.widthM);
-    if (site.depthM) setDepthM(site.depthM);
+    if (site.widthM) {
+      setWidthM(site.widthM);
+      setWidthInput(String(site.widthM));
+    }
+    if (site.depthM) {
+      setDepthM(site.depthM);
+      setDepthInput(String(site.depthM));
+    }
     if (site.bearingDeg !== undefined) setBearingDeg(site.bearingDeg);
   }, [site.lat, site.lng, site.widthM, site.depthM, site.bearingDeg]);
 
-  // 지도 클릭 핸들러 (지형을 콕 찍으면 앵커 이동)
+  // 🧭 지도의 실제 지형과 1:1 실측으로 밀착되는 4개 꼭짓점 위경도 좌표 계산 (Polygon)
+  const sitePolygonPath = useMemo(() => {
+    // 위도 1도당 실제 거리 (약 111,320m)
+    const metersPerLat = 111320;
+    // 경도 1도당 실제 거리 (위도 36.6도 기준 약 89,200m)
+    const radLat = (pinLat * Math.PI) / 180;
+    const metersPerLng = 111320 * Math.cos(radLat);
+
+    // 진입로 방위각 기준 단위벡터
+    const bearingRad = (bearingDeg * Math.PI) / 180;
+    const forwardEast = Math.sin(bearingRad);
+    const forwardNorth = Math.cos(bearingRad);
+    const rightEast = Math.cos(bearingRad);
+    const rightNorth = -Math.sin(bearingRad);
+
+    const halfW = widthM / 2;
+    const halfD = depthM / 2;
+
+    // 4개 모서리 오프셋 (u: 오른쪽 m, v: 앞쪽 m)
+    const corners = [
+      { u: -halfW, v: halfD },  // 1. 앞쪽-좌측
+      { u: halfW, v: halfD },   // 2. 앞쪽-우측
+      { u: halfW, v: -halfD },  // 3. 뒤쪽-우측
+      { u: -halfW, v: -halfD }, // 4. 뒤쪽-좌측
+    ];
+
+    return corners.map((corner) => {
+      const dEast = corner.u * rightEast + corner.v * forwardEast;
+      const dNorth = corner.u * rightNorth + corner.v * forwardNorth;
+      return {
+        lat: pinLat + dNorth / metersPerLat,
+        lng: pinLng + dEast / metersPerLng,
+      };
+    });
+  }, [pinLat, pinLng, widthM, depthM, bearingDeg]);
+
+  // 지도 클릭 시 중심 앵커 이동
   const handleMapClick = (_target: any, mouseEvent: any) => {
     if (!mouseEvent || !mouseEvent.latLng) return;
     const lat = mouseEvent.latLng.getLat();
     const lng = mouseEvent.latLng.getLng();
     setPinLat(lat);
     setPinLng(lng);
-    toast.success('사이트 위치를 지정했습니다. 크기와 방향을 맞춘 뒤 다음으로 진행하세요.', {
-      duration: 2000,
-    });
+    toast.success('사이트 위치를 지정했습니다.', { duration: 1500 });
   };
 
   // 회전각 조절
   const handleRotate = (deltaDeg: number) => {
     setBearingDeg((prev) => (prev + deltaDeg + 360) % 360);
+  };
+
+  // 수치 입력 핸들러 (자유 입력 허용 + 포커스 아웃 시 범위 보정)
+  const handleWidthChange = (valStr: string) => {
+    setWidthInput(valStr);
+    const val = parseFloat(valStr);
+    if (!isNaN(val) && val >= 3 && val <= 25) {
+      setWidthM(val);
+    }
+  };
+
+  const handleWidthBlur = () => {
+    let val = parseFloat(widthInput);
+    if (isNaN(val)) val = 8;
+    val = Math.max(3, Math.min(25, Math.round(val * 10) / 10));
+    setWidthM(val);
+    setWidthInput(String(val));
+  };
+
+  const handleDepthChange = (valStr: string) => {
+    setDepthInput(valStr);
+    const val = parseFloat(valStr);
+    if (!isNaN(val) && val >= 3 && val <= 25) {
+      setDepthM(val);
+    }
+  };
+
+  const handleDepthBlur = () => {
+    let val = parseFloat(depthInput);
+    if (isNaN(val)) val = 7;
+    val = Math.max(3, Math.min(25, Math.round(val * 10) / 10));
+    setDepthM(val);
+    setDepthInput(String(val));
+  };
+
+  // 1m 단위 증감 버튼
+  const handleStepWidth = (delta: number) => {
+    const next = Math.max(3, Math.min(25, widthM + delta));
+    setWidthM(next);
+    setWidthInput(String(next));
+  };
+
+  const handleStepDepth = (delta: number) => {
+    const next = Math.max(3, Math.min(25, depthM + delta));
+    setDepthM(next);
+    setDepthInput(String(next));
+  };
+
+  // 자주 쓰는 규격 퀵 프리셋 (대표님 요청 철수네 12×12m 포함)
+  const handleApplyPresetSize = (w: number, d: number) => {
+    setWidthM(w);
+    setDepthM(d);
+    setWidthInput(String(w));
+    setDepthInput(String(d));
+    toast.info(`사이트 크기 ${w}m × ${d}m 설정 완료`);
   };
 
   // 최종 확정 후 Step 2로 이동
@@ -158,12 +257,12 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
   return (
     <div className="relative h-[100dvh] w-full bg-[#121E15] flex flex-col overflow-hidden select-none">
       {/* 1. 상단 슬림 헤더 */}
-      <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-[#1C3B29]/95 backdrop-blur-md border-b border-[#2A553C] shrink-0 z-30 shadow-md">
+      <header className="flex items-center justify-between px-3 sm:px-4 py-2 bg-[#1C3B29]/95 backdrop-blur-md border-b border-[#2A553C] shrink-0 z-30 shadow-md">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="p-1 rounded-full text-emerald-200 hover:text-white hover:bg-emerald-800/40 transition-colors"
+            className="p-1 rounded-full text-emerald-200 hover:text-white hover:bg-emerald-800/40 transition-colors cursor-pointer"
             title="장소 재선택"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -172,7 +271,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
             <h1 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 leading-tight">
               <span>Step 1. 실제 사이트 위치 찍기</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-700/80 text-emerald-100 font-semibold border border-emerald-400/30">
-                위성 스카이뷰
+                1:1 실측 위성뷰
               </span>
             </h1>
             <p className="text-[11px] text-emerald-200/80 truncate max-w-[200px] sm:max-w-md">
@@ -188,7 +287,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
           <button
             type="button"
             onClick={() => setMapType('SKYVIEW')}
-            className={`px-2 py-1 text-[11px] font-bold rounded-md transition-all ${
+            className={`px-2 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
               mapType === 'SKYVIEW'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-stone-300 hover:text-white'
@@ -199,7 +298,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
           <button
             type="button"
             onClick={() => setMapType('ROADMAP')}
-            className={`px-2 py-1 text-[11px] font-bold rounded-md transition-all ${
+            className={`px-2 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
               mapType === 'ROADMAP'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-stone-300 hover:text-white'
@@ -210,7 +309,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
         </div>
       </header>
 
-      {/* 2. 메인 지도 뷰포트 (모바일 제스처 간섭 방지) */}
+      {/* 2. 메인 지도 뷰포트 (1:1 실측 연동 사각틀 Polygon 렌더링) */}
       <div
         className="relative flex-1 w-full bg-[#0E1A11] overflow-hidden"
         style={{ touchAction: 'pan-x pan-y' }}
@@ -244,37 +343,40 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
             onClick={handleMapClick}
             onCreate={() => setIsMapReady(true)}
           >
-            {/* 지도가 완전히 생성되고 kakao 전역 객체가 준비되었을 때만 안전 렌더링 */}
+            {/* 🎯 [지도의 실제 축척과 100% 1:1 실측 연동 사각틀] 확대/축소 시 지형과 함께 크기가 완벽히 상호작용! */}
+            {isMapReady && (
+              <Polygon
+                path={sitePolygonPath}
+                strokeWeight={3}
+                strokeColor="#F59E0B"
+                strokeOpacity={0.95}
+                strokeStyle="solid"
+                fillColor="#F59E0B"
+                fillOpacity={0.28}
+              />
+            )}
+
+            {/* 사각틀 중앙 라벨 & 진입로 나침반 오버레이 */}
             {isMapReady && typeof window !== 'undefined' && window.kakao?.maps && (
               <CustomOverlayMap position={{ lat: pinLat, lng: pinLng }} yAnchor={0.5} xAnchor={0.5}>
-                <div
-                  className="relative flex items-center justify-center pointer-events-none transition-transform duration-150"
-                  style={{
-                    transform: `rotate(${bearingDeg}deg)`,
-                  }}
-                >
-                  {/* 실제 사이트 사각틀 바운더리 (노란 테두리 + 반투명 채움) */}
+                <div className="flex flex-col items-center justify-center pointer-events-none select-none">
+                  {/* 진입로 방향 지시 화살표 */}
                   <div
-                    className="border-2 border-amber-400 bg-amber-400/25 rounded-lg shadow-2xl flex flex-col items-center justify-between p-1.5"
+                    className="flex items-center gap-1 bg-amber-500 text-black px-2 py-0.5 rounded-full text-[10px] font-black shadow-lg border border-white mb-1 transition-transform"
                     style={{
-                      width: `${Math.max(70, widthM * 11)}px`,
-                      height: `${Math.max(60, depthM * 11)}px`,
+                      transform: `rotate(${bearingDeg}deg)`,
+                      transformOrigin: 'center 20px',
                     }}
                   >
-                    {/* 진입로 화살표 */}
-                    <div className="flex items-center gap-1 bg-amber-500/95 text-black px-1.5 py-0.5 rounded-full text-[9px] font-extrabold shadow">
-                      <ArrowUp className="w-2.5 h-2.5" />
-                      <span>진입로</span>
-                    </div>
-
-                    {/* 크기 라벨 */}
-                    <div className="bg-black/75 px-1.5 py-0.5 rounded text-[9.5px] font-bold text-amber-200">
-                      {widthM}m × {depthM}m
-                    </div>
+                    <ArrowUp className="w-3 h-3 stroke-[3]" />
+                    <span>진입로</span>
                   </div>
 
-                  {/* 중앙 앵커 핀 포인트 */}
-                  <div className="absolute w-3 h-3 rounded-full bg-red-500 border-2 border-white shadow-md" />
+                  {/* 사이트 실측 크기 라벨 */}
+                  <div className="bg-black/85 backdrop-blur-xs text-amber-200 border border-amber-400/80 px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-xl font-mono">
+                    {widthM}m × {depthM}m
+                  </div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-white shadow-md mt-0.5" />
                 </div>
               </CustomOverlayMap>
             )}
@@ -282,38 +384,116 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
         )}
 
         {/* 안내 플로팅 배지 */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-[#12271B]/90 backdrop-blur-md border border-emerald-500/50 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-semibold z-10 pointer-events-none">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-[#12271B]/90 backdrop-blur-md border border-emerald-500/50 text-white px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-semibold z-10 pointer-events-none">
           <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-          <span>지도를 콕 터치하여 텐트 칠 자리를 지정하세요</span>
+          <span>지도를 콕 터치하면 1:1 실측 사각틀이 이동합니다</span>
         </div>
       </div>
 
-      {/* 3. 하단 플로팅 사이트 크기 & 회전 컨트롤러 및 확정 바 */}
-      <footer className="bg-[#1C3B29] border-t border-[#2A553C] p-3 sm:p-4 shrink-0 z-30 shadow-2xl space-y-3 pb-safe">
+      {/* 3. 하단 사이트 크기 & 회전 컨트롤러 및 확정 바 */}
+      <footer className="bg-[#1C3B29] border-t border-[#2A553C] p-3 sm:p-4 shrink-0 z-30 shadow-2xl space-y-2.5 pb-safe">
+        {/* 자주 쓰는 대표 크기 퀵 프리셋 버튼 */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          <span className="text-[10px] font-bold text-emerald-300 shrink-0">빠른 설정:</span>
+          <button
+            type="button"
+            onClick={() => handleApplyPresetSize(8, 7)}
+            className={`px-2 py-0.5 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+              widthM === 8 && depthM === 7
+                ? 'bg-emerald-600 border-emerald-400 text-white shadow'
+                : 'bg-[#12271B] border-emerald-700/50 text-stone-300 hover:text-white'
+            }`}
+          >
+            표준 8×7m
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyPresetSize(10, 8)}
+            className={`px-2 py-0.5 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+              widthM === 10 && depthM === 8
+                ? 'bg-emerald-600 border-emerald-400 text-white shadow'
+                : 'bg-[#12271B] border-emerald-700/50 text-stone-300 hover:text-white'
+            }`}
+          >
+            대형 10×8m
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyPresetSize(12, 12)}
+            className={`px-2 py-0.5 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+              widthM === 12 && depthM === 12
+                ? 'bg-amber-600 border-amber-400 text-white shadow'
+                : 'bg-[#12271B] border-emerald-700/50 text-amber-200 hover:text-white'
+            }`}
+          >
+            철수네 12×12m ⭐
+          </button>
+        </div>
+
+        {/* 사이트 크기 입력 및 회전 컨트롤 바 */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* 사이트 크기 조절 (가로 × 세로) */}
-          <div className="flex items-center gap-2 bg-[#12271B] px-3 py-1.5 rounded-xl border border-emerald-600/40">
-            <span className="text-[11px] font-bold text-emerald-300">사이트 크기:</span>
-            <div className="flex items-center gap-1">
+          {/* 가로 × 세로 정밀 조절 (자유 타이핑 + 증감 버튼) */}
+          <div className="flex items-center gap-2 bg-[#12271B] px-2.5 py-1.5 rounded-xl border border-emerald-600/40">
+            <span className="text-[11px] font-bold text-emerald-300">사이트:</span>
+            
+            {/* 가로 (Width) 조절 */}
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => handleStepWidth(-1)}
+                className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
+                title="1m 축소"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
               <input
-                type="number"
-                value={widthM}
-                onChange={(e) => setWidthM(Math.max(3, Math.min(25, Number(e.target.value))))}
-                className="w-12 px-1 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
-                min={3}
-                max={25}
+                type="text"
+                inputMode="numeric"
+                value={widthInput}
+                onChange={(e) => handleWidthChange(e.target.value)}
+                onBlur={handleWidthBlur}
+                className="w-8 px-0.5 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
               />
-              <span className="text-xs text-stone-300">×</span>
-              <input
-                type="number"
-                value={depthM}
-                onChange={(e) => setDepthM(Math.max(3, Math.min(25, Number(e.target.value))))}
-                className="w-12 px-1 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
-                min={3}
-                max={25}
-              />
-              <span className="text-xs font-semibold text-emerald-200">m</span>
+              <button
+                type="button"
+                onClick={() => handleStepWidth(1)}
+                className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
+                title="1m 확대"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
             </div>
+
+            <span className="text-xs text-stone-400 font-bold">×</span>
+
+            {/* 세로 (Depth) 조절 */}
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => handleStepDepth(-1)}
+                className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
+                title="1m 축소"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={depthInput}
+                onChange={(e) => handleDepthChange(e.target.value)}
+                onBlur={handleDepthBlur}
+                className="w-8 px-0.5 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
+              />
+              <button
+                type="button"
+                onClick={() => handleStepDepth(1)}
+                className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
+                title="1m 확대"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+            <span className="text-xs font-semibold text-emerald-200">m</span>
           </div>
 
           {/* 사이트 방향(진입로) 회전 컨트롤 */}
@@ -331,7 +511,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
               <RotateCcw className="w-3 h-3" />
               <span>-15°</span>
             </button>
-            <span className="text-xs font-mono font-bold text-amber-300 min-w-[36px] text-center">
+            <span className="text-xs font-mono font-bold text-amber-300 min-w-[34px] text-center">
               {Math.round(bearingDeg)}°
             </span>
             <button
@@ -350,7 +530,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-bold text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all"
+          className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-bold text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all"
         >
           <Check className="w-4 h-4 text-emerald-100" />
           <span>이 위치에 텐트 배치하기 (Step 2 이동)</span>
