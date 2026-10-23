@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface TunnelTentProps {
@@ -12,6 +13,7 @@ interface TunnelTentProps {
   position?: [number, number, number];
   reinforcedPegPositions?: [number, number, number][]; // 풍상측 보강 팩 강조 좌표
   isLanternOn?: boolean; // 야간 내부 랜턴 점등 시 원단 투과 발광
+  windSpeed?: number;   // 풍속 (m/s) 강풍 시 텐트 스킨 펄럭임
 }
 
 export default function TunnelTent({
@@ -23,8 +25,24 @@ export default function TunnelTent({
   position = [0, 0.1, 0],
   reinforcedPegPositions = [],
   isLanternOn = false,
+  windSpeed = 2.5,
 }: TunnelTentProps) {
   const rotationRad = (rotationDeg * Math.PI) / 180;
+  const tentBodyRef = useRef<THREE.Group>(null!);
+
+  // 강풍(6m/s 이상) 시 텐트 스킨 및 폴대 미세 진동 애니메이션
+  useFrame(({ clock }) => {
+    if (!tentBodyRef.current) return;
+    if (windSpeed >= 6.0) {
+      const t = clock.getElapsedTime();
+      const intensity = Math.min(0.025, (windSpeed - 5.0) * 0.0035);
+      tentBodyRef.current.rotation.z = Math.sin(t * (windSpeed * 1.8)) * intensity;
+      tentBodyRef.current.rotation.x = Math.cos(t * (windSpeed * 1.2)) * (intensity * 0.5);
+    } else {
+      tentBodyRef.current.rotation.z = 0;
+      tentBodyRef.current.rotation.x = 0;
+    }
+  });
 
   // 1. 절차적 터널형 텐트 아치형 스킨 지오메트리 생성
   const tentSkinGeometry = useMemo(() => {
@@ -109,8 +127,9 @@ export default function TunnelTent({
 
   return (
     <group position={position} rotation={[0, rotationRad, 0]}>
-      {/* 1. 텐트 본체 스킨 (무광 립스탑 원단) */}
-      <mesh
+      <group ref={tentBodyRef}>
+        {/* 1. 텐트 본체 스킨 (무광 립스탑 원단) */}
+        <mesh
         geometry={tentSkinGeometry}
         castShadow
         receiveShadow
@@ -185,6 +204,7 @@ export default function TunnelTent({
           </group>
         );
       })}
+      </group>
     </group>
   );
 }

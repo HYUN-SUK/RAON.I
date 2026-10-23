@@ -43,29 +43,40 @@ export function getSunTimesForDate(
 export function calculateAstronomicalSunTrajectory({
   date = new Date(),
   hour,
+  dayIndex = 1,
   lat = 36.6354349,
   lng = 126.7638091,
 }: {
   date?: Date;
   hour: number;
+  dayIndex?: number;
   lat?: number;
   lng?: number;
 }): { azDeg: number; altDeg: number } {
   const targetDate = new Date(date);
-  const targetHour = Math.floor(hour);
-  const targetMin = Math.floor((hour - targetHour) * 60);
-  const targetSec = Math.floor(((hour - targetHour) * 60 - targetMin) * 60);
+  if (dayIndex > 1) {
+    targetDate.setDate(targetDate.getDate() + (dayIndex - 1));
+  }
+
+  // hour 안전 정규화 (0.0 ~ 23.999)
+  const safeHour = Math.max(0, Math.min(23.999, isNaN(hour) ? 12 : hour));
+  const targetHour = Math.floor(safeHour);
+  const targetMin = Math.floor((safeHour - targetHour) * 60);
+  const targetSec = Math.floor(((safeHour - targetHour) * 60 - targetMin) * 60);
 
   targetDate.setHours(targetHour, targetMin, targetSec, 0);
 
   const sunPos = SunCalc.getPosition(targetDate, lat, lng);
 
   // 고도각(Altitude): 라디안 -> 도 (0 = 지평선, 90 = 천정, 음수 = 지평선 아래)
-  const altDeg = sunPos.altitude * (180 / Math.PI);
+  const rawAltDeg = sunPos.altitude * (180 / Math.PI);
+  // 비정상 수치(NaN, 무한대, 오차) 방지 안전 클램핑 (-90° ~ 90°)
+  const altDeg = isNaN(rawAltDeg) ? 0 : Math.max(-90, Math.min(90, rawAltDeg));
 
   // 방위각(Azimuth): SunCalc(남쪽 0 기준) -> 나침반 표준(북=0, 동=90, 남=180, 서=270)
-  let azDeg = (sunPos.azimuth * (180 / Math.PI) + 180) % 360;
-  if (azDeg < 0) azDeg += 360;
+  let rawAzDeg = (sunPos.azimuth * (180 / Math.PI) + 180) % 360;
+  if (rawAzDeg < 0) rawAzDeg += 360;
+  const azDeg = isNaN(rawAzDeg) ? 180 : rawAzDeg;
 
   return { azDeg, altDeg };
 }
@@ -122,7 +133,7 @@ export function calculateWeatherLighting({
   horizonProfile?: HorizonProfilePoint[];
 }): WeatherLightingParams {
   // 1. 해당 날짜 및 시각의 실제 천문 고도각 및 방위각 연산
-  const { azDeg, altDeg } = calculateAstronomicalSunTrajectory({ date, hour, lat, lng });
+  const { azDeg, altDeg } = calculateAstronomicalSunTrajectory({ date, hour, dayIndex, lat, lng });
   const sunTimes = getSunTimesForDate(date, lat, lng);
 
   // 2. 16방위 산 능선 고도각 및 차폐(산그늘) 여부 판정
@@ -131,10 +142,14 @@ export function calculateWeatherLighting({
   // 주간이더라도 해당 방위의 능선 고도각보다 낮으면 서쪽 산그늘 진입!
   const isOccludedByRidge = isDaylight && altDeg <= ridgeAltDeg;
 
-  // 3. 천문 고도각(altDeg) 기반 시간대 상태 물리 판정 (고정 시각 제거!)
+  // 3. 천문 고도각(altDeg) 기반 시간대 상태 물리 판정
   const isGoldenHour = altDeg > 0 && altDeg <= 12;      // 일출/일몰 직전후 붉고 낮은 태양 (장축 그림자)
   const isCivilTwilight = altDeg <= 0 && altDeg > -6;   // 해 진 직후 황혼/블루아워 (붉은 잔광 + 인디고 블루)
   const isNight = altDeg <= -6;                         // 시민박명 종료 후 완전한 야간 (달빛 + 텐트 랜턴)
+
+  // 4. 야간 감성 모닥불(불멍) 활성화 판정: 해가 진 후 황혼 또는 밤 (altDeg <= -2)
+  const isBonfireActive = altDeg <= -2;
+  const bonfireIntensity = isBonfireActive ? 2.0 + Math.sin(hour * 15) * 0.35 : 0;
 
   // 태양 광선 3D 위치 (광원 거리 28m)
   const [vx, vy, vz] = getSunVector(azDeg, Math.max(altDeg, 2));
@@ -401,6 +416,8 @@ export function calculateWeatherLighting({
     fogDensity,
     skyBgColor,
     isTentLanternOn,
+    isBonfireActive,
+    bonfireIntensity,
     precipitationType,
     precipitationSpeed,
     windLevel: windInfo.level,
