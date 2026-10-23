@@ -19,6 +19,7 @@ import {
   ChevronDown,
   SlidersHorizontal,
   Flame,
+  ChevronLeft,
 } from 'lucide-react';
 import type {
   SiteGeometry,
@@ -28,11 +29,12 @@ import type {
   PlacedGearItem,
   SimulationStep,
 } from '../types';
-import { SITE_1_GEOMETRY, DEFAULT_TUNNEL_TENT } from '../constants/defaultSite';
+import { SITE_1_GEOMETRY } from '../constants/defaultSite';
 import { calculatePitchingScoring } from '../engine/pitchScoringEngine';
 import { calculateWeatherLighting } from '../engine/weatherLightingEngine';
 import PitchingCanvas from './3d/PitchingCanvas';
 import PitchingEntryModal, { PitchingEntrySelection } from './wizard/PitchingEntryModal';
+import SiteMapPicker from './wizard/SiteMapPicker';
 import SitePlacementEditor from './wizard/SitePlacementEditor';
 
 interface PitchingSimulatorViewProps {
@@ -58,13 +60,12 @@ const WEATHER_PRESETS: { code: WeatherCaseCode; label: string; icon: string }[] 
 
 export default function PitchingSimulatorView({
   initialSite = SITE_1_GEOMETRY,
-  initialGear = DEFAULT_TUNNEL_TENT,
 }: PitchingSimulatorViewProps) {
   // 현재 위자드 단계 (기본값: 진입 모달 즉시 표출)
   const [step, setStep] = useState<SimulationStep>('ENTRY');
   const [isEntryModalOpen, setIsEntryModalOpen] = useState<boolean>(true);
 
-  // 사이트 및 복수 장비 상태
+  // 사이트 정보
   const [site, setSite] = useState<SiteGeometry>({
     ...initialSite,
     locationType: 'campground',
@@ -74,21 +75,8 @@ export default function PitchingSimulatorView({
     depthM: initialSite.depthM || 7,
   });
 
-  // 복수 배치 장비 목록 (기본 터널형 텐트 1동 장착)
-  const [placedGears, setPlacedGears] = useState<PlacedGearItem[]>([
-    {
-      id: 'initial_tent_1',
-      type: 'tunnel_tent',
-      name: '표준 터널형 텐트',
-      lengthM: initialGear.lengthM || 6.2,
-      widthM: initialGear.widthM || 3.3,
-      heightM: initialGear.heightM || 2.1,
-      color: initialGear.color || '#4B5320',
-      x: 0,
-      z: 0,
-      rotationDeg: initialSite.bearingDeg || 135,
-    },
-  ]);
+  // 복수 배치 장비 목록 (사용자가 직접 추가하도록 빈 사이트 []로 시작)
+  const [placedGears, setPlacedGears] = useState<PlacedGearItem[]>([]);
 
   const [activeTab, setActiveTab] = useState<'3D' | 'CARD'>('3D');
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState<boolean>(false);
@@ -99,8 +87,8 @@ export default function PitchingSimulatorView({
 
   const simDate = useMemo(() => {
     switch (season) {
-      case 'summer': return new Date('2026-07-20T12:00:00'); // 여름 19:30 밝음
-      case 'winter': return new Date('2026-12-22T12:00:00'); // 겨울 17:30 밤
+      case 'summer': return new Date('2026-07-20T12:00:00');
+      case 'winter': return new Date('2026-12-22T12:00:00');
       case 'spring': return new Date('2026-05-15T12:00:00');
       case 'autumn':
       default: return new Date('2026-10-22T12:00:00');
@@ -123,7 +111,7 @@ export default function PitchingSimulatorView({
   const currentDay = Math.floor(absoluteHour / 24) + 1;
   const currentHourInDay = absoluteHour % 24;
 
-  // 12대 날씨 매트릭스 및 천문 고도각 계산 (태양 고도 3181도 버그 방지)
+  // 12대 날씨 매트릭스 및 천문 고도각 계산
   const weatherLighting = useMemo(() => {
     return calculateWeatherLighting({
       hour: currentHourInDay,
@@ -181,7 +169,7 @@ export default function PitchingSimulatorView({
     setElapsedHours(targetElapsed);
   };
 
-  // 진입 모달 선택 완료 핸들러
+  // 진입 모달 선택 완료 핸들러 ➔ Step 1 카카오 위성지도(MAP_SITE)로 이동
   const handleEntrySelect = (sel: PitchingEntrySelection) => {
     setIsEntryModalOpen(false);
     setSite({
@@ -196,11 +184,11 @@ export default function PitchingSimulatorView({
       widthM: sel.widthM || 8,
       depthM: sel.depthM || 7,
     });
-    // 선택 후 2D 배치 에디터(Step 2)로 이동
-    setStep('GEAR_SETUP');
+    // 위성지도 단계(Step 1)로 이동
+    setStep('MAP_SITE');
   };
 
-  // 3D 스크린샷 캡처 다운로드 (WBS 5)
+  // 3D 스크린샷 캡처 다운로드
   const handleCaptureSnapshot = () => {
     try {
       setIsCapturing(true);
@@ -233,16 +221,15 @@ export default function PitchingSimulatorView({
       .join(' + ');
   }, [placedGears]);
 
-  // Step 1: 첫 진입 2-Track 모달 렌더링
+  // Step 0: 첫 진입 2-Track 모달 렌더링
   if (step === 'ENTRY') {
     return (
-      <div className="relative h-screen w-full bg-[#121E15] flex items-center justify-center">
+      <div className="relative h-[100dvh] w-full bg-[#121E15] flex items-center justify-center">
         <PitchingEntryModal
           isOpen={isEntryModalOpen}
           onClose={() => {
-            // 닫았을 때 기본 샘플로 Step 2로 이동
             setIsEntryModalOpen(false);
-            setStep('GEAR_SETUP');
+            setStep('MAP_SITE');
           }}
           onSelect={handleEntrySelect}
         />
@@ -250,7 +237,24 @@ export default function PitchingSimulatorView({
     );
   }
 
-  // Step 2: 2D 배치 에디터 렌더링
+  // Step 1: 카카오 위성지도(스카이뷰) 사이트 앵커링 & 사각틀 지정
+  if (step === 'MAP_SITE') {
+    return (
+      <SiteMapPicker
+        site={site}
+        onConfirmSite={(updatedSite) => {
+          setSite(updatedSite);
+          setStep('GEAR_SETUP');
+        }}
+        onBack={() => {
+          setIsEntryModalOpen(true);
+          setStep('ENTRY');
+        }}
+      />
+    );
+  }
+
+  // Step 2: 2D 배치 에디터 렌더링 (빈 사이트 시작, 드래그 이동, 추가/삭제)
   if (step === 'GEAR_SETUP') {
     return (
       <SitePlacementEditor
@@ -259,51 +263,45 @@ export default function PitchingSimulatorView({
         placedGears={placedGears}
         onUpdateGears={setPlacedGears}
         onStartSimulation={() => setStep('SIMULATION_3D')}
-        onBackToEntry={() => {
-          setIsEntryModalOpen(true);
-          setStep('ENTRY');
-        }}
+        onBackToEntry={() => setStep('MAP_SITE')}
       />
     );
   }
 
   // Step 3: 3D 감성 시뮬레이션 렌더링
   return (
-    <div className="flex flex-col h-screen w-full bg-[#121E15] text-stone-100 overflow-hidden select-none">
-      {/* 1. 상단 미니멀 헤더 (캠핑장/노지 주소 + 장비 요약 규격화) */}
-      <header className="flex items-center justify-between px-4 py-2.5 bg-[#1C3B29] border-b border-[#2A553C] shrink-0 z-20 shadow-md">
-        <div className="flex items-center space-x-2.5">
+    <div className="flex flex-col h-[100dvh] w-full bg-[#121E15] text-stone-100 overflow-hidden select-none">
+      {/* 1. 상단 규격화 헤더 (캠핑장/노지 주소 + 사이트 크기 + 장비 요약) */}
+      <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-[#1C3B29] border-b border-[#2A553C] shrink-0 z-30 shadow-md">
+        <div className="flex items-center space-x-2">
           <button
             type="button"
-            onClick={() => {
-              setIsEntryModalOpen(true);
-              setStep('ENTRY');
-            }}
-            className="w-8 h-8 rounded-full bg-emerald-600/30 flex items-center justify-center border border-emerald-400/40 hover:bg-emerald-600/50 transition-colors"
-            title="장소 및 일정 변경"
+            onClick={() => setStep('GEAR_SETUP')}
+            className="p-1.5 rounded-full bg-emerald-700/60 flex items-center justify-center border border-emerald-400/40 hover:bg-emerald-600 transition-colors"
+            title="2D 배치 수정 화면으로 돌아가기"
           >
-            <Tent className="w-4 h-4 text-emerald-300" />
+            <ChevronLeft className="w-4 h-4 text-emerald-200" />
           </button>
           <div>
-            <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white flex items-center gap-1.5 leading-tight">
+            <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white flex items-center gap-1 leading-tight">
               <span>
                 {site.locationType === 'campground'
                   ? `🏕️ ${site.campgroundName || '라온아이'} · ${site.siteName || site.name}`
                   : `📍 ${site.address || site.name}`} ({site.widthM}m × {site.depthM}m)
               </span>
             </h1>
-            <p className="text-[10.5px] text-emerald-200/80 font-mono">
+            <p className="text-[10.5px] text-emerald-200/90 font-mono">
               {gearsSummaryText}
             </p>
           </div>
         </div>
 
-        {/* 헤더 우측: 2D 배치 수정 버튼, 캡처, 탭 */}
+        {/* 헤더 우측: 배치 수정, 캡처 저장, 탭 전환 */}
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setStep('GEAR_SETUP')}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#254F37] hover:bg-[#2E6345] text-stone-200 border border-emerald-500/30 shadow-sm active:scale-95 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-[#254F37] hover:bg-[#2E6345] text-stone-200 border border-emerald-500/30 shadow-sm active:scale-95 transition-all"
             title="텐트 및 타프 배치 수정"
           >
             <Layers className="w-3.5 h-3.5 text-emerald-300" />
@@ -360,7 +358,7 @@ export default function PitchingSimulatorView({
               weatherParams={weatherLighting}
             />
 
-            {/* 좌상단: 깔끔한 1줄 천문 태양 고도 & 일출/일몰 배지 */}
+            {/* 좌상단: 1줄 천문 태양 고도 & 일출/일몰 배지 */}
             <div className="absolute top-3 left-3 bg-[#13271C]/90 backdrop-blur-md px-3 py-2 rounded-2xl border border-emerald-500/35 shadow-xl text-xs space-y-1 z-10 max-w-[280px]">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-white flex items-center gap-1.5 text-sm">
@@ -385,7 +383,7 @@ export default function PitchingSimulatorView({
               </div>
             </div>
 
-            {/* 우상단: [상세 환경/날씨 설정] 접이식 열기 버튼 */}
+            {/* 우상단: [날씨/모먼트] 접이식 열기 버튼 */}
             <div className="absolute top-3 right-3 z-10">
               <button
                 type="button"
@@ -398,7 +396,7 @@ export default function PitchingSimulatorView({
               </button>
             </div>
 
-            {/* 우상단 드롭다운 패널: 12대 날씨 & 숏컷 (화면을 가리지 않도록 접이식 수납) */}
+            {/* 우상단 접이식 수납 패널: 12대 날씨 & 숏컷 */}
             {isDetailPanelOpen && (
               <div className="absolute top-12 right-3 bg-[#13271C]/96 backdrop-blur-md p-3 rounded-2xl border border-emerald-500/40 shadow-2xl z-20 space-y-2.5 max-w-[300px] animate-in fade-in duration-150">
                 {/* 12대 날씨 선택기 */}
@@ -476,7 +474,7 @@ export default function PitchingSimulatorView({
             )}
 
             {/* 하단 플로팅 컨트롤러: 타임랩스 재생 바 & 일정/계절 */}
-            <div className="absolute bottom-4 left-3 right-3 bg-[#1C3B29]/95 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/40 shadow-2xl max-w-lg mx-auto space-y-2.5 z-10">
+            <div className="absolute bottom-4 left-3 right-3 bg-[#1C3B29]/95 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/40 shadow-2xl max-w-lg mx-auto space-y-2.5 z-10 pb-safe">
               {/* 일정 및 계절 선택 바 */}
               <div className="flex flex-wrap items-center justify-between gap-1 pb-2 border-b border-emerald-600/30">
                 <div className="flex items-center gap-1.5 text-xs text-stone-200">
@@ -643,7 +641,10 @@ export default function PitchingSimulatorView({
       {/* 진입 2-Track 모달 */}
       <PitchingEntryModal
         isOpen={isEntryModalOpen}
-        onClose={() => setIsEntryModalOpen(false)}
+        onClose={() => {
+          setIsEntryModalOpen(false);
+          setStep('MAP_SITE');
+        }}
         onSelect={handleEntrySelect}
       />
     </div>
