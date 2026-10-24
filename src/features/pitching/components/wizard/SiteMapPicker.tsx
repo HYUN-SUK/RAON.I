@@ -101,8 +101,13 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
     libraries: ['services', 'clusterer'],
   });
 
-  // 지도 인스턴스 참조
+  // 지도 인스턴스 및 컨테이너 참조
   const mapRef = useRef<any>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // 드래그 조작 중/직후 지도 클릭 오발동 방지 ref
+  const isInteractingRef = useRef<boolean>(false);
+  const lastInteractionTimeRef = useRef<number>(0);
 
   // 지도 타입 (기본: SKYVIEW 위성지도)
   const [mapType, setMapType] = useState<'SKYVIEW' | 'ROADMAP'>('SKYVIEW');
@@ -221,12 +226,13 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
     return { sitePolygonPath: path, forwardOuterPosition: forwardOuterPos };
   }, [pinLat, pinLng, bearingDeg, cornerOffsets, depthM]);
 
-  // 1. 손가락 드래그 이동 시작
+  // 1. 손가락 드래그 이동 시작 (사각틀 터치)
   const handlePointerDownMove = (e: React.PointerEvent) => {
     e.stopPropagation();
     if (!mapRef.current) return;
 
-    // 지도 자체 패닝 잠금
+    // 인터랙션 진행 중 플래그 활성화 (지도 클릭 오발동 방지)
+    isInteractingRef.current = true;
     mapRef.current.setDraggable(false);
 
     dragInteractionRef.current = {
@@ -240,14 +246,17 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
       startBearing: bearingDeg,
     };
 
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
-  // 2. 손가락 터치 회전 시작 (진입로 배지 옆 회전 핸들)
+  // 2. 손가락 터치 회전 시작 (외곽 미니 ↺ 핸들)
   const handlePointerDownRotate = (e: React.PointerEvent) => {
     e.stopPropagation();
     if (!mapRef.current) return;
 
+    isInteractingRef.current = true;
     mapRef.current.setDraggable(false);
 
     dragInteractionRef.current = {
@@ -261,14 +270,17 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
       startBearing: bearingDeg,
     };
 
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
-  // 3. 다각형 모서리 핀 드래그 시작
+  // 3. 다각형 모서리 핀 드래그 시작 (모서리 번호 핀 터치)
   const handlePointerDownCorner = (e: React.PointerEvent, cornerIdx: number) => {
     e.stopPropagation();
     if (!mapRef.current) return;
 
+    isInteractingRef.current = true;
     mapRef.current.setDraggable(false);
 
     dragInteractionRef.current = {
@@ -282,7 +294,9 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
       startBearing: bearingDeg,
     };
 
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   // 드래그/회전 이동 처리 (Window Pointer Move)
@@ -294,18 +308,25 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
     const proj = mapRef.current.getProjection();
     if (!proj) return;
 
+    // 🎯 지도 컨테이너의 뷰포트 오프셋 계산 (화면 헤더 높이에 따른 좌표계 오차 100% 제거!)
+    const containerRect = mapContainerRef.current?.getBoundingClientRect();
+    const containerLeft = containerRect ? containerRect.left : 0;
+    const containerTop = containerRect ? containerRect.top : 0;
+    const currentContainerX = e.clientX - containerLeft;
+    const currentContainerY = e.clientY - containerTop;
+
     // 1) 사각틀 전체 이동
     if (isDraggingMove) {
-      const centerPoint = proj.containerPointFromCoords(
+      const startCenterPoint = proj.containerPointFromCoords(
         new window.kakao.maps.LatLng(dragInteractionRef.current.startLat, dragInteractionRef.current.startLng)
       );
       const dx = e.clientX - dragInteractionRef.current.startClientX;
       const dy = e.clientY - dragInteractionRef.current.startClientY;
 
-      centerPoint.x += dx;
-      centerPoint.y += dy;
+      startCenterPoint.x += dx;
+      startCenterPoint.y += dy;
 
-      const nextLatLng = proj.coordsFromContainerPoint(centerPoint);
+      const nextLatLng = proj.coordsFromContainerPoint(startCenterPoint);
       setPinLat(nextLatLng.getLat());
       setPinLng(nextLatLng.getLng());
     }
@@ -313,8 +334,8 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
     // 2) 회전 핸들 회전
     else if (isRotating) {
       const centerPoint = proj.containerPointFromCoords(new window.kakao.maps.LatLng(pinLat, pinLng));
-      const deltaX = e.clientX - centerPoint.x;
-      const deltaY = e.clientY - centerPoint.y;
+      const deltaX = currentContainerX - centerPoint.x;
+      const deltaY = currentContainerY - centerPoint.y;
 
       // 상단(북쪽) 기준 시계방향 각도 계산
       const angleRad = Math.atan2(deltaX, -deltaY);
@@ -324,10 +345,10 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
       setBearingDeg(Math.round(nextDeg));
     }
 
-    // 3) 비정형 다각형 모서리 핀 이동
+    // 3) 비정형 다각형 모서리 핀 이동 (컨테이너 오프셋 정밀 보정 & 안전 클램프)
     else if (draggingCornerIdx !== null) {
       const currentPoint = proj.coordsFromContainerPoint(
-        new window.kakao.maps.Point(e.clientX, e.clientY)
+        new window.kakao.maps.Point(currentContainerX, currentContainerY)
       );
       const metersPerLat = 111320;
       const radLat = (pinLat * Math.PI) / 180;
@@ -348,9 +369,13 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
       const u = dEast * rightEast + dNorth * rightNorth;
       const v = dEast * forwardEast + dNorth * forwardNorth;
 
+      // 🛡️ 안전 한계선: 중심에서 +-25m 이내로 제한 (순간적 찢어짐 원천 차단)
+      const clampedU = Math.max(-25, Math.min(25, u));
+      const clampedV = Math.max(-25, Math.min(25, v));
+
       setCornerOffsets((prev) => {
         const next = [...prev] as [number, number][];
-        next[draggingCornerIdx] = [Math.round(u * 10) / 10, Math.round(v * 10) / 10];
+        next[draggingCornerIdx] = [Math.round(clampedU * 10) / 10, Math.round(clampedV * 10) / 10];
         
         // 바운딩 박스 계산하여 widthM, depthM 동기화
         const allU = next.map((c) => c[0]);
@@ -369,6 +394,10 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
 
   // 포인터 해제 및 지도 드래그 복원
   const handlePointerUp = (e: React.PointerEvent) => {
+    // 인터랙션 종료 시점 기록 (이후 350ms 동안 지도 클릭 점프 차단)
+    isInteractingRef.current = false;
+    lastInteractionTimeRef.current = Date.now();
+
     if (
       dragInteractionRef.current.isDraggingMove ||
       dragInteractionRef.current.isRotating ||
@@ -394,8 +423,12 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
     }
   };
 
-  // 지도 빈 곳 클릭 시 중심 앵커 이동
+  // 지도 빈 곳 클릭 시 중심 앵커 이동 (드래그 직후 오발동 차단)
   const handleMapClick = (_target: any, mouseEvent: any) => {
+    // 드래그 조작 중이거나 손가락을 뗀 직후(350ms)에는 지도 클릭 무시
+    if (isInteractingRef.current || Date.now() - lastInteractionTimeRef.current < 350) {
+      return;
+    }
     if (!mouseEvent || !mouseEvent.latLng) return;
     const lat = mouseEvent.latLng.getLat();
     const lng = mouseEvent.latLng.getLng();
@@ -520,7 +553,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
               setShapeMode(nextMode);
               toast.info(nextMode === 'POLYGON' ? '비정형 다각형 핀 모드 활성화' : '직사각형 모드 전환');
             }}
-            className={`flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               shapeMode === 'POLYGON'
                 ? 'bg-amber-600 border-amber-400 text-white shadow-sm'
                 : 'bg-[#12271B] border-emerald-700/50 text-stone-200 hover:text-white'
@@ -558,8 +591,9 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
         </div>
       </header>
 
-      {/* 2. 메인 지도 뷰포트 (1:1 실측 연동 Polygon + 바깥쪽 진입로 + 드래그/회전 핸들) */}
+      {/* 2. 메인 지도 뷰포트 (1:1 실측 연동 Polygon + 투명 네모칸 + 외곽 미니 회전 핸들) */}
       <div
+        ref={mapContainerRef}
         className="relative flex-1 w-full bg-[#0E1A11] overflow-hidden"
         style={{ touchAction: 'pan-x pan-y' }}
       >
@@ -595,68 +629,61 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
               setIsMapReady(true);
             }}
           >
-            {/* 🎯 [지도의 실제 축척과 100% 1:1 실측 연동 사각틀] */}
+            {/* 🎯 [지도의 실제 축척과 100% 1:1 실측 연동 사각틀 - 지형 투시 극대화] */}
             {isMapReady && (
               <Polygon
                 path={sitePolygonPath}
-                strokeWeight={3}
+                strokeWeight={2.5}
                 strokeColor="#F59E0B"
                 strokeOpacity={0.95}
                 strokeStyle="solid"
                 fillColor="#F59E0B"
-                fillOpacity={0.24}
+                fillOpacity={0.16}
               />
             )}
 
-            {/* 1) 사각틀 내부 중앙: 오직 크기 라벨과 드래그 이동 핸들만 배치 (내부 지형 시야 100% 확보!) */}
+            {/* 1) 사각틀 내부 중앙: 라벨/배지 완전 삭제! 지형 100% 노출 + 사각틀 드래그 이동 앵커 */}
             {isMapReady && typeof window !== 'undefined' && window.kakao?.maps && (
               <CustomOverlayMap position={{ lat: pinLat, lng: pinLng }} yAnchor={0.5} xAnchor={0.5}>
                 <div
                   onPointerDown={handlePointerDownMove}
-                  className="flex flex-col items-center justify-center cursor-move touch-none select-none active:scale-105 transition-transform"
+                  className="w-16 h-16 -m-8 flex items-center justify-center cursor-move touch-none select-none active:scale-110 transition-transform"
+                  title="사각틀을 손가락으로 드래그하여 이동"
                 >
-                  <div className="bg-black/85 backdrop-blur-md text-amber-200 border border-amber-400/90 px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold shadow-2xl font-mono flex items-center gap-1.5 ring-2 ring-black/40">
-                    <Move className="w-3 h-3 text-amber-400 animate-pulse" />
-                    <span>{widthM}m × {depthM}m</span>
-                  </div>
-                  <div className="w-2 h-2 rounded-full bg-amber-400 border border-white shadow mt-0.5" />
+                  {/* 지형을 가리지 않는 아주 작고 은은한 중앙 앵커 점 */}
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400/90 border border-white shadow-md ring-2 ring-black/40" />
                 </div>
               </CustomOverlayMap>
             )}
 
-            {/* 2) 사각형 바깥쪽(전면 외곽): 진입로 방향 지시 배지 + 터치 회전 핸들 (대표님 요청!) */}
+            {/* 2) 사각형 전면 외곽: 진입로 배지 완전 삭제! 오직 미니 회전 핸들(↺)만 외곽에 배치 */}
             {isMapReady && typeof window !== 'undefined' && window.kakao?.maps && (
               <CustomOverlayMap position={forwardOuterPosition} yAnchor={0.5} xAnchor={0.5}>
-                <div className="flex items-center gap-1 select-none pointer-events-auto">
-                  {/* 진입로 전면 지시 배지 */}
-                  <div className="flex items-center gap-1 bg-amber-500 text-black px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-2xl border border-white">
-                    <ArrowUp className="w-3 h-3 stroke-[3]" />
-                    <span>진입로</span>
-                  </div>
-
-                  {/* 손가락 터치 회전 핸들 (돌리기) */}
+                <div className="select-none pointer-events-auto">
                   <button
                     type="button"
                     onPointerDown={handlePointerDownRotate}
-                    className="w-6 h-6 rounded-full bg-[#12271B] border-2 border-amber-400 text-amber-300 flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing hover:scale-110 active:scale-95 touch-none"
+                    className="w-8 h-8 rounded-full bg-[#12271B]/95 border-2 border-amber-400 text-amber-300 flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing hover:scale-110 active:scale-95 touch-none"
                     title="손가락으로 돌려 방향 맞추기"
                   >
-                    <RotateCw className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <RotateCw className="w-4 h-4 stroke-[2.5]" />
                   </button>
                 </div>
               </CustomOverlayMap>
             )}
 
-            {/* 3) 다각형 모드일 때: 4개 모서리 조절 핀 핸들 (🔴) */}
+            {/* 3) 다각형 모드일 때: 4개 모서리 조절 핀 핸들 (터치 영역 44px 확대 & 클릭 간섭 방지) */}
             {isMapReady && shapeMode === 'POLYGON' && typeof window !== 'undefined' && window.kakao?.maps && (
               sitePolygonPath.map((cornerPoint, idx) => (
                 <CustomOverlayMap key={idx} position={cornerPoint} yAnchor={0.5} xAnchor={0.5}>
                   <div
                     onPointerDown={(e) => handlePointerDownCorner(e, idx)}
-                    className="w-5 h-5 rounded-full bg-amber-500 border-2 border-white shadow-2xl flex items-center justify-center text-[9px] font-black text-black cursor-grab active:cursor-grabbing hover:scale-125 touch-none"
+                    className="w-11 h-11 -m-5.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none"
                     title={`모서리 #${idx + 1} 드래그 조절`}
                   >
-                    {idx + 1}
+                    <div className="w-5 h-5 rounded-full bg-amber-500 border-2 border-white shadow-2xl flex items-center justify-center text-[10px] font-black text-black hover:scale-125 transition-transform">
+                      {idx + 1}
+                    </div>
                   </div>
                 </CustomOverlayMap>
               ))
@@ -669,8 +696,8 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
           <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
           <span>
             {shapeMode === 'POLYGON'
-              ? '모서리 번호(1~4)를 드래그하여 다각형을 맞추세요'
-              : '중앙 라벨을 손가락으로 드래그해 옮기고 ↺를 돌리세요'}
+              ? '1~4번 모서리 핀을 드래그해 사이트 형태를 맞추세요'
+              : '사각틀을 드래그해 옮기고 상단 ↺를 돌리세요'}
           </span>
         </div>
       </div>
