@@ -235,7 +235,7 @@ export default function PitchingSimulatorView({
   // Step 0: 첫 진입 2-Track 모달 렌더링
   if (step === 'ENTRY') {
     return (
-      <div className="relative h-[100dvh] w-full bg-[#121E15] flex items-center justify-center">
+      <div className="relative h-full w-full bg-[#121E15] flex items-center justify-center">
         <PitchingEntryModal
           isOpen={isEntryModalOpen}
           onClose={() => {
@@ -281,7 +281,7 @@ export default function PitchingSimulatorView({
 
   // Step 3: 3D 감성 시뮬레이션 렌더링
   return (
-    <div className="flex flex-col h-[100dvh] w-full bg-[#121E15] text-stone-100 overflow-hidden select-none">
+    <div className="flex flex-col h-full w-full bg-[#121E15] text-stone-100 overflow-hidden select-none">
       {/* 1. 상단 규격화 헤더 (캠핑장/노지 주소 + 사이트 크기 + 장비 요약) */}
       <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-[#1C3B29] border-b border-[#2A553C] shrink-0 z-30 shadow-md">
         <div className="flex items-center space-x-2">

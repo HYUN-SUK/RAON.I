@@ -30,7 +30,7 @@ export default async function PitchingPreviewPage() {
   }
 
   return (
-    <div className="-m-4 md:-m-8 h-[calc(100vh-57px)] md:h-screen w-auto overflow-hidden">
+    <div className="-m-4 md:-m-8 h-[calc(100dvh-57px)] md:h-[calc(100vh-57px)] w-auto overflow-hidden">
       <PitchingSimulatorContainer />
     </div>
   );

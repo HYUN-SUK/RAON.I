@@ -329,7 +329,7 @@ export default function SitePlacementEditor({
 
   return (
     <div
-      className="flex flex-col h-[100dvh] w-full bg-[#121E15] text-stone-100 overflow-hidden select-none"
+      className="flex flex-col h-full w-full bg-[#121E15] text-stone-100 overflow-hidden select-none"
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
