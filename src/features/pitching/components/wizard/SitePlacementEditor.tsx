@@ -18,6 +18,7 @@ import {
   Info,
   X,
   Compass,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { SiteGeometry, PlacedGearItem, PlacedGearType, SiteObstacle } from '../../types';
@@ -90,6 +91,87 @@ const PRESET_GEARS: GearPreset[] = [
   },
 ];
 
+// 🎯 텐트/타프 사이트 경계 이탈 및 장애물(나무 밑동 30cm, 배전반 50cm) 충돌 정밀 평가 함수
+export interface GearPlacementStatus {
+  isOutOfBounds: boolean;
+  isCollidingObstacle: boolean;
+  collidingObstacleType?: SiteObstacle['type'];
+  isInvalid: boolean;
+}
+
+export function evaluateGearPlacement(
+  gear: PlacedGearItem,
+  siteWidthM: number,
+  siteDepthM: number,
+  obstacles: SiteObstacle[] = []
+): GearPlacementStatus {
+  const hw = gear.widthM / 2;
+  const hl = gear.lengthM / 2;
+  const rad = (gear.rotationDeg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  // 1. 사이트 외곽 4개 모서리 이탈 검사 (0.05m 안전 마진)
+  const corners: [number, number][] = [
+    [-hw, -hl],
+    [hw, -hl],
+    [hw, hl],
+    [-hw, hl],
+  ];
+
+  let isOutOfBounds = false;
+  const halfSiteW = siteWidthM / 2 + 0.05;
+  const halfSiteD = siteDepthM / 2 + 0.05;
+
+  for (const [u, v] of corners) {
+    const px = gear.x + u * cos - v * sin;
+    const pz = gear.z + u * sin + v * cos;
+    if (Math.abs(px) > halfSiteW || Math.abs(pz) > halfSiteD) {
+      isOutOfBounds = true;
+      break;
+    }
+  }
+
+  // 2. 장애물 충돌 검사 (대표님 지침: 나무 밑동 줄기 폭 30cm, 배전반 폭 50cm, 차량)
+  let isCollidingObstacle = false;
+  let collidingObstacleType: SiteObstacle['type'] | undefined;
+
+  for (const obs of obstacles) {
+    // 데크는 피칭 영역이므로 장애물 충돌 판정에서 제외
+    if (obs.type === 'deck') continue;
+
+    const dx = obs.x - gear.x;
+    const dz = obs.y - gear.z;
+    const localU = dx * cos + dz * sin;
+    const localV = -dx * sin + dz * cos;
+
+    const clampedU = Math.max(-hw, Math.min(hw, localU));
+    const clampedV = Math.max(-hl, Math.min(hl, localV));
+
+    const distSq = (localU - clampedU) ** 2 + (localV - clampedV) ** 2;
+
+    // 🎯 대표님 지정 현실적 충돌 반경:
+    // - 나무 줄기 밑동: 폭 30cm -> 반경 0.18m (기둥에만 안 닿으면 잎/수관 그늘 밑 피칭 100% 허용)
+    // - 배전반: 폭 50cm -> 반경 0.28m
+    // - 차량: 반경 1.2m
+    const collisionRadius =
+      obs.type === 'tree' ? 0.18 : obs.type === 'post' ? 0.28 : 1.2;
+
+    if (distSq < collisionRadius ** 2) {
+      isCollidingObstacle = true;
+      collidingObstacleType = obs.type;
+      break;
+    }
+  }
+
+  return {
+    isOutOfBounds,
+    isCollidingObstacle,
+    collidingObstacleType,
+    isInvalid: isOutOfBounds || isCollidingObstacle,
+  };
+}
+
 export default function SitePlacementEditor({
   site,
   onUpdateSite,
@@ -123,6 +205,13 @@ export default function SitePlacementEditor({
     startPointerY: number;
     startX: number;
     startZ: number;
+  } | null>(null);
+
+  // 🎯 손가락 터치 드래그 회전 처리를 위한 ref
+  const rotatingGearRef = useRef<{
+    gearId: string;
+    centerClientX: number;
+    centerClientY: number;
   } | null>(null);
 
   // 화면 스케일: 1미터당 24픽셀
@@ -166,7 +255,7 @@ export default function SitePlacementEditor({
       color: selectedPreset.color,
       x: Math.max(-widthM / 2 + 1, Math.min(widthM / 2 - 1, offsetX)),
       z: Math.max(-depthM / 2 + 1, Math.min(depthM / 2 - 1, offsetZ)),
-      rotationDeg: site.bearingDeg || 135,
+      rotationDeg: 0, // 🎯 0° 정자세 스폰으로 초기 글자 뒤집힘 100% 방지!
     };
 
     const nextGears = [...placedGears, newGear];
@@ -176,7 +265,7 @@ export default function SitePlacementEditor({
     setIsAddGearModalOpen(false);
 
     toast.success(`${newGear.name} (${customLengthM}×${customWidthM}m) 배치 완료!`, {
-      description: '장비를 손가락으로 드래그하여 원하는 위치로 이동하세요.',
+      description: '장비를 손가락으로 드래그하고 상단 ↺를 돌려 배치하세요.',
     });
   };
 
@@ -199,7 +288,7 @@ export default function SitePlacementEditor({
     });
     setSelectedObstacleIdx(currentObs.length);
     setSelectedGearId(null);
-    toast.info(`${type === 'tree' ? '나무' : type === 'post' ? '배전반' : '차량'}가 사이트에 추가되었습니다.`);
+    toast.info(`${type === 'tree' ? '나무 (줄기 30cm)' : type === 'post' ? '배전반 (50cm)' : '차량'}가 사이트에 추가되었습니다.`);
   };
 
   // 4. 선택된 장비 삭제 핸들러
@@ -222,7 +311,7 @@ export default function SitePlacementEditor({
     }
   };
 
-  // 6. 선택된 장비 회전 핸들러
+  // 6. 선택된 장비 회전 핸들러 (+-15도)
   const handleRotateSelectedGear = (deltaDeg: number) => {
     if (!selectedGearId) return;
     onUpdateGears(
@@ -253,7 +342,37 @@ export default function SitePlacementEditor({
       startZ: gear.z,
     };
 
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  // 🎯 7-1. 손가락 터치 회전 시작 (텐트 상단 ↺ 핸들)
+  const handlePointerDownRotateGear = (e: React.PointerEvent, gear: PlacedGearItem) => {
+    e.stopPropagation();
+    setSelectedGearId(gear.id);
+    setSelectedObstacleIdx(null);
+
+    // 텐트 중심점 화면 좌표 계산
+    const gearEl = (e.currentTarget as HTMLElement).closest('[data-gear-id]');
+    if (gearEl) {
+      const rect = gearEl.getBoundingClientRect();
+      rotatingGearRef.current = {
+        gearId: gear.id,
+        centerClientX: rect.left + rect.width / 2,
+        centerClientY: rect.top + rect.height / 2,
+      };
+    } else {
+      rotatingGearRef.current = {
+        gearId: gear.id,
+        centerClientX: e.clientX,
+        centerClientY: e.clientY + 50,
+      };
+    }
+
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerDownObstacle = (e: React.PointerEvent, idx: number, obs: SiteObstacle) => {
@@ -270,30 +389,48 @@ export default function SitePlacementEditor({
       startZ: obs.y,
     };
 
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    // 1) 손가락 회전 조작 중인 경우
+    if (rotatingGearRef.current) {
+      const { gearId, centerClientX, centerClientY } = rotatingGearRef.current;
+      const deltaX = e.clientX - centerClientX;
+      const deltaY = e.clientY - centerClientY;
+      const angleRad = Math.atan2(deltaX, -deltaY);
+      let deg = Math.round((angleRad * 180) / Math.PI);
+      if (deg < 0) deg += 360;
+
+      onUpdateGears(
+        placedGears.map((g) => (g.id === gearId ? { ...g, rotationDeg: deg } : g))
+      );
+      return;
+    }
+
+    // 2) 위치 드래그 이동 조작 중인 경우
     if (!draggingItemRef.current) return;
 
     const deltaX = (e.clientX - draggingItemRef.current.startPointerX) / PIXELS_PER_METER;
     const deltaZ = (e.clientY - draggingItemRef.current.startPointerY) / PIXELS_PER_METER;
 
-    const maxLimitX = widthM / 2 - 0.5;
-    const maxLimitZ = depthM / 2 - 0.5;
+    const dragLimitX = widthM / 2 + 3;
+    const dragLimitZ = depthM / 2 + 3;
 
     if (draggingItemRef.current.type === 'gear') {
       const gearId = draggingItemRef.current.idOrIdx as string;
-      const newX = Math.max(-maxLimitX, Math.min(maxLimitX, draggingItemRef.current.startX + deltaX));
-      const newZ = Math.max(-maxLimitZ, Math.min(maxLimitZ, draggingItemRef.current.startZ + deltaZ));
+      const newX = Math.max(-dragLimitX, Math.min(dragLimitX, draggingItemRef.current.startX + deltaX));
+      const newZ = Math.max(-dragLimitZ, Math.min(dragLimitZ, draggingItemRef.current.startZ + deltaZ));
 
       onUpdateGears(
         placedGears.map((g) => (g.id === gearId ? { ...g, x: newX, z: newZ } : g))
       );
     } else if (draggingItemRef.current.type === 'obstacle') {
       const obsIdx = draggingItemRef.current.idOrIdx as number;
-      const newX = Math.max(-maxLimitX, Math.min(maxLimitX, draggingItemRef.current.startX + deltaX));
-      const newY = Math.max(-maxLimitZ, Math.min(maxLimitZ, draggingItemRef.current.startZ + deltaZ));
+      const newX = Math.max(-widthM / 2, Math.min(widthM / 2, draggingItemRef.current.startX + deltaX));
+      const newY = Math.max(-depthM / 2, Math.min(depthM / 2, draggingItemRef.current.startZ + deltaZ));
 
       if (site.obstacles) {
         const nextObs = [...site.obstacles];
@@ -304,17 +441,22 @@ export default function SitePlacementEditor({
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    if (rotatingGearRef.current) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {}
+      rotatingGearRef.current = null;
+    }
+
     if (draggingItemRef.current) {
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch (err) {
-        // 이미 해제된 경우 무시
-      }
+      } catch {}
       draggingItemRef.current = null;
     }
   };
 
-  // 8. 시뮬레이션 가동 전 검증
+  // 8. 시뮬레이션 가동 전 검증 (사이트 이탈 & 장애물 충돌 완벽 차단)
   const handleProceedToSimulation = () => {
     if (placedGears.length === 0) {
       toast.error('최소 1개 이상의 텐트나 타프를 추가해야 시뮬레이션을 가동할 수 있습니다.', {
@@ -322,16 +464,38 @@ export default function SitePlacementEditor({
       });
       return;
     }
+
+    // 🎯 텐트/타프 사이트 이탈 또는 장애물 충돌 검사
+    const invalidGear = placedGears.find((g) => {
+      const status = evaluateGearPlacement(g, widthM, depthM, site.obstacles);
+      return status.isInvalid;
+    });
+
+    if (invalidGear) {
+      const status = evaluateGearPlacement(invalidGear, widthM, depthM, site.obstacles);
+      const reason = status.isOutOfBounds
+        ? `'${invalidGear.name}'이(가) 사이트 경계선 밖으로 벗어났습니다.`
+        : `'${invalidGear.name}'이(가) ${status.collidingObstacleType === 'tree' ? '나무 줄기 밑동' : status.collidingObstacleType === 'post' ? '배전반' : '차량'}과 겹쳐 있습니다.`;
+
+      toast.error('배치 오류: 사이트 내 안전 위치로 이동해주세요!', {
+        description: `${reason} 붉은색 표시를 피해 위치를 조정한 후 진행해주세요.`,
+      });
+      setSelectedGearId(invalidGear.id);
+      return;
+    }
+
     onStartSimulation();
   };
 
   const activeGear = placedGears.find((g) => g.id === selectedGearId);
+  const selectedObstacle = selectedObstacleIdx !== null && site.obstacles ? site.obstacles[selectedObstacleIdx] : null;
 
   return (
     <div
       className="flex flex-col h-full w-full bg-[#121E15] text-stone-100 overflow-hidden select-none"
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       {/* 1. 상단 미니 헤더 */}
       <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-[#1C3B29] border-b border-[#2A553C] shrink-0 z-30 shadow-md">
@@ -404,6 +568,117 @@ export default function SitePlacementEditor({
         </div>
       </div>
 
+      {/* 2-1. 선택된 오브젝트 액션 바 (사이트 캔버스 외부에 완벽 분리하여 어떤 위치의 장애물/텐트도 가리지 않음) */}
+      {(selectedGearId || selectedObstacleIdx !== null) && (
+        <div className="bg-[#1C3B29] px-3.5 py-2 border-b border-emerald-500/40 flex items-center justify-between shrink-0 z-20 animate-in slide-in-from-top-2 duration-150 shadow-md">
+          {selectedGearId && activeGear && (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeGear.color }} />
+                <span className="text-xs font-bold text-white truncate max-w-[130px] sm:max-w-xs">
+                  {activeGear.name}
+                </span>
+                <span className="text-[10px] text-amber-300 font-mono bg-black/40 px-1.5 py-0.5 rounded">
+                  {Math.round(activeGear.rotationDeg)}°
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRotateSelectedGear(-15);
+                  }}
+                  className="px-2 py-1 text-xs font-bold rounded-lg bg-[#12271B] hover:bg-[#183323] text-stone-200 hover:text-white flex items-center gap-0.5 active:scale-95 border border-emerald-700/40"
+                  title="반시계 15도 회전"
+                >
+                  <RotateCcw className="w-3 h-3 text-emerald-300" />
+                  <span>-15°</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRotateSelectedGear(15);
+                  }}
+                  className="px-2 py-1 text-xs font-bold rounded-lg bg-[#12271B] hover:bg-[#183323] text-stone-200 hover:text-white flex items-center gap-0.5 active:scale-95 border border-emerald-700/40"
+                  title="시계 15도 회전"
+                >
+                  <span>+15°</span>
+                  <RotateCw className="w-3 h-3 text-emerald-300" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteSelectedGear();
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-500 text-white shadow active:scale-95 transition-all ml-1"
+                  title="이 장비 삭제"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>삭제</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedGearId(null);
+                  }}
+                  className="p-1 rounded-lg text-emerald-300/80 hover:text-white hover:bg-emerald-800/40 ml-0.5"
+                  title="선택 해제"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedObstacleIdx !== null && selectedObstacle && (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#12271B] border border-emerald-500/40 shrink-0">
+                  {selectedObstacle.type === 'tree' && <TreePine className="w-3.5 h-3.5 text-emerald-300" />}
+                  {selectedObstacle.type === 'post' && <Zap className="w-3.5 h-3.5 text-amber-300" />}
+                  {selectedObstacle.type === 'car' && <Car className="w-3.5 h-3.5 text-stone-300" />}
+                </span>
+                <span className="text-xs font-bold text-white truncate">
+                  {selectedObstacle.type === 'tree' ? '나무 (줄기 밑동 30cm)' : selectedObstacle.type === 'post' ? '배전반 (50cm)' : '차량 주차구역'}
+                </span>
+                <span className="text-[10px] text-emerald-200/70 hidden sm:inline">
+                  (드래그하여 위치 이동)
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteSelectedObstacle();
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-500 text-white shadow active:scale-95 transition-all"
+                  title="장애물 삭제"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>장애물 삭제</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedObstacleIdx(null);
+                  }}
+                  className="p-1 rounded-lg text-emerald-300/80 hover:text-white hover:bg-emerald-800/40 ml-0.5"
+                  title="선택 해제"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 3. 메인 2D 위성/그리드 배치 작업대 */}
       <div
         className="relative flex-1 w-full bg-[#0E1A11] overflow-hidden flex items-center justify-center p-4 cursor-default"
@@ -460,15 +735,26 @@ export default function SitePlacementEditor({
             const itemL = gear.lengthM * PIXELS_PER_METER;
             const isTarp = gear.type.includes('tarp');
 
+            // 🎯 실측 충돌 및 사이트 이탈 평가
+            const status = evaluateGearPlacement(gear, widthM, depthM, site.obstacles);
+
+            // 🎯 글자 반전 방지 (Auto-Upright):
+            // 90° ~ 270° 회전 시 글자를 180° 반전시켜 항상 정방향으로 읽히도록 보정
+            const normDeg = ((gear.rotationDeg % 360) + 360) % 360;
+            const isUpsideDown = normDeg > 90 && normDeg < 270;
+
             return (
               <div
                 key={gear.id}
+                data-gear-id={gear.id}
                 onPointerDown={(e) => handlePointerDownGear(e, gear)}
-                className={`absolute cursor-grab active:cursor-grabbing select-none transition-shadow touch-none ${
+                className={`absolute cursor-grab active:cursor-grabbing select-none transition-[box-shadow,border-color] touch-none ${
                   isTarp ? 'rounded-lg' : 'rounded-2xl'
                 } border-2 ${
-                  isSelected
-                    ? 'border-amber-400 ring-4 ring-amber-400/40 shadow-2xl z-20'
+                  status.isInvalid
+                    ? 'border-red-500 ring-4 ring-red-500/80 shadow-2xl z-30 animate-pulse'
+                    : isSelected
+                    ? 'border-amber-400 ring-4 ring-amber-400/50 shadow-2xl z-20'
                     : 'border-white/70 shadow-md z-10'
                 }`}
                 style={{
@@ -477,21 +763,72 @@ export default function SitePlacementEditor({
                   left: `calc(50% + ${gear.x * PIXELS_PER_METER}px - ${itemW / 2}px)`,
                   top: `calc(50% + ${gear.z * PIXELS_PER_METER}px - ${itemL / 2}px)`,
                   transform: `rotate(${gear.rotationDeg}deg)`,
-                  backgroundColor: gear.color,
+                  backgroundColor: status.isInvalid ? '#7F1D1D' : gear.color,
                 }}
               >
-                {/* 텐트 내부 라벨 & 방향 지시자 */}
-                <div className="w-full h-full flex flex-col items-center justify-between p-1.5 text-center pointer-events-none">
-                  <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm" />
-                  <div>
-                    <p className="text-[11px] font-extrabold text-white drop-shadow leading-tight truncate max-w-[120px]">
-                      {gear.name}
-                    </p>
-                    <p className="text-[9.5px] text-white/90 font-mono drop-shadow">
-                      {gear.lengthM}m × {gear.widthM}m
-                    </p>
+                {/* 🎯 손가락 터치 드래그 회전 핸들 (선택 시 상단 외곽에 표시) */}
+                {isSelected && (
+                  <div
+                    className="absolute -top-11 left-1/2 -translate-x-1/2 flex flex-col items-center cursor-grab active:cursor-grabbing touch-none z-40"
+                    onPointerDown={(e) => handlePointerDownRotateGear(e, gear)}
+                    onClick={(e) => e.stopPropagation()}
+                    title="손가락으로 드래그하여 회전"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-900 shadow-xl flex items-center justify-center font-bold text-sm border-2 border-white hover:scale-110 active:scale-95 transition-transform">
+                      <RotateCw className="w-4 h-4 text-stone-950" />
+                    </div>
+                    {/* 연결선 */}
+                    <div className="w-0.5 h-3 bg-amber-400/80" />
                   </div>
-                  <span className="text-[9px] font-bold text-amber-200 bg-black/50 px-1 rounded">
+                )}
+
+                {/* ⚠️ 충돌/이탈 시 경고 오버레이 배지 */}
+                {status.isInvalid && (
+                  <div
+                    className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-red-300 pointer-events-none z-40 whitespace-nowrap"
+                    style={{
+                      transform: isUpsideDown ? 'translateX(-50%) rotate(180deg)' : 'translateX(-50%)',
+                    }}
+                  >
+                    <AlertTriangle className="w-3 h-3 text-amber-300 shrink-0" />
+                    <span>
+                      {status.isOutOfBounds
+                        ? '사이트 이탈!'
+                        : status.collidingObstacleType === 'tree'
+                        ? '나무 밑동 충돌!'
+                        : status.collidingObstacleType === 'post'
+                        ? '배전반 충돌!'
+                        : '차량 구역 충돌!'}
+                    </span>
+                  </div>
+                )}
+
+                {/* 텐트 전면 방향 표시 (항상 고유의 전면에 고정) */}
+                <div
+                  className="absolute top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white shadow-sm pointer-events-none"
+                  title="전면(입구)"
+                />
+
+                {/* 텐트 내부 라벨 (Auto-Upright로 항상 사용자 정방향으로 읽힘) */}
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center p-1.5 text-center pointer-events-none transition-transform"
+                  style={{
+                    transform: isUpsideDown ? 'rotate(180deg)' : 'none',
+                  }}
+                >
+                  <p className="text-[11px] font-extrabold text-white drop-shadow leading-tight truncate max-w-[120px]">
+                    {gear.name}
+                  </p>
+                  <p className="text-[9.5px] text-white/90 font-mono drop-shadow">
+                    {gear.lengthM}m × {gear.widthM}m
+                  </p>
+                  <span
+                    className={`text-[9px] font-bold px-1 rounded mt-0.5 ${
+                      status.isInvalid
+                        ? 'text-red-200 bg-red-950/80'
+                        : 'text-amber-200 bg-black/50'
+                    }`}
+                  >
                     {Math.round(gear.rotationDeg)}°
                   </span>
                 </div>
@@ -534,64 +871,6 @@ export default function SitePlacementEditor({
             );
           })}
         </div>
-
-        {/* 선택된 오브젝트 액션 툴바 (회전 및 삭제) */}
-        {(selectedGearId || selectedObstacleIdx !== null) && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#1C3B29]/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-emerald-500/40 shadow-2xl flex items-center gap-2 z-30 animate-in fade-in zoom-in-95 duration-150">
-            {selectedGearId && activeGear && (
-              <>
-                <span className="text-xs font-bold text-white shrink-0 truncate max-w-[110px]">
-                  {activeGear.name}
-                </span>
-                <div className="h-4 w-px bg-emerald-600/50" />
-                <button
-                  type="button"
-                  onClick={() => handleRotateSelectedGear(-15)}
-                  className="px-2 py-1 text-xs font-bold rounded-lg bg-[#12271B] text-stone-200 hover:text-white flex items-center gap-0.5 active:scale-95"
-                  title="반시계 15도 회전"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>-15°</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRotateSelectedGear(15)}
-                  className="px-2 py-1 text-xs font-bold rounded-lg bg-[#12271B] text-stone-200 hover:text-white flex items-center gap-0.5 active:scale-95"
-                  title="시계 15도 회전"
-                >
-                  <span>+15°</span>
-                  <RotateCw className="w-3 h-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteSelectedGear}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-500 text-white shadow active:scale-95 transition-all"
-                  title="이 장비 삭제"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>삭제</span>
-                </button>
-              </>
-            )}
-
-            {selectedObstacleIdx !== null && (
-              <>
-                <span className="text-xs font-bold text-white shrink-0">
-                  장애물 ({site.obstacles?.[selectedObstacleIdx]?.type === 'tree' ? '나무' : site.obstacles?.[selectedObstacleIdx]?.type === 'post' ? '배전반' : '차량'})
-                </span>
-                <button
-                  type="button"
-                  onClick={handleDeleteSelectedObstacle}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-500 text-white shadow active:scale-95 transition-all"
-                  title="장애물 삭제"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>삭제</span>
-                </button>
-              </>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 4. 하단 장비 및 장애물 추가 툴바 (모바일 safe-area 완벽 대응) */}
