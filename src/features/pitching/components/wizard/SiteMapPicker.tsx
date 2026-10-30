@@ -514,29 +514,29 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
 
   return (
     <div
-      className="relative h-[100dvh] w-full bg-[#121E15] flex flex-col overflow-hidden select-none"
+      className="relative h-full w-full bg-[#121E15] flex flex-col overflow-hidden select-none"
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
       {/* 1. 상단 슬림 헤더 */}
-      <header className="flex items-center justify-between px-3 sm:px-4 py-2 bg-[#1C3B29]/95 backdrop-blur-md border-b border-[#2A553C] shrink-0 z-30 shadow-md">
-        <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#1C3B29]/95 backdrop-blur-md border-b border-[#2A553C] shrink-0 z-30 shadow-md">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <button
             type="button"
             onClick={onBack}
-            className="p-1 rounded-full text-emerald-200 hover:text-white hover:bg-emerald-800/40 transition-colors cursor-pointer"
+            className="p-1 rounded-full text-emerald-200 hover:text-white hover:bg-emerald-800/40 transition-colors cursor-pointer shrink-0"
             title="장소 재선택"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 leading-tight">
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 leading-tight truncate">
               <span>Step 1. 실제 사이트 위치 찍기</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-700/80 text-emerald-100 font-semibold border border-emerald-400/30">
-                1:1 실측 위성뷰
+              <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-emerald-700/80 text-emerald-100 font-semibold border border-emerald-400/30 hidden xs:inline-block">
+                1:1 실측
               </span>
             </h1>
-            <p className="text-[11px] text-emerald-200/80 truncate max-w-[190px] sm:max-w-md">
+            <p className="text-[10.5px] sm:text-[11px] text-emerald-200/80 truncate max-w-[150px] sm:max-w-md">
               {site.locationType === 'campground'
                 ? `🏕️ ${site.campgroundName || '라온아이'} · ${site.siteName || site.name}`
                 : `📍 ${site.address || site.name}`}
@@ -544,33 +544,52 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
           </div>
         </div>
 
-        {/* 형태 모드(직사각형/다각형) & 위성/일반 지도 토글 */}
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              const nextMode = shapeMode === 'RECTANGLE' ? 'POLYGON' : 'RECTANGLE';
-              setShapeMode(nextMode);
-              toast.info(nextMode === 'POLYGON' ? '비정형 다각형 핀 모드 활성화' : '직사각형 모드 전환');
-            }}
-            className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              shapeMode === 'POLYGON'
-                ? 'bg-amber-600 border-amber-400 text-white shadow-sm'
-                : 'bg-[#12271B] border-emerald-700/50 text-stone-200 hover:text-white'
-            }`}
-            title="다각형 모서리 핀 조절"
-          >
-            {shapeMode === 'POLYGON' ? <Shapes className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
-            <span>{shapeMode === 'POLYGON' ? '다각형 핀' : '직사각형'}</span>
-          </button>
+        {/* 형태 모드(직사각형 위 / 다각형 아래 2단 분리) & 위성/일반 & 상단 다음 버튼 */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* 형태 선택: 직사각형 (위) / 다각형 (바로 아래) 분리 선택 */}
+          <div className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setShapeMode('RECTANGLE');
+                toast.info('직사각형 모드로 설정되었습니다.');
+              }}
+              className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer whitespace-nowrap ${
+                shapeMode === 'RECTANGLE'
+                  ? 'bg-emerald-600 border-emerald-400 text-white shadow-xs ring-1 ring-emerald-300/40'
+                  : 'bg-[#12271B] border-emerald-700/50 text-stone-300 hover:text-white'
+              }`}
+              title="직사각형 사이트 선택"
+            >
+              <Square className="w-2.5 h-2.5" />
+              <span>직사각형</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShapeMode('POLYGON');
+                toast.info('비정형 다각형 핀 모드가 활성화되었습니다.');
+              }}
+              className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer whitespace-nowrap ${
+                shapeMode === 'POLYGON'
+                  ? 'bg-amber-600 border-amber-400 text-white shadow-xs ring-1 ring-amber-300/40'
+                  : 'bg-[#12271B] border-emerald-700/50 text-stone-300 hover:text-white'
+              }`}
+              title="비정형 다각형 핀 조절 모드 선택"
+            >
+              <Shapes className="w-2.5 h-2.5" />
+              <span>다각형</span>
+            </button>
+          </div>
 
-          <div className="flex items-center bg-[#12271B] p-0.5 rounded-lg border border-emerald-600/40">
+          {/* 지도 뷰 선택 (위성 위 / 일반 아래) */}
+          <div className="flex flex-col bg-[#12271B] p-0.5 rounded border border-emerald-600/40 gap-0.5">
             <button
               type="button"
               onClick={() => setMapType('SKYVIEW')}
-              className={`px-2 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+              className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer ${
                 mapType === 'SKYVIEW'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-stone-300 hover:text-white'
               }`}
             >
@@ -579,22 +598,33 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
             <button
               type="button"
               onClick={() => setMapType('ROADMAP')}
-              className={`px-2 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+              className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer ${
                 mapType === 'ROADMAP'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-stone-300 hover:text-white'
               }`}
             >
               일반
             </button>
           </div>
+
+          {/* 상단 보조 다음 단계 버튼 (100% 확실한 접근성 보장) */}
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-extrabold text-[11px] shadow-md border border-emerald-400/40 cursor-pointer whitespace-nowrap"
+            title="Step 2 텐트 배치로 이동"
+          >
+            <span>다음</span>
+            <Check className="w-3 h-3 text-emerald-100" />
+          </button>
         </div>
       </header>
 
       {/* 2. 메인 지도 뷰포트 (1:1 실측 연동 Polygon + 투명 네모칸 + 외곽 미니 회전 핸들) */}
       <div
         ref={mapContainerRef}
-        className="relative flex-1 w-full bg-[#0E1A11] overflow-hidden"
+        className="relative flex-1 w-full bg-[#0E1A11] overflow-hidden min-h-0"
         style={{ touchAction: 'pan-x pan-y' }}
       >
         {loading ? (
@@ -742,11 +772,11 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
           </button>
         </div>
 
-        {/* 사이트 크기 입력 및 회전 컨트롤 바 */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* 사이트 크기 입력 및 회전 컨트롤 바 (모바일 가로 1열 밀착 최적화) */}
+        <div className="flex items-center justify-between gap-1.5 overflow-x-auto scrollbar-none">
           {/* 가로 × 세로 정밀 조절 (자유 타이핑 + 증감 버튼) */}
-          <div className="flex items-center gap-2 bg-[#12271B] px-2.5 py-1.5 rounded-xl border border-emerald-600/40">
-            <span className="text-[11px] font-bold text-emerald-300">사이트:</span>
+          <div className="flex items-center gap-1.5 bg-[#12271B] px-2 py-1 rounded-xl border border-emerald-600/40 shrink-0">
+            <span className="text-[10px] sm:text-[11px] font-bold text-emerald-300">규격:</span>
             
             {/* 가로 (Width) 조절 */}
             <div className="flex items-center gap-0.5">
@@ -756,7 +786,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
                 className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
                 title="1m 축소"
               >
-                <Minus className="w-3 h-3" />
+                <Minus className="w-2.5 h-2.5" />
               </button>
               <input
                 type="text"
@@ -764,7 +794,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
                 value={widthInput}
                 onChange={(e) => handleWidthChange(e.target.value)}
                 onBlur={handleWidthBlur}
-                className="w-8 px-0.5 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
+                className="w-7 sm:w-8 px-0.5 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
               />
               <button
                 type="button"
@@ -772,7 +802,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
                 className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
                 title="1m 확대"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-2.5 h-2.5" />
               </button>
             </div>
 
@@ -786,7 +816,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
                 className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
                 title="1m 축소"
               >
-                <Minus className="w-3 h-3" />
+                <Minus className="w-2.5 h-2.5" />
               </button>
               <input
                 type="text"
@@ -794,7 +824,7 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
                 value={depthInput}
                 onChange={(e) => handleDepthChange(e.target.value)}
                 onBlur={handleDepthBlur}
-                className="w-8 px-0.5 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
+                className="w-7 sm:w-8 px-0.5 py-0.5 text-center text-xs font-bold bg-[#1C3B29] border border-emerald-500/50 rounded text-white"
               />
               <button
                 type="button"
@@ -802,50 +832,50 @@ function SiteMapPickerInternal({ site, onConfirmSite, onBack }: SiteMapPickerPro
                 className="w-5 h-5 rounded bg-[#1C3B29] hover:bg-emerald-700 text-stone-200 flex items-center justify-center text-xs active:scale-95 cursor-pointer"
                 title="1m 확대"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-2.5 h-2.5" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-emerald-200">m</span>
+            <span className="text-[10.5px] font-semibold text-emerald-200">m</span>
           </div>
 
           {/* 사이트 방향(진입로) 회전 컨트롤 (15도 정밀 버튼 유지) */}
-          <div className="flex items-center gap-1.5 bg-[#12271B] px-2.5 py-1.5 rounded-xl border border-emerald-600/40">
-            <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1">
-              <Compass className="w-3.5 h-3.5 text-amber-400" />
+          <div className="flex items-center gap-1 bg-[#12271B] px-2 py-1 rounded-xl border border-emerald-600/40 shrink-0">
+            <span className="text-[10px] sm:text-[11px] font-bold text-emerald-300 flex items-center gap-0.5">
+              <Compass className="w-3 h-3 text-amber-400" />
               <span>진입로:</span>
             </span>
             <button
               type="button"
               onClick={() => handleRotate(-15)}
-              className="px-2 py-0.5 text-xs font-bold rounded bg-[#1C3B29] hover:bg-[#254F37] text-white flex items-center gap-0.5 active:scale-95 cursor-pointer"
+              className="px-1.5 py-0.5 text-[10.5px] sm:text-xs font-bold rounded bg-[#1C3B29] hover:bg-[#254F37] text-white flex items-center gap-0.5 active:scale-95 cursor-pointer"
               title="반시계 15도 회전"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-2.5 h-2.5" />
               <span>-15°</span>
             </button>
-            <span className="text-xs font-mono font-bold text-amber-300 min-w-[34px] text-center">
+            <span className="text-xs font-mono font-bold text-amber-300 min-w-[30px] text-center">
               {Math.round(bearingDeg)}°
             </span>
             <button
               type="button"
               onClick={() => handleRotate(15)}
-              className="px-2 py-0.5 text-xs font-bold rounded bg-[#1C3B29] hover:bg-[#254F37] text-white flex items-center gap-0.5 active:scale-95 cursor-pointer"
+              className="px-1.5 py-0.5 text-[10.5px] sm:text-xs font-bold rounded bg-[#1C3B29] hover:bg-[#254F37] text-white flex items-center gap-0.5 active:scale-95 cursor-pointer"
               title="시계 15도 회전"
             >
               <span>+15°</span>
-              <RotateCw className="w-3 h-3" />
+              <RotateCw className="w-2.5 h-2.5" />
             </button>
           </div>
         </div>
 
-        {/* 최종 Step 2 이동 버튼 */}
+        {/* 최종 Step 2 이동 버튼 (화면 잘림 없이 100% 노출) */}
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-bold text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all"
+          className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all border border-emerald-400/30"
         >
           <Check className="w-4 h-4 text-emerald-100" />
-          <span>이 위치에 텐트 배치하기 (Step 2 이동)</span>
+          <span>이 위치에 텐트 배치하기 (Step 2 이동 ➔)</span>
         </button>
       </footer>
     </div>
